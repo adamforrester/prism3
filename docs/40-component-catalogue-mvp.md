@@ -241,8 +241,18 @@ single projected axis — which is what makes the **inverse** ring reachable at 
 The consistency mechanism `39` §7 argued for, stated as the procedure:
 
 1. **Read the brief.** It is the research record, not the spec.
-2. **Author the def against the engine's names.** Where the brief and the token tier collide, the
-   engine wins (#756), and the offset is recorded in the def as one line.
+2. **Author the def against the engine's names.** *A brief's rung names are input; the engine's token
+   names are the API. Where they collide the engine wins, and the def records the offset* — one line,
+   in the def, where the next author of that def will meet it (`icon.ts`'s header is the template).
+   Not a table: a table is one more artifact to drift, and the record's whole value is sitting where
+   the decision is made. The engine wins because principle 5 makes the emitted names the contract,
+   while a brief promises nobody anything. **Expect this on every def authored from a brief** — the
+   `icon` brief's rungs are offset one from the tier's and *agree on every value*, so adopting the
+   brief's names makes `md` mean 24 in the token layer and 20 in the component API, with both halves
+   valid and every gate green. **The default resolves to the tier's `md` rung**, which is the rule
+   rather than a per-def call (#756, `docs/28` §5.2). `lint-rung-names.ts` gates all of it, and its
+   arm 2 reads your `props`/`variants` against your `tokens` as two independently-authored halves — so
+   do not widen an enum to go green; that turns a missing binding into a size that resolves to nothing.
 3. **Everything unresolved goes in `notes`.** A contested decision with a named alternative goes in
    `contested`; an assertion not yet verified goes in `unverified`. This is where #810 and #833 should
    have been and were not — both were found by a human reading, which is the mechanism not being used

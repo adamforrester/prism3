@@ -7,6 +7,108 @@
 
 ---
 
+## (2026-08-14) — A brief's rung names are input; the engine's are the API (#756)
+
+**STATUS: PR open.** Closes #756, the last of the two blockers on def #8 (#821 was the other, shipped
+as #847). Small by design and exactly what the issue asked for: **docs, one decision, one gate.** Eight
+files — a new gate `packages/engine/lint-rung-names.ts`, the rule stated in `docs/28` §5.2 and in
+`docs/40` §7's authoring procedure, `icon.ts`'s per-def paragraph updated to cite the general rule it
+was the first instance of, and the five gate-list sites. `npm run verify` **34/34 PASS** (0 FAIL, 0
+SKIP, 0 ADVISORY, smoke included); **33 gates at base → 34 at head**; `regen --check` 105 artifacts,
+and nothing under `out/` changed.
+
+**THE DEFECT, restated because its shape is the reason it needed a gate rather than a code review.**
+The KB briefs and the emitted tier use the **same rung names for different values**, offset by exactly
+one rung — brief `sm/md/lg/xl` = 16/20/24/32, engine `xs/sm/md/lg/xl` = 16/20/24/32/40. **On the overlap
+the values agree exactly**, so nothing is *wrong*; the two just name one ladder differently. That
+agreement is the hazard. A def adopting the brief's names makes `icon.size.md` mean **24** in the token
+layer and **20** in the component API: the token resolves, the enum typechecks, and every gate in the
+repo passes. It is #708's shape — **a wrong value that resolves** — and it is invisible to anyone not
+reading two files side by side. With 45 briefs in the KB and eighteen more defs queued in `docs/40`,
+the issue's own words were the argument: *"four authors resolve it four times in four PR comments and
+the fifth gets it wrong."*
+
+**THE DECISION THAT WAS ACTUALLY OPEN, and how the corpus answered it rather than my judgment.** Two
+of #756's three Do bullets were already settled (the rule's wording; per-def recording, decided
+2026-08-14 on the issue). The third was live: `icon`'s default moved from the brief's 20 to 24 *purely
+because the names shifted one rung*, which is a **value change reached by a naming argument** and wants
+a rule, not a per-def call. The two readings diverge materially — preserve the brief's **value** (20, so
+`icon` defaults `sm`) or preserve its **position** (mid, so `md` = 24, which is what shipped) — so this
+looked like a question for Adam. **It was not, and the reason is worth recording: composition already
+decided it.** `button` and `icon-button` at their own default `medium` both bind `icon.size.md` = **24**.
+Preserving the brief's *value* would render a standalone `<Icon>` at 20 while the same icon inside a
+default-size button renders 24 — an inconsistency a designer sees immediately and no gate would — and it
+would break the 1:1 pairing `scale.ts` deliberately built between the icon ladder and `componentSizes`,
+which is what makes control size → icon size the identity rather than a reconciliation. So the rule is
+**a default resolves to the tier's `md` rung**, and it holds **5/5** across every def with a size axis
+today. Found in the corpus, not invented — which is what makes it assertable for defs nobody has
+written yet. *The generalizable bit: when a naming decision has a value consequence, look at what
+composes with the thing before asking which name is nicer. The composition constraint is a fact and the
+naming preference is not.*
+
+**THE GATE, and why arm 2 is the only one that could have caught this.** Three arms, in
+`lint-paint.ts` arm 1's structure, which is the shape #756 named.
+
+- **Arm 1** — every enum value resolves to an emitted rung, per brand (168 checks × 4 brands). #756
+  called this *necessary and not sufficient* and it is: a def declaring `['sm','md','lg','xl']` against
+  a five-rung tier passes it **trivially** — all four are real paths, just the wrong four. The gate
+  **says so in its own output** rather than letting a reader mistake it for the whole claim.
+- **Arm 2** — the enum maps to the rungs the def's **own bindings** reach. A def states its ladder
+  **twice**, in two independently-authored places: `props`/`variants` carry the *consumer's* vocabulary
+  (`small`) and `tokens` carry the *engine's* (`sm`). So EXPECTED and ACTUAL are two authored halves of
+  one line, exactly as arm 1 of the paint gate reads a key against its ref. Three claims: every enum
+  value is bound (a rung nothing reaches is a size that resolves to nothing), every bound key is in the
+  enum (catches an enum narrowed without its bindings), and the mapping is **order-preserving within
+  each tier family** — which is the half that sees an offset, because an inverted ladder resolves on
+  every single line.
+- **Arm 3** — the default rule above.
+
+**MONOTONIC, NOT STRICTLY MONOTONIC — the one judgment call, and it was measured rather than preferred.**
+`button` binds `size.large.type → type.label.md.emphasis`, sharing `md` with `medium`. That is
+**correct**: `type.label` emits only two rungs (`sm`, `md`) in all four brands, so a three-size control
+legitimately clamps its label at the top. Strict monotonicity fails that, and the fix would have been an
+exception entry — the wrong shape, because **a repeat is a clamp against a shorter tier and is always
+benign, while a reversal never is.** Monotonicity admits the first and refuses the second with **no
+exception list at all**, which matters most for the defs nobody has authored yet. (Measured: 13 of 14
+tier families are strictly increasing; the single non-strict one is that clamp, and `button.ts:122`
+already flagged it as an open finding.)
+
+**INDEPENDENCE (`docs/34`) — four shortcuts declined, each named in the file's header.** Calling
+`expandKey`/`varOf` to resolve the keys (the projector's own helpers, so both halves become one
+derivation — the paint gate's stated reason for not calling `paintOf`); deriving the expected rung list
+from the def instead of the emitted tree (#756's own words: *"a gate that derives the expected rung list
+from the tier it is checking cannot fail"*); deriving arm 2's EXPECTED from `tokens`, i.e. asking the
+bindings what the enum ought to be, which deletes the arm outright — **the two reads are the gate, not
+duplication to DRY away**; and resolving through the alias chain to compare **pixels**, which is the
+subtle one: the defect is that the two sides *agree on value* and disagree on **name**, so a gate
+comparing 24 to 24 sees nothing. The subject here is a name.
+
+**EIGHT MUTATIONS, each failing this gate by name, with a clean control before and after.** M1 is the
+one #756 specified — rename a rung in the **emitted tier** (`icon.size.md` → `icon.size.medium`): three
+named failures across `icon`, `button`, `icon-button`. M2 is **the actual #756 defect**: adopt the
+brief's offset names on `icon` (enum shifts up one, bindings follow one down) — every line resolves, and
+**arm 3 catches it alone**, which is the clearest evidence the default rule is load-bearing rather than
+decorative. M3 inverts two rungs (arm 2C, every line resolving). M4/M5 are the two directions of
+enum↔binding. M6/M7/M8 are the scope floors: a silently-dropped axis, a stale `NO_SIZE_AXIS` admission,
+and `MUST_COVER` not represented. **The `type.label` clamp is a live negative control** — it stays green
+across all eight, so the monotonicity choice is verified in both directions rather than asserted.
+
+**A pipeline trap fired mid-run and is worth the line.** M1's first report read `EXIT=0` under a
+`… | tail -8` — `tail`'s status, not the gate's, which is the exact defect CLAUDE.md §4 names and the
+reason `verify.ts` captures exit codes with no pipeline between. The gate had failed correctly; the
+*measurement* of it was wrong. Every mutation after that captured the status directly.
+
+**WHAT THIS DOES NOT CLAIM,** stated in the gate's header so a later reader does not over-read it: it
+says nothing about whether a rung's **value** is right (that is `test.ts`'s scale coverage and the
+contrast contracts), nothing about whether the brief and the def agree — the brief is not in this repo
+and #756's decision is precisely that the brief gets no vote — and it does not check that the per-def
+offset **prose** exists, because a gate over comment text asserts wording rather than behavior.
+
+**One pre-existing defect found and filed, not fixed** — **#857** (principle 3): `docs/28` has **two
+`### 5.1` headings** (lines 365 and 428, from #758 and #784), so §5.2 here is the third subsection with
+the second distinct number. Prose only, no gate reads it, and renumbering is not free — §5.x is cited by
+number, so an insert silently repoints existing citations, which is why `lint-shape-index.ts`'s
+`--accept` appends only. Filed rather than folded in.
 ## (2026-08-14) — A package manager run inside a worktree emptied 12 scoped directories in the shared tree
 
 **STATUS: shipped (docs only).** No code, no gate, no emitted artifact — the third direction of the

@@ -28,10 +28,17 @@
  *  2. THE DEFAULT SHIFTS, and it is a real shift rather than drift. `md` here is 24; the brief's
  *     default is 20. Same rung COUNT, different rung, entirely because of the offset above. Stated
  *     explicitly so a future reader who finds the brief and not this line does not read it as drift.
+ *     Now the RULE rather than this def's judgment (#756, `docs/28` §5.2): a default resolves to the
+ *     tier's `md` rung, which holds 5/5 across the corpus. What settled it was composition — `button`
+ *     and `icon-button` at their own default `medium` both bind `icon.size.md` = 24, so preserving the
+ *     brief's VALUE here would render a standalone icon at 20 and the same icon inside a default-size
+ *     button at 24, and would break the 1:1 pairing with `componentSizes` that makes control size →
+ *     icon size the identity. Gated in `lint-rung-names.ts` arm 3.
  *
- * This is the first instance of a systemic collision — every def authored from a KB brief meets it,
- * and text-field and card are next — so it is resolved HERE for icon and deliberately not
- * generalized in this PR; the general fix is filed separately by the owner.
+ * This was the first instance of a systemic collision — every def authored from a KB brief meets it,
+ * and text-field and card are next. #756 has since generalized it: the rule is stated in `docs/28`
+ * §5.2 and in `docs/40` §7's authoring procedure, and `lint-rung-names.ts` gates every def's enum
+ * against the emitted tier and against its own `tokens` bindings.
  */
 import { ComponentDef } from '../component-schema';
 // The vocabulary, imported rather than restated: `emit-icons.ts` proves it matches both the authored

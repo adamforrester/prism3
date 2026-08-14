@@ -473,6 +473,76 @@ failure vanish is to add the offending word to it, which converts a real defect 
 line. The list may only grow when the projector **actually dispatches** the new slot, which is checkable:
 a `paintOf('<slot>')` call must exist in the paint branch for the part kind that owns it.
 
+### 5.2 Decided (2026-08-14, #756): the engine's rung names are the API, and the default is `md`
+
+**The rule, and it is the whole decision in one line:** *a brief's rung names are input; the engine's
+token names are the API. Where they collide the engine wins, and the def records the offset.*
+
+**What collides.** The KB briefs and the emitted tier use **the same rung names for different values**,
+offset by exactly one rung:
+
+| | 16 | 20 | 24 | 32 | 40 |
+|---|---|---|---|---|---|
+| `components/icon.md` §15 | `sm` | `md` *(default)* | `lg` | `xl` | — |
+| engine `icon.size.*` | `xs` | `sm` | `md` *(default)* | `lg` | `xl` |
+
+On the overlap the **values agree exactly**. Nothing is *wrong*; the two just name one ladder
+differently, and the engine carries one extra rung on top. That agreement is what makes it dangerous
+rather than obvious: a def adopting the brief's names makes `icon.size.md` mean **24** in the token layer
+and **20** in the component API. Both halves stay valid — the token resolves, the enum typechecks, every
+gate passes — and the divergence is visible only to someone reading two files side by side. It is #708's
+shape exactly: **a wrong value that resolves.**
+
+**Why the engine wins, from something already committed rather than a fresh preference.** Principle 5 and
+`docs/11` make the emitted token names the **contract**: `CONTRACT_VERSION` governs them and consumers
+hard-code them. A brief is *input to authoring*, not an API surface — its rung names promise nobody
+anything. (The `icon` brief also disagrees with itself: §3's prose gives three names, §15's schema four.)
+
+**Where the offset is recorded: per def, one line, where the author meets it.** Not a table. A table is
+one more artifact to drift, and the record's entire value is sitting *where the decision is made* — a
+per-def line is read by the next author of that def; a table is read by nobody until it is already wrong.
+`icon.ts`'s header is the template.
+
+**The default rule — the issue's third bullet, and the one that needed deciding rather than restating.**
+`icon`'s default moved from the brief's 20 to 24 purely because the names shifted one rung, which is a
+*value* change reached by a *naming* argument. The rule:
+
+> **A def's default size resolves to the tier's `md` rung.**
+
+Two things make that a rule rather than a per-def judgment. First, **it was found in the corpus, not
+invented**: it holds 5/5 across every def with a size axis — `icon` defaults `md`, and `button`,
+`icon-button`, `field-label` and `text-field` all default `medium`, whose bindings reach `size.md.*` /
+`icon.size.md` / `type.label.md.*` and nothing else. Second, **the composition evidence decides the
+value-change objection instead of arguing with it.** The choice looked like *preserve the brief's value
+(20, so `icon` defaults `sm`)* versus *preserve the brief's position (mid, so `md` = 24)*. Position wins,
+because `button` and `icon-button` at their own default `medium` both bind `icon.size.md` = **24**: a
+standalone `<Icon>` defaulting to 20 while the same icon inside a default-size button renders 24 is an
+inconsistency a designer sees immediately and a gate never would. Preserving the brief's *value* would
+have broken the identity `scale.ts` deliberately built — the icon ladder pairs 1:1 with `componentSizes`
+so control size → icon size is the identity rather than a reconciliation between a 4-step and a 5-step
+scale. **The default follows the ladder's shape, and the ladder is the engine's.**
+
+**Gated, in `lint-rung-names.ts`, in three arms.** Arm 1 (every enum value resolves to an emitted rung,
+per brand) is **necessary and not sufficient**, and says so in its own output: a def declaring
+`['sm','md','lg','xl']` against a five-rung tier passes it trivially — those are all real paths, just the
+wrong four. Arm 2 is the one that sees the divergence, and it is `lint-paint.ts` arm 1's structure — a def
+states its ladder **twice**, in `props`/`variants` (the consumer's vocabulary: `small`) and in `tokens`
+(the engine's: `sm`), so EXPECTED and ACTUAL are two independently-authored halves of one line. It asserts
+every enum value is bound, every bound key is in the enum, and the mapping is **order-preserving** within
+each tier family. Arm 3 asserts the default rule above.
+
+Monotonic rather than *strictly* monotonic is the one judgment call, and it is measured: `button` binds
+`size.large.type → type.label.md.emphasis`, sharing `md` with `medium`, which is correct because
+`type.label` emits only two rungs in all four brands and a three-size control legitimately clamps its
+label at the top. **A repeat is a clamp against a shorter tier and is always benign; a reversal never is.**
+Monotonicity admits the first and refuses the second with no exception list — and an exception list is
+what strictness would have forced, which is the wrong shape for a rule that should hold for defs nobody
+has written yet.
+
+**Do not add a rung to a def's enum to go green.** The same hazard `PAINT_SLOTS` carries one section up:
+the cheapest way to silence arm 2A is to widen the enum until it matches the bindings, which converts a
+missing binding into a size a consumer can ask for and get nothing from.
+
 ---
 
 ## 6. Next step

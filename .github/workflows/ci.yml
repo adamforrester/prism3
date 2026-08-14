@@ -308,6 +308,23 @@ jobs:
       - name: Component paint is where the defs say it is
         run: npx --yes tsx@4 packages/engine/lint-paint.ts
 
+      # #756: the KB briefs and the emitted tier use THE SAME RUNG NAMES FOR DIFFERENT VALUES, offset
+      # by one rung and agreeing on every value over the overlap. A def adopting the brief's names makes
+      # `icon.size.md` mean 24 in the token layer and 20 in the component API — both halves valid, every
+      # other gate green, visible only by reading two files side by side. #708's shape: a wrong value
+      # that resolves. Three arms. ARM 1 (every enum value resolves to an emitted rung, per brand) is
+      # NECESSARY AND NOT SUFFICIENT and says so in its own output: `['sm','md','lg','xl']` against a
+      # five-rung tier passes it trivially. ARM 2 is the one that sees the divergence, in `lint-paint.ts`
+      # arm 1's shape — a def states its ladder TWICE, in `props`/`variants` (`small`) and in `tokens`
+      # (`sm`), so EXPECTED and ACTUAL are two independently-authored halves; it asserts both directions
+      # of enum↔binding plus order-preservation per tier family. Monotonic, not strict, and measured:
+      # `type.label` emits two rungs so `button`'s `large` legitimately clamps to `md` — a repeat is a
+      # clamp, a reversal never is, and strictness would have forced an exception list. ARM 3 is the
+      # default rule (a default resolves to `md`), which holds 5/5 across the corpus and was settled by
+      # composition: `button`/`icon-button` at their own default bind `icon.size.md` = 24.
+      - name: A def's size enum names the engine's rungs, not a brief's
+        run: npx --yes tsx@4 packages/engine/lint-rung-names.ts
+
       # #786: `docs/34`'s sub-shape numbers are cited as stable ids from across the repo, and
       # nothing enforced that a published number keeps its meaning. Note what this is: a hazard with
       # ZERO incidents — measured over every commit that has touched the doc, shapes 1-9 are
