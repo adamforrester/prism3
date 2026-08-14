@@ -250,17 +250,56 @@ export type PartDef = {
    *  would be the tempting choice — and it would silently make every nested set fixed-at-its-first-
    *  variant, which is the #656 error this field exists to stop. See `NestingRelation`. */
   nesting?: NestingRelation;
-  /** For `absolute`: the binding key giving the amount this part is inset OUTWARD from its parent's
-   *  bounds on every side. The focus ring's `focus.ring.offset` — a ring at offset 2 sits 2px outside
-   *  the target on each side, so a materializer positions it at `-inset` and sizes it
-   *  `parent + 2 × inset`.
+  /** For `absolute`: the binding key giving the size of the VISIBLE GAP between this part's inner edge
+   *  and its parent's bounds. The focus ring's `focus.ring.offset` — at offset 2 an unbroken 2px sliver
+   *  of background separates the ring from the control's own border (WCAG 1.4.11, target 3:1).
    *
-   *  A binding key like every other geometry field, and it resolves through `def.tokens` identically,
-   *  but note what a materializer can do with it: Figma's `x`/`y` accept NO variable binding, so the
-   *  offset is read as a NUMBER at paste time and frozen. That is a real ceiling and belongs in
-   *  `codeOnly` wherever this kind is used — unlike padding or radius, a brand changing its ring
-   *  offset does NOT re-flow an already-pasted component. */
+   *  A GAP, not a coordinate, and #801 is the whole reason that distinction is spelled out here. This
+   *  doc used to say a materializer "positions it at `-inset` and sizes it `parent + 2 × inset`" — which
+   *  is the CSS geometry, where `outline-offset` measures from the border edge and the outline's own
+   *  width grows away from it, so the gap and the coordinate are the same number. In Figma they are not.
+   *  A stroke is drawn INSIDE its node's bounds (`strokeAlign: 'INSIDE'`, which both executors set and
+   *  which is correct for a border), so a ring placed at `-offset` has its stroke drawn back inward
+   *  across the whole gap: at offset 2 with a 2px stroke the ring's outer edge lands exactly on the
+   *  border and the gap is ZERO. The offset was applied, and the property it exists to produce was not.
+   *  Found by comparing a built file against the Prism2 reference, which sits at `-4` for the same 2px
+   *  stroke; nothing in the projection or either executor knew the part had a stroke at all.
+   *
+   *  So a materializer whose strokes are inside-aligned must position this part at
+   *  `-(inset + strokeWidth)` and size it `parent + 2 × (inset + strokeWidth)`. That is a PLATFORM
+   *  COMPENSATION and belongs in the materializer, never in the token: `focus.ring.offset` stays 2 in
+   *  the canonical tree because 2 is what CSS wants and what the gap IS (docs/19 §1, docs/05 —
+   *  canonical value in `$value`, platform directive in `$extensions`, the same shape as lineHeight's
+   *  px-from-ratio). A derived `focus.ring.inset = 4` would be correct for one projection and a trap
+   *  for every consumer who found the name.
+   *
+   *  `strokeInset` below is how a part declares the stroke to compensate for. Ring-specific today only
+   *  because `focus-ring` is the only part kind that carries a stroke of its own; when #740 gives
+   *  `PartDef` a stroke field, that field supplies this width and the compensation stops being
+   *  ring-specific without either executor changing.
+   *
+   *  A binding key like every other geometry field, resolving through `def.tokens` identically, but note
+   *  what a materializer can do with it: Figma's `x`/`y` accept NO variable binding, so both names are
+   *  read as NUMBERS at paste time and summed. That is a real ceiling and belongs in `codeOnly` wherever
+   *  this kind is used — a brand changing its ring offset does NOT re-flow an already-pasted component,
+   *  and a rebuild does not fix that, because the executor skips every member that already exists by
+   *  name and reports `✓ already built` without writing geometry (#827 — general to any geometry, paint
+   *  or constraint change, not to this field). Delete the set or build onto a fresh page. */
   inset?: string;
+  /** For `absolute`: the binding key giving the width of the stroke the nested component draws INSIDE
+   *  its own bounds, which a materializer must add to `inset` to leave a visible gap of `inset`.
+   *
+   *  SEPARATE FROM `inset` rather than folded into it, because they are different quantities with
+   *  different owners. `inset` is a design decision the brand makes (how much background separates the
+   *  ring from the control); this is a fact about the nested component's own rendering that the host must
+   *  compensate for. Summing them at authoring time is what produces a token whose value is right for
+   *  Figma and wrong for CSS — #801's actual defect one layer up.
+   *
+   *  OPTIONAL, and its absence means "this part's nested component draws nothing inside its bounds", not
+   *  "unknown". A part that omits it is positioned at exactly `-inset`, which is right for a part with no
+   *  stroke and is what every non-ring absolute part will want. `lint-absolute-inset.ts` is what stops
+   *  the omission from being silent for a part that does carry one. */
+  strokeInset?: string;
   note?: string;
 };
 
@@ -1350,6 +1389,20 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // its parent's bounds, which is the one position WCAG 1.4.11 says it must not take: flush against
       // the border, it blends into the button's own edge instead of separating from it.
       if (!p.inset) e.push(`anatomy part '${n}' is kind 'absolute' but binds no 'inset' — a ring flush against its target's bounds blends into the element's own border (WCAG 1.4.11)`);
+      // AND THE STROKE THAT EATS IT (#801). The rule above required an inset and stopped there, and a
+      // part satisfying it still projected flush: the nested component draws its stroke INSIDE its own
+      // bounds, so a 2px stroke at offset 2 consumes the entire gap the offset was asked for. The check
+      // above cannot see that — it asks whether a number was named, and the number was.
+      //
+      // Keyed off `nests` naming the ring rather than off a stroke field, because `PartDef` has no
+      // stroke field yet: #740 is what adds one, and until it lands the only part kind that carries a
+      // stroke of its own is a focus ring. So this is deliberately the narrow rule that fires today,
+      // written to be REPLACED rather than extended — when a part can declare its own stroke, the
+      // condition becomes "declares a stroke and no strokeInset" and this name check goes away.
+      // Narrow beats absent: the alternative is that the one part kind where this is already wrong
+      // validates clean, which is exactly how #801 shipped.
+      if (p.inset && p.nests === 'focus-ring' && !p.strokeInset)
+        e.push(`anatomy part '${n}' is kind 'absolute' binding inset '${p.inset}' and nests 'focus-ring', but binds no 'strokeInset' — the ring draws its stroke INSIDE its own bounds, so a materializer positioning it at -inset leaves a gap of (inset - strokeWidth) and at the shipped 2px/2px that is ZERO: flush against the border it must be distinguishable from (WCAG 1.4.11, #801). Bind the ring's width key here`);
       // A part outside the flow cannot be the interaction target: `role: 'target'` is what owns the hit
       // area, radius, fill and border, and a node that takes no space in the row owns no hit area. The
       // single-target check above would not catch this — it counts targets, and one absolute target is
@@ -1381,6 +1434,10 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // children and this is about what sits OUTSIDE the flow — two different claims.
     if (p.kind !== 'absolute' && p.inset !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'inset' — only an 'absolute' part sits outside the flow to be inset from it`);
+    // `strokeInset` gets the same rule for the same reason: it is a compensation applied to `inset`, so
+    // off an absolute part there is nothing for it to compensate and it would project to nothing.
+    if (p.kind !== 'absolute' && p.strokeInset !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeInset' — it compensates an absolute part's 'inset' for an inside-drawn stroke, and there is no inset here to compensate`);
     if (p.kind !== 'absolute' && p.nests !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' part materializes as an instance of another component`);
     // ---- the nesting relation (#681) ----

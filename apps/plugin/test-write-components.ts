@@ -87,14 +87,24 @@ type Page = { children: Node[] };
  *  measure right. Same function the engine's stub uses, so the two paths measure identically. */
 const varValue = (name: string): number => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
 
-/** The offset `resolveForConsumer` hands back for an `absoluteInset`, unless a case overrides it.
+/** The two halves of a focus ring's coordinate: the visible GAP the brand asks for and the width of the
+ *  stroke the ring draws INSIDE its own bounds. Both are `focus.ring.*` values and both are 2 in every
+ *  emitted brand, which is why these numbers are 2 rather than arbitrary probes.
  *
- *  NAMED rather than inlined at the shim, because it is the harness's INPUT and the ring assertions'
- *  EXPECTED — one constant read by two places that must not derive it from each other. Before #801 the
- *  literal `2` sat in the shim and the ring check read its expectation off the built NODE instead, so
- *  the two could never disagree and a flush ring passed. Matches `focus.ring.offset`'s emitted value in
- *  every brand today, which is why the number is 2 rather than an arbitrary probe. */
-const SHIM_INSET = 2;
+ *  NAMED rather than inlined at the shim, because they are the harness's INPUT and the ring assertions'
+ *  EXPECTED — constants read by two places that must not derive them from each other. Before #801 a
+ *  literal `2` sat in the shim and the ring check read its expectation off the built NODE, so the two
+ *  could never disagree and a flush ring passed.
+ *
+ *  SPLIT IN TWO by #801's fix, and that split is the correction rather than a refactor. One constant was
+ *  enough while the coordinate was believed to BE the gap; it is not — the stroke is drawn inward across
+ *  the gap, so the coordinate is the sum and the gap is what a designer sees. A harness carrying only the
+ *  offset can state the coordinate it expects and cannot state the property that matters. */
+const SHIM_GAP = 2;
+const SHIM_STROKE = 2;
+/** What the executor must write: the gap plus the stroke that eats it. Derived here, once, so the
+ *  assertions below quote the formula rather than restating a number. */
+const SHIM_COORD = SHIM_GAP + SHIM_STROKE;
 
 type FontName = { family: string; style: string };
 const fontKey = (f: FontName): string => `${f.family}|${f.style}`;
@@ -124,6 +134,10 @@ type FileNode =
 
 type ShimOpts = {
   vars?: string[]; styles?: string[]; effects?: string[]; comps?: string[]; page?: Page; insetValue?: unknown;
+  /** Per-NAME resolved values, where `insetValue` overrides every name at once. Both exist because they
+   *  answer different questions: `insetValue` reaches the not-a-number case, and this gives the ring's two
+   *  halves DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
+  varOverrides?: Record<string, unknown>;
   /** Nodes in the file that are NOT plain components (#681). Kept separate from `comps` so every
    *  existing case reads unchanged: `comps` still means "a plain COMPONENT of this name". */
   fileNodes?: FileNode[];
@@ -194,7 +208,16 @@ const makeShim = (opts: ShimOpts = {}) => {
     if (!page) return;
     for (const k of kids) { const i = page.children.indexOf(k); if (i >= 0) page.children.splice(i, 1); }
   };
-  const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: opts.insetValue ?? SHIM_INSET }) });
+  // PER NAME (#801). The ring's coordinate is the sum of two resolved variables, so a resolver answering
+  // one number for every name would make `gap + stroke` indistinguishable from `2 × gap` and the formula
+  // under test would be satisfied by the wrong arithmetic. Mirrors the engine stub's `resolved`.
+  const resolvedValue = (name: string): unknown =>
+    opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
+      : opts.insetValue !== undefined ? opts.insetValue
+      : name === 'focus/ring/width' ? SHIM_STROKE
+      : name === 'focus/ring/offset' ? SHIM_GAP
+      : SHIM_GAP;
+  const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }) });
 
   const mkNode = (type: string): Node => {
     const node: Node = {
@@ -634,14 +657,27 @@ const partOf = (member: Node, name: string): Node | null =>
  *      means it — not from a coordinate the executor wrote. A centered part has `absoluteCenter` and no
  *      inset; the plan states which is which before the run, so the classification cannot be moved by
  *      the very write under test.
- *   2. EXPECTED is the offset the SHIM WAS TOLD to resolve (`SHIM_INSET`, the harness's INPUT), not the
- *      offset read back out. Input vs output is the #708 shape, and it is the only version of this
+ *   2. EXPECTED is what the SHIM WAS TOLD to resolve (`SHIM_GAP` / `SHIM_STROKE`, the harness's INPUT),
+ *      not what was read back out. Input vs output is the #708 shape, and it is the only version of this
  *      assertion that can fail.
  *
- * And `off > 0` is asserted OUTRIGHT, because that is #801's actual defect: an offset of 0 resolves
- * cleanly, writes without throwing, reports no miss, and produces a structurally perfect component.
- * There is no layer below this one at which it looks like an error. The negative control immediately
- * after runs the flush case and requires this checker to complain about it, by name.
+ * AND THEN THAT FIXED VERSION WAS STILL WRONG, which is the part worth reading before trusting anything
+ * below. Both changes above are real and neither was sufficient: the repaired assertion took ONE number
+ * and asserted the ring's origin was `-that`, which at the shipped 2px offset expected exactly -2 — the
+ * flush geometry. It was independent, falsifiable, and measuring the wrong quantity. The ring draws its
+ * stroke INSIDE its own bounds, so the coordinate is `gap + stroke` and the property WCAG 1.4.11 is about
+ * is the GAP; a checker holding one number can state the coordinate and cannot state the gap. Found by
+ * comparing a built file against the Prism2 reference (-4 for the same 2px stroke), not by any gate.
+ * `docs/34`'s newest shape is this: a fully independent gate can measure the wrong quantity, and the
+ * aggravating detail is that the parity gate confirmed both executors agreed — on one wrong formula.
+ *
+ * So the checker takes the gap and the stroke separately, asserts the gap is positive OUTRIGHT, and
+ * derives it from the built node's own origin. Positive outright because that is #801's actual defect: a
+ * gap of 0 resolves cleanly, writes without throwing, reports no miss and produces a structurally perfect
+ * component — there is no layer below this one at which it looks like an error. TWO negative controls
+ * follow, and the second is the one that matters: a zero offset (never the live symptom) and a correct
+ * offset with the stroke unmodeled (what actually shipped). The old single-number checker passes the
+ * second one.
  */
 const focusName = grid.map(planComponentName).find((n) => n.includes('state=focus'))!;
 const focusMember = memberByName.get(focusName)!;
@@ -657,27 +693,41 @@ ok(ringNames.length > 0, `the focus variant carries an absolutely-positioned par
 ok(planInset.size > 0 && ringNames.some((n) => planInset.has(n)),
   `the PLAN marks at least one of them inset, so the geometry below is classified independently of what the executor wrote (${[...planInset].map(([n, v]) => `${n}→${v}`).join(', ')})`);
 
-/** Every way the built ring can disagree with the offset the run was TOLD to resolve. Returns the
- *  complaints so both the main case and the negative control below can read the same checker. */
-const ringProblems = (member: Node, insetOf: Map<string, string>, wantOff: number): string[] => {
+/** Every way the built ring can disagree with the values the run was TOLD to resolve. Returns the
+ *  complaints so both the main case and the negative control below can read the same checker.
+ *
+ *  TAKES THE GAP AND THE STROKE SEPARATELY, which is #801's correction to this very function. Its first
+ *  form took one `wantOff` and asserted the ring's origin was `-wantOff` — a check that was independent,
+ *  falsifiable, and measuring the wrong quantity. The ring draws its stroke INSIDE its own bounds, so the
+ *  coordinate is `gap + stroke` while the property a designer sees is the GAP, and a checker holding one
+ *  number can state the first and cannot state the second. Both are asserted below, separately, because
+ *  they fail in different ways: the coordinate catches an executor that forgot the stroke, and the gap
+ *  catches an offset that resolved to something that leaves no sliver at all. */
+const ringProblems = (member: Node, insetOf: Map<string, string>, wantGap: number, wantStroke: number): string[] => {
   const bad: string[] = [];
+  const wantCoord = wantGap + wantStroke;
   for (const [rn] of insetOf) {
     const ring = partOf(member, rn);
     if (!ring) { bad.push(`${rn}: the plan marks it inset and no such node was built`); continue; }
     if (ring.layoutPositioning !== 'ABSOLUTE') { bad.push(`${rn}: reads ${ring.layoutPositioning}, so it would take a cell in the row`); continue; }
-    // #801. Every other line here is arithmetic AROUND the offset; this is the offset itself, and it is
-    // the one thing nothing checked.
-    if (!(wantOff > 0)) bad.push(`${rn}: the offset is ${wantOff} — the ring is built ${wantOff === 0 ? 'FLUSH AGAINST' : 'INSIDE'} the border it exists to be distinguishable from (#801)`);
-    if (ring.x !== -wantOff || ring.y !== -wantOff) bad.push(`${rn}: origin ${JSON.stringify([ring.x, ring.y])}, expected ${JSON.stringify([-wantOff, -wantOff])} for an offset of ${wantOff}`);
-    if ((ring.width as number) !== (member.width as number) + wantOff * 2 || (ring.height as number) !== (member.height as number) + wantOff * 2)
-      bad.push(`${rn}: ${ring.width}x${ring.height} against a ${member.width}x${member.height} target at offset ${wantOff}`);
+    // #801, and the ONLY line here stated in the terms WCAG 1.4.11 is written in: how much background a
+    // designer can see between the host's border and the ring. Every other check is arithmetic about the
+    // coordinate, and the coordinate was never the property that mattered. Derived from the built node's
+    // own origin rather than from `wantCoord`, so an executor writing the right coordinate by the wrong
+    // route still has to leave a real sliver.
+    const gap = -(ring.x as number) - wantStroke;
+    if (!(gap > 0)) bad.push(`${rn}: the visible gap is ${gap} — the ring is drawn ${wantStroke}px inside its own bounds, so an origin of ${ring.x} puts its outer edge ${gap === 0 ? 'FLUSH AGAINST' : 'INSIDE'} the border it exists to be distinguishable from (#801)`);
+    else if (gap !== wantGap) bad.push(`${rn}: the visible gap is ${gap}, and the run was told to resolve a gap of ${wantGap}`);
+    if (ring.x !== -wantCoord || ring.y !== -wantCoord) bad.push(`${rn}: origin ${JSON.stringify([ring.x, ring.y])}, expected ${JSON.stringify([-wantCoord, -wantCoord])} — a gap of ${wantGap} plus the ${wantStroke}px stroke drawn inside it`);
+    if ((ring.width as number) !== (member.width as number) + wantCoord * 2 || (ring.height as number) !== (member.height as number) + wantCoord * 2)
+      bad.push(`${rn}: ${ring.width}x${ring.height} against a ${member.width}x${member.height} target at a coordinate of ${wantCoord}`);
     const con = ring.constraints as { horizontal?: string; vertical?: string } | null;
     if (con?.horizontal !== 'STRETCH' || con?.vertical !== 'STRETCH') bad.push(`${rn}: constraints ${JSON.stringify(con)} — it would not track a resized variant`);
   }
   return bad;
 };
-const ringBad = ringProblems(focusMember, planInset, SHIM_INSET);
-ok(ringBad.length === 0, `the focus ring is absolute, ${SHIM_INSET}px larger on EVERY side, at origin [-${SHIM_INSET},-${SHIM_INSET}], and STRETCHed`
+const ringBad = ringProblems(focusMember, planInset, SHIM_GAP, SHIM_STROKE);
+ok(ringBad.length === 0, `the focus ring is absolute, at origin [-${SHIM_COORD},-${SHIM_COORD}] (a ${SHIM_GAP}px visible gap plus its own ${SHIM_STROKE}px stroke), ${SHIM_COORD}px larger on EVERY side, and STRETCHed`
   + (ringBad.length ? ` — ${ringBad.join('; ')}` : ''));
 
 // ---- the negative control: THIS CHECKER MUST FAIL ON A FLUSH RING ---------------------------
@@ -691,9 +741,29 @@ const flush = await run(grid, { ...full(), page: flushPage, insetValue: 0 });
 const flushMember = (flushPage.children[0].children as Node[]).find((m) => String(m.name) === focusName)!;
 ok(flush.misses.length === 0,
   `a zero offset is reported by NOTHING — the flush run is clean at every layer below this assertion (${flush.misses.length} misses), which is why #801 needed a check of its own`);
-const flushBad = ringProblems(flushMember, planInset, 0);
+const flushBad = ringProblems(flushMember, planInset, 0, SHIM_STROKE);
 ok(flushBad.some((b) => b.includes('#801')),
   `and the ring checker CATCHES it: a flush ring is a failure, not a skipped case (${flushBad[0] ?? 'NOTHING REPORTED — the check is self-disarming again'})`);
+
+// ---- the SECOND negative control: the defect that actually shipped -------------------------------
+// A zero offset was never the live symptom. What shipped was a CORRECT offset of 2 with the ring's stroke
+// unmodeled, so the executor wrote -2, the stroke was drawn back across the whole gap, and the ring
+// landed flush while every number in the plan was right. That is a different mutation from `insetValue: 0`
+// and the checker has to catch it too — the version of this function that took a single `wantOff` could
+// not, because -2 was exactly what it expected. Reproduced by resolving the stroke width to 0, which is
+// what "ignoring the stroke" means arithmetically, then asking the checker for the gap it leaves against
+// the REAL 2px stroke the ring draws.
+const noStrokePage: Page = { children: [] };
+const noStroke = await run(grid, { ...full(), page: noStrokePage, varOverrides: { 'focus/ring/width': 0 } });
+const noStrokeMember = (noStrokePage.children[0].children as Node[]).find((m) => String(m.name) === focusName)!;
+ok(noStroke.misses.length === 0,
+  `an unmodeled stroke is reported by NOTHING either — the run is clean at every layer (${noStroke.misses.length} misses), which is how a flush ring shipped with 0 misses and a green suite`);
+const noStrokeRing = partOf(noStrokeMember, [...planInset.keys()][0])!;
+ok(noStrokeRing.x === -SHIM_GAP,
+  `...and it really does reproduce the shipped geometry: the ring sits at exactly -${SHIM_GAP}, the number the old assertion expected and passed on (${noStrokeRing.x})`);
+const noStrokeBad = ringProblems(noStrokeMember, planInset, SHIM_GAP, SHIM_STROKE);
+ok(noStrokeBad.some((b) => b.includes('#801')),
+  `and the ring checker CATCHES the shipped defect: an offset of ${SHIM_GAP} that ignores the ${SHIM_STROKE}px stroke leaves no sliver (${noStrokeBad[0] ?? 'NOTHING REPORTED — the check measures the coordinate again and not the gap'})`);
 
 // The pending spinner takes the LEADING VISUAL'S CELL when there is one, so the grid above — which fills
 // that slot — exercises the in-flow branch. Assert that, then take the centered branch on a LABEL-ONLY

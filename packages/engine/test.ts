@@ -6513,7 +6513,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
      *  search does not match — a COMPONENT_SET, an INSTANCE, a FRAME. `comps` alone could only express
      *  "present as a component" and "absent", which is the distinction the defect lived inside. */
     type StubFileNode = { name: string; type: 'COMPONENT_SET' | 'INSTANCE' | 'FRAME'; variants?: string[] };
-    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; fileNodes?: StubFileNode[] };
+    /** `insetValue` overrides what EVERY variable resolves to; `varOverrides` overrides them per name.
+     *  Both exist because they answer different questions: `insetValue` is how the not-a-number case is
+     *  reached (one bad value, whichever name asks), and `varOverrides` is how the two halves of the ring's
+     *  coordinate are given DIFFERENT values, which is the only way to tell a sum from a doubling (#801). */
+    type StubOpts = { vars?: string[]; styles?: string[]; comps?: string[]; page?: StubPage; insetValue?: unknown; varOverrides?: Record<string, unknown>; fileNodes?: StubFileNode[] };
+    /** The two halves of a focus ring's coordinate, the real NB values (`focus.ring.offset` /
+     *  `focus.ring.width` — both 2 in every emitted brand). NAMED, and named HERE, because they are the
+     *  stub's INPUT and the geometry assertions' EXPECTED at once, and #801 is what that costs when the
+     *  two are allowed to drift: the coordinate is their SUM, and an assertion deriving its expectation
+     *  from either one alone cannot tell `gap + stroke` from `2 × gap`.
+     *
+     *  Deliberately EQUAL, matching the brands, even though equal values are usually the thing to avoid in
+     *  a fixture. The reason is that the defect is what happens when the stroke is ignored: at 2 and 2 the
+     *  coordinate is 4 and the gap is 2, so ignoring the stroke gives a coordinate of 2 and a gap of ZERO
+     *  — the shipped bug. A fixture with unequal values would still catch it, and would no longer be
+     *  measuring the case that shipped. The `insetValue` override is how the unequal cases get tested. */
+    const RING_GAP = 2;
+    const RING_STROKE = 2;
     // The stub is built by its OWN function rather than inline in `runPayload` for one reason: the
     // parity gate at the end of this block drives the PLUGIN executor (`applyComponentPlan`) against
     // the same host model the paste payload runs on. Two executors compared against two different
@@ -6539,7 +6556,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the `width` note). The particular numbers are arbitrary; that they DIFFER between names is not,
       // since equal values would let a payload bind the wrong variable and still measure right.
       const varValue = (name: string) => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
-      const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: opts.insetValue ?? 2 }) });
+      // PER NAME, not one value for every variable (#801). The ring's coordinate is now the sum of TWO
+      // resolved variables — the offset and the ring's own stroke width — and a resolver that answered the
+      // same number regardless of name would make `gap + strokeWidth` indistinguishable from `2 × gap`,
+      // so the arithmetic under test would be satisfied by the wrong formula. `RING_*` are the real NB
+      // values, which is what makes the expected coordinate in the geometry assertion a real number rather
+      // than a restatement of whatever the stub happens to hand back.
+      const resolved = (name: string): unknown =>
+        opts.varOverrides && name in opts.varOverrides ? opts.varOverrides[name]
+          : opts.insetValue !== undefined ? opts.insetValue
+          : name === 'focus/ring/width' ? RING_STROKE
+          : name === 'focus/ring/offset' ? RING_GAP
+          : 2;
+      const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
       // read-back is meant to report.
@@ -7160,8 +7189,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // from the inset alone, which is a 4x4 ring on a real button.
       ok((built.width as number) > 4,
         `anatomy/ring: the target measures something before the ring is sized against it — a 0-wide parent makes the assertion below unfalsifiable (${built?.width})`);
-      ok(!!kid && kid.x === -2 && kid.y === -2 && kid.width === (built.width as number) + 4 && kid.height === (built.height as number) + 4,
-        `anatomy/ring: the ring sits 2px OUTSIDE its target on every side — offset ${JSON.stringify([kid?.x, kid?.y])}, size ${JSON.stringify([kid?.width, kid?.height])} against a target of ${JSON.stringify([built?.width, built?.height])}`);
+      // THE VISIBLE GAP, not the coordinate (#801). The old form of this assertion read `kid.x === -2`
+      // against a 2px offset and passed on the shipped defect, because the coordinate was the only
+      // quantity it modeled — and the ring's stroke is drawn INSIDE its bounds, so at -2 with a 2px stroke
+      // the outer edge lands on the host's border and the gap a designer sees is ZERO. Both halves of that
+      // gate (EXPECTED from the def, ACTUAL from the plan) were genuinely independent and both measured
+      // the wrong quantity: see docs/34's newest shape. So the coordinate is asserted as
+      // `-(gap + stroke)` and the GAP is asserted separately and by name, from the numbers a designer
+      // could hold a ruler to.
+      const coord = RING_GAP + RING_STROKE;
+      ok(!!kid && kid.x === -coord && kid.y === -coord && kid.width === (built.width as number) + coord * 2 && kid.height === (built.height as number) + coord * 2,
+        `anatomy/ring: the ring's coordinate clears its own stroke — expected -${coord} (${RING_GAP} gap + ${RING_STROKE} stroke), got offset ${JSON.stringify([kid?.x, kid?.y])}, size ${JSON.stringify([kid?.width, kid?.height])} against a target of ${JSON.stringify([built?.width, built?.height])}`);
+      // And the property that actually matters, stated in the terms the WCAG criterion is written in: an
+      // unbroken sliver of background between the host's border and the ring's inner edge. Derived from
+      // the built geometry rather than from the coordinate — `visibleGap` is what a ruler would measure.
+      const visibleGap = kid ? -(kid.x as number) - RING_STROKE : NaN;
+      ok(visibleGap === RING_GAP && visibleGap > 0,
+        `anatomy/ring: ${visibleGap}px of background separates the ring from the border it must be distinguishable from — the ring is drawn ${RING_STROKE}px INSIDE its own bounds, so a coordinate of ${kid?.x} leaves a gap of ${visibleGap} and WCAG 1.4.11 needs it non-zero (#801). This is the assertion the flush ring shipped past`);
       // Lifted OUT of the flow, read back through the stub's rejection model rather than trusted.
       // A ring that takes a cell in the row pushes the label sideways at every focus.
       ok(kid?.layoutPositioning === 'ABSOLUTE' && JSON.stringify(kid?.constraints) === JSON.stringify({ horizontal: 'STRETCH', vertical: 'STRETCH' }),
@@ -7172,11 +7216,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // The offset is not a constant in the payload. Re-run with a different brand value and the geometry
       // must follow, which is what makes `absoluteInset` a variable name rather than a frozen number in
       // the plan — the whole reason the plan stays brand-invariant and the freeze happens at paste.
+      // `insetValue` overrides EVERY name, so both halves of the sum read 6 and the coordinate is 12. That
+      // is the property under test here — the numbers are read from variables at paste — and it is also
+      // the one case in this block where the two halves are equal by construction rather than by the
+      // brands happening to agree, so it cannot distinguish the sum from a doubling. The unequal case
+      // below is what does.
       const widePage: StubPage = { children: [] };
       await runPayload(ringJs, { ...ringOpts, page: widePage, insetValue: 6 });
       const wide = ((widePage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'focusRing');
-      ok(wide?.x === -6 && wide?.y === -6,
-        `anatomy/ring: a brand whose ring offset is 6 gets a ring at -6 — the value is READ from the variable at paste, not baked into the plan (${JSON.stringify([wide?.x, wide?.y])})`);
+      ok(wide?.x === -12 && wide?.y === -12,
+        `anatomy/ring: a brand whose ring offset and width both read 6 gets a ring at -12 — both values are READ from variables at paste, not baked into the plan (${JSON.stringify([wide?.x, wide?.y])})`);
+      // UNEQUAL HALVES, which is the case that pins the FORMULA. With gap 5 and stroke 1 the coordinate is
+      // -6 and the visible gap is 5; `2 × gap` would give -10 and `2 × stroke` would give -2, so this is
+      // the assertion that says the executor adds the two rather than doubling either. It needs a resolver
+      // that answers per NAME — the reason `resolved` above is keyed by name and not a single constant.
+      const unevenPage: StubPage = { children: [] };
+      await runPayload(ringJs, {
+        ...ringOpts, page: unevenPage,
+        varOverrides: { 'focus/ring/offset': 5, 'focus/ring/width': 1 },
+      });
+      const uneven = ((unevenPage.children[0] as Record<string, unknown>).children as Record<string, unknown>[]).find((c) => c.name === 'focusRing');
+      ok(uneven?.x === -6 && uneven?.y === -6,
+        `anatomy/ring: gap 5 + stroke 1 puts the ring at -6, leaving 5px visible — the executor SUMS the two names rather than doubling either (a doubling would give -10 or -2) (${JSON.stringify([uneven?.x, uneven?.y])})`);
     }
 
     // ---- the CENTERED overlay, EXECUTED (#612) ----------------------------------------------------
@@ -9645,14 +9706,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const partDefFields = [...partDefBlock.matchAll(/^ {2}(\w+)\??:/gm)].map((m) => m[1]);
   ok(partDefFields.includes('kind') && partDefFields.includes('radius') && partDefFields.length > 10,
     `focus-ring wall 1: PartDef's field list parsed from the declaration (${partDefFields.length} fields) — the parse is asserted before the absence, so a parse that silently found nothing cannot read as a pass`);
-  ok(!partDefFields.some((f) => /stroke|border|outline/i.test(f)),
-    `focus-ring wall 1b: PartDef declares NO stroke/border/outline field — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'type', 'inset', 'padding'].includes(f)).join(', ')}]. Fails when #740 adds one, by design`);
+  // `strokeInset` is EXCLUDED from this wall by name, and the exclusion is the load-bearing part (#801).
+  // It matches /stroke/ and is not a stroke declaration: it names the width of a stroke ANOTHER component
+  // draws, so a host can compensate its own geometry for it. A part still cannot say "I have a 2px
+  // stroke" — which is #740 and remains open — and the ring's colour, weight and style still have nowhere
+  // to live. Excluded rather than the pattern narrowed, for `lint-us-english.ts`'s reason: a narrowed
+  // pattern stops catching the field this wall exists for. So the day #740 adds a real stroke field this
+  // still fails, and adding a second compensation field is a deliberate edit here.
+  const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset');
+  ok(partDefFields.includes('strokeInset'),
+    'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
+  ok(declaresOwnStroke.length === 0,
+    `focus-ring wall 1b: PartDef declares NO field for a part's OWN stroke/border/outline — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names another component's stroke to compensate for (#801), not this part's own. Fails when #740 adds one, by design${declaresOwnStroke.length ? ` — found [${declaresOwnStroke.join(', ')}]` : ''}`);
   // AND THE CONSEQUENCE, measured rather than inferred from the absence above: the def projects and its
   // members are STROKELESS. Two independent readings — the schema has no field (above), and the plans
   // bind no stroke variable (here) — because "no field" would still permit a projector that wrote one
   // from somewhere else, and #795's whole finding is that a claim about what a def WOULD do untested is
   // worth nothing. The ring's colour DOES bind (asserted further down via `fillPaintKey`), so this is
-  // specifically about weight and style having no node to land on.
+  // specifically about weight and style having no node to land on. Note what #801 did NOT change here:
+  // `focus.ring.width` now reaches a node — the HOST's absolute part reads it to widen its own gap — and
+  // the ring's own plan still binds nothing, which is the distinction this assertion is making.
   ok(ringSet.every((p) => !planBoundVars(p.root).some((v) => /focus\/ring\/(width|style)/.test(v))),
     'focus-ring wall 1c: the two projected members bind NO ring width or style variable — `tokens` resolves both against every brand and no PART can carry them, so what pastes is a correctly-inked box with no stroke. Fails when #740 adds the field, by design');
 
