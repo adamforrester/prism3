@@ -28,6 +28,28 @@
  * If a future affordance carries its per-mode-ness somewhere else again, this signature will
  * under-count in the same silent way. Widen it; don't trust a quiet pass.
  *
+ * WHAT #771 DID TO THIS AUDIT'S INDEPENDENCE — stated plainly, because it is a real loss and the
+ * previous owner of this hazard (#545, below) is the reason it is worth naming rather than inheriting.
+ *
+ * Badge COMPUTATION did not move: `attachModeBadges` is still one post-render pass over the rendered
+ * tree, `modeScopeBadge`'s ordering is untouched, and `.msb` still lands in the same head. Nothing in
+ * this file had to migrate. What changed is underneath: clicking a mode button no longer rebuilds the
+ * page. `renderWorkspace` now keeps every region whose rendered SIGNATURE is unchanged and swaps only
+ * the rest — so the DOM this audit diffs across modes is, on the unchanged half, literally the same
+ * nodes it saw before the click.
+ *
+ * That makes the DOM-diff half of this audit downstream of the renderer's own keep decision, and the
+ * coupling runs one way: main.ts's signature is a strict superset of `sig()` here (it serializes the
+ * whole region plus every control's live value, where this records control set + labels + values). So
+ * this audit cannot see a difference the renderer missed. If that signature ever goes blind to a real
+ * per-mode difference, the section is kept, the DOM does not move, and THIS FILE REPORTS `inert` —
+ * agreeing with the bug, exactly the #464 shape the derived-mode note below already records.
+ *
+ * The mitigation is the one already here, and it is why it stays load-bearing: `probeSection`'s
+ * localStorage-blob check is NOT a DOM read. A control that edits a token moves `prism3:brandInput`
+ * whether or not any node was replaced. That half is still independent; the DOM diff is not. Do not
+ * "simplify" the blob probe away on the grounds that the DOM diff already says the same thing.
+ *
  * VERDICTS
  *   EDITS    — the control set/labels differ between modes. The bar is an EDITING SCOPE here.
  *   displays — only previews/readouts re-resolve. The bar is CONTEXT: useful, but not scoping an edit.

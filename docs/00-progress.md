@@ -7,6 +7,167 @@
 
 ---
 
+## (2026-08-13) — Render granularity: the workspace REGION is the update unit, and #485's scroll workaround is gone (#771)
+
+**STATUS: shipped.** `renderWorkspace()` no longer empties the workspace. It builds the next page
+**detached**, then reconciles it into the live one **region by region** — a region being one direct child
+of `.ws`: the hero, the mode bar, each `.psec`, the `.stage-vol` specimen box. A region whose rendered
+signature is unchanged is left alone; the rest are swapped in place. Measured on a Typography → Semantics
+re-point (#485's own repro): **6 of 9 regions kept, 3 swapped**. On a Surfaces base select: 6 of 10 kept.
+Across 8 pages × 59 selects: **0 viewport jumps**, 50–100% of regions kept per page.
+
+**THE DIAGNOSIS THAT MADE THE FIX SMALL, AND IT IS NOT THE ONE #485 RECORDED.** #485 named
+`workspace.innerHTML = ''` as the cause and it is only half. Tampered both ways on this branch: restoring
+the teardown *alone* — empty the workspace, refill it synchronously in the same task — **does not
+reproduce the jump**, because the browser never lays out the empty document. Restoring the teardown *plus a
+layout read while it is empty* reproduces it exactly (**scrollY 700 → 10** on Surfaces), and the old code
+performed that read on every paint: `renderModeStrip` → `syncChromeHeight` reads `chromeHost.offsetHeight`
+against a workspace that had just been cleared. So the load-bearing change is **building detached**, and the
+reconcile is what makes the granularity real rather than cosmetic. **#485's scroll save/restore is removed**,
+not retained — falsified in both directions rather than argued.
+
+**THE AUDIT #485 ASKED FOR, AND ITS ANSWER IS NO.** Its open question was whether `applyFull()` was reached
+out of caution where `apply()` would have done. Measured per control (swapped-region sets, every select on
+every page): **not one call site is downgradeable**, and the reason is structural, not marginal. `apply()`
+runs `paintVolatile()`, and on the two pages carrying #485's confirmed offenders that painter is a literal
+no-op — `renderSurfacesPage` and `renderTypographyPage` both pass `specimens: () => []` to `renderScreen`.
+Downgrading the Surfaces base/floor selects or the shared re-point select would have **frozen those pages**,
+not fixed them. Where a site's changed set *is* confined to the volatile region (two Interactive rows), the
+handler is shared with rows that swap four regions, so the site is not separable from its siblings.
+`applyFull()` was never over-reach; it was the only path that recomputed anything, and the defect was that
+the only path destroyed the page. The reclassification actually available is the one shipped: `applyFull()`
+now *means* "recompute page state, repaint what changed". Two calls it no longer needs went with it — its
+own strip repaint, and the duplicate at the mode-button and Typography-tab sites, since `renderWorkspace`
+now repaints the strip last (it is measured into `--chrome-h`, so it has to be last).
+
+**REBASED ONTO #790 (page chrome), and the three collisions are semantic rather than textual.** #790 landed
+`CHROME_SURFACES` — a declared roster of the four surfaces every view carries — while this branch was open,
+and both PRs rewrote the same three seams. Resolved as follows, with both sides' invariants re-verified
+rather than assumed.
+
+1. **`renderWorkspace()`.** #790 mounts the workspace-home surfaces here; this branch builds the page
+   detached. Both hold: `mountSurfaces('workspace', …)` runs FIRST, then the page is staged, then the
+   reconcile, then `syncChrome()`. The mount had to move ahead of the staged render because
+   `chromedWorkspace` verifies the published roster against the DOCUMENT, and on a `build()`-fresh `.ws` the
+   strip is not in it yet — staging first reports `mode-strip` missing on every page navigation and trips
+   CI's zero-console-errors assertion. It is the one write to the live workspace that precedes the reconcile
+   and it is only ever an append into an EMPTY container, so #485's mechanism (a layout read against a
+   cleared workspace) is not reintroduced.
+
+2. **`apply()` / `applyFull()`.** The roster stays the single list and no hand-listed call came back.
+   `apply()` is `rebuild(); syncChrome(); paintVolatile();` unchanged from #790. `applyFull()` is
+   `rebuild(); renderWorkspace();` — it reaches `syncChrome()` THROUGH `renderWorkspace`, which runs the pass
+   once, after the regions land. The ordering constraint is expressed as roster DATA rather than as a call
+   order: `ChromeSurface.syncLast`, declared on `mode-strip` because `renderModeStrip` ends in a `--chrome-h`
+   re-measure. Two passes in `syncChrome`, not one, so appending a fifth entry below `mode-strip` cannot
+   silently take the last slot — the failure mode of every positional convention this declaration replaced.
+
+3. **`PAGE_RENDERERS` and the detached host — the one that looked like it needed a decision and did not.**
+   #790's `PageHost` is a `unique symbol`-branded element whose only producer is `chromedWorkspace`, so
+   `PAGE_RENDERERS[page](workspace)` is `TS2345`. This branch passes a DETACHED staging tree. **The brand
+   did not change, and no `as PageHost` appears at any call site.** The reason is that the brand was never a
+   claim about the node: `chromedWorkspace` checks `document.documentElement.dataset.chromeRoster` against the
+   document and has never inspected its argument. The proposition it certifies is *"an engine error will be
+   visible on the page this renderer is about to draw"* — a fact about the mounted VIEW. A staged host is
+   admitted because it goes through the same producer and the same check. Falsified rather than asserted, on
+   the rebased tree: changing the call to `PAGE_RENDERERS[page](staged)` still gives **`TS2345`**, and
+   flattening `PageHost` to `HTMLElement` still gives **`TS2344`** on `PageHostIsUnforgeable`.
+
+**THE INTERACTION NEITHER PR FACED ALONE: the mode strip is now a declared chrome surface *and* a
+reconcilable region.** Two mechanisms reach the same node, so they had to be made to agree by construction.
+`mountSurfaces` is now **idempotent** — it skips a surface whose `data-chrome` stamp is already a child of
+the host — which makes the strip a single node minted once per `.ws`. It is therefore the same object in the
+reconcile's `live` map and its `want` list, so it is kept on IDENTITY without its content being compared, and
+its content is written afterwards by `syncChrome()`. That closes both halves: there can be no second strip to
+double-render, and no stale twin that the roster believes it refreshed. Driven on 8 pages × 2 brands: exactly
+one `.modebar` in the document on every page, one after a commit, with exactly one mode marked on.
+
+**THE APPROACH TRIED AND DISCARDED — keeping live nodes wholesale.** The obvious reconcile keeps any region
+whose content matches, and it is wrong here in a way that is silent. Every page renderer's `paintVolatile`
+**closes over nodes it just built**: `vol` in `renderScreen`, the `.cs-preview` boxes in `controlSplitPage`,
+the ramp rows `renderPrimitives` hands to `refreshers`. Those nodes are now in the *detached* tree. Keep the
+live region they correspond to and the freshly-assigned painter writes into a tree that was never attached —
+the page renders correctly once and then stops responding to `apply()` forever. This is the same failure
+`renderComponentsPage` already documents from the other direction, given a second door. So it gets a
+mechanism: **`setVolatile(hosts, paint)` is now the only writer of `paintVolatile`**, declaring the painter
+and its targets as one act, and a region holding a declared host is never kept. A renderer that assigns the
+binding directly gets no protection — stated at the helper, because it is not enforceable from inside the
+file. `controlSplitPage`'s derived-mode early return was assigning nothing at all; it now declares an empty
+no-op, which is the same latent bug one line earlier.
+
+**THE TRAP INSIDE THAT MECHANISM, and it cost a debugging pass: the volatile test asks about the FRESH
+region, not the live one.** The declared hosts belong to the render that just ran, so they live in the
+staged tree; `prev.contains(host)` is false for every one of them and *every* region reads as keepable. It
+fails silently, and only on the second commit.
+
+**VERIFYING AN UNDER-REPAINT — the strongest available check, and two false positives it produces.** A
+granularity change that under-repaints does not announce itself, so the probe compares the **reconciled DOM
+against a from-scratch build of the same state** (navigating away and back re-runs `build()`, which mints a
+fresh workspace and renders it whole). Any difference is an under-repaint. Two things diverge for reasons
+that are not: the mode bar's `.stuck` class is a *scroll-position* class and a nav-and-back always lands at
+0 (a 6-character diff that reads exactly like a defect), and `<details open>` is user state — which is also
+why `carryDisclosure` moves it onto the replacement *before* the signature is taken, or an expanded
+"Contrast on this page" would snap shut on every commit and force its region to swap every time.
+
+**AND A THIRD ROUTE THE REBASE MADE AVAILABLE, which is stronger than the nav-and-back and should be reached
+for first next time.** With `main` now carrying #790 and this branch the only thing on top, the *same*
+scripted interaction can be driven on both builds and the resulting workspaces compared directly: **`main`'s
+full teardown-and-rebuild versus this branch's reconcile.** Same clicks, same order, same brand. Measured
+across **14 driven states** (7 pages × 2 brands, each with two or three select changes plus a mode switch):
+every one **byte-identical**, markup and every control's live value, with 0 console errors on both sides. It
+beats the nav-and-back because it needs no page to be idempotent across navigation — which matters, because
+one is not (below).
+
+**TWO PRE-EXISTING DEFECTS FOUND BY THAT PROBE, NOT FIXED HERE — both verified identical on `main`**, and
+the first is now characterized more precisely than this entry originally had it: (1) after a tempo edit,
+Motion's **entire Duration-ramp section** is one commit stale — not only the `tempo '…'` word in its
+description but every rendered ms value (aurora `snappy → standard`: `[40,40,80,…]` on screen against
+`[50,50,100,…]` after a navigation). Driven identically on `origin/main`, which tears the page down and
+rebuilds it, and it produces **the same stale numbers**, so it is a Motion page defect and not a keep
+decision. It is also why the nav-and-back comparison alone was not enough here: Motion is not idempotent
+across navigation, so the check that page needed was the cross-build one above, which it passes.
+(2) `apply()` drops the `.msb` mode badge from any `.psec` built inside the volatile region, because
+`paintVolatile` refills that region and `attachModeBadges` runs only in `renderWorkspace` — reachable today
+from Motion's playback select. Filed rather than folded in: one concern per PR, and neither is caused by
+this change.
+
+**WHAT THIS DID TO `mode-audit.mjs`'s INDEPENDENCE (the coupling #769 routed here).** Badge computation did
+not move — `attachModeBadges` is still one post-render pass, `modeScopeBadge`'s ordering is untouched, and
+the audit reports byte-identically to `main` (46 badged sections, 14 provably editable, 3 provably skipped).
+But a mode click no longer rebuilds the page, so the DOM the audit diffs across modes is, on the unchanged
+half, the same nodes. That makes its DOM-diff half **downstream of the renderer's own keep decision**, and
+the coupling runs one way: `main.ts`'s signature is a strict superset of the audit's, so the audit cannot
+see a difference the renderer missed — if that signature ever goes blind, the section is kept, the DOM does
+not move, and the audit reports `inert`, agreeing with the bug. A new instance of `docs/34` shape 8 through
+a new door, recorded in the audit's header rather than inherited. The mitigation is already there and is
+now load-bearing: `probeSection`'s `localStorage` blob check is not a DOM read, so it stays independent.
+
+**BOTH SIDES' DONE-CONDITIONS RE-RUN ON THE REBASED HEAD, not carried over.** #790's: a naive `scratch`
+page added to `NAV`/`PAGE_RENDERERS` (a hero and a button, written by someone who has read none of this),
+built and driven — all four surfaces mounted on it (`brand-bar error apply-detail mode-strip`), one mode
+strip in its `.ws`, and the `titleFloor 16` + Compact refusal raised on **Typography** stayed visible on it
+by name, on **both** corpus brands, then cleared when undone. Removed afterwards. `syncErrorBar`'s refusal
+to be silent falsified too: a rogue root view (`app.innerHTML = ''`) with an error held reports it to the
+console with the engine's own message, which CI's zero-console-errors assertion makes fatal. #771's: the
+cross-build comparison above, plus #485 at `scrollY 700 → 700` on Surfaces and `2696 → 2696` on both
+Typography → Semantics re-points, and #422 stepping Dark's `default` weight — `400/400/400/400 →
+400/300/400/400`, exactly one specimen moved, siblings holding their own resolved values.
+
+**Gates.** Full `ci.yml` sequence green on the rebased head, plus `build:site` (not a CI step) and
+`audit:modes --check-badges` (**46 badged sections**, and its whole report **byte-identical to `origin/main`**
+— which is the evidence for the `mode-audit.mjs` header's claim that badge computation did not move).
+Smoke suite read directly rather than inferred from check status (it is advisory until 2026-08-20, #775):
+**819 assertions, 15,638 text nodes across 72 states — the baseline exactly.** The assertion count moved from
+517 because #790 and #793 both landed underneath; the node count did not move at all, which is the number
+that would have caught a page that stopped rendering. Worth noting for anyone reading the older entries:
+#793's `SWEEP_NODE_FLOOR` / `STATE_NODE_FLOOR` are now on `main` and enforcing, so that count is protected by
+an assertion rather than only by being read. Note for whoever works here next:
+`packages/engine/test.ts`'s source-hygiene check catches a raw NUL byte in `src/main.ts` — a control
+character used as a signature separator is a real way to trip it, and `JSON.stringify` on the parts is
+self-delimiting and needs none.
+
+---
+
 ## (2026-08-13) — Both field defs get their anatomy; only one of them can be projected (#796, Arc 2 step 3)
 
 **STATUS: shipped.** `field-label` and `field-message` both carry `anatomy` blocks. `field-label` projects —
@@ -131,6 +292,7 @@ Worth naming the shape, because it is this repo's favourite one wearing new clot
 **56 of them agreeing with each other is not evidence** — they agree because they were copied, not because any
 of them was checked. Same structure as a gate built from its subject (`docs/34`), and the same tell: the only
 independent oracle is the issue tracker, and nothing consults it.
+
 
 ---
 
@@ -306,6 +468,7 @@ named before "hidden" is allowed to mean anything.
 **NOT DONE HERE, on purpose.** No `packages/engine/` change was needed. Scoped styles (#770) runs
 alone and last; `docs/34` shape numbering, the smoke-suite floor and the Node 24 runner bump (#784)
 are filed separately.
+
 
 ---
 

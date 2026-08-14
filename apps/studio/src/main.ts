@@ -238,9 +238,38 @@ const rebuild = (): void => {
 };
 
 // paint() repaints only the current stage's volatile region (ramps or preview) so
-// input focus is never lost; applyFull() re-renders the whole workspace (structural
+// input focus is never lost; applyFull() re-renders the workspace REGION BY REGION (structural
 // edits — add/remove color, Derive⇄Pin, stage switch); build() re-renders the shell.
 let paintVolatile: () => void = () => {};
+/** The nodes the CURRENT page's `paintVolatile` writes into — see `setVolatile`. Read only by
+ *  `renderWorkspace`'s region reconcile, which must never keep a live region that holds one. */
+let volatileHosts: readonly HTMLElement[] = [];
+/** Assign the page's volatile painter AND declare the nodes it writes into. Both halves in one call
+ *  because they are one fact, and the render granularity added by #771 makes the second half
+ *  load-bearing rather than documentation.
+ *
+ *  WHY THE DECLARATION EXISTS. `renderWorkspace` no longer destroys the page; it builds the next page
+ *  detached and KEEPS every live region whose content is unchanged (that is the whole of #771). A page
+ *  renderer's painter closes over nodes it built in that detached tree — `vol` in `renderScreen`, the
+ *  `.cs-preview` boxes in `controlSplitPage`, the ramp rows `renderPrimitives` hands to `refreshers`.
+ *  If the reconcile keeps the LIVE region those nodes correspond to, the freshly-assigned painter is
+ *  left writing into a tree that was never attached, and every later `apply()` paints into nothing.
+ *
+ *  That is not a hypothetical: it is the same failure `renderComponentsPage` already guards against in
+ *  the other direction ("a page that skips the assignment leaves the previous page's closure live, and
+ *  the next `apply()` paints specimens into nodes this render already detached"). #771 gave that failure
+ *  a second door, so it gets a mechanism rather than a second comment. Declaring a host makes its region
+ *  ineligible to be kept — the fresh node always wins there, so the closure is always live.
+ *
+ *  DECLARE THE OUTERMOST NODE THE PAINTER REACCHES INTO, not every leaf: eligibility is tested with
+ *  `contains`, so naming a section covers everything the painter touches inside it.
+ *
+ *  THIS IS THE ONLY WRITER OF `paintVolatile`. A renderer that assigns the binding directly gets no
+ *  protection at all — its painter can be orphaned by the very next commit, silently. */
+const setVolatile = (hosts: readonly HTMLElement[], paint: () => void): void => {
+  volatileHosts = hosts;
+  paintVolatile = paint;
+};
 let globalErrHost: HTMLElement | null = null;
 /** Keep the global error bar honest after every rebuild. `lastError` is set by `rebuild()`'s catch and
  *  means "the live edit did not resolve; you are looking at the last good theme" — a state the user must
@@ -271,7 +300,13 @@ const syncErrorBar = (): void => {
 // four surfaces, hand-listed in two refresh paths, which is the shape that let #388's error bar be
 // reachable from exactly one page. A surface added to the declaration is picked up here for free.
 const apply = (): void => { rebuild(); syncChrome(); paintVolatile(); };
-const applyFull = (): void => { rebuild(); syncChrome(); renderWorkspace(); };
+// `applyFull` names no surface either, and it does not call `syncChrome()` DIRECTLY: `renderWorkspace`
+// runs the pass itself, once, after the region reconcile has landed (#771). That is the second half of
+// the mode strip's `syncLast` — last within the pass, and the pass last within the render — because
+// `renderModeStrip` ends in a `--chrome-h` re-measure, and a layout read taken before the page it sits
+// on top of has settled publishes a height measured against the outgoing layout. The roster is still
+// the only list; the ordering is declared in it rather than restored by a hand-listed call here.
+const applyFull = (): void => { rebuild(); renderWorkspace(); };
 
 // ---- DOM helpers -----------------------------------------------------------
 const el = (tag: string, cls?: string, text?: string): HTMLElement => {
@@ -976,11 +1011,13 @@ const renderPrimitives = (host: PageHost): void => {
   host.append(valSec);
   host.append(renderAlphaAndOpacity());
 
-  // The error half of this closure moved to the declared chrome (see above) — what is left is the
-  // page's own volatile region, which is what `paintVolatile` was always for.
-  paintVolatile = () => {
+  // The error half of this closure moved to the declared chrome (#772) — what is left is the page's own
+  // volatile region, which is what `paintVolatile` was always for. The three ramp sections are declared
+  // volatile WHOLE: `refreshers` holds a closure per row, and the rows live inside these sections rather
+  // than in a `.stage-vol` box of their own, so the section is the outermost node the painter reaches.
+  setVolatile([brandSec, neuSec, valSec], () => {
     refreshers.forEach((r) => r());
-  };
+  });
   paintVolatile();
 };
 
@@ -2775,7 +2812,9 @@ const renderModeContext = (): HTMLElement => {
     if (derived) b.title = m === 'wireframe'
       ? 'Auto-derived — a mechanical grayscale, not contrast-derived. A read-only verification view.'
       : 'Auto-derived from your contrast contracts — a read-only verification view.';
-    b.onclick = () => { if (currentMode !== m) { currentMode = m; renderModeStrip(); renderWorkspace(); } else { renderModeStrip(); } };
+    // `renderWorkspace` repaints the strip itself now (#771), so the mode-change branch does not also
+    // ask for it. The re-click branch still does: it repaints ONLY the strip, on purpose.
+    b.onclick = () => { if (currentMode !== m) { currentMode = m; renderWorkspace(); } else { renderModeStrip(); } };
     left.append(b);
   }
   strip.append(left);
@@ -3323,7 +3362,7 @@ const renderScreen = (
   else sections(host);
   const vol = el('div', 'stage-vol');
   host.append(vol);
-  paintVolatile = () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); };
+  setVolatile([vol], () => { vol.innerHTML = ''; for (const s of specimens()) if (s) vol.append(s); });
   paintVolatile();
 };
 // Per-page contrast table (docs/23 §3) — a re-slice of the same authoritative contracts the Preview
@@ -3546,11 +3585,11 @@ const renderTypographyPage = (host: PageHost): void => renderScreen(host, 'typog
   const seg = el('div', 'pvseg');
   for (const [k, label] of TYPE_TABS) {
     const b = el('button', 'pvseg-b' + (typeTab === k ? ' on' : ''), label) as HTMLButtonElement;
-    // Repaints the mode strip too: the tier a tab shows IS what the switcher's visibility turns on
-    // (#268) — primitives are mode-invariant and semantics/composites are not — so the tab switch
-    // changes header chrome, not just body. Page nav gets this free via build(); this tab lives below
-    // it and would otherwise go stale.
-    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); renderModeStrip(); } };
+    // The tab switch changes the strip too, not just the body: the tier a tab shows IS what the
+    // switcher's visibility turns on (#268) — primitives are mode-invariant and semantics/composites
+    // are not. `renderWorkspace` now ends by repainting the strip (#771), so the tab no longer asks
+    // for it separately; page nav gets the same thing via `build()`.
+    b.onclick = () => { if (typeTab !== k) { typeTab = k; renderWorkspace(); } };
     seg.append(b);
   }
   h.append(seg);
@@ -3739,8 +3778,13 @@ type SplitBlock = { title: string; sub: string; controls: HTMLElement | null; st
 const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => SplitBlock[]): void => {
   const [title, lede] = PAGE_COPY[pageKey];
   host.append(hero(title, lede));
-  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); return; }
+  // A derived mode renders a note and no previews — so there is nothing to repaint, and this branch
+  // has to SAY so. Returning without assigning left the PREVIOUS page's painter live, which is the
+  // exact hazard `renderComponentsPage` documents; harmless while every commit rebuilt the page from
+  // scratch, and not harmless now that a commit repaints through the painter (#771).
+  if (DERIVED_MODES.has(currentMode)) { host.append(renderGeneratedNote()); setVolatile([], () => {}); return; }
   const refreshers: Array<() => void> = [];
+  const previews: HTMLElement[] = [];
   for (const b of blocks()) {
     const sec = palSection(b.title, b.sub);
     const preview = el('div', 'cs-preview');
@@ -3755,9 +3799,10 @@ const controlSplitPage = (host: HTMLElement, pageKey: PageKey, blocks: () => Spl
       sec.append(split);
     }
     host.append(sec);
+    previews.push(preview);
     refreshers.push(() => b.paint(preview));
   }
-  paintVolatile = () => { refreshers.forEach((r) => r()); };
+  setVolatile(previews, () => { refreshers.forEach((r) => r()); });
   paintVolatile();
 };
 /** A compact labelled slider for the split pages — value read-out updates live on drag; the theme commits
@@ -3845,14 +3890,14 @@ const renderPreviewPage = (host: PageHost): void => {
   host.append(seg);
   const vol = el('div', 'stage-vol');
   host.append(vol);
-  paintVolatile = () => {
+  setVolatile([vol], () => {
     vol.innerHTML = '';
     const pv = el('div', 'pvhost');
     vol.append(pv);
     if (previewView === 'styleguide') renderPreviewStyleGuide(pv);
     else if (previewView === 'contrast') renderPreviewContracts(pv);
     else renderPreviewTokens(pv);
-  };
+  });
   paintVolatile();
 };
 
@@ -3883,7 +3928,9 @@ const renderComponentsPage = (host: PageHost): void => {
   // the assignment leaves the previous page's closure live, and the next `apply()` paints specimens
   // into nodes this render already detached. Nothing here varies with a lever (the def and its variant
   // count are brand-invariant), so the correct value is a no-op — but it has to be assigned to BE one.
-  paintVolatile = () => {};
+  // Declaring NO volatile hosts alongside it is the other half of the same statement (#771): this page
+  // has nothing that repaints, so every one of its regions is eligible to be kept.
+  setVolatile([], () => {});
   if (!commit.isFigma) return;
 
   const sec = palSection('Build the Button set', 'Writes the component set onto the current Figma page.');
@@ -6496,6 +6543,15 @@ type ChromeSurface = {
    *  its own events and holds live UI state says so by leaving this out, instead of being refreshed
    *  out from under the person using it. */
   readonly sync?: () => void;
+  /** Sync LAST in the pass, after every other surface has been refreshed.
+   *
+   *  DECLARED rather than positional, because the constraint is a property of the surface and appending
+   *  a fifth entry below the one that needs it must not silently take the slot. One surface needs it
+   *  today: `renderModeStrip` ends in a `--chrome-h` re-measure, and a layout read taken before the rest
+   *  of the pass has settled publishes a height measured against the outgoing layout. That is the same
+   *  class of defect #771 traced #485 to — a layout read against a workspace that had been emptied — so
+   *  the ordering is stated here instead of being restored by a hand-listed call in `applyFull()`. */
+  readonly syncLast?: true;
 };
 
 /** Every reference below is wrapped in an arrow rather than passed as a value. Two of these four
@@ -6548,26 +6604,46 @@ const CHROME_SURFACES: readonly ChromeSurface[] = [
     // view switcher) ended up — a position no declaration here could state.
     mount: () => { modeStripHost = el('div', 'modebar'); return modeStripHost; },
     sync: () => renderModeStrip(),
+    // See `syncLast`. Since #771 this surface is also a reconcilable REGION, so its refresh has to come
+    // after the page it sits on has landed as well as after the rest of the pass.
+    syncLast: true,
   },
 ];
 
 /** Mount every declared surface of `home` that `view` carries. MOUNT ONLY — the sync pass is a
  *  separate `syncChrome()` call once the host is in the document, because `syncErrorBar` now judges
  *  itself by `isConnected` and syncing mid-mount would report a detached-but-correct surface as the
- *  very defect that check exists to find. */
+ *  very defect that check exists to find.
+ *
+ *  IDEMPOTENT, which #771 made load-bearing rather than defensive. `mountView` empties the app root
+ *  before it calls this, so the `root` pass always mints. The `workspace` pass runs on every
+ *  `renderWorkspace`, and the workspace is no longer emptied — its surfaces are live REGIONS the
+ *  reconcile keeps. Re-minting one per render would hand the reconcile a node it could only ever treat
+ *  as new, and would leave `syncChrome` refreshing a node the reconcile had already replaced: a stale
+ *  strip the roster believes is current. Asked of the `data-chrome` stamp this function writes, so the
+ *  declaration answers the question rather than a module variable that may point at a detached node. */
 const mountSurfaces = (home: ChromeSurface['home'], view: RootView, host: HTMLElement): void => {
   for (const s of CHROME_SURFACES) {
     if (s.home !== home || !s.views.includes(view)) continue;
+    if (host.querySelector(`:scope > [data-chrome="${s.key}"]`)) continue;
     const node = s.mount();
     node.setAttribute('data-chrome', s.key);
     host.append(node);
   }
 };
 
-/** THE ONLY refresh path. `apply()` and `applyFull()` call this instead of naming surfaces one at a
- *  time, which is what makes "a new surface cannot be forgotten" true of the refresh half as well as
- *  the mount half. Each `sync` guards its own host, so this is safe before the first build. */
-const syncChrome = (): void => { for (const s of CHROME_SURFACES) s.sync?.(); };
+/** THE ONLY refresh path. `apply()` calls this instead of naming surfaces one at a time, and
+ *  `applyFull()` reaches it through `renderWorkspace` for the ordering reason stated there — which is
+ *  what makes "a new surface cannot be forgotten" true of the refresh half as well as the mount half.
+ *  Each `sync` guards its own host, so this is safe before the first build.
+ *
+ *  Two passes, not one, because `syncLast` is declared data (see the field). Iterating the array once
+ *  would make the ordering a fact about where an entry happens to sit in the literal — exactly the kind
+ *  of unwritten convention this whole declaration replaced. */
+const syncChrome = (): void => {
+  for (const s of CHROME_SURFACES) if (!s.syncLast) s.sync?.();
+  for (const s of CHROME_SURFACES) if (s.syncLast) s.sync?.();
+};
 
 /** The keys `view` promises to carry, published on `<html data-chrome-roster>` — a separate attribute
  *  from the per-node `data-chrome` stamp, so `[data-chrome="<key>"]` cannot match the root element
@@ -6600,13 +6676,22 @@ const mountView = (view: RootView, body: () => HTMLElement): void => {
 };
 
 declare const CHROMED: unique symbol;
-/** A workspace host with the declared page chrome already mounted around it.
+/** A page host rendered into a VIEW that has the declared page chrome mounted around it.
  *
  *  The brand is a `unique symbol` no object literal can satisfy, and `chromedWorkspace` is its only
  *  producer — so `PAGE_RENDERERS` cannot be invoked with an element that has not been through the
  *  mounter, and a new page renderer cannot accept one either. Same enforcement as `loadBrand`'s
  *  required `origin` (#722): checked by construction at every call site, with no scan to keep in
- *  scope. A convention every page happens to follow is what already existed. */
+ *  scope. A convention every page happens to follow is what already existed.
+ *
+ *  IT IS NOT A CLAIM ABOUT THE NODE, and #771 is what made that distinction matter rather than merely
+ *  be true. Since the page is built DETACHED and reconciled into the workspace region by region, the
+ *  host a renderer receives is a staging tree, not `.ws` itself. That required no accommodation: the
+ *  proposition has always been "an engine error will be visible on the page this renderer is about to
+ *  draw", which is a fact about the mounted view, and `chromedWorkspace` has always checked the document
+ *  rather than its argument. A detached host is admitted BECAUSE it goes through the same producer and
+ *  the same check — not by widening the brand, and never by an `as PageHost` at a call site, which would
+ *  be the whole floor gone. */
 type PageHost = HTMLElement & { readonly [CHROMED]: true };
 type PageRenderer = (host: PageHost) => void;
 
@@ -6618,9 +6703,11 @@ type Assert<T extends true> = T;
 type PageHostIsUnforgeable = Assert<HTMLElement extends PageHost ? false : true>;
 
 /** Mint the page host — the only producer of `PageHost`, and it verifies before it vouches: the type
- *  says a page cannot be rendered without the chrome, this says the chrome is really in the tree
+ *  says a page cannot be rendered without the chrome, this says the chrome is really in the DOCUMENT
  *  rather than merely declared. Compared against the published roster, so it checks what was PROMISED
- *  for this view rather than a second hardcoded list.
+ *  for this view rather than a second hardcoded list. `ws` is deliberately not inspected — see the type
+ *  above for why that is the point and not an omission, and note the consequence for the caller: the
+ *  workspace-home surfaces must be mounted BEFORE a page is staged, or this reports them missing.
  *
  *  REPORTS, does not throw. A missing surface means an engine error could go unseen, which is bad; a
  *  throw here renders nothing at all, which is worse. The console is not a dead end — the smoke suite
@@ -6695,9 +6782,14 @@ const pageHasModeVaryingControl = (): boolean => {
 };
 
 /** Repaint the mode-selector strip at the top of the workspace (#432) — page furniture, not header
- *  chrome. Called on mode change, on menu toggles, and by apply/applyFull; it carries no per-mode
- *  contrast marks any more (#54 retired, owner decision), but currentMode's "on" state still needs a
- *  refresh. No-op before the first build (the start screen has no workspace yet). */
+ *  chrome. Reached as the `mode-strip` surface's `sync` (never called by name from a refresh path), plus
+ *  directly from the menu-toggle branch of the mode buttons; it carries no per-mode contrast marks any
+ *  more (#54 retired, owner decision), but currentMode's "on" state still needs a refresh. No-op before
+ *  the first build (the start screen has no workspace yet).
+ *
+ *  It writes into `modeStripHost`, which since #771 is a PERSISTENT node the region reconcile keeps
+ *  rather than one re-minted per render — so "the roster refreshed the strip" and "the strip on screen
+ *  is current" cannot come apart. `mountSurfaces` is what holds that; see its idempotence note. */
 function renderModeStrip(): void {
   if (!modeStripHost) return;
   modeStripHost.innerHTML = '';
@@ -6790,29 +6882,153 @@ const attachModeBadges = (root: HTMLElement): void => {
   }
 };
 
+// ---- render granularity: the workspace REGION (#771) -----------------------------------------
+//
+// THE UNIT. A workspace region is one direct child of `workspace` — the hero, the mode bar, each
+// `.psec` section, the `.stage-vol` specimen box, the odd loose note. `renderWorkspace` builds the
+// next page DETACHED and reconciles it against the live one region by region: a region whose content
+// is unchanged is left alone, a region whose content changed is swapped in place, and the workspace
+// itself is never emptied.
+//
+// WHAT THAT REPLACES, AND WHY IT IS NOT JUST A TIDY-UP. The old body was `workspace.innerHTML = ''`
+// followed by a full rebuild, so #485's every-select-jumps-to-the-top was not a scroll bug — it was
+// the browser correctly clamping `scrollY` against a document that momentarily had no content. #485
+// fixed the SYMPTOM at the right level (save/restore around the teardown, so every caller got it at
+// once) and said so; the teardown is what this removes. Because the container now always holds a full
+// page's worth of height, there is no moment to clamp against and nothing to restore. That is the
+// falsifiable part: delete the reconcile and the jump comes back; delete the save/restore and it does
+// not. The save/restore is gone.
+//
+// AND THE OTHER DIRECTION, WHICH IS THE WORSE BUG. A granularity change that UNDER-repaints does not
+// announce itself — the page just quietly stops agreeing with its own controls. Two things hold that
+// line. (1) The keep test is a SIGNATURE of the rendered region, not a guess about what an edit can
+// reach: serialized markup plus the live value of every control in it, so anything the renderer would
+// have drawn differently forces the swap, including a section's mode badge (`attachModeBadges` runs on
+// the staged tree, before the comparison). (2) A region holding a declared volatile host is never
+// kept — see `setVolatile` for the orphaned-painter failure that rule exists to make impossible.
+//
+// THE ONE REGION THAT IS ALSO CHROME. The mode strip is a workspace-home surface on the #772 roster AND
+// a direct child of `.ws`, so it is reached twice — once by `syncChrome`, once by this reconcile — and
+// the two have to agree about which node they mean. They do, by construction rather than by care: the
+// strip is minted ONCE per `.ws` (`mountSurfaces` is idempotent), so there is a single node, it is the
+// same object in `want` and in `live`, and the reconcile keeps it on IDENTITY without ever comparing its
+// content. A second node cannot appear to be double-rendered, and a kept node cannot be a stale twin the
+// roster believes it refreshed. The ordering that closes it: `syncChrome()` runs AFTER the reconcile, so
+// the strip's content is written last, into the node that is on screen.
+/** Stable identity for a region, so an inserted or removed section shifts nothing else. Titled
+ *  sections key on their title; the rest key on tag + class. Duplicates get an ordinal — the token
+ *  list really does mint two sections named `Icon` (see `attachModeBadges`), and a key collision here
+ *  would silently pair two different sections and swap one for the other. */
+const regionKey = (n: HTMLElement, seen: Map<string, number>): string => {
+  const base = n.classList.contains('psec')
+    ? `psec:${n.querySelector('.psec-t')?.textContent?.trim() ?? ''}`
+    : `${n.tagName}.${n.className}`;
+  const nth = (seen.get(base) ?? 0) + 1;
+  seen.set(base, nth);
+  return nth === 1 ? base : `${base}#${nth}`;
+};
+/** Everything about a region that a reader could see. Markup carries structure, text, inline styles
+ *  and reflected attributes; it does NOT carry `select.value` / `input.checked` / `input.value`, which
+ *  the renderers set as PROPERTIES — a select whose resolved option moved would serialize identically
+ *  and be kept showing the old choice. That is the under-repaint this second half exists to prevent. */
+const regionSignature = (n: HTMLElement): string => {
+  const live: string[] = [];
+  for (const c of n.querySelectorAll('input,select,textarea')) {
+    if (c instanceof HTMLSelectElement) live.push(`s${c.selectedIndex}${c.value}`);
+    else if (c instanceof HTMLInputElement) live.push(`i${c.value}${c.checked ? 1 : 0}`);
+    else live.push(`t${(c as HTMLTextAreaElement).value}`);
+  }
+  // `JSON.stringify` on the array rather than a joined string: the parts are self-delimiting, so no
+  // control-character separator is needed and no control value can forge a boundary.
+  return JSON.stringify(live) + n.outerHTML;
+};
+/** Carry a user's open/closed disclosure state from the live region onto its replacement, and do it
+ *  BEFORE the signature is taken. `<details open>` is a reflected attribute, so without this a section
+ *  the user had expanded ("Contrast on this page") would differ from every freshly built one — it would
+ *  be swapped on every commit for a difference the user made, and it would snap shut each time. Skipped
+ *  when the counts differ, which means the region's structure genuinely changed. */
+const carryDisclosure = (from: HTMLElement, to: HTMLElement): void => {
+  const a = from.querySelectorAll('details'), b = to.querySelectorAll('details');
+  if (a.length !== b.length) return;
+  for (let i = 0; i < a.length; i++) (b[i] as HTMLDetailsElement).open = (a[i] as HTMLDetailsElement).open;
+};
+/** Bring `host`'s children into `want`'s order and content, touching as little as possible.
+ *
+ *  The ONE invariant that matters: `host` is never empty at any point in this loop. A replacement is
+ *  an atomic `replaceWith`, an insertion happens before the removal it pairs with, and leftovers go
+ *  last — so the document keeps its height throughout and `scrollY` is never clamped. Emptying first
+ *  and refilling would be simpler and would reintroduce #485 exactly. */
+const reconcileRegions = (host: HTMLElement, want: readonly HTMLElement[]): { kept: number; swapped: number } => {
+  const seen = new Map<string, number>();
+  const live = new Map<string, HTMLElement>();
+  for (const n of [...host.children] as HTMLElement[]) live.set(regionKey(n, seen), n);
+  const keys = new Map<string, number>();
+  let kept = 0, swapped = 0;
+  let ref: Element | null = host.firstElementChild;
+  for (const fresh of want) {
+    const key = regionKey(fresh, keys);
+    const prev = live.get(key);
+    live.delete(key);
+    let place = fresh;
+    // Identity, not signature — reached only by a workspace-home CHROME surface (#772), which is a
+    // region and a declared surface at once. It is the same node in `live` and in `want`, so it is kept
+    // without being compared: its content belongs to its `sync`, which runs after this reconcile. That
+    // is what keeps "the roster refreshed it" and "the strip on screen is current" from coming apart,
+    // and it is also why there is exactly one strip — `mountSurfaces` does not re-mint one to compete.
+    if (prev === fresh) { place = prev; kept++; }
+    // The volatile test asks about the FRESH region, not the live one. The declared hosts belong to
+    // the render that just ran, so they live in the staged tree; `prev.contains(h)` would be false for
+    // every one of them and every region would look keepable. Getting this backwards is silent — the
+    // page renders correctly once and then stops responding to `apply()`.
+    else if (prev && !volatileHosts.some((h) => fresh === h || fresh.contains(h))) {
+      const before = regionSignature(prev);
+      carryDisclosure(prev, fresh);
+      if (before === regionSignature(fresh)) { place = prev; kept++; } else swapped++;
+    } else swapped++;
+    if (place === ref) { ref = ref.nextElementSibling; continue; }   // already in position, unchanged
+    if (prev && prev === ref) { ref = ref.nextElementSibling; prev.replaceWith(place); continue; }
+    host.insertBefore(place, ref);
+    if (prev && prev !== place) prev.remove();
+  }
+  for (const gone of live.values()) gone.remove();
+  return { kept, swapped };
+};
+
 function renderWorkspace(): void {
-  // #485: `innerHTML = ''` below tears down and rebuilds the entire page, which resets scroll
-  // position as a side effect — every applyFull() caller (select onchange, etc.) was jumping the
-  // page to the top on every edit. Save/restore here fixes it once for every current AND future
-  // applyFull() call site, rather than patching each one individually.
-  const scrollY = window.scrollY;
-  workspace.innerHTML = '';
   // The workspace-home chrome surfaces (#772) — today that is the mode strip, page furniture rather
-  // than global chrome (#432). Re-minted every render because the workspace is cleared; `currentMode`
-  // is module state, so the SELECTION survives navigation exactly as it did in the header. Mounted
-  // from the declaration rather than by name, so a second piece of page furniture cannot arrive here
-  // wired to one of its two obligations.
+  // than global chrome (#432). Mounted from the DECLARATION rather than by name, so a second piece of
+  // page furniture cannot arrive here wired to one of its two obligations.
+  //
+  // FIRST, and both halves of that are load-bearing under #771.
+  //   • It is the ONE write to the live workspace that precedes the reconcile, and it is only ever an
+  //     append into an EMPTY container: `mountSurfaces` is idempotent, and the only way the workspace
+  //     loses its surfaces is `build()` minting a fresh `.ws`. So no live content is disturbed and there
+  //     is no moment of clamped document height — #485's actual mechanism — on any other call.
+  //   • It has to precede the STAGED page render, because `chromedWorkspace` verifies the published
+  //     roster against the DOCUMENT. On the first render into a fresh workspace the strip is not in it
+  //     yet, so staging first would report `mode-strip` missing on every page navigation and trip CI's
+  //     zero-console-errors assertion.
+  // Not re-minted per render, which the idempotence is there for: the strip is the one region whose
+  // content `renderModeStrip` owns directly, so a fresh node each pass would hand the reconcile
+  // something it could only treat as new (a swap on every commit) and leave `syncChrome` refreshing a
+  // node the reconcile had already replaced. `currentMode` is module state, so the SELECTION survives.
   mountSurfaces('workspace', 'app', workspace);
-  syncChrome();   // the workspace is in the document by now, so every surface's first paint is honest
-  // `chromedWorkspace` is the only producer of the host `PAGE_RENDERERS` will accept, and it checks
-  // the declared floor is mounted before minting one. A page therefore cannot be rendered into a view
-  // that skipped the chrome — the distinction this ticket turns on, since a convention every page
-  // happens to follow is what was already here.
-  PAGE_RENDERERS[page](chromedWorkspace(workspace));
-  attachModeBadges(workspace);
+  // THE PAGE IS BUILT DETACHED and reconciled in region by region (#771). Nothing below touches the live
+  // workspace until `reconcileRegions`, which is what makes each swap atomic and the workspace never
+  // empty.
+  //
+  // `chromedWorkspace` is still the ONLY producer of the host `PAGE_RENDERERS` will accept, and the
+  // staged tree needs no weakening of the brand to go through it: what it vouches for is that the
+  // declared floor is mounted in the DOCUMENT this tree is being staged for — a fact about the VIEW, not
+  // about the node — and it never inspected its argument. So `PAGE_RENDERERS[page](staged)` on the raw
+  // element is still `TS2345`, and the answer to "will an engine error be visible on the page this
+  // renderer is about to draw" is still checked before a page renderer runs.
+  const staged = el('div');
+  PAGE_RENDERERS[page](chromedWorkspace(staged));
+  attachModeBadges(staged);
   // The bar belongs UNDER the page's title + lede, not above it. It scopes the CONTROLS; the hero is
   // the page's identity, and a scope control sitting above the name of the thing it scopes reads as
-  // chrome again — which is what moving it out of the header (#432) was meant to stop. Repositioned
+  // chrome again — which is what moving it out of the header (#432) was meant to stop. Positioned
   // here rather than inside each page renderer for the same reason the badges are: there is more than
   // one renderer, and a new one would forget.
   // Below the hero — and below a VIEW switcher when one immediately follows it. On Preview the
@@ -6821,14 +7037,23 @@ function renderWorkspace(): void {
   // the segment itself jump up and down the page; below it, the segment holds still and only the
   // thing that actually varies moves. A control that changes the page outranks a control that
   // scopes it.
-  const hero = workspace.querySelector(':scope > .hero');
-  const next = hero?.nextElementSibling;
-  const anchorEl = next?.classList.contains('pvseg') ? next : hero;
-  if (anchorEl) anchorEl.after(modeStripHost);
+  const regions = [...staged.children] as HTMLElement[];
+  const heroAt = regions.findIndex((n) => n.classList.contains('hero'));
+  let barAt = heroAt < 0 ? 0 : heroAt + 1;
+  if (heroAt >= 0 && regions[barAt]?.classList.contains('pvseg')) barAt++;
+  // A workspace-home surface is ALSO a region — a direct child of `.ws` — so every one of them has to be
+  // in `want` or the reconcile would remove as a leftover the node `mountSurfaces` just appended. Read
+  // back off the `data-chrome` stamps rather than named as `modeStripHost`, so that stays true of a
+  // second surface. Their POSITION is still stated here and only here, which is #772's own reason for
+  // leaving placement out of the declaration: this is the only code that knows where the hero ended up.
+  regions.splice(barAt, 0, ...workspace.querySelectorAll<HTMLElement>(':scope > [data-chrome]'));
+  reconcileRegions(workspace, regions);
+  // Every declared surface refreshed ONCE, after the regions have landed — the placement half of the
+  // mode strip's `syncLast` (see `applyFull`). The workspace is in the document by now, so every
+  // surface's paint is honest: `syncErrorBar` judges itself by `isConnected` (#772), and syncing before
+  // the reconcile would report a correct-but-not-yet-placed surface as the very defect it exists to find.
+  syncChrome();
   syncStuck();
-  // #485: restore the scroll position saved before the teardown above. Clamps naturally if the
-  // rebuilt page is shorter than before.
-  window.scrollTo(0, scrollY);
 }
 
 /** The bar is sticky, so page content slides under it. Without a shadow that reads as a hard cut at
