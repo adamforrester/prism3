@@ -400,6 +400,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-schema-classification.ts'),
   },
   {
+    id: 'lint-absolute-inset',
+    ciStep: 'An absolutely-positioned part lands outside its parent',
+    cmd: engine('lint-absolute-inset.ts'),
+  },
+  {
     id: 'smoke',
     ciStep: `Studio headless smoke suite (advisory until ${SMOKE_ADVISORY_UNTIL} — #775)`,
     cmd: ws('@prism3/studio', 'test:smoke'),

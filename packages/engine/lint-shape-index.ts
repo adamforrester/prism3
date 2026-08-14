@@ -130,6 +130,7 @@ const CITING_FILES_FLOOR = [
   'apps/studio/src/export-settings.ts',
   'apps/plugin/test-write-components.ts',
   'verify.ts',
+  'packages/engine/lint-absolute-inset.ts',
 ];
 
 type Shape = { n: number; title: string };
