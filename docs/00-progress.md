@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-14) — Three method findings in one day, all the same family (docs/32)
+
+**STATUS: shipped.** `docs/32` gains one entry each for three findings that landed within a day of each
+other, from unrelated work: a gate's scope read from its source instead of measured (#807), a sweep that
+filed a defect its own fix comment described (#808), and a def header claiming what it would do under a
+condition nobody had evaluated (`field-message`). Docs only — no code change, and #808 is closed.
+
+**Why they are one family rather than three notes.** Each is a claim about what code does, believed because
+the prose asserting it was read, when the code was available to ask. All three were written in good faith
+by someone who had looked at the right file. What differs is only whether measuring is cheap: for #807 it
+is instrumentation (print the gate's resolved `gated[]`), for `field-message` it is a throwaway copy with
+the condition relaxed, and for #808 it is a judgment about tense and provenance that no counter can make.
+**Shared diagnosis, unshared remedy** — so the entries propose a gate for none of the three and say per
+entry why, which is the part worth having written down.
+
+**#808, closed with citations.** It claimed `text-field`'s focus border and `field-message`'s tone keys were
+live, unfiled defects, quoting `docs/28` §5.1's 2026-08-13 prose verbatim. Both were already fixed by #784 —
+`text-field.ts` carries the corrected `border.focus-visible`/`border.read-only` keys with a comment naming
+the fix, and `field-message`'s four tone keys are the named, reasoned `PROVENANCE_EXCEPTIONS` in
+`lint-paint.ts`, checked in both directions and passing on `main`. Re-ran `lint-paint.ts` independently
+rather than trusting the file diff. The trap: a fix comment in the past tense reads exactly like a live
+defect description at skimming speed — same vocabulary, same named key, same symptom — and the tell is
+tense plus a nearby issue number, not content.
+
+**#807's finding is the method, and its counterexample is my own issue prose.** Instrumenting each prose
+gate's resolved `gated[]` settles in a minute what reading two 250-line files got wrong twice: the claimed
+`paint-census.json` divergence does not exist (both gates, same commit `3dd7f39`) and five unclassified
+files were three. The subtle half is why the existing machinery could not have caught it —
+`lint-us-english.ts` already checked its scope in **both** directions (#387) and both arms passed, because a
+bidirectional check over a list cannot see a file absent from the list. "Checks its own scope, both ways" is
+true and does not mean scope is covered.
+
+**The `field-message` finding was measured, and the measurement is sharper than expected.** Its header
+claims the def *"projects with no further work on it the day the size requirement is relaxed"* (#795).
+Relaxing exactly that — `size: ['md']` on a throwaway copy, nothing else — yields **1 plan and 0 paint
+variables**, against 8 tone-keyed colour bindings declared. The header's *evidence* is not wrong:
+`figmaAnatomyPlan(copy, 'md', { tone: 'error' })` resolves 2 correct paint variables, exactly as claimed.
+But nothing hands it a `tone` — that axis is not in `PROJECTABLE_VARIANT_AXES`, so `figmaAnatomySet` refuses
+to declare it and enumerates one plan at `coord={}`. The probe measured the function its author called by
+hand; the claim is about the function the executors call. **#795 should re-measure rather than trust either
+sentence in that header.**
+
+**Filed as #825, not left in this entry** — principle 3 as amended by #819, which landed on this branch
+while the entries were being written and applies to them directly. The `docs/32` entry is the *method*
+finding (a conditional claim in a comment is testable and untested); the inaccurate header is a defect, and
+a defect described in a progress entry gets no label, no lane and no owner. Worth noting the amendment
+caught its own first case one commit later.
+
+**One correction to my own work here, recorded because it is the same trap one level down.** My first two
+measurement passes counted `bound` entries and reported 0 colour bindings on the plan path too. Paints land
+on `paints.fills` / `descendantFills`, not `bound` — so the walker was reading a field the projector does
+not use for colour, and "0" was an artifact of the instrument. Caught by dumping the whole plan tree instead
+of a count. **A measurement is only as good as knowing which field carries the answer**, and a zero from the
+wrong field looks identical to a zero from the right one.
+
+---
+
 ## (2026-08-14) — Filing a found-but-unfixed defect is not optional, stated where a lane reads it before starting
 
 **STATUS: shipped.** `CLAUDE.md` principle 3 (Surgical changes) now says explicitly: *"'One concern per
