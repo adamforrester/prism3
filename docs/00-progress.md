@@ -7,6 +7,68 @@
 
 ---
 
+## (2026-08-14) — Four stale forward-looking claims, and the one that was arguing from nothing
+
+**STATUS: PR open.** Prose only — `docs/12 §11d`, `docs/38 §7`, `packages/engine/README.md` and one
+comment block in `packages/engine/theme.ts`. No emitted artifact moves, so `ENGINE_VERSION` and
+`CONTRACT_VERSION` both stand. 32 gates, same count on base and head. No issue: this came from a
+measurement, so there is nothing to close.
+
+**The category, stated because it is not "stale links".** A doc that cites a closed issue is a tidiness
+problem. A doc that *reasons from* a dependency that no longer exists is a correctness problem, and it
+keeps producing wrong answers for as long as it is read. These four were measured together but only one
+was the second kind, and it is the one worth the entry.
+
+**`docs/12 §11d` was arguing from nothing for a week.** It said *"(3) is blocked on #609, and that
+dependency is the whole argument for deciding it first."* **#609 closed 2026-08-07** — option C, the
+conforming projection (`<brand>.base` + `<brand>.<mode>.overlay`) beside the canonical `$extensions`
+tree. So the blocker had been gone for seven days while the paragraph went on ordering work behind it.
+**The honest fix was not re-citing #609; it was noticing that item (3) is no longer pending at all.**
+Cross-source consistency — *"export the same brand both ways and diff"* — is `tools/exporter-comparison/`,
+which runs Token Press's real `TokenExporter` over prism3's own Figma emission and diffs it against the
+projection, with `gate.ts` in CI. It has already found #708 (ours) and #709 (theirs). The list's priority
+therefore inverted: (1) conformance and (2) contract are what remain, and the item that was blocked is
+the item that shipped. Patching the citation would have preserved a sequencing argument whose conclusion
+had reversed. **A dependency that resolves does not leave the argument intact minus one clause — it can
+turn the argument inside out, and the only way to find that out is to read what the argument concluded.**
+
+**`#101` was never the right citation, so fixing its state would have been fixing the wrong half.**
+`packages/engine/README.md` and `packages/engine/theme.ts` both said the DTCG gradient composite omits
+kind/angle/interpolation *"(issue #101 — still open)"*. #101 closed 2026-07-17 — and it is **"[web]
+Regroup the Semantic tab into sub-sections + fix stale hero copy"**, which has nothing to do with DTCG.
+The technical claim is fine and unchanged; the number was wrong from the day it was written, and in a
+repo where every bare `#NNN` means a prism3 issue it collided with a real, unrelated one. Most likely it
+meant the upstream design-tokens CG discussion — the same gap the neighboring `spring` comment in
+`tree.ts` describes correctly, without a number. Both sites now describe it that way. **Updating
+`still open` → `closed` would have produced a confidently wrong sentence**, which is worse than the
+stale one: a reader who follows a plausible-looking citation and finds a UI-tab issue learns nothing,
+where one who follows "an open CG gap" learns the truth.
+
+**Left alone deliberately, both times for the same reason.** `docs/10` line 325 says an *"aurora + wendys
+full-materialise follow-up from #50 remains open"*. #50 is closed, and the claim is still true: it is
+about an **unfiled follow-up**, not about #50's state — "fixing" it would have introduced the error.
+And `docs/00-progress.md` is exempt as a class: dated entries are scoped to their date, so a forward
+claim inside one is correct as history, not stale. **A staleness sweep needs an exclusion rule, or it
+manufactures defects at the same rate it fixes them.**
+
+**Not fixed here, and it needs its own change.** The same `#101` mis-citation survives in three more
+places — `packages/engine/tree.ts:150`, `docs/05` (Gradients), and `packages/engine/theme.ts:2139`, which
+is *emitted* prose and so also sits in `out/aurora.tokens.json`, `out/aurora.base.tokens.json` and
+`modes-report.md`. Those carry the bad number but not the false `still open` state, which is why they
+fall outside this sweep's measurement. Correcting the emitted one is a behavior change requiring an
+`ENGINE_VERSION` bump and a full regen — a different PR with a different risk profile, not a line to
+slip into a docs fix. **Hold: this PR is not complete cover for `#101`.** Release condition: an issue
+filed for the emitted-prose correction, at which point this entry stops being the only record of it.
+
+**`docs/38 §7` — the smaller one, for completeness.** It called the `apps/studio/` cleanup
+*"(#768, blocked by #767)"* the priority, in present tense. #767 landed 2026-08-13; #768 closed
+2026-08-14 once #769–#772 all landed and `apps/studio/lint-classes.mjs` was deleted — the done condition
+#768 set for itself. Rewritten to past tense, with the boundary paragraphs kept rather than deleted:
+they are the record of how the scope of a priority call got measured, and the next call will be posed
+the same way.
+
+---
+
 ## (2026-08-14) — The Motion ramp was not one commit stale; it was never repainted at all (#800)
 
 **STATUS: shipped.** The global Tempo control commits through `applyFull()`, so a tempo edit updates the

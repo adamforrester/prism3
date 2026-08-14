@@ -549,7 +549,21 @@ which is a good sign the design is right.
 3. **Cross-source consistency** — export the same brand both ways and diff. The real "clean and
    consistent" check.
 
-**(3) is blocked on #609**, and that dependency is the whole argument for deciding it first: if the web
-emits `$extensions.prism3.modes` and the Figma path emits per-mode directories, the two packages can
-never match however well the settings align — because the disagreement is not in the settings, it is in
-the shape.
+**(3) was blocked on #609, and that blocker is gone** — the sequencing argument played out rather than
+being abandoned. #609 closed **2026-08-07** on option C: the canonical `$extensions.prism3.modes` tree
+stays the source of truth, and the engine emits a **conforming projection** beside it
+(`<brand>.base.tokens.json` + `<brand>.<mode>.overlay.tokens.json`) that a stock Style Dictionary reads
+with no adapter. That is what made the two sources comparable at all. While the web emitted
+`$extensions` modes and the Figma path emitted per-mode directories, the two packages could never match
+however well the settings aligned — the disagreement was not in the settings, it was in the shape.
+
+**So (3) is no longer a pending check; it was built on top of the decision, and it changed the
+priority.** `tools/exporter-comparison/` adapts the committed `packages/engine/out/figma/<brand>/`
+emission — prism3's spec for a Figma file, not a live one — runs Token Press's real `TokenExporter`
+over it unmodified, and diffs the result against the conforming projection, classifying each difference
+as EXPECTED or SURPRISING. `compare.ts` is the measurement; `gate.ts` is the assertable subset and runs
+in CI. It found two defects nothing else caught — **#708** (every mode-varying shadow dropped from every
+overlay, in all four brands; ours, fixed in #713) and **#709** (`OPACITY` returned 100× outside DTCG's
+0–1 range; Token Press's, fixed in #719). What is left of this list is (1) and (2): conformance
+validation over emitted output, and the token-name baseline resolving inside the exported package.
+Cross-source consistency is the one that already exists.

@@ -327,7 +327,8 @@ best rendering practice (Tailwind v4 / CSS Color 4), fixing what others got wron
 - **DTCG `gradient` composite as the spine** — `$value` is the stops array
   `[{ color, position }]`, and stop **colors alias the color ramp** (themeable;
   never raw hex — the deprecated Polaris/SLDS trap).
-- **DTCG omits kind/angle/interpolation** (issue #101 is still open) → we carry
+- **DTCG omits kind/angle/interpolation** (an open design-tokens CG gap, the same
+  shape as the missing `spring` type) → we carry
   them in `$extensions.prism3`: `kind` (linear/radial), `angle` | `center`+`shape`,
   and `interpolation` (**OKLCH by default** — no sRGB gray dead zone). The CSS
   string is emitted `in oklch`.
