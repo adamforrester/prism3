@@ -46,6 +46,17 @@ observe another checkout's `node_modules`, and a gate that could would need a se
 guard here is the protocol. One incident, and the counter is in the entry so the next person can see what
 the number actually is.
 
+**AND THE FINDING OUTGREW THIS INCIDENT.** *A hazard documented from one direction reads as fully
+documented, so the reader stops* turns out to be the same shape as **#849**, filed the same day from an
+unrelated lane: the US-English carve-out states reasoning about *any module that can reach a bundle* and
+then names one directory, leaving **58 en-GB instances** across six component defs latent behind a rule
+whose own argument covers them. Two instances, both in `CLAUDE.md`, both correct about what they say, both
+read by the person who then hit the hazard. Written up as its own `docs/32` entry with the remedy — **a
+rule names its own boundary, or it will be read as closed** — and both paragraphs in `CLAUDE.md` now mark
+their open edge instead of implying a closed list. The measurement worth carrying: #849's table reported
+53 by counting `grep -c` **lines**; instances are **58** (button is 17 lines, 20 instances). A latent-surface
+number is the kind of figure that gets quoted later, so it is worth the extra command.
+
 ---
 
 ## (2026-08-14) — `icon.name`'s promise becomes true, and one import made 53 invisible spellings visible (#833)

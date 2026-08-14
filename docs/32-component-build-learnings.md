@@ -36,6 +36,67 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-14 — a rule that documents its hazard from one direction reads as exhaustive (#849, #852)
+
+Two instances landed the same day, from unrelated lanes, and they are one shape. Both are paragraphs in
+`CLAUDE.md`. Both are **correct about what they say**. Both were **read by the person who then walked into
+the hazard anyway**, because each states its reasoning generally and then applies it to one instance,
+and an unmarked partial list reads as a closed one.
+
+**This is worse than an undocumented hazard, which is the counter-intuitive half.** Undocumented, the
+reader is still looking — they have no reason to believe the question is settled. Documented from one
+direction, the reader checks the paragraph, finds their situation absent from it, and concludes the
+paragraph *decided* their situation was safe. The prose converts an open question into a false negative.
+Both instances below were found by someone who had read the rule.
+
+**Instance 1 — the US-English carve-out (#849).** The rule says code comments are exempt *"except in
+`apps/studio/src`: which comments esbuild keeps in the bundle is an implementation detail, so an exemption
+the gate cannot see is not enforceable."* The reasoning covers **every module that can reach a bundle**.
+The rule names one directory. Adding a single import to `packages/engine/components/icon.ts` — `values:
+[...ICON_NAMES]`, a runtime value — gave the module a live dependency, so esbuild stopped dropping it and
+its comments became shipped text. Two en-GB spellings failed `lint-us-english.ts` in a file the diff had
+barely touched. Neither spelling was new; what changed was whether anything could see them. Latent surface
+behind the same reasoning, measured on `origin/main`: **58 instances across six component defs** (button
+20, field-message 12, focus-ring 11, text-field 7, field-label 4, icon-button 4), of which 39 sit in
+comments and the rest in `$description` prose that already ships.
+
+**Instance 2 — the worktree `node_modules` rules (#852).** Two rules, both measured, both right: don't
+`ln -s` a whole directory (relative workspace links resolve against the main checkout), and use `npm ci`
+rather than `npm install` (an unlocked version leaks in). Both are about **how you build** the links.
+Neither is about **operating inside them afterwards**, and `npm install --no-save --prefix <worktree>`
+pruned through the symlinks, taking that worktree from 252 links to 18 and emptying 12 scoped directories
+in the shared checkout. `git status` showed nothing, because no tracked file changed. The agent had read
+the paragraph and concluded the two named hazards were the hazards.
+
+### `[SKILL]` A `CLAUDE.md` rule names its own boundary, or it will be read as closed
+
+The remedy is one sentence per rule, and it is general: **state the boundary explicitly — "covers X and
+Y; whether it covers Z is undecided" — rather than shipping an implicitly closed list.** An open edge
+that is *marked* open keeps the reader looking, which is the only property that separates these two
+incidents from near-misses. Cheap to write, and it costs nothing to be honest that a boundary has not
+been decided; what is expensive is the reader inferring a decision nobody made.
+
+Two things about applying it. First, the tell is available before the incident: **a rule whose stated
+reasoning is broader than its stated scope is the whole pattern**, and both instances above are visible
+as that by inspection. "Which comments esbuild keeps is an implementation detail" is a claim about
+bundling; `apps/studio/src` is a directory. "Relative links resolve against the main checkout" is a claim
+about symlinks; `ln -s` is one command. When you find that gap in a rule you are editing, either widen
+the scope to match the reasoning or say the rest is undecided — writing neither is what produces this.
+
+Second, **`[SKILL]` and not `[GATE]`, and the reason is worth stating** because the reflex here is to
+gate it. No gate can compare a paragraph's reasoning against its scope: that is a judgment about natural
+language, and the nearest mechanical proxy — flagging rules that name a specific path — would fire on
+almost every rule in the file, most of which are correctly specific. `lint-us-english.ts` already catches
+instance 1's *consequence* the run after it ships, which is the honest place to catch it; nothing can
+catch instance 2 from inside this repo, since it damages a tree the repo cannot observe. So this one is
+review discipline, and naming that plainly is better than a gate that would have to model prose.
+
+**And it applies to this file's own entries.** Every `[SKILL]` here generalizes from one or two
+instances. An entry that states its instances and stops reads as though the shape has been fully mapped —
+which is the same defect one tier up.
+
+---
+
 ## 2026-08-14 — from closing the states and variants vocabularies (#821)
 
 ### `[SKILL]` "Which compilers read this type?" is not answerable from one gate's `include`
