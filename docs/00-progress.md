@@ -7,6 +7,67 @@
 
 ---
 
+## (2026-08-14) — The icon set becomes a vocabulary, and the licence is not the one anybody assumed
+
+**STATUS: shipped.** `emit-icons.ts` generates `icon-glyphs.ts` from the SVGs in `icons/` through
+the authored mapping in `icon-set.ts`. Wired into `regen.ts`; `regen --check` now reports **105**.
+33/33 gates.
+
+**Rebase found a real miss, not a conflict.** This PR was authored against 36 icons; #841 landed
+`search-line`, `link-m` and `external-link-fill` concurrently. `emit-icons.ts`'s own bidirectional
+check caught it exactly as designed — three unreachable glyphs, named — on rebase rather than in CI.
+Mapped as `search`, `link` (keeping `link-m`'s filename per #841's own call) and
+`external-link-filled`. Fixing it surfaced a second, pre-existing mismatch: `more-horizontal` and
+`more-vertical` mapped to `-fill`-only sources but were left unsuffixed, contradicting this file's own
+stated rule that a filled form is suffixed **even with no line sibling**, precisely to avoid a rename
+the day a line variant arrives. Renamed to `more-horizontal-filled` / `more-vertical-filled` — free
+to do before anything downstream references either name. 39 files now, not 36.
+
+**The licence is the finding.** `docs/40` §5.3 and two conversations recorded Remix Icon as Apache
+2.0. It is not: **Remix Icon License v1.0, January 2026**, a custom licence, and the relicensing is
+recent enough that most third-party references still say otherwise. Read from source rather than
+summarized, which is what surfaced it. The position is better than the correction implies — §2.1
+lists *"User interface designs, design systems, and UI kits"* under Permitted Uses, and §3.1's own
+worked examples list *"Design systems or UI kits where Icons are a minor component"* as **Permitted**,
+so our use is named rather than inferred. `icons/LICENSE` and `icons/NOTICE.md` are committed, the
+latter recording the **swap-out intent** — a placeholder core meant to be replaced by a client's
+branded set — because that intent *is* the minor-component argument and it otherwise lived only in a
+conversation. The generalizable half: **an icon set is a dependency whose terms can move**, and this
+one moved seven months before we adopted it.
+
+**Our names, not the vendor's, and the mapping is the import.** `icon.name` is part of the versioned
+component name surface (#823), so adopting Remix's vocabulary would hand the stability of our public
+names to a third party and make a set swap a MAJOR break. `icon-set.ts` maps ours → theirs;
+`emit-icons.ts` checks **both directions** and fails on either half — a mapping entry naming no file,
+and an `.svg` no entry maps. The second is the one a helpful refactor would drop, and it is the one
+that matters: an unreachable glyph is invisible in exactly the way `icon.name`'s own description says
+a missing glyph must never be. Deriving the vocabulary from the directory would delete the check
+while looking like a simplification. Four mutations, four failures by name, including the
+**`fill` trap**: every file carries `fill="none"` on the `<svg>` wrapper and `fill="currentColor"` on
+the path, so reading the first `fill=` yields `"none"` and produces a set of invisible glyphs that
+passes every structural check. Extraction is anchored to `<path>` for that reason.
+
+**No `style` axis, decided from a count.** 39 files are 29 concepts and only 10 carry both `-line`
+and `-fill`, so an `icon.style` variant would be undefined for 19 of 29 — an axis whose members do
+not all exist, which is #795's trap one tier down. Style lives in the name; the filled form is
+suffixed `-filled` **even where it has no line sibling**, so adding one later does not force a
+rename. One wart kept rather than hidden: for stroke-only glyphs (`plus`, `minus`, `close`) the source
+set's `-fill` is a heavier *weight*, not a filled shape.
+
+**And a scope claim of mine was wrong again, caught by the gate within ninety seconds.** The wiring
+comment asserted `lint-payload-manifest.ts` does not reach `ENGINE_ARTIFACTS`. It does, and it failed
+on `icon-glyphs.ts` immediately, demanding a classification — which is the friction #674 exists to
+create. Classified **payload**: any component projection rendering an icon carries the glyph data
+with it. This is the fourth scope claim this week reasoned from a gate's *source* rather than from
+running it, and the first one a gate caught rather than a human. The correction is recorded in
+`regen.ts` rather than quietly applied.
+
+**Deliberately not in this PR:** the `components/icon.ts` typing change that closes #833. It edits the
+same file #821 is closing vocabularies in, and #821 blocks all eighteen defs while this blocks tranche
+1 — so the typing lands as a follow-up on top of it rather than as a conflict.
+
+---
+
 ## (2026-08-14) — A dated advisory window now fails the build when it closes
 
 **STATUS: shipped.** New gate `packages/engine/lint-advisory-expiry.ts`, wired into `ci.yml`,

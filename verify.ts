@@ -178,7 +178,7 @@ export const driftCheckPrecondition = (): string | null => {
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
-const EXPECTED_ARTIFACTS = 104;
+const EXPECTED_ARTIFACTS = 105;
 
 /** #775's window, as `ci.yml` states it. Past this date the smoke suite is gating in CI, so a runner
  *  that still called it advisory would be quietly weaker than CI — the shape point 4 is about. The
