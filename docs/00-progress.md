@@ -9,9 +9,19 @@
 
 ## (2026-08-14) — The icon set becomes a vocabulary, and the licence is not the one anybody assumed
 
-**STATUS: shipped.** `emit-icons.ts` generates `icon-glyphs.ts` from the 36 SVGs in `icons/` through
+**STATUS: shipped.** `emit-icons.ts` generates `icon-glyphs.ts` from the SVGs in `icons/` through
 the authored mapping in `icon-set.ts`. Wired into `regen.ts`; `regen --check` now reports **105**.
-32/32 gates.
+33/33 gates.
+
+**Rebase found a real miss, not a conflict.** This PR was authored against 36 icons; #841 landed
+`search-line`, `link-m` and `external-link-fill` concurrently. `emit-icons.ts`'s own bidirectional
+check caught it exactly as designed — three unreachable glyphs, named — on rebase rather than in CI.
+Mapped as `search`, `link` (keeping `link-m`'s filename per #841's own call) and
+`external-link-filled`. Fixing it surfaced a second, pre-existing mismatch: `more-horizontal` and
+`more-vertical` mapped to `-fill`-only sources but were left unsuffixed, contradicting this file's own
+stated rule that a filled form is suffixed **even with no line sibling**, precisely to avoid a rename
+the day a line variant arrives. Renamed to `more-horizontal-filled` / `more-vertical-filled` — free
+to do before anything downstream references either name. 39 files now, not 36.
 
 **The licence is the finding.** `docs/40` §5.3 and two conversations recorded Remix Icon as Apache
 2.0. It is not: **Remix Icon License v1.0, January 2026**, a custom licence, and the relicensing is
@@ -37,8 +47,8 @@ while looking like a simplification. Four mutations, four failures by name, incl
 the path, so reading the first `fill=` yields `"none"` and produces a set of invisible glyphs that
 passes every structural check. Extraction is anchored to `<path>` for that reason.
 
-**No `style` axis, decided from a count.** 36 files are 26 concepts and only 10 carry both `-line`
-and `-fill`, so an `icon.style` variant would be undefined for 16 of 26 — an axis whose members do
+**No `style` axis, decided from a count.** 39 files are 29 concepts and only 10 carry both `-line`
+and `-fill`, so an `icon.style` variant would be undefined for 19 of 29 — an axis whose members do
 not all exist, which is #795's trap one tier down. Style lives in the name; the filled form is
 suffixed `-filled` **even where it has no line sibling**, so adding one later does not force a
 rename. One wart kept rather than hidden: for stroke-only glyphs (`plus`, `minus`, `close`) the source

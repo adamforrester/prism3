@@ -24,8 +24,8 @@
  *
  * ── THE `-filled` SUFFIX, AND A WART WE ARE KEEPING RATHER THAN HIDING ───────────────────────────
  *
- * Line style is NOT an axis. 36 files are 26 concepts and only 10 carry both styles, so an
- * `icon.style: line | fill` variant would be undefined for 16 of 26 — an axis whose members do not
+ * Line style is NOT an axis. 39 files are 29 concepts and only 10 carry both styles, so an
+ * `icon.style: line | fill` variant would be undefined for 19 of 29 — an axis whose members do not
  * all exist, which is #795's trap one tier down. The style therefore lives in the NAME: the line
  * form is unsuffixed and the filled form takes `-filled`.
  *
@@ -104,9 +104,17 @@ export const ICON_SOURCES: Record<string, string> = {
   'eye-off-filled': 'eye-off-fill',
   // Remix's `more-2` is the VERTICAL ellipsis and bare `more` is the horizontal one. Nothing in
   // either filename says so; it was confirmed by looking at them.
-  'more-horizontal': 'more-fill',
-  'more-vertical': 'more-2-fill',
+  'more-horizontal-filled': 'more-fill',
+  'more-vertical-filled': 'more-2-fill',
   home: 'home-line',
+
+  // Landed in #841 concurrently with this file's authoring; mapped here rather than left
+  // unreachable. `link-m` keeps its source filename rather than renaming to `link-line` — #841's own
+  // call, since the artwork is line-weight by every other icon's convention and a rename after
+  // `icon.name` ships is the MAJOR break this file exists to avoid.
+  search: 'search-line',
+  link: 'link-m',
+  'external-link-filled': 'external-link-fill',
 };
 
 /** Every glyph name this engine defines — the literal vocabulary `icon.name` is typed against. */
