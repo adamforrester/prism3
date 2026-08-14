@@ -36,6 +36,48 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-14 — from closing the states and variants vocabularies (#821)
+
+### `[SKILL]` "Which compilers read this type?" is not answerable from one gate's `include`
+
+Closing `ComponentDef.states` to `State[]` needed an argument for why the *runtime* check in
+`validateComponentDef` is not redundant with the type. The argument I wrote into the comment was: the defs
+are the only files this repo typechecks against this schema, so the type reaches a def author and the
+runtime check reaches everyone else. The first half is `typecheck-components.ts`'s `include` glob restated
+as a fact about the repo, and **it is false** — `apps/studio`'s own `tsconfig` reaches
+`packages/engine/anatomy-figma.ts` through its imports and typechecks it too. `typecheck-web` failed with
+five errors in a file the PR had never opened.
+
+The transferable part is the shape, not the fix. A gate's `include` list answers *"what does this gate
+compile?"* and reads as though it answered *"what in this repo is compiled?"* — the same substitution
+`#807` found one tier up, where two prose gates' scopes were compared by reading their sources instead of
+measuring what they scan. **There is no single place that answers the question**: the engine has no
+`tsconfig` of its own beyond the components one (it is buildless by design), so the surfaces' configs are
+the other half of the answer, and nothing connects them.
+
+Cheap measurement, and the reason this is `[SKILL]` and not `[GATE]`: `npm run verify` already answers it,
+because `typecheck-web` compiles a different subset than `typecheck-components`. So the rule for a skill is
+not "build a config-graph checker" — it is **narrowing a type in `component-schema.ts` requires the whole
+gate list, not the engine's part of it**, which is principle 4's rule earning itself again. A gate would
+have to model TypeScript's project resolution to say anything the existing gates don't.
+
+### `[SKILL]` Assert the parse found something before asserting what it did not find
+
+The declaration-level assertions in this work parse `ComponentDef` out of the schema source, because the
+type layer cannot be invoked from a suite running on tsx. My first parse looked for
+`export interface ComponentDef {`; the declaration is `export type ComponentDef = {`, so the slice was
+0 chars — and the two claims resting on it were an *absence* check (`content` carries no index signature)
+and three shape checks, all of which a 0-char string satisfies vacuously.
+
+They went red instead, because a guard asserted the parse first: `defBlock.length > 2000 &&
+/^  id: string;$/m.test(defBlock)`, with the char count in the message. Four red assertions rather than two
+silent passes. This is `focus-ring wall 1b`'s discipline (*"the exclusion below is REPRESENTED"*) applied to
+a different file, and worth stating as a general rule for any source-text assertion: **the parse is a
+subject too.** A regex that silently matched nothing is the purest form of `docs/34`'s central defect — a
+check whose expected and actual are both empty, agreeing perfectly.
+
+---
+
 ## 2026-08-14 — three method findings in one day, and they are one family
 
 Three findings landed within a day of each other, from three unrelated pieces of work: a gate's scope read

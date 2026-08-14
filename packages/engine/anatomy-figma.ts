@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS } from './component-schema';
+import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, statesOf, variantsOf } from './component-schema';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -379,7 +379,9 @@ export const figmaAnatomyPlan = (
     if (given !== undefined && !values.includes(given))
       throw new Error(`${def.id}: '${given}' is not a declared ${axis}`);
   }
-  if (state && !(def.states ?? []).includes(state)) throw new Error(`${def.id}: '${state}' is not a declared state`);
+  // Through `statesOf` (#821): `state` is a caller-supplied string and this is the check that decides
+  // whether it is a declared one, so reading it as a `State` would be assuming the answer.
+  if (state && !statesOf(def).includes(state)) throw new Error(`${def.id}: '${state}' is not a declared state`);
   // WHERE THE PLAN SITS IN THE GRID. Only axes the caller actually supplied, so a structure-only plan
   // has an EMPTY coord — a load-bearing invariant with its own assertion, because it is what lets a
   // gate tell "legitimately unpainted" from "dropped the paints". `size` is deliberately NOT folded in
@@ -878,7 +880,7 @@ export const figmaAnatomySet = (def: ComponentDef, opts: { swapTarget?: string }
   // is a positional argument rather than a coord entry, and the two slot axes because their values are
   // booleans from `anatomy.parts` rather than strings from `variants`.
   const gridAxes = declared.filter((a) => a !== 'size');
-  const gridValues = gridAxes.map((a) => one(def.variants?.[a], true));
+  const gridValues = gridAxes.map((a) => one(variantsOf(def)[a], true));
   const bools = (name: string): boolean[] => (slotAxes.includes(name) ? [true, false] : [false]);
 
   // The cartesian product of the declared axes, in DECLARATION order — `variantAxes` is the order Figma

@@ -5909,6 +5909,64 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(vb.errors.some((e) => /avoidWhen/.test(e)), 'component: missing ai.avoidWhen fails the gate');
   ok(vb.errors.some((e) => /bogus/.test(e) && /does not resolve/.test(e)), 'component: a broken token binding fails the gate');
 
+  // ---------------------------------------- THE CLOSED VOCABULARIES (#821): STATES + VARIANT AXIS NAMES
+  // Two layers, and the mutations below cover the one a runtime suite can reach. The other layer —
+  // `states: State[]` / `variants: Partial<Record<VariantAxis, string[]>>` — is enforced by
+  // `typecheck-components.ts` and is unreachable from here (`tsc` says `"focus-visable"` is not
+  // assignable and even suggests the fix; measured). Their scopes genuinely differ rather than
+  // overlapping: the TYPE catches a def author in a file git tracks, and THIS catches a caller whose
+  // def arrives as data — an MCP payload, a brand's own component, a hand-built object like `broken`
+  // above — where a type asserts nothing at all. So neither subsumes the other, and only this half is
+  // assertable in a suite that runs on tsx.
+  //
+  // Mutated per case from a CLONE of a real def, so the negative control is a def known to pass (the
+  // corpus loop above validates it clean). Asserted on the specific message rather than on
+  // `errors.length > 0`: `button` has enough interlocking checks that almost any mutation produces
+  // *some* error, and an assertion that cannot distinguish which one fired would pass if this check
+  // were deleted outright.
+  {
+    const cloneOf = (d: ComponentDef) => JSON.parse(JSON.stringify(d)) as any;
+    const errsFor = (mutate: (d: any) => void) => { const d = cloneOf(button); mutate(d); return validateComponentDef(d).errors; };
+    ok(errsFor(() => {}).length === 0,
+      'vocabulary control: an unmutated clone of Button validates clean — so each mutation below is the only difference, and a check that fires on everything would show up here first');
+    ok(errsFor((d) => { d.states[2] = 'focus-visable'; }).some((e) => /^states: 'focus-visable' is not one of the \d+ declared interaction states/.test(e)),
+      `vocabulary: an unlisted STATE name fails the gate by name (#821). A state reaches figmaProperties.stateAxis members, anatomy \`when:\` gates and \`{state}\` paint keys, so a misspelling resolves nothing at the coordinate it names — which is #784 one tier down, where \`border.readonly\` was bound, resolvable and unreachable`);
+    ok(errsFor((d) => { d.variants.sizes = d.variants.size; delete d.variants.size; }).some((e) => /^variants: 'sizes' is not one of the \d+ declared axis names/.test(e)),
+      'vocabulary: an unlisted AXIS NAME fails the gate by name (#821) — names are closed because two defs declaring the same name are claiming the same kind of distinction');
+    ok(errsFor((d) => { d.variants.size = []; }).some((e) => /^variants\.size: an axis must declare at least one value/.test(e)),
+      'vocabulary: an EMPTY axis fails the gate — the cartesian fold multiplies the grid by nothing and drops it silently (#795), so an axis declared with no values projects as though it were never declared');
+    // VALUES stay open, and this asserts the asymmetry rather than restating it in prose. A renamed
+    // value is a component's own design decision; the day someone "finishes the job" by closing values
+    // too, this fails and sends them to VARIANT_AXES' header for the argument (icon's 9 tones against
+    // field-message's 4; three spellings of the t-shirt scale, filed as #844).
+    ok(errsFor((d) => { d.variants.size = ['petite', 'grande']; }).every((e) => !/variants/.test(e)),
+      'vocabulary: axis VALUES are deliberately OPEN — renaming size\'s values raises no `variants` error, because a value set is the component\'s own design and closing it would force icon or button to rekey for no gain in meaning');
+  }
+
+  // The three FIELD TYPES, read out of the declaration — the only source available here, for the reason
+  // `focus-ring wall 1` records: a def that omits a bad key proves nothing about whether the key WOULD
+  // be accepted, and the type layer cannot be invoked from a tsx suite. Parsed rather than grepped whole,
+  // and the parse is asserted before the claims so a regex that silently matched nothing cannot pass.
+  {
+    const schemaSrc = readFileSync(resolve(HERE, './component-schema.ts'), 'utf8');
+    const defBlock = (() => { const i = schemaSrc.indexOf('export type ComponentDef = {'); return schemaSrc.slice(i, schemaSrc.indexOf('\n};', i)); })();
+    ok(defBlock.length > 2000 && /^  id: string;$/m.test(defBlock),
+      `vocabulary: ComponentDef's declaration parsed out of the schema (${defBlock.length} chars) — asserted before the three claims below, so a failed parse fails here rather than reading as three passes`);
+    ok(/^  states: State\[\];$/m.test(defBlock),
+      'vocabulary: `states` is typed `State[]`, not `string[]` — this is the half of #821 that reaches a def author, and widening it back would make the runtime checks above the only layer');
+    ok(/^  variants: Partial<Record<VariantAxis, string\[\]>>;$/m.test(defBlock),
+      'vocabulary: `variants` is keyed by `VariantAxis` with OPEN `string[]` values — the names-close/values-open asymmetry expressed in the type itself, not only in the comment');
+    // The dropped index signature (#821). It made every misspelled key valid, so the field could not be
+    // gated at all: `labelPatern` was as legal as `labelPattern` and nothing anywhere would say so.
+    // Asserted as an ABSENCE inside the `content` block only — the block is sliced first so a `[k: string]`
+    // elsewhere in the interface cannot mask a reintroduction here.
+    const contentBlock = (() => { const i = defBlock.indexOf('  content?: {'); return defBlock.slice(i, defBlock.indexOf('\n  };', i)); })();
+    ok(/labelPattern\?: string;/.test(contentBlock),
+      `vocabulary: the \`content\` block parsed out of the declaration (${contentBlock.length} chars) — asserted before the absence below`);
+    ok(!/\[\s*k\w*\s*:\s*string\s*\]/.test(contentBlock),
+      'vocabulary: `content` carries NO index signature (#821) — with one, every misspelled key was valid and the field was ungateable. The five keys are the measured ones; a sixth is a deliberate edit with a reader, not a typo that compiled');
+  }
+
   // ------------------------------------------------- ANATOMY: the structural layer (#327, docs/28)
   // The schema gate above already proves every anatomy binding key resolves to a real leaf in BOTH
   // brands — because anatomy names keys in `tokens`, and `tokens` is what that loop validates. That

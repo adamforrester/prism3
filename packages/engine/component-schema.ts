@@ -430,11 +430,24 @@ export type ComponentDef = {
   props: PropDef[];
 
   // ---- states + variants (§15) ----
-  /** Runtime interaction states: rest / hover / pressed / focus / disabled / … . `[]`
-   *  for non-interactive primitives. */
-  states: string[];
-  /** Intentional axes and their values, e.g. `{ size: ['sm','md','lg'], tone: [...] }`. */
-  variants: Record<string, string[]>;
+  /** Runtime interaction states, from the closed `STATES` vocabulary (#821). `[]` for
+   *  non-interactive primitives.
+   *
+   *  Typed as `State[]` rather than `string[]` so a misspelling is a compile error in the def itself,
+   *  where the author is — `typecheck-components.ts` is what makes that reach every def. The runtime
+   *  check in `validateComponentDef` is NOT redundant with it: a type binds only what a compiler reads,
+   *  and every other consumer (a brand's own def, an MCP caller, a hand-built object in a test) arrives
+   *  as data, where it asserts nothing. See `STATES` for what may be added and the bar. */
+  states: State[];
+  /** Intentional axes and their values, e.g. `{ size: ['sm','md','lg'], tone: [...] }`.
+   *
+   *  Axis NAMES come from the closed `VARIANT_AXES` vocabulary; VALUES are deliberately open, and that
+   *  asymmetry is argued in `VARIANT_AXES`'s own header — a name is a claim about the KIND of
+   *  distinction and is worth checking across components, where values are the component's own design.
+   *
+   *  `Partial<Record<...>>` rather than `Record<...>`, so a def declares only the axes it has: a full
+   *  `Record` would require every def to carry all ten keys, which is the opposite of the point. */
+  variants: Partial<Record<VariantAxis, string[]>>;
 
   // ---- the token BINDING (docs/14 §2) — the brand/mode-invariant skin ----
   /** slot → token ref. Slots are the component's paintable/measurable surfaces; a
@@ -507,11 +520,38 @@ export type ComponentDef = {
   };
 
   // ---- content (§15, SCALES) ----
+  /** COPY GUIDANCE FOR A WRITER — prose, per pattern, projected into the docs. Not a content MODEL:
+   *  `docs/39` §8 is explicit that a block's question (*"can this hold a 60-character heading, and what
+   *  happens at 200?"*) is cardinality, type and overflow, and a `string` carries none of them. That
+   *  decision is filed (#846); this field stays prose and the closed key list is what makes it gateable
+   *  in the meantime.
+   *
+   *  AND THE FIELD HAS NO READER — measured, and the reason #846 is a decision rather than a cleanup.
+   *  `def.content` appears in exactly two places in this repo: this declaration and a quoted block in
+   *  `docs/39`. No emitter, no projection, no `.ai.json` field, no skill, no gate. Six defs author
+   *  `labelPattern` prose that is gated for voice and US English and delivered to nobody. So closing the
+   *  keys is worth doing on its own terms — an author's typo now fails instead of vanishing twice over —
+   *  but it does not make the field arrive anywhere, and reading this list as though it does is the
+   *  mistake to avoid.
+   *
+   *  THE INDEX SIGNATURE IS GONE (#821). `[k: string]: string | undefined` made every misspelled key
+   *  valid — `lablePattern` typechecked, projected nothing, and no gate could see it, because a field
+   *  that accepts any key has no wrong answer to detect. That is `docs/39` §7(a)'s *"doing quiet harm in
+   *  the meantime"*, and it is the same shape as an unlisted state: authored, well-formed, reached by
+   *  nothing.
+   *
+   *  The five keys are the corpus measured, not a guess: `labelPattern` on 6 defs, `errorPattern` on 3,
+   *  `emptyPattern` / `dialogPattern` / `metaphorRules` on 1 each. The two single-def keys are kept
+   *  rather than folded into a generic one because both carry guidance no other key expresses — button's
+   *  dialog-verb rule and `icon`'s metaphor rules — and a def-specific key is honest here in a way it
+   *  would not be in `PAINT_SLOTS`: nothing dispatches on these, so a sixth key costs a line and misleads
+   *  nobody. Adding one is a one-line change with a reason; the point is only that it be a DECISION. */
   content?: {
     labelPattern?: string;
     errorPattern?: string;
     emptyPattern?: string;
-    [k: string]: string | undefined;
+    dialogPattern?: string;
+    metaphorRules?: string;
   };
 
   // ---- docs projection (docs/19 §6 — carried so docs are a projection, not a re-author) ----
@@ -556,6 +596,36 @@ export type ComponentDef = {
 };
 
 /**
+ * The two closed vocabularies read back as OPEN strings, for the readers that hold an unvalidated one.
+ *
+ * `states: State[]` and `variants: Partial<Record<VariantAxis, string[]>>` (#821) close what a def may
+ * DECLARE. Every reader through these accessors asks the opposite question — *is this string, which came
+ * from somewhere else, a member?* — and the string is a `figmaProperties.stateAxis` value, a `when:` on
+ * a part, or a `{placeholder}` lifted out of a paint template. None of those are a `State`/`VariantAxis`
+ * yet; that is the whole point of the check about to be performed on them.
+ *
+ * So the widening is at the READER, deliberately, rather than at the declaration. Widening the fields
+ * back to `string[]` / `Record<string, string[]>` would make every one of these sites compile and delete
+ * the only thing the new types buy — a def author's typo failing in `typecheck-components.ts`. And
+ * casting the incoming string TO `State` instead would be worse than either: it would make the runtime
+ * check downstream compare a value the compiler has already been told is a member, which is a check that
+ * cannot fail (`docs/34` shape 1).
+ *
+ * Same shape as the existing `(PAINT_SLOTS as readonly string[]).includes(...)` idiom, hoisted to two
+ * named accessors because the explanation is worth stating once rather than at each site.
+ *
+ * EXPORTED, and `anatomy-figma.ts` is why — which is worth knowing because it corrects something this
+ * PR first wrote. The comment on `ComponentDef.states` claimed the defs are the only files typechecked
+ * against this schema; they are the only ones `typecheck-components.ts` covers, but `apps/studio`'s own
+ * `tsconfig` reaches `anatomy-figma.ts` through its imports and typechecks it too. So the projector is a
+ * second reader holding unvalidated strings — `figmaAnatomyPlan`'s `state` argument, and `variantAxes`
+ * entries indexing `variants` — and it found the claim by failing to compile. One exported pair rather
+ * than a re-derived cast per file, so the argument above cannot be silently disagreed with downstream.
+ */
+export const statesOf = (def: ComponentDef): readonly string[] => def.states ?? [];
+export const variantsOf = (def: ComponentDef): Record<string, string[] | undefined> => def.variants ?? {};
+
+/**
  * Validate a `ComponentDef`. Structural checks always run; when a generated `tree`
  * (+ its `root`) is supplied, every token binding is resolved against it — the
  * bound-to-a-verified-contract gate (docs/14 §2). Returns `{ errors, warnings }`:
@@ -589,6 +659,37 @@ export const validateComponentDef = (
   // states + variants
   req(Array.isArray(def.states), 'states must be an array (use [] for non-interactive)');
   req(!!def.variants && typeof def.variants === 'object', 'variants must be an object');
+
+  // The CLOSED vocabularies (#821). Not redundant with the types on those two fields: `State[]` and
+  // `Partial<Record<VariantAxis, …>>` bind wherever a compiler reads them — `typecheck-components.ts`
+  // over the files git tracks as defs, and `apps/studio`'s `tsconfig` over the engine modules its
+  // imports reach. Everything else arrives as DATA — an MCP caller's def, a brand's own component, the
+  // hand-built objects this validator's own tests feed it — where a type asserts nothing at all. So the
+  // type catches the author and this catches the caller, and neither subsumes the other.
+  //
+  // The first version of this comment said the defs were the only files compiled against this schema.
+  // They are the only ones `typecheck-components.ts` covers, which is a different claim, and the studio's
+  // typecheck falsified the wider one by failing on `anatomy-figma.ts` — see `statesOf`'s header. Left
+  // recorded because "which compilers read this type" is not answerable by reading one gate's `include`.
+  //
+  // Read through `statesOf` / `variantsOf` and compare against a `readonly string[]` view of the list,
+  // deliberately on both sides: comparing a `State[]` against `STATES` would be the compiler checking a
+  // claim it already enforced, which is a check that cannot fail (`docs/34` shape 1). The value under
+  // test has to be read as an unconstrained string for the membership test to mean anything.
+  for (const s of statesOf(def))
+    if (!(STATES as readonly string[]).includes(s))
+      errors.push(`states: '${s}' is not one of the ${STATES.length} declared interaction states [${STATES.join(', ')}]. A state name reaches `
+        + `figmaProperties.stateAxis member names, anatomy \`when:\` gates and \`{state}\` paint keys, so an unlisted one resolves nothing at the coordinate it names. `
+        + `Do NOT add it to STATES to clear this unless it is a distinct INTERACTION with no existing entry expressing it — check the census in STATES' header first, `
+        + `because a synonym for an entry already there is the failure mode this list exists to catch`);
+  for (const a of Object.keys(variantsOf(def)))
+    if (!(VARIANT_AXES as readonly string[]).includes(a))
+      errors.push(`variants: '${a}' is not one of the ${VARIANT_AXES.length} declared axis names [${VARIANT_AXES.join(', ')}]. Axis NAMES are closed because two defs `
+        + `declaring the same name are claiming the same kind of distinction; axis VALUES are deliberately open, so a new set of values needs no change here. `
+        + `See VARIANT_AXES for the bar a new name has to clear`);
+  for (const [a, vs] of Object.entries(variantsOf(def)))
+    if (!Array.isArray(vs) || vs.length === 0)
+      errors.push(`variants.${a}: an axis must declare at least one value — an empty axis multiplies the projected grid by nothing and is silently dropped by the cartesian fold (#795)`);
 
   // accessibility + docs + ai (the projections must be present — they're not optional)
   req(!!def.accessibility, 'accessibility block is required');
@@ -689,7 +790,7 @@ export const gridColumnAxis = (
 export const figmaVariantCount = (def: ComponentDef): number => {
   const fp = def.figmaProperties;
   if (!fp) return 0;
-  const variants = (fp.variantAxes ?? []).reduce((n, a) => n * ((def.variants?.[a]?.length) ?? 1), 1);
+  const variants = (fp.variantAxes ?? []).reduce((n, a) => n * ((variantsOf(def)[a]?.length) ?? 1), 1);
   return variants * (fp.stateAxis?.values.length ?? 1) * 2 ** ((fp.slotAxes ?? []).length);
 };
 
@@ -757,7 +858,7 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     if (!Array.isArray(values) || values.length === 0) e.push('figmaProperties.stateAxis.values must be a non-empty array');
     // Values come from `states`, the single source (#487 §0.4) — NOT from a legacy sheet's names.
     for (const v of values ?? []) {
-      if (!(def.states ?? []).includes(v)) e.push(`figmaProperties.stateAxis: '${v}' is not one of states [${(def.states ?? []).join(', ')}]`);
+      if (!statesOf(def).includes(v)) e.push(`figmaProperties.stateAxis: '${v}' is not one of states [${statesOf(def).join(', ')}]`);
     }
     // Same `admits` as the axis loop above — an omitted state is admitted on exactly the terms an
     // omitted axis is, and one helper means the next tightening cannot reach one loop and miss the
@@ -938,6 +1039,124 @@ export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indic
 export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator']);
 
 /**
+ * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
+ *
+ * Closed for the reason `PAINT_SLOTS` is closed, one tier up: at 7 components free-form state strings
+ * are invisible drift, and at 25 they are the difference between *"the catalogue has a state model"*
+ * and *"each component invented one"*. Doing it now costs seven defs' worth of review; doing it after
+ * the catalogue means adjudicating twenty-five components' worth of accumulated spelling.
+ *
+ * `states` is NOT merely decorative prose — it is read by four things, which is what makes drift here
+ * expensive rather than cosmetic: `figmaAnatomyPlan` refuses an undeclared state, `figmaProperties`
+ * requires its `stateAxis` values to be declared states, `anatomy`'s `when:` gates a part on one, and
+ * `paintKeyErrors` fills `{state}` from this list. A misspelling in any of those resolves nothing at the
+ * coordinate it names — the #784 shape — so the vocabulary is the earliest place to catch it.
+ *
+ * ── MEASURED BEFORE IT WAS CLOSED, and the census is why this list is eleven and not seven ──────────
+ *
+ * The corpus declares 11 distinct state names across 7 defs. Every one is admitted, because closing a
+ * vocabulary *around what shipped* is a different act from renaming what shipped, and the second is a
+ * token-tier breaking change this is not (see principle 5 — `states` values reach `figmaProperties`
+ * member names, so a rename moves the Figma surface):
+ *
+ *     rest           4 defs   button, icon-button, field-label, text-field
+ *     disabled       4        button, icon-button, field-label, text-field
+ *     hover          3        button, icon-button, text-field
+ *     focus-visible  3        button, icon-button, text-field
+ *     pressed        2        button, icon-button
+ *     pending        2        button, icon-button
+ *     inactive       2        button, icon-button
+ *     read-only      1        text-field
+ *     error          1        text-field
+ *     loading        1        text-field
+ *     empty          1        text-field
+ *
+ * ── THE ONE THING THE CENSUS FOUND, and it is left as a defect rather than fixed here ───────────────
+ *
+ * `pending` (button, icon-button) and `loading` (text-field) look like one concept spelled twice. Both
+ * describe an async operation in flight; button's own `anatomy` gates its spinner part on `pending`, and
+ * `text-field`'s `loading` prop reads *"a spinner replaces an adornment without reflow; sets aria-busy"*
+ * — the same mechanism under a second name. **This list does not adjudicate that**, and deliberately:
+ * merging them renames a projected Figma member and repoints an `anatomy.when`, which is a change to
+ * what ships rather than to what may be authored. Filed separately (#843). What the closed list DOES do
+ * is make the pair visible and countable, which is the whole argument for closing it — a free-form field
+ * cannot tell you two components disagree, because it has no opinion about anything.
+ *
+ * A `states` entry may only be added here with a stated reason, and the bar is the one `PAINT_SLOTS`
+ * sets: **a distinct interaction, not a distinct component.** `read-only`, `error` and `empty` are
+ * single-def entries that clear it — each is a real interaction state of a text input with no existing
+ * entry expressing it. A twelfth entry that turns out to be a synonym for one of these is the failure
+ * mode; that is what the census above is for.
+ */
+export const STATES = [
+  'rest', 'hover', 'pressed', 'focus-visible', 'disabled',
+  'pending', 'inactive', 'loading', 'read-only', 'error', 'empty',
+] as const;
+
+/** One member of the closed state vocabulary. `ComponentDef.states` is `State[]`, so an unknown state
+ *  name is a compile error in the def rather than a lookup that resolves nothing at runtime. */
+export type State = (typeof STATES)[number];
+
+/**
+ * The VARIANT AXIS NAMES a def may declare (#821).
+ *
+ * **Names close; VALUES stay open, and that asymmetry is the decision rather than an omission.** An
+ * axis name is a claim about *what kind of distinction this is* — two components declaring `intent` are
+ * saying they vary along the same conceptual axis, and that claim is checkable and worth checking. An
+ * axis's VALUES are the component's own design: `icon` has 9 tones against `field-message`'s 4, and
+ * `size` is `[xs,sm,md,lg]` on `icon` against `[small,medium,large]` on button. Closing values would
+ * force one of each pair to rekey for no gain in meaning.
+ *
+ * ── WHAT THE FIELD RESEARCH FOUND, which is the reason to say the asymmetry out loud ────────────────
+ *
+ * **No design system surveyed enforces that two components' shared axis names mean the same thing.**
+ * Material, Polaris, Carbon, Primer and Spectrum all use `size`/`variant`/`emphasis` across components
+ * with per-component meanings and no cross-component contract. So this is a deliberate step past the
+ * field rather than a convention borrowed from it, and the honest scope of the step is *names only*:
+ * closing the names makes a typo and a synonym visible; it does NOT assert the two axes carry the same
+ * semantics, which nothing here can check.
+ *
+ * ── MEASURED: 10 distinct axis names, and TWO INCONSISTENCIES THE CENSUS EXPOSED ────────────────────
+ *
+ *     size        5 defs   icon[xs,sm,md,lg] · button/icon-button/text-field[small,medium,large] · field-label[small,medium]
+ *     intent      2        button, icon-button — [primary,neutral,destructive] BOTH, identical
+ *     appearance  2        button, icon-button — [filled,outline,text] BOTH, identical
+ *     modifiers   2        button[leading-visual,trailing-visual,pending] · icon-button[pending]
+ *     tone        2        icon[9 values] · field-message[4 values] — disjoint, opposite key grammars
+ *     color       1        focus-ring
+ *     indicator   1        field-label
+ *     offset      1        focus-ring
+ *     style       1        text-field
+ *     width       1        button
+ *
+ * 1. **`size` spells one concept three ways** — `[xs,sm,md,lg]` / `[small,medium,large]` /
+ *    `[small,medium]`. Values stay open by the rule above, so this list does not touch it; it is named
+ *    here because a reader of the list will notice and should know it was seen rather than missed.
+ *    Whether the t-shirt scale should be one vocabulary is a def-tier question with a projected-member
+ *    cost, so it is filed (#844), not decided here.
+ * 2. **`modifiers` is not an axis** and its own def says so. Button's `codeOnly` entry states the
+ *    reason: slot CONTENT is an INSTANCE_SWAP property and `pending` is *already a value on the state
+ *    axis*, so projecting `modifiers` would duplicate one member and mis-model the other. It is a bag
+ *    of unrelated booleans wearing an axis's clothing, and `icon-button`'s copy has a single value.
+ *    Admitted here because it is what shipped, and named here rather than quietly, because a vocabulary
+ *    that blesses a non-axis is the drift it exists to catch. Filed as #845.
+ *
+ * `offset` is the interesting admission: #795 decided it is NOT a projected axis (Figma's `x`/`y` bind
+ * no variable, so its two members would differ only by a value the platform cannot hold), and
+ * `focus-ring` documents that in `codeOnly`. It stays in `variants` and therefore in this list, because
+ * `variants` is the AUTHOR's axis set and `figmaProperties.variantAxes` is the projected subset — #795
+ * is exactly the change that made those two different questions. A reader who conflates them will try
+ * to delete this entry.
+ */
+export const VARIANT_AXES = [
+  'size', 'intent', 'appearance', 'tone', 'color',
+  'width', 'style', 'indicator', 'offset', 'modifiers',
+] as const;
+
+/** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
+export type VariantAxis = (typeof VARIANT_AXES)[number];
+
+/**
  * Bindings that name a component this def WILL nest, before it has the `anatomy` block that would
  * say so (#784).
  *
@@ -1085,7 +1304,7 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
    * the check above already rejects a placeholder that names no axis, so there is nothing to say here.
    */
   const supplied = (ph: string): readonly string[] | undefined =>
-    ph === 'slot' ? PAINT_SLOTS : ph === 'state' ? (def.states ?? []) : def.variants?.[ph];
+    ph === 'slot' ? PAINT_SLOTS : ph === 'state' ? statesOf(def) : variantsOf(def)[ph];
   /*
    * SCOPED TO COLOUR BINDINGS, and the scope is load-bearing rather than a convenience. `tokens` is one
    * flat map holding two kinds of binding with two different resolvers: paint keys go through `paintOf`
@@ -1355,7 +1574,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // validates clean, reads complete, and no projection can place it — which is exactly how the
       // spinner sat in this def while `state=pending` emitted a plan byte-identical to `rest`.
       if (!p.when) e.push(`anatomy part '${n}': an overlay must declare the state it appears in ('when') — without it nothing can project it`);
-      else if (!(def.states ?? []).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${(def.states ?? []).join(', ')}]`);
+      else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
       // The fallback target must exist and must NOT be optional. An optional one reintroduces the
       // defect one level down: if the part the overlay falls back to overlaying can itself be absent,
       // there is again a coordinate where the overlay has nowhere to go and takes a cell. `label` is
@@ -1379,7 +1598,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // decorative declaration. The ring appears on exactly one state and a projection cannot guess
       // which — #536 item 2's lesson applied before the kind has a chance to repeat it.
       if (!p.when) e.push(`anatomy part '${n}': an absolute part must declare the state it appears in ('when') — without it nothing can project it`);
-      else if (!(def.states ?? []).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${(def.states ?? []).join(', ')}]`);
+      else if (!statesOf(def).includes(p.when)) e.push(`anatomy part '${n}': when '${p.when}' is not one of states [${statesOf(def).join(', ')}]`);
       // `nests` is REQUIRED rather than optional, and this is the decision from `PartDef.nests` made
       // enforceable: an `absolute` with nothing nominated would have to be authored from scratch, which
       // is the N-way duplication the shared ring exists to avoid. Half-supporting both shapes would

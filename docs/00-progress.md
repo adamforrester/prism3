@@ -7,6 +7,92 @@
 
 ---
 
+## (2026-08-14) — Closing the component vocabularies: names close, values stay open (#821)
+
+**STATUS: shipped.** `ComponentDef.states` is `State[]` over a closed 11-entry `STATES`; `variants` is
+`Partial<Record<VariantAxis, string[]>>` over a closed 10-entry `VARIANT_AXES`; `content`'s
+`[k: string]: string | undefined` index signature is gone, replaced by the five keys the corpus actually
+authors. Two enforcement layers, both mutation-verified. Closes **#821**; files **#843–#846**. No emitted
+artifact moves — `regen --check` stays at **104**, because this changes what may be *authored*, not what
+ships. Suite 2192 → **2233**.
+
+**THE DECISION IS AN ASYMMETRY: axis NAMES close, axis VALUES stay open.** A name is a claim about *what
+kind of distinction this is* — two components declaring `intent` are saying they vary along the same
+conceptual axis, which is checkable and worth checking. Values are the component's own design: `icon` has
+9 tones against `field-message`'s 4, and closing values would force one of each pair to rekey for no gain
+in meaning. This is stated in `VARIANT_AXES`' header and **asserted**, not just written — a test mutates
+`size`'s values to `['petite','grande']` and requires *no* `variants` error, so whoever later "finishes
+the job" by closing values gets sent to the argument rather than discovering it isn't there.
+
+**Field context, which is the reason to say it out loud.** The research pass behind `docs/39` found **no
+design system anywhere that enforces two components' shared axis names meaning the same thing** — Material,
+Polaris, Carbon, Primer and Spectrum all use `size`/`variant`/`emphasis` with per-component meanings and no
+cross-component contract. So this is a deliberate step past the field, not a borrowed convention, and the
+honest scope of the step is *names only*: closing names makes a typo and a synonym visible; it does not
+assert the two axes carry the same semantics, which nothing here can check.
+
+**CLOSING A VOCABULARY AROUND WHAT SHIPPED IS A DIFFERENT ACT FROM RENAMING WHAT SHIPPED**, and that
+distinction decided the whole shape of the PR. Every one of the 11 states and 10 axis names is admitted,
+including the three the census exposed as drift, because `states` values and `variants` values reach
+`figmaProperties` **member names** — a rename moves the projected Figma surface, which is principle 5's
+breaking change and a different concern. So each was measured, named in the list's own header, and **filed**:
+
+- **#843 — `pending` and `loading` are one concept spelled twice.** Both name an async operation in
+  flight; `text-field`'s `loading` prop even describes button's `pending` mechanism. Merging them renames a
+  projected member on two defs and repoints an `anatomy.when` on a third.
+- **#844 — `size` spells one concept three ways**: `[xs,sm,md,lg]` (icon) / `[small,medium,large]` (three
+  defs) / `[small,medium]` (field-label). The case where the values-open rule is least comfortable, because
+  unlike `tone`'s two genuinely disjoint uses these really are the same t-shirt scale.
+- **#845 — `modifiers` is not an axis, and its own def says so.** Button's `codeOnly` explains why it
+  cannot project: slot content is an `INSTANCE_SWAP` property and `pending` is already a state-axis value.
+  It is a bag of unrelated booleans wearing an axis's clothing; `icon-button`'s copy has one value.
+- **#846 — `content` has no reader anywhere.** Measured, and the strongest single fact in the PR:
+  `def.content` appears in exactly two places in the repo — its own declaration and a quoted block in
+  `docs/39`. No emitter, no projection, no `.ai.json` field, no skill, no gate. Six defs author
+  `labelPattern` prose that is gated for voice and US English and delivered to nobody. Dropping the index
+  signature is still worth it on its own terms (a typo now fails instead of vanishing twice over), but it
+  does not make the field arrive anywhere, and the header now says so.
+
+**THE FINDING — a claim in this PR's own new comments was falsified by a gate, three files away.** The
+comment on `ComponentDef.states` argued the runtime check is not redundant with the type because *"the defs
+are the only files this repo typechecks against this schema"*. That is `typecheck-components.ts`'s
+`include` glob restated as a fact about the repo, and it is false: `apps/studio`'s own `tsconfig` reaches
+`packages/engine/anatomy-figma.ts` through its imports and typechecks it too. `npm run verify` failed at
+`typecheck-web` with five errors in a file the PR had never opened — `figmaAnatomyPlan`'s caller-supplied
+`state` argument, and `variantAxes` entries indexing `variants`, plus three downstream `unknown`s that were
+consequences of the same widening. The projector is a **second reader holding unvalidated strings**, and it
+found the claim by failing to compile. Two things worth carrying: **"which compilers read this type" is not
+answerable by reading one gate's `include`** — the studio's tsconfig is the other half of the answer and
+nothing connects the two; and the falsification arrived from the *only* gate in the list that compiles a
+different subset, which is an argument for running the whole list rather than the part that looks relevant
+(principle 4's rule, earning itself again).
+
+**Where the widening lives, and why at the reader.** Both fixes are `statesOf(def)` / `variantsOf(def)` —
+exported accessors returning `readonly string[]` and `Record<string, string[] | undefined>`. Widening the
+*fields* back would have made all ten sites compile and deleted the only thing the new types buy. Casting
+the incoming string **to** `State` would have been worse than either: it would make the runtime check
+downstream compare a value the compiler had already been told is a member — `docs/34` shape 1, a check that
+cannot fail. So the widening is at the reader, once, with the argument stated in one place rather than
+re-derived as a cast per site.
+
+**Mutation-verified, six ways, each failing exactly one assertion by name** — required by `docs/34` because
+the checks' own comments claim two independent layers, and a claim of independence is exactly what a gate
+cannot be trusted to make about itself. Runtime: disabling each of the three checks in `validateComponentDef`
+(state membership, axis-name membership, empty axis) reds one assertion each. Declaration: widening
+`states` to `string[]`, widening `variants` to `Record<string, string[]>`, and reintroducing the index
+signature likewise. And the type layer was measured separately — a misspelled state in `button.ts` gives
+`TS2820`, which even suggests the correct spelling.
+
+**One trap the suite hit on its first run, and it is the good kind.** The declaration assertions parse
+`ComponentDef` out of the source, because the type layer cannot be invoked from a tsx suite. My first parse
+looked for `export interface ComponentDef {` — it is `export type ComponentDef = {`, so the slice was
+0 chars. The **parse guard fired first** (`defBlock.length > 2000 && /^  id: string;$/m`) rather than the
+absence check passing over an empty string, which is `focus-ring wall 1b`'s discipline applied one file
+over: assert the parse found something *before* asserting what it did not find. Four red assertions
+instead of two silent passes.
+
+---
+
 ## (2026-08-14) — The icon set becomes a vocabulary, and the licence is not the one anybody assumed
 
 **STATUS: shipped.** `emit-icons.ts` generates `icon-glyphs.ts` from the SVGs in `icons/` through
