@@ -7,6 +7,47 @@
 
 ---
 
+## (2026-08-14) — `icon.name`'s promise becomes true, and one import made 53 invisible spellings visible (#833)
+
+**STATUS: shipped.** `components/icon.ts` imports `ICON_NAMES` from the generated `icon-glyphs.ts`
+and carries it as `props.name.values` (39 glyphs), with `type` corrected from
+`'string (typed to the set vocabulary)'` to `'enum: IconName'`. 33/33 gates.
+
+**What this closes.** The prop's own description has always said an unknown name *"must fail at
+compile time, because a missing glyph otherwise fails silently as an invisible gap in production"* —
+a claim with no mechanism behind it until `emit-icons.ts` landed (#842) and none in the def until
+now. The vocabulary is **imported rather than restated**, so a glyph cannot enter the set and be
+forgotten in the API; `emit-icons.ts` already proves the set matches both the authored mapping and
+the directory in both directions, so the def inherits that rather than adding a fourth list to keep
+in sync. The description now also says what is still *not* guaranteed: compile-time refusal is
+available to a consumer importing `IconName`, and a code projection that widens it back to `string`
+gives the guarantee up — so the projection is the thing to watch, not the def.
+
+**And a one-line import made a five-year-old class of invisible text visible.** Adding
+`import { ICON_NAMES }` failed `lint-us-english.ts` with two en-GB spellings in
+`apps/studio/dist/main.js` — neither of them new, both in `icon.ts` since it was written.
+
+The mechanism is the finding: `values: [...ICON_NAMES]` is a **runtime** value, so esbuild can no
+longer drop `icon.ts` from the studio bundle, and a retained module carries its comments into
+shipped output. **The spellings did not change; what changed is whether anything could see them.**
+
+That makes CLAUDE.md's carve-out under-specified rather than wrong. Its reasoning — *"which comments
+esbuild keeps in the bundle is an implementation detail, so an exemption the gate cannot see is not
+enforceable"* — is exactly right and is scoped to `apps/studio/src` alone. It applies to any module
+that can reach a bundle, and one import decides whether a def does. Measured across the seven defs:
+**53 remaining instances**, every one currently invisible and one import from being shipped text,
+with esbuild's reachability analysis rather than any authored rule deciding which. Filed as **#849**
+rather than fixed here — the three in `icon.ts` are fixed because this PR is what made them visible;
+the other 53 are a separate concern and `docs/40`'s growth from 7 defs to 25 is what makes it worth
+deciding now.
+
+**Not a gate defect.** `lint-us-english.ts` scans the built bundle, which is the only honest place to
+ask what shipped, and it caught this on the first run after the import. That is the design working —
+and it is the second time this week a gate caught a claim of mine within ninety seconds of the
+wiring landing, after four that only humans caught.
+
+---
+
 ## (2026-08-14) — Closing the component vocabularies: names close, values stay open (#821)
 
 **STATUS: shipped.** `ComponentDef.states` is `State[]` over a closed 11-entry `STATES`; `variants` is
