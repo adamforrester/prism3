@@ -264,6 +264,17 @@ The consistency mechanism `39` §7 argued for, stated as the procedure:
 5. **The def is the deliverable, not the Figma output.** A def that cannot yet project is still a
    complete def — `text-field` has no `anatomy` block and is the most composition-heavy def in the
    set.
+
+   **And `inherits:` records a delta only where a human is the reader.** This was corrected while
+   authoring `textarea` (#863), by grepping before writing rather than trusting the convention:
+   **nothing in the engine resolves `inherits`.** Its only consumer is a `test.ts` assertion that
+   `iconButton.inherits === 'button'` — it *records* the claim, it does not *merge* a parent. So the
+   delta rule governs `props`, which a human reads; it does **not** govern `states`, `variants`,
+   `tokens` or `paintKeys`, all four of which have machinery behind them and must be authored locally
+   in full, exactly as `icon-button` does over `button`. **A def that omitted them would not inherit
+   them — it would project unpainted.** The KB's `_schema.md` makes `inherits:` a locked convention
+   for the form family, and that convention describes the *brief*; the engine has no such mechanism,
+   and the two must not be read as the same thing.
 6. **Then build it and look at it.** A def is not done when it is authored and the suite is green.
    It is done when someone has built it in a real Figma file and inspected what came out. Where the
    def cannot project, say so and the step is discharged; where it can, this is not optional.
