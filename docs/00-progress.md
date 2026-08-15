@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-15) — Five defects in four green components, found by opening the file and looking
+
+**STATUS: docs + issues.** `docs/40` §7 gains **step 6 — build it and look at it** — and the five
+findings are filed as #864, #865, #866, #869, #870, with two design questions as #871 and #872.
+
+**What prompted it.** A single QA pass over the four components that currently materialize, by eye,
+with no deep inspection. Everything found passes all 34 gates:
+
+- **#864 — `icon` builds four empty artboards.** 39 glyphs exist in `icon-glyphs.ts` and **nothing
+  imports `ICON_PATHS`**; `icon.ts` takes only `ICON_NAMES`, for the prop enum. The path data has no
+  route out of TypeScript, so the component Button and IconButton both nominate as a swap target has
+  nothing to swap to. `emit-icons` proves the set is complete and mapped in both directions,
+  `regen --check` proves the module is current, `typecheck-components` proves the def compiles —
+  none of them asks whether anything renders.
+- **#865 — 5px radius and `#FFFFFF` fill on masters nobody authored**, on two components. Hypothesis
+  rather than diagnosis: the frame is created and never cleared, so every property a def is *silent*
+  about is whatever Figma defaulted to. Written up as a hypothesis to test because #801 proposed
+  three causes and all three were false.
+- **#866 — `field-label`'s TEXT refs are `DISCARDED`, 4 of 8.** The built component *looks correct*
+  because the default text is baked into the node; what is broken is the property binding, so an
+  instance override has nothing to override. Functionally inert, visually fine.
+- **#869 — `focus-ring` half-builds**: errors, then leaves a 100×100 white box carrying the correct
+  token at 1px. The missing feature is known (#740); a projector that partially succeeds is a
+  separate defect, because a plausible artifact is worse than a clean refusal.
+- **#870 — the plugin hangs on "Building…"**, which is where a build's misses are reported. #866 was
+  visible *only* because that summary rendered, so a hung build silently converts a reporting run
+  into a quiet one.
+
+**The property they share, and the reason step 6 is a step rather than a habit.** Every one produces
+**structurally valid output that does not do its job** — `#802`'s class, now at five fresh instances
+in two days. That is why the gates are legitimately green on all five, and why widening them is not
+the fix: `lint-absolute-inset.ts`'s header already states the boundary — *no browser and no Figma
+file, so a host that accepts a write and discards it is caught by the executors' read-backs, not
+here.* #866 is precisely that case and **the read-back did catch it.** The diagnostic was printed and
+nobody was reading it. The gap is a missing pair of eyes, not a missing assertion.
+
+**Two of the five are invisible to any check writable from inside the engine**, because the engine's
+view ends at the plan. The empty icon and the discarded refs both require a host.
+
+**Why per-def rather than per-tranche.** Five defects across four components in one sitting. The same
+rate over 25, discovered after authoring instead of during, is a remediation project rather than a
+step — and batching reproduces exactly the situation the step exists to prevent, a corpus of green
+components nobody has looked at.
+
+**Also worth recording: this is the second time a visual comparison found what measurement could
+not.** #801's real cause came from comparing a built file against the Prism2 reference *after* three
+proposed causes had each been measured and found false. A visual pass is cheap and finds a different
+class than a careful one; it is not a weaker version of the same check.
+
+**Two design questions came out of the same pass** and are filed rather than folded in: #871
+(`icon-button` has no inverse appearance, and the axis already exists one tier down on `focus-ring`)
+and #872 (`field-label` is thinner than the Prism2 reference on size, weight and colour). Both need
+deciding before tranche 1 authors against them, since `checkbox`, `radio` and `switch` each meet the
+first question independently otherwise — #756's failure mode in a different vocabulary.
+
+---
+
 ## (2026-08-14) — A measured figure with nothing under it, in a tool built to find exactly that
 
 **STATUS: PR open.** `tools/forward-claim-check/measure.ts` reorders its never-gate case into three

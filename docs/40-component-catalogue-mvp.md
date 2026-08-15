@@ -264,6 +264,45 @@ The consistency mechanism `39` §7 argued for, stated as the procedure:
 5. **The def is the deliverable, not the Figma output.** A def that cannot yet project is still a
    complete def — `text-field` has no `anatomy` block and is the most composition-heavy def in the
    set.
+6. **Then build it and look at it.** A def is not done when it is authored and the suite is green.
+   It is done when someone has built it in a real Figma file and inspected what came out. Where the
+   def cannot project, say so and the step is discharged; where it can, this is not optional.
+
+### Why step 6 exists, measured rather than asserted
+
+On 2026-08-15 a single QA pass over four built components — by eye, with no deep inspection —
+found **five defects across a corpus that passes every gate in `CONTRIBUTING.md` §3**:
+
+| | what shipped |
+|---|---|
+| #864 | `icon` builds **four empty artboards**. 39 glyphs exist in `icon-glyphs.ts`; nothing imports `ICON_PATHS`, so the path data has no route out of TypeScript. The component every other def nominates as a swap target has nothing to swap to. |
+| #865 | Masters carry a **5px radius and a `#FFFFFF` fill nobody authored** — Figma defaults on properties the defs are silent about, on two components. |
+| #866 | `field-label`'s TEXT property references are **`DISCARDED`**, 4 of 8. The text renders from baked defaults, so it looks right; an instance override has nothing to override. |
+| #869 | `focus-ring` **half-builds** — errors, then leaves a 100×100 white box with the correct token, plausible enough to be mistaken for finished. |
+| #870 | The plugin **hangs on "Building…"**, which is where a build's misses are reported — so a hung build is a silent one. |
+
+**Every one of these produces structurally valid output that does not do its job**, which is why the
+gates are legitimately green on all five. `#802`'s class, at five fresh instances in two days. And
+two of them — the empty icon and the discarded refs — are invisible to *any* check we could write
+from inside the engine, because the engine's view ends at the plan.
+
+Three further properties are worth stating, because they decide how the step is run rather than
+whether:
+
+- **The gates are not the problem and widening them is not the fix.** `lint-absolute-inset.ts`'s own
+  header already names the boundary: *no browser and no Figma file, so a host that accepts a write and
+  discards it is caught by the executors' read-backs, not here.* #866 is exactly that case, and the
+  read-back **did** catch it — the diagnostic was printed and nobody was reading it. The gap is a
+  missing pair of eyes, not a missing assertion.
+- **A visual pass is cheap and finds a different class than a careful one.** All five came from
+  looking, not from measurement. #801's real cause arrived the same way — comparing a built file
+  against the Prism2 reference, after three proposed causes had each been measured and found false.
+- **It scales the wrong way if deferred.** Five defects across four components, found in one sitting.
+  The same rate over 25 components, discovered after authoring rather than during, is a remediation
+  project rather than a step.
+
+The step is therefore **per def, not per tranche** — batching it reproduces exactly the situation it
+exists to prevent, which is a corpus of green components nobody has seen.
 
 ## 8. What this doc does not decide
 
