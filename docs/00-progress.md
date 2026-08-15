@@ -7,6 +7,189 @@
 
 ---
 
+## (2026-08-14) — A measured figure with nothing under it, in a tool built to find exactly that
+
+**STATUS: PR open.** `tools/forward-claim-check/measure.ts` reorders its never-gate case into three
+independent reasons strongest-first, registers the nine foreign-namespace false negatives the recall
+sample found, and — the part that took the most thought — **stops carrying a bare recall figure**.
+Three new artifacts back the two claims that were previously unbacked: `recall-snapshot.mjs`,
+`recall-classification-record.txt`, `form-probe.mjs`. `CLAUDE.md`'s `tools/` row follows. No issue,
+no `Closes`. **Gate count unchanged — 34 at base, 34 at head** (main added one while this was open;
+this PR adds none). No engine, no `out/`, nothing under `packages/engine/components/`.
+
+**THE HOLD THAT PRODUCED THE BEST PART OF THIS PR.** The figure shipped as *"recall is 11.0%, 95% CI
+[5.8%, 15.2%]"* with no committed sample, sample size or method — **in a file where every other
+number re-derives from the tree on every run**, and inside a tool built to find claims that have
+drifted from what they assert. The harness could not have caught it: it reads issue citations only.
+**That is a scope limit, not an exemption**, and the fix reads as consistency rather than
+bureaucracy. Worth carrying: *a measurement is a claim, and a claim in this repo either re-derives or
+says out loud that it does not.*
+
+**THE REPRODUCTION TEST DECIDED IT, and it failed in three separate ways.** Runnable would have beaten
+any snapshot, so it was tried first, against **current `main`** rather than the tree it was measured
+on:
+
+1. **The frame generator was not kept.** The five stratum rosters came from a script that no longer
+   exists, and its intermediate frame file was overwritten by a later, unrelated measurement writing
+   the same filename — the downstream consumer now throws on the current file. The strata cannot be
+   redrawn as sampled.
+2. **The corpus moved under the rosters.** Of 3,721 roster sites: **2,531 (68%) still resolve** at the
+   same `file:line`; **818 (22%) drifted** to another line in the same file; **372 (10%) are gone from
+   their file entirely.** A re-scan draws a different frame with different denominators.
+3. **The numerator had already moved.** The snapshot's TP was 12 — the reportable count before the
+   guest exclusion shipped. It is **11** today. *The figure was stale within a day of being written,
+   by the immediately preceding PR in this same lane.*
+
+**SO: OPTION 2, THE DATED SNAPSHOT — with the expiry mechanized rather than written as a note.** The
+posture `tools/nest-exposed-cost/` already takes. What is committed splits honestly along what
+actually reproduces: the **counts are data**, the **Clopper-Pearson arithmetic over them is code**, and
+the headline interval re-derives from the two on every run — so the *inference* is auditable even
+though the *sample* is not. `recall-snapshot.mjs` then reads today's reportable count out of
+`measure.ts --json` and compares it against the snapshot's, **and that check fires today**: it prints
+the drift, shows what the point estimate becomes if only the numerator is updated (10.1%
+[5.3%, 14.1%]), and says in the same breath that this is an illustration of the drift's size and
+**not a new figure**, because mixing a current numerator with a year-old hand-classified denominator
+is not a measurement. *A snapshot that names its own expiry beats one carrying a date; one that
+checks its own expiry beats both.*
+
+**THE ARTIFACT LIST WAS WRONG IN THE BRIEF, AND CHECKING IT FIRST DECIDED THE SHAPE.** The hand-off
+named `probe.mjs` as backing for the figure. It is not: it is sixteen hand-written sentences run
+against the nine patterns, printing CAUGHT/MISSED per form. That is evidence for **which forms the
+pattern misses** — the *clustering* argument — and it cannot estimate a rate at all. Committing it
+under a comment implying it re-derives the recall number would have been a fresh instance of this
+PR's own subject. So it ships as `form-probe.mjs` with its scope stated in the header and in
+`CLAUDE.md`: **two claims, two artifacts, and the probe says outright that reading a percentage out of
+its tally is the defect its neighbour exists to correct.**
+
+**Three things the probe gained on the way in.** Its citations are now **interpolated**, never
+literal — these sentences are forward claims by construction, so writing them with real numbers would
+author a dozen live claims in the file demonstrating them, and the tool would report its own probe
+(the house rule from #839/#840: *a detector whose own source falls inside its corpus must write no
+matchable instance*). It now records an **expected** verdict per case, so a later edit to the pattern
+set shows up as a MISMATCH instead of silently changing the story the file tells. And one pair was
+**wrong as a control**: the "vs." case has *two* sufficient causes — a period inside the span and a
+span over the 48-character limit — so removing the period alone leaves it red and isolates nothing. A
+third variant fixing both was added. Left as it was, it would have been reported as *"the period is
+the cause"* by anyone who did not also shorten the span. **A control that changes one thing and stays
+red has isolated nothing.**
+
+**The headline result, which is stronger than the recall figure it supports:** of the **eleven real
+corpus phrasings** for one claim, the shipped pattern set recognizes **zero**. Every catch in the
+probe is a synthetic control. That is the clustering argument with a mechanism under it.
+
+**WHY THIS IS A SEPARATE PR, which the diff cannot show.** It was two additions to #851 while #851
+was in review. #851 merged mid-review, so the widening arrived here instead. That sequencing is not
+bookkeeping — it changes what the work *is*. **The genre rule is a shipped mechanism now rather than
+a proposal. So if genre turns out not to cover a foreign citation inside one of our own documents,
+that is a finding about production — not a caveat on a proposal.** Everything below is measured
+against the merged tree, not against the base #851 was written on — and re-measured after a second
+rebase onto `dd99ad3`, because the queue moved twice more while this was open. **Every figure here is
+against the head that was pushed, not the one it was drafted on**; `main` moving under an open PR is
+exactly how "identical at base and head" quietly stops being true.
+
+**The `docs/00-progress.md` conflict, resolved the only way that is correct.** This file is
+append-newest-first, so a conflict here is two entries wanting one slot — never a disagreement about
+content. **Both were kept, in date order**; resolving by dropping one would delete a merged entry
+from the log. The `CLAUDE.md` `tools/` row was then verified rather than assumed to have survived:
+one hunk against the new base, all three of its new claims present, and #854's worktree paragraph
+intact beside it.
+
+**THE ORDER IS THE ARGUMENT, and it is the part worth carrying.** The header had two reasons; it now
+has three, and the new one leads. **The misses CLUSTER on the issues the tool already catches** —
+counted by hand on this tree: one issue caught at a single site in `packages/engine/test.ts`
+(`remains open`) and claimed at six more in words no pattern covers (`until it lands`, `when it
+gives`, `is not satisfied`, `not yet a ring`); the parked decision issue caught at ZERO and claimed
+at six; the byte-for-byte exporter question caught at zero and claimed at five, in one phrasing
+copied across `ci.yml`, `CONTRIBUTING.md`, `CLAUDE.md`, `compare.ts` and `gate.ts`. So **a gate goes
+green the moment someone fixes the one sentence it named, while five making the identical claim about
+the identical issue survive untouched** — `docs/34` shape 9 producing **evidence-shaped output rather
+than silence**, which is strictly worse than silence: an absent finding reads as *not checked*, a
+green one reads as *checked and clean*. It holds **even at 95% recall**, because it is about the
+distribution of the misses rather than their count, which is exactly why it leads.
+
+**Recall is 11.0%, 95% CI [5.8%, 15.2%] — as measured on 2026-08-14 against 63efb29, and now stated
+that way everywhere** — and putting the number in *without* the clustering argument would have made
+the header weaker, not stronger: a finite number invites "so raise it and gate it". Recorded as an
+**upgrade, not a correction**. The old "the denominator is unknown" was not wrong; it was weakly
+supported, and it is now replaced by something that outlives being re-measured.
+**The test that the reordering did its work is that the block got SHORTER — 38 lines to 36 —** while
+going from two arguments to three and gaining the clustering evidence: once reason 1 carries the
+weight, reasons 2 and 3 shrink to four lines each.
+
+**THE NINE FOREIGN-NAMESPACE SITES, and where they live is the finding.** The recall sample turned up
+nine forward claims citing a tracker that is not ours — a vendored guest's audit, lint-pass and
+line-height issues, and Style Dictionary's DTCG-support issue. Every one **resolves** against this
+repo's number space and would report STALE at full confidence the day the pattern grows to see it,
+which is the manufactured-defect class reason 3 is about, already live nine times over. They split:
+
+- **Six are inside `apps/tokenpress/`** — the guest genre shipped in #851 covers them, for every
+  claim in the file including ones the pattern cannot yet see. Not rewritten: a guest is ported in
+  whole and is not ours to edit.
+- **Three are in our own prose** (`packages/tokens/README.md` ×1, `packages/tokens/check-consumability.mjs` ×2),
+  and **genre cannot reach them.** The document is ours; only the citation is foreign. Nothing about
+  the file marks it, so no property of the file can classify it.
+
+**And an unmarked `#N` in one of our own documents is *provably* ambiguous, not merely hard to
+classify: both readings are live in this tree.** The same two-digit numbers that name the guest's
+lint-pass and line-height issues also name prism3's own mode-opt-out audit in `packages/engine/test.ts`
+and a completed layout item in `docs/10`. There is no signal to read.
+
+**TRIED, THEN DELIBERATELY NOT SHIPPED — and this is the decision worth recording.** A marker
+convention (`owner/repo#N`, the form the guest's own source already uses) plus a `FOREIGN` verdict
+was written and working: it classified a marked citation, ignored an unmarked one, and refused to
+read this repo's own namespace as foreign. It was **removed before push**. Two reasons. First it is a
+convention, not a detector — it fixes only citations written after it is adopted, and making it real
+required editing the three sites in our prose, which is a house-style decision nobody has taken.
+Second, and decisive: **a tool built to detect a class of blindness, carrying a documented instance
+of that blindness, is worth more than a tool that quietly fixed it.** Shipping the fix would have
+emptied the only live instance the register has. The mechanism is named in the header so it is not
+re-proposed as new; the two weaker options (a per-site register alone, which remembers the wrong
+answer instead of preventing it; reporting every citation as ambiguous, useless for the local
+majority) are recorded there too.
+
+**The `NON_CHECKABLE` comment now says the quiet part**: *a known-incomplete register — and it's a
+form-9 shape in its own right: the harness reports a clean count over a corpus it doesn't fully
+cover.* The evidence is direct and was invisible until somebody measured: the register held **one of
+nine** foreign-namespace sites. Both registers are hand-maintained lists of exceptions to a
+low-recall detector and inherit both weaknesses, so a count from this tool is a floor, never
+coverage.
+
+**THE FUNNEL DID NOT MOVE, and that is the point.** 43 raw → 26 journal + 1 guest → 16 after genre →
+15 deduped → 4 reported → **11 reportable, 0 STALE · 7 HOLDS · 4 NON-CHECKABLE · 0 UNRESOLVED** —
+re-measured at the post-rebase base (`dd99ad3`, in a throwaway worktree) and at the pushed head, and
+identical at both. The nine registered sites were never in the funnel — the pattern misses all nine,
+which is what makes them false negatives. `KNOWN_FALSE_NEGATIVES` goes **0 → 9**, and the run prints
+a new self-check line splitting them 6 genre-covered / 3 covered by nothing.
+
+**THE UNIT IS NOW GLUED TO THE COUNT, because it already came off once.** The brief that asked for
+this register said EIGHT; the measurement says NINE, and the whole difference is a boundary question
+— a second comment in one guest test file that is one claim or two depending on where you cut.
+Nobody was wrong: the unit was never stated, so the number could not carry it. The same set is three
+numbers, and the run now prints all three rather than leaving a reader to re-derive them —
+**9 passages · 7 file×issue pairs · 11 file:line:issue sites** — with the first two DERIVED from the
+register (`UNIT`, `unitGloss()`) so they cannot drift, and the third labeled a hand count with its
+reason (`.handoff-prompt.md`'s two registered lines each cite a second foreign issue sharing the
+line, which has no separate entry). A bare number is the defect; `UNIT` is a constant rather than a
+word retyped at each call site, so no print path can drop it.
+
+**Mutation-tested, six ways, each exit 1 with the right message and each restore clean:** dead
+pattern; journal declaration repointed at `docs/34` (0 dated of 25 headings); corpus blinded to
+`mjs|yml` (215 citations against a 5,368 floor); guest prefix repointed at a moved directory;
+`CLAUDE.md` reworded to call the guest a peer; and a foreign-namespace register fingerprint edited to
+text the file no longer contains, which reports the register stale rather than silently dropping a
+site. That last one is the interlock that matters: nine hand-written fingerprints are nine new ways
+for the register to rot. The snapshot's drift check is verified in both directions the same way —
+it fires on today's tree (12 vs 11), and setting the snapshot TP to the current count silences it.
+
+**Gates:** `npm run verify` → **34/34 PASS** (0 FAIL, 0 SKIP, 0 ADVISORY), smoke included, re-run
+against the pushed head after the third rebase. `lint-advisory-expiry.ts` clean at 8 claims /
+0 expired and still exit 1 under `PRISM3_TODAY`, so nothing here — including 24KB of newly committed
+evidence — authored a dated claim.
+
+---
+
+---
+
 ## (2026-08-14) — A brief's rung names are input; the engine's are the API (#756)
 
 **STATUS: PR open.** Closes #756, the last of the two blockers on def #8 (#821 was the other, shipped

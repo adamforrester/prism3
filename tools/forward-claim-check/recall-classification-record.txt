@@ -1,0 +1,303 @@
+PROVENANCE — read this before quoting anything below.
+
+This is the hand-classification evidence behind the recall figure in `measure.ts`, committed so the
+figure has backing rather than being a headline with nothing under it. It is a SNAPSHOT: measured
+2026-08-14 against the tree at 63efb29, and NOT reproducible — the frame generator was not kept and
+its intermediate file was overwritten, so the strata cannot be redrawn as sampled. The arithmetic
+over these counts IS runnable: `node tools/forward-claim-check/recall-snapshot.mjs`, which also
+checks how far the figure has drifted since.
+
+Line numbers below are as of 63efb29 and many have since moved; the quoted text is the pin that
+survives. The five stratum rosters (~550KB) are deliberately NOT committed — they are the frame, not
+the evidence, and a frame that cannot be regenerated is not worth half a megabyte of tree. What is
+here is every site a human classified as a false negative, with the reason the pattern missed it.
+
+====================================================================================================
+
+FORWARD-CLAIM RECALL — CLASSIFICATION RECORD
+====================================================================================================
+Unit: one claim SITE = file:line:issue, the same unit measure.ts dedupes to.
+Rule (measure.ts's own, not the classifier's): a site is a FORWARD CLAIM iff the sentence makes a
+present-tense assertion of an unresolved/blocked/deferred/pending state tied to the cited issue,
+such that CLOSING THAT ISSUE MAKES THE SENTENCE FALSE ("when the issue closes, the sentence becomes
+false and nothing anywhere says so"), and it is asserted rather than reported/quoted.
+NOT forward claims: past-tense narration of a resolved blocker; bare reference/attribution/provenance;
+a claim about a topic the issue merely tracks, whose truth does not move when the issue closes.
+Genre-excluded (docs/00-progress.md) sites are OUT OF SCOPE and are not in this frame at all.
+
+Every censused or sampled site NOT listed below was classified NOT-A-FORWARD-CLAIM.
+Full rosters: A-tier1-near.txt (967), B-tier1-distal.txt (90), D-tier2-distal.txt (34),
+sample-C.txt (180 of 1218), sample-E.txt (150 of 1412).
+
+----------------------------------------------------------------------------------------------------
+FALSE NEGATIVES  (66)
+----------------------------------------------------------------------------------------------------
+  A0015  .github/workflows/ci.yml:163  #697
+        # reporting-only until #697's byte-for-byte question is answered. Runs after the TokenPress build
+        -> X until #N — "reporting-only until #697's ... question is answered"
+  A0022  .github/workflows/ci.yml:406  #768
+        # There is no unit granularity available for that file until the seam moves (#768). Every
+        -> X until #N — "no unit granularity ... until the seam moves (#768)"
+  A0043  CONTRIBUTING.md:411  #697
+        # so categories 3-5 stay reporting-only until #697's
+        -> X until #N — "stay reporting-only until #697's"
+  A0052  apps/plugin/README.md:63  #110
+        stays main-side until #110 hands it up to **seed the shared UI** from an existing themed file.
+        -> stays X until #N (pattern pins "stays OPEN")
+  A0055  apps/plugin/README.md:145  #236
+        - ⏭ **Variable-linked gradient stops** (#236) and per-(category,size) links remain the only deferred bits.
+        -> remains DEFERRED (pattern pins "remains OPEN")
+  A0164  apps/studio/src/export-settings.ts:64  #584
+        /** The Figma file's own variables. #584's territory and UNBUILT: `readFigmaVariables` reads only
+        -> bare adjective — "#584's territory and UNBUILT"
+  A0169  apps/studio/src/export-settings.ts:541  #677
+        { id: 'figma-file', available: false, needs: '#677' },
+        -> claim as DATA — { available: false, needs: "#677" }
+  A0174  apps/studio/src/main.ts:105  #506
+        * start moment is a deferred cross-lane follow-up (#506/#533) and this ticket does not surface it.
+        -> noun-form — "a deferred cross-lane follow-up (#506/#533)"
+  A0175  apps/studio/src/main.ts:105  #533
+        * start moment is a deferred cross-lane follow-up (#506/#533) and this ticket does not surface it.
+        -> noun-form — "a deferred cross-lane follow-up (#506/#533)"
+  A0259  apps/studio/src/main.ts:7393  #584
+        // The only source that exists (#584 unbuilt). Not derived from PRISM3_HOST — see `export-settings.ts`.
+        -> bare adjective — "(#584 unbuilt)"
+  A0283  apps/studio/test-export-settings.ts:113  #584
+        'one source is available to pick — #584 is unbuilt, so a second entry would export nothing');
+        -> bare adjective — "#584 is unbuilt"
+  A0292  apps/studio/test-smoke.mjs:10  #768
+        * EXTRACTED from it rather than the file itself. Until that seam moves (#768), a browser is the only
+        -> X until #N — "Until that seam moves (#768)"
+  A0308  apps/tokenpress/.handoff-prompt.md:34  #45
+        3. **Open backlog items (not touched this session):** issue #45 (DTCG-spec lint pass / empty-composite rule), #46 (line-height audit), and a not-yet-f
+        -> foreign namespace + "Open backlog items ... issue #45"
+  A0309  apps/tokenpress/.handoff-prompt.md:34  #46
+        3. **Open backlog items (not touched this session):** issue #45 (DTCG-spec lint pass / empty-composite rule), #46 (line-height audit), and a not-yet-f
+        -> foreign namespace + "Open backlog items ... #46"
+  A0310  apps/tokenpress/.handoff-prompt.md:55  #45
+        - **"Start the next feature"** → check open issues #45/#46 and the style-export-toggle follow-up.
+        -> reversed order — "check open issues #45/#46"
+  A0311  apps/tokenpress/.handoff-prompt.md:55  #46
+        - **"Start the next feature"** → check open issues #45/#46 and the style-export-toggle follow-up.
+        -> reversed order — "check open issues #45/#46"
+  A0316  apps/tokenpress/tests/integration/dtcg-compliance-fixes.test.ts:681  #30
+        // Singular "column/count" is excluded — flagged for #30 audit (open
+        -> foreign namespace — "flagged for #30 audit (open question ...)"
+  A0325  docs/10-figma-materialization.md:13  #67
+        > labels pending Token Press confirmation (#67) — the gate compares names/scopes/aliases/values, not
+        -> GAP TOO LONG — "pending Token Press confirmation (#67)" is 26 chars, GAP allows 24
+  A0339  docs/19-code-library-and-dx.md:103  #252
+        it, now govern only ranks 5–6. #252 stays **parked** rather than answered; it was filed as a
+        -> stays PARKED (pattern pins "stays OPEN")
+  A0342  docs/19-code-library-and-dx.md:221  #257
+        (**#257**, explicitly not ready to start yet) and generated Code Connect (**#258**, depends on both
+        -> reversed order — "(#257, explicitly not ready to start yet)"
+  A0343  docs/19-code-library-and-dx.md:221  #258
+        (**#257**, explicitly not ready to start yet) and generated Code Connect (**#258**, depends on both
+        -> reversed order — "(#258, depends on both ...)"; pattern needs "depends on ... #N"
+  A0367  docs/27-future-ideas.md:320  #617
+        - **The voice standard** — `voice-standard.md` §2 is a MUST list awaiting a gate (#617). The
+        -> awaiting (no "on") — "a MUST list awaiting a gate (#617)"
+  A0370  docs/28-component-anatomy-schema.md:278  #681
+        exposed nested property this write does not create yet (#681 defers exposure pending the
+        -> reversed order — "#681 defers exposure pending the ..."
+  A0387  docs/32-component-build-learnings.md:198  #795
+        could gate. Worth building alongside #795, which is the issue that will make the condition real. Until
+        -> X until #N — "#795 ... will make the condition real. Until"
+  A0433  docs/35-naming-and-packaging.md:157  #253
+        `19` §7 item 4 (**#253 — per-brand token package vs. runtime token loader**) stays open.
+        -> GAP TOO LONG (55 chars, WIDE allows 48) AND a period ("vs.") inside the span — either alone kills it; measured both ways
+  A0453  docs/38-arcs.md:67  #735
+        | The schema has five undecided questions | `28` §5, filed as #735–#739. All still open | unchanged |
+        -> PERIOD IN GAP + bare "still open" — "filed as #735-#739. All still open"
+  A0454  docs/38-arcs.md:67  #739
+        | The schema has five undecided questions | `28` §5, filed as #735–#739. All still open | unchanged |
+        -> PERIOD IN GAP + bare "still open"
+  A0465  docs/38-arcs.md:86  #735
+        and its consumer half in #750. The five questions are filed as #735–#739 and **all still open**,
+        -> BARE "still open" (no is/stays/remains) — the exact #101 form
+  A0466  docs/38-arcs.md:86  #739
+        and its consumer half in #750. The five questions are filed as #735–#739 and **all still open**,
+        -> BARE "still open" — the exact #101 form
+  A0467  docs/38-arcs.md:87  #740
+        so #740's "done when" is not satisfied. #739 is the one that binds: two defs now carry nested
+        -> negated-done — "#740's 'done when' is not satisfied"
+  A0468  docs/38-arcs.md:87  #739
+        so #740's "done when" is not satisfied. #739 is the one that binds: two defs now carry nested
+        -> verb "binds" — "#739 is the one that binds"
+  A0474  docs/38-arcs.md:184  #252
+        The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+        -> is DEFERRED, citation first — "(#252 -> ... ) still describes ranks 5-6 and is deferred"
+  A0475  docs/38-arcs.md:184  #253
+        The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+        -> is DEFERRED, citation first
+  A0476  docs/38-arcs.md:184  #256
+        The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+        -> is DEFERRED, citation first
+  A0477  docs/38-arcs.md:184  #254
+        The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+        -> is DEFERRED, citation first
+  A0478  docs/38-arcs.md:184  #257
+        The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+        -> is DEFERRED, citation first
+  A0479  docs/38-arcs.md:184  #258
+        The old sequence (#252 → #253 → #256 → #254 → #257/#258) still describes ranks 5–6 and is deferred
+        -> is DEFERRED, citation first
+  A0483  docs/38-arcs.md:195  #721
+        items block a lane: #721's model and #618's answer are both prerequisites for the plugin lane's
+        -> active voice — "items block a lane: #721's model ... prerequisites"
+  A0484  docs/38-arcs.md:195  #618
+        items block a lane: #721's model and #618's answer are both prerequisites for the plugin lane's
+        -> active voice — "#618's answer are both prerequisites"
+  A0488  docs/38-arcs.md:205  #723
+        **#722** (implements #721's do-now model) shipped and closed, merged as #727. **#723** (implements
+        -> WRAPPED ACROSS LINES — "**#723** (implements / #720's dialog) is open"
+  A0491  docs/38-arcs.md:207  #721
+        duplicated both. #721's model still blocks the plugin lane's next pick per the sentence above —
+        -> active voice — "#721's model still blocks the plugin lane's next pick"
+  A0503  docs/39-component-projection.md:378  #252
+        - **#252, author-headless vs. wrap.** Parked, at ranks 5–6 of `19` §3, and untouched by anything
+        -> bare "Parked," — pattern requires "parked pending|until"
+  A0506  docs/40-component-catalogue-mvp.md:76  #252
+        components #252 (author-headless vs. wrap) actually governs, and #252 is parked at `19` §3 ranks 5–6.
+        -> is PARKED — pattern requires "parked pending|until"
+  A0513  docs/40-component-catalogue-mvp.md:235  #740
+        `focus-ring`'s projection is a tranche-4 dependency rather than a gate: it needs #740's stroke field,
+        -> needs #N — "it needs #740's stroke field"
+  A0518  docs/40-component-catalogue-mvp.md:266  #252
+        - **#252.** Untouched. It governs the six components §4 excludes, which is the honest description of
+        -> bare adjective — "**#252.** Untouched."
+  A0527  docs/voice-standard.md:105  #668
+        ships today (#668 is unbuilt), so `lint-voice.ts` has no payload prose to scan and carries no
+        -> bare adjective — "(#668 is unbuilt)"
+  A0554  packages/engine/anatomy-figma.ts:1135  #681
+        // drive and which needs an exposed nested property this write does not yet create (#681 defers
+        -> not yet + reversed order — "does not yet create (#681 defers"
+  A0568  packages/engine/component-schema.ts:526  #846
+        * decision is filed (#846); this field stays prose and the closed key list is what makes it gateable
+        -> is FILED, not decided — "decision is filed (#846); this field stays prose"
+  A0582  packages/engine/component-schema.ts:1617  #740
+        // stroke field yet: #740 is what adds one, and until it lands the only part kind that carries a
+        -> until it lands — "#740 is what adds one, and until it lands"
+  A0605  packages/engine/components/focus-ring.ts:29  #740
+        * 1. `PartDef` HAS NO STROKE FIELD — **STILL STANDING (#740), and it is why this def now projects and
+        -> STILL STANDING — bare "still" + non-"open" predicate (the #101 form)
+  A0655  packages/engine/lint-paint.ts:246  #795
+        * they project at NO coordinate by our own construction. Filed as #795: it now blocks two
+        -> active voice — "Filed as #795: it now blocks two"
+  A0873  packages/engine/test.ts:9847  #740
+        'button: the ring ceiling names the ONE wall that survives — PartDef has no stroke field, a schema decision under #740');
+        -> survives — "the ONE wall that survives ... a schema decision under #740"
+  A0902  packages/tokens/README.md:81  #1590
+        **#1590**, *Support for DTCG v2025.10* (open, filed 4 November 2025), tracks what v5 does and does not
+        -> foreign namespace — "**#1590** ... (open, filed 4 November 2025)"
+  A0905  packages/tokens/check-consumability.mjs:41  #1590
+        * #1590, "Support for DTCG v2025.10" (OPEN, filed 2025-11-04), tracks what SD does and does not yet
+        -> foreign namespace — "#1590 ... (OPEN, filed 2025-11-04)"
+  A0909  packages/tokens/check-consumability.mjs:212  #1590
+        * Style Dictionary issue #1590, "Support for DTCG v2025.10" (OPEN, filed 2025-11-04), lists what v5
+        -> foreign namespace — "issue #1590 ... (OPEN, filed 2025-11-04)"
+  A0926  tools/exporter-comparison/compare.ts:39  #697
+        * Categories 3–5 stay reporting-only until #697's byte-for-byte question is answered.
+        -> X until #N — "stay reporting-only until #697's ... question is answered"
+  A0942  tools/exporter-comparison/gate.ts:13  #697
+        * categories 3–5 reporting until #697's byte-for-byte question is answered. Adding an arm here is a
+        -> X until #N — "categories 3-5 reporting until #697's ..."
+  A0960  tools/nest-exposed-cost/measure.ts:9  #750
+        * property-count measurement" (#750's own deferred item, recorded in `nestMissAdvice`'s COMPONENT_SET
+        -> WRAPPED ACROSS LINES — "deferred pending \n * ... (#750's own deferred item)"
+  A0964  tools/nest-exposed-cost/measure.ts:261  #681
+        say('NEST-EXPOSED COST MEASUREMENT (#681, blocking the third nesting kind)');
+        -> reversed order — "(#681, blocking the third nesting kind)"
+  B0075  packages/engine/components/focus-ring.ts:172  #740
+        'stroke weight and stroke colour — the ring\'s entire visual substance, and `PartDef` has no field for either. Its geometry vocabulary is gap / height
+        -> needs, live gap — "expressing it needs a `PartDef` stroke field, ... a schema decision under #740"
+  D0027  packages/engine/test.ts:9788  #740
+        'focus-ring wall 1c: the two projected members bind NO ring width or style variable — `tokens` resolves both against every brand and no PART can carry
+        -> live gap — "no PART can carry them" (wall named against #740)
+  C0139  apps/plugin/test-write-components.ts:1385  #681
+        // without the owner's decision on #681.
+        -> without the owner's decision on #N — asserts #681 undecided
+  C0532  docs/36-ai-readiness.md:48  #258
+        | 10 | **Design–code mapping** (3) | **Not yet** | Code Connect planned (#258). Only **2 of 20** ship it (Carbon and Primer); the rest publish written
+        -> planned — "**Not yet** | Code Connect planned (#258)"
+  C0646  packages/engine/component-schema.ts:1136  #844
+        * cost, so it is filed (#844), not decided here.
+        -> is filed, not decided — "it is filed (#844), not decided here"
+  C0788  packages/engine/lint-payload-manifest.ts:8  #668
+        * which. The only thing distinguishing them was that a human knew. When #668's emitter lands and
+        -> when #N lands — "When #668's emitter lands"
+  E0690  docs/38-arcs.md:111  #740
+        alone is worse than neither. **#740 survives** — `PartDef` has no stroke field — so the ring pastes
+        -> **#740 survives** — a verb in NEITHER the pattern set NOR this study's state vocabulary
+
+----------------------------------------------------------------------------------------------------
+BORDERLINE (excluded from the primary count; sensitivity 1 includes them)  (22)
+----------------------------------------------------------------------------------------------------
+  A0023  .github/workflows/ci.yml:410  #775
+        # ADVISORY UNTIL 2026-08-20, THEN GATING — tracked as #775, which is the only reason this
+        -> advisory-until-DATE, tracked as #775 — the deadline is a date, but closing #775 falsifies "advisory"
+  A0024  .github/workflows/ci.yml:435  #775
+        - name: "Studio headless smoke suite (advisory until 2026-08-20 — #775)"
+        -> advisory-until-DATE (#775)
+  A0304  apps/studio/test-smoke.mjs:742  #775
+        * (until 2026-08-20 — #775) a red run is invisible to every status check and to anything reading the
+        -> advisory-until-DATE (#775)
+  A0305  apps/studio/test-smoke.mjs:765  #775
+        '**This step is advisory and does not block the merge** (until 2026-08-20 — #775). It is',
+        -> advisory-until-DATE (#775)
+  A0965  verify.ts:153  #775
+        /** Reported, never fatal — currently only #775's smoke suite, whose advisory window CI states and
+        -> advisory-until-DATE (#775)
+  A0966  verify.ts:183  #775
+        /** #775's window, as `ci.yml` states it. Past this date the smoke suite is gating in CI, so a runner
+        -> advisory-until-DATE (#775)
+  A0967  verify.ts:417  #775
+        ciStep: `Studio headless smoke suite (advisory until ${SMOKE_ADVISORY_UNTIL} — #775)`,
+        -> advisory-until-DATE (#775)
+  A0225  apps/studio/src/main.ts:4210  #795
+        + 'Figma cannot hold — tracked on #795.',
+        -> "not offered here yet ... tracked on #795" — UI string asserting a current gap
+  A0480  docs/38-arcs.md:194  #718
+        #718's remainder, #533's status surface, #618's copy rule. None of it is on the critical path. Two
+        -> "#718's remainder" presupposes unfinished
+  A0481  docs/38-arcs.md:194  #533
+        #718's remainder, #533's status surface, #618's copy rule. None of it is on the critical path. Two
+        -> "#533's status surface"
+  A0482  docs/38-arcs.md:194  #618
+        #718's remainder, #533's status surface, #618's copy rule. None of it is on the critical path. Two
+        -> "#618's copy rule"
+  A0489  docs/38-arcs.md:206  #720
+        #720's dialog) is open, sequenced after #722 by its own text. Filing new tickets here would have
+        -> claim subject (#723) is cited on the previous line
+  A0490  docs/38-arcs.md:206  #722
+        #720's dialog) is open, sequenced after #722 by its own text. Filing new tickets here would have
+        -> same
+  A0497  docs/38-arcs.md:331  #388
+        - **#388's Part B** — the tier-reflecting UI, itself already pending #377, so queueing it costs nothing
+        -> line's OTHER citation; the #377 half of this line IS caught
+  A0507  docs/40-component-catalogue-mvp.md:78  #252
+        decision on its worst instance, in the tranche where we have least experience. They come after #252
+        -> "They come after #252" — sequencing, not state
+  A0510  docs/40-component-catalogue-mvp.md:232  #822
+        Three further items are **not** blockers and should run alongside authoring: #822 (`contentModel`),
+        -> "not blockers ... #822"
+  A0511  docs/40-component-catalogue-mvp.md:233  #823
+        #823 (the name-surface contract), #833 (`icon.name`'s vocabulary, which the set closes).
+        -> #823
+  A0512  docs/40-component-catalogue-mvp.md:233  #833
+        #823 (the name-surface contract), #833 (`icon.name`'s vocabulary, which the set closes).
+        -> #833
+  A0528  docs/voice-standard.md:106  #668
+        channel logic. When #668 emits payload prose, **that PR teaches the gate this channel** — a
+        -> "When #668 emits payload prose" — future conditional
+  A0330  docs/10-figma-materialization.md:397  #42
+        **Follow-up parked from mode-opt-out (2026-07-03, post-#42):** `BrandInput.modes` lets a
+        -> parked follow-up whose subject is UNFILED (measure.ts NON_CHECKABLE class 2)
+  A0634  packages/engine/lint-absolute-inset.ts:168  #801
+        * reproduction of #801 against a built file is still unrun.
+        -> "reproduction of #801 ... is still unrun" — work state, not issue state
+  D0026  packages/engine/test.ts:9778  #801
+        `focus-ring wall 1b: PartDef declares NO field for a part's OWN stroke/border/outline — a ring IS a stroke, so the one thing this component is has now
+        -> live gap named in an assertion label citing #801
+
