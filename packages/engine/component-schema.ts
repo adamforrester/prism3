@@ -1256,6 +1256,9 @@ export type VariantAxis = (typeof VARIANT_AXES)[number];
  */
 const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   'text-field': ['focus-ring'],
+  // Same case, same removal trigger: `textarea` binds the substrate's ring and has no `anatomy` yet,
+  // so `nests` cannot see it either. Both entries go when their anatomy blocks land.
+  'textarea': ['focus-ring'],
 };
 
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */

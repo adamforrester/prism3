@@ -40,6 +40,7 @@ import { focusRing } from './focus-ring';
 import { fieldLabel } from './field-label';
 import { fieldMessage } from './field-message';
 import { textField } from './text-field';
+import { textarea } from './textarea';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -47,7 +48,7 @@ import { textField } from './text-field';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField };
+export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -63,4 +64,7 @@ export const componentDefs: readonly ComponentDef[] = [
   fieldLabel,
   fieldMessage,
   textField,
+  // `textarea` follows `text-field` for the same reason `icon-button` follows `button`: composition
+  // order, and it `inherits` the def above it.
+  textarea,
 ];

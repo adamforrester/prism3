@@ -175,7 +175,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
  * merely counts. Every def carrying a size axis today.
  */
-const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field'];
+const MUST_COVER = ['icon', 'button', 'icon-button', 'field-label', 'text-field', 'textarea'];
 
 /** Every token path in a brand's canonical tree, below the root — `icon.size.md`, `size.lg.height`. */
 const tierPaths = (tree: Record<string, unknown>): Set<string> => {

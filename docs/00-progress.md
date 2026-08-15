@@ -179,6 +179,72 @@ prose admitting its **absence**.
 
 ---
 
+## (2026-08-14) — `textarea`, the first def authored from a brief as a DELTA (tranche 1 of 5)
+
+**STATUS: shipped, all 34 gates green** via `npm run verify` (33 PASS · 1 ADVISORY — `smoke`, which
+fails identically on `main` for want of a local playwright and is advisory until 2026-08-20, #775).
+New `components/textarea.ts`; registered in `components/index.ts`; joined two scope registers.
+
+**The finding that sets the pattern for the remaining four: nothing resolves `inherits`.** Grepped
+before authoring rather than assumed — the only consumer of `def.inherits` in the engine is a
+`test.ts` assertion that `iconButton.inherits === 'button'`, which *records* a claim rather than
+merging a parent. So the delta rule applies to `props`, which a human reads, and **not** to the four
+fields with machinery behind them: `states`, `variants`, `tokens` and `paintKeys` are authored in
+full locally, exactly as `icon-button` does despite inheriting `button`. A def that omitted them
+would not inherit them; it would project unpainted. `icon-button`'s header already said this — *"a
+cheaper error than a lookup that walks `inherits`"* — and the pattern is now stated in a second def
+so the third author does not re-derive it.
+
+**The 20% is a SUBTRACTION, which is the part worth carrying forward.** `text-field` binds
+`size.*.height`; this def binds none, per brief §4 — height belongs to `rows` / auto-grow, so the
+single-line height tiers do not transfer. The `lint-rung-names` note shows it without being told:
+`textarea: [small, medium, large] default 'medium' → rung 'md'; 2 tier family(ies)` where
+`text-field` has three. **A delta visible only by diffing against the parent is one a reader misses**,
+so the header names the absence explicitly.
+
+**The gate corrected the delta rule where the two collide, and the correction is worth knowing before
+the next def.** `lint-rung-names` reads a size ladder from `props.size.values` *and* `variants.size`
+and fails when they disagree — an omitted prop reads as `[]`. So a def that binds `size.*` must state
+the enum in **both** places, and `size` is re-declared here rather than inherited. That is the gate
+working, not the convention bending: the ladder is machinery-read, so by the rule above it is
+authored locally. Its description carries the Textarea narrowing instead of restating the parent's.
+
+**Two brief claims declined, both with the alternative named rather than picked silently.** Brief §15
+lists `resize` and `modifiers` as **variant axes**; neither is declared. `VARIANT_AXES` is closed
+(#847) and holds neither, and admitting them would duplicate members the props already carry — the
+exact criticism the vocabulary's own header levels at `modifiers` (#845). Both sit in
+`notes.contested` with the case for the other call, because *"the brief is a cited field survey, not
+scripture"* cuts both ways: declining it silently would be the same defect as transcribing it
+silently.
+
+**The rung offset is `text-field`'s, unchanged, and is recorded anyway.** `size.small.pad-x →
+size.sm.padding-x`. Not a new collision — but *"the parent already recorded it"* is precisely how the
+next def stops recording it, so the one line is in the header where the author meets it (#756,
+`docs/28` §5.2).
+
+**One finding filed rather than fixed: #862.** Brief §4 says `size` scales *"typography and padding
+only"*, and the def can express half — **neither this def nor `text-field` binds any type token**, so
+a size change moves padding and nothing else in the whole field family. `button` binds one, which is
+what makes the silence visible. Not fixed here because a child def is the wrong place to make the
+family's type call. Note how it surfaced: dropping `height` left padding as the only thing the size
+axis moved, so **a subtraction in the child exposed an absence in the parent** — an argument for the
+`inherits` convention rather than against it.
+
+**`notes` carries 5 contested and 5 unverified entries**, against Button's ~1.4KB bar. The
+`unverified` half is the one to read: `field-sizing: content` (the brief's own biggest near-term
+implementation shift, and it explicitly says not to treat its version numbers as settled — not
+verified in this pass, which was authoring rather than research), the Polaris unbounded-growth
+citation with no `_source-text` backing, and the error-stroke-on-the-container requirement that is
+real and **unexpressible until the anatomy block lands**, since `color.border.danger` paints either
+node and nothing here can say which.
+
+**Trap for whoever authors the next four:** `typecheck-components` failed the first run with *"1
+untracked file(s) inflating the typechecked set"* — the registry arm takes **git's index** as its
+oracle, so a def is invisible to it until `git add`. That is the gate behaving correctly and it will
+catch every one of the remaining four the same way. Do not read the first red as a def error.
+
+---
+
 ## (2026-08-14) — A measured figure with nothing under it, in a tool built to find exactly that
 
 **STATUS: PR open.** `tools/forward-claim-check/measure.ts` reorders its never-gate case into three
