@@ -53,7 +53,7 @@ is not a measurement. *A snapshot that names its own expiry beats one carrying a
 checks its own expiry beats both.*
 
 **THE ARTIFACT LIST WAS WRONG IN THE BRIEF, AND CHECKING IT FIRST DECIDED THE SHAPE.** The hand-off
-named `probe.mjs` as backing for the figure. It is not: it is fifteen hand-written sentences run
+named `probe.mjs` as backing for the figure. It is not: it is sixteen hand-written sentences run
 against the nine patterns, printing CAUGHT/MISSED per form. That is evidence for **which forms the
 pattern misses** — the *clustering* argument — and it cannot estimate a rate at all. Committing it
 under a comment implying it re-derives the recall number would have been a fresh instance of this
