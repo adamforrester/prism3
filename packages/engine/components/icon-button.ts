@@ -41,8 +41,13 @@ export const iconButton: ComponentDef = {
     intent: ['primary', 'neutral', 'destructive'],
     appearance: ['filled', 'outline', 'text'],
     size: ['small', 'medium', 'large'],
-    modifiers: ['pending'],
   },
+  // NO `modifiers` AXIS (#845). It held `['pending']` — an axis of one, whose single value is already a
+  // value on the state axis, so it modelled one coordinate twice and enumerated no alternatives at all.
+  // An axis's values are supposed to be mutually exclusive coordinates along one dimension; a one-value
+  // list has no dimension. `pending` survives where it already lived (`states`, and the projected
+  // `stateAxis`), and it keeps its own leading `codeOnly` entry explaining the spinner ceiling — which
+  // is what makes this removal safe here: see the note in `button.ts`, where it was NOT.
 
   // Icon-only is SQUARE: the height role drives both dimensions, so padding-x = padding-y.
   // Colour skin follows Button's reconciled interactive.* model (same colour × appearance);
@@ -216,7 +221,24 @@ export const iconButton: ComponentDef = {
       // build does not minify, so a comment naming the literal would trip the check it documents.
       'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. So `focus-ring` and `ring-width` are bound in `tokens` and neither reaches a Figma node — the engine verifies that a ring is nominated, which variant, and where it sits, and nothing about its colour or weight. Accepted on the same terms as Button, and for the same reason — the ring is one shared thing.',
       'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on all 162 members would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
-      'modifiers (pending) — not projected as-is. `pending` is already a value on the state axis, so projecting this axis too would duplicate it.',
+      // The `modifiers` admission is GONE, with the axis it admitted (#845). Keeping it would have left
+      // an entry admitting an axis this def no longer declares — an exemption with nothing to exempt,
+      // which `figmaPropertyErrors` cannot detect in either direction and which reads to the next author
+      // as evidence the axis still exists. Deleting the axis and leaving its admission is the stale-
+      // exemption shape `lint-paint.ts` checks BOTH directions for.
+      //
+      // The `pending` entry below stays, and NOT because it explains this axis: it explains a spinner
+      // ceiling on a state that still ships and projects.
+      //
+      // AND MEASURING THAT FOUND A PRE-EXISTING DEFECT, filed as #867 rather than fixed here.
+      // Because `pending — the SPINNER…` LEADS with the state name, `admits()` reads it as an admission
+      // that `pending` is unprojected — so dropping `pending` from this def's `stateAxis` is ALLOWED,
+      // silently, where the identical mutation on `button` is refused. The entry is not an admission at
+      // all; it describes a content ceiling WITHIN a state that does project. Measured before and after
+      // the `modifiers` removal: allowed both times, so this pass neither caused it nor fixes it. It is
+      // `admits()`'s leading-word rule read from the other end — that rule stops prose about something
+      // else from admitting a name, and cannot tell prose ABOUT the name from prose admitting its
+      // absence.
       'intent-at-disabled redundancy — all three intents render ONE row at `state=disabled`, so 18 groups of 3 are byte-identical, on the same terms Button records: `disabled.*` is cross-cutting by design (docs/20 §7), so one disabled skin serving every intent is the token tier being correct and the projection reporting it faithfully.',
       'inactive — a real state (isInactive), deliberately NOT a Figma variant, and the two reasons fail it independently. Its whole delta from `disabled` is behavioral (retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, surfaces the blockage reason on focus), so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control.',
       'pending — the SPINNER, and this is the one ceiling that is genuinely worse here than on Button. Button swaps its leading visual for a spinner and keeps the label, so the control neither grows nor loses its name. An IconButton has one cell and it is the icon, so a spinner must take the icon\'s own place — there is nothing else in the box. The def projects `state=pending` with the icon\'s slot unchanged, which means the Figma column shows a pending IconButton wearing its normal glyph: correct geometry, wrong content. Declaring an overlay would need it to replace the ONLY part, and `overlaysWhenAbsent` has no non-optional floor to fall back to that is not the part being replaced (the validator rejects naming the same part, correctly). So the pending spinner is a code-tier behavior here, admitted rather than half-projected.',

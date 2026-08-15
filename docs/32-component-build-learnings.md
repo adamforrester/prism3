@@ -36,6 +36,88 @@ face. When we do deviate, that deviation is itself a finding — tag it `[KB]` a
 
 ---
 
+## 2026-08-14 — from deciding three synonyms inside closed vocabularies (#843, #844, #845)
+
+### `[SKILL]` A cost estimate written while filing is a hypothesis with a number in it
+
+Three defects filed during #821 each carried a stated cost. **Two of the three were wrong**, and both
+were wrong in the expensive direction — they made a cheap fix look like a migration. #843 said merging
+`loading` into `pending` *"repoints an `anatomy.when` on a third def"*: `when: 'loading'` occurs
+**nowhere in the repo**, and the def in question has no `anatomy` block at all, so the priced work was
+for a mechanism that does not exist. #845's cost was assumed rather than measured and turned out to be
+**zero projected members** (648 / 162 before and after).
+
+Neither was carelessness. Both were written *while filing*, at the moment the defect was noticed, from
+the shape of the code in working memory — which is exactly when a number is least checkable and most
+convincing later, because it arrives in an issue body wearing the same clothes as a measurement. The
+rule: **re-measure a filed cost before paying it, and before declining to pay it.** The second half is
+the one that bites, since an inflated cost is what keeps a five-line fix filed for months.
+
+Corollary for the filing side: write the *question* rather than the answer when the answer is not in
+hand. "How many projected members does this rename move?" survives; "this moves ~200 members" decays
+into a fact.
+
+### `[SKILL]` A rejected name returns through whichever door the gate is not standing at
+
+The repo had already adjudicated `loading` vs `pending`, once, in the same direction: `button.ts`
+records that the legacy spec sheet's `loading` is *that sheet's name for* `pending`, `#487 §0.4`
+forbids codifying it, and `test.ts` asserts no projected state axis carries it. Three guards, all
+correct, all watching the **projection**. `loading` re-entered through a **def's `states` array** —
+which nothing was watching — and sat there through seven defs.
+
+The general shape: a decision recorded at one layer does not bind the layer that feeds it, and the
+guard written at the point of discovery watches the surface where the harm was visible rather than the
+surface where the name is *typed*. So when rejecting a name, ask **where a future author would spell it
+first**, and put the refusal there. Here the closed vocabulary does it structurally: reintroducing
+`loading` is now a TS2322 at the keyboard, before any gate runs.
+
+### `[SKILL]` A test that a rename breaks was often asserting the spelling, not the relationship
+
+Six `test.ts` assertions failed on #844's rename, and they failed for the right reason: each built its
+token path by **concatenating the enum value** — ``paths.has(`icon.size.${rung}`)`` — which only works
+while the consumer vocabulary and the engine's rung names happen to be spelled identically. That form
+also asserts nothing about the **mapping** even when it passes, because it never reads the def's ref:
+it cannot tell `medium → md` from `medium → sm`. It is the exact shortcut `lint-rung-names.ts`'s header
+declines by name, present in the suite the whole time.
+
+Repaired to read ``icon.tokens[`size.${value}`]``, it catches the inverted-ladder mutation the old form
+passed silently. And a second witness had to move for the same reason: `!iconSizes.includes('xl')`
+became vacuously true the moment no enum value was spelled `xl`, so the "engine offers a rung this def
+declines" claim now reads the **refs**. **A vacuous assertion and a satisfied one are indistinguishable
+from the pass column** — so when a rename breaks assertions, the question is not "how do I re-spell
+these" but "which of these were only ever checking the spelling, and what did they never check?"
+
+### `[SKILL]` A mutation whose substitution no-ops measures nothing, and reports EXIT=0
+
+While mutation-testing #844 I applied six string substitutions to a def in one pass. One of them had
+already been consumed by an earlier replacement in the same script, so its `assert` fired before any
+write happened — and the harness reported **EXIT=0**, which reads identically to *"the gate passed the
+mutation"*, the outcome that means the gate is blind. The file was untouched; nothing had been
+measured.
+
+Same family as the pipeline-exit-code trap (`… | tail -2; echo $?` reporting *tail's* status) that
+`verify.ts` exists to remove: **a step that never ran and a step that succeeded exit the same way.** So
+a mutation run needs a positive confirmation of the mutation itself — count the substitutions applied,
+or diff the file — before the gate's exit code is allowed to mean anything. `docs/34`'s discipline is
+"confirm your gate fails **by name**"; this is the prior step, *confirm the subject actually changed*.
+
+### `[GATE]` `admits()` cannot tell prose **about** a name from prose admitting its **absence** (#867)
+
+Found and filed as #867 rather than fixed (principle 3). `icon-button`'s `codeOnly` entry begins
+`pending — the SPINNER…`, so `admits()`'s leading-word rule reads it as an admission that `pending` is
+unprojected — and dropping `pending` from that def's `stateAxis` is therefore allowed **silently**,
+where the identical mutation on `button` is refused. The entry is not an admission: it describes a
+content ceiling *within* a state that does project.
+
+The leading-word rule was written to stop prose about something *else* from licensing an omission, and
+it does that well. This is the same rule read from the other end — prose about the name itself, which
+the rule cannot distinguish from prose about the name's absence. Verified pre-existing on `origin/main`
+and unaffected by this pass. Worth stating generally: **a heuristic that keys on position answers "is
+this entry about X?" and gets read as "does this entry excuse X?"** — the same
+scope-restated-as-a-fact substitution as `#807`'s and `#821`'s.
+
+---
+
 ## 2026-08-14 — from two numbers that crossed a lane boundary and arrived meaning something else
 
 ### `[SKILL]` A number keeps its value across a hand-off and loses its referent

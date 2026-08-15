@@ -90,6 +90,95 @@ already printed by git.
 
 ---
 
+## (2026-08-14) — Three synonyms in a closed vocabulary, and two filed costs that were wrong (#843, #844, #845)
+
+**STATUS: PR open.** The other half of #821. Closing the `states` and `variants`-name vocabularies
+admitted everything that shipped — deliberately, because closing a list is a different act from
+renaming what is in it — and filed four defects in the contents. Three of them corrupt the five
+tranche-1 defs about to be written, since every new def picks a spelling for each. All three are now
+decided, with the reason recorded in the vocabulary header in the shape `lint-paint.ts`'s named
+exceptions use.
+
+**#843 — `pending` beats `loading`, and `loading` is gone from `STATES`.** One concept had two
+spellings: button and icon-button said `pending`, text-field said `loading` while its own prop
+described button's mechanism. Direction decided by measurement, not preference: `pending` is a value
+on two defs' projected `stateAxis`, so it names a Figma variant member on **810** members;
+text-field has no `figmaProperties` block at all, so `loading` named **0**. Renaming the single-def
+spelling moves nothing that ships. Both the state and the prop moved (`loading` → `isPending`) —
+renaming only the state would have left one def spelling one concept two ways, and props reach no
+emitted artifact, so that half was free.
+
+**#844 — the t-shirt words win; `icon` moved.** Two measurements settled it. `size` was the **only**
+axis in the corpus with abbreviated values — the other nine all spell whole words (`filled`,
+`destructive`, `auto`, `required`), so `icon` was not one of two conventions but the single exception
+to one. And the projected-member cost is **4 against 814**: unifying on words renames icon's whole
+4-member set, unifying on abbreviations renames 814 across the other three. The cheap direction was
+also the right one, which is not always how this goes — hence both figures.
+
+**#845 — `modifiers` removed from both defs and from `VARIANT_AXES`.** Its values were never
+alternatives: a button carries a leading *and* a trailing visual, `pending` is a state-axis
+coordinate, and icon-button's copy was an axis of one. Each value already had a correct home
+(`slotAxes`, `states`), so this was a removal, not a migration. **Projection-neutral, measured:**
+`figmaAnatomySet` returns 648 / 162 members before and after; only the paint-census *grid* moves
+(button 1134 → 378 coordinates), which is `lint-paint.ts` arm 2 stopping its enumeration of a phantom
+third dimension.
+
+**TWO OF THE THREE FILED COSTS WERE WRONG, and that is the reusable finding.** #843 said merging
+*"repoints an `anatomy.when` on a third def"*; `when: 'loading'` occurs **nowhere in the repo** and
+text-field has no `anatomy` block at all, so the migration it priced was for a mechanism that does
+not exist. #845's cost was likewise assumed rather than measured, and turned out to be zero projected
+members. Both estimates were written *while filing*, in the honest belief they were facts. **A cost
+estimate written at filing time is a hypothesis with a number in it — re-measure before paying it, and
+before declining to pay it.** The second half matters more: an inflated cost is exactly what keeps a
+cheap fix filed for months.
+
+**AND THE REPO HAD ALREADY REJECTED `loading` ONCE, at a different door.** `button.ts` records that
+the legacy spec sheet's `loading` is *that sheet's name for* `pending`, #487 §0.4 forbids codifying
+it, and `test.ts` asserts no state axis carries it. Every one of those guards watches the
+**projection**. `loading` re-entered through a **def**, which nothing was watching, and sat there
+through seven defs. The shape: *a rejected name returns through whichever door the gate is not
+standing at* — and the fix is the closed vocabulary, which is why M3 below is now a compile error
+rather than a convention.
+
+**Mutation-tested per `docs/34`, four mutations, each refused by name.** M1 (`medium` → `icon.size.sm`,
+breaking the mapping while every line still resolves) fails `lint-rung-names.ts` arm 2 *and* the
+repaired `test.ts` default-rung assertion. M2 (revert #844 wholesale) fails `test.ts` and
+`lint-paint.ts` — and `lint-rung-names.ts` correctly stays **green**, because it gates the
+enum→rung *mapping*, not the vocabulary; the two are independent, which is the point. M3 (`loading`
+back in a def) is a **TS2322 compile error** plus a named runtime failure. M4 (re-declare `modifiers`)
+is **TS2353** plus the census.
+
+**THE `test.ts` REPAIR IS THE PART A REVIEWER SHOULD READ.** Six assertions failed on #844, and they
+failed for the right reason: they built the token path by *concatenating the enum value*
+(``paths.has(`icon.size.${rung}`)``), which is the shortcut `lint-rung-names.ts`'s header declines by
+name. That form only works while the two vocabularies are spelled identically — and it asserts nothing
+about the **mapping** even then, because it never reads the ref: it cannot tell `medium → md` from
+`medium → sm`. Repaired to read `icon.tokens`, it now can, and M1 proves it (the old form would have
+passed M1 silently). The `icon.size.xl` witness moved from the enum to the **refs** for the same
+reason — after #844 no enum value is spelled `xl`, so `!iconSizes.includes('xl')` would have been
+vacuously true and stopped witnessing anything. **A test that a rename breaks was often asserting the
+spelling rather than the relationship.**
+
+**Paint-census acceptance was verified, not trusted.** The gate reported drift on three defs including
+a hash change on `icon` at an *unchanged* count. Rather than accept, I extracted every
+`(member, node path, slot, variable)` row on both trees and diffed them with the member spelling and
+the removed `modifiers` coordinate normalized: **2915 distinct rows on each side, 0 added, 0 removed.**
+The drift is entirely member names and a dropped duplicate enumeration; no paint moved. `set` counts
+are unchanged at 648 / 162 / 4, which is the independent confirmation.
+
+**One defect found and filed as #867 rather than fixed** (principle 3): `icon-button`'s `codeOnly` entry
+`pending — the SPINNER…` **leads** with the state name, so `admits()` reads it as an admission that
+`pending` is unprojected — and dropping `pending` from that def's `stateAxis` is therefore allowed
+**silently**, where the identical mutation on `button` is refused. The entry is not an admission; it
+describes a content ceiling *within* a state that does project. Verified pre-existing on `origin/main`
+and unaffected by this pass. It is `admits()`'s leading-word rule read from the other end: that rule
+stops prose *about something else* from admitting a name, and cannot tell prose **about** a name from
+prose admitting its **absence**.
+
+**#846 stays open deliberately** — it is a decision, #822's twin, and it blocks no authoring.
+
+---
+
 ## (2026-08-14) — A measured figure with nothing under it, in a tool built to find exactly that
 
 **STATUS: PR open.** `tools/forward-claim-check/measure.ts` reorders its never-gate case into three

@@ -53,7 +53,12 @@ export const textField: ComponentDef = {
     { name: 'prefix', type: 'slot (adornment)', required: false, description: 'Leading adornment — a decorative/purpose glyph (currency, search), aria-hidden. Signals the field\'s PURPOSE; validation never mutates it.' },
     { name: 'suffix', type: 'slot (adornment | action)', required: false, description: 'Trailing adornment. May be decorative (aria-hidden) OR a real labelled action (clear / reveal) — a focusable button, not decoration. The decorative-vs-interactive split is load-bearing (§2).' },
     { name: 'clearable', type: 'boolean', default: false, required: false, description: 'Adds a labelled Clear button that announces the cleared state and RETURNS FOCUS to the input (the recurring trap is stranding focus).' },
-    { name: 'loading', type: 'boolean', default: false, required: false, description: 'Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.' },
+    // `isPending`, not `loading` — the same concept Button's `isPending` names, spelled the same way
+    // (#843). Button's own prop description already recorded the preference ("Preferred over `loading`")
+    // and this def had not followed it. The PROP rename is free where the STATE rename below is not:
+    // measured, `props` reach no emitted artifact and no Figma property, so nothing downstream carries
+    // this name. Renaming only the state would have left one def spelling one concept two ways.
+    { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Async validation/value — a spinner replaces an adornment without reflow; sets aria-busy; does not block typing unless intended.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Three tiers (height + padding). A single bordered (outline) style; filled/underline are theming, not API.' },
     { name: 'id', type: 'string', required: false, description: 'Wiring + form submission; auto-generated with useId if omitted, tying label→input and the aria-describedby chain.' },
     { name: 'name', type: 'string', required: false, description: 'A real <input name> so the field works uncontrolled, in a native <form>, with useFormStatus / Server Actions, and the Constraint Validation API.' },
@@ -61,7 +66,17 @@ export const textField: ComponentDef = {
 
   // The FULL generic state set actually applies here (unlike Button). read-only and disabled are
   // distinct rows — the component's live edge. warning is optional (folded into helper/error by many).
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'loading', 'error', 'empty'],
+  // `pending`, not `loading` (#843). One concept was spelled twice across the corpus — button and
+  // icon-button say `pending`, this def said `loading` — and `button.ts`'s own state list had already
+  // adjudicated the pair once, in the other direction: its `figmaProperties` comment records that the
+  // legacy sheet's `loading` is *that sheet's name for* `pending`, and #487 §0.4 forbids codifying it.
+  // So this spelling was the one the repo had already rejected, arriving through a second door.
+  //
+  // WHY THIS DEF MOVED RATHER THAN THE OTHER TWO, and the direction is measured rather than argued:
+  // `pending` is a value on button's and icon-button's projected `stateAxis`, so it is a Figma variant
+  // member name on 810 members. This def has no `figmaProperties` block at all, so `loading` reaches
+  // no member — renaming it moves 0 projected members against 810 the other way.
+  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'error', 'empty'],
   variants: {
     size: ['small', 'medium', 'large'],
     style: ['outline'], // default; filled/underline are theming, not an API axis
@@ -148,7 +163,7 @@ export const textField: ComponentDef = {
     ],
     keyboard: 'Native text editing. Tab focuses the input; interactive affixes (clear / reveal) are SEPARATE tab stops with their own accessible names. Escape clears when clearable.',
     focus: ':focus-visible ring, boundary ≥3:1 (1.4.11 / 2.4.13) — the field is a primary focus target. forwardRef must reach the <input>, not the wrapper, so consumers can focus on load / focus the first invalid field on submit.',
-    aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. During loading, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
+    aria: 'The host generates ids (useId) and stitches aria-describedby across helper + error, and sets aria-invalid on error — the consumer never hand-manages ids (the highest-frequency real a11y failure). placeholder is NOT the accessible name. While pending, aria-busy; the field stays focusable. Do not fire validation mid-IME-composition. Set dir="auto" on the input so content direction can differ from UI direction.',
   },
 
   content: {

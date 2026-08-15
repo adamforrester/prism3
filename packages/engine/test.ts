@@ -9764,22 +9764,40 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // engine emits xs=16/sm=20/md=24/lg=32/xl=40. A def that adopted the brief's names would make
   // `icon.size.md` mean 24 in the token layer and 20 in the component API — individually valid on both
   // sides, undetectable by every other gate, and exactly the shadow-overlay class of defect (a wrong
-  // value that resolves). So this asserts the def's enum against the token PATHS, not against a list
-  // restated here.
+  // value that resolves).
+  //
+  // #844 CHANGED HOW THIS IS ASSERTED, and the repair is worth reading because the original was doing
+  // the thing `lint-rung-names.ts`'s header declines by name. It built the token path by concatenating
+  // the enum value — `paths.has(\`icon.size.${rung}\`)` — which only works while the two vocabularies
+  // are spelled identically, and asserts nothing about the MAPPING when they are: it cannot tell
+  // `medium → md` from `medium → sm`, because it never reads the ref. Now the enum's four words are the
+  // consumer's, the tier's four rungs are the engine's, and the REF THE DEF ITSELF BINDS is what joins
+  // them. So the check reads `icon.tokens` instead of rebuilding a path, which is the only version that
+  // survives the two halves being spelled differently.
   const iconSizes = icon.variants.size;
-  ok(iconSizes.join(',') === 'xs,sm,md,lg',
-    `icon: the size enum is the four rungs with a witness in the survey (got [${iconSizes.join(', ')}])`);
-  for (const rung of iconSizes)
-    ok(paths.has(`icon.size.${rung}`),
-      `icon: size rung '${rung}' names an EMITTED token path (icon.size.${rung}) — the engine's rung names, not the brief's offset ones`);
+  ok(iconSizes.join(',') === 'x-small,small,medium,large',
+    `icon: the size enum is four t-shirt words — the corpus vocabulary all five sized defs share since #844, not the engine's rung abbreviations (got [${iconSizes.join(', ')}])`);
+  for (const value of iconSizes) {
+    const ref = (icon.tokens as Record<string, string>)[`size.${value}`];
+    ok(!!ref && paths.has(ref),
+      `icon: size '${value}' binds '${ref ?? '(nothing)'}', an EMITTED token path — the def's own ref, not the enum value concatenated into one`);
+  }
   const iconSizeProp = icon.props.find((p) => p.name === 'size');
-  ok(iconSizeProp?.default === 'md',
-    `icon: size defaults to 'md' — 24 in engine naming, a deliberate shift from the brief's 20 caused by the rung offset (got '${iconSizeProp?.default}')`);
+  ok(iconSizeProp?.default === 'medium',
+    `icon: size defaults to 'medium' (got '${iconSizeProp?.default}')`);
+  // The default's RUNG, which is the half #756's rule is actually about and the half a rename could
+  // silently move. `medium` must reach `md` — 24, a deliberate shift from the brief's 20 caused by the
+  // rung offset above. Asserted through the binding for the reason in the block comment: after #844 the
+  // enum word and the rung name no longer coincide, so this is the only place the pairing is stated.
+  ok((icon.tokens as Record<string, string>)[`size.${iconSizeProp?.default}`] === 'icon.size.md',
+    `icon: the default size resolves to the tier's \`md\` rung (#756's rule) — '${iconSizeProp?.default}' binds '${(icon.tokens as Record<string, string>)[`size.${iconSizeProp?.default}`]}'`);
   // `xl` (40) IS emitted and is bound by NO def, deliberately. Asserted so the omission stays a
   // decision rather than becoming a gap someone "fixes": the token must keep existing (removing an
   // emitted path is a MAJOR CONTRACT_VERSION bump) while the component enum must keep excluding it.
-  ok(paths.has('icon.size.xl') && !iconSizes.includes('xl'),
-    'icon: icon.size.xl (40) is emitted and admitted by no def — a token tier broader than one component\'s enum is the layering working, not a leak');
+  // Read off the REFS now, not the enum: after #844 no enum value is spelled `xl`, so testing the enum
+  // for that string would be vacuously true and would stop witnessing anything.
+  ok(paths.has('icon.size.xl') && !Object.values(icon.tokens as Record<string, string>).includes('icon.size.xl'),
+    'icon: icon.size.xl (40) is emitted and bound by no def — a token tier broader than one component\'s enum is the layering working, not a leak');
   // `tone.inherit` binds NOTHING, and that is the point: `currentColor` is the ABSENCE of a pinned ink,
   // so a binding key for it would have to resolve to some real path and every candidate would lie about
   // what the default does. Pinned because adding one would read as completing the map.
