@@ -60,6 +60,13 @@ And the slice that exists **only** to serve our emitters — top-level `figmaPro
 So 97.8% of a def is material a client would find meaningful. **The byte argument runs the wrong
 way, and the real argument is better:**
 
+*Read "meaningful" precisely.* It means **worth reading before writing the ejected prose**, not
+verbatim client-ready. `button.ts`'s `codeOnly` entries are dense with internal issue references
+(#801, #827, #740) in a way `field-label.ts`'s are not — Button is this repo's most-iterated def, so
+that is plausibly an outlier rather than the norm. The distinction does not move the argument below,
+which is about where correctness is enforced, but it does mean the ejected prose is **derived from**
+these fields rather than copied out of them.
+
 > **A def's correctness does not live in its schema. It lives in the gates.**
 
 `paintKeys` reads `["tone.{tone}"]` — three words, and `lint-paint.ts` arm 1 is what makes it true,
@@ -154,27 +161,89 @@ the engine, gated so the claims stay true.
 *selection* surface: enough to answer "is this the right component?", not enough to use one.
 
 An agent building UI needs more: what the component is for, its props and their allowed values, its
-states, its accessibility contract, and which tokens it binds. On today's corpus that is `ai` +
-`props` + `tokens` + `accessibility` ≈ **41.2%** of a def, or about **5.4 KB per component** — call it
-**135 KB at 25 components**, the same order as the token `.ai.json` at 286–311 KB.
+states, its variants, its accessibility contract, its content rules, and which tokens it binds.
+
+**The field selection is a judgment, and the one to make is the union of two of `39` §3's readers.**
+`39` §3 splits the **selecting** agent (`ai`, `composition`, `aliases`, `category`) from the
+**building** agent (`props`, `states`, `variants`, `tokens`, `accessibility`, `content`), and records
+that each is *actively harmed* by the other's fields. That split is about a single read, not about a
+single eject: **a client's agent does both jobs**, at different moments, so both sets have to be on
+the client's disk. What keeps a reader from paying for the other's needs is not leaving fields out of
+the eject — it is `39`'s three widths, which is exactly the job they were specified for.
+
+So the ejected surface is the union, measured 2026-08-19 on the same corpus:
+
+| selection | fields | share | per component | at 25 |
+|---|---|---|---|---|
+| `39` §3's building agent | `props` `states` `variants` `tokens` `accessibility` `content` | 39.1% | 5,148 B | ≈ 126 KiB |
+| its selecting agent, added | + `ai` `composition` `aliases` `category` | **46.1%** | **6,072 B** | **≈ 148 KiB** |
+
+All of them land in the same order as the token `.ai.json` at 286–311 KB, so **the conclusion is
+robust to the judgment** — which is the property worth having, given that the cut is arguable.
 
 Which means `39`'s three widths are not optional here. The ejected metadata is the **three-width
-projection**, not a field to copy: an index for discovery, a summary for the default read, and a full
-API entry fetched per component. A single flat file at 135 KB reproduces the problem `39` §4 was
-written to avoid, one tier down.
+projection**, not a field to copy: an index and a summary carrying the selection fields, and a full
+API entry carrying the building fields, fetched per component. A single flat file at ≈ 148 KiB
+reproduces the problem `39` §4 was written to avoid, one tier down.
 
-**This answers `39` §6's contested row.** That table left the structural projection's class open,
-noting honestly that *"this artifact's class depends on what was ejected, which the manifest's
-two-value vocabulary cannot currently say."* With the def internal, the answer resolves without
-needing a third value:
+**Corrected in review.** This section first proposed `ai` + `props` + `tokens` + `accessibility`
+(41.2%), a cut that contradicted `39` §3 in both directions at once — it took `ai` wholesale, which
+that table names as harmful to the building agent, while dropping `states`, `variants` and `content`,
+which it names as building-agent needs. The prose above it listed `states` as a need in the same
+breath. **The error was reaching for a field list before deciding which reader the eject serves**;
+naming the readers first makes the list fall out, and it moved the figure 41.2% → 46.1%.
+
+## 5a. `39` §6's contested row — it is two artifacts, not one class
+
+`39` §6 left the structural projection's class open, and named the reason precisely: *"a client
+ejecting a **Figma library** does not need it; a client ejecting a **skin** does. The honest answer
+may be that this artifact's class depends on what was ejected, which the manifest's two-value
+vocabulary cannot currently say."*
+
+**That row is not answerable as posed, and the disjunction is the tell.** "Structural projection"
+names two different artifacts that read the same *def fields*:
+
+| artifact | what it carries | class |
+|---|---|---|
+| the **materializer plan** — `anatomy-figma.ts`'s output | `absoluteInset`, `absoluteStrokeInset`, `textStyle`, `effectStyle`, `FigmaPropertyPlan`, variant-axis declaration order for `planComponentName` | **ours** |
+| the **skin's structural source** — `38` Arc 4 | `anatomy` + `variants` → semantic CSS class names | **payload** |
+
+The plan's fields are Figma facts, not structural ones. `absoluteStrokeInset` exists **because Figma
+draws an `INSIDE` stroke back across the gap** — the field's own comment calls it "THE FIGMA
+COMPENSATION," and #801 is why it exists. CSS has `outline-offset` and no such problem, so a skin
+consumes none of it. Splitting the row answers it in the manifest's existing two-value vocabulary,
+and the reason `39` found it contested is that the split was showing through as a disjunction.
+
+**Recorded because it was nearly decided the other way.** This section first resolved the whole row
+to `ours`, reasoning *"it feeds the Figma materializer, which is internal by §1."* That is wrong
+twice. **A tool being internal does not make everything it touches internal** — the materializer's
+own *output*, a Figma component library, is precisely what a client receives in `39`'s first branch.
+And it addressed only that branch: `38` Arc 4 (re-cut 2026-08-12, more recent than `39`'s framing)
+describes the class-based skin as `anatomy` + `variants` → semantic classes over markup AEM and
+Drupal already generate, no longer blocked, and **"the nearest deliverable with commercial value."**
+This doc's own §7 and §8 then treat an AEM/Drupal skin as the live near-term scenario.
+
+The contradiction was available one section above the row being resolved: **`39` §3's reader census
+has a single row reading "materializer — the Figma write leg, *later the class-based skin* (`38` Arc
+4)"** — one reader, two consumers, one internal and one client-facing. Classifying the artifact by
+naming only the internal consumer is not a gap in the argument; it is a claim the cited document
+already contradicts.
+
+With that split, the full classification:
 
 | artifact | class | why |
 |---|---|---|
 | selection index / summary / API entry | **payload** | §5 — the agent surface, useless to us |
 | docs projection | **payload** | `19` §6 ships it with the eject |
 | code projection | **payload** | §7 |
-| **structural projection** | **ours** | it feeds the Figma materializer, which is internal by §1 |
+| **materializer plan** | **ours** | Figma-specific throughout; no non-Figma consumer exists |
+| **skin structural source** | **payload** | `38` Arc 4 — AEM and Drupal consume it natively |
 | the def itself | never emitted | not a manifest question at all |
+
+**One thing this does not settle**, named rather than closed over: whether the skin's source is a
+*separately emitted artifact* or the skin emitter reading `anatomy` + `variants` directly, the way
+`anatomy-figma.ts` reads them today. That is a build decision for whoever takes `38` Arc 4, and it
+only becomes a manifest question if the answer is an artifact.
 
 ## 6. What this settles upstream
 
