@@ -13,7 +13,9 @@
  * — hover/pressed/disabled belong to the host control — and `label` is the only a11y surface,
  * because naming both the wrapper and the glyph is the failure mode, not a redundancy.
  *
- * TWO THINGS ABOUT THE SIZE ENUM, both recorded rather than left for the next author to re-derive:
+ * THREE THINGS ABOUT THE SIZE ENUM, all recorded rather than left for the next author to re-derive.
+ * Read 3 first if you are here because the enum says `medium` and the token says `md`: those are two
+ * different questions and this def is the one place both are answered.
  *
  *  1. THE BRIEF'S RUNG NAMES ARE OFFSET ONE RUNG FROM THE ENGINE'S. §15's schema says
  *     `values: [sm, md, lg, xl], default: md` while its `anatomy.grid` fixes the values at
@@ -34,6 +36,21 @@
  *     brief's VALUE here would render a standalone icon at 20 and the same icon inside a default-size
  *     button at 24, and would break the 1:1 pairing with `componentSizes` that makes control size →
  *     icon size the identity. Gated in `lint-rung-names.ts` arm 3.
+ *  3. THE ENUM IS SPELLED IN T-SHIRT WORDS, AND THE TOKEN REFS ARE NOT (#844). `x-small` / `small` /
+ *     `medium` / `large` binding `icon.size.{xs,sm,md,lg}`. This def used to spell the enum in the
+ *     engine's abbreviations, and it was the ONLY axis in the whole corpus with abbreviated values —
+ *     every other one spells whole words (`filled`, `destructive`, `auto`, `required`). So the change
+ *     made this def stop being the exception, and it cost 4 projected Figma member names against the 814
+ *     that unifying the other way would have cost.
+ *
+ *     THIS IS NOT A RETREAT FROM POINT 1, and the distinction is the one to hold onto: point 1 is about
+ *     which TIER RUNG a binding points at, and it is unchanged — `medium` still reaches `icon.size.md`,
+ *     still 24, and the default is still the `md` rung per #756's rule. Point 3 is about which WORD a
+ *     consumer types. A def states its ladder twice, in two independently-authored halves, and
+ *     `lint-rung-names.ts` arm 2 exists to compare them; making the two halves identical would have
+ *     deleted that gate rather than simplified the def (verified: with the words in place, inverting the
+ *     ladder is still caught). `x-small` is CSS's own keyword for the rung below `small`, chosen over
+ *     inventing one; the corpus already carries hyphenated values (`focus-visible`, `read-only`).
  *
  * This was the first instance of a systemic collision — every def authored from a KB brief meets it,
  * and text-field and card are next. #756 has since generalized it: the rule is stated in `docs/28`
@@ -56,7 +73,7 @@ export const icon: ComponentDef = {
 
   props: [
     { name: 'name', type: 'enum: IconName', values: [...ICON_NAMES], required: true, description: 'Which glyph, typed to the set\'s literal vocabulary rather than a free string — an unknown name must fail at compile time, because a missing glyph otherwise fails silently as an invisible gap in production (§10). The vocabulary is `IconName` in `icon-glyphs.ts`, generated from `icons/*.svg` through `icon-set.ts` and IMPORTED here rather than restated, so a glyph cannot enter the set and be forgotten in the API (#833). Compile-time refusal is available to any consumer importing that type; a code projection that widens it back to `string` gives the guarantee up, and that projection is the thing to watch rather than this def. Per-glyph components (`<IconSearch/>`) are the equivalent surface for a tree-shaken delivery.' },
-    { name: 'size', type: "enum: 'xs' | 'sm' | 'md' | 'lg'", values: ['xs', 'sm', 'md', 'lg'], default: 'md', required: false, description: 'Enumerated, snapping to the fixed pixel grid — 16 / 20 / 24 / 32. NOT arbitrary integers: off-grid scaling blurs strokes between hardware pixels and is the first thing an icon system must forbid (§2). Rung names are the engine\'s (`icon.size.*`), which are offset one rung from the brief\'s — see the header.' },
+    { name: 'size', type: "enum: 'x-small' | 'small' | 'medium' | 'large'", values: ['x-small', 'small', 'medium', 'large'], default: 'medium', required: false, description: 'Enumerated, snapping to the fixed pixel grid — 16 / 20 / 24 / 32. NOT arbitrary integers: off-grid scaling blurs strokes between hardware pixels and is the first thing an icon system must forbid (§2). The t-shirt words are the corpus vocabulary every other def uses (#844); the RUNGS they bind are the engine\'s (`icon.size.*`) and are offset one rung from the brief\'s — see the header.' },
     { name: 'tone', type: "enum: 'inherit' | a semantic ink token", values: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'], default: 'inherit', required: false, description: 'Ink. Defaults to `inherit` (`currentColor`), so the glyph tracks its host control\'s hover/disabled/error cascade with no JS reconciliation. A semantic value pins it instead, insulating (say) an error glyph from a rogue cascade turning it invisible. REJECTS raw hex by construction — an enum has no cell for one — so contrast is enforced centrally rather than per call site (§3).' },
     { name: 'label', type: 'string', required: false, description: 'THE SOLE ACCESSIBILITY GATEWAY (§6). Present makes the glyph meaningful: `role="img"` + `aria-label`. Absent makes it decorative: `aria-hidden="true"`, which is the DEFAULT and the most common correct answer — a named icon beside its own text double-announces ("Email, Email"). Inside an icon-only control the WRAPPER carries the name and this stays absent; never name both.' },
   ],
@@ -75,7 +92,7 @@ export const icon: ComponentDef = {
   // the SET's delivery rather than of a glyph slot the token tier can bind. Declaring them here would
   // put an axis in the component API that nothing in this repo can supply a value for.
   variants: {
-    size: ['xs', 'sm', 'md', 'lg'],
+    size: ['x-small', 'small', 'medium', 'large'],
     tone: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'],
   },
 
@@ -98,10 +115,14 @@ export const icon: ComponentDef = {
   paintKeys: ['tone.{tone}'],
 
   tokens: {
-    'size.xs': 'icon.size.xs',
-    'size.sm': 'icon.size.sm',
-    'size.md': 'icon.size.md',
-    'size.lg': 'icon.size.lg',
+    // The two vocabularies meeting on four lines (#844) — the CONSUMER's word on the left, the ENGINE's
+    // rung on the right, which is the shape the other four defs have always had and `icon` now does too.
+    // The rungs did not move: `medium` still reaches `icon.size.md` = 24, so #756's default rule holds
+    // unchanged. Only the word a consumer types changed.
+    'size.x-small': 'icon.size.xs',
+    'size.small': 'icon.size.sm',
+    'size.medium': 'icon.size.md',
+    'size.large': 'icon.size.lg',
     'tone.primary': 'color.icon.primary',
     'tone.secondary': 'color.icon.secondary',
     'tone.tertiary': 'color.icon.tertiary',

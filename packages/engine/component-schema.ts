@@ -1090,7 +1090,10 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  *
  * ── MEASURED BEFORE IT WAS CLOSED, and the census is why this list is eleven and not seven ──────────
  *
- * The corpus declares 11 distinct state names across 7 defs. Every one is admitted, because closing a
+ * The corpus declared 11 distinct state names across 7 defs, and closing the list admitted all 11 —
+ * because closing a vocabulary is a different act from renaming what shipped. It is **10** now: #843
+ * adjudicated the one synonym the census exposed (below), which is the closure paying for itself rather
+ * than a revision of it. Every remaining name is admitted, because closing a
  * vocabulary *around what shipped* is a different act from renaming what shipped, and the second is a
  * token-tier breaking change this is not (see principle 5 — `states` values reach `figmaProperties`
  * member names, so a rename moves the Figma surface):
@@ -1100,33 +1103,46 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  *     hover          3        button, icon-button, text-field
  *     focus-visible  3        button, icon-button, text-field
  *     pressed        2        button, icon-button
- *     pending        2        button, icon-button
+ *     pending        3        button, icon-button, text-field   (text-field was `loading` — see below)
  *     inactive       2        button, icon-button
  *     read-only      1        text-field
  *     error          1        text-field
- *     loading        1        text-field
  *     empty          1        text-field
  *
- * ── THE ONE THING THE CENSUS FOUND, and it is left as a defect rather than fixed here ───────────────
+ * ── THE ONE THING THE CENSUS FOUND, and it is now RESOLVED rather than filed (#843) ────────────────
  *
- * `pending` (button, icon-button) and `loading` (text-field) look like one concept spelled twice. Both
- * describe an async operation in flight; button's own `anatomy` gates its spinner part on `pending`, and
- * `text-field`'s `loading` prop reads *"a spinner replaces an adornment without reflow; sets aria-busy"*
- * — the same mechanism under a second name. **This list does not adjudicate that**, and deliberately:
- * merging them renames a projected Figma member and repoints an `anatomy.when`, which is a change to
- * what ships rather than to what may be authored. Filed separately (#843). What the closed list DOES do
- * is make the pair visible and countable, which is the whole argument for closing it — a free-form field
- * cannot tell you two components disagree, because it has no opinion about anything.
+ * `pending` (button, icon-button) and `loading` (text-field) were one concept spelled twice. Both name
+ * an async operation in flight; button's `anatomy` gates its spinner on `pending` and `text-field`'s
+ * `loading` prop read *"a spinner replaces an adornment without reflow; sets aria-busy"* — the same
+ * mechanism under a second name. **`pending` won and `loading` is gone from this list.**
+ *
+ * The direction was MEASURED, not preferred, and the two figures are the whole argument: `pending` is a
+ * value on button's and icon-button's projected `stateAxis`, so it names a Figma variant member on
+ * **810** members; `text-field` has no `figmaProperties` block at all, so `loading` named **0**.
+ * Renaming the single-def spelling moves nothing that ships; renaming the pair's majority would have
+ * moved 810 member names, which is principle 5's breaking change.
+ *
+ * TWO THINGS THE FILED ISSUE GOT WRONG, recorded because the correction is the reusable part: it said
+ * merging *"repoints an `anatomy.when` on a third [def]"* and that `text-field`'s `loading` gates a
+ * part. Neither is true — `when: 'loading'` occurs nowhere in the repo and `text-field` has no
+ * `anatomy` block, so the migration cost it priced was for a mechanism that does not exist. **A cost
+ * estimate written while filing is a hypothesis; re-measure it before paying it or declining to.**
+ *
+ * And the repo had already adjudicated this pair once, in the direction this decision confirms:
+ * `button.ts`'s `figmaProperties` comment records that the legacy spec sheet's `loading` is *that
+ * sheet's name for* `pending`, `docs/40`'s #487 §0.4 forbids codifying it, and `test.ts` asserts no
+ * state axis carries it. `loading` re-entered through a def, past the gate that watches the axis. The
+ * general shape: **a rejected name can return through whichever door the gate is not standing at.**
  *
  * A `states` entry may only be added here with a stated reason, and the bar is the one `PAINT_SLOTS`
  * sets: **a distinct interaction, not a distinct component.** `read-only`, `error` and `empty` are
  * single-def entries that clear it — each is a real interaction state of a text input with no existing
- * entry expressing it. A twelfth entry that turns out to be a synonym for one of these is the failure
- * mode; that is what the census above is for.
+ * entry expressing it. An eleventh entry that turns out to be a synonym for one of these is the failure
+ * mode; that is what the census above is for, and `loading` is what it caught.
  */
 export const STATES = [
   'rest', 'hover', 'pressed', 'focus-visible', 'disabled',
-  'pending', 'inactive', 'loading', 'read-only', 'error', 'empty',
+  'pending', 'inactive', 'read-only', 'error', 'empty',
 ] as const;
 
 /** One member of the closed state vocabulary. `ComponentDef.states` is `State[]`, so an unknown state
@@ -1139,9 +1155,16 @@ export type State = (typeof STATES)[number];
  * **Names close; VALUES stay open, and that asymmetry is the decision rather than an omission.** An
  * axis name is a claim about *what kind of distinction this is* — two components declaring `intent` are
  * saying they vary along the same conceptual axis, and that claim is checkable and worth checking. An
- * axis's VALUES are the component's own design: `icon` has 9 tones against `field-message`'s 4, and
- * `size` is `[xs,sm,md,lg]` on `icon` against `[small,medium,large]` on button. Closing values would
- * force one of each pair to rekey for no gain in meaning.
+ * axis's VALUES are the component's own design: `icon` has 9 tones against `field-message`'s 4, keyed in
+ * opposite grammars. Closing values would force one of that pair to rekey for no gain in meaning.
+ *
+ * `size` used to be this paragraph's second example, and its replacement by #844 sharpens the rule rather
+ * than weakening it. The five defs now share one t-shirt vocabulary — but **not because this list closed
+ * it**, which it still does not. `size` was unified by a decision recorded in the corpus (see inconsistency
+ * 1 below), and a def remains free to spell its size values however it likes as far as this file is
+ * concerned. The distinction is the load-bearing one: *values stay open* is a statement about what the
+ * SCHEMA refuses, never a claim that every vocabulary is equally good. Reading it as the latter is what
+ * would leave a synonym sitting in a census forever, on the grounds that the type permits it.
  *
  * ── WHAT THE FIELD RESEARCH FOUND, which is the reason to say the asymmetry out loud ────────────────
  *
@@ -1154,10 +1177,9 @@ export type State = (typeof STATES)[number];
  *
  * ── MEASURED: 10 distinct axis names, and TWO INCONSISTENCIES THE CENSUS EXPOSED ────────────────────
  *
- *     size        5 defs   icon[xs,sm,md,lg] · button/icon-button/text-field[small,medium,large] · field-label[small,medium]
+ *     size        5 defs   ALL FIVE [small,medium,large] / [small,medium] — one vocabulary since #844
  *     intent      2        button, icon-button — [primary,neutral,destructive] BOTH, identical
  *     appearance  2        button, icon-button — [filled,outline,text] BOTH, identical
- *     modifiers   2        button[leading-visual,trailing-visual,pending] · icon-button[pending]
  *     tone        2        icon[9 values] · field-message[4 values] — disjoint, opposite key grammars
  *     color       1        focus-ring
  *     indicator   1        field-label
@@ -1165,17 +1187,43 @@ export type State = (typeof STATES)[number];
  *     style       1        text-field
  *     width       1        button
  *
- * 1. **`size` spells one concept three ways** — `[xs,sm,md,lg]` / `[small,medium,large]` /
- *    `[small,medium]`. Values stay open by the rule above, so this list does not touch it; it is named
- *    here because a reader of the list will notice and should know it was seen rather than missed.
- *    Whether the t-shirt scale should be one vocabulary is a def-tier question with a projected-member
- *    cost, so it is filed (#844), not decided here.
- * 2. **`modifiers` is not an axis** and its own def says so. Button's `codeOnly` entry states the
- *    reason: slot CONTENT is an INSTANCE_SWAP property and `pending` is *already a value on the state
- *    axis*, so projecting `modifiers` would duplicate one member and mis-model the other. It is a bag
- *    of unrelated booleans wearing an axis's clothing, and `icon-button`'s copy has a single value.
- *    Admitted here because it is what shipped, and named here rather than quietly, because a vocabulary
- *    that blesses a non-axis is the drift it exists to catch. Filed as #845.
+ * 1. **`size` spelled one concept three ways** — `[xs,sm,md,lg]` (icon) / `[small,medium,large]` (three
+ *    defs) / `[small,medium]` (field-label). **RESOLVED (#844): the t-shirt words win, and `icon` moved.**
+ *
+ *    Values stay open as a RULE — that asymmetry above is unchanged, and this is not a values-closing
+ *    exception to it. `size` is decided one level up, in the corpus rather than in the schema: nothing
+ *    here refuses a def's size values, and a def is free to spell them wrong. What settled the direction
+ *    was two measurements, neither of them taste:
+ *
+ *      - **`size` was the ONLY axis in the corpus with abbreviated values.** All nine others spell whole
+ *        words — `filled`/`outline`/`text`, `primary`/`neutral`/`destructive`, `auto`/`full`,
+ *        `required`/`optional`. So `icon` was not one of two competing conventions; it was the single
+ *        exception to a convention the other 21 values already followed.
+ *      - **The projected-member cost is 4 against 814.** These values reach `figmaProperties` member
+ *        names, which is why #844 was filed rather than fixed inline. Unifying on the words renames 4
+ *        members (`icon`'s whole projected set); unifying on the abbreviations renames 814 across button,
+ *        icon-button and field-label. The cheap direction was also the correct one, which is not always
+ *        how this goes and is the reason to state both figures rather than just the winner.
+ *
+ *    **The `md` DEFAULT RULE is untouched, and that is the subtlety worth reading twice.** #756 decided a
+ *    def's default size resolves to the tier's `md` rung, and `icon` still does: its default is now
+ *    spelled `medium` and its binding still reaches `icon.size.md`. The rung names remain the engine's —
+ *    #756's rule is about which TIER RUNG a binding points at, and this is about which word the CONSUMER
+ *    types. The two are independently authored halves, which is exactly what `lint-rung-names.ts` arm 2
+ *    compares; collapsing them would delete that gate, so `icon` now states `medium → md` the same way
+ *    the other four defs always did. Verified by mutation: with `icon` spelled in words, inverting its
+ *    ladder (`xs→sm, sm→xs`) is still caught by arm 2C.
+ * 2. **`modifiers` was not an axis** and its own def said so. **RESOLVED (#845): removed, from both defs
+ *    and from this list.** Its values were not alternatives — a button can carry a leading visual AND a
+ *    trailing visual, and `pending` was a coordinate on the state axis entirely; `icon-button`'s copy was
+ *    an axis of one, which has no dimension at all. Each value already had a correct home, so this was a
+ *    removal rather than a migration: the two visuals are `figmaProperties.slotAxes` (declared since #487
+ *    step 2 — which also means button's admission had gone stale, claiming that axis "does not exist in
+ *    this def yet"), and `pending` is a `states` value on the projected `stateAxis`.
+ *
+ *    **Projection-neutral, measured: `figmaAnatomySet` returns 648 / 162 members before and after.** What
+ *    it does move is the paint-census GRID, 1134 → 378 coordinates on button (4374 → 1458 assignments)
+ *    — `lint-paint.ts` arm 2 stopping its enumeration of a phantom third dimension.
  *
  * `offset` is the interesting admission: #795 decided it is NOT a projected axis (Figma's `x`/`y` bind
  * no variable, so its two members would differ only by a value the platform cannot hold), and
@@ -1186,7 +1234,7 @@ export type State = (typeof STATES)[number];
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone', 'color',
-  'width', 'style', 'indicator', 'offset', 'modifiers',
+  'width', 'style', 'indicator', 'offset',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

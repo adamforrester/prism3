@@ -65,8 +65,33 @@ export const button: ComponentDef = {
     appearance: ['filled', 'outline', 'text'],
     size: ['small', 'medium', 'large'],
     width: ['auto', 'full'],
-    modifiers: ['leading-visual', 'trailing-visual', 'pending'],
   },
+  // NO `modifiers` AXIS (#845), and its three values were three different things, which is the whole
+  // defect: an axis's values are mutually exclusive coordinates along ONE dimension, and a button can
+  // carry a leading visual AND a trailing visual simultaneously while `pending` is a coordinate on the
+  // state axis entirely. It was a bag of unrelated booleans wearing an axis's clothing, and this def's
+  // own `codeOnly` said so before the axis was removed.
+  //
+  // NOTHING IS LOST, because each of the three already lives somewhere that models it correctly, and
+  // that is what made this a removal rather than a migration:
+  //   leading-visual / trailing-visual → `figmaProperties.slotAxes`, which projects them as the two
+  //     presence axes they are (`leading=` / `trailing=`) — declared, and the reason that surface is 648
+  //     rather than 162. Presence had to be an AXIS rather than a Figma BOOLEAN because #326's slot-aware
+  //     inset changes the CONTAINER's padding, which a boolean's single-node `visible` cannot reach.
+  //   pending → `states`, and the projected `stateAxis`.
+  // So removing the axis is projection-neutral: measured, `figmaAnatomySet` returns 648 members before
+  // and after. What it DOES change is the paint census GRID, 1134 → 378 coordinates (4374 → 1458
+  // assignments), which is `lint-paint.ts` arm 2's baseline shrinking to stop enumerating a phantom
+  // dimension three times over.
+  //
+  // ONE HAZARD, and it is the reason this removal is not a one-line delete. The deleted `codeOnly` entry
+  // was the ONLY place in this def's prose naming `pending` — and `figmaPropertyErrors`'s `admits()` is
+  // what licenses omitting a state from the projected axis. Measured before removing it: with the entry
+  // gone and nothing replacing it, dropping `pending` from `stateAxis` is still refused (`pending` IS on
+  // the axis, so nothing needs admitting) — but `test.ts` asserts that dropping it FAILS *"even though
+  // codeOnly MENTIONS it"*, and that assertion was written about this exact entry. The mention had to be
+  // preserved somewhere that is not a leading admission, which is what the `slotAxes` comment below now
+  // does. Deleting prose a gate reads is the same class of change as deleting the gate.
 
   // Full colour × appearance × size skin, bound to the interactive.* family + cross-cutting
   // disabled.*. Every colour now carries the SAME shape (fill+states / on-fill / border / text
@@ -298,7 +323,14 @@ export const button: ComponentDef = {
       'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens`, and since #801 BOTH numbers reach a Figma node — not as the ring\'s stroke, but as this def\'s own absolute geometry: the host positions the part at -(offset + width), because the ring draws its stroke inside its own bounds and would otherwise consume the whole gap. So this def verifies that a ring is nominated and where it sits, including the compensation that makes "where" visible, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry once claimed: it is projector and schema gaps, neither of them a trade anybody made. TWO of the three are now CLOSED. PAINT (closed #758 → #784): `paintOf` once keyed every lookup as `{intent}.{appearance}.{slot}`, so a def whose axes are colour/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches. STRUCTURE (closed #795): this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by — #795 deleted the axis list and made `size=` conditional on the def declaring `size`, and `focus-ring` now projects two members named exactly `color=default` / `color=inverse`, which is what this def\'s `nesting: { variant: { color: \'default\' } }` asks for (re-verified against `nestVariantMatch`). What is LEFT is one thing: `PartDef` still has no stroke field, so the ring\'s weight and style have no part to be declared on and the projected members are strokeless — a schema decision under #740. Read the remaining gap as "the ring pastes without its stroke", not as "the ring cannot be projected".',
       'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
       'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
-      'modifiers (leading-visual | trailing-visual | pending) — not projected as-is. Slot CONTENT is an INSTANCE_SWAP property, and `pending` is already a value on the state axis, so projecting this axis would duplicate one and mis-model the other. Slot PRESENCE still needs its own variant axis before #326\'s split inline padding can survive the Figma leg — that axis does not exist in this def yet, so it is not claimed here.',
+      // The `modifiers` admission is GONE, with the axis it admitted (#845). Two notes on why it is not
+      // simply deleted-and-forgotten. FIRST, its closing sentence had already gone stale: it said slot
+      // presence "needs its own variant axis … that axis does not exist in this def yet", and `slotAxes`
+      // has existed since #487 step 2 — so the entry was admitting an axis for a reason that had been
+      // fixed, which is a stale exemption reading as a live one. SECOND, an admission for an axis the def
+      // no longer declares is refused by nothing in either direction; `figmaPropertyErrors` only asks
+      // whether every DECLARED-and-unprojected axis is admitted, never whether every admission has an
+      // axis. So it would have sat here indefinitely as evidence for an axis that was gone.
       // NOT "intent at state=disabled …". `admits()` matches an entry LEADING with the term, so an entry
       // starting `intent ` would admit dropping the whole `intent` AXIS from the projection — measured:
       // with that wording, removing `intent` from `variantAxes` took `figmaPropertyErrors` from 1 error
@@ -337,6 +369,16 @@ export const button: ComponentDef = {
     // slot-aware inset sets `paddingLeft = leading ? inlineVisual : inlineLabel` per side, and a
     // Figma BOOLEAN drives one node's `visible` and can touch nothing above it. `booleans` staying
     // stated-empty below is the same finding read from the other end.
+    //
+    // THESE TWO AXES ARE WHERE `modifiers` WENT (#845). That axis listed `leading-visual`,
+    // `trailing-visual` and `pending` as though they were alternatives; the first two are these two
+    // presence axes, and `pending` was never a modifier at all — it is a value on the state axis
+    // directly above, which is why removing the axis dropped nothing. This is deliberately NOT a
+    // leading `codeOnly` admission: `admits()` requires an entry to LEAD with a name to license
+    // omitting it, so stating `pending` here records where it went WITHOUT licensing its omission from
+    // the state axis. `test.ts` asserts that dropping `pending` from that axis fails *even though*
+    // codeOnly mentions it — an assertion written about the deleted `modifiers` entry, and the reason
+    // this mention had to land somewhere that cannot be mistaken for an admission.
     slotAxes: [
       { name: 'leading', part: 'leadingVisual' },
       { name: 'trailing', part: 'trailingVisual' },
