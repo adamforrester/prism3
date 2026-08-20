@@ -80,8 +80,9 @@ export const button: ComponentDef = {
   //     inset changes the CONTAINER's padding, which a boolean's single-node `visible` cannot reach.
   //   pending → `states`, and the projected `stateAxis`.
   // So removing the axis is projection-neutral: measured, `figmaAnatomySet` returns 648 members before
-  // and after. What it DOES change is the paint census GRID, 5184 → 1728 coordinates, which is
-  // `lint-paint.ts` arm 2's baseline shrinking to stop enumerating a phantom dimension three times over.
+  // and after. What it DOES change is the paint census GRID, 1134 → 378 coordinates (4374 → 1458
+  // assignments), which is `lint-paint.ts` arm 2's baseline shrinking to stop enumerating a phantom
+  // dimension three times over.
   //
   // ONE HAZARD, and it is the reason this removal is not a one-line delete. The deleted `codeOnly` entry
   // was the ONLY place in this def's prose naming `pending` — and `figmaPropertyErrors`'s `admits()` is

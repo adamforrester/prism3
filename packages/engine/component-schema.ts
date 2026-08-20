@@ -1222,8 +1222,8 @@ export type State = (typeof STATES)[number];
  *    this def yet"), and `pending` is a `states` value on the projected `stateAxis`.
  *
  *    **Projection-neutral, measured: `figmaAnatomySet` returns 648 / 162 members before and after.** What
- *    it does move is the paint-census GRID, 5184 → 1728 coordinates on button — `lint-paint.ts` arm 2
- *    stopping its enumeration of a phantom third dimension.
+ *    it does move is the paint-census GRID, 1134 → 378 coordinates on button (4374 → 1458 assignments)
+ *    — `lint-paint.ts` arm 2 stopping its enumeration of a phantom third dimension.
  *
  * `offset` is the interesting admission: #795 decided it is NOT a projected axis (Figma's `x`/`y` bind
  * no variable, so its two members would differ only by a value the platform cannot hold), and
