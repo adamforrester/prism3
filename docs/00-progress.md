@@ -64,6 +64,32 @@ first question independently otherwise — #756's failure mode in a different vo
 
 ---
 
+## (2026-08-14) — The `[new branch]` line is the squash-merge race's one checkable signal
+
+**STATUS: shipped (docs only).** One sentence added to `CLAUDE.md`'s squash-merge paragraph. No code, no
+gate, no emitted artifact.
+
+**THE PARAGRAPH DESCRIBED THREE RACES AND NO SIGNAL.** It says to compare content rather than trusting
+`--force-with-lease`, which is right and is a *discipline* — it depends on remembering to do it at the one
+moment you have no reason to think anything is wrong. There is a concrete tell, and it was sitting in the
+push output all along: **`* [new branch]` on a push to a branch you did not just create** means the remote
+branch is gone — squash-merged and deleted — and your push has recreated it, orphaned from its own PR.
+
+**Found by hitting it, and it is the first of the three caught before it landed rather than after.** On a
+follow-up to a merged docs PR, the push printed `[new branch]`; the branch was three commits behind a `main`
+that had moved twice. `git diff --stat origin/main HEAD` showed the branch would have **reverted 784 lines
+across 13 files** of three other lanes' merged work, including an entire new `tools/` harness. Nothing else
+in the output was unusual, and the lease cannot produce this signal — it reads the stale tracking ref and
+accepts, which is exactly the bookkeeping-versus-content gap the paragraph already warns about.
+
+**Why one line rather than more.** The paragraph is not short of reasoning; it was short of something a
+reader can *observe*. That distinction is the same one `docs/32`'s boundary entry landed on a day earlier —
+a diagnostic beats a norm, because it works on the case in front of you rather than on the case you were
+about to write. Not a gate: this happens in a push, outside anything CI can see, and the observable is
+already printed by git.
+
+---
+
 ## (2026-08-14) — A measured figure with nothing under it, in a tool built to find exactly that
 
 **STATUS: PR open.** `tools/forward-claim-check/measure.ts` reorders its never-gate case into three
