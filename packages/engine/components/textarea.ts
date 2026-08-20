@@ -88,11 +88,12 @@ export const textarea: ComponentDef = {
   // single-line field is, and `pressed` is in the closed vocabulary, so its ABSENCE here is a
   // decision rather than an omission.
   //
-  // `loading` is the AI-streaming case (brief §4: content streamed into the field to rewrite or
-  // summarise, carrying aria-busy). Note for #843, which asks whether `pending` and `loading` are
-  // one concept spelled twice: this def makes it 2 defs saying `loading` against 2 saying `pending`,
-  // which strengthens the case for adjudicating rather than settling it.
-  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'loading', 'error', 'empty'],
+  // `pending`, not `loading` (#843, resolved by #868 while this def was in review). The AI-streaming
+  // case (brief §4: content streamed into the field to rewrite or summarise, carrying aria-busy) is
+  // the same async-in-flight concept `button` and `icon-button` already name `pending`, and #868
+  // closed `loading` out of the vocabulary entirely — a rejected name returning through a fourth def
+  // would have been the exact shape #868 filed the vocabulary to stop.
+  states: ['rest', 'hover', 'focus-visible', 'disabled', 'read-only', 'pending', 'error', 'empty'],
 
   // `size` and `style` only — the two the substrate declares. The brief's §15 also lists `resize`
   // and `modifiers` as variant axes; neither is declared here and `notes.contested` carries both
@@ -218,7 +219,6 @@ export const textarea: ComponentDef = {
       'Enter-key ownership — submit-on-Enter is an opt-in here, never the base default. The alternative (composers invert it by default) is what chat surfaces actually ship, and the brief rejects it for the base component because silently hijacking Enter breaks the platform expectation for every non-chat use.',
       'Soft vs hard maxLength — soft, always. The alternative is the native maxlength attribute, which is one line of code and silently truncates pasted overflow; the brief rejects it on AT grounds specifically, since input simply stops being accepted with no announcement.',
       'Distinct component vs a multiline prop on TextField — Polaris and Material 3 model this as `multiline={4}` on a universal field. The practice ships a distinct component (brief §1), and the reason is machinery rather than symmetry: auto-grow measurement, resize chrome, scroll management, line-break normalisation and grapheme counting are non-overlapping with a single-line field and would tax every plain input in the app.',
-      'loading vs pending as one concept spelled twice (#843) — this def declares `loading`, matching the substrate. It now stands at 2 defs `loading` / 2 defs `pending`, which is a fact for #843 rather than a decision taken here.',
     ],
     unverified: [
       'CSS `field-sizing: content` as the auto-grow mechanism — the brief calls it the biggest near-term implementation shift and prioritises it behind an @supports query with the ghost-sizer JS polyfill as fallback. It also says explicitly not to treat its own version numbers (Chromium 123+, "Firefox following") as settled. NOT verified in this pass, which was authoring rather than research; verify before any implementation reads it as current.',
