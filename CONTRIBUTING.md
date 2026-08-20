@@ -385,9 +385,12 @@ npm run test:smoke   -w @prism3/studio      # the headless DOM/interaction suite
                                             #   src/main.ts has or can have — it touches `document` at
                                             #   import time, so no Node harness can load it at any
                                             #   granularity, which is why both pure suites cover
-                                            #   modules EXTRACTED from it. In CI it is ADVISORY
-                                            #   (continue-on-error) until 2026-08-20, then gating —
-                                            #   #775. Needs a browser: `npx playwright install chromium`
+                                            #   modules EXTRACTED from it. In CI it GATES, since
+                                            #   2026-08-20 — #775, flipped on runner evidence that
+                                            #   was read rather than assumed. Its browser download
+                                            #   gates too, so a CDN blip blocks: cache it, never
+                                            #   restore continue-on-error.
+                                            #   Needs a browser: `npx playwright install chromium`
                                             #   once (playwright is an apps/studio devDependency; the
                                             #   engine core stays dependency-free and buildless)
 npm run check:ignore -w @prism3/studio      # Vercel ignore list still matches the real bundle

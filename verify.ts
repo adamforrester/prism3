@@ -150,8 +150,12 @@ export type Gate = {
   /** A reason to SKIP, or `null` to run. Evaluated immediately before the gate, so it can see the
    *  effects of earlier gates. A skip is never a pass (point 4). */
   precondition?: () => string | null;
-  /** Reported, never fatal — currently only #775's smoke suite, whose advisory window CI states and
-   *  which is the only gate here that needs a browser. */
+  /** Reported, never fatal. NO GATE SETS THIS TODAY — #775's smoke suite was the only one, and its
+   *  window closed 2026-08-20 when the flip was earned. The mechanism is kept rather than deleted
+   *  because the next advisory period should not have to reinvent it, and it stays exercised: the
+   *  self-check below asserts an ADVISORY outcome is non-fatal, over a synthetic gate rather than a
+   *  real one. If that self-check is ever removed, delete this field in the same change — an unused
+   *  field with no test is how a mechanism rots into a wrong answer. */
   advisory?: boolean;
 };
 
@@ -180,12 +184,12 @@ export const driftCheckPrecondition = (): string | null => {
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
 const EXPECTED_ARTIFACTS = 105;
 
-/** #775's window, as `ci.yml` states it. Past this date the smoke suite is gating in CI, so a runner
- *  that still called it advisory would be quietly weaker than CI — the shape point 4 is about. The
- *  date is authored in both places on purpose; `lint-doc-gates.ts` does not compare it, and that
- *  limit is stated rather than papered over. */
-const SMOKE_ADVISORY_UNTIL = '2026-08-20';
-const smokeIsAdvisory = () => new Date().toISOString().slice(0, 10) < SMOKE_ADVISORY_UNTIL;
+/* #775's window closed 2026-08-20 and the smoke suite gates in both CI and this runner, so the
+ * date constant and its clock read are GONE rather than left at a passed date. They existed to stop
+ * this runner being quietly weaker than CI while the flag was on; with no flag there is nothing for
+ * them to keep in step, and a live date comparison that can only ever return one answer reads as a
+ * decision still being made. Deleting them is also what makes `lint-advisory-expiry.ts` able to
+ * report zero here: a date left behind in a comment is still a date it scans. */
 
 /**
  * THE AUTHORED LIST — the fourth statement of what the gates are, beside `CLAUDE.md` §4,
@@ -410,20 +414,19 @@ export const GATES: Gate[] = [
     cmd: engine('lint-absolute-inset.ts'),
   },
   {
-    // Its first real firing is the `smoke` row directly below: on the date that row's own name
-    // states, this gate fails and names every site that describes it — including that name, and
-    // `SMOKE_ADVISORY_UNTIL` above.
+    // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
+    // row's own `ciStep` string among them — and that firing is what produced the flip below. It
+    // now guards windows nobody has opened yet.
     id: 'lint-advisory-expiry',
     ciStep: 'A stated advisory window has not expired',
     cmd: engine('lint-advisory-expiry.ts'),
   },
   {
     id: 'smoke',
-    ciStep: `Studio headless smoke suite (advisory until ${SMOKE_ADVISORY_UNTIL} — #775)`,
+    ciStep: 'Studio headless smoke suite (#775)',
     cmd: ws('@prism3/studio', 'test:smoke'),
     after: ['build-web'],
     why: 'it drives the built dist/main.js in a browser',
-    advisory: smokeIsAdvisory(),
     precondition: () => {
       // The one gate here that needs a browser. Absent, it must SKIP rather than FAIL: a missing
       // Chromium is an ambient-setup fact about this machine, not a defect in the change under test —

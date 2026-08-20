@@ -734,15 +734,20 @@ if (failed) {
 }
 
 /**
- * The run-page summary — the thing that makes the advisory period actually advisory rather than
- * silent.
+ * The run-page summary — written on every run, and the reason #775's flip could be decided on
+ * evidence rather than on the calendar.
  *
- * MEASURED, not assumed: with `continue-on-error: true`, GitHub reports the STEP'S OWN `conclusion`
- * as `success` when the command exits non-zero, not only the job's. So while this suite is advisory
- * (until 2026-08-20 — #775) a red run is invisible to every status check and to anything reading the
- * API; the only evidence is `##[error]` buried in the step log. A week of not-blocking was meant to
- * buy a week of EVIDENCE, and without this it buys a week of nothing — the flip would then be made
- * blind, which is the opposite of what the advisory period is for.
+ * MEASURED, not assumed: with `continue-on-error: true`, GitHub reported the STEP'S OWN `conclusion`
+ * as `success` when the command exited non-zero, not only the job's. So while this suite was
+ * advisory a red run was invisible to every status check and to anything reading the API; the only
+ * evidence was `##[error]` buried in the step log. A week of not-blocking was meant to buy a week of
+ * EVIDENCE, and without this it would have bought a week of nothing.
+ *
+ * PAST TENSE ABOVE, PRESENT TENSE BELOW — the flag is gone (#775, flipped 2026-08-20) and this code
+ * is not, deliberately. The success line below is exactly what the flip was decided on: three runs
+ * spread across the window were confirmed green by reading it out of their step logs, the figures
+ * identical five days apart. The argument in the next paragraph never depended on
+ * `continue-on-error` and survives it unchanged.
  *
  * WHY IT ALSO WRITES ON SUCCESS, which is the part worth defending. A summary that appears only on
  * failure makes ABSENCE ambiguous: "no summary" reads identically as "the suite passed" and as "the
@@ -762,9 +767,9 @@ if (summaryPath) {
     ? [
         `### ❌ Studio smoke suite — ${failed} of ${executed} assertions failed`,
         '',
-        '**This step is advisory and does not block the merge** (until 2026-08-20 — #775). It is',
-        'reported here because `continue-on-error` makes the step\'s own conclusion `success`, so a red',
-        'suite shows up in no status check at all. Treat it as a real failure.',
+        '**This step gates — the job has failed** (#775). The detail is repeated here so a red run',
+        'is readable from the run page without opening the log, which is how the advisory week was',
+        'audited before this step was allowed to block.',
         '',
         stats,
         '',
