@@ -335,6 +335,55 @@ npx tsx packages/engine/lint-absolute-inset.ts      # an absolutely-positioned p
                                                     # quantity — it printed a pass on the shipped ring
                                                     # while test.ts's parity gate confirmed both
                                                     # executors agreed on the same wrong formula.
+npx tsx packages/engine/lint-standalone-floor.ts    # a def offered as a build target must project
+                                                    # members that acquire an EXTENT, and a def that
+                                                    # cannot must declare
+                                                    # figmaProperties.notStandalone. #869: building
+                                                    # focus-ring produced a 100x100 WHITE BOX with the
+                                                    # correct focus color at 1px — not a crash and not
+                                                    # a miss report, an artifact that READS AS A
+                                                    # SUCCESSFUL BUILD, which is worse than an error.
+                                                    # Measured, and it contradicts #869 on both of its
+                                                    # load-bearing points: the def does not error, and
+                                                    # the artifact is not a half-build. 2 members, 0
+                                                    # binding errors, 0 set properties, planSetLayout
+                                                    # succeeds, nothing throws — a COMPLETE build of a
+                                                    # plan carrying no geometry. The 100x100 is Figma's
+                                                    # default frame; the 1px is write-components.ts's
+                                                    # deliberate strokeWeight fallback. Nested it is
+                                                    # fine: Button sites it absolutely and the executor
+                                                    # resizes it to parent + inset*2, which is where
+                                                    # all five absent fields come from, and there was
+                                                    # never a standalone path to lose. WHY NOTHING SAW
+                                                    # IT is #802's class: every other gate asks whether
+                                                    # a thing exists, a ref resolves, a count matches,
+                                                    # or nothing threw — and this plan is VALID. Valid,
+                                                    # and it describes nothing usable. The def's own
+                                                    # codeOnly ALREADY SAID SO ("the members are
+                                                    # strokeless"), so the defect is a decision
+                                                    # recorded where only humans look, not a missing
+                                                    # check. EXPECTED is the def's declaration; ACTUAL
+                                                    # is measured from the projected plan by this
+                                                    # file's own walk, which deliberately does not call
+                                                    # the picker's filter or the plugin's refusal —
+                                                    # all three read the same field. Both directions: a
+                                                    # STALE declaration fails too, because #740 may
+                                                    # give the ring its own size and a refusal that
+                                                    # outlives its reason withholds a buildable def
+                                                    # while showing a designer something untrue. The
+                                                    # rule is six extent MECHANISMS measured across the
+                                                    # corpus (21 of 22 node names have one), not a def
+                                                    # allowlist — and each mechanism is asserted
+                                                    # against a positive and a NEAR-MISS case, because
+                                                    # weakening one of them changed nothing on the
+                                                    # first attempt: no def has a childless auto-layout
+                                                    # root, so the discriminating clause was never
+                                                    # reached. A mutation that changes nothing is
+                                                    # indistinguishable from a blind spot. Its LIMIT:
+                                                    # the PLAN, not a Figma file — it claims some
+                                                    # mechanism determines the root's size, not that
+                                                    # the size is the one a designer wanted, and not
+                                                    # that the result is visible
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

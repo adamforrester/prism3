@@ -451,6 +451,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-absolute-inset.ts'),
   },
   {
+    id: 'lint-standalone-floor',
+    ciStep: 'A def offered as a build target projects something with an extent',
+    cmd: engine('lint-standalone-floor.ts'),
+  },
+  {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
     // row's own `ciStep` string among them — and that firing is what produced the flip below. It
     // now guards windows nobody has opened yet.

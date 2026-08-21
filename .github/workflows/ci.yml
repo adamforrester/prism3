@@ -425,6 +425,36 @@ jobs:
       - name: An absolutely-positioned part lands outside its parent
         run: npx --yes tsx@4 packages/engine/lint-absolute-inset.ts
 
+      # A def offered as a build target must project members that acquire an EXTENT, and a def that
+      # cannot must declare `figmaProperties.notStandalone`. #869: building `focus-ring` produced a
+      # 100x100 white box with the correct focus color at 1px — not a crash and not a miss report, an
+      # artifact that reads as a successful build. Measured, and it contradicts the issue on both of
+      # its load-bearing points: the def does NOT error, and the artifact is not a half-build. It
+      # projects 2 members with 0 binding errors, 0 set properties, planSetLayout succeeds, nothing
+      # throws — a COMPLETE build of a plan carrying no geometry. The 100x100 is Figma's default frame;
+      # the 1px is write-components.ts's deliberate `if (!node.strokeWeight) = 1` fallback. Nested it
+      # is fine, because Button sites it absolutely and the executor resizes it to `parent + inset*2`.
+      #
+      # Nothing could see it, and the reason is #802's whole class: every other gate here asks whether
+      # a thing exists, a ref resolves, a count matches, or nothing threw, and this plan is VALID. It
+      # is valid and describes nothing a designer can use. The def's own `codeOnly` already said so —
+      # "the members are strokeless", "what it projects is not yet a ring" — which makes the actual
+      # defect a decision recorded where only humans look, not a missing check.
+      #
+      # Independence: EXPECTED is the def's declaration, ACTUAL is measured from the projected plan by
+      # this file's own walk. It does not call the picker's filter or the plugin's refusal branch —
+      # all three read the same field, so either would make the check agree with itself. Both
+      # directions: an undeclared geometry-free root fails, and a DECLARED def whose root does size
+      # fails as a stale refusal (a def withheld from the picker with a reason no longer true).
+      #
+      # Mutation-verified by name, four ways: removing the declaration fails arm A (the #869 defect,
+      # 1 named failure, exit 1); a stale declaration on `button` fails arm B; a def losing its
+      # projection fails the MUST_PROJECT scope floor; and collapsing the `layoutMode+children`
+      # predicate to bare `layoutMode` — which on the first attempt changed NOTHING, since no def has
+      # a childless auto-layout root — now fails the PREDICATE_CASES arm that was added because of it.
+      - name: A def offered as a build target projects something with an extent
+        run: npx --yes tsx@4 packages/engine/lint-standalone-floor.ts
+
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning

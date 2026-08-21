@@ -194,9 +194,31 @@ export const focusRing: ComponentDef = {
   //    Declaring it would read as a decision where there is one option.
   //  · `booleans` / `texts` / `swaps` are stated-empty rather than omitted — one node, no children, no
   //    text, no slot. `booleans: {}` is the "considered, and none survive" statement the schema asks for.
+  //
+  // AND IT PROJECTS TWO MEMBERS THAT ARE NOT A RING — `notStandalone` below, added under #869. The
+  // paragraph above was written to correct an over-claim (the def cannot project) and replaced it with
+  // one: *it projects* reads, to anyone deciding whether to build it, as *it builds*. Wall 1 is still
+  // up, and what it costs standalone is measurable — see the field's own reason.
   figmaProperties: {
     variantAxes: ['color'],
     booleans: {},
+    // Measured against the real projector over nb's committed emission: 2 members, 0 binding errors,
+    // 0 set properties, `planSetLayout` succeeds. Each member is `{name:'ring', type:'FRAME',
+    // strokes:'color/border/focus', bound:{}, children:[]}` — no layoutMode, no sizing mode, no width,
+    // no height, no strokeWeight. Five absent fields, so Figma supplies a 100×100 default frame and the
+    // executor's `if (!node.strokeWeight) … = 1` fallback paints the correct token at 1px. Nested it is
+    // fine: Button sites it absolutely and the executor resizes it to `parent + inset*2`, which is where
+    // every one of those five comes from. Standalone there is no parent, so nothing supplies them — and
+    // there never was a code path to lose. The `codeOnly` entry above already said "the members are
+    // strokeless"; this is the same admission somewhere the picker can act on it.
+    // THE REASON IS GEOMETRY, NOT THE STROKE, and the first draft of this string said the stroke — worth
+    // recording because both are true and only one is the blocker. Wall 1 (#740) is why the projected ring
+    // paints a 1px fallback instead of its bound `focus.ring.width`; that is a fidelity loss. What makes a
+    // standalone build meaningless is that a ring's extent IS its host's extent plus the offset, so there
+    // is no size a lone ring could correctly have — #740 does not change that, and no schema field could:
+    // `PartDef`'s vocabulary already offers `size` and `height`, and this part declares neither on purpose.
+    notStandalone:
+      'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color at 1px. Build it as part of a host instead: Button nests it and supplies the geometry.',
   },
 
   accessibility: {
