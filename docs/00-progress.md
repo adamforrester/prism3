@@ -72,6 +72,85 @@ available for a non-family axis, and what minimum binding count makes one meanin
 revert silently restored `HEAD` instead of the edit under test, and the whole change was gone by the
 fourth mutation. `git add` before the first mutation, always. The tell was a mutation printing a
 *clean* result it had no business printing.
+## (2026-08-21) — `radio`: the mandatory group, and the first test of the open value vocabulary
+
+**STATUS: merged-ready, stacked on the `checkbox` branch.** Def 3 of `docs/40` tranche 1, authored from
+`components/radio.md` per §7 steps 2–5. Step 6 remains blocked (#870, #864) and this def has no
+`anatomy` block to project regardless. All 34 gates green. **No schema change** — radio adds no
+vocabulary, which is the first evidence that `checkbox`'s `selection` admission was a family decision
+rather than a per-def one.
+
+**It stacks rather than branching off `main`, and the reason is mechanical: radio's def does not compile
+without `selection` in `VARIANT_AXES`, which lives in checkbox's PR.** Base is the checkbox branch.
+
+**The one structural mutation, and it is the whole shape of the def: the group is MANDATORY.** A lone
+checkbox is a complete control — a consent box. A lone radio is meaningless; name-grouping is what
+makes it a radio rather than a toggle. So the *"is the group a separate component"* question that
+`checkbox` could afford to defer is load-bearing here, and the def says so at length rather than
+letting the absence read as an oversight. **The answer is unchanged — separate component, #901 — and
+radio sharpens the issue rather than moving it.** What a `ComponentDef` structurally cannot express,
+enumerated in the header: the shared `name` that enforces exclusivity at the browser level, a single
+**scalar** value where `CheckboxGroup` holds an array, the **single tab stop** with roving tabindex,
+and all validation. Selection here is *derived*, never held: `checked = (group.value === props.value)`.
+
+**The sharpest API difference is three props that are not there.** `Radio` has no `checked`, no
+`onChange` and no `name` — all three belong to the group. `props` cannot express an absence, so it is
+stated in the header and in `docs.dont`. `value` is consequently **required** here where checkbox's is
+optional: it is the option's identity in the group, not a string that happens to be submitted.
+
+**The first test of the open value vocabulary, and it is worth recording that it was easy.** `checkbox`
+settled the axis NAME for the family and deliberately left the VALUES open, recommending ARIA. Radio
+takes `[unchecked, checked]` — checkbox's vocabulary minus `indeterminate`, which radio simply does not
+have, since a mutually-exclusive choice has no partial state. `aria-checked` is radio's ARIA property,
+`checked` is the native attribute, and the brief itself writes the derived boolean as `checked`. **The
+vocabulary stays open until `switch` lands**, which is the def that tests the recommendation hardest:
+`role="switch"` also uses `aria-checked` while reading least naturally as "checked", and a `[off, on]`
+spelling there should be a decision somebody takes rather than a default nobody noticed.
+
+**Reading brief §15's `radio-specific: [selected, no-deselect, no-indeterminate]` against the closed
+vocabulary was the useful exercise**, and it is why `states` is checkbox's seven unchanged: `selected`
+is the `selection` axis; `no-deselect` is a BEHAVIOUR (activating a selected radio does nothing) and
+behaviours have no coordinate; `no-indeterminate` is an ABSENCE, which cannot be declared at all. **One
+of three items on a list of "states" was a state.** Recorded so the next reader does not conclude three
+were dropped — and worth carrying into `switch`, whose §15 will have the same shape.
+
+**The one geometric difference from checkbox is `radius.round`**, and it is the entire visual
+distinction between the two controls: a square means any-number, a circle means exactly-one. That
+convention is old enough to be load-bearing — a round checkbox or a square radio misreads at a glance,
+before any label is read.
+
+**#900, second instance of three.** The control CIRCLE has no binding, for the identical reason the
+square has none. **Left unbound rather than worked around, deliberately**, so that when `switch` arrives
+the record shows one gap hit three times rather than three defs each inventing a way past it. A
+workaround here would also be the harder one to unpick, because it would look like a decision. Both
+issues were commented rather than re-filed.
+
+**One contested call worth flagging: the checked disc is FILLED, with an on-fill dot** — checkbox's
+treatment at a round radius. The named alternative is Material's outlined model (field fill kept, ring
+recoloured, brand-coloured dot inside), which several systems ship and which the brief neither
+endorses nor rejects — §8's *"spring/scale-up of the inner dot with a border-colour crossfade"*
+satisfies both. Filled won on two grounds, neither taste: it keeps the two selection controls one
+visual family, and **`on-fill` is a pairing the token tier actually gates**, whereas an outlined dot
+would take an ink role gated against the PAGE while in fact sitting on `color.field.fill` — a different
+pairing than the one that was checked. A rebind of three keys if a brand wants the other skin.
+
+**#871 holds:** `size` and `selection`, no surface or inverse axis, `on-inverse.*` unbound.
+
+**Verified by mutation, per `docs/34`** — three, each naming `radio`:
+
+| mutation | caught by |
+|---|---|
+| rung ladder inverted in `size.*.height` | `lint-rung-names` arm 2C **and** arm 3 |
+| **checkbox's `indeterminate` borrowed into a radio key** | `paintKeyErrors`, quoting *radio's own* `[unchecked, checked]` back |
+| `NESTED_WITHOUT_ANATOMY['radio']` deleted | `paintKeyErrors` slot vocabulary |
+
+The middle one is the one that mattered and it is radio-specific: it proves the `selection` vocabulary
+is genuinely **per-def** rather than a global list the schema shares out. "Values stay open" is
+load-bearing rather than decorative, and now there is a mutation that says so.
+
+**Next:** `switch`, then `select`. Switch is where the ARIA value recommendation gets its real test,
+where #900 becomes a pattern rather than a coincidence, and — per the brief — where the group
+disappears entirely, which is the third distinct answer to #901's question in three defs.
 
 ---
 

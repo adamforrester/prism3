@@ -42,6 +42,7 @@ import { fieldMessage } from './field-message';
 import { textField } from './text-field';
 import { textarea } from './textarea';
 import { checkbox } from './checkbox';
+import { radio } from './radio';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -49,7 +50,7 @@ import { checkbox } from './checkbox';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox };
+export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox, radio };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -72,4 +73,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // because composition order is the ordering rule and nothing more: both are children of the same
   // parent, so their relative order carries no claim.
   checkbox,
+  // `radio` follows `checkbox` because it `inherits` it — the one place in this list where the order
+  // does carry a claim beyond convention, since the chain is real: radio inherits the field substrate
+  // THROUGH checkbox rather than directly.
+  radio,
 ];
