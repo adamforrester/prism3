@@ -139,6 +139,16 @@ auto-stashed rather than deleted. `git stash list`, then
 popping — the stash may hold a mix of your work and theirs, so popping it merges
 two PRs' changes. Do not drop it; tell them it is there.
 
+**That rescue is for the BRANCH form only.** `git checkout <ref> -- <path>` — the
+pathspec form — auto-stashes nothing: it is a destructive write to the working tree
+and index, spelled like a read. To inspect a file at another ref use
+`git show <ref>:<path>`; to compare, `git diff <ref> -- <path>`. Neither writes. Worse,
+only paths that DIFFER between the ref and `HEAD` show in `git status`, so an
+uncommitted edit that happens to be byte-identical between the two is reverted silently
+and reads as clean — which also means the clean-tree check above cannot see it. Assume
+the paragraph you just read does not cover this command, because its adjacency is what
+makes it misleading.
+
 ## Run the gates yourself — never take "green" on faith
 Inside the worktree, run and read the ACTUAL numbers. Baselines below are
 indicative and go stale — compare against what `main` reports today, never treat a
@@ -233,6 +243,13 @@ Re-derive the load-bearing ones yourself:
   scenarios OUTSIDE the PR's stated test table, and restore the source afterwards
   (`git status` to prove the tree is clean before merging — which is only meaningful
   in your own worktree; see the top of this file).
+  **COMMIT BEFORE THE FIRST MUTATION — this is an order, not a caution.** The restore
+  step *is* `git checkout -- <file>`, which restores from `HEAD`, so anything
+  uncommitted in a file you are about to mutate is destroyed by the RESTORE rather than
+  by the mutation — on the first *successful* iteration, not on a mistake. On 2026-08-21
+  that deleted an entire finished implementation mid-review-prep. A `wip:` commit is
+  enough; mutate, restore, then `--amend` the real message once the run is green. In the
+  other order the technique deletes the work it was invoked to verify.
 - **Real before/after**: `git show origin/main:<path>` to reconstruct pre-fix source,
   rebuild, measure, restore, rebuild again.
 - Live MCP stdio JSON-RPC probing with brand data you chose, not the PR's examples.

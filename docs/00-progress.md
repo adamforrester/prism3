@@ -6,6 +6,49 @@
 > changes. Most recent entry first.
 
 
+
+---
+
+## (2026-08-21) — the mutation-test restore deletes uncommitted work, so the order is the rule
+
+**STATUS: shipped.** #905. Docs only — `CLAUDE.md`'s git-hazards section and
+`.claude/commands/review-pr.md`, which carries the same measurements. No gate.
+
+**Not a gate, deliberately.** There is nothing in the tree to assert against: the hazard is a command
+someone types, not a state a repository can be in. A tripwire would have to watch a shell, which is
+not a thing this repo can do, and pretending otherwise would be worse than prose.
+
+**The docs defect, which is the reason this is a fix rather than a new warning.** `CLAUDE.md` already
+documented a recovery — *"the checkout auto-stashes rather than deletes, so `git stash list` then
+`git show 'stash@{0}:<path>'`"* — and that recovery is for the **branch** form. `git checkout <ref> --
+<path>`, one command over, auto-stashes **nothing**. So the file was not silent about the adjacent
+hazard; it was *over-promising by proximity*, which is worse than silence: a reader who had
+internalised the note believed in a safety net that is not there. Both files now say so where the
+recovery is stated, rather than in a separate section a reader arrives at later or not at all.
+
+**Three incidents in two days, two sessions, one command shape.** An orchestrator staged `main` over
+a branch's working tree in the shared checkout while meaning to read one file. A worker detached
+`HEAD` onto `origin/main` mid-check and reverted every file. The same worker, hours later, **destroyed
+an entire finished implementation** with `git checkout -- <file>` used to reset between mutations.
+
+**The third is the one with a rule in it, and it is an ORDER rather than a caution.** This repo
+mutation-tests nearly every gate, and the pattern's restore step *is* `git checkout -- <file>`,
+restoring from `HEAD`. So uncommitted work in a file about to be mutated is destroyed by the
+**restore**, not by the mutation — **on the first successful iteration, not on a mistake**. The
+technique deletes the work it was invoked to verify, and it does it while behaving exactly as
+designed. Commit first (a `wip:` commit is enough), mutate, restore, then `--amend` once green.
+
+That is why the issue's own framing — *"push before you browse"* — was kept but demoted. It is true,
+and it is what made the first two incidents free; it is also a habit rather than a step, and it does
+not name the moment the deletion happens. The ordering rule does, and it attaches to a technique used
+on nearly every gate in the suite.
+
+**One property worth keeping visible: part of the damage is undetectable.** Only paths that DIFFER
+between the ref and `HEAD` appear in `git status`, so an uncommitted edit that happens to be
+byte-identical between the two is reverted silently and reads as clean. That also means
+`review-pr.md`'s clean-tree check — the one standing between a mutation test and a merge — cannot see
+it. Same shape as the `npm install --prefix` incident already recorded: no tracked file changes, so
+the damage is invisible to git entirely.
 ---
 
 ## (2026-08-21) — focus-ring built a plausible white box; a declared standalone floor now refuses it (#869)
