@@ -3212,6 +3212,206 @@
                 }
               }
             }
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.900}",
+            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.900",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.primary.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.primary.900}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.primary.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.success.900}",
+            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.success.900",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.success.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.success.900}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.success.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.warning.900}",
+            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.warning.900",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.warning.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.warning.900}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.warning.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.danger.900}",
+            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.danger.900",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.danger.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.danger.900}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.danger.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.info.900}",
+            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.info.900",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.info.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.info.900}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.info.100}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
           }
         },
         "brand": {
@@ -16085,7 +16285,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.9.0",
+      "version": "0.10.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -4270,7 +4270,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // Deliberately not widened to a `color/border/` prefix — that would stop this gate noticing a
     // spurious var anywhere in a family the fixture really does define, which is the one thing it is
     // here to do. An exact name costs a line per addition and keeps the rest of the family pinned.
-    const ENGINE_ADDED_VARS = ['color/border/inverse/focus'];
+    // `color/foreground/inverse/<sem>-subtle` (#892) join it for the same reason and by the same
+    // rule — EXACT names, not a `color/foreground/` prefix. `foreground` is a family NB really
+    // exports, so a prefix waiver would stop this gate noticing a spurious var anywhere in it, which
+    // is the one thing it is here to do. Five lines for five additions is the intended cost.
+    const ENGINE_ADDED_VARS = [
+      'color/border/inverse/focus',
+      'color/foreground/inverse/brand-subtle',
+      'color/foreground/inverse/danger-subtle',
+      'color/foreground/inverse/info-subtle',
+      'color/foreground/inverse/success-subtle',
+      'color/foreground/inverse/warning-subtle',
+    ];
     // A var NB really exports that the engine still emits under a DIFFERENT NAME. #891 promoted
     // `color/border/inverse` from a leaf to a group, so the same value now lives at
     // `color/border/inverse/default`.

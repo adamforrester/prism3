@@ -102,6 +102,13 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.10.0: the five `foreground.inverse.<semantic>-subtle` tints. Additive, and a PREREQUISITE rather
+ * than a convenience: `semanticInk` gates each status ink against the floor AND against its own
+ * tint, so an inverse status ink can only be "the same rule against a different ground" once the
+ * inverse tint exists to be that second ground. Without them the inverse inks would gate on one
+ * ground while their page siblings gate on two — a weaker rule under a description claiming the
+ * stronger one. Polarity flips (light step on a dark band), same as the overlay wash. (#892)
+ *
  * 0.9.0: nineteen inverse-context tokens the surface cascade (#871/#893) cannot alias without —
  * `field.inverse.*` (4) and the five states every interactive inverse column was missing (15). All
  * additive; no existing value or name moves. Two of the three are corrections rather than new design:
@@ -121,7 +128,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.9.0';
+export const ENGINE_VERSION = '0.10.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -168,6 +175,10 @@ export const ENGINE_VERSION = '0.9.0';
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  *
+ * 4.2.0: 5 added guaranteed paths — `color.foreground.inverse.{brand,danger,info,success,warning}-subtle`.
+ * No removal, no retype, so MINOR. `foreground.inverse` was already a group, so no leaf-to-group
+ * promotion; the count of those stands at one (`border.inverse`, 4.0.0). (#892) (516 → 521)
+ *
  * 4.1.0: 19 added guaranteed paths, no removal and no retype, so MINOR. `field.inverse.{fill,
  * border.rest, border.hover, placeholder}` — tranche 1 is four field components and a checkbox on an
  * inverse band had nothing to bind — plus `interactive.<c>.inverse.{fill.focused, fill.selected,
@@ -213,7 +224,7 @@ export const ENGINE_VERSION = '0.9.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '4.1.0';
+export const CONTRACT_VERSION = '4.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

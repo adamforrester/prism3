@@ -431,6 +431,86 @@
         "icon.info"
       ]
     },
+    "foreground.inverse.brand-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.900}",
+        "dark": "{prism.palette.primary.100}",
+        "hc-light": "{prism.palette.primary.900}",
+        "hc-dark": "{prism.palette.primary.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.success-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.success.900}",
+        "dark": "{prism.palette.success.100}",
+        "hc-light": "{prism.palette.success.900}",
+        "hc-dark": "{prism.palette.success.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.warning-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.900}",
+        "dark": "{prism.palette.warning.100}",
+        "hc-light": "{prism.palette.warning.900}",
+        "hc-dark": "{prism.palette.warning.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.danger-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.900}",
+        "dark": "{prism.palette.danger.100}",
+        "hc-light": "{prism.palette.danger.900}",
+        "hc-dark": "{prism.palette.danger.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.info-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.info.900}",
+        "dark": "{prism.palette.info.100}",
+        "hc-light": "{prism.palette.info.900}",
+        "hc-dark": "{prism.palette.info.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
     "foreground.danger": {
       "$description": "Bold solid destructive / error fill.",
       "meaning": "Destructive / error signalling",
@@ -4735,7 +4815,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.brand-subtle"
+        "color.foreground.brand-subtle",
+        "color.foreground.inverse.brand-subtle"
       ]
     },
     "palette.primary.150": {
@@ -4885,7 +4966,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.brand-subtle"
+        "color.foreground.brand-subtle",
+        "color.foreground.inverse.brand-subtle"
       ]
     },
     "palette.primary.950": {
@@ -5535,6 +5617,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.success-subtle",
         "color.foreground.success-subtle"
       ]
     },
@@ -5679,6 +5762,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.success-subtle",
         "color.foreground.success-subtle"
       ]
     },
@@ -5710,6 +5794,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.warning-subtle",
         "color.foreground.warning-subtle"
       ]
     },
@@ -5854,6 +5939,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.warning-subtle",
         "color.foreground.warning-subtle"
       ]
     },
@@ -5885,7 +5971,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info-subtle"
+        "color.foreground.info-subtle",
+        "color.foreground.inverse.info-subtle"
       ]
     },
     "palette.info.150": {
@@ -6029,7 +6116,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info-subtle"
+        "color.foreground.info-subtle",
+        "color.foreground.inverse.info-subtle"
       ]
     },
     "palette.info.950": {
@@ -6061,6 +6149,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.danger-subtle",
+        "color.foreground.inverse.danger-subtle",
         "color.interactive.destructive.inverse.fill.rest"
       ]
     },
@@ -6291,6 +6380,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.danger-subtle",
+        "color.foreground.inverse.danger-subtle",
         "color.interactive.destructive.inverse.fill.rest"
       ]
     },

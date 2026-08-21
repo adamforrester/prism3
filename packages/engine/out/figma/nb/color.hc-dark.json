@@ -256,6 +256,106 @@
       }
     },
     {
+      "name": "color/foreground/inverse/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/100"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.8705882430076599,
+        "b": 0.8235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/green/100"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "value": {
+        "r": 0.9137254953384399,
+        "g": 0.8509804010391235,
+        "b": 0.8078431487083435,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/amber/100"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/100"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+      "value": {
+        "r": 0.7960784435272217,
+        "g": 0.8705882430076599,
+        "b": 0.9372549057006836,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/100"
+      }
+    },
+    {
       "name": "color/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [

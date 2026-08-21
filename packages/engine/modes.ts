@@ -474,6 +474,27 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // subtle semantic tint SURFACES (light banner/badge fills) — pair with text.{r}.
   for (const r of SEMANTICS)
     putSurf(`foreground.${r}-subtle`, subtleTint(r), `Subtle ${r} tint surface — banners, badges, selected rows`);
+  // The same five for a banner or badge sitting on a dark hero / inverse band (#892).
+  //
+  // A PREREQUISITE, NOT A CONVENIENCE, and the reason is the load-bearing half of #892's
+  // "generated, not authored" argument. `semanticInk` gates each status ink against TWO grounds —
+  // the floor AND its own tint — because the alert/banner pattern puts the ink on the tint rather
+  // than on the page (see its call site in `buildContent`). So the inverse form of `text.danger` is
+  // "the same rule against a different ground" only if the inverse tint EXISTS to be the second
+  // ground. Without these five, the inverse status inks would gate on one ground while the page ones
+  // gate on two — a weaker rule shipping under a description claiming the stronger one, which is the
+  // class #891 spent its whole diff retiring.
+  //
+  // The polarity flips, for the same reason the overlay wash does: `tintStep` is a LIGHT palette step
+  // on a light page (100) and a dark one on a dark page (900), so the inverse band takes the opposite
+  // end. A light tint is the readable one on a near-black hero.
+  //
+  // `foreground.inverse` is already a group (`primary`/`secondary`/`tertiary`), so these are plain
+  // additions — no leaf-to-group promotion, unlike `border.inverse` in #891.
+  const invTintStep = cfg.family === 'light' ? 900 : 100;
+  const subtleTintInverse = (r: Role): Cand => pStep(palOf(r2p[r]), invTintStep);
+  for (const r of SEMANTICS)
+    putSurf(`foreground.inverse.${r}-subtle`, subtleTintInverse(r), `Subtle ${r} tint surface on an inverse surface — banners, badges and selected rows on a dark hero`);
   // danger — a bold semantic fill like the others (kept out of the loop above only to
   // preserve its position + set fills.danger for the on-danger ink pairing). Its stateful /
   // interactive expression now lives in `interactive.destructive.*` (docs/20), so the fill

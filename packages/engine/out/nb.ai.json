@@ -431,6 +431,86 @@
         "icon.info"
       ]
     },
+    "foreground.inverse.brand-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.900}",
+        "dark": "{nbds.palette.red.100}",
+        "hc-light": "{nbds.palette.red.900}",
+        "hc-dark": "{nbds.palette.red.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.success-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{nbds.palette.green.900}",
+        "dark": "{nbds.palette.green.100}",
+        "hc-light": "{nbds.palette.green.900}",
+        "hc-dark": "{nbds.palette.green.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.warning-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{nbds.palette.amber.900}",
+        "dark": "{nbds.palette.amber.100}",
+        "hc-light": "{nbds.palette.amber.900}",
+        "hc-dark": "{nbds.palette.amber.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.danger-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{nbds.palette.red.900}",
+        "dark": "{nbds.palette.red.100}",
+        "hc-light": "{nbds.palette.red.900}",
+        "hc-dark": "{nbds.palette.red.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
+    "foreground.inverse.info-subtle": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{nbds.palette.info.900}",
+        "dark": "{nbds.palette.info.100}",
+        "hc-light": "{nbds.palette.info.900}",
+        "hc-dark": "{nbds.palette.info.100}"
+      },
+      "paired_with": [
+        "text.on-inverse"
+      ]
+    },
     "foreground.danger": {
       "$description": "Bold solid destructive / error fill.",
       "meaning": "Destructive / error signalling",
@@ -4713,6 +4793,8 @@
       "aliased_by": [
         "color.foreground.brand-subtle",
         "color.foreground.danger-subtle",
+        "color.foreground.inverse.brand-subtle",
+        "color.foreground.inverse.danger-subtle",
         "color.interactive.destructive.inverse.fill.rest",
         "color.interactive.primary.inverse.fill.rest"
       ]
@@ -5072,6 +5154,8 @@
       "aliased_by": [
         "color.foreground.brand-subtle",
         "color.foreground.danger-subtle",
+        "color.foreground.inverse.brand-subtle",
+        "color.foreground.inverse.danger-subtle",
         "color.interactive.destructive.inverse.fill.rest",
         "color.interactive.primary.inverse.fill.rest"
       ]
@@ -5116,6 +5200,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.success-subtle",
         "color.foreground.success-subtle"
       ]
     },
@@ -5264,6 +5349,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.success-subtle",
         "color.foreground.success-subtle"
       ]
     },
@@ -5295,6 +5381,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.warning-subtle",
         "color.foreground.warning-subtle"
       ]
     },
@@ -5440,6 +5527,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.warning-subtle",
         "color.foreground.warning-subtle"
       ]
     },
@@ -5812,7 +5900,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info-subtle"
+        "color.foreground.info-subtle",
+        "color.foreground.inverse.info-subtle"
       ]
     },
     "palette.info.150": {
@@ -5957,7 +6046,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.foreground.info-subtle"
+        "color.foreground.info-subtle",
+        "color.foreground.inverse.info-subtle"
       ]
     },
     "palette.info.950": {

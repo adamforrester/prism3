@@ -9,6 +9,63 @@
 
 ---
 
+## (2026-08-22) — 24 of 123 inverse gaps, and the promotion pattern turns out to be finished
+
+**STATUS: in review.** #892 steps 1-3. `CONTRACT_VERSION` **4.0.0 → 4.2.0** (two MINOR bumps, 497 →
+521, all additive); `ENGINE_VERSION` **0.8.0 → 0.10.0**. All four brands emit an identical inverse
+name set at every step (40 → 44 → 59 → 64), which is the property #893's alias layer needs.
+
+**Step 1 — `field.inverse.*` (4).** Tranche 1 is four field components and a checkbox on an inverse
+band had no border, fill or placeholder token to bind. Generated against the inverse ground, not
+hand-mirrored. The block's existing comment said `field.*` is "not re-authored per state or
+hand-mirrored for inverse", which was misreadable as *field deliberately has no inverse coverage* —
+the exact gap-versus-decision ambiguity #892 exists to remove. The rejected thing is the TECHNIQUE,
+not the coverage; the comment now says so.
+
+**Step 2 — the five states every inverse column was missing (15).** Both halves were corrections
+rather than new design. The inverse fill loop read a hand-written `['default','hover','pressed']`
+where the page's `iFill` walks `FILL_STATES`, so `fill.focused` — the keyboard-focus fill on a dark
+hero — never existed; it reads the shared constant now, so the next state added cannot skip the
+inverse column again. And the overlay wash picks polarity from the PAGE family, so in light mode the
+only wash on offer for a near-black band was 10% black. Its prose claimed it "composites over ANY
+surface (page, dark hero, image)" in three places — true of the mechanism, false of the result on the
+one ground it named.
+
+**Step 3 — `foreground.inverse.<semantic>-subtle` (5), and this one is a PREREQUISITE.** `semanticInk`
+gates each status ink against two grounds — the floor AND its own tint — because the alert pattern
+puts the ink on the tint rather than the page. So the inverse form of `text.danger` is "the same rule
+against a different ground" only once the inverse tint exists to BE that second ground. Without these
+five, the inverse inks would gate on one ground while their page siblings gate on two: a weaker rule
+under a description claiming the stronger one. **That is the property the whole "generated, not
+authored" argument for doing all 17 rests on**, so it is a prerequisite of step 4 rather than part of
+the leftover "rest", and the issue's original ordering had it backwards.
+
+**#909's central claim, tested rather than assumed.** Its argument is that variables add CHUNKS, not
+risk. Measured across steps 1-3: `color-create` chunk 2 grew 9,344 → 11,134 bytes while the
+**indivisible unit stayed at 0.9%** — the same variable, the same 359 bytes. Bytes went into a chunk;
+the wall did not move. That is the prediction holding on its first real load.
+
+**The promotion pattern is finished, which nobody expected.** The rule was to stop and raise at a
+fourth leaf-to-group promotion. Measuring the actual inventory before raising it: **7 of the 9
+existing context nodes are ALREADY groups** — `background`, `foreground`, `border` (since #891),
+`field` (step 1) and all three `interactive` columns. The only two leaves are `text.on-inverse` and
+`icon.on-inverse`, which are exactly the two step 4 promotes. So after step 4 there are **zero
+context-node leaves** and nothing left to migrate.
+
+That reframes the open question. It is not "should we stop promoting one at a time" — the
+one-at-a-time migration completes at step 4 either way. It is only a rule for FUTURE context nodes:
+step 5's `disabled.inverse` and `scrim.inverse`, both currently absent, and any new family. Held for a
+decision rather than assumed, because `border.inverse` was authored as a leaf under an unstated
+convention and cost a MAJOR bump, `DEPRECATIONS` entries and a new `NB_KNOWN_RENAMES` mechanism to
+promote — the cost of NOT having the rule, already paid once and measurable.
+
+**One process miss, recorded because the gate cannot see it.** The step 1-2 commit shipped without
+this entry, against CLAUDE.md's explicit rule that it rides in the feature PR. Found by looking, not
+by a gate — `lint-doc-gates` checks that the gate LIST is consistent, not that a PR carried its
+reasoning. Corrected here by writing one entry for all three steps.
+
+---
+
 ## (2026-08-21) — Four empty artboards, and the fix that nearly shipped a distorted glyph (#864)
 
 **STATUS: in review.** `icon`'s Figma projection is a 39-member `name` set drawing real geometry, via
@@ -541,7 +598,6 @@ the result is *visible*: a zero-height auto-layout frame with two empty children
 shows nothing. #802's Figma half stays open. And the gate reads member 0's root, which is sound because
 `figmaAnatomySet` builds every member from one anatomy (verified over all 648 of Button's) — a def that
 ever varies its root's sizing by coordinate needs the walk widened.
-
 ---
 
 ## (2026-08-21) — a stale citation in the def four authors are about to copy

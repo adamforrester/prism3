@@ -333,6 +333,131 @@
             },
             "contrast": 1,
             "against": "self"
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{nbds.palette.red.100}",
+            "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.red.900",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 1,
+            "against": "self"
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{nbds.palette.green.100}",
+            "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.green.900",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 1,
+            "against": "self"
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{nbds.palette.amber.100}",
+            "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.amber.900",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 1,
+            "against": "self"
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{nbds.palette.red.100}",
+            "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.red.900",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 1,
+            "against": "self"
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{nbds.palette.info.100}",
+            "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.info.900",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 1,
+            "against": "self"
           }
         },
         "brand": {
