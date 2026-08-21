@@ -78,6 +78,102 @@ is known and the measurement is filed.
 
 ---
 
+## (2026-08-21) — The build that finished and never said so (#870)
+
+**STATUS: shipped.** Two defects fixed in `apps/studio/src/main.ts`, plus a permanent browser gate,
+`apps/plugin/test:verdict`. `npm run verify` → **all gates PASS · 0 FAIL · 0 SKIP**, 35 of them at the
+time of writing.
+
+**A numeral deliberately not written as an ordinal.** This entry originally called the new gate "the
+35th" and quoted `35/35`. Both were true when measured and neither is a fact about *this* work: #899
+adds a gate too, so whichever of the two merges second is at 36, and the loser's prose becomes a wrong
+number that no gate can see — `verify.ts` keeps no gate count (`EXPECTED_ARTIFACTS` is a claim about the
+emitted tree, not the gate list) and `lint-doc-gates.ts` matches gates by **name**, in both directions,
+which is what makes a clean textual merge insufficient here. The general form is the hand-off family's
+third instance restated for counts: **a total is a fact about the repo at a moment, and an ordinal is a
+claim about position that a concurrent branch can falsify without touching your diff.** Where the count
+carries no meaning, don't write it; where it does, name what it counts and when.
+
+**Why this was the highest-leverage item and not just a bug.** The verdict line is *the only place a
+build's misses are reported*. #866's four `DISCARDED` refs were visible solely because that summary
+rendered, so a panel stuck on "Building…" silently converts a reporting build into a quiet one — and
+`docs/40` §7 step 6 ("build it and look at it"), merged six days ago, cannot be executed while the
+tool that performs it is unreliable. Fixing it unblocks the authoring loop.
+
+**Two defects, and the diagnosis is what made the fix small.**
+
+1. **Render-path asymmetry.** The `component-result` handler called `renderBar(); syncApplyDetail()` —
+   both *chrome*. The Build button is *page content*. So on **every** terminal path the chrome
+   updated correctly and the page's control stayed `⋯ Building…` and disabled until the plugin was
+   restarted. Not the errored path, not the missed path: all of them.
+2. **A shared pending-node cache.** `componentPendingEl` was a single slot **assigned** by
+   `renderApplyStatus`. Two pills are live at once (bar + page), so the last one rendered won and the
+   other froze at the pre-#684 placeholder — a progress fraction that never moved, beside one that did.
+
+**The state machine was never wrong.** `componentState` left `'pending'` on every path. That is why
+nothing caught this, and it decided the gate's design: a check asking the UI whether it considered
+itself done would have **passed on the defect** — `docs/34` **shape 16**, an independent gate
+measuring the wrong quantity. So EXPECTED is authored per condition as the label and enabled-state a
+designer *reads*, and ACTUAL is read from the rendered DOM; neither half calls `syncComponentRow` or
+looks at `componentState`.
+
+**The approach that was measured and rejected.** The one-line repair is to call `renderWorkspace()`
+from the result handler. A full re-render rebuilds the picker, whose `<option>` carries `selected` for
+Button — so reporting a verdict would silently reset the designer's selection and their next click
+would build the wrong set. Measured; hence a targeted `syncComponentRow` sync, and an assertion
+pinning the picker's selection across its own verdict so nobody re-simplifies it back.
+
+**A defect I introduced while fixing the reported one.** Routing the first render through the same
+sync meant its `row.isConnected` guard — right for a verdict, since writing into a detached row
+reports a delivery nobody can see — fired at mount, when the row is built but not yet inserted. That
+shipped a **blank, enabled** button. Hence the `staged` carve-out, and note what nearly hid it: every
+other case in the suite reads the button *after* a build, by which time the row is attached and a
+correct label is written over the empty one. It needed its own assertion on the freshly-opened panel.
+
+**Mutation-verified by name, all three halves** — the repo's standard is not "does the suite go red":
+
+| mutation | reverts | this gate's named failures |
+|---|---|---|
+| A | `syncComponentRow()` on the terminal path (#870's defect) | **29** — the button, both enabled flags, the page verdict and a stale fraction, for all five conditions, plus `the second of two builds: the Build control could not be clicked` |
+| B | the `Set` back to one slot | **5** — `<condition>: the BAR's pending pill shows the live fraction (was frozen at the placeholder)` |
+| C | the `staged` carve-out (my own bug) | **3** — led by `a freshly opened panel offers "⊞ Build set" — read ""` |
+
+**Five conditions, stated rather than the one observed**, per #870's acceptance and derived by reading
+every `postToUi({type:'component-result'…})` site: clean · with misses · errored · already-built
+(idempotent re-run) · unknown def. The count is asserted (`CONDITIONS.length === 5`), so narrowing
+what a green run means costs an edit to that number.
+
+**A trap for whoever extends this suite: my gate crashed on the very defect it exists to catch.** Under
+mutation A an unbounded `locator.click()` threw `TimeoutError` after 27 correct named failures had
+printed, killing the process and losing the remaining cases *and* the summary count. Clicks and waits
+are now bounded and a refusal becomes a named `ok(false, …)` the run survives. Generalizable: **a gate
+that crashes on the bug it is for reports less than one that fails on it** — the failure it produces is
+a stack trace at an arbitrary point, not a verdict, and the count it prints is wrong in the safe
+direction.
+
+**Why a second browser suite rather than more cases in `test:smoke`.** The Components page is
+`figmaOnly`, so `railNav()` omits it from the web rail — `apps/studio/test-smoke.mjs`, built with
+`PRISM3_HOST='web'`, has no route to the control at any effort. The subject is a different bundle, so
+the gate lives in the plugin workspace and depends on **Build plugin**. It loads `dist/ui.html`
+**top-level** so `parent === window`: the UI's own `parent.postMessage` lands on its listener and the
+harness injects the main thread's replies, exercising the real `figmaCommit` bridge including its
+headline fallbacks and progress validation.
+
+**Stated limit, in the file's own header.** No Figma and no main thread. It proves the panel renders a
+verdict for every terminal **message**, not that the main thread sends one — so it closes #870's
+second candidate only.
+
+**Filed, not fixed here** (principle 3 — prose in a PR body is not filing): `measureSettle()` is
+awaited at `apps/plugin/src/main.ts:348` *before* the verdict posts at `:382`. With `CALM_TICKS = 3`,
+`CALM_LAG_MS = 8`, `MAX_TICKS = 400`, a busy host never settles: measured **400 ticks / ~8.4s** at 20ms
+of work per tick, against 3 ticks / 4ms idle. A separate mechanism for the same symptom, and this gate
+deliberately does not assert it.
+
+**Next in this lane:** #869 (`focus-ring` half-builds — a plausible 100×100 white box reads as success,
+which is worse than a refusal).
+
+---
+
 ## (2026-08-15) — Five defects in four green components, found by opening the file and looking
 
 **STATUS: docs + issues.** `docs/40` §7 gains **step 6 — build it and look at it** — and the five
