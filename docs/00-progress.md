@@ -460,6 +460,90 @@ is known and the measurement is filed.
 
 ---
 
+## (2026-08-21) — `checkbox`: the decomposition calibration, and one new axis name decided for three defs
+
+**STATUS: merged-ready.** Def 2 of `docs/40` tranche 1, authored from `components/checkbox.md` per §7
+steps 2–5. Step 6 (build it and look at it) is **not** discharged — it is blocked on #870 and #864 —
+and this def cannot project anyway, having no `anatomy` block. All 34 gates green.
+
+**The one closed-vocabulary change: `VARIANT_AXES` gains `selection`.** Values `[unchecked, checked,
+indeterminate]` here. Two things about it are worth more than the entry itself.
+
+**It was decided for the FAMILY, not for this def, and that is the whole reason it is in the schema
+rather than in the first def that wanted it.** Checkbox, radio and switch each meet this question
+independently. Three defs each answering it alone is #756's failure mode exactly: `selection` /
+`selected` / `state` / `on` are four spellings of one axis, every one individually defensible, and the
+census that catches them runs *after* all three have shipped — which is what `pending`/`loading` (#843)
+cost when it was only two defs and one word. The name is settled; the values stay open per the
+name/value asymmetry, with the recommendation that they follow ARIA, since `aria-checked` covers
+`checkbox`, `radio` **and** `role="switch"`. So a switch spelling its axis `[off, on]` should be a
+decision somebody takes rather than a default nobody noticed.
+
+**Why an axis and not two more `STATES`, which was the cheaper answer.** `checked` and `indeterminate`
+would both be admissible on the *letter* of that list's bar — and measuring the list to check that is
+the reusable part: **six of its ten members are already not interactions** (`empty`, `error`,
+`pending`, `read-only`, `inactive`, `disabled`), so "a distinct interaction" describes the header
+rather than the contents. The reason it is an axis is mechanical, and it is about a coordinate that
+would paint the wrong colour:
+
+> `{state}` holds one value per coordinate, so `checked` as a state makes `checked` × `hover`
+> inexpressible — and it does not fail, it **falls back**. A hovered checked box resolves the state
+> `hover`, finds the *unchecked* hover border, and paints it.
+
+That is #708's shape: a wrong value that resolves, invisible to every gate. An axis crosses with the
+state axis by construction, which is what `button` already does with
+`{intent}.{appearance}.{slot}.{state}`. The precedent for a *runtime-driven* axis is `field-message`'s
+`tone`, whose values are validation outcomes rather than author choices — so "variants is the author's
+set" turns out to be about who **owns** an axis, not about who moves it.
+
+**The paint grammar leads with the SLOT (`{slot}.{selection}.{state}`), where every axis-carrying def
+in the corpus leads with the axis.** This is the decision most likely to be read as routing around a
+gate, so it is in `notes.contested` with both readings. `lint-paint.ts` arm 1 fires on a key whose
+*leading* segment is an axis value and requires the ref to carry that value — *"an intent's paint comes
+from that intent's family."* **The premise is false for `selection`**: the tier has no `color.checked.*`
+family and should not grow one; a checked box paints from `interactive.primary.*` and an unchecked one
+from `field.*`, which are the tier's own names for those inks. Leading with `{selection}` would have
+needed a `PROVENANCE_EXCEPTIONS` entry for *every* selection-keyed colour binding — roughly four times
+`field-message`'s entire list, for one def, in a register whose value is being short enough to read.
+Rejected on scale, not on principle.
+
+**The calibration the brief was chosen to produce: a brief's decomposition does not map one-to-one onto
+defs.** `components/checkbox.md` §2 resolves the three-tier problem into a two-component surface plus an
+exposed primitive — `Checkbox` (the labelled row), `CheckboxGroup` (the set), `Checkbox.Control` (the
+nestable box). A `ComponentDef` describes exactly one component, so **this def is the row only**. The
+other two are #901, filed rather than noted, because the group owns contract that is unexpressible from
+the row (the value array, group-level `required`/validation, `orientation`) and because the brief states
+this decomposition is what radio and switch *refine* — group mandatory, and no group at all.
+
+**#871 holds: no surface/inverse axis.** The def declares `size` and `selection` and nothing else, and
+`color.interactive.primary.on-inverse.*` is deliberately unbound. Surface context is published by a
+cascade; a control does not ask which ground it is standing on. Stated in the def because all three
+selection controls meet the question separately.
+
+**The gap that is worth knowing before anyone reads this def as complete: the control square has no
+binding, and cannot have one today** (#900). The brief wants a ~16–18px box scaling with the rung, and
+the two candidate families are each something else — `size.*.height` is a full control's height
+(40/48/56 on nb) and `icon.size.*` is the **glyph artboard** ladder, whose values (16/20/24) are exactly
+right and whose meaning is not. Binding the box to it would resolve, typecheck and pass every gate:
+#708's shape again, which is why nothing is bound. What *is* bound is the row's gap and its minimum
+height, and `size.*.height` landing on the brief's §6 target guidance (≥24 for SC 2.5.8, 44 Apple,
+48 Material) is the substrate ladder already being right rather than a coincidence to lean on.
+
+**Verified by mutation, per `docs/34` — the check is not "does the suite go red", it is "is *my* gate
+among the failures, by name".** Four mutations, each naming `checkbox`:
+
+| mutation | caught by |
+|---|---|
+| the rung ladder inverted (`small→md, medium→sm`) | `lint-rung-names` arm 2C **and** arm 3 |
+| a selection value the axis does not declare (`icon.mixed`) | `paintKeyErrors` segment vocabulary, quoting the declared values |
+| `NESTED_WITHOUT_ANATOMY['checkbox']` deleted | `paintKeyErrors` slot vocabulary — so the entry is load-bearing, not decorative |
+| the two paint templates reordered | the shadowing rule, listing all 12 stranded bindings |
+
+**Next:** `radio`, then `switch`, then `select`. Both of the first two inherit the `selection` axis and
+both hit #900 and #901 on arrival, which is the point of having filed them.
+
+---
+
 ## (2026-08-15) — Five defects in four green components, found by opening the file and looking
 
 **STATUS: docs + issues.** `docs/40` §7 gains **step 6 — build it and look at it** — and the five
