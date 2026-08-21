@@ -411,6 +411,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-layout-claims.ts'),
   },
   {
+    id: 'lint-decisions-index',
+    ciStep: 'Every recorded decision is indexed, and every index row is real',
+    cmd: engine('lint-decisions-index.ts'),
+  },
+  {
     id: 'lint-payload-manifest',
     ciStep: 'Every emitted artifact is classified payload or ours',
     cmd: engine('lint-payload-manifest.ts'),

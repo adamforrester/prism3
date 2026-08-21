@@ -288,6 +288,13 @@ jobs:
       - name: Docs describe the repo that exists
         run: npx --yes tsx@4 packages/engine/lint-layout-claims.ts
 
+      # Nothing anywhere caught a decision superseded by a later one, or a decision that exists only
+      # in an issue thread with no doc pointing at it (#886). `docs/42-current-decisions.md` is the
+      # router; this keeps it honest both directions — every indexed decision resolves to a real
+      # `Decided (date, #issue): title` heading, and every such heading anywhere in `docs/` is indexed.
+      - name: Every recorded decision is indexed, and every index row is real
+        run: npx --yes tsx@4 packages/engine/lint-decisions-index.ts
+
       # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression
       # report and a preview page (which do not), and NOTHING said which was which — the only thing
       # distinguishing them was that a human knew. Every payload-assembling tool in the field declares

@@ -192,6 +192,11 @@ const gated: string[] = [
   // and those titles are quoted verbatim in this gate's own failure messages, so an en-GB spelling in
   // one would reach a contributor's terminal.
   join(repo, 'packages/engine/schema/shape-index.json'),
+  // The decisions-index baseline (#886) — the fourth baseline kept out of `regen` for the same
+  // reason, hand-named for the same reason. It carries prose in `$comment` and in every decision
+  // `title`, and those titles are quoted verbatim in the gate's own failure messages, so an en-GB
+  // spelling in one would reach a contributor's terminal the same way a shape title would.
+  join(repo, 'packages/engine/schema/decisions-index.json'),
   // The payload manifest (#674) and the NB measurement fixture — both authored, both kept out of
   // regen, and both carrying prose that until #807 no prose gate had ever opened. The manifest states
   // a `why` on every payload/ours rule plus a multi-line `$comment`, and those reasons are the whole
