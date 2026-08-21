@@ -5,6 +5,40 @@
 > it up without re-deriving anything. Update this when state or direction
 > changes. Most recent entry first.
 
+
+---
+
+## (2026-08-21) — a stale citation in the def four authors are about to copy
+
+**STATUS: shipped.** #904. One `notes.contested` entry in `textarea.ts`. No token, no gate, no
+version move.
+
+**What was wrong.** The `modifiers` entry said *"`modifiers` is admitted in `VARIANT_AXES` only
+because it shipped"* and offered, as its alternative, *"declare it and accept the duplication for
+projection convenience."* Both halves are false. **#845 removed `modifiers` from `VARIANT_AXES`** —
+`component-schema.ts`'s closed-vocabulary header says so in bold, and `button.ts` opens its variants
+block with `NO modifiers AXIS (#845)`. The entry quotes #845's *diagnosis* accurately (a bag of
+unrelated booleans wearing an axis's clothing) and misses its *resolution*.
+
+**Why a wrong reason under a right conclusion was worth a PR.** The def does not declare `modifiers`
+and should not — nothing is broken, and no gate can see this. It matters because of where it sits:
+`textarea` is the calibration def, `checkbox` / `radio` / `switch` / `select` are authored against it,
+and the brief's §15 puts `modifiers` in front of every one of those authors. **The two premises lead
+to different work.** "Admitted but regretted" invites a judgment call and offers a trade the author
+could take. There is no trade: `variants` is typed `Partial<Record<VariantAxis, string[]>>`, so
+declaring it does not compile.
+
+**Proven rather than asserted**, because an entry claiming "this would not compile" is itself a claim
+about a mechanism — the exact class the entry was fixed for. Declaring `modifiers` on `textarea`
+yields `error TS2353: 'modifiers' does not exist in type Partial<Record<"color" | "size" | …>>` from
+`typecheck-components`, and `validateComponentDef` rejects it independently at runtime. Two
+mechanisms, both real, both named in the entry now.
+
+The entry keeps a short note that it was corrected and that only the reason moved, not the
+conclusion — a reader who finds the old wording quoted elsewhere needs to know which half changed.
+
+**Deliberately not a file audit.** The sibling `resize` entry cites #847 correctly, so this is one
+stale citation and was treated as one.
 ---
 
 ## (2026-08-21) — A current-decisions index, gated both directions (#886)
