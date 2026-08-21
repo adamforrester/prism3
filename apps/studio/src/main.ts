@@ -512,7 +512,7 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
  *
  *  Why not the obvious right-truncation: these paths share long prefixes and differ only in the tail.
  *  `color.foreground.brand` and `color.foreground.brand-subtle` — or the six
- *  `color.interactive.destructive.on-inverse.{text,fill}.{rest,hover,pressed}`, whose first 40
+ *  `color.interactive.destructive.inverse.{text,fill}.{rest,hover,pressed}`, whose first 40
  *  characters are identical — all collapse to the SAME visual stub if you cut from the right. The
  *  discriminating information lives at the end, so that is the end worth keeping. The cost is that the
  *  namespace prefix is the part hidden when space is tight; `title` and (on style-guide pills) the
@@ -1813,7 +1813,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
     // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
     // borrowing a page-gated role that was never measured against this ground.
-    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse', line: 'border.inverse', line2: 'border.inverse', tiered: false },
+    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse', line: 'border.inverse.default', line2: 'border.inverse.default', tiered: false },
   ];
   const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
 
@@ -1936,12 +1936,12 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   // Border
   const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
-  // `border.focus-inverse` sits beside `border.focus` rather than next to `border.inverse`: the pair a
+  // `border.inverse.focus` sits beside `border.focus` rather than with the other inverse borders: the pair a
   // reader needs to compare is the two focus rings, and the inverse GROUND is already selectable for
   // the whole section (the `sgSurface` picker), which is the honest way to view an inverse role — its
   // own ink and border set come with it, rather than one card faking a ground the rest of the row lacks.
-  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse'].map((k) => borderCard(k))));
-  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.focus-inverse', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
+  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse.default'].map((k) => borderCard(k))));
+  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.inverse.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
   host.append(ground(secBorder));
 
   // Icon
@@ -1986,7 +1986,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     return row;
   };
   // Is the chosen preview ground itself an inverse band? Both the background and foreground inverse
-  // tiers qualify — what matters is that the ground is the dark one the `on-inverse` family was
+  // tiers qualify — what matters is that the ground is the dark one the `inverse` column was
   // measured against, not which collection it came from.
   const onInverseGround = surf.key.includes('inverse');
   const outlineFill = outlineFillFamily(theme.outlineInteraction);
@@ -2007,16 +2007,16 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // fill, so it is the one that breaks when the preview ground stops being the page. On the
     // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
     // colour, text that is not merely low-contrast but literally invisible. The engine already
-    // resolves `on-inverse.text.*` for exactly this ground, so the row asks for the ink that matches
+    // resolves `inverse.text.*` for exactly this ground, so the row asks for the ink that matches
     // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
     // measured against the button's own fill, which the ground behind it cannot change.
     // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
     // could only move the ink: the engine emitted one border, measured against the page, so the
-    // outline row kept a page-ground edge on the dark band. #467 added `on-inverse.border`.
+    // outline row kept a page-ground edge on the dark band. #467 added `inverse.border`.
     //
     // The switch is PER STATE, not per row, and fixing the fill above is what forced that. The wash
     // is translucent, so a hovered control on the inverse band is still on the band and the
-    // `on-inverse` ink is right for all three states. The `solid-tint` fill is an OPAQUE palette
+    // `inverse` ink is right for all three states. The `solid-tint` fill is an OPAQUE palette
     // step: it covers the band, so from `hover` onward the ground is a page-tuned tint and the
     // band's ink is measured against something that is no longer there. Probed across the corpus —
     // 5 brands × 4 modes × {primary, destructive} × {hover, pressed} — the inverse ink on that tint
@@ -2026,23 +2026,23 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // row-wide ink switch would have traded a visible bug for an invisible one — the exact
     // gated-ground/painted-ground family as #63, #570 and #573.
     const onBand = (s: string): boolean => onInverseGround && !(outlineFill.opaque && fillRole(s));
-    const otxt = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}text.${s}`;
+    const otxt = (s: string) => `interactive.${c}.${onBand(s) ? 'inverse.' : ''}text.${s}`;
     // The edge is now stateful too (#576), so this appends the state exactly as `otxt` does. #575
     // had already made this function per-state — it took `s` only to choose the GROUND, and returned
     // the same single border for all three. The state key is the half that was missing.
-    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'on-inverse.' : ''}border.${s}`;
+    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'inverse.' : ''}border.${s}`;
     // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
     const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
-    const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.on-inverse.fill.${s}`), paint(cur, `interactive.${c}.on-inverse.on-fill`), null, s, `interactive.${c}.on-inverse.fill.${s}`, `fill.${s}`));
+    const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.inverse.fill.${s}`), paint(cur, `interactive.${c}.inverse.on-fill`), null, s, `interactive.${c}.inverse.fill.${s}`, `fill.${s}`));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
-    // The Inverse row paints its own inverse band so the on-inverse variants have the ground they
+    // The Inverse row paints its own inverse band so the inverse-column variants have the ground they
     // were measured against. When the PREVIEW ground is already that band, painting it again is a
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
     // dark" rather than as a distinct treatment. On that ground the row simply uses the page's.
-    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.on-inverse.on-fill`, 'on-fill'))], inv, !onInverseGround));
+    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.inverse.on-fill`, 'on-fill'))], inv, !onInverseGround));
     return block;
   };
   secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
@@ -2334,7 +2334,7 @@ const wirePress = (n: HTMLElement): void => {
   n.title = 'Click to hold the pressed state';
   n.onclick = (e) => { e.preventDefault(); n.classList.toggle('is-pressed'); };
 };
-// #555 — `.exbox` carried no background (transparent, so a `text.rest`/`text.on-inverse.rest` ink
+// #555 — `.exbox` carried no background (transparent, so a `text.rest`/`inverse.text.rest` ink
 // resolved for the CURRENT mode fell through to the studio's own always-light chrome behind it), and
 // `.exbox.dark` hardcoded `#0d0d10` (correct only when "inverse" means dark, which is false in a Dark
 // mode — dark's inverse resolves LIGHT). Both specimens are meant to sit on the ground their ink was
@@ -2559,10 +2559,10 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   if (col.onRemove) head.append(removeButton(col.onRemove, 'Remove interactive color', 'rmv'));
   sec.append(head, el('p', 'psec-d', col.desc));
   if (col.lead) sec.append(col.lead);
-  const P = col.palette, nm = col.name, inv = `${nm}.on-inverse`, nPal = theme.roleToPalette.neutral;
+  const P = col.palette, nm = col.name, inv = `${nm}.inverse`, nPal = theme.roleToPalette.neutral;
   const rows: Array<HTMLElement | null> = [
     fillRestRow(col),
-    slotRow({ name: nm, slot: 'on-inverse.fill.rest', label: 'Fill · inverse', palette: P,
+    slotRow({ name: nm, slot: 'inverse.fill.rest', label: 'Fill · inverse', palette: P,
       desc: 'The button fill on a dark / inverse surface — a light fill. Derived, or pin a step.',
       example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true, 'Button',
         rs[`interactive.${inv}.fill.hover`]?.hex, rs[`interactive.${inv}.fill.pressed`]?.hex),
@@ -2573,7 +2573,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
       example: (rs) => exLink(rs[`interactive.${nm}.text.rest`]?.hex ?? '#000000', false,
         rs[`interactive.${nm}.text.hover`]?.hex, rs[`interactive.${nm}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${nm}.text.hover`], ['Pressed', `interactive.${nm}.text.pressed`]] }),
-    slotRow({ name: nm, slot: 'on-inverse.text.rest', label: 'Text · inverse', palette: P,
+    slotRow({ name: nm, slot: 'inverse.text.rest', label: 'Text · inverse', palette: P,
       desc: 'Text links & text buttons on dark / inverse surfaces.',
       example: (rs) => exLink(rs[`interactive.${inv}.text.rest`]?.hex ?? '#ffffff', true,
         rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
@@ -2583,7 +2583,7 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
       desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
       example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
-    slotRow({ name: nm, slot: 'on-inverse.on-fill', label: 'On-fill text · inverse', palette: nPal,
+    slotRow({ name: nm, slot: 'inverse.on-fill', label: 'On-fill text · inverse', palette: nPal,
       desc: 'The ink on the inverse (light) fill — button text on a dark surface.',
       example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true) }),
   ];
@@ -6573,7 +6573,7 @@ const renderMotionSpecimen = (): HTMLElement => {
   return wrap;
 };
 
-// The inverse-surface + icon specimens were retired here (#69): the on-inverse family is now a first-class
+// The inverse-surface + icon specimens were retired here (#69): the inverse column is now a first-class
 // row in every interactive matrix section (Fill · inverse / Text · inverse / On-fill · inverse), and the
 // icon-contrast payoff is the "Icon colors" global section's match-vs-distinct example — no separate
 // preview needed.

@@ -101,8 +101,18 @@
  * canonical tree — so `CONTRACT_VERSION` stands, and `token-contract.ts --check` confirms that rather
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
+ *
+ * 0.8.0: the #891 rename (see `CONTRACT_VERSION` 4.0.0 below) plus two prose fixes it exposed. The
+ * inverse outline edge shipped a `$description` VERBATIM IDENTICAL to the page edge — "the outline
+ * edge; follows the ink", never qualified for the dark band — because both came from one hardcoded
+ * sentence in `iBorder`, which now takes the ground as a parameter. And `ai-metadata.ts` described
+ * the whole inverse column as "interactive ink on an inverse surface", which is the same
+ * over-generalization the rename fixes: three of its four sub-slots are not ink, so it dispatches
+ * per sub-slot now. No VALUE moves — every emitted colour is byte-identical to 0.7.0 under a
+ * different name — so this is the mirror of the case the two-version split usually illustrates:
+ * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.7.0';
+export const ENGINE_VERSION = '0.8.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -148,8 +158,41 @@ export const ENGINE_VERSION = '0.7.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 4.0.0: `on-` is made to mean exactly one thing. It carried two — INK ON the named thing
+ * (`on-fill`, `text.on-brand`) and CONTEXT, "the variant used when placed on" — and both appeared in
+ * a single path: `interactive.primary.on-inverse.on-fill` was context-qualifier followed by ink-on,
+ * with no way to tell which sense applied at which segment. The context sense loses the prefix:
+ * `interactive.{primary,neutral,destructive}.on-inverse.*` → `.inverse.*`. 30 removed, 30 added.
+ *
+ * `text.on-inverse` and `icon.on-inverse` are DELIBERATELY NOT renamed, and that is the part worth
+ * reading twice. They are ink on the inverse ground — the `on-` sense that survives — and they are
+ * the sixth member of a family (`on-brand`, `on-danger`, `on-info`, `on-success`, `on-warning`)
+ * whose other five keep the prefix. `modes.ts` generating `on-inverse` immediately after the
+ * `on-${r}` loop is the generator already saying so. Renaming them would have traded one
+ * inconsistency for another and collided with `background.inverse`, which is the ground ITSELF
+ * rather than ink on it — precisely the distinction `on-` exists to carry. The rule is not "no
+ * token spells `on-inverse`"; it is "`on-` means ink-on, everywhere". (#891)
+ *
+ * `border` moves in the same bump, for a different reason: it was the one family spelling the
+ * qualifier THREE ways at once — `border.inverse` (segment) and `border.focus-inverse` (hyphenated
+ * suffix). Both become `border.inverse.{default,focus}`. 2 removed, 2 added; `default` for the
+ * promoted leaf follows `text.link.default`.
+ *
+ * That reverses 2.1.0 above on its own stated terms rather than against them. 2.1.0 refused the
+ * leaf-to-group cascade because it was "a MAJOR break to add a token nobody asked to pay for" — the
+ * cost was the MAJOR, and we are already paying one here, with no consumers holding the other end.
+ * 3.0.0 wrote the rule this follows: choose the right shape when the break is free.
+ *
+ * Context-before-role is why `border.inverse.focus` and not `border.focus.inverse`. After this bump
+ * every family that has an inverse variant puts context first — `background.inverse.<tier>`,
+ * `foreground.inverse.<tier>`, `interactive.<palette>.inverse.<role>.<state>` — and `border` becomes
+ * the fourth rather than the lone exception. It is also the shape #892 needs: it adds inverse
+ * counterparts for border's other seven roles, which land INSIDE a container that now exists. The
+ * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
+ * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '3.0.0';
+export const CONTRACT_VERSION = '4.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -186,9 +229,30 @@ export const DEPRECATIONS: Deprecation[] = [
   { path: 'color.interactive.primary.border', replacedBy: 'color.interactive.primary.border.rest', since: '3.0.0' },
   { path: 'color.interactive.neutral.border', replacedBy: 'color.interactive.neutral.border.rest', since: '3.0.0' },
   { path: 'color.interactive.destructive.border', replacedBy: 'color.interactive.destructive.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.interactive.primary.on-inverse.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.interactive.neutral.on-inverse.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.interactive.destructive.on-inverse.border.rest', since: '3.0.0' },
+  // These three were authored at 3.0.0 pointing at `on-inverse.border.rest`, which #891 renamed out
+  // from under them. The `path` is history and does not move — it is what the retired leaf was
+  // literally called — but `replacedBy` must name something the engine still emits, so it follows
+  // the rename. This is the rot case the gate exists to catch, and it caught it: `--check` failed
+  // with "3 deprecation(s) point at a path the engine does not emit" before this line was touched.
+  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.interactive.primary.inverse.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.interactive.neutral.inverse.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.interactive.destructive.inverse.border.rest', since: '3.0.0' },
+  // #891 — the inverse-context qualifier drops `on-`. Generated rather than hand-typed: 30 entries
+  // written out longhand is 30 chances to fat-finger a segment, and the pairing here is 1:1 by
+  // construction. It is still checked rather than asserted — a wrong slot name makes `path` miss the
+  // removed set (no `migrated` entry) AND `replacedBy` miss the live set (a dangling deprecation),
+  // so either half of a typo fails `token-contract.ts --check` loudly.
+  ...(['primary', 'neutral', 'destructive'] as const).flatMap((c) =>
+    ['text.rest', 'text.hover', 'text.pressed', 'fill.rest', 'fill.hover', 'fill.pressed',
+     'border.rest', 'border.hover', 'border.pressed', 'on-fill'].map((slot) => ({
+      path: `color.interactive.${c}.on-inverse.${slot}`,
+      replacedBy: `color.interactive.${c}.inverse.${slot}`,
+      since: '4.0.0',
+    }))),
+  // #891 — `border` spelled the qualifier two ways at once; both become segments under one group.
+  // `border.inverse` is the leaf-to-group promotion, so its own replacement is the `default` child.
+  { path: 'color.border.inverse', replacedBy: 'color.border.inverse.default', since: '4.0.0' },
+  { path: 'color.border.focus-inverse', replacedBy: 'color.border.inverse.focus', since: '4.0.0' },
 ];
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */

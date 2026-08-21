@@ -7,6 +7,77 @@
 
 ---
 
+## (2026-08-21) — `on-` means one thing now, and the issue's own rule said which two tokens keep it
+
+**STATUS: shipped.** #891. `CONTRACT_VERSION` **3.0.0 → 4.0.0** (32 removed, 32 added, 497 → 497);
+`ENGINE_VERSION` **0.7.0 → 0.8.0**. Every emitted colour is byte-identical — names moved, values did
+not, which is the two-version split running in the direction it rarely gets to demonstrate.
+
+**The rename.** `interactive.{primary,neutral,destructive}.on-inverse.*` → `.inverse.*`, 30 paths.
+`on-` carried two senses — INK ON the named thing (`on-fill`) and CONTEXT ("when placed on") — and
+both met in one path: `primary.on-inverse.on-fill` was context-qualifier followed by ink-on, with no
+way to tell which sense applied where. `on-inverse.fill.rest` settled it: explicitly a fill, named as
+ink, with its own `$description` saying so.
+
+**Two tokens deliberately did NOT move, and the reasoning is the durable part.** The intake scoped
+the fix as "normalise all three spellings", which would have taken `text.on-inverse` and
+`icon.on-inverse` with it. They are ink on the inverse ground — the `on-` sense that survives — and
+the sixth member of a family (`on-brand`, `on-danger`, `on-info`, `on-success`, `on-warning`) whose
+other five keep the prefix. `modes.ts` generates `on-inverse` immediately after the `on-${r}` loop:
+the generator was already saying they belong together. Renaming them would have traded one
+inconsistency for another and collided with `background.inverse`, which is the ground ITSELF rather
+than ink on it — exactly the distinction `on-` exists to carry. **The rule is not "no token spells
+`on-inverse`"; it is "`on-` means ink-on, everywhere",** and the interactive rename alone achieves it.
+
+**`border` was the family spelling the qualifier two ways at once** — `border.inverse` (segment) and
+`border.focus-inverse` (hyphenated suffix). Both become `border.inverse.{default,focus}`.
+
+That reverses `CONTRACT_VERSION` 2.1.0 on its own stated terms rather than against them. 2.1.0
+refused the leaf-to-group cascade because it was "a MAJOR break to add a token nobody asked to pay
+for" — the cost WAS the MAJOR, and we are already paying one, with no consumers holding the other
+end. 3.0.0 had already written the rule this follows: *choose the right shape when the break is free.*
+
+Context-before-role decides `border.inverse.focus` over `border.focus.inverse`. Every family with an
+inverse variant now puts context first, and `border` becomes the fourth rather than the exception. It
+is also the container **#892** needs — it adds inverse counterparts for border's other seven roles,
+which now land inside a group that exists; the role-first shape would have needed a separate
+leaf-to-group cascade per role, seven times, each putting context last.
+
+**Three things the gates caught that careful reading had not.**
+
+1. **Three `DEPRECATIONS` entries went dangling.** #576's pointers named `on-inverse.border.rest`,
+   which this rename moved out from under them. `--check` failed with *"3 deprecation(s) point at a
+   path the engine does not emit"* before the table was touched. `path` is history and does not move;
+   `replacedBy` must name something live, so only it follows the rename.
+2. **The NB Figma fixture stopped matching**, because `color/border/inverse` is a var NB really
+   exports. Fixed by declaring `NB_KNOWN_RENAMES` rather than editing the fixture: the fixture is the
+   frozen real export, and rewriting it to agree would leave that gate reading something this change
+   had itself edited — green on every future rename, which is the one thing it exists to catch
+   (`docs/34` shape 6). A stale entry fails, same as the divergence waivers. The scope/alias/value
+   loop follows the map too, so a rename cannot become a way to stop being value-checked.
+3. **`ai-metadata.ts` carried the same over-generalization the rename fixes**, one layer up:
+   `describeInteractive` gave the whole inverse column one description reading "interactive ink on an
+   inverse surface". Three of its four sub-slots are not ink. It dispatches per sub-slot now.
+
+**The stale `border.rest` prose was not copy-paste.** The intake guessed copy-paste; it was one
+hardcoded sentence in `iBorder`, shared by the page-ground and inverse-ground callers, so the inverse
+edge could not have said anything else. `iBorder` takes the ground as a parameter now.
+
+**Two corrections to the intake, both from measuring rather than trusting.** The inverse name set is
+**40 per brand**, not 36 — the 36 predates #576's border states; all four brands still emit an
+identical set, so #893's shared alias layer is unaffected. And `main.ts` carries **26** inverse
+references, not 83: 13 token paths, 11 prose, 2 border.
+
+**Found but not fixed, filed rather than guessed.** `styles.css`'s #560 comment measures the two
+longest token paths at 325px — a figure #576 had already outgrown before this branch existed
+(`…on-inverse.border.pressed`, 55 characters, against the 49 the comment measured). The rename takes
+the longest to 52 characters, so it can only have helped, but the true requirement is still above the
+327px the rule provides. Re-measuring needs a browser at the pill's font; inventing a number in a
+comment is the precise defect this repo has spent the week retiring, so the comment now states what
+is known and the measurement is filed.
+
+---
+
 ## (2026-08-15) — Five defects in four green components, found by opening the file and looking
 
 **STATUS: docs + issues.** `docs/40` §7 gains **step 6 — build it and look at it** — and the five

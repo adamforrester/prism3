@@ -1159,7 +1159,7 @@ position*; the ring takes nobody's. The fifth kind is **absolute sibling of the 
 the first kind whose materialization needs another component to already exist in the file.
 
 The component set also carries a `color = default | inverse` axis, which lands on emitted pairs
-(`color/border/focus`, and the `color/interactive/{intent}/on-inverse/*` family) — evidence for the
+(`color/border/focus`, and the `color/interactive/{intent}/inverse/*` family — spelled `on-inverse` when this was written, renamed in #891) — evidence for the
 "one shared thing with a per-context parameter" reading in the entry below, from a source that had no
 reason to be arguing for it.
 
@@ -1457,8 +1457,9 @@ the CMS-authoring lens argues for the container. Figma does not force a deviatio
 an ancestor frame cascade to nested instances, which is the same context mechanism, and is already
 the established pattern for dark (#487 §2).
 
-The cost is what makes it a decision rather than a conclusion: the engine emits `on-inverse.*` as
-distinct **names**, `CONTRACT_VERSION` went to 1.1.0 *adding* `on-inverse.border`, and collapsing
+The cost is what makes it a decision rather than a conclusion: the engine emits the inverse column as
+distinct **names** (`on-inverse.*` when this was written; `inverse.*` since #891), `CONTRACT_VERSION`
+went to 1.1.0 *adding* `on-inverse.border`, and collapsing
 those into modes would remove ~23 guaranteed paths — a MAJOR contract event plus a deprecation table.
 
 Two things worth feeding back to the KB regardless of which way it goes: the **CMS-authoring lens on

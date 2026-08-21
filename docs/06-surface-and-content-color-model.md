@@ -100,7 +100,7 @@ consistent.
 | `text.{brand,success,warning,danger,info}` | **bold** semantic ink |
 | `text.{…}-subtle` | **subtle / muted** semantic ink (the "quiet danger") — gated at the **large-text / non-text bar** (3:1, 4.5:1 in HC), not the 4.5:1 the bold form clears, so it is for large text and non-text accents rather than body copy (#570) |
 | `text.on-{semantic}` (e.g. `on-brand`/`on-success`/`on-danger`) | ink for *on top of* a solid semantic fill (paired contrast) |
-| `text.on-inverse` | ink on an inverse surface (renamed from `on-emphasis`) |
+| `text.on-inverse` | ink on an inverse surface (renamed from `on-emphasis`; keeps `on-` because it IS ink-on — see #891) |
 | `text.link.{default,hover,visited,focused}` | interactive text (links) — **no `disabled`** (a disabled link is an anti-pattern) |
 
 `icon.*` mirrors `text.*`, diverging only when `iconContrast: '3:1'` lets
@@ -123,7 +123,7 @@ and `border.focus` are its text/border expressions.
 ### `border.*` — edges
 
 `border.primary / secondary` (neutral), `border.{semantic}`, `border.focus`
-(the focus ring colour) and `border.focus-inverse` (the same ring, for elements on an
+(the focus ring colour) and `border.inverse.focus` (the same ring, for elements on an
 inverse surface). In **high contrast** the border targets escalate (≥4.5:1)
 because borders — not surface tints — carry structure in HC (see §4).
 

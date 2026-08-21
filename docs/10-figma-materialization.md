@@ -116,7 +116,7 @@ the #84 round-trip caught for `disabled/*` — see task #85).
 | `interactive.<c>.on-fill` | `FRAME_FILL, SHAPE_FILL, TEXT_FILL` |
 | `interactive.<c>.text` | `TEXT_FILL` |
 | `interactive.<c>.border` | `STROKE_COLOR` |
-| `interactive.<c>.on-inverse` | `FRAME_FILL, SHAPE_FILL` |
+| `interactive.<c>.inverse` | `FRAME_FILL, SHAPE_FILL` |
 | `disabled.fill`, `disabled.border` (fill) | `FRAME_FILL, SHAPE_FILL` / `STROKE_COLOR` |
 | `disabled.on-fill` | `FRAME_FILL, SHAPE_FILL, TEXT_FILL` |
 | `disabled.text` | `TEXT_FILL` |

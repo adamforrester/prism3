@@ -4573,7 +4573,7 @@
               }
             }
           },
-          "on-inverse": {
+          "inverse": {
             "text": {
               "rest": {
                 "$type": "color",
@@ -4851,25 +4851,25 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
                   "contrast": 14.05,
-                  "against": "interactive.primary.on-inverse.fill.rest",
+                  "against": "interactive.primary.inverse.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.025}",
                       "contrast": 16.76,
-                      "against": "interactive.primary.on-inverse.fill.rest",
+                      "against": "interactive.primary.inverse.fill.rest",
                       "min": 4.5
                     },
                     "hc-light": {
                       "$value": "{prism.palette.black}",
                       "contrast": 15.19,
-                      "against": "interactive.primary.on-inverse.fill.rest",
+                      "against": "interactive.primary.inverse.fill.rest",
                       "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.white}",
                       "contrast": 17.95,
-                      "against": "interactive.primary.on-inverse.fill.rest",
+                      "against": "interactive.primary.inverse.fill.rest",
                       "min": 4.5
                     }
                   },
@@ -4890,7 +4890,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{prism.palette.accent.450}",
-                "$description": "primary interactive border — rest (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4934,7 +4934,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{prism.palette.accent.400}",
-                "$description": "primary interactive border — hover (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4978,7 +4978,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{prism.palette.accent.350}",
-                "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -5691,7 +5691,7 @@
               }
             }
           },
-          "on-inverse": {
+          "inverse": {
             "text": {
               "rest": {
                 "$type": "color",
@@ -5969,25 +5969,25 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
                   "contrast": 14.08,
-                  "against": "interactive.destructive.on-inverse.fill.rest",
+                  "against": "interactive.destructive.inverse.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.025}",
                       "contrast": 17.02,
-                      "against": "interactive.destructive.on-inverse.fill.rest",
+                      "against": "interactive.destructive.inverse.fill.rest",
                       "min": 4.5
                     },
                     "hc-light": {
                       "$value": "{prism.palette.black}",
                       "contrast": 15.22,
-                      "against": "interactive.destructive.on-inverse.fill.rest",
+                      "against": "interactive.destructive.inverse.fill.rest",
                       "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.white}",
                       "contrast": 18.23,
-                      "against": "interactive.destructive.on-inverse.fill.rest",
+                      "against": "interactive.destructive.inverse.fill.rest",
                       "min": 4.5
                     }
                   },
@@ -6008,7 +6008,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{prism.palette.danger.450}",
-                "$description": "destructive interactive border — rest (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -6052,7 +6052,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{prism.palette.danger.400}",
-                "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -6096,7 +6096,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{prism.palette.danger.350}",
-                "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -6789,7 +6789,7 @@
               }
             }
           },
-          "on-inverse": {
+          "inverse": {
             "text": {
               "rest": {
                 "$type": "color",
@@ -7067,25 +7067,25 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
                   "contrast": 16.01,
-                  "against": "interactive.neutral.on-inverse.fill.rest",
+                  "against": "interactive.neutral.inverse.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
                       "$value": "{prism.palette.neutral.025}",
                       "contrast": 14.99,
-                      "against": "interactive.neutral.on-inverse.fill.rest",
+                      "against": "interactive.neutral.inverse.fill.rest",
                       "min": 4.5
                     },
                     "hc-light": {
                       "$value": "{prism.palette.black}",
                       "contrast": 17.31,
-                      "against": "interactive.neutral.on-inverse.fill.rest",
+                      "against": "interactive.neutral.inverse.fill.rest",
                       "min": 4.5
                     },
                     "hc-dark": {
                       "$value": "{prism.palette.white}",
                       "contrast": 16.06,
-                      "against": "interactive.neutral.on-inverse.fill.rest",
+                      "against": "interactive.neutral.inverse.fill.rest",
                       "min": 4.5
                     }
                   },
@@ -7106,7 +7106,7 @@
               "rest": {
                 "$type": "color",
                 "$value": "{prism.palette.neutral.550}",
-                "$description": "neutral interactive border — rest (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -7150,7 +7150,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{prism.palette.neutral.450}",
-                "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -7194,7 +7194,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{prism.palette.neutral.350}",
-                "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -9877,41 +9877,87 @@
           }
         },
         "inverse": {
-          "$type": "color",
-          "$value": "{prism.palette.neutral.800}",
-          "$description": "Border on inverse surfaces",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "prism.palette.neutral.800",
-              "contrast": 1.4,
-              "against": "background.inverse.primary",
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.neutral.200}",
-                  "contrast": 1.68,
-                  "against": "background.inverse.primary"
+          "default": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.800}",
+            "$description": "Border on inverse surfaces",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.800",
+                "contrast": 1.4,
+                "against": "background.inverse.primary",
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.neutral.200}",
+                    "contrast": 1.68,
+                    "against": "background.inverse.primary"
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.neutral.500}",
+                    "contrast": 4.63,
+                    "against": "background.inverse.primary"
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.neutral.500}",
+                    "contrast": 4.54,
+                    "against": "background.inverse.primary"
+                  }
                 },
-                "hc-light": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.63,
-                  "against": "background.inverse.primary"
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.neutral.500}",
-                  "contrast": 4.54,
-                  "against": "background.inverse.primary"
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 }
-              },
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              }
+            }
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{prism.palette.accent.500}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.accent.500",
+                "contrast": 4.26,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "modes": {
+                  "dark": {
+                    "$value": "{prism.palette.accent.500}",
+                    "contrast": 4.26,
+                    "against": "background.inverse.primary",
+                    "min": 3
+                  },
+                  "hc-light": {
+                    "$value": "{prism.palette.accent.500}",
+                    "contrast": 4.6,
+                    "against": "background.inverse.primary",
+                    "min": 4.5
+                  },
+                  "hc-dark": {
+                    "$value": "{prism.palette.accent.500}",
+                    "contrast": 4.56,
+                    "against": "background.inverse.primary",
+                    "min": 4.5
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
               }
             }
           }
@@ -10164,50 +10210,6 @@
                   "$value": "{prism.palette.accent.300}",
                   "contrast": 8.59,
                   "against": "background.primary",
-                  "min": 4.5
-                }
-              },
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              }
-            }
-          }
-        },
-        "focus-inverse": {
-          "$type": "color",
-          "$value": "{prism.palette.accent.500}",
-          "$description": "Focus ring color on inverse surfaces (keyboard focus)",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "prism.palette.accent.500",
-              "contrast": 4.26,
-              "against": "background.inverse.primary",
-              "min": 3,
-              "modes": {
-                "dark": {
-                  "$value": "{prism.palette.accent.500}",
-                  "contrast": 4.26,
-                  "against": "background.inverse.primary",
-                  "min": 3
-                },
-                "hc-light": {
-                  "$value": "{prism.palette.accent.500}",
-                  "contrast": 4.6,
-                  "against": "background.inverse.primary",
-                  "min": 4.5
-                },
-                "hc-dark": {
-                  "$value": "{prism.palette.accent.500}",
-                  "contrast": 4.56,
-                  "against": "background.inverse.primary",
                   "min": 4.5
                 }
               },
@@ -15858,7 +15860,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
@@ -15883,7 +15885,7 @@
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.",
         "action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor",
-        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.on-inverse generated)"
+        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.inverse generated)"
       ]
     }
   }

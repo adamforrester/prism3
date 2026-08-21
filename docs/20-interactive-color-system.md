@@ -65,7 +65,7 @@ actionAnchorStep?: number;       // optional fill-step override for the built-in
 destructiveAnchorStep?: number;  // optional fill-step override for the built-in destructive column
 ```
 
-**Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.on-inverse` (when `inverse` is on), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 488-contract machinery (§13).
+**Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.inverse.*` (when `inverse` is on), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 488-contract machinery (§13).
 
 **Naming.** `name` (or the palette name it defaults to) must be a single lowercase slug and must be **unique** and **must not collide** with a built-in column (`primary`/`neutral`/`destructive`) — the engine throws a clear error otherwise, mirroring the `actionPalette`/`brandColors` validation. The `palette` must be a **defined palette** (validated like `actionPalette`); an undefined palette throws.
 
@@ -172,7 +172,7 @@ Every `interactive.*` token is **generated** (walk the intent's palette for fill
    - ✅ inc-1 `interactive.{primary,neutral,destructive}` family (fill/on-fill/text/border; `rest`/hover/pressed states).
    - ✅ inc-2 `overlay.*` washes + the composited-overlay contrast check + `outlineInteraction` lever.
    - ✅ inc-3 cross-cutting `disabled.*`.
-   - ✅ inc-4 inverse surface-context (`interactive.<color>.on-inverse`) + `neutralEmphasis` + opt-in `accentPalette`.
+   - ✅ inc-4 inverse surface-context (`interactive.<color>.inverse`) + `neutralEmphasis` + opt-in `accentPalette`.
    - ✅ **Legacy-role removal (task #14)** — dropped `action.*`, the stateful `foreground.danger.*` (danger is now a bare bold `foreground.danger` fill), per-colour `interactive.*.fill.disabled`, and `text/icon.{disabled, on-action, on-disabled}`. Components bind `interactive.*` / `disabled.*`. This deletes vars from the frozen real-NB figma fixture, so it was paired with an **NB-fidelity reconciliation**: the fixture was modernised to the engine's evolved layer (dropped the 17 retired vars/mode, renamed `foreground/danger/default` → bare `foreground/danger`, 95 → 78 real vars/mode). The DTCG colour-fidelity gate (nb-regression, ΔE) is unaffected — only the Figma variable naming changed. *(Note: earlier drafts called this "the #67 reconciliation"; GitHub #67 is actually the unrelated Token Press collection-rename question — there was no dedicated issue for this fixture re-baseline.)*
    - ⏳ `overlay-tint` lever value (per-colour hue at alpha) — needs per-colour alpha ramps.
 3. ✅ Rebind Button/IconButton (and the eval preview) to `interactive.*` / `disabled.*` — reconciled to

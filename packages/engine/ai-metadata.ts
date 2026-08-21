@@ -49,7 +49,7 @@ const genMeaning = (group: string, variant: string): string => {
   if (group === 'disabled') return 'Unavailable / inactive state';
   if (group === 'field') return 'Form input / field chrome';
   if (variant === 'link') return 'Interactivity / navigation';
-  if (variant === 'focus' || variant === 'focus-inverse') return 'Keyboard focus indication';
+  if (variant === 'focus') return 'Keyboard focus indication';
   if (SIGNAL[variant]) return SIGNAL[variant];                                  // intent fill/text/icon/border (incl. danger)
   if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return `${SIGNAL[i] ?? cap(i)} (low-emphasis)`; }
   if (variant.startsWith('on-')) { const x = variant.slice(3); return `Legible content on ${x === 'inverse' ? 'an inverse surface' : (INTENT[x] ?? x) + ' fills'}`; }
@@ -73,7 +73,7 @@ const describe = (group: string, variant: string, state: string | undefined): { 
 
   // background — the CANVAS (thin, page-level)
   if (group === 'background') {
-    if (variant === 'inverse') { const tier = state ?? 'primary'; return { desc: `Inverse page surface (tier ${TIER_N[tier] ?? 1})`, when_to_use: 'Inverted page sections — a dark band on a light page (or vice-versa).', avoid_when: 'Do not place mode-default ink on it — use text.on-inverse.', paired_with: ['text.on-inverse', 'border.inverse'] }; }
+    if (variant === 'inverse') { const tier = state ?? 'primary'; return { desc: `Inverse page surface (tier ${TIER_N[tier] ?? 1})`, when_to_use: 'Inverted page sections — a dark band on a light page (or vice-versa).', avoid_when: 'Do not place mode-default ink on it — use text.on-inverse.', paired_with: ['text.on-inverse', 'border.inverse.default'] }; }
     if (TIER_N[variant]) return { desc: `Page / canvas surface (tier ${TIER_N[variant]})`, when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A slightly tinted page or page band.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
   }
 
@@ -100,9 +100,14 @@ const describe = (group: string, variant: string, state: string | undefined): { 
   if (group === 'border') {
     if (variant === 'primary') return { desc: 'Default / decorative border', when_to_use: 'Dividers, card outlines, low-emphasis separation.', avoid_when: 'Do not use where a 3:1 non-text contrast is required (use border.secondary / border.focus).' };
     if (variant === 'secondary') return { desc: 'Stronger divider border', when_to_use: 'Higher-emphasis dividers and separators; control borders.', avoid_when: 'Do not use as a faint hairline (use border.primary).' };
-    if (variant === 'inverse') return { desc: 'Border on inverse surfaces', when_to_use: 'Borders on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces.', paired_with: ['background.inverse.primary'] };
-    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.focus-inverse).', paired_with: ['background.primary'] };
-    if (variant === 'focus-inverse') return { desc: 'Focus ring color on inverse surfaces', when_to_use: 'The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse).', paired_with: ['background.inverse.primary'] };
+    // `border.inverse` is a group since #891 — `default` (decorative) and `focus` (the ring), with
+    // the role dispatched off `state` because it is the third segment. The old flat
+    // `border.focus-inverse` is gone; #892 fills the rest of the container.
+    if (variant === 'inverse') {
+      if (state === 'focus') return { desc: 'Focus ring color on inverse surfaces', when_to_use: 'The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse.default).', paired_with: ['background.inverse.primary'] };
+      return { desc: 'Border on inverse surfaces', when_to_use: 'Borders on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).', paired_with: ['background.inverse.primary'] };
+    }
+    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.inverse.focus).', paired_with: ['background.primary'] };
     if (intent) return { desc: `${cap(intent)} validation border`, when_to_use: `Validation/state borders for ${variant} (e.g. invalid fields).`, avoid_when: `Do not use as ${variant} ink or fill — use text.${variant} / foreground.${variant}.` };
   }
 
@@ -151,7 +156,19 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
     const st = state && state !== 'rest' ? ` (${state} state)` : '';
     return { desc: `${cap(c)} interactive border — the outline edge${st}`, when_to_use: `The border of an OUTLINE ${c} interactive element${sc(state)}.`, avoid_when: `Do not use as ink (use interactive.${c}.text) or as a page divider (use border.primary).`, paired_with: [`interactive.${c}.text.${state ?? 'rest'}`, 'background.primary'] };
   }
-  if (slot === 'on-inverse') return { desc: `${cap(c)} interactive ink on an inverse surface`, when_to_use: `The ink for an outline/text ${c} control placed on a dark hero / inverse section — a light CTA on dark.`, avoid_when: `Do not use on the standard page (use interactive.${c}.text) or on a ${c} fill (use interactive.${c}.on-fill).`, paired_with: ['background.inverse.primary'] };
+  // The inverse column nests its real slot one deeper (`inverse.<slot>.<state>`), so the sub-slot is
+  // what `state` carries here and the actual state sits a segment further on. Describing the whole
+  // column as one thing is how "on-inverse means ink" got established in the first place (#891):
+  // three of its four slots are not ink — `fill` is a filled CTA, `border` is an edge, and `on-fill`
+  // is the ink ON that fill. So it dispatches, and each sub-slot names its own inverse-context twin.
+  if (slot === 'inverse') {
+    const sub = state ?? 'text';
+    const onInv = 'placed on a dark hero / inverse section';
+    if (sub === 'fill') return { desc: `${cap(c)} interactive fill on an inverse surface`, when_to_use: `The fill of a FILLED ${c} control ${onInv} — a light CTA on dark.`, avoid_when: `Do not use on the standard page (use interactive.${c}.fill).`, paired_with: [`interactive.${c}.inverse.on-fill`, 'background.inverse.primary'] };
+    if (sub === 'on-fill') return { desc: `Ink on the ${c} inverse fill`, when_to_use: `The label / icon on a filled ${c} control ${onInv}.`, avoid_when: `Do not use on the standard page (use interactive.${c}.on-fill).`, paired_with: [`interactive.${c}.inverse.fill.rest`] };
+    if (sub === 'border') return { desc: `${cap(c)} interactive border on an inverse surface — the outline edge`, when_to_use: `The border of an OUTLINE ${c} control ${onInv}.`, avoid_when: `Do not use on the standard page (use interactive.${c}.border) or as a divider on a dark band (use border.inverse).`, paired_with: [`interactive.${c}.inverse.text.rest`, 'background.inverse.primary'] };
+    return { desc: `${cap(c)} interactive ink on an inverse surface`, when_to_use: `The ink for an outline/text ${c} control ${onInv} — a light CTA on dark.`, avoid_when: `Do not use on the standard page (use interactive.${c}.text) or on a ${c} fill (use interactive.${c}.inverse.on-fill).`, paired_with: ['background.inverse.primary'] };
+  }
   if (slot === 'overlay') return { desc: `${cap(c)} interactive overlay${state ? ` — ${state}` : ''}`, when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards — composites over ANY surface (page, dark hero, image).`, avoid_when: `Do not use as an opaque fill (use interactive.${c}.fill.* or foreground.${c}-subtle) or as a modal backdrop (use scrim.*).`, paired_with: ['text.primary'] };
   return { desc: `${cap(c)} interactive ${slot}`, when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
 };

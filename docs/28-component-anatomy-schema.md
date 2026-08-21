@@ -463,7 +463,7 @@ emitted plans — the rule and the probe now agree at zero):
   ink conditional on structure the same way the fill already was, and the qualified form is
   `disabled.<slot>.on-fill` — the suffix qualifies the slot rather than replacing it, so the slot segment
   stays a dispatched word and a qualifier cannot become a hiding place for an unreachable slot name.
-- **Three `button` keys naming a nonexistent appearance value** (`*.on-inverse.label`). Removed rather
+- **Three `button` keys naming a nonexistent appearance value** (`*.on-inverse.label`; the family is spelled `*.inverse.*` since #891). Removed rather
   than renamed: there is no value to rename *to*, because the inverse surface is a fourth axis this def
   does not declare. The token family is gated independently, so no contract is lost — the ceiling is
   recorded in `codeOnly`.
