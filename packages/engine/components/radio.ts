@@ -79,11 +79,21 @@
  *
  * ── THE PAINT GRAMMAR AND #871, BOTH INHERITED DELIBERATELY ─────────────────────────────────────
  *
- * `['{slot}.{selection}.{state}', '{slot}.{selection}', '{slot}']` — `checkbox`'s grammar, slot-led
- * for the reason its header gives at length (`lint-paint.ts` arm 1's premise, *"an intent's paint
- * comes from that intent's family"*, is false for `selection`: there is no `color.checked.*` family).
- * That argument is not re-litigated here; if it is overturned on #910 both defs move together, which
- * is the point of them sharing one grammar.
+ * `['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}']` — `checkbox`'s grammar, axis-led
+ * like every other def in the corpus. The exemption that makes it legal is declared ONCE, per axis,
+ * in `lint-paint.ts`'s `NON_FAMILY_AXES`: arm 1's premise (*"an intent's paint comes from that
+ * intent's family"*) has nothing to be true of for `selection`, because the tier emits no
+ * `color.checked.*` and must not grow one.
+ *
+ * **This def pays nothing for that, and the saving is the whole reason the exemption is axis-scoped
+ * rather than per-key.** `checkbox` first shipped slot-led, which skips arm 1 by construction, and was
+ * corrected in review against the house rule — *a false positive is fixed by adding to the exemption
+ * list, never by narrowing a scan*. The ~20 renames were paid there, once; `radio` inherits the
+ * convention and adds no exemption of its own. `switch` will do the same.
+ *
+ * Know its cost before reading the grammar as covered: arm 1 does not check these bindings at all,
+ * and nothing else does either (#916). The gate PRINTS that per axis on every run, which is the only
+ * difference from the slot-led shape — and the difference that mattered.
  *
  * **#871 holds: no surface or inverse axis.** `size` and `selection`, nothing else, and
  * `color.interactive.primary.on-inverse.*` is deliberately unbound. Surface context is published by a
@@ -150,16 +160,16 @@ export const radio: ComponentDef = {
   },
 
   // `checkbox`'s grammar, unchanged and deliberately so — see the header.
-  paintKeys: ['{slot}.{selection}.{state}', '{slot}.{selection}', '{slot}'],
+  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
   tokens: {
     // ── THE UNCHECKED DISC — the form-field substrate's chrome, identical to checkbox's empty box.
     // `pressed` is unbound here for checkbox's reason: `color.field.border.*` emits `rest` and `hover`
     // only, and reaching into another family for one coordinate would put two ladders on one axis.
-    'fill.unchecked': 'color.field.fill',
-    'border.unchecked': 'color.field.border.rest',
-    'border.unchecked.hover': 'color.field.border.hover',
-    'border.unchecked.error': 'color.border.danger',
+    'unchecked.fill': 'color.field.fill',
+    'unchecked.border': 'color.field.border.rest',
+    'unchecked.border.hover': 'color.field.border.hover',
+    'unchecked.border.error': 'color.border.danger',
 
     // ── THE CHECKED DISC — a FILLED disc with an on-fill dot, which is checkbox's treatment with a
     // round radius. The alternative (Material's outlined ring with a brand-coloured dot on the field
@@ -168,16 +178,16 @@ export const radio: ComponentDef = {
     // `on-fill` is a contract the token tier actually GATES, against the fill the ink sits on. An
     // outlined ring would paint its dot from an ink role gated against the PAGE while it in fact sits
     // on `color.field.fill`, which is a different pairing than the one that was checked.
-    'fill.checked': 'color.interactive.primary.fill.selected',
-    'fill.checked.hover': 'color.interactive.primary.fill.hover',
-    'fill.checked.pressed': 'color.interactive.primary.fill.pressed',
-    'border.checked': 'color.interactive.primary.border.rest',
-    'border.checked.hover': 'color.interactive.primary.border.hover',
-    'border.checked.pressed': 'color.interactive.primary.border.pressed',
-    'border.checked.error': 'color.border.danger',
+    'checked.fill': 'color.interactive.primary.fill.selected',
+    'checked.fill.hover': 'color.interactive.primary.fill.hover',
+    'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
+    'checked.border': 'color.interactive.primary.border.rest',
+    'checked.border.hover': 'color.interactive.primary.border.hover',
+    'checked.border.pressed': 'color.interactive.primary.border.pressed',
+    'checked.border.error': 'color.border.danger',
     // The inner dot. A glyph in the `icon` slot, as checkbox's check is — the shape differs and the
     // ink role does not.
-    'icon.checked': 'color.interactive.primary.on-fill',
+    'checked.icon': 'color.interactive.primary.on-fill',
 
     // ── THE ROW'S LABEL — one ink at every coordinate, so it is the bare slot. Page text beside the
     // control, which is why its disabled ink is `disabled.text` and not `disabled.on-fill`.
@@ -276,7 +286,7 @@ export const radio: ComponentDef = {
   notes: {
     contested: [
       'THE CHECKED DISC IS FILLED, with an on-fill dot — checkbox\'s treatment at a round radius. The NAMED ALTERNATIVE is Material\'s outlined model: the fill stays `color.field.fill`, the ring recolours, and a brand-coloured dot sits inside it. It is a real fork and several systems ship it, and the brief takes no position — §8 describes "a spring/scale-up of the inner dot with a border-colour crossfade", which both models satisfy. Filled was chosen on two grounds, neither of them taste: it keeps the two selection controls one visual family, and `on-fill` is a pairing the token tier actually gates, whereas an outlined dot would take an ink role gated against the PAGE while sitting on the field fill — a different pairing than the one that was checked. Revisit if a brand wants the outlined skin; it is a rebind of three keys, not a restructure.',
-      'THE PAINT GRAMMAR LEADS WITH THE SLOT, inherited from `checkbox` rather than re-decided. The argument, and the reading that it can fairly be seen as routing around `lint-paint.ts` arm 1, is in that def\'s header and in #910. Recorded here only so this def is not read as a second independent vote for it: the two share one grammar, and if #910 overturns it both move together.',
+      'THE PAINT GRAMMAR IS AXIS-LED, inherited from `checkbox` rather than re-decided, and the exemption that makes it legal is declared once per AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than once per def. Recorded here only so this def is not read as a second independent vote: the two share one grammar and one exemption. What is genuinely open is not the grammar but its cost — arm 1 does not check a non-family axis at all, and neither does anything else, which is #916.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not axes here, because they are `RadioGroup`\'s. Unlike checkbox, where that was a tidy boundary, here it means the def is missing an axis its unit of use genuinely has — see #901.',
       'Carbon\'s "AI presence" variant, which sets an AI-explainability label beside a recommended option, is named in brief §4 as a frontier signal and explicitly "a watch item, not a default". Not declared. It is also a dual-action row needing careful focus management so assistive tech does not conflate the explainer control with the radio, which makes it an anatomy question rather than an axis one.',
       'Selection-follows-focus is the practice default and the external research pass argued the opposite (explicit selection, Space to commit), citing the screen-reader-exploration trap and Windows gamepad behaviour. Recorded because the contrary position is legitimate and reasoned rather than wrong: the resolution is that follows-focus is native and the APG default, and the exploration cost is better paid by keeping `onChange` cheap than by reimplementing the platform.',

@@ -148,6 +148,15 @@ The middle one is the one that mattered and it is radio-specific: it proves the 
 is genuinely **per-def** rather than a global list the schema shares out. "Values stay open" is
 load-bearing rather than decorative, and now there is a mutation that says so.
 
+**Amended after #910's review: the paint grammar is AXIS-LED, and radio pays nothing for it.** This
+def originally inherited `checkbox`'s slot-led grammar; review corrected that def against the house
+rule (*a false positive is fixed by adding to the exemption list, never by narrowing a scan*), and the
+~20 renames were paid there. Radio's 12 selection keys were renamed to match, it adds **no exemption
+of its own**, and the axis-scoped `NON_FAMILY_AXES` entry now covers **32 bindings across two defs** —
+which is the saving that made axis-scope the right shape rather than a per-key list. `switch` inherits
+it for free too. The cost is unchanged and now visible on every run: arm 1 does not check a non-family
+axis at all, and neither does anything else (#916).
+
 **Next:** `switch`, then `select`. Switch is where the ARIA value recommendation gets its real test,
 where #900 becomes a pattern rather than a coincidence, and — per the brief — where the group
 disappears entirely, which is the third distinct answer to #901's question in three defs.
