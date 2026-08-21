@@ -976,7 +976,8 @@ input.toggle:disabled{opacity:.5;cursor:default}
    partial cure at some viewports in the band. The rename can only have helped: every path in the family
    shrank by exactly 3 characters, so the threshold moved down, never up. Re-measuring needs a browser at
    the pill's font and is filed rather than guessed — a px number invented here would be the exact defect
-   this file has been fixing all week. See the issue referenced in the PR. */
+   this file has been fixing all week. Filed as #902, which also proposes asserting it in the smoke
+   suite against the longest path READ FROM THE TREE, so the calibration cannot rot a third time. */
 @media(min-width:901px) and (max-width:1199px){.arow:not(.arow-lead) .arow-main{grid-template-columns:56px minmax(0,1fr) 288px}.arow:not(.arow-lead) .aex{width:288px}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 /* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
