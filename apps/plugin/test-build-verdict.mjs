@@ -48,11 +48,18 @@
  * THE CONDITION LIST IS AUTHORED, AND ITS LENGTH IS ASSERTED. #870 requires every terminating condition
  * to be covered — "clean, with misses, errored, and already-built … since the observed case is one of at
  * least four" — so a suite that silently dropped one would report a pass over a narrowed promise. The
- * five below are derived by reading every `postToUi({type:'component-result'…})` site in
- * `apps/plugin/src/main.ts` (three sites: the unknown-def early return, the happy path, the catch) and
- * every distinct SHAPE the happy path can produce (`ok` true/false by the `misses === skipped` rule,
- * plus the idempotent re-run where every member is skipped). Counted here so adding a sixth means
- * editing this number on purpose.
+ * conditions below are derived by reading every `postToUi({type:'component-result'…})` site in
+ * `apps/plugin/src/main.ts` (four sites: the unknown-def early return, #869's not-standalone refusal, the
+ * happy path, the catch) and every distinct SHAPE the happy path can produce (`ok` true/false by the
+ * `misses === skipped` rule, plus the idempotent re-run where every member is skipped). Counted here so
+ * adding one means editing that number on purpose.
+ *
+ * **AND IT WORKED, ONCE, WHICH IS WHY THE NUMBER IS WORTH THE FRICTION.** The list shipped at five and is
+ * at six: #869 added a real early return to `buildComponents` — a def whose projection cannot render
+ * standalone is refused rather than half-built — and the asserted count is what forced this file open
+ * rather than letting the new terminal path ship uncovered. That is the failure this suite exists for,
+ * arriving from a *different* PR: a terminal message with no verdict on screen leaves the panel stuck on
+ * "Building…", so a fix that adds a terminal path silently reintroduces #870 wherever nothing looks.
  *
  * ── the second defect this suite exists to hold, which the ticket did not name ───────────────────
  *
@@ -230,11 +237,34 @@ const CONDITIONS = [
     msg: { type: 'component-result', ok: false, headline: '✗ unknown def', summary: "no component def with id 'nope' — this build knows button, icon-button" },
     verdictOpens: true,
   },
+  {
+    // #869 ADDED A TERMINATING CONDITION, which is why it belongs in this list rather than only in
+    // `lint-standalone-floor.ts`. That gate proves the DECLARATION is right; this proves the refusal
+    // reaches a designer's eyes. The two are not substitutes: the refusal posts from a new early return
+    // in `buildComponents`, and #870's whole finding was that a terminal message with no verdict on
+    // screen leaves the panel stuck on "Building…" — so a fix that adds a terminal path without adding a
+    // case here would reintroduce #870 on a path nothing covers.
+    //
+    // `ok: false` with the def's own `notStandalone` string as the summary, verbatim. Quoted here in the
+    // shape the plugin posts, NOT imported from the def: this file asserts what the panel renders, and
+    // reading the def would make it agree with the source of the string it is checking.
+    name: 'not buildable standalone',
+    why: "#869's refusal — a def whose projection cannot render alone, refused rather than half-built",
+    msg: {
+      type: 'component-result', ok: false, headline: '✗ not buildable on its own',
+      summary: 'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color at 1px. Build it as part of a host instead: Button nests it and supplies the geometry.',
+    },
+    verdictOpens: true,
+  },
 ];
 
 // #870 requires the list to be STATED rather than the observed case fixed. Asserted so that dropping one
 // is an edit to this number instead of a quiet narrowing of what a green run means.
-ok(CONDITIONS.length === 5, `the condition list covers all 5 terminating conditions (found ${CONDITIONS.length})`);
+//
+// SIX SINCE #869, not five. The number moving is the assertion working as designed: #869 added a real
+// early return to `buildComponents`, and the count is what forced this file to be opened rather than the
+// new path shipping uncovered.
+ok(CONDITIONS.length === 6, `the condition list covers all 6 terminating conditions (found ${CONDITIONS.length})`);
 
 console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} terminating conditions\n`);
 

@@ -318,6 +318,26 @@ const buildComponents = async (defId?: string): Promise<void> => {
       });
       return;
     }
+    // REFUSED BY DECLARATION (#869) — the def's own `notStandalone`, quoted verbatim as the summary.
+    //
+    // Sited HERE rather than only in the picker, and for the same reason the unknown-def path above is: a
+    // UI older than this build offers whatever its own catalogue held, so a refusal that lived only in the
+    // picker would be advice, not a floor. It reads a FIELD rather than judging the plan, which is the
+    // whole design — `focus-ring` projects 2 members with 0 binding errors and nothing throws, so every
+    // signal available at this line says the build is fine. What it produced was a 100×100 default frame
+    // with the correct token at 1px: an output that reads as a success, which is worse than an error.
+    //
+    // A FAILED RESULT, matching the path above, so it reaches the verdict line #870 fixed. A throw here
+    // would land in the outer `catch` and report as a build error, which would be a lie about the cause.
+    // The reason is the def's string unedited: whoever declared the ceiling wrote the sentence for this
+    // moment, and paraphrasing it here would be a second copy to keep true.
+    if (def.figmaProperties?.notStandalone) {
+      postToUi({
+        type: 'component-result', ok: false, headline: '✗ not buildable on its own',
+        summary: def.figmaProperties.notStandalone,
+      });
+      return;
+    }
     // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
     // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
     const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });

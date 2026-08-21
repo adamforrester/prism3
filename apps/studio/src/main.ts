@@ -4114,9 +4114,21 @@ const renderPreviewPage = (host: PageHost): void => {
  * would be wrong by two orders of magnitude for three of the four.
  *
  * The throw is the SIGNAL, not an error to report: `figmaAnatomySet` throws precisely when a def has no
- * `anatomy` or no `figmaProperties`, which is the definition of not-materializable. `focus-ring` and
- * `field-message` are in that state deliberately (#795), so a def missing here is expected rather than
- * broken and the page says so instead of listing them as failures.
+ * `anatomy` or no `figmaProperties`, which is the definition of not-materializable. A def missing here is
+ * expected rather than broken, and the page says so instead of listing them as failures.
+ *
+ * TWO REASONS TO BE MISSING, AND THE SECOND IS NOT A THROW (#869). This comment used to name `focus-ring`
+ * and `field-message` as the throwing pair, which was true at #795 and false from the moment #795's own
+ * work gave `focus-ring` a `figmaProperties` block: it has projected cleanly ever since — 2 members, 0
+ * binding errors — and this filter therefore *offered* it. Building it produced a 100×100 white frame with
+ * the right token at 1px, because its members bind no geometry (`notStandalone` on the def has the
+ * measurement). So the second reason is a DECLARED one: a def stating `figmaProperties.notStandalone`
+ * cannot render standalone and is withheld, quoting its own string. Asking the projector is still right
+ * for the first reason and cannot reach the second — a plan that renders nothing is structurally
+ * indistinguishable from one that renders, which is why the answer had to be declared rather than
+ * inferred. Note what this comment's own history demonstrates: it warns two paragraphs later that a count
+ * in a comment expires unchecked, and the same is true of a NAMED LIST. `missing` is derived; the names in
+ * this prose are not, and that is the one thing here nothing gates.
  *
  * Computed ONCE at module scope, not per render: the defs are compiled in and brand-invariant, so this
  * cannot change while the app is running.
@@ -4135,10 +4147,18 @@ const renderPreviewPage = (host: PageHost): void => {
  * can now change the deployed site, so treating them as Figma-only would be a #474 stale deploy. Dead-code
  * elimination is a size optimization, not a dependency boundary.
  */
-const COMPONENT_CATALOGUE: { readonly buildable: readonly { id: string; name: string; members: number }[]; readonly missing: readonly string[] } =
+const COMPONENT_CATALOGUE: {
+  readonly buildable: readonly { id: string; name: string; members: number }[];
+  /** Not offered, each WITH its own reason — see the second-reason paragraph above. `reason` is the def's
+   *  own `notStandalone` string where it declared one, and `null` where the projector threw. */
+  readonly missing: readonly { name: string; reason: string | null }[];
+} =
   PRISM3_HOST === 'figma'
     ? (() => {
         const buildable = componentDefs.flatMap((d) => {
+          // Checked BEFORE projecting, not after: the projection succeeds for exactly the def this
+          // excludes, so a post-hoc filter would spend the work and then discard a valid-looking plan.
+          if (d.figmaProperties?.notStandalone) return [];
           try {
             return [{ id: d.id, name: d.name, members: figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }).length }];
           } catch {
@@ -4146,7 +4166,12 @@ const COMPONENT_CATALOGUE: { readonly buildable: readonly { id: string; name: st
           }
         });
         const ids = new Set(buildable.map((b) => b.id));
-        return { buildable, missing: componentDefs.filter((d) => !ids.has(d.id)).map((d) => d.name) };
+        return {
+          buildable,
+          missing: componentDefs
+            .filter((d) => !ids.has(d.id))
+            .map((d) => ({ name: d.name, reason: d.figmaProperties?.notStandalone ?? null })),
+        };
       })()
     : { buildable: [], missing: [] };
 
@@ -4215,16 +4240,38 @@ const renderComponentsPage = (host: PageHost): void => {
   // WHICH DEFS ARE MISSING, AND WHY, said plainly rather than by omission. A designer who knows the
   // catalogue has seven components and sees four here would otherwise reasonably read it as a bug. The
   // requirement is ours, not Figma's (#795), which is the honest way to put it.
+  //
+  // ONE SENTENCE PER REASON, NOT ONE FOR THE GROUP (#869). This block said "a set needs a declared size
+  // axis to project" about every absent def, which was one cause stated as the only cause — and by the
+  // time #869 was filed it was the wrong cause for the def a designer was most likely to ask about.
+  // A def declaring `notStandalone` gets its own string; the rest keep the projector sentence.
   const { buildable, missing } = COMPONENT_CATALOGUE;
-  if (missing.length) {
+  const declared = missing.filter((m) => m.reason);
+  const threw = missing.filter((m) => !m.reason).map((m) => m.name);
+  if (threw.length) {
     const gap = el('p', 'cw-note');
     gap.append(
       document.createTextNode(
-        `${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not offered here yet. A set needs a `
+        `${threw.join(', ')} ${threw.length === 1 ? 'is' : 'are'} not offered here yet. A set needs a `
         + 'declared size axis to project, which is a limit in our own projector rather than something '
         + 'Figma cannot hold — tracked on #795.',
       ),
     );
+    sec.append(gap);
+  }
+  for (const m of declared) {
+    const gap = el('p', 'cw-note');
+    // The def's own words, verbatim apart from the machine-readable lead. A paraphrase would be a second
+    // copy of a claim the def is the authority on, and this page has already had one of those go stale
+    // (see `COMPONENT_CATALOGUE`).
+    //
+    // The `<id>:` prefix is STRIPPED, and it has to be: the schema requires the string to lead with the
+    // def's id so a gate can tell an admission from a mention, and this heading already carries the def's
+    // display name — so rendered raw it reads "FocusRing — focus-ring: a ring is…", naming the same
+    // component twice in six words. The prefix is addressed to `figmaPropertyErrors`, not to a designer.
+    // Removed by a leading-anchored replace rather than a split, so a colon later in the sentence is safe.
+    const prose = (m.reason as string).replace(/^\S+:\s*/, '');
+    gap.append(el('b', undefined, `${m.name} — `), document.createTextNode(prose));
     sec.append(gap);
   }
 

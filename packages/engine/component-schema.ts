@@ -447,6 +447,46 @@ export type FigmaProperties = {
   texts?: Record<string, { part: string; default: string }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT. */
   swaps?: Record<string, string>;
+  /**
+   * WHY THIS DEF'S PROJECTION CANNOT STAND ALONE ON A CANVAS — prose, and absent means it can (#869).
+   *
+   * A def can project perfectly and still produce nothing a designer can use. `focus-ring` does: it
+   * builds two members, 0 binding errors, nothing throws, both paints bound and correct — and each
+   * member is a bare `FRAME` with `bound: {}` and `children: []`. No `layoutMode`, no sizing mode, no
+   * width, no height, no `strokeWeight`: five absent fields, so Figma supplies its own default frame
+   * and the executor's stroke fallback (`write-components.ts` — `if (!node.strokeWeight) … = 1`, there
+   * so a bound stroke paints *something*) finishes the illusion. The result is a **100×100 white box
+   * with the right token at 1px**, which is the worst possible output because it reads as a success.
+   *
+   * THE KNOWLEDGE ALREADY EXISTED AND NOTHING COULD READ IT. `focus-ring`'s `codeOnly` says "the
+   * members are strokeless" and "what it projects is not yet a ring" — correct, specific, written
+   * before the QA pass that found the box, and prose in a field no gate consults for this question.
+   * That is the actual defect: not a missing check but a **decision recorded where only humans look.**
+   * So this field is the same admission, moved somewhere a projector and a picker can act on it.
+   *
+   * WHY THE FLOOR IS DECLARED RATHER THAN INFERRED, which is the whole design. A predicate over the
+   * projected plan — "no bound dimensions and no children" — is one line and would catch `focus-ring`
+   * today. It is also exactly the membership-by-inference this schema refuses everywhere else
+   * (`variantAxes` over parsing `PropDef.type`, `gridAxis` over array order, `axes.ts` over "do the
+   * variables vary"), and here it is *provably* wrong at the boundary: `icon` binds `width`/`height`
+   * with zero children and renders fine, while a def could bind `itemSpacing` alone and render
+   * nothing. Absent-fields-as-proxy answers a question about renderability with a fact about shape.
+   * Worse, it decides silently: a def that trips a heuristic is refused with no author having agreed
+   * that refusal is right, and a def that renders nothing but happens to bind a dimension is offered.
+   *
+   * WHAT IT IS FOR, precisely: `focus-ring` is nested by `button` as an ABSOLUTE part, and that path
+   * is where its geometry comes from — the executor resizes it to `parent + inset*2`. There is no
+   * parent standalone, so no code path sizes it, and there never was one to lose. A def with this
+   * field set is **still projected and still nested**; it is only refused as a *standalone* build
+   * target, with this string as the reason the designer reads. Lift it when #740 gives `PartDef` a
+   * stroke field and the ring can carry its own substance.
+   *
+   * LEADS WITH `<id>:`, matching `codeOnly`'s convention and for the identical reason — the
+   * admission must name its subject so a gate can tell an admission from a mention. Asserted, both
+   * directions: a def in this state without the field fails, and a stale field on a def that has
+   * since become buildable fails too.
+   */
+  notStandalone?: string;
 };
 
 export type ComponentDef = {
@@ -1009,6 +1049,20 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     if (p.kind === 'text' && !textClaimed.has(name)) {
       e.push(`anatomy part '${name}' is a 'text' part with no TEXT property claiming it — \`characters\` is written only where \`figmaProperties.texts\` names the part, so this node projects with its ink and type style and NO content: an empty, zero-width text node in Figma. Add \`texts: { <prop>: { part: '${name}', default: '<placeholder>' } }\`. This is #510's blank-button defect at one-node scale`);
     }
+  }
+
+  // ---- the standalone floor (#869) ----
+  //
+  // Shape only — whether the field is WELL-FORMED, not whether it is TRUE. Truth is
+  // `lint-standalone-floor.ts`'s job, in both directions, because answering it needs the projected plan
+  // and this function has only the def. Keeping the two apart is deliberate: a validator that decided
+  // renderability from the def would be inferring the very thing the field exists to have declared.
+  if (fp.notStandalone !== undefined) {
+    const t = fp.notStandalone.trim();
+    if (!t) e.push('figmaProperties.notStandalone is empty — the string IS the reason a designer reads when the build is refused, so an empty one refuses with no explanation, which is worse than not declaring it');
+    // Same LEAD rule as `admits`, same reason: a reason that merely mentions the def somewhere could be
+    // a reason about something else. Checked against `def.id` rather than a caller's claim.
+    else if (!t.startsWith(`${def.id}:`)) e.push(`figmaProperties.notStandalone must LEAD with '${def.id}:' so the reason names its own subject — read "${t.slice(0, 40)}…"`);
   }
 
   return e;

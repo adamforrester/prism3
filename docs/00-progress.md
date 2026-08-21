@@ -8,6 +8,118 @@
 
 ---
 
+## (2026-08-21) — focus-ring built a plausible white box; a declared standalone floor now refuses it (#869)
+
+**STATUS: shipped.** `figmaProperties.notStandalone` on the def, read by the plugin's `buildComponents`
+and the studio picker, plus a new gate — `lint-standalone-floor.ts` — checked in both directions and
+mutation-verified four ways by name. `npm run -w @prism3/plugin test:verdict` moved 86 → **100 of 100**.
+
+**THE DIAGNOSIS CONTRADICTS THE ISSUE ON BOTH OF ITS LOAD-BEARING POINTS, and that is the most useful
+thing here.** #869 describes a *half-build*: the def "errors, then leaves a plausible 100×100 white box
+with the correct token at 1px". Measured against the real projector over nb's committed emission,
+`focus-ring` **does not error and does not half-build**. It projects 2 members with **0 binding errors, 0
+set properties**, `planSetLayout` succeeds, nothing throws — a *complete* build of a plan carrying no
+geometry. Each member's root is `{name:'ring', type:'FRAME', strokes:'color/border/focus', bound:{},
+children:[]}`: no `layoutMode`, no sizing mode, no width, no height, no `strokeWeight`. Five absent
+fields, and every element of the artifact is then accounted for — the **100×100 is Figma's own default
+frame**, supplied because nothing in the plan says otherwise, and the **1px is
+`write-components.ts`'s deliberate `if (!node.strokeWeight) … = 1` fallback**, there so a bound stroke
+paints something. Nested, none of it arises: Button sites the ring absolutely and the executor resizes it
+to `parent + inset*2`, which is where all five come from. **Standalone there is no parent, so there was
+never a code path to lose** — which matters for scope, because #869's proposed second half (executor
+cleanup after a mid-build error) addresses a path this defect never takes. Filed separately as **#913**
+rather than folded in, per principle 3 — and note it is not even known to be *reachable*: the def
+reported as taking it does not, so step 1 there is to measure, not to fix.
+
+**Why nothing could see it, and why that is the finding rather than the fix.** Every existing gate asks a
+question this passes. `planBindingErrors` asks whether refs resolve: they do. `lint-paint.ts` asks whether
+a paint key's axis matches its ref: it does. `test.ts`'s parity gate asks whether the two executors agree:
+exactly. `typecheck-components.ts` asks whether the def typechecks. `figmaAnatomySet`'s own guard asks
+whether every member has a coordinate: every one does. **The plan is valid, and it describes nothing a
+designer can use** — #802's profile, where every other gate checks a thing exists, a ref resolves, a count
+matches, or nothing threw. And the def's own `codeOnly` *already said so*, in as many words: *"the members
+are strokeless"*, *"what it projects is not yet a ring"* — correct, specific, written before the build that
+produced the box, sitting in a field nothing consults for this question. So the defect is not a missing
+check. It is **a decision recorded where only humans look**, and the fix is that same admission moved
+somewhere the picker and the plugin can act on it.
+
+**Declared, not inferred, and that was the design decision.** A predicate over the plan — "no bound
+dimensions and no children" — is one line and catches `focus-ring` today. It is also the
+membership-by-inference this schema refuses everywhere else (`variantAxes` over parsing `PropDef.type`,
+`axes.ts` over "do the variables vary"), and here it is *provably* wrong at the boundary: `icon` binds
+`width`/`height` with **zero children** and renders fine. Worse, it decides silently — a def tripping a
+heuristic is refused with nobody having agreed the refusal is right. So the def declares it, the string
+**leads with `<id>:`** on `codeOnly`'s convention so a gate can tell an admission from a mention, and
+`figmaPropertyErrors` checks the shape while the gate checks the truth. The two are deliberately apart: a
+validator deciding renderability from the def would be inferring the very thing the field exists to have
+declared.
+
+**The reason string says GEOMETRY, and its first draft said the stroke.** Both are true and only one is
+the blocker. Wall 1 (#740) is why the ring paints a 1px fallback instead of its bound `focus.ring.width` —
+a fidelity loss. What makes a standalone build *meaningless* is that a ring's extent **is** its host's
+extent plus the offset, so there is no size a lone ring could correctly have. #740 does not change that
+and no schema field could: `PartDef` already offers `size` and `height`, and this part declares neither on
+purpose.
+
+**The gate's rule is a corpus measurement, not a fit to the def that failed.** Across all six projecting
+defs, every node acquires extent through one of six mechanisms and **21 of 22 node names have one**;
+`focus-ring`'s root is the one that has none. A def-name allowlist would have been one line and would
+catch exactly today's case. EXPECTED is the def's declaration, ACTUAL is measured from the projected plan
+by the gate's own walk — and it calls neither the picker's filter nor the plugin's refusal branch, since
+all three read the same field and either would make the check agree with itself. **Both directions**, and
+the converse is the half that works: a **stale** declaration fails too, because #740 may give the ring its
+own size, at which point the refusal withholds a buildable def while showing a designer a reason that is
+no longer true.
+
+**Two things the gate cost to learn, both of them about the gate rather than the bug.** First, the header's
+own claim about what the mechanism list buys was **false as first written** — it said "the day a seventh
+mechanism is added, this gate fails", and adding an entry only *widens* what passes. The real property is
+the converse: if the **projector** gains a seventh way to size a node and nobody records it, the first def
+relying on it alone fails, and someone has to decide whether it genuinely determines an extent. Second and
+sharper: **weakening a predicate produced no failure at all.** Collapsing `layoutMode+children` to a bare
+`layoutMode` — the exact "same field, two cases" conflation that entry's own comment warns against — left
+all six defs green, because no def in the corpus has a childless auto-layout root, so the discriminating
+clause is never reached. `docs/34`'s register already has that shape twice: **a mutation that changes
+nothing is indistinguishable from a blind spot.** Hence `PREDICATE_CASES`, which states one node that must
+count and one **near-miss** that must not, per mechanism, inside the gate — the negatives are the half that
+does the work, and the same mutation now fails by name.
+
+**Mutation-verified four ways, by name, exit status captured with no pipeline between:** removing the
+declaration → arm A, 1 named failure, exit 1; a stale declaration on `button` → arm B, naming both
+mechanisms its root uses; a def losing its projection → the `MUST_PROJECT` scope floor; the collapsed
+predicate → the `PREDICATE_CASES` arm. Restored, exit 0 each time.
+
+**#870's asserted condition count did its job from a different PR.** The refusal is a **sixth terminating
+condition** in `buildComponents`, and `test-build-verdict.mjs` asserts the list length — so #869 could not
+add a terminal path without opening that file. That is the assertion earning its friction rather than a
+number being edited: a terminal message with no verdict on screen is #870 exactly, so a new early return
+would have reintroduced it on a path nothing covered. Five → six, 86 → 100 assertions. The case quotes the
+summary in the shape the plugin posts rather than importing it from the def, so the suite is not reading
+the source of the string it checks.
+
+**One rendering detail worth recording, because it is the cost of the machine-readable lead.** Shown raw,
+the picker's notice read *"FocusRing — focus-ring: a ring is sized by…"*, naming the same component twice
+in six words: the `<id>:` prefix is addressed to `figmaPropertyErrors`, not to a designer. The studio
+strips it with a leading-anchored replace (safe for a colon later in the sentence); the **plugin keeps
+it**, because there the headline names no def and the prefix is the only identification.
+
+**And a stale comment fixed, in the block that warns about exactly this.** `apps/studio/src/main.ts`
+claimed *"`focus-ring` and `field-message` are in that state deliberately (#795)"* — i.e. not
+materializable. False since #795's own work gave `focus-ring` a `figmaProperties` block: it has projected
+cleanly ever since, so that filter *offered* it, which is how the box reached a canvas. The comment sits
+two paragraphs above its own warning that "a count in a comment has an expiry date that nothing checks" —
+and the same is true of a **named list**. `missing` is derived; the names in the prose are not, and that
+remains the one thing there nothing gates.
+
+**What this does not claim.** No Figma file. "Acquires an extent" is a claim about the *plan* — that some
+mechanism determines the root's size — not that Figma computes the size a designer wanted, and not that
+the result is *visible*: a zero-height auto-layout frame with two empty children satisfies the rule and
+shows nothing. #802's Figma half stays open. And the gate reads member 0's root, which is sound because
+`figmaAnatomySet` builds every member from one anatomy (verified over all 648 of Button's) — a def that
+ever varies its root's sizing by coordinate needs the walk widened.
+
+---
+
 ## (2026-08-21) — a stale citation in the def four authors are about to copy
 
 **STATUS: shipped.** #904. One `notes.contested` entry in `textarea.ts`. No token, no gate, no
