@@ -102,6 +102,15 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.9.0: nineteen inverse-context tokens the surface cascade (#871/#893) cannot alias without —
+ * `field.inverse.*` (4) and the five states every interactive inverse column was missing (15). All
+ * additive; no existing value or name moves. Two of the three are corrections rather than new design:
+ * the inverse fill loop read a hand-written `['default','hover','pressed']` where the page's `iFill`
+ * walks `FILL_STATES`, so `fill.focused` — the keyboard-focus fill on a dark hero — never existed;
+ * and the neutral overlay wash is chosen by PAGE family, so on an inverse band it washed a near-black
+ * surface with near-black. It now takes the opposite polarity, and both descriptions say which ground
+ * they are for. (#892)
+ *
  * 0.8.0: the #891 rename (see `CONTRACT_VERSION` 4.0.0 below) plus two prose fixes it exposed. The
  * inverse outline edge shipped a `$description` VERBATIM IDENTICAL to the page edge — "the outline
  * edge; follows the ink", never qualified for the dark band — because both came from one hardcoded
@@ -112,7 +121,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.8.0';
+export const ENGINE_VERSION = '0.9.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -159,6 +168,18 @@ export const ENGINE_VERSION = '0.8.0';
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  *
+ * 4.1.0: 19 added guaranteed paths, no removal and no retype, so MINOR. `field.inverse.{fill,
+ * border.rest, border.hover, placeholder}` — tranche 1 is four field components and a checkbox on an
+ * inverse band had nothing to bind — plus `interactive.<c>.inverse.{fill.focused, fill.selected,
+ * overlay.hover, overlay.pressed, overlay.selected}` across the three families, which completes the
+ * inverse column to exactly the page column's 15 slots. (#892) (497 → 516)
+ *
+ * NOT the whole of #892. The audit is 123 leaves without an inverse counterpart; this covers 19 of
+ * them and the remaining ~59 are blocked on a measured payload ceiling, not on a decision — see the
+ * issue filed from this branch. Recorded here because a reader comparing the audit's number against
+ * this bump will otherwise read the gap as an oversight, which is the exact confusion #892 exists to
+ * end.
+ *
  * 4.0.0: `on-` is made to mean exactly one thing. It carried two — INK ON the named thing
  * (`on-fill`, `text.on-brand`) and CONTEXT, "the variant used when placed on" — and both appeared in
  * a single path: `interactive.primary.on-inverse.on-fill` was context-qualifier followed by ink-on,
@@ -192,7 +213,7 @@ export const ENGINE_VERSION = '0.8.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '4.0.0';
+export const CONTRACT_VERSION = '4.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

@@ -132,9 +132,15 @@ const colorScopes = (dotted: string): string[] => {
   // The qualifier is matched by name, so it moved with the #891 rename (`on-inverse` → `inverse`); a
   // stale spelling here would not throw — it would silently scope the whole inverse column as `fill`,
   // via the `?? INTERACTIVE_SLOT_SCOPES.fill` fallback on the next line.
+  //
+  // The same one-deeper skip is needed wherever a family gained an inverse context (#892), because
+  // the fallback is what makes getting it wrong quiet: `field.inverse.placeholder` reads as slot
+  // `inverse`, misses the map, and scopes as a FRAME_FILL instead of a TEXT_FILL. Wrong picker
+  // context, no error. So each slot-dispatched family skips the qualifier explicitly, in the same
+  // idiom, rather than one of them relying on a fallback that cannot tell a new context from a typo.
   if (seg[1] === 'interactive') { const slot = seg[3] === 'inverse' ? seg[4] : seg[3]; return INTERACTIVE_SLOT_SCOPES[slot] ?? INTERACTIVE_SLOT_SCOPES.fill; }
   if (seg[1] === 'disabled') return DISABLED_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
-  if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
+  if (seg[1] === 'field') { const slot = seg[2] === 'inverse' ? seg[3] : seg[2]; return FIELD_SLOT_SCOPES[slot] ?? ['FRAME_FILL', 'SHAPE_FILL']; }
   return COLOR_SCOPES[seg[1]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
 };
 const PALETTE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'];

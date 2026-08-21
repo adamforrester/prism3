@@ -790,6 +790,44 @@
       }
     },
     {
+      "name": "color/interactive/primary/inverse/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.8784313797950745,
+        "g": 0.9215686321258545,
+        "b": 0.9450980424880981,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/050"
+      }
+    },
+    {
+      "name": "color/interactive/primary/inverse/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/accent/200"
+      }
+    },
+    {
       "name": "color/interactive/primary/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
@@ -864,13 +902,70 @@
       }
     },
     {
+      "name": "color/interactive/primary/inverse/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "color/interactive/primary/inverse/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "color/interactive/primary/inverse/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "primary interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/20"
+      }
+    },
+    {
       "name": "color/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive overlay — hover (10% neutral wash; composites over any surface)",
+      "description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.hover)",
       "value": {
         "r": 0,
         "g": 0,
@@ -889,7 +984,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive overlay — pressed (20% neutral wash; composites over any surface)",
+      "description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.pressed)",
       "value": {
         "r": 0,
         "g": 0,
@@ -908,7 +1003,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "primary interactive overlay — selected (20% neutral wash; composites over any surface)",
+      "description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.selected)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1255,6 +1350,44 @@
       }
     },
     {
+      "name": "color/interactive/destructive/inverse/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9019607901573181,
+        "b": 0.8901960849761963,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/050"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/inverse/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/200"
+      }
+    },
+    {
       "name": "color/interactive/destructive/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1329,13 +1462,70 @@
       }
     },
     {
+      "name": "color/interactive/destructive/inverse/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/inverse/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "color/interactive/destructive/inverse/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "destructive interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/20"
+      }
+    },
+    {
       "name": "color/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive overlay — hover (10% neutral wash; composites over any surface)",
+      "description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.hover)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1354,7 +1544,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive overlay — pressed (20% neutral wash; composites over any surface)",
+      "description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.pressed)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1373,7 +1563,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "destructive interactive overlay — selected (20% neutral wash; composites over any surface)",
+      "description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.selected)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1720,6 +1910,44 @@
       }
     },
     {
+      "name": "color/interactive/neutral/inverse/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.8588235378265381,
+        "g": 0.8588235378265381,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/100"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/inverse/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+      "value": {
+        "r": 0.8078431487083435,
+        "g": 0.8078431487083435,
+        "b": 0.8156862854957581,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/150"
+      }
+    },
+    {
       "name": "color/interactive/neutral/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
@@ -1794,13 +2022,70 @@
       }
     },
     {
+      "name": "color/interactive/neutral/inverse/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.10196078568696976
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/10"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/inverse/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/20"
+      }
+    },
+    {
+      "name": "color/interactive/neutral/inverse/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "neutral interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0.20000000298023224
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white-alpha/20"
+      }
+    },
+    {
       "name": "color/interactive/neutral/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive overlay — hover (10% neutral wash; composites over any surface)",
+      "description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.hover)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1819,7 +2104,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive overlay — pressed (20% neutral wash; composites over any surface)",
+      "description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.pressed)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1838,7 +2123,7 @@
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "neutral interactive overlay — selected (20% neutral wash; composites over any surface)",
+      "description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.selected)",
       "value": {
         "r": 0,
         "g": 0,
@@ -2016,6 +2301,79 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/neutral/550"
+      }
+    },
+    {
+      "name": "color/field/inverse/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Form field fill on an inverse surface — the inverse ladder's second tier, the same one-step inset the page field takes",
+      "value": {
+        "r": 0.09019608050584793,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/900"
+      }
+    },
+    {
+      "name": "color/field/inverse/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
+      "value": {
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/550"
+      }
+    },
+    {
+      "name": "color/field/inverse/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
+      "value": {
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/450"
+      }
+    },
+    {
+      "name": "color/field/inverse/placeholder",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
+      "value": {
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/450"
       }
     },
     {

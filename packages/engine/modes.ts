@@ -675,10 +675,21 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
       // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
       const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
-      for (const st of ['default', 'hover', 'pressed'] as const) {
+      // `FILL_STATES`, not a hand-written three (#892). This loop read
+      // `['default','hover','pressed']` while the page's `iFill` walked all five, so `fill.focused`
+      // and `fill.selected` were absent from every inverse column — and `focused` is the
+      // accessibility-relevant one: a keyboard-focused control on a dark hero had no fill to resolve.
+      //
+      // It was ONE omission, not two: the same literal appears in the `text` loop above, and both
+      // were written when the inverse column only had rest/hover/pressed to mirror. Reading the state
+      // list from the shared constant is what stops the next state added to `FILL_STATES` from
+      // silently skipping the inverse column again. The step rule below is the page rule verbatim
+      // (`fillStateCand`: hover/focused one step, pressed/selected two) with the direction reversed,
+      // which is the only thing that legitimately differs on an inverse ground.
+      for (const st of FILL_STATES) {
         const stKey = st === 'default' ? 'rest' : st;
         const c: Cand = st === 'default' ? fillRest
-          : walk(palette ?? r2p.neutral, fillRest.num, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
+          : walk(palette ?? r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
         put(`interactive.${name}.inverse.fill.${stKey}`, rated(c, invRgb),
           `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
       }
@@ -749,12 +760,40 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         const ratio = contrast(contentRgb, composite(baseRgb, overlayBase, step / 100));
         put(`interactive.${color}.overlay.${st}`,
           { path: `${ns}.${overlayPal}.${step}`, rgb: overlayBase, ratio },
-          `${color} interactive overlay — ${st} (${step}% neutral wash; composites over any surface)`,
+          `${color} interactive overlay — ${st} (${step}% neutral wash for the PAGE ground; the dark-band twin is interactive.${color}.inverse.overlay.${st})`,
           'text.primary', cfg.secondaryMin);
         // The wash is TRANSLUCENT (`step`% over the base) — record the alpha so consumers can
         // render the real composite. `hex` stays the opaque base (contrast gates on the composited
         // result separately); a renderer uses hex+alpha.
         roles[`interactive.${color}.overlay.${st}`].alpha = step / 100;
+      }
+    }
+    // The same three washes for a control on a dark hero / inverse band (#892).
+    //
+    // THE WASH FLIPS, AND THAT IS THE WHOLE REASON THIS CANNOT BE THE PAGE TOKEN REUSED. `overlayPal`
+    // is chosen from the PAGE family — light pages darken, dark pages lighten — so in light mode the
+    // page wash is `black-alpha`, and the inverse band is near-black. A 10% black wash on a near-black
+    // surface is very nearly nothing: the hover state would read as no state at all. The inverse band
+    // is the opposite lightness, so it takes the opposite wash.
+    //
+    // This also corrects prose rather than only adding tokens. The page overlay's own description
+    // said it "composites over any surface", and the def and sidecar copies said "over ANY surface
+    // (page, dark hero, image)" — true of the MECHANISM (a translucent neutral does composite over
+    // anything) and false of the RESULT on the one ground it named explicitly. Both now say which
+    // ground they are for.
+    if (theme.inverseContext) {
+      const invOverlayPal = cfg.family === 'light' ? 'white-alpha' : 'black-alpha';
+      const invOverlayBase = cfg.family === 'light' ? WHITE : BLACK;
+      const invContentRgb = pickMostExtreme(textCands, invRgb).rgb;   // the strongest ink on the band
+      for (const color of overlayColors) {
+        for (const [st, step] of OVERLAY_ALPHA) {
+          const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
+          put(`interactive.${color}.inverse.overlay.${st}`,
+            { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
+            `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
+            'text.on-inverse', cfg.secondaryMin);
+          roles[`interactive.${color}.inverse.overlay.${st}`].alpha = step / 100;
+        }
       }
     }
   }
@@ -845,6 +884,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // foreground.<semantic>-subtle, disabled → disabled.*), so `field.*` is not re-authored per
   // state or hand-mirrored for inverse — the field research (Prism2 surface/border.input.*)
   // showed those are the tokens generic roles already cover better.
+  //
+  // READ "hand-mirrored" LITERALLY, because it was misreadable as "field has no inverse coverage,
+  // deliberately" — the exact gap-versus-decision ambiguity #892 exists to remove. The rejected thing
+  // is the TECHNIQUE (copy a page token, flip it by hand, ship it ungated), not the coverage. A
+  // generated, contrast-verified inverse set is what the interactive column has always done, and
+  // `field.inverse.*` below now does the same.
   putSurf('field.fill', cfg.bg.secondary, 'Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)');
   // Border is the one stateful field slot (rest + hover), same shape as interactive.*.fill.<state>.
   // Rest is a perceivable boundary; hover is a subtly STRONGER boundary — never the sole state
@@ -869,6 +914,29 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
   put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, baseRgb), baseRgb, cfg.nonTextMin)), baseRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.nonTextMin);
   put('field.placeholder', pickMinPass(textCands, cfg.bg.secondary.rgb, cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the field fill (not a sub-AA placeholder)`, 'field.fill', cfg.secondaryMin);
+
+  // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
+  // inverse ground and contrast-verified there — NOT a hand-mirrored twin, which is the technique the
+  // block above rejects and this keeps rejecting. Every rule below is its page sibling's rule with the
+  // ground swapped; nothing new is decided here.
+  //
+  // WHY FOUR AND NOT THE WHOLE FAMILY: the composition story above is unchanged, only re-pointed.
+  // Focus still swaps to a ring — `border.inverse.focus` (#891) — validation to
+  // `border.inverse.<semantic>`, disabled to `disabled.*`. What could NOT compose is the part that is
+  // field-specific: the fill, the resting/hover boundary and the placeholder are gated against the
+  // FIELD's own surface, and on a dark band that surface is a different colour.
+  //
+  // Tranche 1 is why this is first in #892's order: `checkbox`, `radio`, `switch` and `select` all
+  // bind `field.*`, and until now a checkbox on an inverse band had no border, fill or placeholder
+  // token to resolve to at all.
+  putSurf('field.inverse.fill', cfg.bgInverse.secondary, 'Form field fill on an inverse surface — the inverse ladder\'s second tier, the same one-step inset the page field takes');
+  // `-dir` throughout: on the page a stronger neutral steps toward the ink, and on the inverse band
+  // that direction reverses. The same idiom the inverse interactive column already uses.
+  const fieldInvRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
+  put('field.inverse.border.rest', fieldInvRest, `Form field resting border on an inverse surface — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.inverse.primary', cfg.nonTextMin);
+  const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
+  put('field.inverse.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, invRgb), invRgb, cfg.nonTextMin)), invRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.inverse.primary', cfg.nonTextMin);
+  put('field.inverse.placeholder', pickMinPass(textCands, cfg.bgInverse.secondary.rgb, cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the inverse field fill`, 'field.inverse.fill', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with

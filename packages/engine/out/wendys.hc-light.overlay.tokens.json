@@ -2029,6 +2029,116 @@
           "contrast": 8.11,
           "against": "field.fill",
           "min": 7
+        },
+        "inverse": {
+          "fill": {
+            "$type": "color",
+            "$value": "{prism.palette.black}",
+            "$description": "Form field fill on an inverse surface — the inverse ladder's second tier, the same one-step inset the page field takes",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.900",
+                "contrast": 1,
+                "against": "self",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 1,
+            "against": "self"
+          },
+          "border": {
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.palette.neutral.500}",
+              "$description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.neutral.550",
+                  "contrast": 3.52,
+                  "against": "background.inverse.primary",
+                  "min": 3,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              },
+              "contrast": 4.55,
+              "against": "background.inverse.primary",
+              "min": 4.5
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.palette.neutral.400}",
+              "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.neutral.450",
+                  "contrast": 5.03,
+                  "against": "background.inverse.primary",
+                  "min": 3,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              },
+              "contrast": 6.4,
+              "against": "background.inverse.primary",
+              "min": 4.5
+            }
+          },
+          "placeholder": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.350}",
+            "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.450",
+                "contrast": 4.64,
+                "against": "field.inverse.fill",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 7.46,
+            "against": "field.inverse.fill",
+            "min": 7
+          }
         }
       },
       "text": {
