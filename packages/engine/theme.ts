@@ -225,11 +225,11 @@ export type Theme = {
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
   neutralEmphasis: 'subtle' | 'strong';
-  // Inverse surface-context (docs/20 §9): generate `interactive.<color>.on-inverse` inks
+  // Inverse surface-context (docs/20 §9): generate the `interactive.<color>.inverse` column
   // for outline/text controls placed on a dark hero / inverse section. Default on.
   inverseContext: boolean;
   // Extensible interactive palettes (docs/20 §3). Each declared palette is promoted to a full
-  // `interactive.<name>.*` column (fill+states / on-fill / text / border / on-inverse / overlay),
+  // `interactive.<name>.*` column (fill+states / on-fill / text / border / inverse / overlay),
   // anchored at `anchorStep` (default 500). The built-in primary/neutral/destructive columns are
   // always generated; these are the OPT-IN extras (the generalised `accentPalette`). Empty = none.
   interactivePalettes: InteractivePalette[];
@@ -394,8 +394,8 @@ export type BrandInput = {
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
-  /** Generate the inverse surface-context (docs/20 §9) — `interactive.<color>.on-inverse`
-   *  inks for outline/text controls on a dark hero / inverse section. Default true. */
+  /** Generate the inverse surface-context (docs/20 §9) — the `interactive.<color>.inverse`
+   *  column for controls on a dark hero / inverse section. Default true. */
   inverse?: boolean;
   /** Opt-in accent interactive colour (docs/20 §3) — the BACK-COMPAT single-column lever. Names a
    *  declared palette (typically a `brandColors` entry) to get a full `interactive.accent.*` column.
@@ -1979,7 +1979,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
 
   // ---- interactive palettes (docs/20 §3): N opt-in `interactive.<name>.*` columns ----
   // Generalises the single `accentPalette` lever into an array of promoted palettes. Each entry
-  // becomes a full interactive column (fill+states / on-fill / text / border / on-inverse / overlay,
+  // becomes a full interactive column (fill+states / on-fill / text / border / inverse / overlay,
   // generated in modes.ts). Resolved here so the prune below keeps any palette a column points at.
   const RESERVED_INTERACTIVE = new Set(['primary', 'neutral', 'destructive']);
   // Rest-fill anchor for a palette: 'primary' → the primary anchor; a brandColor → its pinned
@@ -2336,7 +2336,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
 
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
   const inverseContext = input.inverse ?? true;
-  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: ${inverseContext ? 'on (interactive.<color>.on-inverse generated)' : 'off'}`);
+  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: ${inverseContext ? 'on (interactive.<color>.inverse generated)' : 'off'}`);
 
   return {
     id: input.id, root, namespace: `${root}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,

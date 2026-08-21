@@ -96,7 +96,7 @@ export type ModeCfg = {
   floor: Cand; floorName: string;  // contrast floor (worst-case supported surface)
   bg: SurfSet; bgInverse: SurfSet; // background canvas ladders
   fg: SurfSet; fgInverse: SurfSet; // foreground surface ladders
-  inverseSurface: RGB;             // the primary inverse surface (for on-inverse / border.inverse)
+  inverseSurface: RGB;             // the primary inverse surface (for the inverse column / border.inverse)
   family: 'light' | 'dark';
   // Mode KIND (B — mode identity as data): drives resolveMode's behaviour instead of matching the
   // mode NAME. 'standard' = the plain light/dark derivation; 'hc' = high-contrast (pure black/white
@@ -575,10 +575,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
    * convenient one. The declared minimum is still the border's own, so a future non-matching source
    * is held to the right bar rather than inheriting the ink's.
    */
-  const iBorder = (name: string, inkByState: Record<string, Cand>, ground: RGB, slot: string, against: string): void => {
+  // `where` qualifies the description for the ground the edge is drawn on. It is a parameter
+  // rather than derived from `slot`, because the two callers differ in the GROUND they are
+  // verified against, and that is the thing a reader of the description needs. Before #891 this
+  // was one hardcoded sentence, so the inverse edge shipped prose verbatim identical to the page
+  // edge — a description that never mentioned the dark band it exists for.
+  const iBorder = (name: string, inkByState: Record<string, Cand>, ground: RGB, slot: string, against: string, where = ''): void => {
     for (const stKey of ['rest', 'hover', 'pressed'] as const)
       put(`interactive.${name}.${slot}${stKey}`, rated(inkByState[stKey], ground),
-        `${name} interactive border — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
+        `${name} interactive border${where} — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
   };
 
   // primary — the action palette, contrast-verified.
@@ -646,9 +651,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   if (theme.inverseContext) {
     // The full inverse column (docs/20 §9) — a filled CTA + outline/text control placed on a dark hero /
     // inverse band, generated + contrast-verified against `background.inverse.primary` (not a hand-mirrored
-    // twin). `on-inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
-    // contrast on the dark band); `on-inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
-    // band (states walk toward the palette like the page fill); `on-inverse.on-fill` = the dark ink on it.
+    // twin). `inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
+    // contrast on the dark band); `inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
+    // band (states walk toward the palette like the page fill); `inverse.on-fill` = the dark ink on it.
+    //
+    // The qualifier is `inverse`, not `on-inverse`, since #891. `on-` means exactly one thing in this
+    // tree — INK ON the named ground (`on-fill`, `text.on-brand`) — and a context qualifier wearing it
+    // put both senses in one path: `primary.on-inverse.on-fill` read as ink-on-ink. `inverse.fill.rest`
+    // is the case that settles it — the token is a FILL, and the old name called it ink.
     const invColumn = (name: string, palette: string | null, anchor: number): void => {
       const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
       const textNum = (textRest as RatedNum).num;
@@ -657,7 +667,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         const stKey = st === 'default' ? 'rest' : st;
         const c: Cand = (st === 'default' || !palette) ? textRest
           : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
-        put(`interactive.${name}.on-inverse.text.${stKey}`, rated(c, invRgb),
+        put(`interactive.${name}.inverse.text.${stKey}`, rated(c, invRgb),
           `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
         invInk[stKey] = c;
       }
@@ -669,12 +679,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         const stKey = st === 'default' ? 'rest' : st;
         const c: Cand = st === 'default' ? fillRest
           : walk(palette ?? r2p.neutral, fillRest.num, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
-        put(`interactive.${name}.on-inverse.fill.${stKey}`, rated(c, invRgb),
+        put(`interactive.${name}.inverse.fill.${stKey}`, rated(c, invRgb),
           `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
       }
-      put(`interactive.${name}.on-inverse.on-fill`, onColor(fillRest.rgb),
-        `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.on-inverse.fill.rest`, onMin);
-      // The outline EDGE on the dark band, now per state (#576) and following the on-inverse ink,
+      put(`interactive.${name}.inverse.on-fill`, onColor(fillRest.rgb),
+        `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.inverse.fill.rest`, onMin);
+      // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
       // for the same reason the page border does — the intent "the edge matches its label" is no
       // less true on a dark hero, and `invInk` is already resolved and gated against `invRgb`.
       //
@@ -693,7 +703,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       //
       // Neutral has no palette, so its ink is `pickMostExtreme` and its states collapse; it takes
       // the same own-anchor treatment as the page-ground neutral border above.
-      if (palette) iBorder(name, invInk, invRgb, 'on-inverse.border.', 'background.inverse.primary');
+      if (palette) iBorder(name, invInk, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
       else {
         const iBdRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
         const iBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === iBdRest.path)!.num;
@@ -702,7 +712,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
           rest: iBdRest,
           hover: walk(r2p.neutral, iBdNum, 2, -dir, iBdGuard),
           pressed: walk(r2p.neutral, iBdNum, 4, -dir, iBdGuard),
-        }, invRgb, 'on-inverse.border.', 'background.inverse.primary');
+        }, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
       }
     };
     invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
@@ -974,7 +984,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // border targets escalate — borders carry structure when surfaces flatten.
   put('border.primary', pickClosest(ramp, baseRgb, cfg.borderTarget), `Default border — decorative, ~${cfg.borderTarget}:1`, 'background.primary', 0);
   put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2), 'Stronger border / divider', 'background.primary', 0);
-  put('border.inverse', pickClosest(ramp, invRgb, cfg.borderTarget), 'Border on inverse surfaces', 'background.inverse.primary', 0);
+  // `border.inverse` is a GROUP, not a leaf: `default` is the decorative edge, `focus` the ring
+  // below. Promoted from a leaf in #891 so that context-before-role holds in every family that has
+  // an inverse variant — `background.inverse.<tier>`, `foreground.inverse.<tier>`,
+  // `interactive.<palette>.inverse.<role>.<state>` and now `border.inverse.<role>`. #892 adds the
+  // remaining seven roles into this container; the alternative shape (`border.<role>.inverse`) would
+  // have needed a leaf-to-group cascade per role and put context last in all of them.
+  put('border.inverse.default', pickClosest(ramp, invRgb, cfg.borderTarget), 'Border on inverse surfaces', 'background.inverse.primary', 0);
   for (const r of SEMANTICS)
     put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
   put('border.focus', rated(actionRest, baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
@@ -986,7 +1002,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // and #570 (a fixed rung that could not answer a raised bar): the gate measured a contrast the role
   // was never asked to survive.
   //
-  // Gated at `cfg.nonTextMin` against the INVERSE surface — deliberately NOT `border.inverse`'s
+  // Gated at `cfg.nonTextMin` against the INVERSE surface — deliberately NOT `border.inverse.default`'s
   // `cfg.borderTarget` one line above, which is decorative. This is a focus indicator first and an
   // inverse token second, so it keeps the accessibility floor its non-inverse sibling has; copying
   // the neighbouring inverse border wholesale would silently pick the weaker gate. (#573)
@@ -995,7 +1011,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // statement about the brand's action colour on the page, and reproducing it verbatim on a different
   // ground is precisely the fixed-value-cannot-answer-a-different-ground failure above. The gate is
   // free to walk it, so the ring clears 3:1 on the inverse surface in every mode.
-  put('border.focus-inverse', rated(chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, invRgb, cfg.nonTextMin), invRgb),
+  put('border.inverse.focus', rated(chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, invRgb, cfg.nonTextMin), invRgb),
       'Focus ring color on inverse surfaces (keyboard focus)', 'background.inverse.primary', cfg.nonTextMin);
 
   // ---- per-mode colour override layer (Phase A1) ----

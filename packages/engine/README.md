@@ -125,7 +125,7 @@ review. `background` is the canvas; `foreground` is what sits on it:
   expression is `interactive.destructive.*` below, not a per-state `danger.*`.)
 - `interactive.<color>.*` — **the interactive color family** (docs/20): `primary` · `neutral`
   · `destructive` (+ opt-in `accent`), each with `fill` (+ `rest`/hover/pressed/focused/selected
-  states), `on-fill`, `text`, `border`, `overlay.*` washes, and an `on-inverse` ink. Cross-cutting
+  states), `on-fill`, `text`, `border`, `overlay.*` washes, and an `inverse.*` column. Cross-cutting
   `disabled.*` (fill/on-fill/text/icon/border) is one treatment for any intent, and is the
   SOLE disabled family. This is what components bind — the legacy top-level `action.*` fill and the
   scattered per-family disabled states are retired (task #14).

@@ -128,8 +128,11 @@ const FIELD_SLOT_SCOPES: Record<string, string[]> = {
 // `disabled` / `field` to their slot (segment[2]).
 const colorScopes = (dotted: string): string[] => {
   const seg = stripNs(dotted).split('.'); // ['color', family, …]
-  // interactive slot = seg[3], except the inverse column nests a slot one deeper (on-inverse.<slot>.<state>).
-  if (seg[1] === 'interactive') { const slot = seg[3] === 'on-inverse' ? seg[4] : seg[3]; return INTERACTIVE_SLOT_SCOPES[slot] ?? INTERACTIVE_SLOT_SCOPES.fill; }
+  // interactive slot = seg[3], except the inverse column nests a slot one deeper (inverse.<slot>.<state>).
+  // The qualifier is matched by name, so it moved with the #891 rename (`on-inverse` → `inverse`); a
+  // stale spelling here would not throw — it would silently scope the whole inverse column as `fill`,
+  // via the `?? INTERACTIVE_SLOT_SCOPES.fill` fallback on the next line.
+  if (seg[1] === 'interactive') { const slot = seg[3] === 'inverse' ? seg[4] : seg[3]; return INTERACTIVE_SLOT_SCOPES[slot] ?? INTERACTIVE_SLOT_SCOPES.fill; }
   if (seg[1] === 'disabled') return DISABLED_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
   if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
   return COLOR_SCOPES[seg[1]] ?? ['FRAME_FILL', 'SHAPE_FILL'];

@@ -928,7 +928,7 @@
               "min": 4.5
             }
           },
-          "on-inverse": {
+          "inverse": {
             "text": {
               "rest": {
                 "$type": "color",
@@ -1104,7 +1104,7 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
                   "contrast": 13.62,
-                  "against": "interactive.primary.on-inverse.fill.rest",
+                  "against": "interactive.primary.inverse.fill.rest",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -1119,14 +1119,14 @@
                 }
               },
               "contrast": 18.38,
-              "against": "interactive.primary.on-inverse.fill.rest",
+              "against": "interactive.primary.inverse.fill.rest",
               "min": 4.5
             },
             "border": {
               "rest": {
                 "$type": "color",
                 "$value": "{prism.palette.primary.600}",
-                "$description": "primary interactive border — rest (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -1153,7 +1153,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{prism.palette.primary.650}",
-                "$description": "primary interactive border — hover (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -1180,7 +1180,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{prism.palette.primary.700}",
-                "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -1621,7 +1621,7 @@
               "min": 4.5
             }
           },
-          "on-inverse": {
+          "inverse": {
             "text": {
               "rest": {
                 "$type": "color",
@@ -1797,7 +1797,7 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
                   "contrast": 14.09,
-                  "against": "interactive.destructive.on-inverse.fill.rest",
+                  "against": "interactive.destructive.inverse.fill.rest",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -1812,14 +1812,14 @@
                 }
               },
               "contrast": 18.2,
-              "against": "interactive.destructive.on-inverse.fill.rest",
+              "against": "interactive.destructive.inverse.fill.rest",
               "min": 4.5
             },
             "border": {
               "rest": {
                 "$type": "color",
                 "$value": "{prism.palette.danger.650}",
-                "$description": "destructive interactive border — rest (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -1846,7 +1846,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{prism.palette.danger.700}",
-                "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -1873,7 +1873,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{prism.palette.danger.750}",
-                "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2304,7 +2304,7 @@
               "min": 4.5
             }
           },
-          "on-inverse": {
+          "inverse": {
             "text": {
               "rest": {
                 "$type": "color",
@@ -2480,7 +2480,7 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.neutral.950",
                   "contrast": 16,
-                  "against": "interactive.neutral.on-inverse.fill.rest",
+                  "against": "interactive.neutral.inverse.fill.rest",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -2495,14 +2495,14 @@
                 }
               },
               "contrast": 15.95,
-              "against": "interactive.neutral.on-inverse.fill.rest",
+              "against": "interactive.neutral.inverse.fill.rest",
               "min": 4.5
             },
             "border": {
               "rest": {
                 "$type": "color",
                 "$value": "{prism.palette.neutral.500}",
-                "$description": "neutral interactive border — rest (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2529,7 +2529,7 @@
               "hover": {
                 "$type": "color",
                 "$value": "{prism.palette.neutral.600}",
-                "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2556,7 +2556,7 @@
               "pressed": {
                 "$type": "color",
                 "$value": "{prism.palette.neutral.700}",
-                "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
+                "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -4104,29 +4104,31 @@
           "against": "background.primary"
         },
         "inverse": {
-          "$type": "color",
-          "$value": "{prism.palette.neutral.500}",
-          "$description": "Border on inverse surfaces",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "prism.palette.neutral.800",
-              "contrast": 1.39,
-              "against": "background.inverse.primary",
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+          "default": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.500}",
+            "$description": "Border on inverse surfaces",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.800",
+                "contrast": 1.39,
+                "against": "background.inverse.primary",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
               }
-            }
-          },
-          "contrast": 4.61,
-          "against": "background.inverse.primary"
+            },
+            "contrast": 4.61,
+            "against": "background.inverse.primary"
+          }
         },
         "brand": {
           "$type": "color",

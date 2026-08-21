@@ -243,7 +243,7 @@
     "inverse": {
       "type": "boolean",
       "default": true,
-      "description": "OPTIONAL. Generate the inverse surface-context (docs/20 §9) — `interactive.<color>.on-inverse` inks for outline/text controls on a dark hero / inverse section (a light CTA on dark), contrast-verified against the inverse surface. Default true; even a light-only brand needs it. Set false to omit."
+      "description": "OPTIONAL. Generate the inverse surface-context (docs/20 §9) — the `interactive.<color>.inverse` column (text, fill, border and on-fill) for outline/text controls on a dark hero / inverse section (a light CTA on dark), contrast-verified against the inverse surface. Default true; even a light-only brand needs it. Set false to omit."
     },
     "accentPalette": {
       "type": "string",

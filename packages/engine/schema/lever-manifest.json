@@ -514,7 +514,7 @@
       "label": "Inverse surface-context",
       "control": "toggle",
       "default": true,
-      "description": "Generate interactive.<color>.on-inverse text colors for controls on a dark hero / inverse section (a light CTA on dark)."
+      "description": "Generate the interactive.<color>.inverse column — text, fill, border and on-fill — for controls on a dark hero / inverse section (a light CTA on dark)."
     },
     {
       "key": "interactivePalettes",

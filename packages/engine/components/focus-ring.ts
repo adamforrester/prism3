@@ -129,7 +129,7 @@ export const focusRing: ComponentDef = {
 
   tokens: {
     'border': 'color.border.focus',
-    'border.inverse': 'color.border.focus-inverse',
+    'border.inverse': 'color.border.inverse.focus',
     'width': 'focus.ring.width',
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',

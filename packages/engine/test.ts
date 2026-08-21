@@ -1007,21 +1007,21 @@ for (const b of brands) {
 
 // INVERSE + neutralEmphasis + accentPalette (docs/20 §9/§10/§3, increment 4).
 {
-  // (a) inverse surface-context: interactive.<color>.on-inverse present + gated against the
+  // (a) inverse surface-context: interactive.<color>.inverse present + gated against the
   //     inverse surface in every mode; the `inverse` lever opts out.
   const modes = resolveAllModes(nbTheme());
   const invFails: string[] = [];
   for (const m of modes)
     for (const c of ['primary', 'neutral', 'destructive']) {
-      const r = m.roles[`interactive.${c}.on-inverse.text.rest`];
+      const r = m.roles[`interactive.${c}.inverse.text.rest`];
       if (!r) { invFails.push(`${m.mode}:${c}:absent`); continue; }
       if (r.against !== 'background.inverse.primary') invFails.push(`${m.mode}:${c}:against=${r.against}`);
       if (r.min > 0 && r.ratio < r.min) invFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
     }
-  ok(invFails.length === 0, 'inverse: interactive.<color>.on-inverse.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
+  ok(invFails.length === 0, 'inverse: interactive.<color>.inverse.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
   const noInv = resolveAllModes({ ...nbTheme(), inverseContext: false })
-    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.on-inverse'));
-  ok(noInv.length === 0, 'inverse: inverse=false emits no on-inverse inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
+    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.inverse.'));
+  ok(noInv.length === 0, 'inverse: inverse=false emits no inverse-column inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
 
   // (a2) the outline EDGE on the dark band (#467). Before this the border was emitted once against
   //      `background.primary` and reused on the inverse band, so the pair was never measured — the
@@ -1035,12 +1035,12 @@ for (const b of brands) {
   for (const m of modes)
     for (const c of ['primary', 'neutral', 'destructive'])
       for (const st of ['rest', 'hover', 'pressed']) {
-        const r = m.roles[`interactive.${c}.on-inverse.border.${st}`];
+        const r = m.roles[`interactive.${c}.inverse.border.${st}`];
         if (!r) { invBdFails.push(`${m.mode}:${c}:${st}:absent`); continue; }
         if (r.against !== 'background.inverse.primary') invBdFails.push(`${m.mode}:${c}:${st}:against=${r.against}`);
         if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${st}:${r.ratio.toFixed(2)}<${r.min}`);
       }
-  ok(invBdFails.length === 0, 'inverse: interactive.<color>.on-inverse.border.{rest,hover,pressed} each gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
+  ok(invBdFails.length === 0, 'inverse: interactive.<color>.inverse.border.{rest,hover,pressed} each gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
 
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
   const strong = resolveAllModes({ ...nbTheme(), neutralEmphasis: 'strong' });
@@ -1058,7 +1058,7 @@ for (const b of brands) {
   ok(noAccent.length === 0, 'accent: no extra column with an empty interactivePalettes (never falls back to primary)' + (noAccent.length ? ` — ${noAccent.slice(0, 2).join(',')}` : ''));
   const acc = resolveAllModes({ ...nbTheme(), interactivePalettes: [{ name: 'accent', palette: 'green', anchorStep: 500 }] });
   const accLight = acc.find((m) => m.mode === 'light')!.roles;
-  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border.rest', 'border.hover', 'border.pressed', 'on-inverse.text.rest', 'on-inverse.fill.rest', 'on-inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
+  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border.rest', 'border.hover', 'border.pressed', 'inverse.text.rest', 'inverse.fill.rest', 'inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
   const accFails = acc.flatMap((m) => Object.entries(m.roles).filter(([k, r]) => k.startsWith('interactive.accent') && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
   ok(accMissing.length === 0 && accFails.length === 0, 'accent: opt-in emits a full gated interactive.accent.* column' + (accMissing.length ? ` — MISSING ${accMissing.join(',')}` : '') + (accFails.length ? ` — FAILS ${accFails.slice(0, 2).join(',')}` : ''));
 
@@ -3957,7 +3957,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 //
 // This is the third instance of one shape of bug: a role gated against one ground and painted on
 // another (#63 ink-on-tint, #570 fixed-rung-vs-raised-bar, this). So the assertion is deliberately
-// written against the CONTRACT rather than against `focus-inverse` by name: every `border.*` role
+// written against the CONTRACT rather than against the inverse ring by name: every `border.*` role
 // that declares a `min` must clear it against whatever surface its own `against` names. A future
 // inverse-sensitive border then arrives already covered, instead of needing someone to remember to
 // add a fourth near-identical block.
@@ -3971,9 +3971,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     for (const m of resolveAllModes(theme)) {
       // The ring must EXIST on both grounds — a missing inverse ring is the defect itself, so its
       // absence has to fail rather than skip (the (10d) lesson: a legal skip hides a removal).
-      const inv = m.roles['border.focus-inverse'];
-      if (!inv) { bad.push(`${m.mode}: border.focus-inverse missing`); continue; }
-      if (inv.min < 3) bad.push(`${m.mode}: focus-inverse min ${inv.min} — a focus ring below the SC 1.4.11 floor`);
+      const inv = m.roles['border.inverse.focus'];
+      if (!inv) { bad.push(`${m.mode}: border.inverse.focus missing`); continue; }
+      if (inv.min < 3) bad.push(`${m.mode}: border.inverse.focus min ${inv.min} — a focus ring below the SC 1.4.11 floor`);
       for (const [key, r] of Object.entries(m.roles)) {
         if (!key.startsWith('border.') || r.min <= 0) continue;
         const ground = m.roles[r.against];
@@ -3990,7 +3990,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // (10f-ii) #573 — a role whose NAME claims an inverse context must be MEASURED against an inverse
 // surface. This exists because (10f) above has a blind spot I only found by mutating into it: it
 // trusts each role's own `against` string, so a role can satisfy it by declaring an easier ground.
-// Mutating `border.focus-inverse` to gate against `background.primary` while keeping its name — a
+// Mutating `border.inverse.focus` to gate against `background.primary` while keeping its name — a
 // one-word edit, self-consistent, and still distinct from `border.focus` so (10g) stays quiet — slips
 // through both. The resulting ring measures **1.00:1 on the surface it is painted on** (wendys,
 // minimal, every mode): perfectly invisible, and reported as a comfortable 5.94 pass.
@@ -4003,8 +4003,10 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const bad: string[] = [];
     for (const m of resolveAllModes(theme))
       for (const [key, r] of Object.entries(m.roles)) {
-        // `on-inverse` / `-inverse` / `.inverse.` all mark "for use on an inverse surface".
-        if (!/(^|[.-])inverse([.-]|$)/.test(key.replace('on-inverse', 'inverse'))) continue;
+        // `.inverse.` as a segment and `-inverse` as a suffix both mark "for use on an inverse
+        // surface". Since #891 the interactive column uses the segment form too, so there is no
+        // longer an `on-inverse` spelling to normalize away before this test.
+        if (!/(^|[.-])inverse([.-]|$)/.test(key)) continue;
         if (key.startsWith('background.inverse') || key.startsWith('foreground.inverse')) continue; // the surfaces themselves
         if (r.min <= 0) continue;                                    // ungated by design — (10f) covers the gated set
         if (!/inverse/.test(r.against)) bad.push(`${m.mode} ${key}: gated against '${r.against}', which is not an inverse surface`);
@@ -4022,7 +4024,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 {
   for (const { id, theme } of corpus()) {
     const modes = resolveAllModes(theme);
-    const differs = modes.filter((m) => m.roles['border.focus']?.hex !== m.roles['border.focus-inverse']?.hex);
+    const differs = modes.filter((m) => m.roles['border.focus']?.hex !== m.roles['border.inverse.focus']?.hex);
     ok(differs.length > 0, `the inverse focus ring is its own value — ${id}`
       + (differs.length ? ` (${differs.length}/${modes.length} modes)` : ' — FAIL: identical to border.focus in every mode'));
   }
@@ -4098,7 +4100,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // measured against something that is no longer there.
 //
 // This is the trap that fixing (10h)'s bug walks into. The style guide switches the Outline row's ink
-// to `on-inverse.text.*` on an inverse preview ground, which is right for the translucent wash — it
+// to `inverse.text.*` on an inverse preview ground, which is right for the translucent wash — it
 // composites, so the band is still the ground. The `solid-tint` fill is a real palette step: from
 // `hover` onward the ground is a page-tuned tint, and the band's ink fails on it in **79 of 80**
 // corpus combinations, worst measured 1.32:1. The engine gates the tint against the control's own
@@ -4118,7 +4120,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
           const tint = m.roles[`interactive.${color}.subtle-fill.${st}`];
           if (!tint) continue;
           const pageInk = m.roles[`interactive.${color}.text.${st}`];
-          const bandInk = m.roles[`interactive.${color}.on-inverse.text.${st}`];
+          const bandInk = m.roles[`interactive.${color}.inverse.text.${st}`];
           // The page ink is what the engine gated this tint against — it must hold.
           if (pageInk) {
             const r = contrast(hexToRgb(pageInk.hex), hexToRgb(tint.hex));
@@ -4260,22 +4262,41 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // 2026-07-06; pairs with #67.)
     const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/'];
     // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
-    // `color/border/focus-inverse` (#573) is the accessibility fix for a ring NB never had: NB's
+    // `color/border/inverse/focus` (#573, renamed #891) is the accessibility fix for a ring NB never had: NB's
     // export carries one `color/border/focus`, which measured 2.09:1 on hc-light's inverse surface.
     // Deliberately not widened to a `color/border/` prefix — that would stop this gate noticing a
     // spurious var anywhere in a family the fixture really does define, which is the one thing it is
     // here to do. An exact name costs a line per addition and keeps the rest of the family pinned.
-    const ENGINE_ADDED_VARS = ['color/border/focus-inverse'];
-    const missing = [...fixByName.keys()].filter((n) => !outByName.has(n));
-    const extra = [...outByName.keys()].filter((n) => !fixByName.has(n)
+    const ENGINE_ADDED_VARS = ['color/border/inverse/focus'];
+    // A var NB really exports that the engine still emits under a DIFFERENT NAME. #891 promoted
+    // `color/border/inverse` from a leaf to a group, so the same value now lives at
+    // `color/border/inverse/default`.
+    //
+    // Declared here rather than fixed by editing the fixture, and the distinction is the point: the
+    // fixture is the FROZEN real NB export, so rewriting it to agree with our rename would leave
+    // this gate reading something the renaming change had itself edited — green on any future
+    // rename, which is the one thing it exists to catch (`docs/34` shape 6). The VALUE stays
+    // checked: the scope / alias / value loop below runs on the renamed var through this map, so a
+    // rename that also moved a colour still fails.
+    const NB_KNOWN_RENAMES: Record<string, string> = { 'color/border/inverse': 'color/border/inverse/default' };
+    const renamedTo = new Set(Object.values(NB_KNOWN_RENAMES));
+    const missing = [...fixByName.keys()].filter((n) => !outByName.has(n) && !outByName.has(NB_KNOWN_RENAMES[n] ?? '\0'));
+    const extra = [...outByName.keys()].filter((n) => !fixByName.has(n) && !renamedTo.has(n)
       && !ENGINE_ADDED_FAMILIES.some((p) => n.startsWith(p)) && !ENGINE_ADDED_VARS.includes(n));
     ok(missing.length === 0 && extra.length === 0, `figma ${key}: variable names match fixture (${fix.variables.length})` + (missing.length ? ` — MISSING ${missing.slice(0, 3).join(',')}` : '') + (extra.length ? ` — EXTRA ${extra.slice(0, 3).join(',')}` : ''));
+    // A rename entry that no longer applies is the same bug as a stale divergence waiver: it claims
+    // the engine moved a name it did not, and would silently absorb a REAL future disappearance of
+    // that var. Fail until it is removed.
+    const staleRenames = Object.keys(NB_KNOWN_RENAMES).filter((n) => outByName.has(n));
+    ok(staleRenames.length === 0, `figma ${key}: no stale NB rename declarations` + (staleRenames.length ? ` — ${staleRenames.join(', ')} is emitted under its own name again; remove it` : ''));
 
     const scopeBad: string[] = [], aliasBad: string[] = [], valBad: string[] = [];
     const modeOf = key.startsWith('color.') ? key.slice('color.'.length) : '';
     const hit = new Set<string>();
     for (const [name, fv] of fixByName) {
-      const ov = outByName.get(name); if (!ov) continue;
+      // Follows `NB_KNOWN_RENAMES`, so a renamed var stays scope/alias/value checked rather than
+      // being skipped by the `continue` — a rename must not become a way to stop being verified.
+      const ov = outByName.get(name) ?? outByName.get(NB_KNOWN_RENAMES[name] ?? '\0'); if (!ov) continue;
       if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) scopeBad.push(name);
       // A role may diverge from real NB only if it is enumerated below AND diverges EXACTLY as
       // recorded. A changed divergence is a new finding, not a covered one, so it still fails.
@@ -9887,14 +9908,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // This is what the def actually accomplishes. docs/32 measured the hand-authored ring carrying
   // hardcoded #2D65D4 / #AFC7F3 fills, radius 0, and a stroke weight bound to a REMOTE New Balance
   // variable — all placeholders. These four now resolve against the emitted tree for every brand.
-  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.border.focus-inverse'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
+  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.border.inverse.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
     ok(focusRing.tokens[slot] === path && paths.has(path),
       `focus-ring: '${slot}' binds ${path}, which the engine EMITS — the ring's skin is no longer whatever a Figma file happens to hold`);
   }
   // The two axes exist because the token tier already emitted exactly two of each — docs/32's evidence
   // that the ring was always one shared thing with a per-context parameter.
   ok(focusRing.variants.color.join(',') === 'default,inverse',
-    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / focus-inverse)');
+    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / color.border.inverse.focus)');
   ok(focusRing.variants.offset.join(',') === 'control,field',
     'focus-ring: the offset axis mirrors the emitted pair (focus.ring.offset / offset-field)');
   ok(focusRing.states.length === 0,

@@ -955,8 +955,9 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* #560 — between the 900px stack breakpoint and #app's 1200px cap, .arow-main's middle (mid) column is
    exactly viewport minus 800px (the 56px swatch + two 20px gaps + 300px .aex are fixed; the mid column
    absorbs 100% of any remaining slack via minmax(0,1fr), so the relationship is 1:1). The two longest
-   token paths in the system (…on-inverse.fill.rest / …on-inverse.text.rest, both 325px at the pill's
-   font) need the mid column at 327px (325 + the pill's 1px+1px border) to render unclipped — which needs
+   token paths in the system AT THE TIME (…on-inverse.fill.rest / …on-inverse.text.rest, 49 characters,
+   both 325px at the pill's font) needed the mid column at 327px (325 + the pill's 1px+1px border) to
+   render unclipped — which needs
    viewport 1127px or wider. Below that, from ~1114px up to ~1126px, those two are the ONLY pills that
    still clip (every shorter path already fits); 1120px sits inside that narrow band. Trimming the .aex
    example column by 12px in this same band moves the cure threshold down to viewport 1115px, which
@@ -965,7 +966,18 @@ input.toggle:disabled{opacity:.5;cursor:default}
    template with no swatch column and never carry a pill — touching .arow-lead's copy of .aex would only
    leave dead space in its 300px track, so it stays out of the selector rather than being ignored by
    coincidence. Below 900px this is moot (.aex already goes full-width); above 1200px #app's own
-   max-width caps further viewport growth from helping anyway, so the band stops there. */
+   max-width caps further viewport growth from helping anyway, so the band stops there.
+
+   THE 325px IS A COMMIT-PINNED MEASUREMENT AND HAS SINCE BEEN OUTGROWN — flagged, not fixed here.
+   #576 gave the outline edge states AFTER this was written, and `…destructive.on-inverse.border.pressed`
+   (55 characters) was longer than either path measured above from that moment on. #891's rename takes
+   the longest to `color.interactive.destructive.inverse.border.pressed` at 52 characters — still 3
+   longer than the 49 this comment measured, so the true requirement is ABOVE 327px and this rule is a
+   partial cure at some viewports in the band. The rename can only have helped: every path in the family
+   shrank by exactly 3 characters, so the threshold moved down, never up. Re-measuring needs a browser at
+   the pill's font and is filed rather than guessed — a px number invented here would be the exact defect
+   this file has been fixing all week. Filed as #902, which also proposes asserting it in the smoke
+   suite against the longest path READ FROM THE TREE, so the calibration cannot rot a third time. */
 @media(min-width:901px) and (max-width:1199px){.arow:not(.arow-lead) .arow-main{grid-template-columns:56px minmax(0,1fr) 288px}.arow:not(.arow-lead) .aex{width:288px}}
 /* Surfaces & fills — full-width rows (Layout A, #68): controls LEFT · whitespace · example RIGHT, contrast below */
 /* The identity track is 256px, not 168px, because the token PATH has to be readable. At 168px three of
