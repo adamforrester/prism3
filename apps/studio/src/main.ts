@@ -714,6 +714,12 @@ commit.onHostMessage((m) => {
     // that already says built, from the run before.
     componentProgress = null;
     if (barHost) { renderBar(); syncApplyDetail(); }
+    // AND the page's own row (#870) — the defect this ticket names. The two calls above are chrome; the
+    // build's control is page content, and every terminating condition posts this one message, so a
+    // verdict that reached only the chrome left the button reading "⋯ Building…" and disabled for all of
+    // them. Outside the `barHost` guard on purpose: that flag is about the chrome being mounted, and the
+    // row has its own `isConnected` test for the same question about itself.
+    syncComponentRow();
     return;
   }
   if (m.kind === 'component-progress') {
@@ -726,7 +732,16 @@ commit.onHostMessage((m) => {
     // 648-member build at CHUNK = 24 — and rebuilding the bar discards and remakes every control in it, which
     // would blur whatever the designer had focused and reset the brand switcher's open state mid-build.
     // The pending pill is the only thing that changed, so it is the only thing rewritten.
-    if (componentPendingEl) componentPendingEl.textContent = componentPendingText();
+    //
+    // EVERY live pill, not one (#870): the bar and the Components page each render their own, and writing
+    // to a single cached node left whichever rendered first frozen at the placeholder for the whole build.
+    const text = componentPendingText();
+    for (const node of componentPendingEls) {
+      // A detached node is a pill whose host has re-rendered since. Dropped rather than written to, so
+      // the set stays bounded without any renderer having to know it exists — see the field.
+      if (node.isConnected) node.textContent = text;
+      else componentPendingEls.delete(node);
+    }
     return;
   }
   if (m.kind === 'seed-info') {
@@ -4214,8 +4229,7 @@ const renderComponentsPage = (host: PageHost): void => {
   }
 
   const row = el('div', 'cw-row');
-  if (componentState) row.append(renderApplyStatus(componentState, 'components'));
-  const cPending = componentState === 'pending';
+  componentRow = row;
 
   // A PICKER, NOT A BUTTON PER DEF. Four sets today and Arc 2 adds more, so a control per def would grow
   // the page every time a def earns a `figmaProperties` block. The select is also what carries the cost:
@@ -4235,7 +4249,7 @@ const renderComponentsPage = (host: PageHost): void => {
     if (b.id === 'button') opt.selected = true;
     sel.append(opt);
   }
-  sel.disabled = cPending;
+  componentSel = sel;
   sel.title = 'Which set to build. The variant count is the cost — about 162ms each.';
   row.append(sel);
 
@@ -4243,8 +4257,8 @@ const renderComponentsPage = (host: PageHost): void => {
   // selection beside it. The label read "Build Button set" because Button was the only def that could be
   // built and a generic label would have promised four components it could not deliver (#718). With a
   // picker the specificity moved into the picker, and a label naming one def would contradict it.
-  const compBtn = el('button', 'barbtn', cPending ? '⋯ Building…' : '⊞ Build set') as HTMLButtonElement;
-  compBtn.disabled = cPending;
+  const compBtn = el('button', 'barbtn') as HTMLButtonElement;
+  componentBtn = compBtn;
   // One line, under the ~90 the plugin register allows. It states the ORDER because that is the fact a
   // designer cannot recover from the result: the set binds variables by name, so a build into an
   // unthemed file misses every binding.
@@ -4263,12 +4277,67 @@ const renderComponentsPage = (host: PageHost): void => {
     // was drawn — the defect being that it would look right for the default and wrong for every change.
     const def = sel.value;
     componentState = 'pending'; componentProgress = null; openDetail = null;
-    renderBar(); syncApplyDetail(); renderWorkspace();
+    renderBar(); syncApplyDetail(); syncComponentRow();
     commit.postComponents(def);
   };
   row.append(compBtn);
+  // Every state-dependent part of this row written by the ONE function that owns them, on the render
+  // path as well as on the message path (#870). Setting the label and the disabled flags inline here and
+  // syncing them there would be two derivations of one state, so a fix to either could leave the other
+  // saying "Building…" — which is the defect this ticket is.
+  //
+  // `staged` because this page is built DETACHED and reconciled in (#771) — see the function's header for
+  // why the attachment test belongs to the caller rather than to it.
+  syncComponentRow({ staged: true });
   sec.append(row);
   host.append(sec);
+};
+
+/** The Components page's own status row, refreshed in place (#870).
+ *
+ *  WHY IN PLACE RATHER THAN `renderWorkspace()`. The `component-result` handler used to call only
+ *  `renderBar()` + `syncApplyDetail()`, both of which are CHROME — so the bar's pill showed the verdict
+ *  while this row, which is page content, kept whatever the last page render had put there. A designer who
+ *  started a build here and stayed here saw `⋯ Building…`, disabled, permanently: the state machine had
+ *  already moved on, and only the paint was stale. Verified by reproducing all five terminating conditions
+ *  against the built plugin bundle, and confirmed to be paint-only rather than state — navigating away and
+ *  back recovered the button every time, which is why the field report's only known recovery was a restart.
+ *
+ *  The obvious repair — add `renderWorkspace()` beside the other two — trades this defect for a subtler
+ *  one. Measured: a full page render rebuilds the picker, whose `<option>` carries `selected` for Button,
+ *  so a build of any other def would report its verdict and silently reset the selection to Button. The
+ *  designer's next click would then build the wrong set. So the row is SYNCED, like the chrome's own
+ *  `syncApplyDetail` and for the same reason: the parts that depend on `componentState` are written, and
+ *  the picker, which does not, is left alone.
+ *
+ *  `staged` IS THE PARAMETER AND IT HAD TO BE, which the first version of this got wrong in a way worth
+ *  recording. The two callers ask different questions of the same nodes. A build's own render calls this
+ *  while the page is still STAGED — `renderWorkspace` builds the tree detached and reconciles it in
+ *  (#771) — so the row is legitimately not in the document yet. The message path calls it about a row that
+ *  is supposed to be on screen, where a detached row means the designer has navigated away and writing a
+ *  verdict into it would report a delivery that nobody can see. One `isConnected` guard cannot serve both:
+ *  applied to the render path it skipped the initial sync entirely and shipped a BLANK button, measured in
+ *  the built bundle. So the caller says which it is, and only the message path requires attachment. Its
+ *  callers still refresh the chrome, which is where a verdict stays legible after navigating away — that
+ *  division is #483's and is unchanged. */
+let componentRow: HTMLElement | null = null;
+let componentSel: HTMLSelectElement | null = null;
+let componentBtn: HTMLButtonElement | null = null;
+const syncComponentRow = (opts: { staged?: true } = {}): void => {
+  const row = componentRow;
+  if (!row || !componentSel || !componentBtn) return;
+  if (!opts.staged && !row.isConnected) return;
+  const pending = componentState === 'pending';
+  componentBtn.textContent = pending ? '⋯ Building…' : '⊞ Build set';
+  // Disabled while in flight is both the signal and the guard, same call the Apply button makes: a second
+  // click would post a concurrent build over the same page.
+  componentBtn.disabled = pending;
+  componentSel.disabled = pending;
+  // The pill is REPLACED rather than written to, because pending and verdict are different elements — a
+  // `.bar-seed` span versus an `.applystat` disclosure button — so this cannot be a text swap. Removing
+  // the old one first is what keeps a verdict from landing beside the pending text it supersedes.
+  row.querySelector(':scope > .bar-seed, :scope > .applystat')?.remove();
+  if (componentState) row.prepend(renderApplyStatus(componentState, 'components'));
 };
 
 // #103 Phase B — advisory font-weight availability (#113 advisory model, not a hard gate). A curated,
@@ -7903,11 +7972,27 @@ const componentPendingText = (): string => {
   const label = p.phase === 'build' ? 'Building members' : 'Wiring references';
   return `${label}… ${p.done} of ${p.total}`;
 };
-/** The live pending `<span>`, so a chunk boundary can rewrite its text instead of re-rendering the bar
- *  (see the `component-progress` handler). Held from the last render and never read for state — if the
- *  bar re-renders for another reason the reference is replaced, and if it is stale the text update simply
- *  lands on a detached node while the fresh one already renders the current fraction. */
-let componentPendingEl: HTMLElement | null = null;
+/** The live pending `<span>`s, so a chunk boundary can rewrite their text instead of re-rendering the
+ *  bar (see the `component-progress` handler). Held from the last render and never read for state — if a
+ *  host re-renders for another reason its entry is replaced, and a stale entry simply takes the text on a
+ *  detached node while the fresh one already renders the current fraction.
+ *
+ *  A SET, NOT ONE SLOT (#870), because `componentState === 'pending'` is rendered TWICE — once into the
+ *  chrome bar and once into the Components page's own row — and both are on screen at the same time
+ *  whenever a designer starts a build from the page and stays there. A single slot made them compete for
+ *  it: `renderApplyStatus` overwrote the field on every call, so the last pill rendered won and the other
+ *  one kept the pre-#684 placeholder for the whole build. Measured in the built plugin bundle before the
+ *  fix — with the page open, the page's row counted up while the bar sat frozen at "Building the Button
+ *  set…" through all 54 boundaries; navigated away, the bar counted correctly, which is what made this
+ *  look like a bar bug rather than a shared-cache bug.
+ *
+ *  PRUNED AT WRITE TIME BY `isConnected`, not cleared by the renderers that mint into it. Both hosts
+ *  discard their pill wholesale on re-render, so entries do go stale and an unbounded set would leak
+ *  detached nodes across a session — but asking each renderer to clear first puts the obligation on code
+ *  that does not know this set exists, which is how a third host would silently reintroduce the freeze.
+ *  Dropping a node the moment it is found detached needs no cooperation and is the same `isConnected`
+ *  test `syncErrorBar` judges itself by. Live membership is at most one per host that renders the pill. */
+const componentPendingEls = new Set<HTMLElement>();
 
 /**
  * The boot read-back pill (#722). Deliberately the SAME `.bar-seed` span the two-state `seedInfo`
@@ -7943,8 +8028,11 @@ function renderApplyStatus(state: Exclude<typeof applyState, null>, which: 'appl
     // latter is cached for in-place updates. A theme apply writes variables and answers in well under a
     // second; a 648-member build takes tens of seconds, which is precisely why it reports.
     if (which === 'apply') return el('span', 'bar-seed', 'Writing to Figma…');
-    componentPendingEl = el('span', 'bar-seed', componentPendingText());
-    return componentPendingEl;
+    const node = el('span', 'bar-seed', componentPendingText());
+    // ADDED, not assigned (#870). Two hosts render this pill and both can be live at once; see
+    // `componentPendingEls` for the measurement that an assignment left one of them frozen.
+    componentPendingEls.add(node);
+    return node;
   }
   const open = openDetail === which;
   const cls = 'applystat' + (state.ok ? ' ok' : ' bad') + (open ? ' open' : '');

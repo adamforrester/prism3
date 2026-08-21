@@ -409,6 +409,35 @@ npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` b
                                           # the engine…"), so the check stays a whole-file grep rather
                                           # than parsing imports: a builtin reached another way would slip
                                           # past a syntax-aware check, and a false positive costs one dash
+npm run test:verdict -w @prism3/plugin   # every terminating condition of a component build reaches a
+                                          # VISIBLE verdict (#870) — clean, with misses, errored,
+                                          # already-built, unknown-def. Runs after `build` above: it
+                                          # drives the built dist/ui.html, loaded TOP-LEVEL so
+                                          # `parent === window` and the harness can stand in for the
+                                          # main thread over the real bridge.
+                                          # A SECOND browser suite rather than more cases in the studio's
+                                          # test:smoke, because the subject is a different BUNDLE: the
+                                          # Components page is figmaOnly, so railNav() omits it from the
+                                          # web rail and the studio bundle has no route to this control
+                                          # at any effort.
+                                          # WHY IT EXISTS: a build completed correctly — nodes in the
+                                          # file, misses computed — and the panel stayed on "⋯ Building…"
+                                          # and disabled until the plugin was restarted. The verdict line
+                                          # is the ONLY place a build's misses are reported, so a
+                                          # permanent "Building…" converts a reporting build into a
+                                          # silent one; #866's four DISCARDED refs were visible solely
+                                          # because that summary rendered. The state machine was never
+                                          # wrong (componentState left 'pending' on every path), which is
+                                          # why nothing caught it: a check asking the UI whether it
+                                          # considered itself done would have PASSED on the defect. So
+                                          # EXPECTED is authored per condition as the label and
+                                          # enabled-state a designer reads, and ACTUAL is read out of the
+                                          # rendered DOM — docs/34 shape 16's remedy, state the quantity
+                                          # a human would check in the units they would check it in.
+                                          # Its stated limit: no Figma and no main thread, so it proves
+                                          # the panel renders a verdict for every terminal MESSAGE, not
+                                          # that the main thread sends one.
+                                          # Needs a browser, same one-off install as test:smoke above
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly

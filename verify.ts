@@ -179,6 +179,26 @@ export const driftCheckPrecondition = (): string | null => {
     `generated output against your working tree rather than against HEAD. Commit or stash them, then rerun.`;
 };
 
+/**
+ * The two browser gates' shared skip reason: no Chromium on this machine.
+ *
+ * Absent, a browser suite must SKIP rather than FAIL — a missing browser is an ambient-setup fact
+ * about this machine, not a defect in the change under test — and it must not be a PASS either, which
+ * is the whole of point 4.
+ *
+ * ONE PREDICATE FOR BOTH, and this is a sharing that is correct rather than the `docs/34` trap: these
+ * are two consumers of one environment question, not a gate and the thing it checks. The alternative
+ * is the shape this file exists to prevent one tier up — the second browser gate (#870) copying the
+ * cache-path logic, and a fixed path drifting in one copy so one suite skips honestly while the other
+ * reports a browser it does not have.
+ */
+const chromiumPrecondition = (): string | null => {
+  const cache = process.env.PLAYWRIGHT_BROWSERS_PATH
+    || (process.platform === 'darwin' ? join(process.env.HOME ?? '', 'Library/Caches/ms-playwright') : join(process.env.HOME ?? '', '.cache/ms-playwright'));
+  const has = existsSync(cache) && readdirSync(cache).some((d) => d.startsWith('chromium'));
+  return has ? null : 'no Chromium in the Playwright browser cache — run `npx playwright install chromium` once, then rerun';
+};
+
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
  *  running `regen.ts --check` a second time (it is among the slowest gates here). This is what
  *  buffering per gate buys — point 2 paying for itself. Mirrors `ci.yml`'s own step. */
@@ -323,6 +343,18 @@ export const GATES: Gate[] = [
     },
   },
   {
+    // The panel's own browser suite, and the SECOND browser gate here — see `chromiumPrecondition` for
+    // why both share one skip predicate. It is a separate suite from `smoke` rather than more cases in
+    // it because the subject is a different bundle: the Components page is `figmaOnly`, so the studio's
+    // web bundle has no route to the control this asserts.
+    id: 'plugin-verdict',
+    ciStep: 'Component-build verdict suite (#870)',
+    cmd: ws('@prism3/plugin', 'test:verdict'),
+    after: ['build-plugin'],
+    why: 'it drives the dist/ui.html the plugin build just wrote, in a browser',
+    precondition: chromiumPrecondition,
+  },
+  {
     id: 'tokenpress-test',
     ciStep: 'TokenPress tests',
     cmd: ws('@prism3/tokenpress', 'test'),
@@ -427,15 +459,8 @@ export const GATES: Gate[] = [
     cmd: ws('@prism3/studio', 'test:smoke'),
     after: ['build-web'],
     why: 'it drives the built dist/main.js in a browser',
-    precondition: () => {
-      // The one gate here that needs a browser. Absent, it must SKIP rather than FAIL: a missing
-      // Chromium is an ambient-setup fact about this machine, not a defect in the change under test —
-      // and it must not be a PASS either, which is the whole of point 4.
-      const cache = process.env.PLAYWRIGHT_BROWSERS_PATH
-        || (process.platform === 'darwin' ? join(process.env.HOME ?? '', 'Library/Caches/ms-playwright') : join(process.env.HOME ?? '', '.cache/ms-playwright'));
-      const has = existsSync(cache) && readdirSync(cache).some((d) => d.startsWith('chromium'));
-      return has ? null : 'no Chromium in the Playwright browser cache — run `npx playwright install chromium` once, then rerun';
-    },
+    // One of the TWO gates here that need a browser — see `chromiumPrecondition`.
+    precondition: chromiumPrecondition,
   },
 ];
 

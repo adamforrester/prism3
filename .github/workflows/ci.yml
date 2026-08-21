@@ -135,6 +135,33 @@ jobs:
             exit 1
           fi
 
+      # The panel's own browser suite (#870) — the SECOND step in this workflow that runs a browser,
+      # and it has to be separate from the studio one below. A component build's verdict line is the
+      # only place its misses are reported, and a build that ends on a permanent "⋯ Building…" turns a
+      # reporting build into a silent one: #866's four DISCARDED refs were visible solely because that
+      # summary rendered. This asserts every terminating condition — clean, with misses, errored,
+      # already-built, unknown-def — reaches a verdict a designer can read.
+      #
+      # WHY IT CANNOT LIVE IN THE STUDIO SMOKE SUITE, which is the only other browser step here. The
+      # Components page is `figmaOnly`: `railNav()` omits it from the web rail, so the studio bundle
+      # (`PRISM3_HOST='web'`) has no route to this control at any effort. The subject is the PANEL —
+      # `apps/plugin/dist/ui.html`, loaded top-level so `parent === window` and the harness can stand
+      # in for the main thread. Hence a plugin-workspace suite and this step's dependence on the
+      # "Build plugin" step above rather than on "Build web".
+      #
+      # `npx playwright install` is inside the step for the reason the studio step records: the
+      # download is SETUP FOR A GATE, so a failed download must fail the step rather than silently
+      # skip the coverage. Same accepted cost — a transient CDN failure blocks merges — and the same
+      # fix if it bites, which is caching the browser rather than making this advisory.
+      # QUOTED, following the two steps here that already are: the parenthesis makes `(#870)` safe as a
+      # plain scalar by YAML's own rule, but the studio suite below records the issue reference being
+      # silently truncated on a first CI run, so the convention here is to quote any name carrying one
+      # rather than to re-derive the rule per step.
+      - name: "Component-build verdict suite (#870)"
+        run: |
+          npx playwright install --with-deps chromium
+          npm run -w @prism3/plugin test:verdict
+
       # TokenPress's own 263 assertions, ported from vitest onto tsx (the suite it arrived with). It
       # runs the exporter end to end against Figma-shaped fixtures, so it is the only thing here that
       # can catch a regression in the OUT direction (Figma -> DTCG). Its runner asserts a per-file
