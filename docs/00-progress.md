@@ -41,6 +41,58 @@ conclusion — a reader who finds the old wording quoted elsewhere needs to know
 stale citation and was treated as one.
 ---
 
+## (2026-08-21) — 97.3% full and silent: `color-create` is chunked, and the manifest now says how full it is
+
+**STATUS: shipped.** #906. No version bump — no emitted artifact changes, no token name or value
+moves. `color-create` becomes N payloads packed to 42,000 bytes; `passJs` gains an index and the CLI
+a `--chunk`.
+
+**The finding is not the overflow.** `color-create` was a single payload sitting at **43,778 bytes
+against a 45,000 ceiling — 1,222 spare, 97.3% full** — and nothing reported it, because the only
+signal in the manifest was a `⚠ over budget` flag that fires once the wall is hit. #892's first four
+tokens cost ~1,360 bytes. There was not room for the smallest useful slice of the next piece of work,
+and no way to know that without adding tokens and watching a gate go red.
+
+So the manifest prints **fullness on every run** now, and flags at 80% rather than at 100%.
+
+**Chunking rather than a fourth named pass**, for a reason with a precedent: `SET_CHUNK_BYTES` in the
+variable-set packer already does this, with a gate shape to copy, and it absorbs #892, #893's alias
+layer and every future family without another visit. A fourth pass is smaller today and hits the same
+wall at roughly +130 leaves — which #892 alone gets two-thirds of the way to.
+
+It is a plainer split than `planSetChunks` and the difference is worth recording: a component set has
+LAYOUT (a chunk handed a slice places its members as though the slice were the whole set) and
+PROPERTIES (declarable only after the last member joins). A variable collection has neither, so every
+chunk carries the same idempotent preamble and order between chunks does not matter. The preamble
+costs ~1KB per chunk instead of once — bought deliberately, because a chunk that assumes a previous
+one ran fails differently depending on paste order, and paste order is what a human is holding.
+
+**The health number is the INDIVISIBLE UNIT, not chunk fullness**, and this is the part most likely
+to be got wrong on re-reading. `tools/nest-exposed-cost/measure.ts` records the lesson after a
+reviewer refused the metric on #761: **worst-chunk fullness is near-budget by construction** — the
+packer adds rows until the next will not fit, so a healthy system and a doomed one both read ~99%
+(ours reads 93%). What chunking cannot rescue is one row too big for one payload. That figure is
+**0.8%** today, it is printed on every run, and it is gated at 50%.
+
+The gate's threshold is deliberately far above the current value, and the gap is the design: it is a
+tripwire for a structural change — an unbounded description, a mode count that multiplies per-row
+values — not a budget to tune against. #892 adds ~76 variables and does not move it at all, because
+variables add chunks. Calibrating it near 0.8% would fire on ordinary growth, which is `docs/34`
+shape 14 (#779): a gate set below its own motivating defect is worse than none.
+
+**Two things the mutation pass changed.** The real corpus still fits in ONE payload at this commit,
+so the budget assertion cannot fail here and the packing path would have shipped unexercised — a
+forced split at a 6,000-byte budget is what actually tests it. And the name check first read 165 rows
+for 163, because the pattern borrowed from the float lane also matched `const MODES=["light",…]`, one
+false name per chunk. It parses the payload's own `const C=[…]` now. **The failure looked like a
+duplicated variable and was a bad instrument** — the same shape as `lint-absolute-inset`'s first
+version measuring the wrong quantity.
+
+Verified against the blocked work rather than in the abstract: merging `feat/inverse-coverage-892` in
+takes it from **1 failed to 0**, and `color-create` becomes 2 chunks at 93% / 21%.
+
+---
+
 ## (2026-08-21) — A current-decisions index, gated both directions (#886)
 
 **STATUS: shipped.** `docs/42-current-decisions.md` is the router #886 asked for — one row per live

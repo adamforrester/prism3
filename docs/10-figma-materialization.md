@@ -435,7 +435,7 @@ Plugin API directly — which the helper generates.
 npx tsx packages/engine/emit-figma.ts                                       # regen out/figma/
 npx tsx packages/engine/materialise-to-figma.ts <brand>                     # manifest: byte sizes
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass palette      # 1
-npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create # 2
+npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-create --chunk 1  # 2 (see below)
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases # 3
 npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 ```
@@ -445,6 +445,22 @@ npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 2. **`color-create`** — creates the `color` collection with all N modes (`light`, `dark`,
    `hc-light`, `hc-dark`; `wireframe` if opted in) and writes the literal fallback
    `{r,g,b,a}` per mode. Every var also carries its slot-scoped `scopes` and `description`.
+
+   **CHUNKED (#906).** This is the one pass that can exceed the `figma_execute` ceiling, so it
+   emits N payloads packed to 42,000 bytes each. **Run the manifest first** — it prints the chunk
+   count and each chunk's fullness — then paste `--chunk 1`, `--chunk 2`, … in any order, all of
+   them before pass 3. Asking for `--pass color-create` without `--chunk` when there is more than
+   one is an error rather than a concatenation: two payloads joined are one over-budget payload,
+   which is the failure the chunking exists to prevent.
+
+   Every chunk carries the same find-or-create preamble, so they are idempotent and order-free
+   among themselves. What is NOT order-free is chunk-vs-pass-3: an alias cannot bind a variable
+   that no chunk has created yet.
+
+   The manifest also prints the **indivisible unit** — the largest single variable as a percentage
+   of one payload's room. That is the number to watch, not chunk fullness: a packer fills chunks
+   until the next row will not fit, so fullness reads ~93% whether the system is healthy or about
+   to break. Adding variables adds chunks; only a single oversized variable is unrecoverable.
 3. **`color-aliases`** — rebinds each var **per-mode** as a `VARIABLE_ALIAS` into the
    palette. Each row is `[name, [target-per-mode]]`; the helper reads each mode file's
    own alias target, so the mode-collapse bug the hand-rolled script hit in #84 is
@@ -464,8 +480,11 @@ npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify       # 4
 - **Per-mode alias binding.** Each mode gets its own `createVariableAlias(targetVar)`.
   The hand-rolled first attempt bound light's target to all four modes → every mode
   collapsed to light values. `modesDistinct` in the verify pass exists to catch this.
-- **Payload budget.** ~45 KB per `figma_execute` call is comfortable; each pass is a
-  separate call. The manifest prints byte sizes and flags anything over budget.
+- **Payload budget.** ~45 KB per `figma_execute` call; each pass is a separate call, and
+  `color-create` is chunked to 42,000 bytes per payload (#906). The manifest prints every
+  payload's fullness on **every** run, not only when one is over — `color-create` sat at 97.3%
+  for months and said nothing, because the only signal was a `> BUDGET` flag. A budget that
+  speaks only when it is crossed is the failure; the overflow is just the symptom.
 - **API-probe verify, not screenshots.** Variables aren't rendered on the canvas.
   Reading `getLocalVariablesAsync` is authoritative; a screenshot only tells you the
   file opened.

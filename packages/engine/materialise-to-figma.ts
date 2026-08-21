@@ -264,11 +264,29 @@ return {collection:'core-palette',total:P.length,created};
 };
 
 // ---- pass: color-create (color collection, N modes, literal fallback values) -----------
-const colorCreatePass = (brand: string): string => {
-  const { modes, create } = planFor(brand).color;
-  // row: [name, scopeCode, description, [value per mode, in `modes` order]]
-  const C = create.map((r) => [r.name, encodeScopes(r.scopes), r.description, r.valuesByMode]);
-  return `${PRELUDE}
+
+/**
+ * The byte budget one `color-create` payload is packed to.
+ *
+ * 42,000 against the transport's ~45KB — the same numbers and the same margin as `SET_CHUNK_BYTES`,
+ * deliberately, because it is the same transport and the same failure: an over-budget payload is
+ * rejected AFTER the chunks before it have already pasted, leaving a half-built collection.
+ *
+ * WHY THIS EXISTS (#906). This pass was a single payload with **1,222 bytes of headroom** — 97.3%
+ * of budget — and nothing said so, because the only signal was a `> BUDGET` flag that fires once the
+ * wall is already hit. #892's first four tokens cost ~1,360. The lesson is not "raise the number";
+ * it is that **a budget only speaks when it is crossed**, so the manifest reports fullness on every
+ * run now, and the gate bounds the one quantity chunking cannot rescue.
+ */
+export const COLOR_CHUNK_BYTES = 42_000;
+
+/** One create row: `[name, scopeCode, description, [value per mode, in `modes` order]]`. */
+type ColorRow = [string, string, string, unknown[]];
+
+const colorRows = (brand: string): ColorRow[] =>
+  planFor(brand).color.create.map((r) => [r.name, encodeScopes(r.scopes), r.description, r.valuesByMode] as ColorRow);
+
+const colorCreateJs = (modes: string[], C: ColorRow[]): string => `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const C=${JSON.stringify(C)};
 let col=await findCol('color');
@@ -286,6 +304,74 @@ for(const [name,sc,desc,vals] of C){
 }
 return {collection:'color',modes:MODES,total:C.length,created};
 `;
+
+/**
+ * `color-create` -> N payloads, packed by BYTES.
+ *
+ * Simpler than `planSetChunks`, and the difference is worth stating because it is why this one is
+ * safe to split plainly: a component set has LAYOUT (a chunk handed a slice would place its members
+ * as though the slice were the whole set) and PROPERTIES (declarable only once the last member has
+ * joined). A variable collection has neither. Every chunk carries the same idempotent preamble —
+ * find-or-create the collection, rename mode 0, add any missing modes — then creates its own rows.
+ * Order BETWEEN chunks does not matter; order against `color-aliases` does, and is unchanged, since
+ * every chunk of this pass still precedes it.
+ *
+ * The repeated preamble costs its ~1KB in every chunk rather than only the first. Bought
+ * deliberately: a chunk that assumes a previous one ran fails differently depending on paste order,
+ * and paste order is the thing a human is holding.
+ */
+export const colorCreateChunks = (
+  brand: string,
+  budgetBytes: number = COLOR_CHUNK_BYTES,
+): { index: number; total: number; js: string; bytes: number; rows: number }[] => {
+  const { modes } = planFor(brand).color;
+  const rows = colorRows(brand);
+  // Packed against the size of the FINISHED payload, not a sum of row sizes: the shell is ~1KB and
+  // `JSON.stringify` adds separators, so a row-sum estimate packs against a string that never ships.
+  // The rule `planSetChunks` states — every byte the loop reasons about has to be a byte that ships.
+  const slices: ColorRow[][] = [];
+  let cur: ColorRow[] = [];
+  for (const row of rows) {
+    const next = [...cur, row];
+    if (cur.length && Buffer.byteLength(colorCreateJs(modes, next), 'utf8') > budgetBytes) {
+      slices.push(cur);
+      cur = [row];
+    } else {
+      cur = next;
+    }
+  }
+  if (cur.length) slices.push(cur);
+  return slices.map((slice, i) => {
+    const js = colorCreateJs(modes, slice);
+    return { index: i, total: slices.length, js, bytes: Buffer.byteLength(js, 'utf8'), rows: slice.length };
+  });
+};
+
+/**
+ * The ceiling that means something, and the reason it is not chunk fullness.
+ *
+ * `tools/nest-exposed-cost/measure.ts` learned this the hard way and records it: **worst-chunk
+ * fullness is near-budget BY CONSTRUCTION** — the packer adds rows until the next will not fit, so a
+ * healthy system and a doomed one both report ~99%. Disqualified as a health metric, and a reviewer
+ * on #761 was right to refuse it.
+ *
+ * What chunking cannot rescue is a SINGLE ROW too big for one payload. So the number to watch is the
+ * largest indivisible unit against the room a payload has for rows (budget minus shell). At 100% one
+ * variable cannot be pasted at all, and no amount of splitting helps.
+ */
+export const colorIndivisibleUnit = (brand: string, budgetBytes: number = COLOR_CHUNK_BYTES): {
+  worstRow: string; worstBytes: number; shellBytes: number; capacity: number; pct: number;
+} => {
+  const { modes } = planFor(brand).color;
+  const rows = colorRows(brand);
+  const shellBytes = Buffer.byteLength(colorCreateJs(modes, []), 'utf8');
+  // Each row's true marginal cost, measured the way the packer measures: the finished payload with
+  // the row, minus the finished payload without it.
+  const cost = (r: ColorRow) => Buffer.byteLength(colorCreateJs(modes, [r]), 'utf8') - shellBytes;
+  let worstRow = '', worstBytes = 0;
+  for (const r of rows) { const c = cost(r); if (c > worstBytes) { worstBytes = c; worstRow = r[0]; } }
+  const capacity = budgetBytes - shellBytes;
+  return { worstRow, worstBytes, shellBytes, capacity, pct: worstBytes / capacity };
 };
 
 // The per-mode alias targets for the colour collection: one row per variable,
@@ -637,11 +723,17 @@ return {
 };
 
 // ---- CLI --------------------------------------------------------------------------------
-const PASSES: Record<string, (b: string) => string> = {
-  palette: palettePass, 'color-create': colorCreatePass, 'color-aliases': colorAliasesPass,
-  'dims-create': dimsCreatePass, 'dims-aliases': dimsAliasesPass,
-  'font-vars': fontVarsPass, 'text-styles': textStylesPass, styles: stylesPass,
-  verify: verifyPass,
+// Every pass returns a LIST of payloads. All but `color-create` return exactly one, and the list is
+// the point: a pass that outgrows the transport becomes N payloads without changing what it is
+// called, so `ORDER` stays the paste order a human follows rather than growing a name each time a
+// lane fills up.
+const PASSES: Record<string, (b: string) => string[]> = {
+  palette: (b) => [palettePass(b)],
+  'color-create': (b) => colorCreateChunks(b).map((c) => c.js),
+  'color-aliases': (b) => [colorAliasesPass(b)],
+  'dims-create': (b) => [dimsCreatePass(b)], 'dims-aliases': (b) => [dimsAliasesPass(b)],
+  'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
+  styles: (b) => [stylesPass(b)], verify: (b) => [verifyPass(b)],
 };
 // Colour, then floats, then typography, then styles — the lanes don't alias each other, so the order
 // BETWEEN them is a convention; WITHIN each lane create-before-alias is a hard requirement. The one
@@ -654,10 +746,17 @@ const ORDER = [
 
 /** The pass payloads, exposed so the suite can assert on what would actually be pasted rather than
  *  on a re-derivation of it. Byte-for-byte the same string the CLI prints. */
-export const passJs = (brand: string, name: string): string => {
+export const passPayloads = (brand: string, name: string): string[] => {
   const fn = PASSES[name];
   if (!fn) throw new Error(`unknown pass '${name}' — one of: ${ORDER.join(', ')}`);
   return fn(brand);
+};
+/** One payload. `index` selects among a chunked pass's payloads; out of range throws rather than
+ *  returning `undefined`, because a caller asking for chunk 4 of 3 is holding a stale count. */
+export const passJs = (brand: string, name: string, index = 0): string => {
+  const all = passPayloads(brand, name);
+  if (index < 0 || index >= all.length) throw new Error(`pass '${name}' has ${all.length} payload(s); no index ${index}`);
+  return all[index];
 };
 export const passOrder = (): string[] => [...ORDER];
 
@@ -671,18 +770,53 @@ const runCli = (): void => {
   if (pass) {
     const fn = PASSES[pass];
     if (!fn) { console.error(`unknown --pass '${pass}' — one of: ${ORDER.join(', ')}`); process.exit(1); }
-    process.stdout.write(fn(brand));
+    const chunkIdx = argv.indexOf('--chunk');
+    const all = fn(brand);
+    if (chunkIdx >= 0) {
+      const i = Number(argv[chunkIdx + 1]) - 1;   // 1-based, because a human is pasting them in order
+      if (!Number.isInteger(i) || i < 0 || i >= all.length) { console.error(`--chunk must be 1..${all.length} for pass '${pass}'`); process.exit(1); }
+      process.stdout.write(all[i]);
+    } else if (all.length > 1) {
+      // NEVER concatenate. Two payloads joined are one over-budget payload — the exact failure this
+      // change exists to prevent, and it would be discovered in Figma rather than here.
+      console.error(`pass '${pass}' is ${all.length} payloads; ask for one: --pass ${pass} --chunk 1..${all.length}`);
+      process.exit(1);
+    } else {
+      process.stdout.write(all[0]);
+    }
   } else {
-    // manifest: byte size per pass + the paste order + a budget warning.
+    // manifest: byte size per payload + the paste order + the number that means something.
     const BUDGET = 45_000;
     console.log(`materialise-to-figma — brand '${brand}', colour modes: ${colourModes(brand).join(', ')}`);
     console.log('Paste each pass into figma_execute IN ORDER (palette first — the color aliases target it):\n');
     for (const name of ORDER) {
-      const size = Buffer.byteLength(PASSES[name](brand), 'utf8');
-      const flag = size > BUDGET ? '  ⚠ over budget — consider chunking' : '';
-      console.log(`  ${name.padEnd(14)} ${String(size).padStart(7)} bytes${flag}`);
+      const all = PASSES[name](brand);
+      if (all.length === 1) {
+        const size = Buffer.byteLength(all[0], 'utf8');
+        // FULLNESS ON EVERY RUN, not a flag that fires once the wall is hit (#906). `color-create`
+        // sat at 97.3% and reported nothing, because the only signal was `> BUDGET`.
+        const pct = Math.round((size / BUDGET) * 100);
+        const flag = size > BUDGET ? '  ⚠ OVER BUDGET' : pct >= 80 ? '  ⚠ little headroom' : '';
+        console.log(`  ${name.padEnd(14)} ${String(size).padStart(7)} bytes  ${String(pct).padStart(3)}% of ${BUDGET}${flag}`);
+      } else {
+        console.log(`  ${name.padEnd(14)} ${all.length} chunks — paste each with --chunk 1..${all.length}`);
+        all.forEach((js, i) => {
+          const size = Buffer.byteLength(js, 'utf8');
+          console.log(`    L chunk ${i + 1}      ${String(size).padStart(7)} bytes  ${String(Math.round((size / BUDGET) * 100)).padStart(3)}% of ${BUDGET}${size > BUDGET ? '  ⚠ OVER BUDGET' : ''}`);
+        });
+      }
     }
-    console.log(`\nEmit one pass:  npx tsx packages/engine/materialise-to-figma.ts ${brand} --pass <name>`);
+    // The ceiling a human can act on. NOT worst-chunk fullness: the packer fills a chunk until the
+    // next row will not fit, so that number reads ~99% whether the system is healthy or doomed — the
+    // lesson `tools/nest-exposed-cost/measure.ts` records after a reviewer refused it on #761. What
+    // chunking cannot rescue is one row too big for one payload, so that is what is reported.
+    const u = colorIndivisibleUnit(brand);
+    console.log(`\n  color-create headroom — the number that means something:`);
+    console.log(`    largest single variable   ${u.worstBytes} bytes (${u.worstRow})`);
+    console.log(`    room for rows per payload ${u.capacity} bytes (${COLOR_CHUNK_BYTES} budget minus ${u.shellBytes} shell)`);
+    console.log(`    indivisible unit          ${(u.pct * 100).toFixed(1)}% of one payload${u.pct >= 0.5 ? '  ⚠ a single variable is approaching a whole payload' : ''}`);
+    console.log(`    Adding variables adds CHUNKS, not risk. This percentage is the wall chunking cannot move.`);
+    console.log(`\nEmit one pass:  npx tsx packages/engine/materialise-to-figma.ts ${brand} --pass <name> [--chunk N]`);
     console.log('The `verify` pass reads back via getLocalVariablesAsync, asserts modes are distinct,');
     console.log('and reports (never deletes) orphaned variables per collection — a plan-vs-file diff for renames (#479).');
   }

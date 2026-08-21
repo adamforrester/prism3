@@ -36,7 +36,7 @@ import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './ver
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
-import { aliasRows, floatCollections, fontCollections, passJs, passOrder, pruneReport } from './materialise-to-figma';
+import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
@@ -8802,8 +8802,70 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
 
   // Payload budget — the reason the colour lane is split across three passes in the first place.
-  for (const name of passOrder())
-    ok(Buffer.byteLength(passJs('nb', name), 'utf8') < 45_000, `materialise: pass '${name}' is inside the figma_execute budget (${Buffer.byteLength(passJs('nb', name), 'utf8')} bytes)`);
+  // EVERY PAYLOAD, not every pass: `color-create` is chunked (#906), so iterating pass names and
+  // taking the first payload would measure a fraction of what ships and pass on any overrun in
+  // chunks 2..N. The bytes asserted are the finished string, the same one the CLI prints.
+  for (const name of passOrder()) {
+    const all = passPayloads('nb', name);
+    all.forEach((js, i) => {
+      const b = Buffer.byteLength(js, 'utf8');
+      const label = all.length > 1 ? `${name} chunk ${i + 1}/${all.length}` : name;
+      ok(b < 45_000, `materialise: pass '${label}' is inside the figma_execute budget (${b} bytes)`);
+    });
+  }
+
+  // THE CEILING CHUNKING CANNOT MOVE — asserted, so the health number is checked rather than merely
+  // printed. Deliberately NOT worst-chunk fullness: the packer fills a chunk until the next row will
+  // not fit, so that figure reads ~93-99% whether the system is healthy or doomed. It was
+  // disqualified as a metric in `tools/nest-exposed-cost/measure.ts` after a reviewer refused it on
+  // #761, and the same property disqualifies it here. A single variable too large for one payload is
+  // the only unrecoverable case, so that is what is bounded.
+  //
+  // The threshold is 50% against today's 0.8%, and the GAP IS THE POINT: this is a tripwire for a
+  // structural change — a description that grows without bound, a mode count that multiplies
+  // per-row values — not a tight budget to tune against. #892 adds ~76 variables and does not move
+  // it at all, because variables add CHUNKS. Calibrating it near the current value would make it
+  // fire on ordinary growth, which is how #779 taught this repo that a gate set below its own
+  // motivating defect is worse than none (`docs/34` shape 14).
+  const unit = colorIndivisibleUnit('nb');
+  ok(unit.pct < 0.5,
+    `materialise: the largest single colour variable fits one payload with room to spare (${unit.worstBytes}B = ${(unit.pct * 100).toFixed(1)}% of ${unit.capacity}B capacity; worst: ${unit.worstRow})`);
+
+  // The packer itself, both directions: it must SPLIT when it must, and every chunk must carry rows.
+  // Without this an empty tail chunk passes everything silently.
+  const chunks = colorCreateChunks('nb');
+  ok(chunks.length >= 1 && chunks.every((c) => c.rows > 0),
+    `materialise: color-create packs into ${chunks.length} non-empty chunk(s) (${chunks.map((c) => `${c.rows} rows/${c.bytes}B`).join(', ')})`);
+  // Forced split — the real corpus may fit in one payload today, so packing is exercised at a budget
+  // that guarantees several. Without this the split path could break and nothing would notice until
+  // the day the corpus grew, which is the same "silent until crossed" failure #906 is about.
+  const forced = colorCreateChunks('nb', 6_000);
+  ok(forced.length > 1 && forced.every((c) => c.bytes <= 6_000 || c.rows === 1),
+    `materialise: the packer actually splits — ${forced.length} chunks at a 6,000B budget, none over unless a single row exceeds it`);
+
+  // No row lost or duplicated across the split — the property a byte-packer breaks SILENTLY, because
+  // a dropped row still leaves every chunk under budget and every other check green.
+  //
+  // EXPECTED comes from the committed Figma export, not from the packer's own input. Comparing
+  // `colorCreateChunks` against the list it was handed is true by construction and blind to the one
+  // thing worth checking; the export is a different emitter writing a committed artifact, so the two
+  // agree only if both are right.
+  const rowNames = (js: string): string[] => {
+    const m = /^const C=(\[.*\]);$/m.exec(js);
+    if (!m) throw new Error('color-create payload has no `const C=[...]` row array — the payload shape changed');
+    return (JSON.parse(m[1]) as [string, ...unknown[]][]).map((r) => r[0]);
+  };
+  const packedNames = chunks.flatMap((c) => rowNames(c.js));
+  const exportedVars = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/color.light.json'), 'utf8')).variables.length;
+  ok(packedNames.length === exportedVars,
+    `materialise: every colour variable lands in exactly one chunk (${packedNames.length} packed vs ${exportedVars} in the committed color.light.json)`);
+  // The NAMES, not only the count — swapping one row for another keeps the count identical. Read by
+  // PARSING the payload's own `const C=[...]`, not by pattern-matching the payload text: the pattern
+  // version borrowed from the float lane also matched `const MODES=["light",...]`, one false name per
+  // chunk, so it read 165 for 163 rows and the failure looked like a duplicated variable rather than
+  // a bad instrument.
+  ok(new Set(packedNames).size === packedNames.length,
+    `materialise: the packed rows carry ${packedNames.length} DISTINCT names (${new Set(packedNames).size} distinct) — a row duplicated across chunks keeps the row count and loses a variable`);
 
   // NO async IIFE — every pass must return its counts to the PASTING AGENT. `figma_execute` neither
   // awaits nor unwraps a returned Promise, so a `(async()=>{...})()` wrapper handed the caller
