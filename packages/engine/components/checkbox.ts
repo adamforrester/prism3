@@ -53,22 +53,28 @@
  *     dash box is a real thing that has to be coloured. Collapsing either into the other is the misread
  *     this note exists to prevent.
  *
- * ── THE PAINT GRAMMAR IS SLOT-LED, WHICH IS A DELIBERATE DEPARTURE FROM `button` ────────────────
+ * ── THE PAINT GRAMMAR IS AXIS-LED LIKE EVERY OTHER DEF, AND THE EXEMPTION IS DECLARED ───────────
  *
- * `['{slot}.{selection}.{state}', '{slot}.{selection}', '{slot}']` — the slot leads, where `button`
- * leads with `{intent}` and `field-message` with `{tone}`. The reason is `lint-paint.ts` arm 1, and it
- * is a reason to state rather than a shape to copy: that rule fires on a key whose LEADING segment is a
- * declared axis value, and requires the ref to carry that value — *"an intent's paint comes from that
- * intent's family."* **The premise is false for `selection`.** The token tier has no `color.checked.*`
- * family and should not grow one; a checked box paints from `interactive.primary.*` and an unchecked
- * one from `field.*`, which are the tier's own names for those inks.
+ * `['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}']` — the axis value leads, as
+ * `button`'s `{intent}` and `field-message`'s `{tone}` do. The bare `{slot}` still answers the
+ * bindings that do not vary by selection (`label`) and the ones outside the grammar entirely
+ * (`focus-ring`, `disabled.*`, geometry).
  *
- * Leading with `{selection}` would therefore have needed a `PROVENANCE_EXCEPTIONS` entry for **every
- * one of this def's selection-keyed colour bindings** — a list that exists to stay small and to be read
- * (`field-message` holds four) would have quadrupled for one def. Slot-led does not hide a violation;
- * it declines to make a provenance claim that is not true here. Recorded in `notes.contested` with the
- * alternative, because a reviewer is entitled to read this as routing around a gate and should have
- * both readings in front of them.
+ * **`lint-paint.ts` arm 1's premise is false for this axis, and that is recorded THERE rather than
+ * worked around here.** The rule is *"an intent's paint comes from that intent's family"*; the tier
+ * emits no `color.checked.*` and must not grow one, because a checked box is not a different colour
+ * FAMILY — it is the same interactive family in a different ROLE (`interactive.primary.*` for a filled
+ * control, `field.*` for an empty one). So `selection` is declared in that gate's `NON_FAMILY_AXES`,
+ * which exempts the axis once, prints the exempted binding count on every run, and fails in both
+ * directions if the exemption stops doing work.
+ *
+ * **THIS DEF FIRST SHIPPED SLOT-LED (`fill.checked`) AND THAT WAS WRONG**, which is worth keeping
+ * because the error is subtle and reusable. Arm 1 only examines a key whose LITERAL leading segment is
+ * an axis value, so slot-led keys are skipped by construction — the same net coverage as an exemption,
+ * with none of the visibility. It is the shape this repo's own rule forbids: **a false positive is
+ * fixed by adding to the exemption list, never by narrowing a scan.** Reordering a key so the pattern
+ * stops matching *is* narrowing the scan, by shape instead of by declaration. Doing it properly cost
+ * ~20 renames here, paid once, and `radio` / `switch` inherit the convention for free.
  *
  * ── #871: NO SURFACE / INVERSE AXIS, AND ITS ABSENCE IS THE DECISION ────────────────────────────
  *
@@ -142,43 +148,43 @@ export const checkbox: ComponentDef = {
   // Slot-led, most specific first — see the header for why the slot leads. The bare `{slot}.{selection}`
   // is the REST value of its coordinate, which is why no `.rest` key is bound: a rest coordinate skips
   // the state-qualified template (it is unfillable) and falls through to it.
-  paintKeys: ['{slot}.{selection}.{state}', '{slot}.{selection}', '{slot}'],
+  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
 
   tokens: {
     // ── THE UNCHECKED BOX — the form-field substrate's own chrome, since an empty checkbox is a small
     // empty field. `pressed` is unbound here on purpose: `color.field.border.*` emits `rest` and
     // `hover` only, and reaching into `interactive.neutral.*` for one state would mix two families in
     // one ladder. It falls through to the rest border (`notes.unverified`).
-    'fill.unchecked': 'color.field.fill',
-    'border.unchecked': 'color.field.border.rest',
-    'border.unchecked.hover': 'color.field.border.hover',
-    'border.unchecked.error': 'color.border.danger',
+    'unchecked.fill': 'color.field.fill',
+    'unchecked.border': 'color.field.border.rest',
+    'unchecked.border.hover': 'color.field.border.hover',
+    'unchecked.border.error': 'color.border.danger',
 
     // ── THE CHECKED BOX — a filled control, so it paints from the primary interactive family. This is
     // the half that `checked`-as-a-state could not express: `fill.checked.hover` and
     // `border.checked.hover` are the coordinates a hovered checked box actually sits at.
-    'fill.checked': 'color.interactive.primary.fill.selected',
-    'fill.checked.hover': 'color.interactive.primary.fill.hover',
-    'fill.checked.pressed': 'color.interactive.primary.fill.pressed',
-    'border.checked': 'color.interactive.primary.border.rest',
-    'border.checked.hover': 'color.interactive.primary.border.hover',
-    'border.checked.pressed': 'color.interactive.primary.border.pressed',
-    'border.checked.error': 'color.border.danger',
-    'icon.checked': 'color.interactive.primary.on-fill',
+    'checked.fill': 'color.interactive.primary.fill.selected',
+    'checked.fill.hover': 'color.interactive.primary.fill.hover',
+    'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
+    'checked.border': 'color.interactive.primary.border.rest',
+    'checked.border.hover': 'color.interactive.primary.border.hover',
+    'checked.border.pressed': 'color.interactive.primary.border.pressed',
+    'checked.border.error': 'color.border.danger',
+    'checked.icon': 'color.interactive.primary.on-fill',
 
     // ── THE INDETERMINATE BOX — identical to checked at every coordinate, because only the GLYPH shape
     // differs (dash, not check). Bound explicitly rather than folded into a fallback: with nothing
     // here, an indeterminate coordinate would fall through to the bare `{slot}` — unbound for `fill`
     // and `border` — and a dash would be drawn on the unchecked white box. Verbose and visible beats
     // terse and wrong.
-    'fill.indeterminate': 'color.interactive.primary.fill.selected',
-    'fill.indeterminate.hover': 'color.interactive.primary.fill.hover',
-    'fill.indeterminate.pressed': 'color.interactive.primary.fill.pressed',
-    'border.indeterminate': 'color.interactive.primary.border.rest',
-    'border.indeterminate.hover': 'color.interactive.primary.border.hover',
-    'border.indeterminate.pressed': 'color.interactive.primary.border.pressed',
-    'border.indeterminate.error': 'color.border.danger',
-    'icon.indeterminate': 'color.interactive.primary.on-fill',
+    'indeterminate.fill': 'color.interactive.primary.fill.selected',
+    'indeterminate.fill.hover': 'color.interactive.primary.fill.hover',
+    'indeterminate.fill.pressed': 'color.interactive.primary.fill.pressed',
+    'indeterminate.border': 'color.interactive.primary.border.rest',
+    'indeterminate.border.hover': 'color.interactive.primary.border.hover',
+    'indeterminate.border.pressed': 'color.interactive.primary.border.pressed',
+    'indeterminate.border.error': 'color.border.danger',
+    'indeterminate.icon': 'color.interactive.primary.on-fill',
 
     // ── THE ROW'S LABEL — one ink at every coordinate, so it is the bare slot. It is page text sitting
     // BESIDE the control rather than value text inside a fill, which is why its disabled ink is
@@ -275,7 +281,7 @@ export const checkbox: ComponentDef = {
 
   notes: {
     contested: [
-      'THE PAINT GRAMMAR LEADS WITH THE SLOT, where `button` and `field-message` lead with an axis value. Stated as contested because it can fairly be read as routing around `lint-paint.ts` arm 1: that rule fires only on an axis-value LEAD, so slot-led keys are outside it. The argument for is that arm 1\'s premise — "an intent\'s paint comes from that intent\'s family" — is simply false for `selection`: there is no `color.checked.*` family and there should not be one. The NAMED ALTERNATIVE is to lead with `{selection}` and add a `PROVENANCE_EXCEPTIONS` entry per selection-keyed colour binding, which is what `field-message` does for its four tone mappings. It was rejected on scale, not on principle — this def would contribute roughly four times `field-message`\'s whole list to a register that exists to stay small enough to read.',
+      'THE PAINT GRAMMAR IS AXIS-LED and the exemption is declared per-AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than per-key. RESOLVED, not open — kept here because the rejected alternative is the instructive part. This def first shipped SLOT-led (`fill.checked`), which skips arm 1 by construction, since that rule only examines a key whose literal lead is an axis value: the same net coverage, none of the visibility, and exactly the shape the house rule forbids — a false positive is fixed by adding to the exemption list, never by narrowing a scan. The other alternative, axis-led with a `PROVENANCE_EXCEPTIONS` entry per binding, was costed at roughly four times `field-message`\'s whole list for this one def; the axis-level entry replaces all twenty with one declaration that `radio` and `switch` inherit. What stays genuinely open is only the underlying fact, and it is a TOKEN-TIER claim anyone can check: the tier emits no `color.checked.*` family and should not grow one. If that stops being true, arm 1 should cover this axis and the exemption fails as no-longer-exercised, which is the direction it is checked in.',
       '`checked`/`indeterminate` as a variant AXIS rather than as two `STATES` entries. The alternative is real and cheaper: both would be admissible on the letter of that list\'s bar, since six of its ten members are already not interactions. It was rejected because `{state}` holds one value per coordinate, so `checked` x `hover` would not fail — it would fall back and paint the unchecked hover border. If a future projection shows the Figma set is better served by one flat state property, that is the trigger to revisit; it is not a reason to revisit it before the anatomy block exists.',
       '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845).',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not here because they are `CheckboxGroup`\'s axes, not this component\'s. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).',

@@ -460,6 +460,71 @@ is known and the measurement is filed.
 
 ---
 
+## (2026-08-21) — The paint grammar goes axis-led, and the exemption becomes a declaration (#910 review)
+
+**STATUS: merged-ready**, folded into the `checkbox` PR rather than shipped as a follow-up, because it
+changes that def's own keys. All 34 gates green.
+
+**What review found, and it was right.** `checkbox` shipped its paint keys SLOT-led (`fill.checked`
+rather than `checked.fill`) with the reasoning recorded in `notes.contested`. The reasoning was
+correct — `lint-paint.ts` arm 1's premise, *"an intent's paint comes from that intent's family"*, is
+genuinely false for `selection`, because the tier emits no `color.checked.*` and must not grow one:
+a checked control is the same interactive family in a different ROLE, not a family of its own.
+
+**The mechanism was wrong, and the house rule names the shape exactly:**
+
+> A false positive is fixed by adding to the exemption list, never by narrowing a scan.
+
+Arm 1 examines a key only if its **literal leading segment** is a declared axis value. A slot-led key
+is therefore skipped *by construction* — the same net coverage as an exemption, achieved by shape
+instead of by declaration, and invisible. My own `notes.contested` entry had already admitted this
+*"can fairly be read as routing around a gate"*; that reading was correct.
+
+**What landed.** Three things together, because none works alone:
+
+1. **`checkbox`'s ~20 selection keys renamed axis-led** — `fill.checked` → `checked.fill`,
+   `border.checked.hover` → `checked.border.hover` — with `paintKeys` reordered to match. The rename
+   is the load-bearing half: **reordering the template alone changes nothing**, since arm 1 parses the
+   literal keys in `tokens`, never the template.
+2. **`NON_FAMILY_AXES` in `lint-paint.ts`** — a second exemption mechanism at AXIS scope beside the
+   per-key `PROVENANCE_EXCEPTIONS`, for an axis whose values name no token family and must not grow
+   one. One declaration replaces the ~20 per-key entries the axis-led shape would otherwise have
+   needed, and `radio` / `switch` inherit it for free.
+3. **Arm 1 now prints what it does NOT reach**, per axis, with the binding count, on every run —
+   `docs/34` shape 9. A count that drops without a deletion in the diff is the tell.
+
+**The difference between the two mechanisms is not what arm 1 checks — it is nothing either way. It
+is what a reader can see.** An exempt axis is named, counted and printed; a slot-led def is silently
+uncovered. That distinction is the whole of the review's argument, and it is worth restating whenever
+someone reaches for a spelling that makes a gate quiet.
+
+**What the exemption costs, measured rather than asserted, because an exemption is a real hole.**
+Repointing `checked.icon` from `color.interactive.primary.on-fill` to
+`color.interactive.destructive.on-fill` — a token that RESOLVES, so a checked checkbox paints
+destructive ink — leaves the gate **fully green**: arm 1 skips it as exempt, arm 2 cannot see it
+(`checkbox` has no `anatomy`, so it is not censusable) and arm 3 still reaches it, because the binding
+is reachable and merely wrong. **Nothing in the repo catches an intent-boundary crossing on an exempt
+axis.** The exemption does not *create* that hole — the slot-led spelling had it identically — it
+NAMES it, which is why the printed line reads NOT CHECKED. Filed as **#916**: is a weaker invariant
+available for a non-family axis, and what minimum binding count makes one meaningful.
+
+**Verified by mutation, four directions, three of which fire by name:**
+
+| mutation | result |
+|---|---|
+| delete the `NON_FAMILY_AXES` entry | **20 provenance failures on `checkbox`** — the exemption is load-bearing, not decorative |
+| exempt an axis no def declares | fails as a memory of an axis that does not exist |
+| exempt a real axis with no violating keys (`appearance`) | fails as doing no work — *"either a backing family appeared, or nothing is keyed on it"* |
+| cross an intent boundary on a selection key | **green — the measured hole above, #916** |
+
+**One process note worth carrying, because it cost a redo.** Mutation-testing reverts with
+`git checkout <file>`, which restores from the **index** — so with the real work unstaged, every
+revert silently restored `HEAD` instead of the edit under test, and the whole change was gone by the
+fourth mutation. `git add` before the first mutation, always. The tell was a mutation printing a
+*clean* result it had no business printing.
+
+---
+
 ## (2026-08-21) — `checkbox`: the decomposition calibration, and one new axis name decided for three defs
 
 **STATUS: merged-ready.** Def 2 of `docs/40` tranche 1, authored from `components/checkbox.md` per §7

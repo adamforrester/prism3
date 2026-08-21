@@ -51,6 +51,22 @@
  * too — a mapping that gets fixed at the def must be removed from here, or the list becomes a
  * memory of something that is no longer true.
  *
+ * THERE ARE TWO EXEMPTION MECHANISMS, at two scopes, and the second exists because the premise can
+ * fail for a whole AXIS rather than for a handful of keys (#910). `PROVENANCE_EXCEPTIONS` is per-key;
+ * `NON_FAMILY_AXES` is per-axis, for an axis whose values name no token family and must not grow one
+ * — `selection` is the first, since the tier emits no `color.checked.*` and a checked control is the
+ * same interactive family in a different ROLE rather than a family of its own. Both are checked in
+ * both directions. **The reason they are declarations rather than a narrower scan is the whole
+ * design**, written out at `NON_FAMILY_AXES`: `checkbox` first shipped its keys SLOT-led
+ * (`fill.checked`, not `checked.fill`), which has the identical net effect — arm 1 skips a key whose
+ * lead is not an axis value — and was rejected in review against this repo's own rule that *a false
+ * positive is fixed by adding to the exemption list, never by narrowing a scan*. What separates them
+ * is not what arm 1 checks (nothing, either way) but what a reader can SEE: an exempt axis is named,
+ * counted and printed on every run, while a slot-led def is silently uncovered.
+ *
+ * ARM 1 THEREFORE PRINTS WHAT IT DOES **NOT** REACH, every run, per axis, with the binding count —
+ * `docs/34` shape 9. A number that drops without a deletion in the diff is the tell.
+ *
  * ── ARM 2: THE CENSUS (a characterization, pinned to an authored baseline) ───────────────────────
  *
  * Arm 1 is blind to a uniform loss: dropping the state-qualified lookup does not cross an intent
@@ -179,6 +195,71 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     'same mapping as `error.label`, for the status glyph',
 };
 
+/**
+ * AXES WHOSE VALUES NAME NO TOKEN FAMILY AT ALL, each with the reason (#910).
+ *
+ * The second exemption mechanism, and it exists because arm 1's premise can fail for a whole AXIS
+ * rather than for a handful of keys. The premise is *"an intent's paint comes from that intent's
+ * family"* — `destructive.*` keys point into `color.interactive.destructive.*`. That is a real
+ * property of how semantic colour is organized, and it is what makes arm 1 a rule.
+ *
+ * **`selection` has no such family and must not grow one.** The tier emits no `color.checked.*`, and
+ * a checked control is not a different colour family from an unchecked one — it is the same
+ * interactive family in a different ROLE. A checked checkbox paints from
+ * `color.interactive.primary.*` and an unchecked one from `color.field.*`, which are the tier's own
+ * names for "a filled control" and "an empty field". Neither carries the word `checked`, and neither
+ * should.
+ *
+ * ── WHY THIS IS AN EXEMPTION AND NOT A GRAMMAR CHANGE, WHICH IS THE WHOLE POINT (#910) ──────────
+ *
+ * `checkbox` first shipped its paint keys SLOT-LED (`fill.checked` rather than `checked.fill`), which
+ * has the same net effect — arm 1 skips a key whose leading segment is not an axis value, so it never
+ * examined a single selection binding. It was rejected in review, correctly, against this repo's own
+ * house rule:
+ *
+ *     **A false positive is fixed by adding to the exemption list, never by narrowing a scan.**
+ *
+ * Reordering a key so the pattern stops matching *is* narrowing the scan — achieved by shape rather
+ * than by declaration, and therefore invisible. The difference between the two is not what arm 1
+ * checks (nothing, either way) but what the repo can SEE: a slot-led def is silently uncovered, while
+ * an entry here is a named axis with a reason, printed on every run and checked in both directions. A
+ * gate that does not cover an axis is acceptable; a gate that does not SAY which axis it does not
+ * cover is `docs/34` shape 9.
+ *
+ * ── BOTH DIRECTIONS, and the second one is the one that does the work ───────────────────────────
+ *
+ *   NOT-DECLARED — the axis is in no def's `variants`. Then this is a memory of an axis that does not
+ *   exist, the same stale claim a per-key entry naming a deleted key would be.
+ *
+ *   NOT-EXERCISED — the axis exists and NO key led by one of its values would have violated
+ *   provenance. Then the exemption is doing no work: either a backing family appeared (in which case
+ *   arm 1 should cover it and this entry is now a hole) or nothing is keyed on the axis at all. Its
+ *   removal is free, so keeping it only misinforms the next reader about what the rule reaches.
+ *
+ * This is deliberately NOT a licence to add an axis here whenever arm 1 is inconvenient. The bar is
+ * what the paragraph above states as a fact about the TOKEN TIER, checkable by anyone: there is no
+ * family named for this axis's values, and there should not be. An axis whose values *could* have a
+ * family and simply do not yet is a token-tier gap, not an exemption.
+ *
+ * ── WHAT IT COSTS, MEASURED RATHER THAN ASSERTED, BECAUSE AN EXEMPTION IS A REAL HOLE ───────────
+ *
+ * Mutation, run when this was added: repointing `checkbox`'s `checked.icon` from
+ * `color.interactive.primary.on-fill` to `color.interactive.destructive.on-fill` — a token that
+ * RESOLVES, so a checked checkbox paints destructive ink — leaves this gate **fully green**. Arm 1
+ * skips it as exempt; arm 2 cannot see it (`checkbox` has no `anatomy`, so it is not censusable); arm
+ * 3 still reaches it, because the binding is reachable, just wrong. **Nothing in the repo catches an
+ * intent-boundary crossing on an exempt axis.**
+ *
+ * That is the same hole the slot-led spelling had — this entry does not create it, it NAMES it — and
+ * it is the honest reason the printed line says NOT CHECKED rather than "exempted". Whether a weaker
+ * invariant is available for a non-family axis (every value of one axis resolving into a consistent
+ * family, say) is a real question and is filed as #916 rather than guessed at here.
+ */
+const NON_FAMILY_AXES: Record<string, string> = {
+  selection:
+    "the tier emits no `color.checked.*` / `color.unchecked.*` and must not: a checked control is not a different colour FAMILY, it is the same interactive family in a different ROLE — `color.interactive.primary.*` for a filled control against `color.field.*` for an empty field. So arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Admitted by #910 for `checkbox`, and inherited by every selection control after it.",
+};
+
 type Tally = { members: number; assignments: number; sha256: string };
 type Census = {
   note: string;
@@ -261,9 +342,14 @@ const censusable = (): ComponentDef[] => componentDefs.filter((d) => !!d.anatomy
  * coincidence — `color.interactive.primary-subtle.fill` contains `primary` without being that
  * intent's family. The #563 finding, in its smallest form.
  */
-const provenanceFailures = (): { key: string; detail: string }[] => {
+const provenanceFailures = (): { failures: { key: string; detail: string }[]; exempted: Map<string, number> } => {
   const out: { key: string; detail: string }[] = [];
   const satisfied = new Set<string>();
+  // Which NON_FAMILY_AXES entries actually covered a binding that would otherwise have FAILED. An axis
+  // whose keys all satisfy provenance anyway needs no exemption, so this is the counter the stale
+  // direction below reads — not "is the axis declared", which a def can satisfy while binding nothing
+  // on it.
+  const exercised = new Map<string, number>();
   for (const def of componentDefs) {
     for (const [key, ref] of Object.entries(def.tokens ?? {})) {
       if (!ref.startsWith('color.')) continue;
@@ -272,9 +358,26 @@ const provenanceFailures = (): { key: string; detail: string }[] => {
       if (!axis) continue; // not axis-value-led — arm 1 says nothing about it
       const id = `${def.id}|${key}`;
       if (ref.split('.').includes(lead)) { satisfied.add(id); continue; }
+      // The AXIS-level exemption is consulted after `satisfied`, deliberately: a key that does carry
+      // its axis value is covered by the rule normally even on an exempt axis, so the exemption can
+      // never take credit for a binding the rule already reached.
+      if (axis in NON_FAMILY_AXES) { exercised.set(axis, (exercised.get(axis) ?? 0) + 1); continue; }
       if (id in PROVENANCE_EXCEPTIONS) continue;
       out.push({ key: id, detail: `${axis}='${lead}' is absent from '${ref}' — a ${lead} coordinate would paint another ${axis}'s colour` });
     }
+  }
+  // NON_FAMILY_AXES, both directions — the same discipline as the per-key list.
+  for (const [axis, why] of Object.entries(NON_FAMILY_AXES)) {
+    if (!componentDefs.some((d) => axis in (d.variants ?? {})))
+      out.push({ key: `axis:${axis}`, detail: `exempted AXIS is declared by no def — remove the entry, it is a memory of an axis that does not exist (${why.slice(0, 50)}…)` });
+    else if (!exercised.has(axis))
+      out.push({
+        key: `axis:${axis}`,
+        detail:
+          'exempted AXIS covers no binding that would otherwise violate provenance — the exemption does no work. '
+          + 'Either a backing token family appeared (in which case arm 1 should cover this axis and the entry is now a HOLE), '
+          + 'or nothing is keyed on it. Remove the entry.',
+      });
   }
   // The other direction: an exemption for a key that now satisfies the rule (or no longer exists) is
   // a stale memory, and this gate's whole purpose is to not keep those.
@@ -286,7 +389,7 @@ const provenanceFailures = (): { key: string; detail: string }[] => {
     else if (satisfied.has(id))
       out.push({ key: id, detail: 'exempted key now SATISFIES provenance — remove the exception so the rule covers it' });
   }
-  return out;
+  return { failures: out, exempted: exercised };
 };
 
 /**
@@ -378,9 +481,14 @@ const main = (): void => {
   console.log('Prism3 paint gate (#758)\n');
 
   // ── ARM 1 ─────────────────────────────────────────────────────────────────────────────────────
-  const prov = provenanceFailures();
+  const { failures: prov, exempted } = provenanceFailures();
   for (const f of prov) fails.push(`provenance: ${f.key} — ${f.detail}`);
-  console.log(`  provenance rule … ${prov.length === 0 ? 'ok' : `${prov.length} violation(s)`} (${Object.keys(PROVENANCE_EXCEPTIONS).length} named exception(s))`);
+  console.log(`  provenance rule … ${prov.length === 0 ? 'ok' : `${prov.length} violation(s)`} (${Object.keys(PROVENANCE_EXCEPTIONS).length} named key exception(s))`);
+  // WHAT THE RULE DOES NOT REACH, printed every run rather than left silent — `docs/34` shape 9. An
+  // axis exemption that stops being named here has stopped applying, which a reader can notice; a def
+  // that quietly spelled its keys so the rule never matched is not noticeable at all.
+  for (const [axis, why] of Object.entries(NON_FAMILY_AXES))
+    console.log(`  provenance NOT checked on axis '${axis}' — ${exempted.get(axis) ?? 0} binding(s) exempted: ${why.split(':')[0]}`);
 
   // ── ARM 2 ─────────────────────────────────────────────────────────────────────────────────────
   const actual: Census['defs'] = {};
