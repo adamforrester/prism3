@@ -1,0 +1,42 @@
+{
+  "$comment": "AUTHORED BASELINE for docs/42-current-decisions.md (#886). Not a regen artifact: regenerated from a scan of the docs, it would classify its own membership and report that as a pass, the same argument that keeps payload-manifest.json and token-contract.json out of regen.ts. A 'Decided (date, #issue): title' heading anywhere in docs/ that has no row here fails lint-decisions-index.ts's converse arm. Append with `npx tsx packages/engine/lint-decisions-index.ts --accept`, which appends only and refuses to rewrite an existing row — a superseding decision is a hand edit, same posture as lint-shape-index.ts.",
+  "policy": "append-only",
+  "document": "docs/42-current-decisions.md",
+  "decisions": [
+    {
+      "date": "2026-08-13",
+      "issue": 758,
+      "title": "paint keys are declared by the def, as templates",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.1"
+    },
+    {
+      "date": "2026-08-14",
+      "issue": 756,
+      "title": "the engine's rung names are the API, and the default is `md`",
+      "doc": "docs/28-component-anatomy-schema.md",
+      "section": "5.2"
+    },
+    {
+      "date": "2026-08-20",
+      "issue": 871,
+      "title": "cascade to publish, surface as its own Figma collection",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.1"
+    },
+    {
+      "date": "2026-08-21",
+      "issue": 891,
+      "title": "normalize `on-inverse` and `-inverse` to `.inverse.`",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.2"
+    },
+    {
+      "date": "2026-08-21",
+      "issue": 894,
+      "title": "case-by-case ranges, not one universal rule",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.3"
+    }
+  ]
+}

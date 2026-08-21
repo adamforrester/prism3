@@ -108,6 +108,14 @@ npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo
                                                     # The second half is the point: two of the three
                                                     # defects that filed this were ABSENCES, and no sweep
                                                     # for wrong strings finds a row that is not there
+npx tsx packages/engine/lint-decisions-index.ts      # every recorded decision is indexed, and every
+                                                    # index row is real (#886), both directions: an
+                                                    # index row must resolve to a real `Decided (date,
+                                                    # #issue): title` heading in its named doc, and
+                                                    # every such heading anywhere in `docs/` must be
+                                                    # indexed. The converse is the point — nothing else
+                                                    # catches a decision that exists only in an issue
+                                                    # thread, or a decision superseded by a later one
 npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
                                                     # (#674). The manifest is AUTHORED, never regenerated:
                                                     # built from a scan it would classify each new artifact

@@ -119,6 +119,38 @@ The real need: a **light CTA on a dark hero / dark section**, which a light-only
 
 Prism3 keeps inverse but reframes it as a **surface *context*** ("this control sits on an inverse/dark surface"), independent of light/dark theme, **generated and contrast-verified** rather than hand-authored. Generation absorbs the volume that made it painful; it's applied consistently (primary certainly; destructive too if opted, for consistency). "Usually resolves to white, but not always" becomes a per-brand derivation the engine gates.
 
+### 9.1 Decided (2026-08-20, #871): cascade to publish, surface as its own Figma collection
+
+**Cascade to publish context; surface as its own Figma collection, orthogonal to appearance; no per-component surface axis.** Three research passes (KB PRs #20, #21, #22) plus measurement against our own tree settled it.
+
+`tools/exporter-comparison/axes.ts` already records that a brand's Figma emission carries three independent mode axes — appearance, breakpoint, viewport — against the DTCG projection's one appearance-only axis. **`surface` is a fourth instance of a pattern with three working instances**, not new architecture.
+
+Measured before deciding: inverse is not dark mode (96 tokens match their dark-mode counterpart across all four brands, 40 differ, clustered on `interactive.*.fill.*`/`on-fill` — a primary button on a dark band takes a near-white fill, the same button in full dark mode takes a mid-tone brand fill; collapsing the two would silently change forty values). The alias layer is brand-independent (all four brands ship the identical 40 inverse token names, zero divergence — 36 predates #576's border states, corrected in #891/#893's own intake), so the surface collection holds no colour values at all — pure indirection, authored once, shared by every brand.
+
+**The crossed alternative** (`light / light-inverse / dark / dark-inverse` as eight modes in one collection) was pressure-tested and rejected: it loses on inheritance (a Figma frame takes one mode per collection, so an inverse section tagged `light-inverse` is silently wrong the moment the page flips to dark) and re-creates the appearance/context conflation `axes.ts` exists to prevent.
+
+**Acceptance check carried forward:** the alias layer holds only while every brand's semantic leaves resolve to a real inverse counterpart by contract, not by luck. The first hand-authored client brand — where a brand's inverse context might need a structurally different semantic role rather than a different value — is where this gets tested for real.
+
+Sequenced after #891 (§9.2): the alias layer references these names, and shipping it before the rename makes the inconsistency permanent and invisible.
+
+### 9.2 Decided (2026-08-21, #891): normalize `on-inverse` and `-inverse` to `.inverse.`
+
+Three spellings for one concept existed across the emitted tree: `.inverse.` as a path segment (`background`, `foreground`), `.on-inverse` as a path segment (`interactive.{primary,neutral,destructive}`, `text`, `icon`), and `-inverse` as a hyphenated suffix (`border.focus-inverse`) — with `border` using two of the three at once (`border.inverse` and `border.focus-inverse` together).
+
+**All three normalize to `.inverse.` as a path segment, everywhere**, so that `on-` means exactly one thing (ink on X) and `.inverse.` means exactly one thing (the inverse-context variant) across the whole tree — `interactive.primary.inverse.on-fill` then reads as *ink on the inverse fill*, matching its own `$description`. 30+ guaranteed token paths move; `CONTRACT_VERSION` takes a MAJOR bump.
+
+Landed before tranche 1 authoring and before #871's alias layer (§9.1) deliberately: the alias layer would reference these names, and shipping it first would make the inconsistency permanent and invisible — consumers would stop reading the underlying names at all.
+
+### 9.3 Decided (2026-08-21, #894): case-by-case ranges, not one universal rule
+
+Whether a colour-selecting control's *range* — which palettes it may point at — should follow one universal rule ("any control that selects a colour should be able to select any declared palette") turned out to decide differently per control, and the reasoning is durable past the two controls that raised it:
+
+**A semantic palette like `success` is already customizable at the palette level** — derived, custom hex, or pointed at a custom palette (§3a). Widening a control's *range* to accept any declared palette directly, where that outcome is already reachable through palette-level customization, is a second mechanism for the same result, plus an unusable menu of every step of every palette.
+
+**Allow-and-flag is a contrast policy, not a range policy — it does not transfer.** Both the text-colour and inverse-surface controls flag rather than block a contrast failure; that shared contrast posture says nothing about whether their *range* questions have the same answer, because contrast policy and range are independent axes.
+
+So: `textPalettes` (a text-colour range widening) and the inverse-surface control's range widening are decided on their own merits, each time, not by a shared rule.
+
 ## 10. Levers (brand inputs)
 
 - **`outlineInteraction`** — `overlay-neutral` · `overlay-tint` (the colour's hue at low alpha) · `solid-tint` · `none`. How an outline/text control expresses hover (the "what do we fill it with" question, answered per brand). *(inc-2: `overlay-neutral` (default) generates the neutral washes + composited-contrast gate; `solid-tint`/`none` opt out. `overlay-tint` is scheduled — needs per-colour alpha ramps.)*

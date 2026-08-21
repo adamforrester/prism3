@@ -7,6 +7,51 @@
 
 ---
 
+## (2026-08-21) — A current-decisions index, gated both directions (#886)
+
+**STATUS: shipped.** `docs/42-current-decisions.md` is the router #886 asked for — one row per live
+decision, what was decided, when, and which doc § owns it — backed by an authored baseline
+(`schema/decisions-index.json`) and a new gate, `lint-decisions-index.ts`, checked in both directions:
+every indexed decision resolves to a real `Decided (date, #issue): title` heading, and every such
+heading anywhere in `docs/` is indexed. The converse is the one that does the work, per `docs/34`'s own
+argument about forward-only promise lists — a decision recorded and never indexed is exactly the gap
+this file exists to close, and a forward-only check cannot see it.
+
+**Why an index and not a fifth vision document.** Three docs already claim north-star status
+(`07-e2e-journey`, `11-multi-brand-vision`, `35-naming-and-packaging`) and all three went eight days
+untouched while real platform and architecture decisions landed around them. A vision doc restates
+content that lives elsewhere, which makes it the fastest thing in the repo to go stale and the least
+gateable — its claims are prose about intent, not checkable references. An index is pointers, and
+pointers are checkable the same way `lint-layout-claims.ts` already checks paths.
+
+**The convention is lifted from a real precedent, not invented.** `docs/28` §5.1 and §5.2 already used
+`### N.M Decided (YYYY-MM-DD, #NNN): title` headings before this gate existed. That is now the
+repo-wide convention, heading-level rather than inline — an inline `**Decision:**` paragraph is not a
+section a reader can be routed to, and is not reliably distinguishable from ordinary bold emphasis at
+scale (`docs/34` shape 13's scope-vs-promise gap, one level up).
+
+**Seeded honestly, not padded.** Two pre-existing entries (`docs/28` §5.1, §5.2) plus three new ones
+written up from real, already-settled owner decisions this batch surfaced: #871 (surface-context
+cascade), #891 (the `.inverse.` spelling normalization, scope-widened the same day), #894 (case-by-case
+control ranges, not one universal rule) — landed as `docs/20` §9.1–9.3. **#895 was deliberately left
+out**: it's a confirmed defect, but its own record is explicit that the fix decision (remove the lever
+vs. demote 30 paths to `brandDependent`) is still the owner's to make, and indexing it now would assert
+a decision that hasn't happened. Four pre-existing inline-marked decisions (`docs/07` ×2, `docs/20` §5,
+`docs/23`, `docs/35`) are named in `docs/42` as a known, visible gap rather than silently migrated.
+
+**Mutation-verified per `docs/34`'s own discipline**, not just read: a retitled baseline row fires both
+`ROW NOT FOUND` and `UNINDEXED DECISION` by name; a `section` pointer that disagrees with the heading's
+own prefix fires `SECTION POINTER STALE`; a new `Decided (...)` heading with no baseline row fires
+`UNINDEXED DECISION`, and `--accept` appends it correctly while refusing on a genuine disagreement.
+
+**Merge-order note, since this entry's own subject makes it worth stating precisely:** this PR (#899)
+and #907 both added a gate and edited the same five gate-list files. Landed in the agreed order —
+#907 first, this one rebased on top — with a full `npm run verify` re-run on the rebased tree rather
+than a trusted textual merge, per #907's own note on why a clean merge is not sufficient when nothing
+in the repo asserts a gate *total*.
+
+---
+
 ## (2026-08-21) — The build that finished and never said so (#870)
 
 **STATUS: shipped.** Two defects fixed in `apps/studio/src/main.ts`, plus a permanent browser gate,
