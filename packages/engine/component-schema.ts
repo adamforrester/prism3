@@ -1285,10 +1285,43 @@ export type State = (typeof STATES)[number];
  * `variants` is the AUTHOR's axis set and `figmaProperties.variantAxes` is the projected subset — #795
  * is exactly the change that made those two different questions. A reader who conflates them will try
  * to delete this entry.
+ *
+ * ── `selection`: THE TENTH NAME, ADDED FOR THE SELECTION-CONTROL FAMILY (checkbox, radio, switch) ──
+ *
+ * Admitted with `checkbox` (KB `components/checkbox.md` §4). It names the kind of distinction *"which
+ * of this control's mutually-exclusive selection values is showing"* — checkbox `[unchecked, checked,
+ * indeterminate]`, and the same axis on `radio` and `switch` when those are authored.
+ *
+ * **DECIDED ONCE, FOR THREE DEFS, WHICH IS THE ONLY REASON IT IS HERE AND NOT IN THE FIRST DEF THAT
+ * WANTED IT.** Checkbox, radio and switch each meet this question independently, and three defs each
+ * answering it alone is #756's failure mode exactly: `selection` / `selected` / `state` / `on` are four
+ * spellings of one axis, every one individually defensible, and the census that would catch them runs
+ * after all three have shipped. `pending`/`loading` (#843) is what that costs when it is only two defs
+ * and one word. So the NAME is settled here for the family; the VALUES stay open per the asymmetry
+ * above, with the recommendation that they follow native DOM — `checked`/`unchecked` is the word ARIA
+ * uses for all three (`aria-checked` covers `checkbox`, `radio` AND `role="switch"`), so a switch
+ * spelling its axis `[off, on]` should be a decision somebody takes rather than a default.
+ *
+ * ── WHY AN AXIS AND NOT TWO ENTRIES IN `STATES`, WHICH WAS THE CHEAPER ANSWER ────────────────────
+ *
+ * `checked` and `indeterminate` would both be admissible `STATES` entries on the letter of that list's
+ * bar — six of its ten members are already non-interactions (`empty`, `error`, `pending`, `read-only`,
+ * `inactive`, `disabled`), so "a distinct interaction" is not what the list actually contains. The
+ * reason it is an axis is MECHANICAL and it is about a coordinate that would paint the wrong colour:
+ *
+ *     `{state}` holds ONE value per coordinate, so `checked` as a state makes `checked` × `hover`
+ *     inexpressible — and it does not fail, it FALLS BACK. A hovered checked box resolves the state
+ *     `hover`, finds the UNCHECKED hover border, and paints it. That is #708's shape: a wrong value
+ *     that resolves, invisible to every gate.
+ *
+ * An axis crosses with the state axis by construction (`{slot}.{selection}.{state}`), which is what
+ * `button` already does with `{intent}.{appearance}.{slot}.{state}`. The precedent for a RUNTIME-driven
+ * axis is `field-message`'s `tone`, whose values are validation outcomes rather than author choices —
+ * so "variants is the author's set" is about who OWNS the axis, not about who moves it.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone', 'color',
-  'width', 'style', 'indicator', 'offset',
+  'width', 'style', 'indicator', 'offset', 'selection',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -1313,6 +1346,10 @@ const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   // Same case, same removal trigger: `textarea` binds the substrate's ring and has no `anatomy` yet,
   // so `nests` cannot see it either. Both entries go when their anatomy blocks land.
   'textarea': ['focus-ring'],
+  // Third instance, same shape. `checkbox`'s ring is the CONTROL ring (`focus.ring.offset`) rather than
+  // the field's flush one, but the binding is structurally Button's and the def has no `anatomy`, so
+  // `nests` cannot see it either.
+  'checkbox': ['focus-ring'],
 };
 
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */

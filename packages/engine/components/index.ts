@@ -41,6 +41,7 @@ import { fieldLabel } from './field-label';
 import { fieldMessage } from './field-message';
 import { textField } from './text-field';
 import { textarea } from './textarea';
+import { checkbox } from './checkbox';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -48,7 +49,7 @@ import { textarea } from './textarea';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea };
+export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -67,4 +68,8 @@ export const componentDefs: readonly ComponentDef[] = [
   // `textarea` follows `text-field` for the same reason `icon-button` follows `button`: composition
   // order, and it `inherits` the def above it.
   textarea,
+  // `checkbox` likewise `inherits` the field substrate. It sits after `textarea` rather than beside it
+  // because composition order is the ordering rule and nothing more: both are children of the same
+  // parent, so their relative order carries no claim.
+  checkbox,
 ];
