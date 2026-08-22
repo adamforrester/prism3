@@ -246,9 +246,10 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
  * Mutation, run when this was added: repointing `checkbox`'s `checked.icon` from
  * `color.interactive.primary.on-fill` to `color.interactive.destructive.on-fill` — a token that
  * RESOLVES, so a checked checkbox paints destructive ink — leaves this gate **fully green**. Arm 1
- * skips it as exempt; arm 2 cannot see it (`checkbox` has no `anatomy`, so it is not censusable); arm
- * 3 still reaches it, because the binding is reachable, just wrong. **Nothing in the repo catches an
- * intent-boundary crossing on an exempt axis.**
+ * skips it as exempt; arm 2 and arm 3 BOTH decline it for the identical reason — `checkbox` has no
+ * `anatomy`, and `reachability()` refuses a def with no `anatomy` exactly as `censusable()` does, so
+ * neither is censusable nor reachability-checked. **Nothing in the repo catches an intent-boundary
+ * crossing on an exempt axis.**
  *
  * That is the same hole the slot-led spelling had — this entry does not create it, it NAMES it — and
  * it is the honest reason the printed line says NOT CHECKED rather than "exempted". Whether a weaker
