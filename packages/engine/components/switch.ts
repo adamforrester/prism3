@@ -137,7 +137,7 @@
  *
  * Know the cost before reading the grammar as covered: **arm 1 fires only on a key whose LEADING
  * segment is a declared axis value, and `selection` is exempt from it per-axis** — so none of these
- * 14 bindings is checked by arm 1, and nothing else checks them either (#916). The gate PRINTS that
+ * 16 bindings is checked by arm 1, and nothing else checks them either (#916). The gate PRINTS that
  * per axis on every run, which is the whole difference from the slot-led shape.
  *
  * ── THE RUNG OFFSET, AND WHY THERE ARE ONLY TWO RUNGS (#756, `docs/40` §7 step 2) ───────────────
