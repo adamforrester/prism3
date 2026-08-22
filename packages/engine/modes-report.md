@@ -36,6 +36,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.warning-subtle | amber.100 | — | — | · |
 | foreground.danger-subtle | red.100 | — | — | · |
 | foreground.info-subtle | info.100 | — | — | · |
+| foreground.inverse.brand | red.550 | 3.20 | 3 | ✅ |
+| foreground.inverse.success | green.500 | 3.67 | 3 | ✅ |
+| foreground.inverse.warning | amber.500 | 3.99 | 3 | ✅ |
+| foreground.inverse.danger | red.550 | 3.20 | 3 | ✅ |
+| foreground.inverse.info | info.500 | 3.94 | 3 | ✅ |
 | foreground.inverse.brand-subtle | red.900 | — | — | · |
 | foreground.inverse.success-subtle | green.900 | — | — | · |
 | foreground.inverse.warning-subtle | amber.900 | — | — | · |
@@ -137,6 +142,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | disabled.text | neutral.450 | 3.16 | 3 | ✅ |
 | disabled.icon | neutral.450 | 3.16 | 3 | ✅ |
 | disabled.border | neutral.200 | — | — | · |
+| disabled.inverse.fill | neutral.800 | — | — | · |
+| disabled.inverse.on-fill | neutral.500 | 3.02 | 3 | ✅ |
+| disabled.inverse.text | neutral.550 | 3.27 | 3 | ✅ |
+| disabled.inverse.icon | neutral.550 | 3.27 | 3 | ✅ |
+| disabled.inverse.border | neutral.800 | — | — | · |
 | field.fill | neutral.050 | — | — | · |
 | field.border.rest | neutral.400 | 3.27 | 3 | ✅ |
 | field.border.hover | neutral.500 | 4.59 | 3 | ✅ |
@@ -231,6 +241,13 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.warning | amber.500 | 4.50 | 3 | ✅ |
 | border.danger | red.500 | 4.58 | 3 | ✅ |
 | border.info | info.500 | 4.56 | 3 | ✅ |
+| border.inverse.primary | neutral.800 | — | — | · |
+| border.inverse.secondary | neutral.600 | — | — | · |
+| border.inverse.brand | red.500 | 4.24 | 3 | ✅ |
+| border.inverse.success | green.500 | 3.97 | 3 | ✅ |
+| border.inverse.warning | amber.500 | 4.32 | 3 | ✅ |
+| border.inverse.danger | red.500 | 4.24 | 3 | ✅ |
+| border.inverse.info | info.500 | 4.27 | 3 | ✅ |
 | border.focus | red.550 | 5.62 | 3 | ✅ |
 | border.inverse.focus | red.550 | 3.46 | 3 | ✅ |
 
@@ -260,6 +277,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.warning-subtle | amber.900 | — | — | · |
 | foreground.danger-subtle | red.900 | — | — | · |
 | foreground.info-subtle | info.900 | — | — | · |
+| foreground.inverse.brand | red.550 | 4.62 | 3 | ✅ |
+| foreground.inverse.success | green.500 | 4.02 | 3 | ✅ |
+| foreground.inverse.warning | amber.500 | 3.70 | 3 | ✅ |
+| foreground.inverse.danger | red.550 | 4.62 | 3 | ✅ |
+| foreground.inverse.info | info.500 | 3.75 | 3 | ✅ |
 | foreground.inverse.brand-subtle | red.100 | — | — | · |
 | foreground.inverse.success-subtle | green.100 | — | — | · |
 | foreground.inverse.warning-subtle | amber.100 | — | — | · |
@@ -361,6 +383,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | disabled.text | neutral.550 | 3.27 | 3 | ✅ |
 | disabled.icon | neutral.550 | 3.27 | 3 | ✅ |
 | disabled.border | neutral.750 | — | — | · |
+| disabled.inverse.fill | neutral.250 | — | — | · |
+| disabled.inverse.on-fill | neutral.600 | 3.22 | 3 | ✅ |
+| disabled.inverse.text | neutral.450 | 3.16 | 3 | ✅ |
+| disabled.inverse.icon | neutral.450 | 3.16 | 3 | ✅ |
+| disabled.inverse.border | neutral.250 | — | — | · |
 | field.fill | neutral.900 | — | — | · |
 | field.border.rest | neutral.550 | 3.54 | 3 | ✅ |
 | field.border.hover | neutral.450 | 5.06 | 3 | ✅ |
@@ -455,6 +482,13 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.warning | amber.500 | 4.32 | 3 | ✅ |
 | border.danger | red.500 | 4.24 | 3 | ✅ |
 | border.info | info.500 | 4.27 | 3 | ✅ |
+| border.inverse.primary | neutral.200 | — | — | · |
+| border.inverse.secondary | neutral.500 | — | — | · |
+| border.inverse.brand | red.500 | 4.27 | 3 | ✅ |
+| border.inverse.success | green.500 | 4.56 | 3 | ✅ |
+| border.inverse.warning | amber.500 | 4.19 | 3 | ✅ |
+| border.inverse.danger | red.500 | 4.27 | 3 | ✅ |
+| border.inverse.info | info.500 | 4.25 | 3 | ✅ |
 | border.focus | red.550 | 3.46 | 3 | ✅ |
 | border.inverse.focus | red.550 | 5.24 | 3 | ✅ |
 
@@ -484,6 +518,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.warning-subtle | amber.100 | — | — | · |
 | foreground.danger-subtle | red.100 | — | — | · |
 | foreground.info-subtle | info.100 | — | — | · |
+| foreground.inverse.brand | red.350 | 7.52 | 7 | ✅ |
+| foreground.inverse.success | green.350 | 7.19 | 7 | ✅ |
+| foreground.inverse.warning | amber.350 | 7.61 | 7 | ✅ |
+| foreground.inverse.danger | red.350 | 7.52 | 7 | ✅ |
+| foreground.inverse.info | info.350 | 7.52 | 7 | ✅ |
 | foreground.inverse.brand-subtle | red.900 | — | — | · |
 | foreground.inverse.success-subtle | green.900 | — | — | · |
 | foreground.inverse.warning-subtle | amber.900 | — | — | · |
@@ -585,6 +624,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | disabled.text | neutral.550 | 4.52 | 4.5 | ✅ |
 | disabled.icon | neutral.550 | 4.52 | 4.5 | ✅ |
 | disabled.border | neutral.200 | — | — | · |
+| disabled.inverse.fill | neutral.800 | — | — | · |
+| disabled.inverse.on-fill | neutral.350 | 4.95 | 4.5 | ✅ |
+| disabled.inverse.text | neutral.500 | 4.57 | 4.5 | ✅ |
+| disabled.inverse.icon | neutral.500 | 4.57 | 4.5 | ✅ |
+| disabled.inverse.border | neutral.800 | — | — | · |
 | field.fill | white | — | — | · |
 | field.border.rest | neutral.500 | 4.59 | 4.5 | ✅ |
 | field.border.hover | neutral.600 | 6.69 | 4.5 | ✅ |
@@ -679,6 +723,13 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.warning | amber.500 | 4.50 | 4.5 | ✅ |
 | border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
+| border.inverse.primary | neutral.500 | — | — | · |
+| border.inverse.secondary | neutral.250 | — | — | · |
+| border.inverse.brand | red.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.success | green.450 | 5.11 | 4.5 | ✅ |
+| border.inverse.warning | amber.500 | 4.67 | 4.5 | ✅ |
+| border.inverse.danger | red.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.info | info.500 | 4.61 | 4.5 | ✅ |
 | border.focus | red.700 | 10.03 | 4.5 | ✅ |
 | border.inverse.focus | red.500 | 4.58 | 4.5 | ✅ |
 
@@ -708,6 +759,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | foreground.warning-subtle | amber.900 | — | — | · |
 | foreground.danger-subtle | red.900 | — | — | · |
 | foreground.info-subtle | info.900 | — | — | · |
+| foreground.inverse.brand | red.650 | 8.29 | 7 | ✅ |
+| foreground.inverse.success | green.600 | 7.03 | 7 | ✅ |
+| foreground.inverse.warning | amber.650 | 8.08 | 7 | ✅ |
+| foreground.inverse.danger | red.650 | 8.29 | 7 | ✅ |
+| foreground.inverse.info | info.650 | 8.15 | 7 | ✅ |
 | foreground.inverse.brand-subtle | red.100 | — | — | · |
 | foreground.inverse.success-subtle | green.100 | — | — | · |
 | foreground.inverse.warning-subtle | amber.100 | — | — | · |
@@ -809,6 +865,11 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | disabled.text | neutral.450 | 4.68 | 4.5 | ✅ |
 | disabled.icon | neutral.450 | 4.68 | 4.5 | ✅ |
 | disabled.border | neutral.750 | — | — | · |
+| disabled.inverse.fill | neutral.250 | — | — | · |
+| disabled.inverse.on-fill | neutral.700 | 4.73 | 4.5 | ✅ |
+| disabled.inverse.text | neutral.500 | 4.59 | 4.5 | ✅ |
+| disabled.inverse.icon | neutral.500 | 4.59 | 4.5 | ✅ |
+| disabled.inverse.border | neutral.250 | — | — | · |
 | field.fill | black | — | — | · |
 | field.border.rest | neutral.500 | 4.57 | 4.5 | ✅ |
 | field.border.hover | neutral.400 | 6.41 | 4.5 | ✅ |
@@ -903,6 +964,13 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.warning | amber.500 | 4.67 | 4.5 | ✅ |
 | border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | border.info | info.500 | 4.61 | 4.5 | ✅ |
+| border.inverse.primary | neutral.500 | — | — | · |
+| border.inverse.secondary | neutral.700 | — | — | · |
+| border.inverse.brand | red.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.success | green.500 | 4.89 | 4.5 | ✅ |
+| border.inverse.warning | amber.500 | 4.50 | 4.5 | ✅ |
+| border.inverse.danger | red.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | red.300 | 8.77 | 4.5 | ✅ |
 | border.inverse.focus | red.550 | 5.62 | 4.5 | ✅ |
 
@@ -1002,6 +1070,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.warning-subtle | warning.100 | — | — | · |
 | foreground.danger-subtle | danger.100 | — | — | · |
 | foreground.info-subtle | info.100 | — | — | · |
+| foreground.inverse.brand | primary.500 | 3.91 | 3 | ✅ |
+| foreground.inverse.success | success.500 | 3.90 | 3 | ✅ |
+| foreground.inverse.warning | warning.500 | 3.90 | 3 | ✅ |
+| foreground.inverse.danger | danger.500 | 3.92 | 3 | ✅ |
+| foreground.inverse.info | info.500 | 3.93 | 3 | ✅ |
 | foreground.inverse.brand-subtle | primary.900 | — | — | · |
 | foreground.inverse.success-subtle | success.900 | — | — | · |
 | foreground.inverse.warning-subtle | warning.900 | — | — | · |
@@ -1103,6 +1176,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | disabled.text | neutral.450 | 3.16 | 3 | ✅ |
 | disabled.icon | neutral.450 | 3.16 | 3 | ✅ |
 | disabled.border | neutral.200 | — | — | · |
+| disabled.inverse.fill | neutral.800 | — | — | · |
+| disabled.inverse.on-fill | neutral.500 | 3.07 | 3 | ✅ |
+| disabled.inverse.text | neutral.550 | 3.23 | 3 | ✅ |
+| disabled.inverse.icon | neutral.550 | 3.23 | 3 | ✅ |
+| disabled.inverse.border | neutral.800 | — | — | · |
 | field.fill | neutral.050 | — | — | · |
 | field.border.rest | neutral.400 | 3.26 | 3 | ✅ |
 | field.border.hover | neutral.500 | 4.54 | 3 | ✅ |
@@ -1197,6 +1275,13 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.warning | warning.500 | 4.59 | 3 | ✅ |
 | border.danger | danger.500 | 4.56 | 3 | ✅ |
 | border.info | info.500 | 4.56 | 3 | ✅ |
+| border.inverse.primary | neutral.800 | — | — | · |
+| border.inverse.secondary | neutral.600 | — | — | · |
+| border.inverse.brand | primary.500 | 4.25 | 3 | ✅ |
+| border.inverse.success | success.500 | 4.23 | 3 | ✅ |
+| border.inverse.warning | warning.500 | 4.23 | 3 | ✅ |
+| border.inverse.danger | danger.500 | 4.26 | 3 | ✅ |
+| border.inverse.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | accent.500 | 4.56 | 3 | ✅ |
 | border.inverse.focus | accent.500 | 4.26 | 3 | ✅ |
 
@@ -1226,6 +1311,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.warning-subtle | warning.900 | — | — | · |
 | foreground.danger-subtle | danger.900 | — | — | · |
 | foreground.info-subtle | info.900 | — | — | · |
+| foreground.inverse.brand | primary.550 | 5.29 | 3 | ✅ |
+| foreground.inverse.success | success.500 | 3.78 | 3 | ✅ |
+| foreground.inverse.warning | warning.500 | 3.78 | 3 | ✅ |
+| foreground.inverse.danger | danger.500 | 3.76 | 3 | ✅ |
+| foreground.inverse.info | info.500 | 3.76 | 3 | ✅ |
 | foreground.inverse.brand-subtle | primary.100 | — | — | · |
 | foreground.inverse.success-subtle | success.100 | — | — | · |
 | foreground.inverse.warning-subtle | warning.100 | — | — | · |
@@ -1327,6 +1417,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | disabled.text | neutral.550 | 3.23 | 3 | ✅ |
 | disabled.icon | neutral.550 | 3.23 | 3 | ✅ |
 | disabled.border | neutral.750 | — | — | · |
+| disabled.inverse.fill | neutral.250 | — | — | · |
+| disabled.inverse.on-fill | neutral.600 | 3.21 | 3 | ✅ |
+| disabled.inverse.text | neutral.450 | 3.16 | 3 | ✅ |
+| disabled.inverse.icon | neutral.450 | 3.16 | 3 | ✅ |
+| disabled.inverse.border | neutral.250 | — | — | · |
 | field.fill | neutral.900 | — | — | · |
 | field.border.rest | neutral.550 | 3.51 | 3 | ✅ |
 | field.border.hover | neutral.450 | 5.06 | 3 | ✅ |
@@ -1421,6 +1516,13 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.warning | warning.500 | 4.23 | 3 | ✅ |
 | border.danger | danger.500 | 4.26 | 3 | ✅ |
 | border.info | info.500 | 4.26 | 3 | ✅ |
+| border.inverse.primary | neutral.200 | — | — | · |
+| border.inverse.secondary | neutral.500 | — | — | · |
+| border.inverse.brand | primary.500 | 4.27 | 3 | ✅ |
+| border.inverse.success | success.500 | 4.28 | 3 | ✅ |
+| border.inverse.warning | warning.500 | 4.28 | 3 | ✅ |
+| border.inverse.danger | danger.500 | 4.26 | 3 | ✅ |
+| border.inverse.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | accent.500 | 4.26 | 3 | ✅ |
 | border.inverse.focus | accent.500 | 4.26 | 3 | ✅ |
 
@@ -1450,6 +1552,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.warning-subtle | warning.100 | — | — | · |
 | foreground.danger-subtle | danger.100 | — | — | · |
 | foreground.info-subtle | info.100 | — | — | · |
+| foreground.inverse.brand | primary.350 | 7.50 | 7 | ✅ |
+| foreground.inverse.success | success.350 | 7.67 | 7 | ✅ |
+| foreground.inverse.warning | warning.350 | 7.40 | 7 | ✅ |
+| foreground.inverse.danger | danger.350 | 7.44 | 7 | ✅ |
+| foreground.inverse.info | info.350 | 7.52 | 7 | ✅ |
 | foreground.inverse.brand-subtle | primary.900 | — | — | · |
 | foreground.inverse.success-subtle | success.900 | — | — | · |
 | foreground.inverse.warning-subtle | warning.900 | — | — | · |
@@ -1551,6 +1658,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | disabled.text | neutral.550 | 4.57 | 4.5 | ✅ |
 | disabled.icon | neutral.550 | 4.57 | 4.5 | ✅ |
 | disabled.border | neutral.200 | — | — | · |
+| disabled.inverse.fill | neutral.800 | — | — | · |
+| disabled.inverse.on-fill | neutral.350 | 4.97 | 4.5 | ✅ |
+| disabled.inverse.text | neutral.500 | 4.63 | 4.5 | ✅ |
+| disabled.inverse.icon | neutral.500 | 4.63 | 4.5 | ✅ |
+| disabled.inverse.border | neutral.800 | — | — | · |
 | field.fill | white | — | — | · |
 | field.border.rest | neutral.500 | 4.54 | 4.5 | ✅ |
 | field.border.hover | neutral.600 | 6.65 | 4.5 | ✅ |
@@ -1645,6 +1757,13 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.warning | warning.500 | 4.59 | 4.5 | ✅ |
 | border.danger | danger.500 | 4.56 | 4.5 | ✅ |
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
+| border.inverse.primary | neutral.500 | — | — | · |
+| border.inverse.secondary | neutral.250 | — | — | · |
+| border.inverse.brand | primary.500 | 4.59 | 4.5 | ✅ |
+| border.inverse.success | success.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.warning | warning.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.danger | danger.500 | 4.60 | 4.5 | ✅ |
+| border.inverse.info | info.500 | 4.61 | 4.5 | ✅ |
 | border.focus | accent.700 | 10.03 | 4.5 | ✅ |
 | border.inverse.focus | accent.500 | 4.60 | 4.5 | ✅ |
 
@@ -1674,6 +1793,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | foreground.warning-subtle | warning.900 | — | — | · |
 | foreground.danger-subtle | danger.900 | — | — | · |
 | foreground.info-subtle | info.900 | — | — | · |
+| foreground.inverse.brand | primary.600 | 7.68 | 7 | ✅ |
+| foreground.inverse.success | success.650 | 8.05 | 7 | ✅ |
+| foreground.inverse.warning | warning.650 | 8.15 | 7 | ✅ |
+| foreground.inverse.danger | danger.650 | 8.22 | 7 | ✅ |
+| foreground.inverse.info | info.650 | 8.15 | 7 | ✅ |
 | foreground.inverse.brand-subtle | primary.100 | — | — | · |
 | foreground.inverse.success-subtle | success.100 | — | — | · |
 | foreground.inverse.warning-subtle | warning.100 | — | — | · |
@@ -1775,6 +1899,11 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | disabled.text | neutral.450 | 4.66 | 4.5 | ✅ |
 | disabled.icon | neutral.450 | 4.66 | 4.5 | ✅ |
 | disabled.border | neutral.750 | — | — | · |
+| disabled.inverse.fill | neutral.250 | — | — | · |
+| disabled.inverse.on-fill | neutral.700 | 4.76 | 4.5 | ✅ |
+| disabled.inverse.text | neutral.500 | 4.54 | 4.5 | ✅ |
+| disabled.inverse.icon | neutral.500 | 4.54 | 4.5 | ✅ |
+| disabled.inverse.border | neutral.250 | — | — | · |
 | field.fill | black | — | — | · |
 | field.border.rest | neutral.500 | 4.63 | 4.5 | ✅ |
 | field.border.hover | neutral.400 | 6.43 | 4.5 | ✅ |
@@ -1869,6 +1998,13 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.warning | warning.500 | 4.58 | 4.5 | ✅ |
 | border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | border.info | info.500 | 4.61 | 4.5 | ✅ |
+| border.inverse.primary | neutral.500 | — | — | · |
+| border.inverse.secondary | neutral.700 | — | — | · |
+| border.inverse.brand | primary.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.success | success.500 | 4.59 | 4.5 | ✅ |
+| border.inverse.warning | warning.500 | 4.59 | 4.5 | ✅ |
+| border.inverse.danger | danger.500 | 4.56 | 4.5 | ✅ |
+| border.inverse.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | accent.300 | 8.59 | 4.5 | ✅ |
 | border.inverse.focus | accent.500 | 4.56 | 4.5 | ✅ |
 
@@ -1967,6 +2103,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.warning-subtle | warning.100 | — | — | · |
 | foreground.danger-subtle | danger.100 | — | — | · |
 | foreground.info-subtle | info.100 | — | — | · |
+| foreground.inverse.brand | primary.550 | 3.19 | 3 | ✅ |
+| foreground.inverse.success | success.500 | 3.89 | 3 | ✅ |
+| foreground.inverse.warning | warning.500 | 3.89 | 3 | ✅ |
+| foreground.inverse.danger | danger.500 | 3.92 | 3 | ✅ |
+| foreground.inverse.info | info.500 | 3.93 | 3 | ✅ |
 | foreground.inverse.brand-subtle | primary.900 | — | — | · |
 | foreground.inverse.success-subtle | success.900 | — | — | · |
 | foreground.inverse.warning-subtle | warning.900 | — | — | · |
@@ -2068,6 +2209,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | disabled.text | neutral.500 | 3.32 | 3 | ✅ |
 | disabled.icon | neutral.500 | 3.32 | 3 | ✅ |
 | disabled.border | neutral.200 | — | — | · |
+| disabled.inverse.fill | neutral.800 | — | — | · |
+| disabled.inverse.on-fill | neutral.500 | 3.03 | 3 | ✅ |
+| disabled.inverse.text | neutral.550 | 3.23 | 3 | ✅ |
+| disabled.inverse.icon | neutral.550 | 3.23 | 3 | ✅ |
+| disabled.inverse.border | neutral.800 | — | — | · |
 | field.fill | neutral.100 | — | — | · |
 | field.border.rest | neutral.450 | 3.20 | 3 | ✅ |
 | field.border.hover | neutral.550 | 4.56 | 3 | ✅ |
@@ -2162,6 +2308,13 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.warning | warning.500 | 3.79 | 3 | ✅ |
 | border.danger | danger.500 | 3.76 | 3 | ✅ |
 | border.info | info.500 | 3.75 | 3 | ✅ |
+| border.inverse.primary | neutral.800 | — | — | · |
+| border.inverse.secondary | neutral.600 | — | — | · |
+| border.inverse.brand | primary.500 | 4.24 | 3 | ✅ |
+| border.inverse.success | success.500 | 4.22 | 3 | ✅ |
+| border.inverse.warning | warning.500 | 4.22 | 3 | ✅ |
+| border.inverse.danger | danger.500 | 4.25 | 3 | ✅ |
+| border.inverse.info | info.500 | 4.26 | 3 | ✅ |
 | border.focus | primary.600 | 5.59 | 3 | ✅ |
 | border.inverse.focus | primary.550 | 3.46 | 3 | ✅ |
 
@@ -2191,6 +2344,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.warning-subtle | warning.900 | — | — | · |
 | foreground.danger-subtle | danger.900 | — | — | · |
 | foreground.info-subtle | info.900 | — | — | · |
+| foreground.inverse.brand | primary.600 | 5.59 | 3 | ✅ |
+| foreground.inverse.success | success.500 | 3.79 | 3 | ✅ |
+| foreground.inverse.warning | warning.500 | 3.79 | 3 | ✅ |
+| foreground.inverse.danger | danger.500 | 3.76 | 3 | ✅ |
+| foreground.inverse.info | info.500 | 3.75 | 3 | ✅ |
 | foreground.inverse.brand-subtle | primary.100 | — | — | · |
 | foreground.inverse.success-subtle | success.100 | — | — | · |
 | foreground.inverse.warning-subtle | warning.100 | — | — | · |
@@ -2292,6 +2450,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | disabled.text | neutral.550 | 3.23 | 3 | ✅ |
 | disabled.icon | neutral.550 | 3.23 | 3 | ✅ |
 | disabled.border | neutral.750 | — | — | · |
+| disabled.inverse.fill | neutral.250 | — | — | · |
+| disabled.inverse.on-fill | neutral.600 | 3.23 | 3 | ✅ |
+| disabled.inverse.text | neutral.450 | 3.20 | 3 | ✅ |
+| disabled.inverse.icon | neutral.450 | 3.20 | 3 | ✅ |
+| disabled.inverse.border | neutral.250 | — | — | · |
 | field.fill | neutral.900 | — | — | · |
 | field.border.rest | neutral.550 | 3.51 | 3 | ✅ |
 | field.border.hover | neutral.450 | 5.00 | 3 | ✅ |
@@ -2386,6 +2549,13 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.warning | warning.500 | 4.22 | 3 | ✅ |
 | border.danger | danger.500 | 4.25 | 3 | ✅ |
 | border.info | info.500 | 4.26 | 3 | ✅ |
+| border.inverse.primary | neutral.200 | — | — | · |
+| border.inverse.secondary | neutral.500 | — | — | · |
+| border.inverse.brand | primary.500 | 4.28 | 3 | ✅ |
+| border.inverse.success | success.500 | 4.29 | 3 | ✅ |
+| border.inverse.warning | warning.500 | 4.29 | 3 | ✅ |
+| border.inverse.danger | danger.500 | 4.26 | 3 | ✅ |
+| border.inverse.info | info.500 | 4.25 | 3 | ✅ |
 | border.focus | primary.550 | 3.46 | 3 | ✅ |
 | border.inverse.focus | primary.600 | 6.33 | 3 | ✅ |
 
@@ -2415,6 +2585,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.warning-subtle | warning.100 | — | — | · |
 | foreground.danger-subtle | danger.100 | — | — | · |
 | foreground.info-subtle | info.100 | — | — | · |
+| foreground.inverse.brand | primary.350 | 7.47 | 7 | ✅ |
+| foreground.inverse.success | success.350 | 7.59 | 7 | ✅ |
+| foreground.inverse.warning | warning.350 | 7.43 | 7 | ✅ |
+| foreground.inverse.danger | danger.350 | 7.46 | 7 | ✅ |
+| foreground.inverse.info | info.350 | 7.52 | 7 | ✅ |
 | foreground.inverse.brand-subtle | primary.900 | — | — | · |
 | foreground.inverse.success-subtle | success.900 | — | — | · |
 | foreground.inverse.warning-subtle | warning.900 | — | — | · |
@@ -2516,6 +2691,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | disabled.text | neutral.600 | 4.88 | 4.5 | ✅ |
 | disabled.icon | neutral.600 | 4.88 | 4.5 | ✅ |
 | disabled.border | neutral.200 | — | — | · |
+| disabled.inverse.fill | neutral.800 | — | — | · |
+| disabled.inverse.on-fill | neutral.350 | 4.96 | 4.5 | ✅ |
+| disabled.inverse.text | neutral.500 | 4.57 | 4.5 | ✅ |
+| disabled.inverse.icon | neutral.500 | 4.57 | 4.5 | ✅ |
+| disabled.inverse.border | neutral.800 | — | — | · |
 | field.fill | white | — | — | · |
 | field.border.rest | neutral.500 | 4.59 | 4.5 | ✅ |
 | field.border.hover | neutral.600 | 6.75 | 4.5 | ✅ |
@@ -2610,6 +2790,13 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.warning | warning.500 | 4.60 | 4.5 | ✅ |
 | border.danger | danger.500 | 4.57 | 4.5 | ✅ |
 | border.info | info.500 | 4.56 | 4.5 | ✅ |
+| border.inverse.primary | neutral.500 | — | — | · |
+| border.inverse.secondary | neutral.250 | — | — | · |
+| border.inverse.brand | primary.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.success | success.500 | 4.56 | 4.5 | ✅ |
+| border.inverse.warning | warning.500 | 4.56 | 4.5 | ✅ |
+| border.inverse.danger | danger.500 | 4.60 | 4.5 | ✅ |
+| border.inverse.info | info.500 | 4.61 | 4.5 | ✅ |
 | border.focus | primary.700 | 9.96 | 4.5 | ✅ |
 | border.inverse.focus | primary.500 | 4.58 | 4.5 | ✅ |
 
@@ -2639,6 +2826,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | foreground.warning-subtle | warning.900 | — | — | · |
 | foreground.danger-subtle | danger.900 | — | — | · |
 | foreground.info-subtle | info.900 | — | — | · |
+| foreground.inverse.brand | primary.650 | 8.28 | 7 | ✅ |
+| foreground.inverse.success | success.650 | 8.09 | 7 | ✅ |
+| foreground.inverse.warning | warning.650 | 8.15 | 7 | ✅ |
+| foreground.inverse.danger | danger.650 | 8.25 | 7 | ✅ |
+| foreground.inverse.info | info.650 | 8.15 | 7 | ✅ |
 | foreground.inverse.brand-subtle | primary.100 | — | — | · |
 | foreground.inverse.success-subtle | success.100 | — | — | · |
 | foreground.inverse.warning-subtle | warning.100 | — | — | · |
@@ -2740,6 +2932,11 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | disabled.text | neutral.450 | 4.61 | 4.5 | ✅ |
 | disabled.icon | neutral.450 | 4.61 | 4.5 | ✅ |
 | disabled.border | neutral.750 | — | — | · |
+| disabled.inverse.fill | neutral.250 | — | — | · |
+| disabled.inverse.on-fill | neutral.700 | 4.72 | 4.5 | ✅ |
+| disabled.inverse.text | neutral.500 | 4.59 | 4.5 | ✅ |
+| disabled.inverse.icon | neutral.500 | 4.59 | 4.5 | ✅ |
+| disabled.inverse.border | neutral.250 | — | — | · |
 | field.fill | black | — | — | · |
 | field.border.rest | neutral.500 | 4.57 | 4.5 | ✅ |
 | field.border.hover | neutral.400 | 6.37 | 4.5 | ✅ |
@@ -2834,6 +3031,13 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.warning | warning.500 | 4.56 | 4.5 | ✅ |
 | border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | border.info | info.500 | 4.61 | 4.5 | ✅ |
+| border.inverse.primary | neutral.500 | — | — | · |
+| border.inverse.secondary | neutral.700 | — | — | · |
+| border.inverse.brand | primary.500 | 4.58 | 4.5 | ✅ |
+| border.inverse.success | success.500 | 4.60 | 4.5 | ✅ |
+| border.inverse.warning | warning.500 | 4.60 | 4.5 | ✅ |
+| border.inverse.danger | danger.500 | 4.57 | 4.5 | ✅ |
+| border.inverse.info | info.500 | 4.56 | 4.5 | ✅ |
 | border.focus | primary.300 | 8.72 | 4.5 | ✅ |
 | border.inverse.focus | primary.600 | 6.79 | 4.5 | ✅ |
 

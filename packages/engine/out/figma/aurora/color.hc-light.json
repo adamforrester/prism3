@@ -256,6 +256,106 @@
       }
     },
     {
+      "name": "color/foreground/inverse/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
+      "value": {
+        "r": 0.5882353186607361,
+        "g": 0.5803921818733215,
+        "b": 0.8392156958580017,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/350"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
+      "value": {
+        "r": 0.3803921639919281,
+        "g": 0.6784313917160034,
+        "b": 0.3960784375667572,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/success/350"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
+      "value": {
+        "r": 0.800000011920929,
+        "g": 0.5529412031173706,
+        "b": 0.13333334028720856,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/warning/350"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
+      "value": {
+        "r": 0.8901960849761963,
+        "g": 0.4901960790157318,
+        "b": 0.4470588266849518,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/350"
+      }
+    },
+    {
+      "name": "color/foreground/inverse/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "TEXT_FILL"
+      ],
+      "description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
+      "value": {
+        "r": 0.29411765933036804,
+        "g": 0.6313725709915161,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/350"
+      }
+    },
+    {
       "name": "color/foreground/inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2331,6 +2431,101 @@
       }
     },
     {
+      "name": "color/disabled/inverse/fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled control fill on an inverse surface — one muted neutral, any intent",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18431372940540314,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/800"
+      }
+    },
+    {
+      "name": "color/disabled/inverse/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1",
+      "value": {
+        "r": 0.6039215922355652,
+        "g": 0.6039215922355652,
+        "b": 0.6196078658103943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/350"
+      }
+    },
+    {
+      "name": "color/disabled/inverse/text",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
+      "value": {
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/disabled/inverse/icon",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
+      "value": {
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/disabled/inverse/border",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL"
+      ],
+      "description": "Disabled control border on an inverse surface — muted neutral",
+      "value": {
+        "r": 0.1725490242242813,
+        "g": 0.1725490242242813,
+        "b": 0.18431372940540314,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/800"
+      }
+    },
+    {
       "name": "color/field/fill",
       "resolvedType": "COLOR",
       "scopes": [
@@ -4010,6 +4205,132 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/border/inverse/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Default border on an inverse surface — decorative, ~1.4:1",
+      "value": {
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/border/inverse/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "Stronger border / divider on an inverse surface",
+      "value": {
+        "r": 0.7058823704719543,
+        "g": 0.7058823704719543,
+        "b": 0.7137255072593689,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/250"
+      }
+    },
+    {
+      "name": "color/border/inverse/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
+      "value": {
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/primary/500"
+      }
+    },
+    {
+      "name": "color/border/inverse/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "success border on an inverse surface — 3:1 (SC 1.4.11)",
+      "value": {
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/success/500"
+      }
+    },
+    {
+      "name": "color/border/inverse/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "warning border on an inverse surface — 3:1 (SC 1.4.11)",
+      "value": {
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/warning/500"
+      }
+    },
+    {
+      "name": "color/border/inverse/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "danger border on an inverse surface — 3:1 (SC 1.4.11)",
+      "value": {
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/danger/500"
+      }
+    },
+    {
+      "name": "color/border/inverse/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "STROKE_COLOR"
+      ],
+      "description": "info border on an inverse surface — 3:1 (SC 1.4.11)",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/500"
       }
     },
     {

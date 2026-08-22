@@ -308,6 +308,141 @@
             },
             "contrast": 1,
             "against": "self"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.300}",
+            "$description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.500",
+                "contrast": 3.05,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 7.72,
+            "against": "background.inverse.secondary",
+            "min": 7
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{prism.palette.success.350}",
+            "$description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.success.500",
+                "contrast": 3.94,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 7.67,
+            "against": "background.inverse.secondary",
+            "min": 7
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{prism.palette.warning.350}",
+            "$description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.warning.500",
+                "contrast": 3.9,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 7.33,
+            "against": "background.inverse.secondary",
+            "min": 7
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{prism.palette.danger.350}",
+            "$description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.danger.500",
+                "contrast": 3.9,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 7.41,
+            "against": "background.inverse.secondary",
+            "min": 7
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{prism.palette.info.350}",
+            "$description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.info.500",
+                "contrast": 3.93,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 7.52,
+            "against": "background.inverse.secondary",
+            "min": 7
           }
         },
         "brand": {
@@ -1919,6 +2054,89 @@
           "contrast": 4.55,
           "against": "neutral.050",
           "min": 4.5
+        },
+        "inverse": {
+          "on-fill": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.350}",
+            "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.500",
+                "contrast": 3.03,
+                "against": "disabled.inverse.fill",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 4.95,
+            "against": "disabled.inverse.fill",
+            "min": 4.5
+          },
+          "text": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.500}",
+            "$description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.550",
+                "contrast": 3.25,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 4.55,
+            "against": "background.inverse.secondary",
+            "min": 4.5
+          },
+          "icon": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.500}",
+            "$description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.550",
+                "contrast": 3.25,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 4.55,
+            "against": "background.inverse.secondary",
+            "min": 4.5
+          }
         }
       },
       "field": {
@@ -4015,6 +4233,83 @@
             },
             "contrast": 4.55,
             "against": "background.inverse.primary"
+          },
+          "primary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.500}",
+            "$description": "Default border on an inverse surface — decorative, ~1.4:1",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.800",
+                "contrast": 1.39,
+                "against": "background.inverse.primary",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 4.55,
+            "against": "background.inverse.primary"
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.250}",
+            "$description": "Stronger border / divider on an inverse surface",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.600",
+                "contrast": 2.89,
+                "against": "background.inverse.primary",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 10.11,
+            "against": "background.inverse.primary"
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.400}",
+            "$description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.500",
+                "contrast": 3.3,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            },
+            "contrast": 5.34,
+            "against": "background.inverse.primary",
+            "min": 4.5
           },
           "focus": {
             "$type": "color",

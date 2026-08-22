@@ -512,6 +512,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //
   // `foreground.inverse` is already a group (`primary`/`secondary`/`tertiary`), so these are plain
   // additions — no leaf-to-group promotion, unlike `border.inverse` in #891.
+  // The five bold semantic fills for the inverse band (#892 step 5) — a solid danger badge inside a
+  // dark hero. Gated against the INVERSE floor rather than the page floor, which is the whole reason
+  // they cannot be the page fills reused: `paletteRole` picks the step that clears the bar on the
+  // ground it is given, and the two grounds are at opposite ends of the ramp.
+  for (const r of SEMANTICS)
+    put(`foreground.inverse.${r}`, paletteRole(r, cfg.bgInverse.secondary.rgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on the inverse floor`, 'background.inverse.secondary', fillFloorMin);
   const invTintStep = cfg.family === 'light' ? 900 : 100;
   const subtleTintInverse = (r: Role): Cand => pStep(palOf(r2p[r]), invTintStep);
   for (const r of SEMANTICS)
@@ -920,6 +926,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   { const d = disabledText(); put('disabled.icon', d.r, `Disabled icon — clears ${disabledTarget}:1 (${dBranch})`, d.against, d.min); }
   put('disabled.border', rated(neutralLow(), baseRgb), 'Disabled control border — muted neutral', 'background.primary', 0);
 
+  // The same five for a disabled control on a dark hero / inverse band (#892 step 5).
+  //
+  // `disabled` IS ground-dependent, which is not obvious from the family being "cross-cutting". It is
+  // cross-cutting across INTENT — one muted skin for any intent, which is what the block above means —
+  // and that says nothing about the surface it sits on. A muted neutral picked to read as inert on a
+  // white page is nearly invisible on a near-black band, and `disabled.text`'s whole contract is a
+  // ratio against the floor, which is a different colour there.
+  //
+  // Five roles, so this is the GROUP default under the #892 context-node rule with nothing to argue:
+  // the node has siblings the day it is born.
+  const neutralLowInverse = (): Cand => pStep(r2p.neutral, cfg.family === 'light' ? 800 : 250);
+  putSurf('disabled.inverse.fill', neutralLowInverse(), 'Disabled control fill on an inverse surface — one muted neutral, any intent');
+  put('disabled.inverse.on-fill', pickMinPass(textCands, neutralLowInverse().rgb, disabledTarget),
+    `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'disabled.inverse.fill', disabledTarget);
+  { const r = pickMinPass(textCands, cfg.bgInverse.secondary.rgb, disabledTarget);
+    put('disabled.inverse.text', r, `Disabled text on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'background.inverse.secondary', disabledTarget);
+    put('disabled.inverse.icon', r, `Disabled icon on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'background.inverse.secondary', disabledTarget); }
+  put('disabled.inverse.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'background.inverse.primary', 0);
+
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful
   // composes from existing families (focus → border.focus, validation → border.<semantic> +
@@ -1148,6 +1173,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('border.inverse.default', pickClosest(ramp, invRgb, cfg.borderTarget), 'Border on inverse surfaces', 'background.inverse.primary', 0);
   for (const r of SEMANTICS)
     put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
+  // The remaining seven inverse borders (#892 step 5), into the group #891 created when
+  // `border.inverse` stopped being a leaf. Same rules, inverse ground: the neutrals keep their
+  // decorative targets, the semantics keep the SC 1.4.11 floor. A danger border round a field on a
+  // dark hero was previously unbindable — the only inverse border that existed was the decorative
+  // `default` and the focus ring.
+  put('border.inverse.primary', pickClosest(ramp, invRgb, cfg.borderTarget), `Default border on an inverse surface — decorative, ~${cfg.borderTarget}:1`, 'background.inverse.primary', 0);
+  put('border.inverse.secondary', pickClosest(ramp, invRgb, cfg.borderTarget * 2.2), 'Stronger border / divider on an inverse surface', 'background.inverse.primary', 0);
+  for (const r of SEMANTICS)
+    put(`border.inverse.${r}`, rated(chromatic(r2p[r], 500, invRgb, cfg.nonTextMin), invRgb), `${r} border on an inverse surface — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.inverse.primary', cfg.nonTextMin);
   put('border.focus', rated(actionRest, baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
   // The same ring, for when it is drawn on an inverse surface. One ring cannot serve both grounds:
   // measured against `background.inverse.primary`, the page-gated ring scored 3.46 (light) / 5.24

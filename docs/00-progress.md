@@ -8,6 +8,56 @@
 
 
 
+
+---
+
+## (2026-08-22) — #892 closes: 11 of 123 remain, and every one of them by decision
+
+**STATUS: in review.** #892 step 5, stacked on the context-node rule (#936) because step 5 is what
+validates it. `CONTRACT_VERSION` **5.0.0 → 5.1.0** (17 added, MINOR); `ENGINE_VERSION` 0.11.0 →
+0.12.0. Inverse leaves **96 → 113**, identical across all four brands.
+
+`border.inverse.{primary,secondary,+5 semantic}` (7) into the group #891 created, the five bold
+`foreground.inverse.<semantic>` fills, and `disabled.inverse.*` (5).
+
+**`disabled` being ground-dependent is the non-obvious part.** The family is described as
+cross-cutting, and it is — across INTENT, one muted skin for any intent. That says nothing about the
+surface it sits on, and a muted neutral picked to read as inert on a white page is nearly invisible
+on a near-black band. `disabled.text`'s whole contract is a ratio against the floor, which is a
+different colour there.
+
+**The register is the deliverable, not the tokens.** `inverse-coverage.ts` names every role with no
+inverse counterpart and why, so a deliberate gap and an oversight cannot look the same to #893's
+alias layer. Checked both directions in `test.ts`: an uncovered role missing from the register fails,
+and an entry whose role has since GAINED a counterpart fails as stale. The second arm is the one that
+matters later — an entry outliving its gap would keep #893 self-aliasing a row that now has a real
+inverse to point at, which is a wrong value that *resolves*.
+
+**It settles #893's open decision per entry rather than globally**, because the right answer depends
+on why the gap exists:
+
+- The **ten `text`/`icon.on-<semantic>` inks: `alias: 'self'`.** Structural, not undecided — the ink
+  sits on a solid semantic FILL, and the fill is the ground, so a brand-filled badge inside a dark
+  hero is still brand-filled. Self-aliasing is *correct* here, not a placeholder.
+- **`scrim.default`: `alias: 'omit'`.** Undecided, deliberately, and omitted so it cannot be bound by
+  accident.
+
+**Which is a departure from the brief, and the reason is a finding.** Step 5 was scoped as
+`disabled.inverse` (five roles, exercising the group default) plus `scrim.inverse` (one, exercising
+the `LEAF_OK` exception). `docs/20` §8 classifies a scrim as a **viewport-level** backdrop triggered
+by a modal opening — one veil over the whole page including any inverse band — which is a different
+shape from every other role in the audit and may mean it has no per-surface variant at all. Emitting
+one to exercise the allowlist would be fitting the token set to the test, which is the inversion the
+sequencing was arranged to avoid. So `LEAF_OK` is still empty, the exception direction is still
+mutation-tested and still unexercised in production, and that trade is stated rather than absorbed.
+
+**Mutation-verified by name**, each restoring clean: a dropped register entry (`UNREGISTERED:
+color.icon.on-success, color.icon.on-warning`) · an entry for a role that has a counterpart
+(`STALE … color.text.primary`) · a reason that is a label rather than a justification (the 120-char
+WHY floor). Plus a corpus floor, so a scan finding nothing to cover cannot pass both arms trivially.
+
+**#892 closes here.** 123 roles had no inverse counterpart when it opened; **11 remain, every one by
+decision with its reason on file.**
 ---
 
 ## (2026-08-22) — `docs/00-progress.md`'s own ordering gets a gate, and 30 pre-existing violations surface on first run (#931)
