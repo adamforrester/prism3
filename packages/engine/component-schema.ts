@@ -1254,10 +1254,12 @@ export type State = (typeof STATES)[number];
  *
  * ── MEASURED: 11 distinct axis names, and TWO INCONSISTENCIES THE CENSUS EXPOSED ────────────────────
  *
- *     size        7 defs   ALL SEVEN [small,medium,large] / [small,medium] — one vocabulary since #844
+ *     size        8 defs   ALL EIGHT [small,medium,large] / [small,medium] — one vocabulary since #844
  *     appearance  2        button, icon-button — [filled,outline,text] BOTH, identical
  *     intent      2        button, icon-button — [primary,neutral,destructive] BOTH, identical
- *     selection   2        checkbox[3 values] · radio[2 values] — the family axis, decided once below
+ *     selection   3        checkbox[unchecked,checked,indeterminate] · radio[unchecked,checked] ·
+ *                          switch[off,on] — the family axis, decided once below. THE VALUES DIVERGED,
+ *                          which is the census doing its job rather than a defect: see below.
  *     style       2        text-field, textarea — [bordered] BOTH, an axis of one on each
  *     tone        2        icon[9 values] · field-message[4 values] — disjoint, opposite key grammars
  *     color       1        focus-ring
@@ -1326,6 +1328,23 @@ export type State = (typeof STATES)[number];
  * above, with the recommendation that they follow native DOM — `checked`/`unchecked` is the word ARIA
  * uses for all three (`aria-checked` covers `checkbox`, `radio` AND `role="switch"`), so a switch
  * spelling its axis `[off, on]` should be a decision somebody takes rather than a default.
+ *
+ * **ALL THREE HAVE NOW SHIPPED, AND THE VALUES DIVERGED: `switch` SPELLS IT `[off, on]`.** The decision
+ * was taken explicitly rather than defaulted into, which is what this paragraph asked for, and the
+ * argument is in `components/switch.ts`'s header at length: paint-key values describe what is on SCREEN
+ * and appear in no ARIA tree; `role="switch"` is ANNOUNCED "on"/"off" (that is the whole reason the role
+ * exists rather than reusing `role="checkbox"`), so ARIA's own output is on/off even though its property
+ * is `aria-checked`; and `checked` is the word carrying that component's most common misuse, since a def
+ * spelled `[unchecked, checked]` reads as a checkbox with a different skin.
+ *
+ * **Recorded here because the recommendation this paragraph made was NOT followed, and a recommendation
+ * whose outcome is not written down is one nobody can audit.** The consequence is the failure mode the
+ * asymmetry above concedes and the reason to be explicit about it: three defs now spell one axis two
+ * ways, and **nothing in this file or anywhere else in the engine can check that.** `VARIANT_AXES`
+ * closes NAMES; the census above is authored prose and counts DEFS per axis, so it needs a human to
+ * notice. That is not an argument for closing values — the asymmetry stands, and #864's `name` axis is
+ * why — it is the honest statement of what the open half costs. If the family should be unified, the
+ * decision belongs in `switch.ts` (delete `[off, on]`), and the three grounds are what must be defeated.
  *
  * ── WHY AN AXIS AND NOT TWO ENTRIES IN `STATES`, WHICH WAS THE CHEAPER ANSWER ────────────────────
  *
@@ -1396,8 +1415,13 @@ const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   // `nests` cannot see it either.
   'checkbox': ['focus-ring'],
   // Fourth, and `radio` inherits the entry along with the binding — same control ring, same absent
-  // anatomy block. All four go when their anatomy blocks land.
+  // anatomy block.
   'radio': ['focus-ring'],
+  // Fifth, and it closes the selection-control family. `switch`'s ring sits on the TRACK rather than on
+  // a box (brief §4: never on the thumb, which moves), which changes which part will carry it once the
+  // anatomy block lands and changes nothing about this entry: the binding is structurally Button's and
+  // the def has no `anatomy`, so `nests` cannot see it. All five go when their anatomy blocks land.
+  'switch': ['focus-ring'],
 };
 
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */

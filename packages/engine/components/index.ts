@@ -43,6 +43,7 @@ import { textField } from './text-field';
 import { textarea } from './textarea';
 import { checkbox } from './checkbox';
 import { radio } from './radio';
+import { switchDef } from './switch';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -50,7 +51,7 @@ import { radio } from './radio';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox, radio };
+export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox, radio, switchDef };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -77,4 +78,9 @@ export const componentDefs: readonly ComponentDef[] = [
   // does carry a claim beyond convention, since the chain is real: radio inherits the field substrate
   // THROUGH checkbox rather than directly.
   radio,
+  // `switch` follows `radio` because it `inherits` checkbox too — the same two-link chain, and the
+  // order here says only that all three share a parent. It is exported as `switchDef` rather than
+  // `switch` because `switch` is a reserved word: the def's `id` is still `'switch'`, which is what
+  // every gate and every consumer reads.
+  switchDef,
 ];
