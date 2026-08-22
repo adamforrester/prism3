@@ -57,6 +57,60 @@ states about itself, and `MIN_REASON` is a floor against `'one role'`, not a jud
 `scrim.inverse` will be this allowlist's first real entry.
 ---
 
+## (2026-08-22) — `docs/00-progress.md`'s own ordering gets a gate, and 30 pre-existing violations surface on first run (#931)
+
+**STATUS: shipped.** New gate `lint-progress-order.ts`, **38 → 39**. `docs/00-progress.md` is
+newest-entry-first; a rebase routinely lands the incoming entry SECOND because git merges the two
+entries cleanly — different lines, no textual conflict, nothing reports anything. Three occurrences
+in 24 hours across two lanes, all hand-fixed, is what filed #931.
+
+**Not because nobody gated this file — it is exempt from every gate that touches it**
+(`lint-advisory-expiry.ts`, `lint-decisions-index.ts`, `lint-layout-claims.ts`, `lint-shape-index.ts`,
+`lint-voice.ts`), and every exemption is individually correct: an append-only dated log describing
+the repo as it was is accurate prose forever, so holding it to a present-tense standard would force
+it to falsify itself. That argument is about CONTENT. Applied file-wide, it also covered ORDERING —
+a structural property none of those five was ever asking about. Same species as `docs/43`'s finding
+about two of `CLAUDE.md`'s own "pinned" regions this session: a check built to answer one narrow
+question reads, from outside, like coverage of the whole file.
+
+**The gate.** EXPECTED is `sorted(dates, descending)` over the parsed `## (YYYY-MM-DD) — title`
+headings — a real transformation of ACTUAL (the dates as they appear), never a restatement of the
+file (`docs/34` shape 1). Fails on 0 matched headings rather than passing over an empty set (shape
+9). States plainly what it does NOT check: that an entry is correct, present, dated accurately, or
+matches what shipped — one structural property only. The heading pattern is deliberately narrow to
+the post-convention form; the file's own historical tail (`## Latest (2026-07-21) — ...` and similar,
+predating the per-entry-heading convention) is invisible to it by construction, not by an exemption
+list, and 398 real matches keep the floor from starving.
+
+**Mutation-verified, three ways:** two entries transposed → fails by name, citing both dates and
+titles · the heading pattern changed so it matches nothing → fails the floor, not silently · a
+correctly-ordered file → passes (the positive control, run first so a gate that fails on everything
+isn't mistaken for a working one).
+
+**Landing the gate required fixing the file first, and the scale of that was the real finding.** The
+first pass caught 5 violations by simple adjacent-pair scan. Fixing them naively (moving just the
+misplaced heading) exposed MORE — moving one entry out of a same-date run stranded its neighbors
+against the wrong preceding date, recreating the identical defect one level down. An iterative
+"find the first violation, move its whole chunk to the correct sorted position, rescan from
+scratch, repeat until clean" pass found **30 total**, not 5 — three known and hand-fixed this week,
+twenty-seven silent and undetected, some over two weeks old. Verified as pure reordering, not content
+loss: same heading count (398) and `---` separator count (410) before and after, and a
+sorted-multiset-of-lines hash match between the original and reordered file. This is fixed in this
+PR (a necessary precondition — a new gate that fails on `main` the moment it lands helps nobody) and
+is the same corrective action already established by hand three times this week; it is not scope
+creep beyond #931, it is what makes #931's fix landable at all. Not filed as a separate issue since
+nothing is left to do after this PR merges.
+
+**Coordination:** #936 (context-node rule, also 38 → 39) was open concurrently, based on the same
+`ffa56b5`. It landed first — rebased onto it (`lint-context-nodes.ts` alongside this gate, 39 → 40
+across all five authored statements), re-ran the full suite, and confirmed 40/40 before this pushed.
+
+**Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY**, after `npx playwright install chromium chromium-headless-shell` on this fresh container
+(#935's known gap — missing browser cache, not this diff).
+
+---
+
 ## (2026-08-22) — `CLAUDE.md` grooming: a proposal, not a restructure (#886-adjacent, docs/43)
 
 **STATUS: proposal-only PR.** `docs/43-agent-instruction-surface.md` triages `CLAUDE.md`'s content by
