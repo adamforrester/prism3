@@ -105,6 +105,146 @@ reasoning. Corrected here by writing one entry for all three steps.
 
 ---
 
+## (2026-08-21) — `switch`: the track leaves the field family, and #900 gets its constraining instance
+
+**STATUS: in review.** Def 4 of `docs/40` tranche 1, authored from `components/switch.md` per §7
+steps 2–5. **Step 6 is discharged rather than blocked, and the reason changed since `radio`:** that
+entry cited #870 and #864, both now closed — but `docs/40` §7 says a def that cannot project discharges
+the step, and `switch` has no `anatomy` block, so it cannot. All 38 gates green. **No schema change** — `switch` adds no axis NAME, which is the second def in a row to
+add none and the third piece of evidence that `checkbox`'s `selection` admission was a family
+decision. Branches off `main` rather than stacking: `selection` is in `VARIANT_AXES` on `main` now.
+
+**Decision 1 — the axis spells `[off, on]`, and it does NOT follow the recommendation `checkbox` left.**
+#910 closed the axis NAME for the family and deliberately left the VALUES open with an ARIA
+recommendation; `radio` then took `[unchecked, checked]`, checkbox's vocabulary minus a state it does
+not have. Switch breaks the run, on three grounds. **`role="switch"` is a distinct ARIA role**, not a
+checkbox with different paint — a screen reader announces "on"/"off", so the recommendation's own
+authority (follow ARIA) points at `[off, on]` here even though its example spelling was `checked`.
+**The brief's own prose is `off`/`on` throughout** §4 and §8, including the state-label prop. And the
+control has no unchecked-vs-indeterminate distinction to preserve, so nothing is lost by not
+inheriting the spelling.
+
+**The unchecked cost of that, stated because it is real: three defs now spell one axis two ways, and
+nothing anywhere can check it.** There is no cross-def values census in the engine — verified by
+search, not assumed; the only census in `component-schema.ts` counts DEFS per axis, never their
+values. So a fifth def spelling it `[false, true]` is caught by nobody. The census paragraph now
+records the divergence and says so explicitly, which is the most that file can do without a decision
+about whether values should close.
+
+**Decision 2 — the grammar follows `checkbox`'s axis-led templates, and the arithmetic that would have
+changed it did not.** Measured, not estimated: checkbox binds **26** color keys of which **20** are
+axis-led; radio 18/12; switch **22/16**. Switch sits between its two predecessors, so nothing about its
+size argues for a different grammar. Worth correcting a number in the record while here: **#910's PR
+body estimated checkbox at "~16" axis-led keys; the measured figure is 20.**
+
+**The consequence, stated so a reviewer does not have to find it: none of switch's 16 axis-led bindings
+is checked by `lint-paint.ts` arm 1.** Arm 1 fires only on a key whose LEADING segment is a declared
+axis value, and `selection` is exempt per-AXIS via `NON_FAMILY_AXES` — so an axis-led key under an
+exempt axis is outside the arm entirely. That is #916, unchanged, now covering **48 bindings across
+three defs**. Mutation-measured this pass rather than reasoned about: repointing `on.icon` at
+`color.interactive.destructive.on-fill` — a wrong TONE that resolves — leaves `lint-paint` at exit 0
+**and** `test.ts` at exit 0. A destructive-toned thumb on a primary track, green everywhere.
+
+**The structural finding, and it is the one worth carrying: switch's track leaves the field family, and
+it was forced rather than chosen.** Checkbox and radio bind `color.field.fill` for the unselected
+ground. Measured across all four brands with aliases resolved, contrast against `color.background.primary`:
+
+| pairing | nb | harbor | wendys | aurora |
+|---|---|---|---|---|
+| off track `color.field.fill` vs page | 1.22 | 1.14 | 1.21 | 1.21 |
+| off track `interactive.neutral.fill.rest` vs page | 1.58 | 1.29 | 1.57 | 1.57 |
+| off track **BORDER** `interactive.neutral.border.rest` vs page | **3.27** | **3.20** | **3.28** | **3.26** |
+| ON track `primary.fill.selected` vs page | 8.29 | 8.20 | 8.28 | 6.85 |
+| OFF thumb `interactive.neutral.on-fill` vs off track | 12.33 | 12.36 | 12.35 | 12.36 |
+
+Two things follow and neither was a preference. **No candidate fill clears 3:1 against the page at any
+brand, so the off-track BORDER is load-bearing for 1.4.11** — it is the only thing that makes an off
+switch perceivable, which is why `off.border` is bound at three states rather than treated as trim.
+And a light thumb is invisible on either candidate fill (1.14–1.58), so the off thumb must be DARK —
+and the only ink that delivers it, `interactive.neutral.on-fill` at 12.33–12.36:1, exists **only in the
+interactive family**. The track binds `interactive.*` because the ink it needs is not in `field.*`.
+
+**The thumb cannot be collapsed to one binding, and this was swept rather than assumed.** All 19 border
+inks measured against both tracks: **no single ink clears 3:1 against both.** The best candidate,
+`interactive.primary.border.pressed`, is 4.36:1 off and **1.00:1** on — the two tracks sit at opposite
+ends of the luminance range, which is the point of a switch. So `off.icon` and `on.icon` are
+independent bindings by measurement.
+
+**`read-only` binds nothing, and unlike its siblings that is a measured rejection rather than a gap.**
+`text-field` binds `border.read-only: 'color.border.secondary'`. Resolved: `color.border.secondary`
+lands on the **same palette step** as `color.interactive.neutral.border.rest` in all four brands (nb
+`neutral.400`, harbor `neutral.450`, wendys and aurora `neutral.400`). Binding it would produce a
+read-only switch pixel-identical to a rest switch, while reading in the def as though the brief's
+*"visually distinct from disabled"* had been satisfied — a #708-shaped pass. The state is declared, the
+distinction is anatomy's.
+
+**`pending` binds no paint either, and nothing in the corpus does.** `button` has declared `pending`
+since #843 and binds nothing for it; zero `pending` keys exist across all ten pre-existing defs. What
+pending changes on a switch is thumb CONTENT (a spinner) and track interactivity — both anatomy-tier.
+
+**Reading brief §15 against the closed vocabulary, the exercise `radio` recommended carrying forward.**
+Same shape as radio's, and again most of the list is not states: the label SIDE is a prop
+(`labelPosition`), not an axis — a switch reads label-first where a checkbox reads box-first, and that
+is a layout prop with two values, not a coordinate the paint grammar needs. `error` is declared as a
+state because it changes the border ink at both selections, not because a switch validates.
+
+**#900, third instance — and it constrains the answer rather than confirming the gap.** Commented on the
+issue from measurement. The track has **no** brand-specified width, height or thumb diameter anywhere
+in the emitted tier; `size.*.height` is 40/48/56 on nb, harbor and wendys but **32/40/48 on aurora**,
+while `icon.size.*` is **16/20/24 on all four** — brand-invariant, which sharpens the trap rather than
+softening it. `icon.size.*` stays unbound, in `notes.unverified`, as both predecessors left it.
+
+**One new finding that the #900 comment needs and that is filed separately: a switch's two boxes cannot
+both be painted.** Measured live with a probe against the real executor, not read off the source:
+`anatomy-figma.ts` paints `fill`/`border` only under `if (p.kind === 'box' && p.role === 'target')`, and
+`component-schema.ts` refuses more than one `role: 'target'` per def. A two-box probe validates with
+**zero errors** and produces `track paints={...} / thumb paints=null`. Every def with an anatomy block
+today has `boxes=1, targets=1`, so nothing had exercised it. This does not block `switch` (no anatomy
+block) but it blocks the anatomy block for a switch specifically, and it is a mechanism gap rather than
+a missing token — filed as its own issue rather than noted here, per one-concern-per-PR.
+
+**Verified by mutation, per `docs/34`** — six, each naming `switch`:
+
+| mutation | caught by | exit |
+|---|---|---|
+| rung ladder inverted (`small`→md, `medium`→sm) | `lint-rung-names` arm 2C **and** arm 3 | 1 |
+| an undeclared selection value (`on.icon` → `checked.icon`) | `paintKeyErrors`, quoting switch's own `[off, on]` back | 1 |
+| `NESTED_WITHOUT_ANATOMY['switch']` deleted | `paintKeyErrors` slot vocabulary | 1 |
+| the two selection-keyed templates reordered | the shadowing rule, listing all **10** stranded bindings | 1 |
+| size axis removed entirely, `MUST_COVER` intact | `lint-rung-names` **`SCOPE NOT REPRESENTED`** | 1 |
+| **`on.icon` → `destructive.on-fill`** (wrong tone, resolves) | **NOTHING — `lint-paint` 0, `test.ts` 0** | 0 |
+
+**The sixth is a negative control and the most informative row in the table.** The first five prove the
+gates that do cover this def fire by name; the sixth measures the hole they leave, which is #916 stated
+as a number instead of a caveat. A wrong-tone thumb ships green.
+
+**A seventh mutation is worth recording because it landed on the wrong arm and had to be redone.**
+Removing `'switch'` from `lint-rung-names`'s `MUST_COVER` while dropping only `variants.size` was
+intercepted by the **`LADDER_STATED_ONCE`** arm (*"declares props.size but no variants.size"*) before
+the scope floor was ever reached. The floor arm only fires once **both** halves of the axis go, which
+is the version in the table. The generalizable bit: a mutation that goes red on a different arm than
+the one you were testing is an untested arm reported as a pass.
+
+**Two traps for whoever re-verifies this.** `typecheck-components.ts` reads **git's index** as its
+oracle, so a new def file that is written but not `git add`ed fails it twice over — *"1 untracked
+file(s) inflating the typechecked set"* and *"1 registry entr(ies) exported by no tracked def file"* —
+which reads like a registry bug and is not one. And the contrast figures above are only reproducible
+with an **alias-following** resolver: emitted values are `{prism.palette.neutral.100}`, and the page
+token is `color.background.primary`, **not** `color.surface.page`, which does not exist. An earlier
+pass in this work mis-attributed both to a hex-parsing problem.
+
+**`lint-paint.ts` prints `switch` as not covered** — *"no anatomy — figmaAnatomyPlan cannot be called;
+22 color bindings"* — which is the gate reporting its own scope honestly, not a failure. It joins the
+other four `NESTED_WITHOUT_ANATOMY` defs and all five leave that list together when the anatomy blocks
+land.
+
+**#871 holds:** `size` and `selection`, no surface or inverse axis, `on-inverse.*` unbound.
+
+**Next:** `select`, the last of tranche 1 — deliberately not authored here. Then #900 is decidable, which
+unblocks the anatomy blocks for all three selection controls and with them step 6.
+
+---
+
 ## (2026-08-21) — Four empty artboards, and the fix that nearly shipped a distorted glyph (#864)
 
 **STATUS: in review.** `icon`'s Figma projection is a 39-member `name` set drawing real geometry, via
