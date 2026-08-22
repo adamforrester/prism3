@@ -18,6 +18,7 @@ import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole } from './modes';
+import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
@@ -1025,6 +1026,48 @@ for (const b of brands) {
   const noInv = resolveAllModes({ ...nbTheme(), inverseContext: false })
     .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.inverse.'));
   ok(noInv.length === 0, 'inverse: inverse=false emits no inverse-column inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
+
+  // (a3) THE COVERAGE REGISTER, both directions (#892 step 5 / #893). Every semantic colour role
+  // either has an inverse counterpart or is named in `INVERSE_GAPS` with the reason it does not — so
+  // a deliberate gap and an oversight cannot look the same to #893's alias layer, which has to decide
+  // per row whether to omit it or point `inverse` at the same token.
+  //
+  // Both directions, and neither alone is enough. Arm 1 stops a gap appearing silently. Arm 2 stops an
+  // entry outliving its gap: once a role GAINS a counterpart its entry would go on asserting a decision
+  // nobody re-argued, and #893 would keep self-aliasing a row that now has a real inverse to point at —
+  // a wrong value that RESOLVES, which is the #575 shape.
+  //
+  // The register stores CONTRACT paths (`color.text.on-brand`) because that is the public name #893
+  // and `token-contract.json` both use; `modes.ts` role keys omit the `color.` prefix, so the two
+  // namespaces are reconciled here in one place rather than by storing the engine-internal spelling.
+  {
+    const roleSet = new Set(modes.find((m) => m.mode === 'light')!.roles ? Object.keys(modes.find((m) => m.mode === 'light')!.roles) : []);
+    const isInv = (k: string) => /(^|\.)inverse(\.|$)|(^|\.)on-inverse(\.|$)/.test(k);
+    const covered = (k: string): boolean => {
+      const seg = k.split('.');
+      const cands = [[seg[0], 'inverse', ...seg.slice(1)].join('.')];
+      if (seg[0] === 'interactive' && seg.length > 1) cands.push([seg[0], seg[1], 'inverse', ...seg.slice(2)].join('.'));
+      if (seg[0] === 'text' || seg[0] === 'icon') cands.push([seg[0], 'on-inverse', ...seg.slice(1)].join('.'));
+      return cands.some((c) => roleSet.has(c));
+    };
+    const uncovered = [...roleSet].filter((k) => !isInv(k) && !covered(k)).map((k) => `color.${k}`).sort();
+    const unregistered = uncovered.filter((k) => !INVERSE_GAP_PATHS.has(k));
+    ok(unregistered.length === 0,
+      `inverse: every role without an inverse counterpart is registered in INVERSE_GAPS with a reason (${uncovered.length} uncovered, ${INVERSE_GAP_PATHS.size} registered)` +
+      (unregistered.length ? ` — UNREGISTERED: ${unregistered.slice(0, 5).join(', ')}` : ''));
+    const uncoveredSet = new Set(uncovered);
+    const stale = [...INVERSE_GAP_PATHS].filter((k) => !uncoveredSet.has(k)).sort();
+    ok(stale.length === 0,
+      'inverse: no INVERSE_GAPS entry has outlived its gap' +
+      (stale.length ? ` — STALE (the role gained a counterpart, or no longer exists): ${stale.join(', ')}` : ''));
+    // The reason is the entry. A bare path list records that somebody once decided, not whether the
+    // decision was ever good — the same standard `LEAF_OK` and `ZERO_OK` hold.
+    const thin = INVERSE_GAPS.filter((g) => g.reason.trim().length < 120).map((g) => g.paths[0]);
+    ok(thin.length === 0, `inverse: every INVERSE_GAPS entry states WHY, not merely that${thin.length ? ` — thin: ${thin.join(', ')}` : ''}`);
+    // Floor: a scan finding nothing to cover would pass both arms trivially (`docs/34` shape 9).
+    ok(uncovered.length > 0 && roleSet.size > 100,
+      `inverse: the coverage scan sees a real corpus (${roleSet.size} roles, ${uncovered.length} uncovered)`);
+  }
 
   // (a2) the outline EDGE on the dark band (#467). Before this the border was emitted once against
   //      `background.primary` and reused on the inverse band, so the pair was never measured — the
@@ -4290,6 +4333,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       'color/foreground/inverse/info-subtle',
       'color/foreground/inverse/success-subtle',
       'color/foreground/inverse/warning-subtle',
+      // #892 step 5 — the seven remaining inverse borders and the five bold inverse fills. Still
+      // EXACT names rather than a `color/{border,foreground}/inverse/` prefix, and the reason is
+      // sharper here than it was for the subtles: those two groups also contain vars NB really
+      // exports (`border/inverse` renamed to `.../default`, and `foreground/inverse/{primary,
+      // secondary,tertiary}`), so a prefix would waive REAL rows alongside the engine-added ones.
+      // Twelve lines is the price of the gate still failing on a spurious var in a family NB defines.
+      'color/border/inverse/brand', 'color/border/inverse/danger', 'color/border/inverse/info',
+      'color/border/inverse/primary', 'color/border/inverse/secondary',
+      'color/border/inverse/success', 'color/border/inverse/warning',
+      'color/foreground/inverse/brand', 'color/foreground/inverse/danger',
+      'color/foreground/inverse/info', 'color/foreground/inverse/success',
+      'color/foreground/inverse/warning',
     ];
     // A var NB really exports that the engine still emits under a DIFFERENT NAME. #891 promoted
     // `color/border/inverse` from a leaf to a group, so the same value now lives at

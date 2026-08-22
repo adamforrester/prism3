@@ -431,6 +431,121 @@
         "icon.info"
       ]
     },
+    "foreground.inverse.brand": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.550}",
+        "dark": "{prism.palette.primary.600}",
+        "hc-light": "{prism.palette.primary.350}",
+        "hc-dark": "{prism.palette.primary.650}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.19
+        }
+      ]
+    },
+    "foreground.inverse.success": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.success.500}",
+        "dark": "{prism.palette.success.500}",
+        "hc-light": "{prism.palette.success.350}",
+        "hc-dark": "{prism.palette.success.650}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.89
+        }
+      ]
+    },
+    "foreground.inverse.warning": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.500}",
+        "dark": "{prism.palette.warning.500}",
+        "hc-light": "{prism.palette.warning.350}",
+        "hc-dark": "{prism.palette.warning.650}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.89
+        }
+      ]
+    },
+    "foreground.inverse.danger": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.500}",
+        "dark": "{prism.palette.danger.500}",
+        "hc-light": "{prism.palette.danger.350}",
+        "hc-dark": "{prism.palette.danger.650}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.92
+        }
+      ]
+    },
+    "foreground.inverse.info": {
+      "$description": "Inverse / bold surface (tier 1).",
+      "meaning": "Inverted / bold surface",
+      "when_to_use": "Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.",
+      "avoid_when": "Do not use for the page (use background.*) or for ink (use text/icon).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.info.500}",
+        "dark": "{prism.palette.info.500}",
+        "hc-light": "{prism.palette.info.350}",
+        "hc-dark": "{prism.palette.info.650}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.93
+        }
+      ]
+    },
     "foreground.inverse.brand-subtle": {
       "$description": "Inverse / bold surface (tier 1).",
       "meaning": "Inverted / bold surface",
@@ -2707,6 +2822,92 @@
         "disabled.fill"
       ]
     },
+    "disabled.inverse.fill": {
+      "$description": "Disabled inverse (fill state).",
+      "meaning": "Unavailable / inactive state",
+      "when_to_use": "Use as the disabled inverse role.",
+      "avoid_when": "Do not use outside the disabled role.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.800}",
+        "dark": "{prism.palette.neutral.250}",
+        "hc-light": "{prism.palette.neutral.800}",
+        "hc-dark": "{prism.palette.neutral.250}"
+      }
+    },
+    "disabled.inverse.on-fill": {
+      "$description": "Disabled inverse (on-fill state).",
+      "meaning": "Unavailable / inactive state",
+      "when_to_use": "Use as the disabled inverse role.",
+      "avoid_when": "Do not use outside the disabled role.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.500}",
+        "dark": "{prism.palette.neutral.600}",
+        "hc-light": "{prism.palette.neutral.350}",
+        "hc-dark": "{prism.palette.neutral.700}"
+      },
+      "contrast_with": [
+        {
+          "token": "disabled.inverse.fill",
+          "min": "3:1",
+          "ratio": 3.03
+        }
+      ]
+    },
+    "disabled.inverse.text": {
+      "$description": "Disabled inverse (text state).",
+      "meaning": "Unavailable / inactive state",
+      "when_to_use": "Use as the disabled inverse role.",
+      "avoid_when": "Do not use outside the disabled role.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.550}",
+        "dark": "{prism.palette.neutral.450}",
+        "hc-light": "{prism.palette.neutral.500}",
+        "hc-dark": "{prism.palette.neutral.500}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.23
+        }
+      ]
+    },
+    "disabled.inverse.icon": {
+      "$description": "Disabled inverse (icon state).",
+      "meaning": "Unavailable / inactive state",
+      "when_to_use": "Use as the disabled inverse role.",
+      "avoid_when": "Do not use outside the disabled role.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.550}",
+        "dark": "{prism.palette.neutral.450}",
+        "hc-light": "{prism.palette.neutral.500}",
+        "hc-dark": "{prism.palette.neutral.500}"
+      },
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.23
+        }
+      ]
+    },
+    "disabled.inverse.border": {
+      "$description": "Disabled inverse (border state).",
+      "meaning": "Unavailable / inactive state",
+      "when_to_use": "Use as the disabled inverse role.",
+      "avoid_when": "Do not use outside the disabled role.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.800}",
+        "dark": "{prism.palette.neutral.250}",
+        "hc-light": "{prism.palette.neutral.800}",
+        "hc-dark": "{prism.palette.neutral.250}"
+      }
+    },
     "field.fill": {
       "$description": "Form field fill.",
       "meaning": "Form input / field chrome",
@@ -4786,6 +4987,153 @@
         }
       ]
     },
+    "border.inverse.primary": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.800}",
+        "dark": "{prism.palette.neutral.200}",
+        "hc-light": "{prism.palette.neutral.500}",
+        "hc-dark": "{prism.palette.neutral.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ]
+    },
+    "border.inverse.secondary": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.600}",
+        "dark": "{prism.palette.neutral.500}",
+        "hc-light": "{prism.palette.neutral.250}",
+        "hc-dark": "{prism.palette.neutral.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ]
+    },
+    "border.inverse.brand": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.500}",
+        "dark": "{prism.palette.primary.500}",
+        "hc-light": "{prism.palette.primary.500}",
+        "hc-dark": "{prism.palette.primary.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.24
+        }
+      ]
+    },
+    "border.inverse.success": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.success.500}",
+        "dark": "{prism.palette.success.500}",
+        "hc-light": "{prism.palette.success.500}",
+        "hc-dark": "{prism.palette.success.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.22
+        }
+      ]
+    },
+    "border.inverse.warning": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.500}",
+        "dark": "{prism.palette.warning.500}",
+        "hc-light": "{prism.palette.warning.500}",
+        "hc-dark": "{prism.palette.warning.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.22
+        }
+      ]
+    },
+    "border.inverse.danger": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.500}",
+        "dark": "{prism.palette.danger.500}",
+        "hc-light": "{prism.palette.danger.500}",
+        "hc-dark": "{prism.palette.danger.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.25
+        }
+      ]
+    },
+    "border.inverse.info": {
+      "$description": "Border on inverse surfaces.",
+      "meaning": "Inverted-surface separation",
+      "when_to_use": "Borders on background.inverse / foreground.inverse.",
+      "avoid_when": "Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.info.500}",
+        "dark": "{prism.palette.info.500}",
+        "hc-light": "{prism.palette.info.500}",
+        "hc-dark": "{prism.palette.info.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 4.26
+        }
+      ]
+    },
     "border.focus": {
       "$description": "Focus ring color.",
       "meaning": "Keyboard focus indication",
@@ -5606,6 +5954,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.brand",
         "color.icon.brand-subtle",
         "color.icon.link.visited",
         "color.icon.on-inverse.link.default",
@@ -5680,6 +6029,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.brand",
+        "color.border.inverse.brand",
         "color.border.inverse.focus",
         "color.icon.brand-subtle",
         "color.icon.on-inverse.brand-subtle",
@@ -5699,6 +6049,7 @@
         "color.border.focus",
         "color.border.inverse.focus",
         "color.foreground.brand",
+        "color.foreground.inverse.brand",
         "color.icon.on-inverse.brand-subtle",
         "color.interactive.primary.fill.rest",
         "color.text.on-inverse.brand-subtle"
@@ -5714,6 +6065,7 @@
         "color.border.focus",
         "color.border.inverse.focus",
         "color.foreground.brand",
+        "color.foreground.inverse.brand",
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
@@ -5740,6 +6092,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.brand",
         "color.icon.link.hover",
         "color.icon.on-inverse.brand-subtle",
         "color.icon.on-inverse.link.default",
@@ -5919,6 +6272,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.inverse.default",
+        "color.border.inverse.primary",
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
@@ -5934,7 +6288,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.inverse.secondary",
         "color.border.secondary",
+        "color.disabled.inverse.border",
+        "color.disabled.inverse.fill",
         "color.interactive.neutral.fill.pressed",
         "color.interactive.neutral.fill.selected"
       ]
@@ -5960,6 +6317,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.disabled.inverse.on-fill",
         "color.field.inverse.placeholder",
         "color.field.placeholder",
         "color.icon.on-inverse.secondary",
@@ -5992,6 +6350,8 @@
       "aliased_by": [
         "color.border.secondary",
         "color.disabled.icon",
+        "color.disabled.inverse.icon",
+        "color.disabled.inverse.text",
         "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.border.hover",
@@ -6020,9 +6380,14 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.inverse.default",
+        "color.border.inverse.primary",
+        "color.border.inverse.secondary",
         "color.border.primary",
         "color.border.secondary",
         "color.disabled.icon",
+        "color.disabled.inverse.icon",
+        "color.disabled.inverse.on-fill",
+        "color.disabled.inverse.text",
         "color.disabled.text",
         "color.field.border.rest",
         "color.field.inverse.border.hover",
@@ -6044,6 +6409,8 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.disabled.icon",
+        "color.disabled.inverse.icon",
+        "color.disabled.inverse.text",
         "color.disabled.on-fill",
         "color.disabled.text",
         "color.field.border.hover",
@@ -6068,7 +6435,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.inverse.secondary",
         "color.disabled.icon",
+        "color.disabled.inverse.on-fill",
         "color.disabled.text",
         "color.field.border.hover",
         "color.field.inverse.border.hover",
@@ -6104,7 +6473,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.inverse.secondary",
         "color.border.secondary",
+        "color.disabled.inverse.on-fill",
         "color.icon.secondary",
         "color.interactive.neutral.border.pressed",
         "color.interactive.neutral.inverse.border.pressed",
@@ -6133,6 +6504,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.inverse.default",
+        "color.border.inverse.primary",
+        "color.disabled.inverse.border",
+        "color.disabled.inverse.fill",
         "color.foreground.inverse.tertiary",
         "color.foreground.tertiary",
         "color.interactive.neutral.fill.focused",
@@ -6292,6 +6666,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.success",
         "color.icon.success-subtle",
         "color.text.success-subtle"
       ]
@@ -6325,7 +6700,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.inverse.success",
         "color.border.success",
+        "color.foreground.inverse.success",
         "color.foreground.success",
         "color.icon.on-inverse.success-subtle",
         "color.icon.success-subtle",
@@ -6364,6 +6741,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.success",
         "color.icon.on-inverse.success-subtle",
         "color.text.on-inverse.success-subtle"
       ]
@@ -6490,6 +6868,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.warning",
         "color.icon.warning-subtle",
         "color.text.warning-subtle"
       ]
@@ -6523,7 +6902,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.border.inverse.warning",
         "color.border.warning",
+        "color.foreground.inverse.warning",
         "color.foreground.warning",
         "color.icon.on-inverse.warning-subtle",
         "color.icon.warning-subtle",
@@ -6562,6 +6943,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.warning",
         "color.icon.on-inverse.warning-subtle",
         "color.text.on-inverse.warning-subtle"
       ]
@@ -6686,6 +7068,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.info",
         "color.icon.info-subtle",
         "color.text.info-subtle"
       ]
@@ -6720,7 +7103,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.info",
+        "color.border.inverse.info",
         "color.foreground.info",
+        "color.foreground.inverse.info",
         "color.icon.info-subtle",
         "color.icon.on-inverse.info-subtle",
         "color.text.info-subtle",
@@ -6758,6 +7143,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.info",
         "color.icon.on-inverse.info-subtle",
         "color.text.on-inverse.info-subtle"
       ]
@@ -6902,6 +7288,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.danger",
         "color.icon.danger-subtle",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.border.rest",
@@ -6958,7 +7345,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.border.danger",
+        "color.border.inverse.danger",
         "color.foreground.danger",
+        "color.foreground.inverse.danger",
         "color.icon.danger-subtle",
         "color.icon.on-inverse.danger-subtle",
         "color.interactive.destructive.fill.rest",
@@ -7009,6 +7398,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.foreground.inverse.danger",
         "color.icon.on-inverse.danger-subtle",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.border.rest",
