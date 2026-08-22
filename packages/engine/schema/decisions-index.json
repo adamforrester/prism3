@@ -37,6 +37,13 @@
       "title": "case-by-case ranges, not one universal rule",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.3"
+    },
+    {
+      "date": "2026-08-22",
+      "issue": 922,
+      "title": "`docs/34` holds the diagnosis; `CLAUDE.md` holds a countermeasure only when it's unhookable and statable in one clause",
+      "doc": "docs/43-agent-instruction-surface.md",
+      "section": null
     }
   ]
 }
