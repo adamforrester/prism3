@@ -1350,6 +1350,9 @@ const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   // the field's flush one, but the binding is structurally Button's and the def has no `anatomy`, so
   // `nests` cannot see it either.
   'checkbox': ['focus-ring'],
+  // Fourth, and `radio` inherits the entry along with the binding — same control ring, same absent
+  // anatomy block. All four go when their anatomy blocks land.
+  'radio': ['focus-ring'],
 };
 
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */
