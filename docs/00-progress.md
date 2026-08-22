@@ -9,6 +9,92 @@
 
 ---
 
+## (2026-08-22) — `CLAUDE.md` grooming: a proposal, not a restructure (#886-adjacent, docs/43)
+
+**STATUS: proposal-only PR.** `docs/43-agent-instruction-surface.md` triages `CLAUDE.md`'s content by
+what triggers each passage, not by how important it reads. No `CLAUDE.md` restructuring lands in this
+PR — that comes as follow-up PRs against the five issues this one files (#924–#928), one disposition
+group per PR, because two live edits were already pending against the file (#922's placement, #910/#911's
+checkbox naming) and a single PR both arguing the case and moving ~30KB would collide with both.
+
+**The measurement, first, because the file moved twice while this was in flight.** `CLAUDE.md` was
+scoped at 51,478 bytes / 109 lines; a first draft measured 58,820; **this PR is rebased onto `main`
+after #920 landed, where the file is 62,136 bytes**, same line count throughout — **+21% since
+scoping**, from two new gates' rationale paragraphs, one appended hazard, and #920's
+`lint-glyph-geometry.ts` rationale (+3,289 bytes on its own, the single largest jump in the file). The
+file is not stable while ungroomed, which is itself part of the argument. The metric trap: "under 200
+lines" reads as compliant at 109 lines, but the real average is 570 bytes/line — single physical lines,
+the largest now over 18,000 bytes. **Report bytes, not lines.**
+
+**The `@path` finding is the one worth leading with, because it's the fix everyone reaches for first
+and it doesn't work.** Verified 2026-08-22 against code.claude.com/docs/en/memory: `@path` imports are
+expanded and loaded at launch *alongside* the parent file — splitting `CLAUDE.md` into five imported
+files buys organization and zero tokens. What *does* reduce injected context: `.claude/rules/*.md` with
+`paths:` frontmatter (loads only on a matching file read), a nested `CLAUDE.md` (loads on demand for its
+directory), and a Skill (loads only on invocation). Hooks aren't a context mechanism at all — they fire
+as a shell command at a lifecycle event, which is exactly the shape the trigger-class axis below needs.
+
+**The trigger-class axis, not "is it important."** Sort each passage by what makes an agent read it: a
+file read in a known directory (nested `CLAUDE.md` / path-scoped rule), an invoked task (a skill, or a
+doc read on purpose like `docs/34` already is), or a bare shell command with no file read at all — this
+last class can be **nothing but** resident prose or a hook, because no file-scoped mechanism fires on a
+`Bash` call. That third class is the doc's real finding: three of the file's largest hazards (the
+`npm install --prefix` disaster, the squash-merge `[new branch]` tell, the `git checkout <ref> --
+<path>` pathspec trap) are Class 3, and this repo already has precedent for hooking Class 3 hazards —
+`.claude/settings.json`'s `PreToolUse` deny on `git push` when `regen.ts --check` fails.
+
+**Two gates turned out to be far more permissive than a naive "don't touch this region" reading
+suggests**, which is what makes most of the proposed shrinkage safe: `lint-doc-gates.ts` (principle 4)
+checks only that each gate's bare command tokens co-occur on *some* line in the region — never prose
+length, never rationale — and `lint-layout-claims.ts` (the layer table) checks only the **first cell**
+of each table row, leaving the second (description) cell completely unconstrained. Fourteen thousand
+bytes of principle-4 narrative and six thousand bytes in the `tools/` table cell can both shrink to a
+sentence-plus-pointer without either gate noticing, provided the bare tokens and the row survive.
+
+**#923 landed mid-task and sharpened §5 rather than needing its own disposition group.** A fifth
+git-hazard incident (bare `git stash pop` consuming another session's stack, #905/#915's family, a
+fourth *shape*) — filed separately and deliberately not absorbed into `docs/43`, only cited. Two things
+from it changed the doc's argument: it corrects a premise `docs/43` would otherwise have had to
+re-derive (#915's "not a gate" conclusion predates `.claude/settings.json`'s hook existing, and #923
+says so explicitly), and its proposed stash-pop predicate is now the doc's worked example of checkable
+vs. judgment-call — used to answer, for the first time, whether the `git checkout <ref> -- <path>`
+hazard has an equally clean predicate. It does: a `PreToolUse` check of the path's *current* dirty state
+runs before the write and never compares against `<ref>`, so it doesn't inherit the post-hoc blind spot
+(`git status` reading clean when `<ref>` happens to be byte-identical to `HEAD`) that the existing
+`CLAUDE.md` prose warns about.
+
+**The `docs/34`-vs-`CLAUDE.md` general rule, resolved as a byproduct of answering #922.** #922 asked
+where a new hazard belongs and left the question open. `docs/43` §5 answers the general form —
+diagnosis-shaped content (why a check can pass while wrong) belongs in `docs/34`, read on purpose;
+countermeasure-shaped content belongs in `CLAUDE.md` only if it's genuinely unhookable *and* statable in
+one clause pointing back to `docs/34` for the "why" — then applies it to #922 concretely (a new
+`docs/34` register entry plus one clause in principle 4's verification framing) without doing #922's own
+implementation work. Commented on #922 rather than filing a new issue, and indexed as a new row in
+`schema/decisions-index.json` / `docs/42-current-decisions.md`, since it's a real decision and #886's
+infrastructure exists precisely to hold this kind of thing without a fifth vision doc.
+
+**Five issues filed, one per disposition group, all `maintenance`:** #924 (principle 4's per-gate
+narrative → `CONTRIBUTING.md` §3 + each gate's own header, ~26,300B), #925 (the `tools/` table cell → a
+nested `tools/CLAUDE.md`, ~5,900B), #926 (the worktree paragraph → a pointer, plus a new `PreToolUse`
+hook for the pathspec hazard, ~5,900B combined), #927 (the squash-merge paragraph → rule + the one
+checkable signal, plus a `PostToolUse` hook watching for `* [new branch]`, ~1,800B), #928 (the
+US-English paragraph's self-admitted-redundant trap restatement → delete, ~1,900B). Target budget:
+~19,900 bytes, a 68% reduction, itemized in §6 rather than rounded.
+
+**One arithmetic bug caught assembling the target budget, worth naming rather than quietly fixing.**
+`docs/43`'s section-weight table treats "Prism3 — the generation engine" as a single label, but by byte
+range it actually holds the worktree and squash-merge paragraphs (Class 3 git hazards, not engine
+docs) — an earlier draft counted that whole section as untouched *and* counted those two paragraphs'
+shrinkage separately, double-billing the same bytes. §6's two independent estimates (top-down section
+sum vs. bottom-up "total minus every disposition group's savings") disagreeing by ~6,900 bytes was the
+tell; fixing the double-count brought them to within rounding of each other, which is the check.
+
+**Based on post-#920, post-#921 `main`.** #920 (`lint-glyph-geometry.ts`) and #921 (#892 steps 1-4)
+both landed while this was in flight; the branch was rebased onto both, and every figure above is
+measured against the post-rebase file, not the `main` this branch was originally cut from.
+
+---
+
 ## (2026-08-22) — 24 of 123 inverse gaps, and the promotion pattern turns out to be finished
 
 **STATUS: in review.** #892 steps 1-3. `CONTRACT_VERSION` **4.0.0 → 4.2.0** (two MINOR bumps, 497 →
@@ -102,6 +188,7 @@ exercises the default; `scrim.inverse` has one and exercises the exception).
 this entry, against CLAUDE.md's explicit rule that it rides in the feature PR. Found by looking, not
 by a gate — `lint-doc-gates` checks that the gate LIST is consistent, not that a PR carried its
 reasoning. Corrected here by writing one entry for all three steps.
+
 
 ---
 
@@ -393,7 +480,9 @@ case by name, and dropping `glyphViewBox` from the projected plan fails arm A fo
 **Gates:** `npm run verify` → **38/38 gates reached a verdict in 87s — 38 PASS · 0 FAIL · 0 SKIP · 0
 ADVISORY** (37 before this one).
 
+
 ---
+
 
 ## (2026-08-21) — The paint grammar goes axis-led, and the exemption becomes a declaration (#910 review)
 
