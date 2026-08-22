@@ -71,7 +71,8 @@ export type PartKind =
   | 'text'     // a text node; carries a type binding
   | 'slot'     // swappable content (icon / avatar / counter / spinner) — instance-swap in Figma
   | 'overlay'  // occupies another part's position rather than its own row cell
-  | 'absolute'; // takes NO position in the flow — an absolutely-positioned sibling of its siblings
+  | 'absolute' // takes NO position in the flow — an absolutely-positioned sibling of its siblings
+  | 'vector';  // a filled outline — the one kind whose CONTENT is geometry rather than a box (#864)
 
 /** How a part sizes on each axis. Figma's auto-layout vocabulary, which is also CSS-expressible
  *  (`hug` = fit-content, `fill` = stretch, `fixed` = an explicit dimension). */
@@ -189,6 +190,28 @@ export type PartDef = {
    *  distinct ink ROLE, not a distinct part. `indicator` qualifies (a name and its de-emphasised
    *  suffix are two roles); "this part happens to need its own colour" does not. */
   paintSlot?: string;
+  /** For `vector` parts: WHICH glyph, by its name in the icon vocabulary (#864).
+   *
+   *  A NAME, resolved against `ICON_PATHS` at projection — never the path data itself. Two reasons, and
+   *  the second is the one that matters. A def carrying `d="M12 2L2 7…"` would be authoring geometry in a
+   *  file whose whole job is to declare *relationships*, and the path would then exist in two places with
+   *  nothing comparing them. And the name is the CONTRACT surface: `icon.name` is typed against
+   *  `IconName`, `icon-set.ts` maps our names to source files in both directions, and a name that has
+   *  stopped resolving is a build error rather than an invisible gap — which is exactly the guarantee
+   *  `icon.name`'s own prop description claims and #833 built the mechanism for.
+   *
+   *  TEMPLATABLE ON A VARIANT AXIS, `{name}` in the same `{...}` grammar `paintKeys` uses — because a
+   *  static string per part is a real defect and not a limitation. A set enumerated over a 39-value `name`
+   *  axis with `glyph: 'check'` projects 39 correctly-named members that all draw a check mark, and every
+   *  gate accepts it: the count is right, the names are right, nothing throws. That is #864's own shape one
+   *  tier in, and it was measured on this branch before it was fixed. An unfillable placeholder throws at
+   *  projection and is refused at authoring time by `anatomyErrors`.
+   *
+   *  So a def says `glyph: 'check'` and the projection fails loudly if the vocabulary no longer has it.
+   *  Swapping the icon set for a client's branded one changes `icons/*.svg` and `icon-set.ts`; every def
+   *  naming a glyph that survives the swap is untouched, and every def naming one that does not fails at
+   *  projection instead of building an empty square. */
+  glyph?: string;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
   /** For `overlay`: the part whose position it takes (width-preserving, per the brief).
@@ -1229,16 +1252,18 @@ export type State = (typeof STATES)[number];
  * closing the names makes a typo and a synonym visible; it does NOT assert the two axes carry the same
  * semantics, which nothing here can check.
  *
- * ── MEASURED: 10 distinct axis names, and TWO INCONSISTENCIES THE CENSUS EXPOSED ────────────────────
+ * ── MEASURED: 11 distinct axis names, and TWO INCONSISTENCIES THE CENSUS EXPOSED ────────────────────
  *
- *     size        5 defs   ALL FIVE [small,medium,large] / [small,medium] — one vocabulary since #844
- *     intent      2        button, icon-button — [primary,neutral,destructive] BOTH, identical
+ *     size        7 defs   ALL SEVEN [small,medium,large] / [small,medium] — one vocabulary since #844
  *     appearance  2        button, icon-button — [filled,outline,text] BOTH, identical
+ *     intent      2        button, icon-button — [primary,neutral,destructive] BOTH, identical
+ *     selection   2        checkbox[3 values] · radio[2 values] — the family axis, decided once below
+ *     style       2        text-field, textarea — [bordered] BOTH, an axis of one on each
  *     tone        2        icon[9 values] · field-message[4 values] — disjoint, opposite key grammars
  *     color       1        focus-ring
  *     indicator   1        field-label
+ *     name        1        icon[39 values] — the glyph vocabulary (#864)
  *     offset      1        focus-ring
- *     style       1        text-field
  *     width       1        button
  *
  * 1. **`size` spelled one concept three ways** — `[xs,sm,md,lg]` (icon) / `[small,medium,large]` (three
@@ -1318,10 +1343,30 @@ export type State = (typeof STATES)[number];
  * `button` already does with `{intent}.{appearance}.{slot}.{state}`. The precedent for a RUNTIME-driven
  * axis is `field-message`'s `tone`, whose values are validation outcomes rather than author choices —
  * so "variants is the author's set" is about who OWNS the axis, not about who moves it.
+ *
+ * ── `name`: THE ELEVENTH NAME, THE FIRST WHOSE VALUES ARE A VOCABULARY (#864) ────────────────────
+ *
+ * `name` (#864) is the admission that tests the "names close, values stay open" rule hardest, because it
+ * is the first axis whose values are a VOCABULARY rather than a design choice: its 39 values are
+ * `ICON_NAMES`, spread from the icon set, so `icon.ts` does not author them and cannot spell one wrong.
+ * It earns the entry on the same ground every other one does — a distinct kind of distinction, and one no
+ * existing name expresses. `tone` is which ink, `size` is how big, and neither says WHICH GLYPH; `style`
+ * and `appearance` are the two that come closest and both name a treatment applied to fixed content.
+ *
+ * Two things about it are worth reading before adding a second axis of this shape. It is the largest axis
+ * in the corpus by an order of magnitude — 39 values against `tone`'s 9 — and axis size is not free
+ * downstream: `lint-paint.ts` takes a cross product over `variants`, so icon's grid census moves from 36
+ * coordinates to **351** and needs a fresh `--accept` baseline. Read as measured, not as ×39: this axis
+ * arrived in the same change that took `size` (4 rungs) out of `variants`, so the product went
+ * 4 × 9 → 39 × 9. An axis of this width added to a def that keeps its other axes multiplies them all,
+ * which for `button` would be four figures. And it is the first axis a def does not spell out, which is
+ * what makes it safe at that width: a values census over `name` reads
+ * the icon set, so the synonym-sitting-in-a-census failure mode this list guards has no way in here.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone', 'color',
   'width', 'style', 'indicator', 'offset', 'selection',
+  'name',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -1917,6 +1962,38 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the #784 shape arriving through the field that exists to prevent it.
     if (p.kind === 'text' && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
       e.push(`anatomy part '${n}': paintSlot '${p.paintSlot}' is not a slot the projector dispatches — it asks only for [${PAINT_SLOTS.join(', ')}]. A part naming a word outside that list resolves no paint and projects unpainted. Do NOT add it to PAINT_SLOTS to clear this: a new slot needs a distinct ink ROLE and a real dispatch behind it (see PAINT_SLOTS)`);
+    // ---- the vector kind (#864) ----
+    // A vector's CONTENT is its geometry, so a vector naming no glyph is the empty artboard #864 was
+    // filed for arriving one tier earlier: it would project a node with nothing in it and every gate
+    // would stay green, because a node that exists is all any of them check.
+    if (p.kind === 'vector' && !p.glyph)
+      e.push(`anatomy part '${n}' is kind 'vector' but names no 'glyph' — a vector's content IS its geometry, so one with no glyph projects an empty outline. That is #864 exactly: four artboards that built without throwing and contained nothing`);
+    // And the mirror, for the reason every other field-on-the-wrong-kind rule here exists: `glyph` is
+    // read only by the vector branch, so on any other kind it validates clean, is silently ignored, and
+    // leaves an author believing the part draws something.
+    if (p.kind !== 'vector' && p.glyph !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but names a 'glyph' — only a 'vector' part carries geometry. A slot's content is whatever the consumer swaps in, which is a component and not a path`);
+    // A `{...}`-TEMPLATED GLYPH must name an axis this def has, the same rule `paintKeyErrors` applies to
+    // a paint template and for the same reason: `glyph: '{nmae}'` is unfillable, and the projector's throw
+    // arrives per-coordinate at emission rather than here at authoring time. `size` is admissible on top
+    // of the declared axes because the projector fills the glyph from `paintCoord`, which carries it.
+    for (const ph of paintKeyPlaceholders(p.glyph ?? '')) {
+      const known = ph === 'size' ? (def.variants?.size ?? []).length > 0 : Object.keys(variantsOf(def)).includes(ph);
+      if (!known)
+        e.push(`anatomy part '${n}' names glyph '${p.glyph}', whose '{${ph}}' is not an axis this def declares [${Object.keys(variantsOf(def)).join(', ') || 'none'}] — an unfillable placeholder reaches the icon vocabulary verbatim, so every member would carry the same outline or none at all`);
+    }
+    // A vector is a LEAF IN THE DEF, and that stayed true when the build strategy stopped making it a leaf
+    // in the FILE. Figma builds a glyph by importing an SVG document, which returns a frame wrapping the
+    // outline — so the built subtree does have a child, and it is the IMPORTER'S. A child declared here
+    // would have to be appended beside it, into a frame whose contents no part of this schema describes,
+    // and the reachability walk above would report that child as reachable while no materializer places it.
+    if (p.kind === 'vector' && (p.children ?? []).length)
+      e.push(`anatomy part '${n}' is kind 'vector' but declares children — a glyph's subtree is Figma's SVG importer's, so a child declared here has nowhere this schema can place it; nest the vector inside a 'box' instead and let the box lay them out`);
+    // A glyph is sized by WHOEVER INSTANCES IT — a host binds `size.{size}.icon` onto its own slot — and
+    // the artboard the outline is drawn on comes from the icon set. A `size` binding here would state that
+    // square a third time, on the outline itself, and the three could then disagree with nothing noticing.
+    if (p.kind === 'vector' && (p.size || p.height))
+      e.push(`anatomy part '${n}' is kind 'vector' but binds '${p.size ? 'size' : 'height'}' — a glyph's artboard comes from the icon set and its rendered size comes from the host that instances it, so binding it here states the same square a third time`);
   }
 
   return e;

@@ -384,6 +384,60 @@ npx tsx packages/engine/lint-standalone-floor.ts    # a def offered as a build t
                                                     # mechanism determines the root's size, not that
                                                     # the size is the one a designer wanted, and not
                                                     # that the result is visible
+npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an outline that DRAWS
+                                                    # SOMETHING — filled, non-zero box area, one per
+                                                    # glyph, across every member of the set, on a
+                                                    # SQUARE artboard the document DECLARES rather than
+                                                    # leaves to the importer. #802's class again, and
+                                                    # its largest instance (#864): `icon` built FOUR
+                                                    # EMPTY ARTBOARDS and every gate in this list was
+                                                    # legitimately green, because an empty artboard
+                                                    # exists, its refs resolve, its count matches and
+                                                    # nothing throws — which is all any of them ask.
+                                                    # The artboard half was found WHILE fixing the
+                                                    # first, and generalizes: a node whose box IS its
+                                                    # content cannot be a member of a set whose
+                                                    # consumers bind a square. A Figma VectorNode is
+                                                    # sized to its ink; only 19 of 39 glyphs are square
+                                                    # (minus is 14×2), and both hosts bind ONE
+                                                    # size.{size}.icon to width AND height, so a 14×2
+                                                    # main component in that slot is a bar 7× too
+                                                    # thick — builds fine, renders wrong.
+                                                    # EXPECTED is the VOCABULARY (ICON_PATHS, and
+                                                    # ICON_VIEWBOX RE-PARSED here — calling the
+                                                    # projector's own viewBoxDims would make both
+                                                    # halves one derivation, so the duplicated parse IS
+                                                    # the gate); ACTUAL is the document the plan hands
+                                                    # to createNodeFromSvg, read back by parsing it.
+                                                    # The ink is measured by this gate's own path
+                                                    # walker, which FLATTENS curves rather than
+                                                    # hull-bounding them and THROWS on an unmodelled
+                                                    # command — both because the error either shortcut
+                                                    # introduces points toward "measures nothing and
+                                                    # calls it clean". Ten mutations; two are the
+                                                    # argument: all 39 members drawing `check` leaves
+                                                    # test.ts at 2274 passed / 0 failed (its sample
+                                                    # member IS check), and fill="none" everywhere
+                                                    # leaves every area and count check green.
+                                                    # MUST_COVER and DUPLICATE_PATHS are AUTHORED, both
+                                                    # directions, same argument as ZERO_OK: three
+                                                    # -fill files draw their -line sibling (a pure
+                                                    # stroke has no filled form), so 39 names are 37
+                                                    # distinct path STRINGS and 36 distinct SHAPES —
+                                                    # and that gap is the gate's own stated blind spot,
+                                                    # since the arm compares strings. Two defects found
+                                                    # in the gate itself, both worth knowing before
+                                                    # copying it: the exemption list was wrong on first
+                                                    # run and the gate said so, and the no-vector-part
+                                                    # arm shipped `catch { stray = [] }` for one
+                                                    # revision — "I could not look" reported as "I
+                                                    # looked and found nothing", docs/34 shape 9,
+                                                    # inside a gate written to avoid exactly that.
+                                                    # Its LIMIT: createNodeFromSvg has no Node
+                                                    # implementation, so nothing here verifies the
+                                                    # SUBTREE Figma returns. That is the executors'
+                                                    # runtime NO VECTOR miss, which fails loudly rather
+                                                    # than building a plausible empty frame.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

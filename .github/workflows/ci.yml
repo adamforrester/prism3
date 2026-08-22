@@ -455,6 +455,30 @@ jobs:
       - name: A def offered as a build target projects something with an extent
         run: npx --yes tsx@4 packages/engine/lint-standalone-floor.ts
 
+      # #864 is #802's class again, and the largest instance of it: `icon` built four EMPTY ARTBOARDS.
+      # The def carried a size axis and no geometry anywhere, so every gate in this workflow was green
+      # over a component that renders nothing — an empty artboard exists, its refs resolve, its count
+      # matches and nothing throws, which is all any of them ask.
+      #
+      # This states the quantity a human would check: a FILLED outline with non-zero box area, one per
+      # glyph, across every member of the set, on a SQUARE artboard the document declares rather than
+      # leaves to the importer (a Figma VectorNode's box IS its ink, and only 19 of these 39 glyphs are
+      # square, so a 14×2 `minus` stretched into a host's square slot is a bar 7× too thick — builds
+      # fine, renders wrong). EXPECTED is the vocabulary (`ICON_PATHS`, and `ICON_VIEWBOX` re-parsed
+      # here rather than via the projector's own `viewBoxDims`, which would make both halves one
+      # derivation); ACTUAL is the document the plan will hand to `figma.createNodeFromSvg`, read back
+      # by parsing it. The ink is measured by the gate's own path walker, which flattens curves rather
+      # than hull-bounding them and throws on an unmodelled command — both to keep the error away from
+      # "measures nothing and calls it clean".
+      #
+      # Mutation-verified, ten ways, and two of them are the point: templating the glyph so all 39
+      # members draw `check` leaves `test.ts` at 2274 passed / 0 failed (its sample member IS `check`),
+      # and `fill="none"` on every path leaves every area and count check green. Both fail here by name.
+      # It CANNOT see the subtree Figma returns — there is no SVG importer in Node; that is the
+      # executors' runtime `NO VECTOR` miss, and the gate's header says so rather than implying cover.
+      - name: A glyph draws its own filled outline on a square artboard
+        run: npx --yes tsx@4 packages/engine/lint-glyph-geometry.ts
+
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning

@@ -456,6 +456,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-standalone-floor.ts'),
   },
   {
+    id: 'lint-glyph-geometry',
+    ciStep: 'A glyph draws its own filled outline on a square artboard',
+    cmd: engine('lint-glyph-geometry.ts'),
+  },
+  {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
     // row's own `ciStep` string among them — and that firing is what produced the flip below. It
     // now guards windows nobody has opened yet.

@@ -460,6 +460,24 @@ const makeShim = (opts: ShimOpts = {}) => {
     },
     createText: () => mkNode('TEXT'),
     createFrame: () => mkNode('FRAME'),
+    // THE SVG IMPORTER (#864) — a FRAME on the document's artboard, wrapping the outline it drew.
+    // Mirrors the engine stub's, deliberately and for the reason stated on that one: the parity gate
+    // drives both executors against one host model, so two different models would turn its comparison
+    // into a comparison of models. Read that copy for what this can and cannot be evidence about —
+    // there is no SVG importer in Node, so the shape is the typings' claim rather than a measurement,
+    // and only the executor's runtime misses can catch the live host disagreeing.
+    createNodeFromSvg: (svg: string) => {
+      const attr = (name: string) => Number(new RegExp(`${name}="([0-9.]+)"`).exec(svg)?.[1] ?? 0);
+      const frame = mkNode('FRAME');
+      (frame.resize as (w: number, h: number) => void)(attr('width'), attr('height'));
+      const d = /<path[^>]*\bd="([^"]*)"/.exec(svg)?.[1] ?? '';
+      const nums = (d.match(/-?[0-9]*\.?[0-9]+/g) ?? []).map(Number);
+      const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
+      const vec = mkNode('VECTOR');
+      (vec.resize as (w: number, h: number) => void)(span(nums.filter((_, i) => i % 2 === 0)), span(nums.filter((_, i) => i % 2 === 1)));
+      (frame.appendChild as (c: Node) => void)(vec);
+      return frame;
+    },
     createComponentFromNode: (n: Node) => n,
     combineAsVariants: (members: Node[]) => {
       // Between the build loop's last boundary and the wire loop's first — the window the wire re-stamp

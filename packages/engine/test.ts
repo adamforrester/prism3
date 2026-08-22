@@ -55,6 +55,9 @@ import type { AnatomyPlan } from './anatomy-figma';
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
 import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField } from './components/index';
+// The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
+// than from the projector that read it — the two halves `docs/34` requires.
+import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
@@ -6388,7 +6391,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // `includes('strokeWeight')` passed with the assignment deleted — a substring check against a
     // string that carries prose about itself tests the prose.
     ok(/node\.strokeWeight=/.test(paintJs), 'anatomy/paint: a bound stroke gets a weight — otherwise the border binds and paints nothing visible');
-    ok(paintJs.includes("x.type==='VECTOR'"), 'anatomy/paint: icon ink is applied to the VECTORs inside the instance, not to the instance');
+    // `descendantFills` reaches the VECTORs INSIDE a node, and both of its uses need that. A host pushing
+    // ink into a swapped icon instance cannot paint the instance itself; and since #864 a GLYPH's own ink
+    // travels the same channel, because the node `createNodeFromSvg` returns is a FRAME wrapping the
+    // outline — the frame is the artboard, so a fill on it paints a square BEHIND the glyph.
+    ok(paintJs.includes("x.type==='VECTOR'"), 'anatomy/paint: ink reaches the VECTORs inside the node — for a swapped instance that is the only reachable outline, and for a GLYPH the wrapper frame is the artboard, so painting it would paint a square behind the glyph');
     // Read back from the ARRAY, not the node: a paint binding lives on the paint object, so
     // `node.boundVariables.fills` is not where it is — the read-back would silently always pass.
     ok(paintJs.includes('arr[0].boundVariables.color') && paintJs.includes('DISCARDED (paint set'),
@@ -6887,6 +6894,40 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           ].filter(predicate),
         },
         createText: () => mkNode('TEXT'), createFrame: () => mkNode('FRAME'),
+        // THE SVG IMPORTER (#864) — a FRAME on the document's artboard, wrapping the outline it drew.
+        //
+        // WHAT THIS MODEL IS AND IS NOT, because the distinction decides how much any assertion below is
+        // worth. There is no SVG importer in Node, so nothing here is evidence about what Figma really
+        // returns; the shape is taken from the typings (`createNodeFromSvg(svg: string): FrameNode`) and
+        // from the editor's own import behavior. The executors' `NO VECTOR` and artboard misses are the
+        // only mechanisms that can catch the live host disagreeing — see the port's own note, and
+        // `lint-absolute-inset.ts`'s header for the same posture stated about a different blind spot.
+        //
+        // What it IS: both dimensions DERIVED FROM THE DOCUMENT, which is the fifth time this stub has had
+        // to stop measuring a constant (see the `width` note). The frame's box comes from the document's
+        // own `width`/`height`, so a projection that stops writing them produces a 0×0 artboard and the
+        // read-back fires; the outline's box comes from the numbers in `d`, so a document carrying no
+        // geometry produces a zero-area vector and the `NO VECTOR` miss fires. A stub that returned a
+        // fixed 24×24 frame around a fixed 24×24 vector would report a pass for both.
+        //
+        // The bbox is a PROXY, not a path parser: the coordinates are read as alternating x/y pairs, which
+        // `H`/`V` runs make numerically wrong. That is fine for what it gates — the question is whether
+        // there is area at all — and pretending otherwise would be a second path implementation to keep
+        // right, which is the whole reason this route replaced `createVector`.
+        createNodeFromSvg: (svg: string) => {
+          const attr = (name: string) => Number(new RegExp(`${name}="([0-9.]+)"`).exec(svg)?.[1] ?? 0);
+          const frame = mkNode('FRAME');
+          frame.resize(attr('width'), attr('height'));
+          const d = /<path[^>]*\bd="([^"]*)"/.exec(svg)?.[1] ?? '';
+          const nums = (d.match(/-?[0-9]*\.?[0-9]+/g) ?? []).map(Number);
+          const xs = nums.filter((_, i) => i % 2 === 0);
+          const ys = nums.filter((_, i) => i % 2 === 1);
+          const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
+          const vec = mkNode('VECTOR');
+          vec.resize(span(xs), span(ys));
+          frame.appendChild(vec);
+          return frame;
+        },
         // A REAL set: it holds the members it combined, and it models `addComponentProperty` the way the
         // live API was measured to behave (#487 step 6). Four behaviors, each of which the payload has a
         // read-back for, and each of which a permissive stub would let pass silently:
@@ -9857,7 +9898,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // consumer's, the tier's four rungs are the engine's, and the REF THE DEF ITSELF BINDS is what joins
   // them. So the check reads `icon.tokens` instead of rebuilding a path, which is the only version that
   // survives the two halves being spelled differently.
-  const iconSizes = icon.variants.size;
+  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the 39-glyph `name` axis
+  // and a def cannot declare a `variants` axis it does not project, so `variants.size` is gone and the
+  // ladder lives in `props.size` plus `tokens` — the two halves this block compares anyway. That absence
+  // is admitted by name in `lint-rung-names.ts`'s `LADDER_STATED_ONCE` rather than skipped, so it costs a
+  // decision rather than silently deleting the comparison.
+  const iconSizes = icon.props.find((p) => p.name === 'size')!.values!;
   ok(iconSizes.join(',') === 'x-small,small,medium,large',
     `icon: the size enum is four t-shirt words — the corpus vocabulary all five sized defs share since #844, not the engine's rung abbreviations (got [${iconSizes.join(', ')}])`);
   for (const value of iconSizes) {
@@ -9919,23 +9965,53 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // The message is built OUTSIDE the template that reports it — `ok(...)`'s argument evaluates eagerly,
   // so a null-safe condition with an unguarded message string still crashes (the second half of M14).
   ok(iconSetThrow === '', `icon: the def PROJECTS — every anatomy binding key resolves in tokens${iconSetThrow ? ` (threw: ${iconSetThrow})` : ''}`);
-  ok(iconSet.length === 4, `icon: projects four members, one per grid rung (got ${iconSet.length})`);
-  ok(figmaAxisNames(icon).join(',') === 'size',
-    `icon: `+ `'size' is the only projected axis — 'tone' is admitted in codeOnly, not dropped (declared [${figmaAxisNames(icon).join(', ')}])`);
+  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as 39 — the set
+  // grows the day a `.svg` lands in `icons/`, and a literal here would fail for the wrong reason.
+  ok(iconSet.length === ICON_NAMES.length,
+    `icon: projects one member per glyph in the set — ${ICON_NAMES.length} (#864; it used to project four members, one per size rung, and every one of them was empty)`);
+  ok(figmaAxisNames(icon).join(',') === 'name',
+    `icon: 'name' is the only projected axis — 'tone' is admitted in codeOnly and 'size' is the HOST's binding on the slot it swaps into (declared [${figmaAxisNames(icon).join(', ')}])`);
   // The assertions BELOW read the projection, so they only run once it exists — and skipping them is
   // safe precisely because the two `ok(...)` calls above already recorded the reason by name. Reaching
   // into an empty set here is what turned M1 into a crash the second time: catching the throw was not
   // enough, because `ok` accumulates into `fails` and PRINTS AT THE END, so any crash downstream
   // discards every named failure already collected. The guard has to cover the whole sub-block that
   // consumes the projection, not just the call that produces it.
-  const mdPlan = iconSet.find((p) => p.size === 'md');
-  if (iconSet.length === 4 && mdPlan) {
+  // THE GUARD IS KEYED ON A CONDITION THE SET CAN ACTUALLY MEET, and getting that wrong once already cost
+  // this block five assertions. It read `iconSet.find((p) => p.size === 'md')` — a literal left behind by
+  // #844, which respelled the size enum in t-shirt words. `mdPlan` was `undefined` from that PR onward, so
+  // the whole `if` body stopped running and the suite reported 2260 passed / 0 failed with five assertions
+  // inside it dead, one of them the "measured ceiling" line whose own comment warns that a test passing for
+  // a reason its message denies is worse than a missing test. Measured, not inferred: repairing the literal
+  // alone made the suite CRASH, because a second stale `'md'` sat inside the block. Filed separately.
+  //
+  // So the guard now asks the question it means — is there a member to read — and names the arbitrary
+  // choice of `check` rather than reaching for a coordinate spelled in a vocabulary that can move.
+  const onePlan = iconSet.find((p) => p.coord.name === 'check');
+  if (iconSet.length && onePlan) {
     const iconEmitted = [...new Set(iconSet.flatMap((p) => planComponentName(p).split(', ').map((kv) => kv.split('=')[0])))];
     ok(iconEmitted.slice().sort().join(',') === figmaAxisNames(icon).slice().sort().join(','),
       `icon: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(icon).join(', ')}] vs emitted [${iconEmitted.join(', ')}])`);
-    const mdBound = planBoundVars(mdPlan.root);
-    ok(mdBound.length === 2 && mdBound[0] === mdBound[1] && mdBound[0] === 'icon/size/md',
-      `icon: the square binds ONE variable to BOTH axes — a single key cannot drift from itself (got [${mdBound.join(', ')}])`);
+    // NO BOUND VARIABLE ON THE GLYPH, and this is the inverse of what this line asserted before #864. It
+    // used to check the square bound `icon/size/md` to both dimensions; the part is now the vector itself,
+    // which is scaled to whatever box it is instanced into, so the artboard is the HOST's binding
+    // (`size.{size}.icon` on button's and icon-button's slots) and the schema refuses one here.
+    ok(planBoundVars(onePlan.root).length === 0,
+      `icon: the glyph binds NO dimension variable — a vector is scaled to the box it sits in, so its artboard is the host's binding to make (got [${planBoundVars(onePlan.root).join(', ')}])`);
+    // THE GEOMETRY, which is the whole of #864: the member named `check` carries the `check` path.
+    // Compared against `ICON_PATHS` — the vocabulary, read independently of the projector that filled it.
+    // The plan no longer carries the bare path: `createNodeFromSvg` takes a DOCUMENT, so the assertion is
+    // that the document submitted to Figma's importer contains this glyph's `d`, on the declared viewBox.
+    ok((onePlan.root.glyphSvg ?? '').includes(`d="${ICON_PATHS.check}"`),
+      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is 39 members carrying one`);
+    ok((onePlan.root.glyphSvg ?? '').includes(`viewBox="${ICON_VIEWBOX}"`),
+      `icon: the glyph document declares the set's viewBox ('${ICON_VIEWBOX}') — a path drawn on a 24-unit grid inside a document that claims another one imports at the wrong scale, which builds fine and renders wrong`);
+    // AND THE READ-BACK EXPECTATION the executors compare the imported frame against. Parsed here from
+    // `ICON_VIEWBOX` rather than read from the plan — the duplicated parse IS the check; calling
+    // `viewBoxDims` (which the projector calls) would make both halves one derivation and could not fail.
+    const expectDims = ICON_VIEWBOX.split(/\s+/).map(Number).slice(2);
+    ok(JSON.stringify(onePlan.root.glyphViewBox) === JSON.stringify(expectDims),
+      `icon: the glyph's read-back box is the viewBox's own dimensions ([${expectDims.join(', ')}]) — this is what makes every member a square artboard, which is what lets a host bind one square \`size.{size}.icon\` onto its slot (got ${JSON.stringify(onePlan.root.glyphViewBox)})`);
     // THE MEASURED CEILING — still zero, and #784 corrects WHY, which is the whole value of this line.
     // It was written expecting to fail when #758 landed. #758 landed and it still passed, and the reason
     // it gave for the zero had become false: `paintOf` no longer keys paint as
@@ -9954,7 +10030,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // message is what the next reader believes — this line was that test once already (it was written
     // expecting to fail when #758 landed, #758 landed, and it passed for a reason that had gone false).
     // So it is asserted at zero against the CURRENT cause, and it fails the day this def lists `tone`.
-    ok(planPaintVars(mdPlan.root).length === 0,
+    ok(planPaintVars(onePlan.root).length === 0,
       'icon: the projected glyph carries NO paint — not because the grammar cannot key it (it resolves 8/8 given a tone), and since #795 not because the projector refuses the axis either: this def does not DECLARE `tone` in variantAxes, so every member has coord {} and the template is unfillable. Fails the day the def lists it, by design');
     // The declaration is now the cause, so the declaration is what gets pinned — otherwise the zero above
     // is a fact with no stated owner, which is exactly the state it spent two tickets in.
@@ -9962,7 +10038,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       'icon: `tone` is absent from variantAxes by choice (#795 removed the projector-side list) — the def paints along an axis it does not project, which is what the field has always meant');
     // The other half of that claim, and the reason the line above is not just pinned silence: given a
     // tone, the grammar DOES resolve. Without this, "0 paints" reads as "paint is broken" forever.
-    ok(planPaintVars(figmaAnatomyPlan(icon, 'md', { tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
+    // `undefined` FOR SIZE and a NAME on the coord (#864) — the def declares no size axis any more, and the
+    // plan refuses a size it does not declare just as firmly as it refuses a missing one. The `'md'` this
+    // used to pass was the second stale literal the dead guard above was hiding: repairing only the guard
+    // made the suite crash here with "icon: 'md' is not a declared size".
+    ok(planPaintVars(figmaAnatomyPlan(icon, undefined, { name: 'check', tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
       'icon: the SAME def paints correctly at a coordinate that carries a tone — the ceiling is the set, not the grammar (#784)');
   }
 

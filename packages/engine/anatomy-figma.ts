@@ -24,6 +24,10 @@
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
 import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
+// The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
+// themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
+// plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
+import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -35,7 +39,13 @@ export type FigmaNodePlan = {
    *  swap is a slot the *consumer* repoints and carries a component PROPERTY, while a nested instance
    *  is structure the *host* fixes and carries none. Collapsing them would hand the designer a
    *  swappable focus ring. */
-  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP' | 'NESTED_INSTANCE';
+  /** `GLYPH` is the one type here whose content is GEOMETRY rather than a box, a binding or a
+   *  nomination — see `glyphSvg`. It is a leaf in the PLAN and not in the file: Figma builds it from an
+   *  SVG document, which arrives as a FRAME on the glyph's own artboard wrapping the outline. Named for
+   *  what it IS rather than for the node type it lands as, which is the convention `INSTANCE_SWAP` and
+   *  `NESTED_INSTANCE` already set — neither is a Figma node type either, and both name the build
+   *  strategy because that is what an executor branches on. */
+  type: 'FRAME' | 'TEXT' | 'INSTANCE_SWAP' | 'NESTED_INSTANCE' | 'GLYPH';
   layoutMode?: 'HORIZONTAL' | 'VERTICAL';
   primaryAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN';
   counterAxisAlignItems?: 'MIN' | 'CENTER' | 'MAX' | 'BASELINE';
@@ -210,6 +220,67 @@ export type FigmaNodePlan = {
    *  half-visible label under a spinner is not a design choice a brand should be able to make, it is
    *  a legibility failure. So it is a literal in the plan, unlike every paint and dimension here. */
   zeroOpacity?: boolean;
+  /** A COMPLETE SVG DOCUMENT for a `GLYPH` node — the glyph's own geometry, on the `ICON_VIEWBOX`
+   *  artboard, ready for `figma.createNodeFromSvg`.
+   *
+   *  A FIFTH API SHAPE, and the argument is the one `textStyle`, `effectStyle`, `paints` and
+   *  `absoluteInset` each got their own field for: `createNodeFromSvg(svg)` is neither a property write
+   *  nor a variable binding — it is a CONSTRUCTOR that takes a document and returns a subtree, so an SVG
+   *  squeezed into `bound` would imply a `setBoundVariable('svg', …)` that is not an API. One field per
+   *  API shape, so the plan cannot imply a call that does not exist.
+   *
+   *  A DOCUMENT RATHER THAN THE `d` ATTRIBUTE, and this reversed an earlier decision on this branch, so
+   *  the reason is recorded rather than left to be re-derived. The first version of this field carried
+   *  bare path data for `figma.createVector()` plus `node.vectorPaths = [{ windingRule, data }]`. Two
+   *  measurements killed it, and the second is the one that mattered:
+   *
+   *    1. `vectorPaths` accepts a SUBSET of SVG's path grammar — the typings enumerate `M`, `L`, `Q`, `C`
+   *       and `Z` and no more. **22 of the set's 39 glyphs use `H`/`V`** (every arrow, both minuses, both
+   *       plusses, both warning triangles). Writing a converter is possible; keeping one right for every
+   *       glyph added later is a new correctness surface whose failure mode is a wrong shape that builds.
+   *    2. **A `VectorNode`'s box IS its ink**, so the member component would be as big as the drawing
+   *       rather than as big as the artboard. Measured across all 39: only 19 are square, `minus` is
+   *       14×2, `more-vertical-filled` is 4×18. Every host binds a SQUARE `size.{size}.icon` onto the
+   *       slot it swaps a glyph into, so a 14×2 main component stretches non-uniformly into that square
+   *       — #864's own class ("builds fine, renders wrong") reintroduced by #864's fix.
+   *
+   *  `createNodeFromSvg` answers both: Figma's own importer handles the full path grammar, and it returns
+   *  a FRAME sized to the `viewBox` with the outline inside. The wrapper is the artboard, which is the
+   *  thing that makes the square binding uniform — so the extra level is the feature, not the cost.
+   *
+   *  **NOT a variable name, and this is the one geometry field here that is a LITERAL on purpose.**
+   *  Every sibling carries a name so the plan stays brand-invariant and the value freezes at paste
+   *  against the file's own variables. A glyph's outline is not brand-varying in that sense: it is the
+   *  set's CONTENT, versioned as a vocabulary with its own deprecation discipline (`icon-set.ts`), not a
+   *  themeable value. A brand swapping the icon set replaces `icons/*.svg` and regenerates — it does not
+   *  re-theme a path. Carrying a name would also put it in `planBindingErrors`' scope, where it would be
+   *  an unresolvable variable in every brand.
+   *
+   *  ABSENT on every other node type, and the executors branch on `type` rather than on this field's
+   *  presence — a plan that names a `GLYPH` and carries no document is a projection failure, not a node
+   *  to build empty.
+   *
+   *  THE PAINT IS NOT HERE, and under this shape it is not on the node either: the ink belongs on the
+   *  VECTOR inside the frame, never on the frame, because a frame fill paints a square BEHIND the glyph.
+   *  That is exactly what `descendantFills` already means, so a glyph part's ink is projected there — see
+   *  the paint dispatch, where the argument for `paints.fills` reversed when the wrapper arrived. */
+  glyphSvg?: string;
+  /** The artboard `glyphSvg` declares, as `[width, height]` — what the built frame's box must COME BACK as.
+   *
+   *  A READ-BACK EXPECTATION, which is a different job from the one this field had one commit ago: with
+   *  `createVector` the executors had to scale a path themselves and this was the scale factor's
+   *  denominator. Figma's importer does the sizing now, so what is left is the question no other check
+   *  here asks — did it size the frame to the artboard, or to something else? A glyph frame that comes
+   *  back 0×0 or 100×100 is a member whose whole grid is off by a constant, and it builds without
+   *  throwing.
+   *
+   *  Two numbers rather than the `'0 0 24 24'` string `ICON_VIEWBOX` holds, and rather than re-parsing it
+   *  out of `glyphSvg`: an executor that read its expectation back out of the document it just submitted
+   *  would still be comparing two independent things (the input and the host's output), but it would be
+   *  doing the parse twice in two languages. The min-x/min-y terms are dropped deliberately —
+   *  `emit-icons.ts` asserts every source is `0 0 W H`, so a non-zero origin cannot reach here without
+   *  failing that gate first. */
+  glyphViewBox?: [number, number];
   children: FigmaNodePlan[];
 };
 
@@ -321,6 +392,113 @@ export const figmaVarName = (ref: string): string => ref.replace(/\./g, '/');
  *  `label/md/emphasis`) because they live in their own namespace rather than a variable
  *  collection. Stating it here is what stops the two mappings being assumed identical. */
 export const figmaTextStyleName = (ref: string): string => ref.replace(/^type\./, '').replace(/\./g, '/');
+
+/**
+ * A `vector` part's glyph name → its path data (#864).
+ *
+ * THROWS on a name the vocabulary does not hold, and that is the field's whole value over authoring the
+ * path inline. #864 was `icon` building four empty artboards: the geometry existed in `ICON_PATHS`, the
+ * def imported `ICON_NAMES` for its prop enum, and nothing connected the two — so every gate was
+ * legitimately green over a component that rendered nothing. A miss resolved to `undefined` here would
+ * rebuild precisely that, one tier further in and harder to see.
+ *
+ * The message names the def, the part and the nearest few real glyphs, because the realistic causes are a
+ * typo and a set swap (`icon-set.ts`'s whole purpose is that a client's branded set replaces ours), and
+ * both are answered by seeing what the vocabulary actually holds.
+ */
+const glyphPath = (defId: string, part: string, glyph: string | undefined): string => {
+  // Unreachable through `validateComponentDef`, which refuses a vector part with no glyph — this is the
+  // backstop for a caller that skipped it, the same relationship every other throw in this file has.
+  if (!glyph) throw new Error(`${defId}: anatomy part '${part}' is kind 'vector' and names no glyph`);
+  const path = ICON_PATHS[glyph as keyof typeof ICON_PATHS];
+  if (!path) {
+    // Nearest by shared prefix, which is what a typo and a renamed glyph both produce. Not a full edit
+    // distance: this is an error message, and the cheap heuristic answers both realistic causes.
+    const near = ICON_NAMES.filter((n) => n.startsWith(glyph.slice(0, 3))).slice(0, 5);
+    throw new Error(
+      `${defId}: anatomy part '${part}' names glyph '${glyph}', which is not in the icon vocabulary` +
+      `${near.length ? ` — did you mean ${near.map((n) => `'${n}'`).join(', ')}?` : ''}` +
+      ` The vocabulary is ICON_SOURCES in icon-set.ts (${ICON_NAMES.length} glyphs); a glyph is added by dropping the .svg in icons/ and mapping it there.`,
+    );
+  }
+  return path;
+};
+
+/**
+ * A `vector` part's `glyph` field resolved AT ITS COORDINATE — `'{name}'` → `'check'` (#864).
+ *
+ * Why this exists is worth stating, because the first working version of this branch did not have it and
+ * was wrong in exactly #864's own shape. `PartDef.glyph` is a static per-part string, so a set enumerated
+ * over a 39-value `name` axis projected 39 members that every gate accepted — the right count, the right
+ * names, one chunk, no throw — **all carrying the same outline**. Measured, not feared: member 0
+ * `arrow-down` and member 38 `warning-triangle-filled` both came back with the `check` path. That is a
+ * component that builds and shows the wrong thing with the suite green, which is #864 reproduced one tier
+ * in, and the reason the fix is a substitution rather than a per-glyph def.
+ *
+ * An unfillable placeholder THROWS rather than passing the raw `'{name}'` to `glyphPath`. Both would fail
+ * — `'{name}'` is not in the vocabulary — but the messages answer different questions, and the caller who
+ * forgot to pass a coordinate is not helped by a list of glyphs it might have meant.
+ *
+ * Substitution uses `paintKeyPlaceholders`, the same `{...}` reader `fillPaintKey` uses, so the def tier
+ * has ONE placeholder grammar rather than a second one that drifts. It deliberately does NOT reuse
+ * `fillPaintKey` itself: that returns `undefined` for an unfillable template because a ragged paint grid
+ * is legitimate, and a glyph silently going missing is the defect above.
+ */
+const resolveGlyph = (
+  defId: string,
+  part: string,
+  glyph: string | undefined,
+  coord: VariantCoord,
+): string | undefined => {
+  if (glyph === undefined) return undefined;
+  let out = glyph;
+  for (const ph of paintKeyPlaceholders(glyph)) {
+    const value = coord[ph];
+    if (value === undefined)
+      throw new Error(
+        `${defId}: anatomy part '${part}' names glyph '${glyph}', but no '${ph}' was given at this coordinate — a vector whose glyph is chosen by an axis cannot be projected without that axis, and filling it with anything else would draw one outline for every member`,
+      );
+    out = out.replace(`{${ph}}`, value);
+  }
+  return out;
+};
+
+/**
+ * `ICON_VIEWBOX` parsed to the `[width, height]` the plan carries.
+ *
+ * Parsed rather than hard-coded to 24 for the reason `glyphViewBox` exists at all: the executors compare
+ * the built frame's box against the artboard the document declared, so the artboard is an input to a
+ * read-back and a stale constant would make every glyph's box "correct" against the wrong number.
+ * `emit-icons.ts` asserts every source viewBox is exactly this string, so there is one artboard per set
+ * and this reads it from the set.
+ */
+const viewBoxDims = (): [number, number] => {
+  const [, , w, h] = ICON_VIEWBOX.split(/\s+/).map(Number);
+  if (!w || !h) throw new Error(`icon-glyphs: ICON_VIEWBOX '${ICON_VIEWBOX}' is not '<minX> <minY> <width> <height>' with non-zero dimensions`);
+  return [w, h];
+};
+
+/**
+ * One glyph's path assembled into the SVG DOCUMENT `figma.createNodeFromSvg` takes (#864).
+ *
+ * Built here rather than stored in `icon-glyphs.ts` because the document is a fact about the CONSUMER —
+ * Figma's importer — and the vocabulary is a fact about the set. `emit-icons.ts` asserts each source is
+ * one `<path>` on `ICON_VIEWBOX` with `fill="currentColor"` and no stroke, group or transform, so the
+ * document reassembled from `ICON_PATHS` is byte-equivalent in the ways the importer reads. Regenerating
+ * from the parts also means a glyph cannot arrive here carrying markup the gate never saw.
+ *
+ * `width`/`height` are written as well as `viewBox`, and that is what makes the returned frame the
+ * ARTBOARD: an importer given only a viewBox is free to size the result to the ink, which is the 14×2
+ * `minus` this whole shape exists to avoid. The two must agree with the viewBox, so both come from it.
+ *
+ * `fill="currentColor"` is preserved from the source and is not the ink. Figma has no `currentColor`, so
+ * the importer resolves it to a literal black — the paint that matters arrives afterwards, on the VECTOR
+ * inside, from `descendantFills`. Carrying it anyway keeps this document identical to the source file,
+ * which is what makes `emit-icons.ts`'s assertions about the source assertions about this too.
+ */
+const glyphDocument = (path: string): string =>
+  `<svg width="${viewBoxDims()[0]}" height="${viewBoxDims()[1]}" viewBox="${ICON_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
+  `<path d="${path}" fill="currentColor"/></svg>`;
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', baseline: 'BASELINE',
@@ -736,6 +914,21 @@ export const figmaAnatomyPlan = (
       // both of `field-label`'s text parts came back `color/text/primary`.
       const ink = paintOf(p.paintSlot ?? 'label');
       if (ink) paints.fills = ink;
+    } else if (p.kind === 'vector') {
+      // THE GLYPH'S OWN INK, on the node that draws it (#864). `icon` is in `PRIMARY_PAINT_SLOTS`, so a
+      // slot-free template answers it — which is what lets `icon`'s `tone.{tone}` reach this branch.
+      //
+      // `descendantFills` AND NOT `paints.fills`, and this reversed mid-branch when the build strategy
+      // moved to `createNodeFromSvg` — the reason is worth carrying because the earlier reading was
+      // defensible and wrong. It said: `descendantFills` is for a HOST pushing ink down into an instance
+      // it swapped in, whereas here we ARE the vector, so its fill is its fill. What changed is the second
+      // clause. Figma builds a glyph from an SVG document and hands back a FRAME wrapping the outline, so
+      // the node this part names is the ARTBOARD and the vector is its child. A fill on the artboard is a
+      // painted square BEHIND the glyph — the exact failure `descendantFills` was invented to avoid, met
+      // from the other side. So the ink goes where the ink has always gone: on the VECTOR, found by
+      // descendant search. One field, one meaning, whoever is pushing.
+      const ink = paintOf('icon');
+      if (ink) descendantFills = ink;
     } else if (p.kind === 'slot' || p.kind === 'overlay') {
       // There is no `color/interactive/{intent}/icon` variable — icon ink routes through `on-fill` /
       // `text.rest` under the def's `.icon` slot key. It lands on the vector INSIDE the instance,
@@ -774,7 +967,24 @@ export const figmaAnatomyPlan = (
 
     return {
       name,
-      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : p.kind === 'absolute' ? 'NESTED_INSTANCE' : 'INSTANCE_SWAP',
+      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : p.kind === 'absolute' ? 'NESTED_INSTANCE' : p.kind === 'vector' ? 'GLYPH' : 'INSTANCE_SWAP',
+      // THE GEOMETRY, resolved from the vocabulary at projection (#864). A name that no longer resolves
+      // THROWS rather than projecting an empty outline, which is the whole reason the def carries a name
+      // instead of path data: #864 was four artboards that built without throwing and contained nothing,
+      // and a silent miss here would rebuild exactly that. `glyphViewBox` travels beside it as the box the
+      // executors expect the built frame to COME BACK as, so a host that sizes the import to the ink
+      // instead of the artboard is reported rather than shipped.
+      // `resolveGlyph` first, so `glyph: '{name}'` reaches the vocabulary as the member's own name — a
+      // static string per part would ship one outline 39 times, measured (see `resolveGlyph`).
+      // `paintCoord` rather than `coord` for the same reason paint keys use it: it is the grid coordinate
+      // WITH `size` folded in, so `glyph: '{size}'` — an optically-sized glyph set, which no def has today
+      // but which the field's grammar allows — resolves instead of throwing on an axis that is in fact known.
+      ...(p.kind === 'vector'
+        ? {
+            glyphSvg: glyphDocument(glyphPath(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord))),
+            glyphViewBox: viewBoxDims(),
+          }
+        : {}),
       ...(p.kind === 'absolute' && p.nests ? { nestTarget: p.nests } : {}),
       // The def's chosen coordinate, projected only for `nest-fixed` (#681). `nest-exposed` is the
       // consumer's to drive and `swap` has no variants at all, so neither writes a coordinate here —
@@ -1459,6 +1669,31 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     }
     else{node=nested.createInstance();}
   }
+  else if(n.type==='GLYPH'){
+    // THE GLYPH (#864). The only node here whose content is GEOMETRY rather than a box, a binding or a
+    // nomination — and so also the only one that can build successfully and contain nothing, which is
+    // exactly what #864 was: four artboards created without throwing.
+    //
+    // FIGMA'S OWN SVG IMPORTER, not \`createVector\` + \`vectorPaths\`, and the two measurements behind that
+    // are on \`glyphSvg\`. It returns a FRAME sized to the document's artboard with the outline inside, so
+    // the node the plan names is the ARTBOARD and the glyph is its child.
+    node=figma.createNodeFromSvg(n.glyphSvg);
+    // THE READ-BACK THE WHOLE ISSUE TURNS ON, and \`docs/34\`'s trap stated in its own words: asserting
+    // "the node has children" passes on an empty group and "a vector exists" passes on a zero-area path.
+    // So the quantity is the one a human would check — a VECTOR with a non-zero box — and it is asked of
+    // the built subtree rather than of the document we submitted.
+    const drawn=(node.findAll?node.findAll(x=>x.type==='VECTOR'):[]).filter(v=>v.width>0&&v.height>0);
+    if(!drawn.length)misses.push(n.name+'.glyphSvg -> NO VECTOR (submitted '+n.glyphSvg.length+' chars of SVG; the import produced no outline with area, so the member would be an empty artboard — #864)');
+    // THE ARTBOARD, read back too, because an importer is free to size its result to the INK. That is
+    // the second half of #864's own class: \`minus\` is 14×2 of drawing on a 24×24 artboard, and a member
+    // sized to the drawing stretches non-uniformly into the square its host binds.
+    if(n.glyphViewBox&&(node.width!==n.glyphViewBox[0]||node.height!==n.glyphViewBox[1]))misses.push(n.name+'.glyphViewBox -> '+n.glyphViewBox[0]+'x'+n.glyphViewBox[1]+' (the imported frame reads '+node.width+'x'+node.height+'; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)');
+    // SCALE rather than the importer's default, on the OUTLINE and not on the frame. The frame is resized
+    // by whoever instances it — a host binds \`size.{size}.icon\` onto its own slot — and a child left at
+    // Figma's MIN/MIN constraint keeps the 24px it was drawn at, so a 16px instance would show the
+    // top-left corner of the glyph. This is the one property of the import we override.
+    for(const v of drawn)v.constraints={horizontal:'SCALE',vertical:'SCALE'};
+  }
   else{node=figma.createFrame();node.clipsContent=false;}
   node.name=n.name;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
@@ -1531,10 +1766,12 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
-    // The ink lives on the VECTORs inside the swapped instance, not on the instance itself — an
-    // instance fill paints a square behind the glyph. Verified to survive createComponentFromNode.
+    // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
+    // painted square behind the glyph. True of a swapped instance (a HOST pushing ink down) and true of a
+    // \`GLYPH\`, whose wrapper is the artboard Figma's SVG importer returned; one field, one meaning, from
+    // whichever side. Verified to survive createComponentFromNode.
     const vecs=node.findAll?node.findAll(x=>x.type==='VECTOR'):[];
-    if(vecs.length===0)misses.push(n.name+'.descendantFills -> '+n.descendantFills+' (no VECTOR inside the instance to paint)');
+    if(vecs.length===0)misses.push(n.name+'.descendantFills -> '+n.descendantFills+' (no VECTOR inside this node to paint)');
     for(const vec of vecs){const p=paint(n.descendantFills,'descendantFills');if(p)vec.fills=[p];}
   }
   // READ BACK. The name resolved and the setter did not throw, which is not the same as the binding

@@ -172,6 +172,25 @@ const NO_SIZE_AXIS: Record<string, string> = {
 };
 
 /**
+ * DEFS WHOSE SIZE LADDER IS STATED ONCE — a `props.size` enum and `size.*` bindings, but NO
+ * `variants.size` — admitted by name with the reason, for the same argument `NO_SIZE_AXIS` makes.
+ *
+ * `icon` (#864) is the first and only one. Its Figma set enumerates `name` (39 glyphs), and a def cannot
+ * declare a `variants` axis it does not project: `figmaAnatomySet` hands the plan an undefined size for an
+ * unprojected axis and `figmaAnatomyPlan` refuses a sizeless coordinate for a def that DECLARES sizes.
+ * The size PROP stays — a code consumer sizes an icon directly — so arms 1, 2 and 3 all still run on it.
+ * What is gone is the two-halves comparison below, and that is the reason this list exists rather than an
+ * `if (variants)` skipping quietly: the enum-vs-variants check was one of the gate's independent pairs,
+ * and a def losing it should cost somebody a decision.
+ *
+ * Both directions, so neither half can go stale: a def here that regains `variants.size` fails as a stale
+ * admission, and a def that loses it without being listed fails as an unadmitted skip.
+ */
+const LADDER_STATED_ONCE: Record<string, string> = {
+  icon: 'its Figma grid is the 39-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
+};
+
+/**
  * The scope floor. `docs/34`: a gate with a scope asserts each promised surface is REPRESENTED, never
  * merely counts. Every def carrying a size axis today.
  */
@@ -279,6 +298,14 @@ for (const def of componentDefs) {
     failures.push(`${def.id}: binding '${r}' is keyed on the size axis but its ref names no tier rung (none of ${RUNG_ORDER.join('/')}). Arm 2 cannot place it on a ladder, so it would be checked by nothing.`);
 
   // ---- the def's two statements of its own enum -------------------------------------------------
+  // ABSENCE IS ADMITTED BY NAME, never skipped (#864). `if (variants && …)` alone would let a def delete
+  // one of this gate's two authored halves and report a pass — the same silent-scope-shrink the
+  // `NO_SIZE_AXIS` arm above refuses, one field in. Both directions.
+  const statedOnce = def.id in LADDER_STATED_ONCE;
+  if (!variants && !statedOnce)
+    failures.push(`${def.id}: declares props.size [${values.join(', ')}] but no variants.size, and is not admitted in LADDER_STATED_ONCE. One of this gate's two authored halves is missing, so the enum-vs-variants comparison silently does not run. Admit it there with the reason, or restore the axis.`);
+  if (variants && statedOnce)
+    failures.push(`${def.id}: admitted in LADDER_STATED_ONCE as stating its ladder once, but it now declares variants.size [${variants.join(', ')}]. The admission is STALE — remove it in the same PR and let the comparison run.`);
   if (variants && variants.join(',') !== values.join(','))
     failures.push(`${def.id}: props.size.values is [${values.join(', ')}] but variants.size is [${variants.join(', ')}] — one ladder stated twice, disagreeing. A consumer reads the prop; the projector reads the variants.`);
 
@@ -351,6 +378,10 @@ for (const m of MUST_COVER)
 for (const id of Object.keys(NO_SIZE_AXIS))
   if (!componentDefs.some((d) => d.id === id))
     failures.push(`STALE ADMISSION: NO_SIZE_AXIS names '${id}', which is not a def any more. Remove it — an admission for a def that does not exist is a memory of something no longer true.`);
+
+for (const id of Object.keys(LADDER_STATED_ONCE))
+  if (!componentDefs.some((d) => d.id === id))
+    failures.push(`STALE ADMISSION: LADDER_STATED_ONCE names '${id}', which is not a def any more. Remove it — same reason as above.`);
 
 console.log(`Rung names — ${covered.size} def(s) with a size axis, ${arm1Checks} enum→path check(s) across ${brands.length} brand(s) (${brands.join(', ')}), ${arm2Families} tier family(ies) ordered.`);
 for (const n of notes) console.log(`    ${n}`);
