@@ -3011,7 +3011,10 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!Object.keys(L).some((k) => k.startsWith('elevation')), 'no elevation.* colour group');
   ok(L['background.subtle'] === undefined && L['background.sunken'] === undefined && L['background.quaternary'] === undefined, 'background.subtle/sunken/quaternary removed');
   // renames
-  ok(L['text.on-inverse'] !== undefined && L['text.on-emphasis'] === undefined, 'text.on-emphasis → on-inverse');
+  // `on-inverse` became a GROUP in #892, so the surviving name is its promoted tier. Asserted on
+  // `.primary` rather than loosened to a prefix match: the point of this check is that the RENAME
+  // landed, and a prefix would pass on any member appearing under that path.
+  ok(L['text.on-inverse.primary'] !== undefined && L['text.on-emphasis'] === undefined, 'text.on-emphasis → on-inverse');
   ok(L['text.link.default'] !== undefined && L['text.interactive.default'] === undefined, 'links use text.link.*');
   // subtle semantic foreground + ink present (suffix form)
   ok(L['foreground.danger-subtle'] !== undefined && L['text.danger-subtle'] !== undefined, 'subtle semantic foreground + ink present');
@@ -4263,7 +4266,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // pinned for shape/scope in the dedicated interactive block below, not here — so this
     // gate still fails on a spurious var inside a REAL family. (Fixture-character decision,
     // 2026-07-06; pairs with #67.)
-    const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/'];
+    // `color/{text,icon}/on-inverse/` join them in #892. NB's export carries ONE leaf at each — a
+    // single strongest-neutral ink for a dark band — and it is renamed rather than dropped (see
+    // `NB_KNOWN_RENAMES` below, which keeps it value-checked under its new name). The other sixteen
+    // members of each group are engine-invented, exactly like `interactive/`. This is a SUB-family
+    // prefix, not `color/text/`: it waives the inverse subtree, where every member is engine-added by
+    // construction, and leaves the rest of a family NB really defines fully pinned.
+    const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/', 'color/text/on-inverse/', 'color/icon/on-inverse/'];
     // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
     // `color/border/inverse/focus` (#573, renamed #891) is the accessibility fix for a ring NB never had: NB's
     // export carries one `color/border/focus`, which measured 2.09:1 on hc-light's inverse surface.
@@ -4292,7 +4301,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // rename, which is the one thing it exists to catch (`docs/34` shape 6). The VALUE stays
     // checked: the scope / alias / value loop below runs on the renamed var through this map, so a
     // rename that also moved a colour still fails.
-    const NB_KNOWN_RENAMES: Record<string, string> = { 'color/border/inverse': 'color/border/inverse/default' };
+    const NB_KNOWN_RENAMES: Record<string, string> = {
+      'color/border/inverse': 'color/border/inverse/default',
+      // #892 — the two leaves that became groups. The promoted tier keeps the value the leaf had
+      // (`pickMostExtreme` against the same ground), so these must stay value-checked, which is what
+      // the map buys over simply waiving them by prefix.
+      'color/text/on-inverse': 'color/text/on-inverse/primary',
+      'color/icon/on-inverse': 'color/icon/on-inverse/primary',
+    };
     const renamedTo = new Set(Object.values(NB_KNOWN_RENAMES));
     const missing = [...fixByName.keys()].filter((n) => !outByName.has(n) && !outByName.has(NB_KNOWN_RENAMES[n] ?? '\0'));
     const extra = [...outByName.keys()].filter((n) => !fixByName.has(n) && !renamedTo.has(n)

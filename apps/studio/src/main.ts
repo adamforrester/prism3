@@ -1828,7 +1828,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
     // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
     // borrowing a page-gated role that was never measured against this ground.
-    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse', line: 'border.inverse.default', line2: 'border.inverse.default', tiered: false },
+    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse.primary', line: 'border.inverse.default', line2: 'border.inverse.default', tiered: false },
   ];
   const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
 
@@ -1893,11 +1893,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Background
   const secBg = palSection('Background', 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.');
   secBg.append(subHead('Base'), grid(3, ([['Primary', 'background.primary'], ['Secondary', 'background.secondary'], ['Tertiary', 'background.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
-  // The Inverse Primary card carries `text.on-inverse` as an extra pill, the same pairing the Bold and
+  // The Inverse Primary card carries `text.on-inverse.primary` as an extra pill, the same pairing the Bold and
   // Subtle rows use. That ink was painting every inverse card here AND the Surfaces page's Inverse
   // example, and was named in neither — the one role the gallery used without ever showing.
   secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>)
-    .map(([n, k], i) => surfaceCard(k, n, 'text.on-inverse', i === 0 ? 'On-inverse text' : undefined, i === 0 ? [sgPill('text.on-inverse')] : []))));
+    .map(([n, k], i) => surfaceCard(k, n, 'text.on-inverse.primary', i === 0 ? 'On-inverse text' : undefined, i === 0 ? [sgPill('text.on-inverse.primary')] : []))));
   secBg.append(subHead('Scrim'), grid(3, [scrimCard('scrim.default')]));
   host.append(ground(secBg));
 
@@ -1907,7 +1907,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Inverse — bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page
   // BAND above. Background already split Base / Inverse; Foreground had only Base, so this whole tier
   // resolved for every mode and appeared nowhere.
-  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'foreground.inverse.primary'], ['Secondary', 'foreground.inverse.secondary'], ['Tertiary', 'foreground.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse'))));
+  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'foreground.inverse.primary'], ['Secondary', 'foreground.inverse.secondary'], ['Tertiary', 'foreground.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse.primary'))));
   secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
   secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
   host.append(ground(secFg));
@@ -5692,7 +5692,7 @@ const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const
 // The text color is the resolved role for THIS surface, not a hardcoded invert flag — a custom
 // mode's Primary can be either light or dark, and a hardcoded dark ink went invisible on a dark
 // custom-mode surface (near-black on near-black). `textHex` is `text.primary` (against
-// background.primary) or `text.on-inverse` (against background.inverse.primary) — whichever the
+// background.primary) or `text.on-inverse.primary` (against background.inverse.primary) — whichever the
 // caller's surface actually is.
 //
 // No accent dot any more (owner request). It painted `foreground.brand` on the Primary specimen and
@@ -5818,9 +5818,9 @@ const renderSurfacesEditor = (): HTMLElement => {
     const invSel = stepPicker(nPal, nSteps, baselineStepOf('background.inverse.primary', mode),
       typeof cur === 'string' ? cur : undefined,
       (step) => setFillOverride('background.inverse.primary', nPal, step));
-    // `text.on-inverse` is measured against `background.inverse.primary` exactly — the correct ink
+    // `text.on-inverse.primary` is measured against `background.inverse.primary` exactly — the correct ink
     // for this band regardless of which mode's inverse this is.
-    const invText = roles['text.on-inverse']?.hex ?? '#f2f2f6';
+    const invText = roles['text.on-inverse.primary']?.hex ?? '#f2f2f6';
     sec.append(sfRow({
       swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary',
       desc: 'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode.',
@@ -5885,7 +5885,7 @@ const TEXT_DERIVED_ROLES: Array<{ role: string; label: string; from: string; why
   { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'A near-black or near-white pick, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
   { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'A near-black or near-white pick, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
   { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'A near-black or near-white pick, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
-  { role: 'text.on-inverse', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'background.inverse.primary', sample: 'On inverse' },
+  { role: 'text.on-inverse.primary', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'background.inverse.primary', sample: 'On inverse' },
   { role: 'text.link.hover', label: 'Link — hover', from: 'Link, one step on', why: 'Link walked one palette step. Repoint Link above to move it.', sample: 'Hovered link' },
   { role: 'text.link.visited', label: 'Link — visited', from: 'Link, two steps on', why: 'Link walked two palette steps. Repoint Link above to move it.', sample: 'Visited link' },
   { role: 'text.link.focused', label: 'Link — focused', from: 'Link, unchanged', why: 'Identical to Link at rest by design — focus is carried by the ring, not a color shift.', sample: 'Focused link' },

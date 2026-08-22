@@ -410,10 +410,31 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // The subtle tint SURFACE for a semantic role, resolved once. `foreground.<r>-subtle` paints it and
   // the semantic ink is gated against it (below), so the two must not be able to drift apart.
   const subtleTint = (r: Role): Cand => pStep(palOf(r2p[r]), tintStep);
+  /**
+   * A CONTEXT to derive content ink against (#892). The page and the inverse band differ in exactly
+   * these six things and in nothing else, which is the claim `buildContent` makes by taking one of
+   * these instead of branching internally: if the inverse set ever needs a seventh, that is a real
+   * divergence and belongs in the open rather than inside an `if`.
+   */
+  type Ground = {
+    base: RGB; baseName: string;      // this context's own primary surface
+    floor: RGB; floorName: string;    // its worst-case supported surface
+    dir: number;                      // which way a stronger neutral steps here
+    tint: (r: Role) => Cand;          // the subtle tint a status ink is ALSO gated against
+    mutedStep: number;                // the muted-ink palette step
+    page: boolean;                    // the `on-*` pairs exist only on the page — see the call site
+  };
   // Bold semantic ink — gated against BOTH grounds it is placed on. See the call site in
   // `buildContent` for why the floor alone was not enough.
   const semanticInk = (r: Role, min: number): RatedNum =>
     chromatic(r2p[r], theme.roleAnchorStep[r], floorRgb, min, false, [subtleTint(r).rgb]);
+  // The same rule against an arbitrary ground (#892). `buildContent` runs twice — once for the page
+  // and once for the inverse band — and the SECOND ground is the whole reason this is parameterised
+  // rather than duplicated: a status ink is gated against the floor AND against its own tint, so an
+  // inverse ink derived by a hand-written near-copy would quietly gate on one ground while its page
+  // sibling gates on two.
+  const semanticInkOn = (r: Role, min: number, g: Ground): RatedNum =>
+    chromatic(r2p[r], theme.roleAnchorStep[r], g.floor, min, false, [g.tint(r).rgb]);
 
   // Disabled-state contrast (theme-level). BOTH branches gate now: 'full' promises AA text at a
   // fixed 4.5:1, 'reduced' clears the dialable `disabledMin` (3–4.5). The old ungated
@@ -965,12 +986,12 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // secondary/tertiary/semantic — `primary` stays strong either way.
   type Spec = { key: string; r: Rated; desc: string; against: string; min: number };
   type Profile = { label: string; secondaryMin: number; tertiaryMin: number; semanticMin: number };
-  const buildContent = (p: Profile): Spec[] => {
+  const buildContent = (p: Profile, g: Ground): Spec[] => {
     const out: Spec[] = [];
     const T = (key: string, r: Rated, desc: string, against: string, min: number) => out.push({ key, r, desc, against, min });
-    T('primary', pickMostExtreme(textCands, baseRgb), `Primary ${p.label} — strongest neutral`, 'background.primary', cfg.primaryMin);
-    T('secondary', pickMinPass(textCands, floorRgb, p.secondaryMin), `Secondary ${p.label} — ${p.secondaryMin}:1 on the floor`, cfg.floorName, p.secondaryMin);
-    T('tertiary', pickMinPass(textCands, floorRgb, p.tertiaryMin), `Tertiary ${p.label} — ${p.tertiaryMin}:1 on the floor`, cfg.floorName, p.tertiaryMin);
+    T('primary', pickMostExtreme(textCands, g.base), `Primary ${p.label} — strongest neutral`, g.baseName, cfg.primaryMin);
+    T('secondary', pickMinPass(textCands, g.floor, p.secondaryMin), `Secondary ${p.label} — ${p.secondaryMin}:1 on the floor`, g.floorName, p.secondaryMin);
+    T('tertiary', pickMinPass(textCands, g.floor, p.tertiaryMin), `Tertiary ${p.label} — ${p.tertiaryMin}:1 on the floor`, g.floorName, p.tertiaryMin);
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, not a per-family role.)
     // Bold semantic ink. Gated against the WORSE of the two grounds it is actually placed on: the
     // page floor AND its own subtle tint (`foreground.<r>-subtle`), which is where the alert/banner
@@ -988,7 +1009,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // light mode only; dark modes already cleared both. The ink also gets MORE legible on the page,
     // so nothing regresses. Contract-safe: this moves values, not names.
     for (const r of SEMANTICS)
-      T(r, semanticInk(r, p.semanticMin), `${r} ${p.label} — ${p.semanticMin}:1 on the floor (${cfg.floorName}) and on its own tint`, cfg.floorName, p.semanticMin);
+      T(r, semanticInkOn(r, p.semanticMin, g), `${r} ${p.label} — ${p.semanticMin}:1 on the floor (${g.floorName}) and on its own tint`, g.floorName, p.semanticMin);
     // Muted semantic ink (the "quiet" variant) — GATED at the large-text / non-text bar
     // (`tertiaryMin`: 3:1 standard, 4.5:1 in HC), rated against the page it sits on.
     //
@@ -1027,13 +1048,21 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // distinctness note on interactive states above, which needed the mechanism because it HAD
     // collided).
     for (const r of SEMANTICS)
-      T(`${r}-subtle`, rated(chromatic(r2p[r], mutedStep, baseRgb, p.tertiaryMin), baseRgb), `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on the page`, 'background.primary', p.tertiaryMin);
+      T(`${r}-subtle`, rated(chromatic(r2p[r], g.mutedStep, g.base, p.tertiaryMin), g.base), `Muted ${r} ${p.label} — low-emphasis accent, ${p.tertiaryMin}:1 on ${g.page ? 'the page' : 'the inverse band'}`, g.baseName, p.tertiaryMin);
     // on-* pairs (ink on a solid fill) — AA on a vivid fill. `on-action` / `on-disabled`
     // are retired: the ink on an interactive fill is interactive.<color>.on-fill, and the
     // ink on a disabled fill is disabled.on-fill (docs/20 §16).
-    for (const r of SEMANTICS)
-      T(`on-${r}`, onColor(fills[r]!.rgb), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
-    T('on-inverse', pickMostExtreme(textCands, invRgb), `${p.label} on an inverse surface`, 'background.inverse.primary', cfg.secondaryMin);
+    //
+    // PAGE ONLY, and the exclusion is structural rather than a judgment about likelihood (#892):
+    // `text.on-brand` is ink on a solid brand FILL, and the fill is its own ground — a brand-filled
+    // badge inside a dark hero is still brand-filled, so the ink does not change. The case where a
+    // fill DOES change on an inverse ground is already covered one tier over, by
+    // `interactive.<palette>.inverse.on-fill`. `on-inverse` itself is likewise absent from the
+    // inverse pass: it is the NAME of that pass's whole output, not a member of it.
+    if (g.page) {
+      for (const r of SEMANTICS)
+        T(`on-${r}`, onColor(fills[r]!.rgb), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
+    }
     // link (interactive text) + states — no disabled.
     //
     // Link ink derives its OWN step on the action palette at THIS profile's ink bar. It used to
@@ -1048,25 +1077,62 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // Clamped, not `exact`: an authored `actionAnchorStep` pins a FILL step, and inheriting that
     // pin here would let a deliberate fill choice silently push link text below its floor. A link
     // colour is overridable in its own right.
-    const linkBase = chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, floorRgb, p.semanticMin);
+    const linkBase = chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, g.floor, p.semanticMin);
     // Guarded (#557) at the profile's OWN semanticMin — so `icon.link.*` under iconContrast '3:1'
     // is verified at 3, and `text.link.*` at the text bar, each against the floor `put` uses.
-    const linkGuard = guardFrom(contrast(linkBase.rgb, floorRgb), floorRgb, p.semanticMin);
+    const linkGuard = guardFrom(contrast(linkBase.rgb, g.floor), g.floor, p.semanticMin);
     const linkStateCand = (st: typeof LINK_STATES[number]): Cand =>
       st === 'default' || st === 'focused' ? linkBase
-      : st === 'hover' ? walk(r2p.action, linkBase.num, 1, dir, linkGuard)
-      : walk(r2p.action, linkBase.num, 2, dir, linkGuard); // visited
+      : st === 'hover' ? walk(r2p.action, linkBase.num, 1, g.dir, linkGuard)
+      : walk(r2p.action, linkBase.num, 2, g.dir, linkGuard); // visited
     for (const st of LINK_STATES)
-      T(`link.${st}`, rated(linkStateCand(st), floorRgb), `Link ${p.label} — ${st}`, cfg.floorName, p.semanticMin);
+      T(`link.${st}`, rated(linkStateCand(st), g.floor), `Link ${p.label} — ${st}`, g.floorName, p.semanticMin);
     return out;
   };
 
   const textProfile: Profile = { label: 'text', secondaryMin: cfg.secondaryMin, tertiaryMin: cfg.tertiaryMin, semanticMin: cfg.actionMin };
-  for (const s of buildContent(textProfile)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
-  const iconSpecs = theme.iconContrast === '3:1'
-    ? buildContent({ label: 'icon', secondaryMin: cfg.nonTextMin, tertiaryMin: cfg.nonTextMin, semanticMin: cfg.nonTextMin })
-    : buildContent({ ...textProfile, label: 'icon' });
-  for (const s of iconSpecs) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
+  const iconProfile: Profile = theme.iconContrast === '3:1'
+    ? { label: 'icon', secondaryMin: cfg.nonTextMin, tertiaryMin: cfg.nonTextMin, semanticMin: cfg.nonTextMin }
+    : { ...textProfile, label: 'icon' };
+
+  // THE TWO GROUNDS (#892). The inverse one is the page one with each field's structural analogue
+  // substituted, and nothing else — which is what lets the same 17 roles be GENERATED for the dark
+  // band rather than authored, and is the argument for covering all 17 rather than a demonstrated
+  // subset. Each substitution, and why it is the analogue and not a guess:
+  //
+  //   floor  — the page floor is `base + dir*50`, one step off the base in the page's direction. The
+  //            inverse ladder's `secondary` is exactly that, one step off the inverse base in the
+  //            inverse direction. Same construction, different ladder.
+  //   dir    — reversed. A stronger neutral steps darker on a light page and lighter on a dark band.
+  //   tint   — `foreground.inverse.<r>-subtle`, added in step 3 precisely so this field has a value.
+  //            It is the second ground `semanticInkOn` gates against; without it the inverse status
+  //            inks would gate on one ground while the page ones gate on two.
+  //   muted  — mirrored across the ramp (`1000 - step`), the same way the tint step is. `chromatic`
+  //            still gates the result, so the mirror is a starting point rather than a promise.
+  //
+  // A brand with `inverseContext: false` still gets the page ground; only the second pass is gated.
+  const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, dir, tint: subtleTint, mutedStep, page: true };
+  const inverseGround: Ground = { base: invRgb, baseName: 'background.inverse.primary', floor: cfg.bgInverse.secondary.rgb, floorName: 'background.inverse.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
+
+  for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
+  for (const s of buildContent(iconProfile, pageGround)) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
+
+  // The inverse content set — 17 roles per family, under the name the single leaf used to occupy.
+  //
+  // `text.on-inverse` WAS a leaf: one strongest-neutral ink for a dark band. It is a GROUP now, and
+  // the promoted leaf is `on-inverse.primary` — the same `pickMostExtreme` against the same ground,
+  // so the value does not move, only the path. That is principled rather than a new inconsistency:
+  // `on-brand` is ink on a FILL, a bounded element hosting one label, and one ink is all it can need;
+  // `on-inverse` is ink on a SURFACE, an unbounded region hosting a full type hierarchy, and a
+  // hierarchy needs the role set. `on-` still means exactly one thing — ink on the named ground.
+  //
+  // These two are the LAST context-node leaves in the tree: measured before writing them, seven of
+  // the nine already were groups. So this completes the one-at-a-time migration rather than
+  // continuing it, and the rule about how FUTURE context nodes are authored is a separate change.
+  if (theme.inverseContext) {
+    for (const s of buildContent(textProfile, inverseGround)) put(`text.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
+    for (const s of buildContent(iconProfile, inverseGround)) put(`icon.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
+  }
 
   // ------------------------------------------------------------------- borders
   // Neutral (primary/secondary), inverse, semantic, and the focus ring. In HC the

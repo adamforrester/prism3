@@ -7116,30 +7116,6 @@
             }
           }
         },
-        "on-inverse": {
-          "$type": "color",
-          "$value": "{prism.palette.neutral.025}",
-          "$description": "text on an inverse surface",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "prism.palette.neutral.025",
-              "contrast": 18.13,
-              "against": "background.inverse.primary",
-              "min": 4.5,
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              }
-            }
-          }
-        },
         "link": {
           "default": {
             "$type": "color",
@@ -7233,6 +7209,418 @@
                     "hc-dark"
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          }
+        },
+        "on-inverse": {
+          "primary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.025}",
+            "$description": "Primary text — strongest neutral",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.025",
+                "contrast": 18.13,
+                "against": "background.inverse.primary",
+                "min": 7,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.450}",
+            "$description": "Secondary text — 4.5:1 on the floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.450",
+                "contrast": 4.64,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.550}",
+            "$description": "Tertiary text — 3:1 on the floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.550",
+                "contrast": 3.25,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.400}",
+            "$description": "brand text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.400",
+                "contrast": 4.56,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{prism.palette.success.450}",
+            "$description": "success text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.success.450",
+                "contrast": 4.66,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{prism.palette.warning.450}",
+            "$description": "warning text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.warning.450",
+                "contrast": 4.58,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{prism.palette.danger.450}",
+            "$description": "danger text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.danger.450",
+                "contrast": 4.57,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{prism.palette.info.450}",
+            "$description": "info text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.info.450",
+                "contrast": 4.64,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.500}",
+            "$description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.500",
+                "contrast": 3.3,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.success.550}",
+            "$description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.success.550",
+                "contrast": 3.53,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.warning.550}",
+            "$description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.warning.550",
+                "contrast": 3.48,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.danger.550}",
+            "$description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.danger.550",
+                "contrast": 3.5,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.info.550}",
+            "$description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.info.550",
+                "contrast": 3.51,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.400}",
+              "$description": "Link text — default",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.400",
+                  "contrast": 4.56,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.350}",
+              "$description": "Link text — hover",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.350",
+                  "contrast": 5.5,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.300}",
+              "$description": "Link text — visited",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.300",
+                  "contrast": 6.59,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.400}",
+              "$description": "Link text — focused",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.400",
+                  "contrast": 4.56,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
@@ -7672,30 +8060,6 @@
             }
           }
         },
-        "on-inverse": {
-          "$type": "color",
-          "$value": "{prism.palette.neutral.025}",
-          "$description": "icon on an inverse surface",
-          "$extensions": {
-            "prism3": {
-              "role": "semantic",
-              "aliasOf": "prism.palette.neutral.025",
-              "contrast": 18.13,
-              "against": "background.inverse.primary",
-              "min": 4.5,
-              "figma": {
-                "collection": "color",
-                "modes": [
-                  "light",
-                  "dark",
-                  "hc-light",
-                  "hc-dark"
-                ],
-                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-              }
-            }
-          }
-        },
         "link": {
           "default": {
             "$type": "color",
@@ -7789,6 +8153,418 @@
                     "hc-dark"
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          }
+        },
+        "on-inverse": {
+          "primary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.025}",
+            "$description": "Primary icon — strongest neutral",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.025",
+                "contrast": 18.13,
+                "against": "background.inverse.primary",
+                "min": 7,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "secondary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.450}",
+            "$description": "Secondary icon — 4.5:1 on the floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.450",
+                "contrast": 4.64,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "tertiary": {
+            "$type": "color",
+            "$value": "{prism.palette.neutral.550}",
+            "$description": "Tertiary icon — 3:1 on the floor",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.neutral.550",
+                "contrast": 3.25,
+                "against": "background.inverse.secondary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "brand": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.400}",
+            "$description": "brand icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.400",
+                "contrast": 4.56,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "success": {
+            "$type": "color",
+            "$value": "{prism.palette.success.450}",
+            "$description": "success icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.success.450",
+                "contrast": 4.66,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "warning": {
+            "$type": "color",
+            "$value": "{prism.palette.warning.450}",
+            "$description": "warning icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.warning.450",
+                "contrast": 4.58,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "danger": {
+            "$type": "color",
+            "$value": "{prism.palette.danger.450}",
+            "$description": "danger icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.danger.450",
+                "contrast": 4.57,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "info": {
+            "$type": "color",
+            "$value": "{prism.palette.info.450}",
+            "$description": "info icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.info.450",
+                "contrast": 4.64,
+                "against": "background.inverse.secondary",
+                "min": 4.5,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "brand-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.primary.500}",
+            "$description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.primary.500",
+                "contrast": 3.3,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "success-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.success.550}",
+            "$description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.success.550",
+                "contrast": 3.53,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "warning-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.warning.550}",
+            "$description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.warning.550",
+                "contrast": 3.48,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "danger-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.danger.550}",
+            "$description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.danger.550",
+                "contrast": 3.5,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "info-subtle": {
+            "$type": "color",
+            "$value": "{prism.palette.info.550}",
+            "$description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.palette.info.550",
+                "contrast": 3.51,
+                "against": "background.inverse.primary",
+                "min": 3,
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "link": {
+            "default": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.400}",
+              "$description": "Link icon — default",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.400",
+                  "contrast": 4.56,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.350}",
+              "$description": "Link icon — hover",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.350",
+                  "contrast": 5.5,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "visited": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.300}",
+              "$description": "Link icon — visited",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.300",
+                  "contrast": 6.59,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "focused": {
+              "$type": "color",
+              "$value": "{prism.palette.primary.400}",
+              "$description": "Link icon — focused",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.palette.primary.400",
+                  "contrast": 4.56,
+                  "against": "background.inverse.secondary",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
                 }
               }
             }
@@ -13317,7 +14093,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

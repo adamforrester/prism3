@@ -2801,24 +2801,6 @@
       }
     },
     {
-      "name": "color/text/on-inverse",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "TEXT_FILL"
-      ],
-      "description": "text on an inverse surface",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
-      }
-    },
-    {
       "name": "color/text/link/default",
       "resolvedType": "COLOR",
       "scopes": [
@@ -2888,6 +2870,312 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/red/700"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Primary text — strongest neutral",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Secondary text — 4.5:1 on the floor",
+      "value": {
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/350"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Tertiary text — 3:1 on the floor",
+      "value": {
+        "r": 0.43921568989753723,
+        "g": 0.4627451002597809,
+        "b": 0.48627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "brand text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/300"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "success text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.49803921580314636,
+        "g": 0.686274528503418,
+        "b": 0.545098066329956,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/green/300"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "warning text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.8039215803146362,
+        "g": 0.6235294342041016,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/amber/300"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "danger text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/300"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "info text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.40784314274787903,
+        "g": 0.6823529601097107,
+        "b": 0.9058823585510254,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/300"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/500"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.21960784494876862,
+        "g": 0.5529412031173706,
+        "b": 0.3333333432674408,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/green/450"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/amber/500"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/500"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/500"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — default",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/350"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — hover",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/300"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — visited",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/250"
+      }
+    },
+    {
+      "name": "color/text/on-inverse/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "TEXT_FILL"
+      ],
+      "description": "Link text — focused",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/350"
       }
     },
     {
@@ -3251,26 +3539,6 @@
       }
     },
     {
-      "name": "color/icon/on-inverse",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
-      ],
-      "description": "icon on an inverse surface",
-      "value": {
-        "r": 1,
-        "g": 1,
-        "b": 1,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
-      }
-    },
-    {
       "name": "color/icon/link/default",
       "resolvedType": "COLOR",
       "scopes": [
@@ -3348,6 +3616,346 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "palette/red/700"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/primary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Primary icon — strongest neutral",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/white"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Secondary icon — 4.5:1 on the floor",
+      "value": {
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/350"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Tertiary icon — 3:1 on the floor",
+      "value": {
+        "r": 0.43921568989753723,
+        "g": 0.4627451002597809,
+        "b": 0.48627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/neutral/500"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/brand",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "brand icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/300"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/success",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "success icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.49803921580314636,
+        "g": 0.686274528503418,
+        "b": 0.545098066329956,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/green/300"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/warning",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "warning icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.8039215803146362,
+        "g": 0.6235294342041016,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/amber/300"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/danger",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "danger icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/300"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "info icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.40784314274787903,
+        "g": 0.6823529601097107,
+        "b": 0.9058823585510254,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/300"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/500"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.21960784494876862,
+        "g": 0.5529412031173706,
+        "b": 0.3333333432674408,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/green/450"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/amber/500"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/500"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/500"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — default",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/350"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — hover",
+      "value": {
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/300"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — visited",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/250"
+      }
+    },
+    {
+      "name": "color/icon/on-inverse/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "Link icon — focused",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/red/350"
       }
     },
     {

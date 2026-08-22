@@ -88,7 +88,7 @@
       "$description": "Inverse page surface (tier 1).",
       "meaning": "Inverted page surface",
       "when_to_use": "Inverted page sections — a dark band on a light page (or vice-versa).",
-      "avoid_when": "Do not place mode-default ink on it — use text.on-inverse.",
+      "avoid_when": "Do not place mode-default ink on it — use the text.on-inverse.* set.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.950}",
@@ -97,7 +97,7 @@
         "hc-dark": "{prism.palette.white}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "border.inverse.default"
       ]
     },
@@ -105,7 +105,7 @@
       "$description": "Inverse page surface (tier 2).",
       "meaning": "Inverted page surface",
       "when_to_use": "Inverted page sections — a dark band on a light page (or vice-versa).",
-      "avoid_when": "Do not place mode-default ink on it — use text.on-inverse.",
+      "avoid_when": "Do not place mode-default ink on it — use the text.on-inverse.* set.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.900}",
@@ -114,7 +114,7 @@
         "hc-dark": "{prism.palette.white}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "border.inverse.default"
       ]
     },
@@ -122,7 +122,7 @@
       "$description": "Inverse page surface (tier 3).",
       "meaning": "Inverted page surface",
       "when_to_use": "Inverted page sections — a dark band on a light page (or vice-versa).",
-      "avoid_when": "Do not place mode-default ink on it — use text.on-inverse.",
+      "avoid_when": "Do not place mode-default ink on it — use the text.on-inverse.* set.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.palette.neutral.850}",
@@ -131,7 +131,7 @@
         "hc-dark": "{prism.palette.white}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "border.inverse.default"
       ]
     },
@@ -215,7 +215,7 @@
         "hc-dark": "{prism.palette.white}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.inverse.secondary": {
@@ -231,7 +231,7 @@
         "hc-dark": "{prism.palette.white}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.inverse.tertiary": {
@@ -247,7 +247,7 @@
         "hc-dark": "{prism.palette.white}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.brand": {
@@ -444,7 +444,7 @@
         "hc-dark": "{prism.palette.primary.100}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.inverse.success-subtle": {
@@ -460,7 +460,7 @@
         "hc-dark": "{prism.palette.success.100}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.inverse.warning-subtle": {
@@ -476,7 +476,7 @@
         "hc-dark": "{prism.palette.warning.100}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.inverse.danger-subtle": {
@@ -492,7 +492,7 @@
         "hc-dark": "{prism.palette.danger.100}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.inverse.info-subtle": {
@@ -508,7 +508,7 @@
         "hc-dark": "{prism.palette.info.100}"
       },
       "paired_with": [
-        "text.on-inverse"
+        "text.on-inverse.primary"
       ]
     },
     "foreground.danger": {
@@ -2409,7 +2409,7 @@
         "hc-dark": "{prism.palette.black-alpha.10}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2433,7 +2433,7 @@
         "hc-dark": "{prism.palette.black-alpha.20}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2457,7 +2457,7 @@
         "hc-dark": "{prism.palette.black-alpha.20}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2481,7 +2481,7 @@
         "hc-dark": "{prism.palette.black-alpha.10}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2505,7 +2505,7 @@
         "hc-dark": "{prism.palette.black-alpha.20}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2529,7 +2529,7 @@
         "hc-dark": "{prism.palette.black-alpha.20}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2553,7 +2553,7 @@
         "hc-dark": "{prism.palette.black-alpha.10}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2577,7 +2577,7 @@
         "hc-dark": "{prism.palette.black-alpha.20}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -2601,7 +2601,7 @@
         "hc-dark": "{prism.palette.black-alpha.20}"
       },
       "paired_with": [
-        "text.on-inverse",
+        "text.on-inverse.primary",
         "background.inverse.primary"
       ],
       "contrast_with": [
@@ -3285,29 +3285,6 @@
         }
       ]
     },
-    "text.on-inverse": {
-      "$description": "Text on an inverse surface.",
-      "meaning": "Legible content on an inverse surface",
-      "when_to_use": "Text placed on the inverse surface it is paired with.",
-      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
-        "light": "{prism.palette.neutral.025}",
-        "dark": "{prism.palette.neutral.950}",
-        "hc-light": "{prism.palette.white}",
-        "hc-dark": "{prism.palette.black}"
-      },
-      "paired_with": [
-        "background.inverse.primary"
-      ],
-      "contrast_with": [
-        {
-          "token": "background.inverse.primary",
-          "min": "4.5:1",
-          "ratio": 18.13
-        }
-      ]
-    },
     "text.link.default": {
       "$description": "Link (interactive text) (default state).",
       "meaning": "Interactivity / navigation",
@@ -3805,29 +3782,6 @@
         }
       ]
     },
-    "icon.on-inverse": {
-      "$description": "Icon on an inverse surface.",
-      "meaning": "Legible content on an inverse surface",
-      "when_to_use": "Icon placed on the inverse surface it is paired with.",
-      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
-        "light": "{prism.palette.neutral.025}",
-        "dark": "{prism.palette.neutral.950}",
-        "hc-light": "{prism.palette.white}",
-        "hc-dark": "{prism.palette.black}"
-      },
-      "paired_with": [
-        "background.inverse.primary"
-      ],
-      "contrast_with": [
-        {
-          "token": "background.inverse.primary",
-          "min": "4.5:1",
-          "ratio": 18.13
-        }
-      ]
-    },
     "icon.link.default": {
       "$description": "Link (interactive icon) (default state).",
       "meaning": "Interactivity / navigation",
@@ -3905,6 +3859,788 @@
           "token": "neutral.050",
           "min": "4.5:1",
           "ratio": 4.85
+        }
+      ]
+    },
+    "text.on-inverse.primary": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.025}",
+        "dark": "{prism.palette.neutral.950}",
+        "hc-light": "{prism.palette.white}",
+        "hc-dark": "{prism.palette.black}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "7:1",
+          "ratio": 18.13
+        }
+      ]
+    },
+    "text.on-inverse.secondary": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.450}",
+        "dark": "{prism.palette.neutral.550}",
+        "hc-light": "{prism.palette.neutral.350}",
+        "hc-dark": "{prism.palette.neutral.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.64
+        }
+      ]
+    },
+    "text.on-inverse.tertiary": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.550}",
+        "dark": "{prism.palette.neutral.450}",
+        "hc-light": "{prism.palette.neutral.500}",
+        "hc-dark": "{prism.palette.neutral.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.25
+        }
+      ]
+    },
+    "text.on-inverse.brand": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.550}",
+        "hc-light": "{prism.palette.primary.250}",
+        "hc-dark": "{prism.palette.primary.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.56
+        }
+      ]
+    },
+    "text.on-inverse.success": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.success.450}",
+        "dark": "{prism.palette.success.600}",
+        "hc-light": "{prism.palette.success.300}",
+        "hc-dark": "{prism.palette.success.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.66
+        }
+      ]
+    },
+    "text.on-inverse.warning": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.450}",
+        "dark": "{prism.palette.warning.600}",
+        "hc-light": "{prism.palette.warning.300}",
+        "hc-dark": "{prism.palette.warning.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.58
+        }
+      ]
+    },
+    "text.on-inverse.danger": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.450}",
+        "dark": "{prism.palette.danger.600}",
+        "hc-light": "{prism.palette.danger.300}",
+        "hc-dark": "{prism.palette.danger.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.57
+        }
+      ]
+    },
+    "text.on-inverse.info": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.info.450}",
+        "dark": "{prism.palette.info.600}",
+        "hc-light": "{prism.palette.info.300}",
+        "hc-dark": "{prism.palette.info.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.64
+        }
+      ]
+    },
+    "text.on-inverse.brand-subtle": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.500}",
+        "dark": "{prism.palette.primary.650}",
+        "hc-light": "{prism.palette.primary.400}",
+        "hc-dark": "{prism.palette.primary.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.3
+        }
+      ]
+    },
+    "text.on-inverse.success-subtle": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.success.550}",
+        "dark": "{prism.palette.success.650}",
+        "hc-light": "{prism.palette.success.500}",
+        "hc-dark": "{prism.palette.success.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.53
+        }
+      ]
+    },
+    "text.on-inverse.warning-subtle": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.550}",
+        "dark": "{prism.palette.warning.650}",
+        "hc-light": "{prism.palette.warning.500}",
+        "hc-dark": "{prism.palette.warning.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.48
+        }
+      ]
+    },
+    "text.on-inverse.danger-subtle": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.550}",
+        "dark": "{prism.palette.danger.650}",
+        "hc-light": "{prism.palette.danger.500}",
+        "hc-dark": "{prism.palette.danger.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.5
+        }
+      ]
+    },
+    "text.on-inverse.info-subtle": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.info.550}",
+        "dark": "{prism.palette.info.650}",
+        "hc-light": "{prism.palette.info.500}",
+        "hc-dark": "{prism.palette.info.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.51
+        }
+      ]
+    },
+    "text.on-inverse.link.default": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
+        "hc-light": "{prism.palette.primary.300}",
+        "hc-dark": "{prism.palette.primary.600}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.56
+        }
+      ]
+    },
+    "text.on-inverse.link.hover": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.350}",
+        "dark": "{prism.palette.primary.550}",
+        "hc-light": "{prism.palette.primary.250}",
+        "hc-dark": "{prism.palette.primary.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 5.5
+        }
+      ]
+    },
+    "text.on-inverse.link.visited": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.300}",
+        "dark": "{prism.palette.primary.600}",
+        "hc-light": "{prism.palette.primary.200}",
+        "hc-dark": "{prism.palette.primary.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 6.59
+        }
+      ]
+    },
+    "text.on-inverse.link.focused": {
+      "$description": "Text on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Text placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use text.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
+        "hc-light": "{prism.palette.primary.300}",
+        "hc-dark": "{prism.palette.primary.600}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.56
+        }
+      ]
+    },
+    "icon.on-inverse.primary": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.025}",
+        "dark": "{prism.palette.neutral.950}",
+        "hc-light": "{prism.palette.white}",
+        "hc-dark": "{prism.palette.black}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "7:1",
+          "ratio": 18.13
+        }
+      ]
+    },
+    "icon.on-inverse.secondary": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.450}",
+        "dark": "{prism.palette.neutral.550}",
+        "hc-light": "{prism.palette.neutral.350}",
+        "hc-dark": "{prism.palette.neutral.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.64
+        }
+      ]
+    },
+    "icon.on-inverse.tertiary": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.neutral.550}",
+        "dark": "{prism.palette.neutral.450}",
+        "hc-light": "{prism.palette.neutral.500}",
+        "hc-dark": "{prism.palette.neutral.500}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "3:1",
+          "ratio": 3.25
+        }
+      ]
+    },
+    "icon.on-inverse.brand": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.550}",
+        "hc-light": "{prism.palette.primary.250}",
+        "hc-dark": "{prism.palette.primary.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.56
+        }
+      ]
+    },
+    "icon.on-inverse.success": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.success.450}",
+        "dark": "{prism.palette.success.600}",
+        "hc-light": "{prism.palette.success.300}",
+        "hc-dark": "{prism.palette.success.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.66
+        }
+      ]
+    },
+    "icon.on-inverse.warning": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.450}",
+        "dark": "{prism.palette.warning.600}",
+        "hc-light": "{prism.palette.warning.300}",
+        "hc-dark": "{prism.palette.warning.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.58
+        }
+      ]
+    },
+    "icon.on-inverse.danger": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.450}",
+        "dark": "{prism.palette.danger.600}",
+        "hc-light": "{prism.palette.danger.300}",
+        "hc-dark": "{prism.palette.danger.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.57
+        }
+      ]
+    },
+    "icon.on-inverse.info": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.info.450}",
+        "dark": "{prism.palette.info.600}",
+        "hc-light": "{prism.palette.info.300}",
+        "hc-dark": "{prism.palette.info.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.64
+        }
+      ]
+    },
+    "icon.on-inverse.brand-subtle": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.500}",
+        "dark": "{prism.palette.primary.650}",
+        "hc-light": "{prism.palette.primary.400}",
+        "hc-dark": "{prism.palette.primary.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.3
+        }
+      ]
+    },
+    "icon.on-inverse.success-subtle": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.success.550}",
+        "dark": "{prism.palette.success.650}",
+        "hc-light": "{prism.palette.success.500}",
+        "hc-dark": "{prism.palette.success.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.53
+        }
+      ]
+    },
+    "icon.on-inverse.warning-subtle": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.warning.550}",
+        "dark": "{prism.palette.warning.650}",
+        "hc-light": "{prism.palette.warning.500}",
+        "hc-dark": "{prism.palette.warning.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.48
+        }
+      ]
+    },
+    "icon.on-inverse.danger-subtle": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.danger.550}",
+        "dark": "{prism.palette.danger.650}",
+        "hc-light": "{prism.palette.danger.500}",
+        "hc-dark": "{prism.palette.danger.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.5
+        }
+      ]
+    },
+    "icon.on-inverse.info-subtle": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.info.550}",
+        "dark": "{prism.palette.info.650}",
+        "hc-light": "{prism.palette.info.500}",
+        "hc-dark": "{prism.palette.info.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.primary",
+          "min": "3:1",
+          "ratio": 3.51
+        }
+      ]
+    },
+    "icon.on-inverse.link.default": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
+        "hc-light": "{prism.palette.primary.300}",
+        "hc-dark": "{prism.palette.primary.600}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.56
+        }
+      ]
+    },
+    "icon.on-inverse.link.hover": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.350}",
+        "dark": "{prism.palette.primary.550}",
+        "hc-light": "{prism.palette.primary.250}",
+        "hc-dark": "{prism.palette.primary.650}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 5.5
+        }
+      ]
+    },
+    "icon.on-inverse.link.visited": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.300}",
+        "dark": "{prism.palette.primary.600}",
+        "hc-light": "{prism.palette.primary.200}",
+        "hc-dark": "{prism.palette.primary.700}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 6.59
+        }
+      ]
+    },
+    "icon.on-inverse.link.focused": {
+      "$description": "Icon on an inverse surface.",
+      "meaning": "Legible content on an inverse surface",
+      "when_to_use": "Icon placed on the inverse surface it is paired with.",
+      "avoid_when": "Do not use on standard surfaces — use icon.primary/secondary.",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.palette.primary.400}",
+        "dark": "{prism.palette.primary.500}",
+        "hc-light": "{prism.palette.primary.300}",
+        "hc-dark": "{prism.palette.primary.600}"
+      },
+      "paired_with": [
+        "background.inverse.primary"
+      ],
+      "contrast_with": [
+        {
+          "token": "background.inverse.secondary",
+          "min": "4.5:1",
+          "ratio": 4.56
         }
       ]
     },
@@ -4710,7 +5446,7 @@
         "color.icon.on-brand",
         "color.icon.on-danger",
         "color.icon.on-info",
-        "color.icon.on-inverse",
+        "color.icon.on-inverse.primary",
         "color.icon.on-success",
         "color.icon.on-warning",
         "color.icon.primary",
@@ -4729,7 +5465,7 @@
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
-        "color.text.on-inverse",
+        "color.text.on-inverse.primary",
         "color.text.on-success",
         "color.text.on-warning",
         "color.text.primary"
@@ -4759,7 +5495,7 @@
         "color.icon.on-brand",
         "color.icon.on-danger",
         "color.icon.on-info",
-        "color.icon.on-inverse",
+        "color.icon.on-inverse.primary",
         "color.icon.on-success",
         "color.icon.on-warning",
         "color.icon.primary",
@@ -4778,7 +5514,7 @@
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
-        "color.text.on-inverse",
+        "color.text.on-inverse.primary",
         "color.text.on-success",
         "color.text.on-warning",
         "color.text.primary"
@@ -4817,6 +5553,7 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.hover",
+        "color.icon.on-inverse.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
@@ -4825,7 +5562,8 @@
         "color.interactive.primary.inverse.fill.selected",
         "color.interactive.primary.inverse.text.pressed",
         "color.interactive.primary.text.pressed",
-        "color.text.link.hover"
+        "color.text.link.hover",
+        "color.text.on-inverse.link.visited"
       ]
     },
     "palette.primary.250": {
@@ -4840,6 +5578,8 @@
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.on-inverse.brand",
+        "color.icon.on-inverse.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.inverse.border.hover",
@@ -4847,7 +5587,9 @@
         "color.interactive.primary.text.hover",
         "color.text.brand",
         "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.on-inverse.brand",
+        "color.text.on-inverse.link.hover"
       ]
     },
     "palette.primary.300": {
@@ -4858,6 +5600,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.visited",
+        "color.icon.on-inverse.link.default",
+        "color.icon.on-inverse.link.focused",
+        "color.icon.on-inverse.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.inverse.border.pressed",
@@ -4866,7 +5611,10 @@
         "color.interactive.primary.inverse.text.rest",
         "color.interactive.primary.text.pressed",
         "color.interactive.primary.text.rest",
-        "color.text.link.visited"
+        "color.text.link.visited",
+        "color.text.on-inverse.link.default",
+        "color.text.on-inverse.link.focused",
+        "color.text.on-inverse.link.visited"
       ]
     },
     "palette.primary.350": {
@@ -4878,12 +5626,14 @@
       "aliased_by": [
         "color.icon.brand-subtle",
         "color.icon.link.hover",
+        "color.icon.on-inverse.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.inverse.border.hover",
         "color.interactive.primary.inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.brand-subtle",
-        "color.text.link.hover"
+        "color.text.link.hover",
+        "color.text.on-inverse.link.hover"
       ]
     },
     "palette.primary.400": {
@@ -4898,6 +5648,10 @@
         "color.icon.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.on-inverse.brand",
+        "color.icon.on-inverse.brand-subtle",
+        "color.icon.on-inverse.link.default",
+        "color.icon.on-inverse.link.focused",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
@@ -4906,7 +5660,11 @@
         "color.interactive.primary.text.rest",
         "color.text.brand",
         "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.on-inverse.brand",
+        "color.text.on-inverse.brand-subtle",
+        "color.text.on-inverse.link.default",
+        "color.text.on-inverse.link.focused"
       ]
     },
     "palette.primary.450": {
@@ -4935,13 +5693,19 @@
         "color.foreground.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.on-inverse.brand-subtle",
+        "color.icon.on-inverse.link.default",
+        "color.icon.on-inverse.link.focused",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.inverse.border.rest",
         "color.interactive.primary.inverse.text.rest",
         "color.interactive.primary.text.rest",
         "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.on-inverse.brand-subtle",
+        "color.text.on-inverse.link.default",
+        "color.text.on-inverse.link.focused"
       ]
     },
     "palette.primary.550": {
@@ -4953,6 +5717,8 @@
       "aliased_by": [
         "color.icon.brand",
         "color.icon.link.hover",
+        "color.icon.on-inverse.brand",
+        "color.icon.on-inverse.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
@@ -4960,7 +5726,9 @@
         "color.interactive.primary.inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.brand",
-        "color.text.link.hover"
+        "color.text.link.hover",
+        "color.text.on-inverse.brand",
+        "color.text.on-inverse.link.hover"
       ]
     },
     "palette.primary.600": {
@@ -4971,6 +5739,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.link.visited",
+        "color.icon.on-inverse.link.default",
+        "color.icon.on-inverse.link.focused",
+        "color.icon.on-inverse.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.pressed",
@@ -4981,7 +5752,10 @@
         "color.interactive.primary.inverse.text.rest",
         "color.interactive.primary.text.pressed",
         "color.interactive.primary.text.rest",
-        "color.text.link.visited"
+        "color.text.link.visited",
+        "color.text.on-inverse.link.default",
+        "color.text.on-inverse.link.focused",
+        "color.text.on-inverse.link.visited"
       ]
     },
     "palette.primary.650": {
@@ -4995,13 +5769,17 @@
         "color.foreground.brand",
         "color.icon.link.default",
         "color.icon.link.focused",
+        "color.icon.on-inverse.brand-subtle",
+        "color.icon.on-inverse.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.inverse.border.hover",
         "color.interactive.primary.inverse.text.hover",
         "color.interactive.primary.text.hover",
         "color.text.link.default",
-        "color.text.link.focused"
+        "color.text.link.focused",
+        "color.text.on-inverse.brand-subtle",
+        "color.text.on-inverse.link.hover"
       ]
     },
     "palette.primary.700": {
@@ -5013,6 +5791,8 @@
       "aliased_by": [
         "color.icon.brand",
         "color.icon.link.hover",
+        "color.icon.on-inverse.brand",
+        "color.icon.on-inverse.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
@@ -5020,7 +5800,9 @@
         "color.interactive.primary.inverse.text.pressed",
         "color.interactive.primary.text.pressed",
         "color.text.brand",
-        "color.text.link.hover"
+        "color.text.link.hover",
+        "color.text.on-inverse.brand",
+        "color.text.on-inverse.link.visited"
       ]
     },
     "palette.primary.750": {
@@ -5174,8 +5956,10 @@
       "aliased_by": [
         "color.field.inverse.placeholder",
         "color.field.placeholder",
+        "color.icon.on-inverse.secondary",
         "color.interactive.neutral.border.pressed",
-        "color.interactive.neutral.inverse.border.pressed"
+        "color.interactive.neutral.inverse.border.pressed",
+        "color.text.on-inverse.secondary"
       ]
     },
     "palette.neutral.400": {
@@ -5210,10 +5994,14 @@
         "color.field.inverse.border.hover",
         "color.field.inverse.placeholder",
         "color.field.placeholder",
+        "color.icon.on-inverse.secondary",
+        "color.icon.on-inverse.tertiary",
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.inverse.border.hover",
+        "color.text.on-inverse.secondary",
+        "color.text.on-inverse.tertiary",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -5232,10 +6020,12 @@
         "color.field.border.rest",
         "color.field.inverse.border.hover",
         "color.field.inverse.border.rest",
+        "color.icon.on-inverse.tertiary",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.rest",
         "color.interactive.neutral.inverse.border.hover",
-        "color.interactive.neutral.inverse.border.rest"
+        "color.interactive.neutral.inverse.border.rest",
+        "color.text.on-inverse.tertiary"
       ]
     },
     "palette.neutral.550": {
@@ -5252,10 +6042,14 @@
         "color.field.inverse.border.rest",
         "color.field.inverse.placeholder",
         "color.field.placeholder",
+        "color.icon.on-inverse.secondary",
+        "color.icon.on-inverse.tertiary",
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.interactive.neutral.border.rest",
         "color.interactive.neutral.inverse.border.rest",
+        "color.text.on-inverse.secondary",
+        "color.text.on-inverse.tertiary",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -5283,7 +6077,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.field.inverse.placeholder",
-        "color.field.placeholder"
+        "color.field.placeholder",
+        "color.icon.on-inverse.secondary",
+        "color.text.on-inverse.secondary"
       ]
     },
     "palette.neutral.700": {
@@ -5370,7 +6166,7 @@
       "aliased_by": [
         "color.background.inverse.primary",
         "color.background.primary",
-        "color.icon.on-inverse",
+        "color.icon.on-inverse.primary",
         "color.icon.primary",
         "color.interactive.destructive.inverse.on-fill",
         "color.interactive.neutral.inverse.fill.pressed",
@@ -5384,7 +6180,7 @@
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.inverse.on-fill",
-        "color.text.on-inverse",
+        "color.text.on-inverse.primary",
         "color.text.primary"
       ]
     },
@@ -5397,7 +6193,7 @@
       "aliased_by": [
         "color.background.inverse.primary",
         "color.icon.on-brand",
-        "color.icon.on-inverse",
+        "color.icon.on-inverse.primary",
         "color.icon.primary",
         "color.interactive.destructive.inverse.on-fill",
         "color.interactive.neutral.inverse.on-fill",
@@ -5411,7 +6207,7 @@
         "color.interactive.primary.inverse.on-fill",
         "color.interactive.primary.on-fill",
         "color.text.on-brand",
-        "color.text.on-inverse",
+        "color.text.on-inverse.primary",
         "color.text.primary"
       ]
     },
@@ -5751,7 +6547,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.success",
+        "color.icon.on-inverse.success",
         "color.icon.success",
+        "color.text.on-inverse.success",
         "color.text.success"
       ]
     },
@@ -5780,8 +6578,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.on-inverse.success",
         "color.icon.success",
         "color.icon.success-subtle",
+        "color.text.on-inverse.success",
         "color.text.success",
         "color.text.success-subtle"
       ]
@@ -5795,7 +6595,9 @@
       "aliased_by": [
         "color.border.success",
         "color.foreground.success",
+        "color.icon.on-inverse.success-subtle",
         "color.icon.success-subtle",
+        "color.text.on-inverse.success-subtle",
         "color.text.success-subtle"
       ]
     },
@@ -5804,7 +6606,11 @@
       "meaning": "success ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.icon.on-inverse.success-subtle",
+        "color.text.on-inverse.success-subtle"
+      ]
     },
     "palette.success.600": {
       "$description": "success status 600 — Mid-Tone band",
@@ -5813,7 +6619,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.on-inverse.success",
         "color.icon.success",
+        "color.text.on-inverse.success",
         "color.text.success"
       ]
     },
@@ -5822,7 +6630,11 @@
       "meaning": "success ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.icon.on-inverse.success-subtle",
+        "color.text.on-inverse.success-subtle"
+      ]
     },
     "palette.success.700": {
       "$description": "success status 700 — Three-Quarter-Tone band",
@@ -5832,7 +6644,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.success",
+        "color.icon.on-inverse.success",
         "color.icon.success",
+        "color.text.on-inverse.success",
         "color.text.success"
       ]
     },
@@ -5929,7 +6743,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.warning",
+        "color.icon.on-inverse.warning",
         "color.icon.warning",
+        "color.text.on-inverse.warning",
         "color.text.warning"
       ]
     },
@@ -5958,8 +6774,10 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.on-inverse.warning",
         "color.icon.warning",
         "color.icon.warning-subtle",
+        "color.text.on-inverse.warning",
         "color.text.warning",
         "color.text.warning-subtle"
       ]
@@ -5973,7 +6791,9 @@
       "aliased_by": [
         "color.border.warning",
         "color.foreground.warning",
+        "color.icon.on-inverse.warning-subtle",
         "color.icon.warning-subtle",
+        "color.text.on-inverse.warning-subtle",
         "color.text.warning-subtle"
       ]
     },
@@ -5982,7 +6802,11 @@
       "meaning": "warning ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.icon.on-inverse.warning-subtle",
+        "color.text.on-inverse.warning-subtle"
+      ]
     },
     "palette.warning.600": {
       "$description": "warning status 600 — Mid-Tone band",
@@ -5991,7 +6815,9 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.on-inverse.warning",
         "color.icon.warning",
+        "color.text.on-inverse.warning",
         "color.text.warning"
       ]
     },
@@ -6000,7 +6826,11 @@
       "meaning": "warning ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.icon.on-inverse.warning-subtle",
+        "color.text.on-inverse.warning-subtle"
+      ]
     },
     "palette.warning.700": {
       "$description": "warning status 700 — Three-Quarter-Tone band",
@@ -6010,7 +6840,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.foreground.warning",
+        "color.icon.on-inverse.warning",
         "color.icon.warning",
+        "color.text.on-inverse.warning",
         "color.text.warning"
       ]
     },
@@ -6108,7 +6940,9 @@
       "aliased_by": [
         "color.foreground.info",
         "color.icon.info",
-        "color.text.info"
+        "color.icon.on-inverse.info",
+        "color.text.info",
+        "color.text.on-inverse.info"
       ]
     },
     "palette.info.350": {
@@ -6138,8 +6972,10 @@
       "aliased_by": [
         "color.icon.info",
         "color.icon.info-subtle",
+        "color.icon.on-inverse.info",
         "color.text.info",
-        "color.text.info-subtle"
+        "color.text.info-subtle",
+        "color.text.on-inverse.info"
       ]
     },
     "palette.info.500": {
@@ -6152,7 +6988,9 @@
         "color.border.info",
         "color.foreground.info",
         "color.icon.info-subtle",
-        "color.text.info-subtle"
+        "color.icon.on-inverse.info-subtle",
+        "color.text.info-subtle",
+        "color.text.on-inverse.info-subtle"
       ]
     },
     "palette.info.550": {
@@ -6160,7 +6998,11 @@
       "meaning": "info ramp — raw step 550",
       "intent": "Solid fills & UI-element backgrounds",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.icon.on-inverse.info-subtle",
+        "color.text.on-inverse.info-subtle"
+      ]
     },
     "palette.info.600": {
       "$description": "info status 600 — Mid-Tone band",
@@ -6170,7 +7012,9 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.info",
-        "color.text.info"
+        "color.icon.on-inverse.info",
+        "color.text.info",
+        "color.text.on-inverse.info"
       ]
     },
     "palette.info.650": {
@@ -6178,7 +7022,11 @@
       "meaning": "info ramp — raw step 650",
       "intent": "Strong borders, secondary text, and hover/active states of solid fills",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.icon.on-inverse.info-subtle",
+        "color.text.on-inverse.info-subtle"
+      ]
     },
     "palette.info.700": {
       "$description": "info status 700 — Three-Quarter-Tone band",
@@ -6189,7 +7037,9 @@
       "aliased_by": [
         "color.foreground.info",
         "color.icon.info",
-        "color.text.info"
+        "color.icon.on-inverse.info",
+        "color.text.info",
+        "color.text.on-inverse.info"
       ]
     },
     "palette.info.750": {
@@ -6301,12 +7151,14 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.icon.danger",
+        "color.icon.on-inverse.danger",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.inverse.border.hover",
         "color.interactive.destructive.inverse.text.hover",
         "color.interactive.destructive.text.hover",
-        "color.text.danger"
+        "color.text.danger",
+        "color.text.on-inverse.danger"
       ]
     },
     "palette.danger.350": {
@@ -6352,6 +7204,7 @@
       "aliased_by": [
         "color.icon.danger",
         "color.icon.danger-subtle",
+        "color.icon.on-inverse.danger",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
@@ -6359,7 +7212,8 @@
         "color.interactive.destructive.inverse.text.rest",
         "color.interactive.destructive.text.rest",
         "color.text.danger",
-        "color.text.danger-subtle"
+        "color.text.danger-subtle",
+        "color.text.on-inverse.danger"
       ]
     },
     "palette.danger.500": {
@@ -6372,10 +7226,12 @@
         "color.border.danger",
         "color.foreground.danger",
         "color.icon.danger-subtle",
+        "color.icon.on-inverse.danger-subtle",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.text.rest",
-        "color.text.danger-subtle"
+        "color.text.danger-subtle",
+        "color.text.on-inverse.danger-subtle"
       ]
     },
     "palette.danger.550": {
@@ -6385,12 +7241,14 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.on-inverse.danger-subtle",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.inverse.border.rest",
         "color.interactive.destructive.inverse.text.rest",
-        "color.interactive.destructive.text.hover"
+        "color.interactive.destructive.text.hover",
+        "color.text.on-inverse.danger-subtle"
       ]
     },
     "palette.danger.600": {
@@ -6401,13 +7259,15 @@
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
         "color.icon.danger",
+        "color.icon.on-inverse.danger",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.inverse.border.hover",
         "color.interactive.destructive.inverse.text.hover",
         "color.interactive.destructive.text.pressed",
-        "color.text.danger"
+        "color.text.danger",
+        "color.text.on-inverse.danger"
       ]
     },
     "palette.danger.650": {
@@ -6417,12 +7277,14 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
+        "color.icon.on-inverse.danger-subtle",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.inverse.border.pressed",
         "color.interactive.destructive.inverse.border.rest",
         "color.interactive.destructive.inverse.text.pressed",
         "color.interactive.destructive.inverse.text.rest",
-        "color.interactive.destructive.text.rest"
+        "color.interactive.destructive.text.rest",
+        "color.text.on-inverse.danger-subtle"
       ]
     },
     "palette.danger.700": {
@@ -6434,12 +7296,14 @@
       "aliased_by": [
         "color.foreground.danger",
         "color.icon.danger",
+        "color.icon.on-inverse.danger",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.inverse.border.hover",
         "color.interactive.destructive.inverse.text.hover",
         "color.interactive.destructive.text.hover",
-        "color.text.danger"
+        "color.text.danger",
+        "color.text.on-inverse.danger"
       ]
     },
     "palette.danger.750": {
