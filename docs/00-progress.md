@@ -10,53 +10,6 @@
 
 ---
 
-## (2026-08-22) — a context node is a group unless someone writes down why it is not
-
-**STATUS: in review.** #892's rule half, shipped separately from its token half. One gate
-(`lint-context-nodes.ts`), no token, no version move. **38 → 39 gates.**
-
-**The default is chosen on asymmetric cost, not on taste.** A context node authored as a LEAF that
-later needs siblings is a **MAJOR contract break** — we paid exactly one for `border.inverse` in
-#891: a major bump, two `DEPRECATIONS` entries, and a whole new `NB_KNOWN_RENAMES` mechanism in the
-Figma fixture gate so a var NB really exports stayed value-checked under its new name. A GROUP with
-one child is **verbosity**. When the two error directions cost that differently, the default belongs
-to the cheap one and the expensive one has to be argued for.
-
-**The reason is the entry, not the name.** `LEAF_OK` maps path → reason and the reason must answer
-one question: is the node single-valued because the CONCEPT has one value, or because nobody has
-needed a second yet? Those age in opposite directions — the first is a rule and stays true, the
-second is a snapshot that stops being true on the day someone needs the second value, by which point
-the leaf is in the contract and the fix is a major. A bare name list records that somebody once
-decided; it cannot record whether the decision was ever good. Same standard `ZERO_OK`
-(`lint-absolute-inset.ts`) and `PROVENANCE_EXCEPTIONS` (`lint-paint.ts`) already hold.
-
-**Checked both directions, which is what stops the list rotting.** An unadmitted leaf fails; and an
-entry whose node has since **gained siblings** fails as STALE rather than quietly admitting a shape
-nobody re-argued. Arm B is checked against the union across brands, so a node that is a group
-everywhere still fails its entry — arm A's per-brand loop would never look at it.
-
-**It ships with an EMPTY allowlist, and that is the point.** #892 step 4 promoted the last two
-context-node leaves; measuring first showed seven of nine were already groups, which is what revealed
-the one-at-a-time migration had run to completion rather than needing a fifth round. So this is not a
-cleanup — there is nothing to clean. It is the rule for what gets authored NEXT, written before step 5
-rather than after, because step 5 authored against an unwritten rule is two decisions in one diff.
-
-**Mutation-verified `docs/34`-style — not "does the suite go red" but "is MY gate among the failures,
-BY NAME":** an unadmitted leaf (arm A, named per brand) · an entry for a node no brand emits (stale)
-· an entry for a node that is a group (the rot case) · a reason under the 40-char floor, caught at 8
-· the vocabulary moved so the scan matches nothing (the shape-9 floor, `only 0 context node(s)`).
-Plus the **positive** direction: the same leaf admitted with a real reason passes, which is what
-distinguishes a working allowlist from a gate that is red on everything.
-
-**Stated limit, in the file:** it proves a human wrote an answer where the shape departs from the
-default. It does not prove the answer is right — the same limit `lint-schema-classification.ts`
-states about itself, and `MIN_REASON` is a floor against `'one role'`, not a judge of content.
-
-**Next:** step 5 authored against this — `disabled.inverse` at five roles exercising the default, and
-`scrim.inverse` at one exercising the exception. Both directions tested inside one piece of work, and
-`scrim.inverse` will be this allowlist's first real entry.
----
-
 ## (2026-08-22) — `docs/00-progress.md`'s own ordering gets a gate, and 30 pre-existing violations surface on first run (#931)
 
 **STATUS: shipped.** New gate `lint-progress-order.ts`, **38 → 39**. `docs/00-progress.md` is
@@ -109,6 +62,53 @@ across all five authored statements), re-ran the full suite, and confirmed 40/40
 ADVISORY**, after `npx playwright install chromium chromium-headless-shell` on this fresh container
 (#935's known gap — missing browser cache, not this diff).
 
+---
+
+## (2026-08-22) — a context node is a group unless someone writes down why it is not
+
+**STATUS: in review.** #892's rule half, shipped separately from its token half. One gate
+(`lint-context-nodes.ts`), no token, no version move. **38 → 39 gates.**
+
+**The default is chosen on asymmetric cost, not on taste.** A context node authored as a LEAF that
+later needs siblings is a **MAJOR contract break** — we paid exactly one for `border.inverse` in
+#891: a major bump, two `DEPRECATIONS` entries, and a whole new `NB_KNOWN_RENAMES` mechanism in the
+Figma fixture gate so a var NB really exports stayed value-checked under its new name. A GROUP with
+one child is **verbosity**. When the two error directions cost that differently, the default belongs
+to the cheap one and the expensive one has to be argued for.
+
+**The reason is the entry, not the name.** `LEAF_OK` maps path → reason and the reason must answer
+one question: is the node single-valued because the CONCEPT has one value, or because nobody has
+needed a second yet? Those age in opposite directions — the first is a rule and stays true, the
+second is a snapshot that stops being true on the day someone needs the second value, by which point
+the leaf is in the contract and the fix is a major. A bare name list records that somebody once
+decided; it cannot record whether the decision was ever good. Same standard `ZERO_OK`
+(`lint-absolute-inset.ts`) and `PROVENANCE_EXCEPTIONS` (`lint-paint.ts`) already hold.
+
+**Checked both directions, which is what stops the list rotting.** An unadmitted leaf fails; and an
+entry whose node has since **gained siblings** fails as STALE rather than quietly admitting a shape
+nobody re-argued. Arm B is checked against the union across brands, so a node that is a group
+everywhere still fails its entry — arm A's per-brand loop would never look at it.
+
+**It ships with an EMPTY allowlist, and that is the point.** #892 step 4 promoted the last two
+context-node leaves; measuring first showed seven of nine were already groups, which is what revealed
+the one-at-a-time migration had run to completion rather than needing a fifth round. So this is not a
+cleanup — there is nothing to clean. It is the rule for what gets authored NEXT, written before step 5
+rather than after, because step 5 authored against an unwritten rule is two decisions in one diff.
+
+**Mutation-verified `docs/34`-style — not "does the suite go red" but "is MY gate among the failures,
+BY NAME":** an unadmitted leaf (arm A, named per brand) · an entry for a node no brand emits (stale)
+· an entry for a node that is a group (the rot case) · a reason under the 40-char floor, caught at 8
+· the vocabulary moved so the scan matches nothing (the shape-9 floor, `only 0 context node(s)`).
+Plus the **positive** direction: the same leaf admitted with a real reason passes, which is what
+distinguishes a working allowlist from a gate that is red on everything.
+
+**Stated limit, in the file:** it proves a human wrote an answer where the shape departs from the
+default. It does not prove the answer is right — the same limit `lint-schema-classification.ts`
+states about itself, and `MIN_REASON` is a floor against `'one role'`, not a judge of content.
+
+**Next:** step 5 authored against this — `disabled.inverse` at five roles exercising the default, and
+`scrim.inverse` at one exercising the exception. Both directions tested inside one piece of work, and
+`scrim.inverse` will be this allowlist's first real entry.
 ---
 
 ## (2026-08-22) — `CLAUDE.md` grooming: a proposal, not a restructure (#886-adjacent, docs/43)
