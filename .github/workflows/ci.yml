@@ -302,6 +302,22 @@ jobs:
       - name: A context node is a group unless a stated reason says otherwise
         run: npx --yes tsx@4 packages/engine/lint-context-nodes.ts
 
+      # docs/00-progress.md is newest-entry-first, and a rebase routinely lands the incoming entry
+      # SECOND with no textual conflict and nothing to report it (#931 — three hand-fixes in 24
+      # hours across two lanes). The file is exempt from every other gate that touches it
+      # (lint-advisory-expiry.ts, lint-decisions-index.ts above, lint-layout-claims.ts,
+      # lint-shape-index.ts, lint-voice.ts), correctly — it is an append-only dated log, so a July
+      # entry describing the repo as it was in July is accurate prose forever. That argument is
+      # about CONTENT; it was applied file-wide, so ORDERING — a structural property none of those
+      # five was ever asking about — fell through the gap they open together.
+      #
+      # EXPECTED is sorted(dates, descending), a genuine transformation of the parsed headings, never
+      # a restatement of the file (docs/34 shape 1). Fails on 0 matched headings rather than passing
+      # over nothing (shape 9). States plainly what it does NOT check: that an entry is correct,
+      # present, dated accurately, or matches what shipped — one structural property only.
+      - name: docs/00-progress.md stays newest-entry-first
+        run: npx --yes tsx@4 packages/engine/lint-progress-order.ts
+
       # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression
       # report and a preview page (which do not), and NOTHING said which was which — the only thing
       # distinguishing them was that a human knew. Every payload-assembling tool in the field declares

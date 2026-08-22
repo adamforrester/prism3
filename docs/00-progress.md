@@ -10,6 +10,60 @@
 
 ---
 
+## (2026-08-22) — `docs/00-progress.md`'s own ordering gets a gate, and 30 pre-existing violations surface on first run (#931)
+
+**STATUS: shipped.** New gate `lint-progress-order.ts`, **38 → 39**. `docs/00-progress.md` is
+newest-entry-first; a rebase routinely lands the incoming entry SECOND because git merges the two
+entries cleanly — different lines, no textual conflict, nothing reports anything. Three occurrences
+in 24 hours across two lanes, all hand-fixed, is what filed #931.
+
+**Not because nobody gated this file — it is exempt from every gate that touches it**
+(`lint-advisory-expiry.ts`, `lint-decisions-index.ts`, `lint-layout-claims.ts`, `lint-shape-index.ts`,
+`lint-voice.ts`), and every exemption is individually correct: an append-only dated log describing
+the repo as it was is accurate prose forever, so holding it to a present-tense standard would force
+it to falsify itself. That argument is about CONTENT. Applied file-wide, it also covered ORDERING —
+a structural property none of those five was ever asking about. Same species as `docs/43`'s finding
+about two of `CLAUDE.md`'s own "pinned" regions this session: a check built to answer one narrow
+question reads, from outside, like coverage of the whole file.
+
+**The gate.** EXPECTED is `sorted(dates, descending)` over the parsed `## (YYYY-MM-DD) — title`
+headings — a real transformation of ACTUAL (the dates as they appear), never a restatement of the
+file (`docs/34` shape 1). Fails on 0 matched headings rather than passing over an empty set (shape
+9). States plainly what it does NOT check: that an entry is correct, present, dated accurately, or
+matches what shipped — one structural property only. The heading pattern is deliberately narrow to
+the post-convention form; the file's own historical tail (`## Latest (2026-07-21) — ...` and similar,
+predating the per-entry-heading convention) is invisible to it by construction, not by an exemption
+list, and 398 real matches keep the floor from starving.
+
+**Mutation-verified, three ways:** two entries transposed → fails by name, citing both dates and
+titles · the heading pattern changed so it matches nothing → fails the floor, not silently · a
+correctly-ordered file → passes (the positive control, run first so a gate that fails on everything
+isn't mistaken for a working one).
+
+**Landing the gate required fixing the file first, and the scale of that was the real finding.** The
+first pass caught 5 violations by simple adjacent-pair scan. Fixing them naively (moving just the
+misplaced heading) exposed MORE — moving one entry out of a same-date run stranded its neighbors
+against the wrong preceding date, recreating the identical defect one level down. An iterative
+"find the first violation, move its whole chunk to the correct sorted position, rescan from
+scratch, repeat until clean" pass found **30 total**, not 5 — three known and hand-fixed this week,
+twenty-seven silent and undetected, some over two weeks old. Verified as pure reordering, not content
+loss: same heading count (398) and `---` separator count (410) before and after, and a
+sorted-multiset-of-lines hash match between the original and reordered file. This is fixed in this
+PR (a necessary precondition — a new gate that fails on `main` the moment it lands helps nobody) and
+is the same corrective action already established by hand three times this week; it is not scope
+creep beyond #931, it is what makes #931's fix landable at all. Not filed as a separate issue since
+nothing is left to do after this PR merges.
+
+**Coordination:** #936 (context-node rule, also 38 → 39) was open concurrently, based on the same
+`ffa56b5`. It landed first — rebased onto it (`lint-context-nodes.ts` alongside this gate, 39 → 40
+across all five authored statements), re-ran the full suite, and confirmed 40/40 before this pushed.
+
+**Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY**, after `npx playwright install chromium chromium-headless-shell` on this fresh container
+(#935's known gap — missing browser cache, not this diff).
+
+---
+
 ## (2026-08-22) — a context node is a group unless someone writes down why it is not
 
 **STATUS: in review.** #892's rule half, shipped separately from its token half. One gate
@@ -1274,6 +1328,140 @@ class than a careful one; it is not a weaker version of the same check.
 and #872 (`field-label` is thinner than the Prism2 reference on size, weight and colour). Both need
 deciding before tranche 1 authors against them, since `checkbox`, `radio` and `switch` each meet the
 first question independently otherwise — #756's failure mode in a different vocabulary.
+
+---
+
+## (2026-08-14) — Scoped class names, and `lint-classes.mjs` retired as the proof (#770)
+
+**STATUS: shipped.** Piece 2 of 4 under #768, held to last because it ends in a **gate deletion** and the
+"this defect class is now unrepresentable" argument has to be made against the final shape of the code.
+`apps/studio/lint-classes.mjs` is deleted, with its CI step and its four documents.
+
+**WHAT THE DEFECT ACTUALLY WAS, stated tightly, because the fix is only as good as the statement.** Not
+"two classes on one element" — that is the *symptom* the gate could see. It was: **a class token minted
+for one surface silently matching a rule authored for another, invisible at the mint site and findable
+only by looking at a render.** `.pfield.slider` picked up a standalone `.slider{margin-top:16px}` 70 lines
+away, and that 16px *was* the palette row's misalignment in full; three alignment fixes could not touch it
+because it was never an alignment problem (#464). `.psl-range` lost to `.range{margin-top:10px}` on source
+order at equal specificity, 33px → 44px. `.seg` added chrome the `select` beside it had no equivalent of
+(#484). The **silence** is the defect; the pairing is just where it shows up.
+
+**THE MECHANISM, and why this one rather than the obvious ones.** No hashing, no CSS-in-JS, no build step,
+no dependency — three things this repo could not afford and one it does not want:
+
+> **A class name belongs to the scope named before its first dash, or is the whole name. An element's
+> class list stays in one scope, plus a declared shared vocabulary that provably cannot carry a rule
+> on its own.**
+
+Measured before choosing it: the studio's 563 top-level rules already sit in **140 de-facto scopes**
+(`sg-`, `mo-`, `exdlg-`, …), and **836 of 836 mints** conform after 19 sites are corrected. So the naming
+convention was already there and only the *enforcement* was missing — which is why this lands as ~300
+lines rather than a rewrite of 1,500 lines of CSS. A hash-per-build or CSS-modules scheme would have
+worked too and was rejected on two grounds: it needs a build step in five esbuild entries that
+deliberately have none, and **it would have silently undone #791** — see the determinism check below.
+
+**ENFORCED IN TWO PLACES, NEITHER OF THEM A LINT STEP** — which is the whole reason it was worth trading a
+gate for:
+
+1. **`el`'s type.** `Scoped<T>` resolves to `never` when T's tokens do not share a scope, so
+   `el('div', 'pfield slider')` is a **compile error** under `typecheck`, already a CI gate. Deliberate
+   composition is spelled `mix(...)` **at the mint site** — the review `ALLOWED` forced from 8,000 lines
+   away, moved to the one place that can see the surrounding layout. All 13 live allowlist entries became
+   `mix()` calls with their reason beside them.
+2. **`installStyles`.** The only path by which `styles.css` becomes CSS. It refuses a stylesheet in which
+   a shared token keys a top-level rule on its own, and re-derives the utility invariant (#544's
+   `NON_BOX_PROP`) from the **shipped** text. There is no build of this app in which it did not run.
+
+`checkScope` repeats (1) at runtime for class strings the type system only ever sees as `string` —
+template literals and values threaded through helpers. That is the hole a type-level rule always has, and
+it is closed rather than documented. **It earned its keep immediately**: it found two cross-scope mints
+the static analysis had missed entirely (`rx prm` and `mctx-b derived`), both built by concatenation.
+
+**WHY THE TWO TOGETHER CLOSE IT.** A rule reaches an element only through a class the element carries. By
+(1) an element's tokens are one scope's members plus shared tokens. A scope member is spelled with its
+scope, so the rule it matches is that scope's, *by name*. A shared token cannot match a single-class rule
+at all, because by (2) no such rule may exist for one — it can only appear in a **compound**
+(`.pfield.slider`), which requires the anchor and therefore cannot act on an element of another scope. The
+two lists cannot be abused to reopen it either: **putting a scope head into `STATES` makes its own rule
+illegal under (2); leaving it out makes the mint a type error under (1).** Both doors, not one — driven,
+both ways, below.
+
+**WHAT REMAINS REPRESENTABLE, written down rather than left for the next reader to find.**
+`mix('pfield', 'slider')` reproduces #464 exactly. Deliberate: genuine composition exists (the export
+dialog reusing `.seg`, a token pill flagged by the style guide) and pretending otherwise would push it into
+a template literal, where nothing checks it. What is closed is the *silence* — the composition is named in
+the same expression that creates the element, and there is no way to not name it. That is the honest
+claim, and it is the one the PR body makes.
+
+**THE `.pfield.slider` RECONSTRUCTION — both doors, driven.** Worth more than the gate's absence:
+
+| reconstruction | result |
+|---|---|
+| re-add `.slider{margin-top:16px}`, `slider` still a shared state | **boot refused**, page renders nothing: *"'.slider' key a top-level rule while listed as a shared state"* |
+| …then promote `slider` to a scope so the rule is legal | **mint refused at render**: *"class list \"pfield slider\" spans scopes"*; `document.querySelector('.pfield.slider')` → no such element |
+| `el('div', 'seg exdlg-seg')` written as a literal | **compile error** — `Argument of type '"seg exdlg-seg"' is not assignable to parameter of type 'Mix'` |
+
+The canonical site was rewritten from `'pfield slider' + (editable ? '' : ' ro')` to two literals *so that
+it is covered by the type and not only by the runtime check* — a concatenation is `string` to TypeScript,
+and the site #464 was found on should be the one the compiler reads.
+
+**THE #791 TRAP, and it is the reason ordering mattered.** #791's reconciler keeps a workspace region when
+its **signature** — serialized markup plus every control's live value — is unchanged. A scoping mechanism
+that generates non-stable class names makes every signature differ on every render: every region swaps,
+#791 is silently undone, everything stays green. Checked directly rather than argued from the design:
+
+- The exact signature (`JSON.stringify(controlValues) + outerHTML`) reproduced and taken **three times per
+  state** across four pages — **STABLE**, byte-identical, every time. Class lists across a full workspace
+  rebuild: **IDENTICAL**.
+- Region keeps driven on `origin/main` and on this branch, same clicks, same brands, identity by held node
+  reference: **identical, region for region.** aurora/Surfaces 6 of 10 kept — the exact number #791's PR
+  reports for that repro. aurora/Palettes 3 of 6, Size & radius and Layout 6 of 6, both brands.
+
+**A methodology trap worth recording, because it cost a full re-run.** The first "baseline" comparisons
+were taken with `git stash` — which is a **no-op once your work is a commit rather than a working-tree
+change**, so they compared the branch against itself and reported a reassuring zero. Both "baselines" were
+retaken with a detached `origin/main` checkout. *After a rebase, `stash` is not how you get a baseline.*
+The second trap, in the same probe: tagging `.ws` children with a marker attribute to measure identity
+**changes `outerHTML`, which is the signature**, so every region swapped and the probe read 1-of-10 kept.
+An instrument that writes into the thing it measures (`docs/34` shape 8, through a new door). Hold node
+references instead.
+
+**Evidence that no pixel moved.** 72-state sweep (9 pages × 4 modes × 2 brands) against `origin/main`:
+**68 of 72 byte-identical**. The four are three `Motion` and one `Preview` — and a control run of the sweep
+against *itself* differs on the same kind of set (Motion ×3, Preview ×2), because both animate. `Preview`
+was then captured in isolation four times per build: **identical md5 on both**, so the sweep difference is
+sweep-order, not a change. Markup across all 72 states differs on exactly **8 states, all Palettes** —
+the one intended change, below — and nothing else.
+
+**`.range` is deleted, not scoped.** Removing the `range` token from the palette slider's mint left the
+rule with no consumer at all, so it goes. Two things fall out: the `.pfield.slider .psl-range{margin:0}`
+neutralizer has nothing left to neutralize (kept, inert, with the comment rewritten — a comment asserting
+a protection the code no longer provides is itself the defect, #646), and `range` stops being a scope
+shared by two unrelated components (`.range` the slider, `.range-row/-f/-tg` the responsive-type editor) —
+the one genuine stem conflation in the file, which the law would otherwise have blessed.
+
+**THE FIVE-FILE DELETION, budgeted rather than discovered.** `lint-doc-gates.ts` enforces that
+`CLAUDE.md` §4, `CONTRIBUTING.md` §3 and `.github/pull_request_template.md` §Gates match `ci.yml`, so the
+deletion fails that gate until all four move together. **29 gate steps on `origin/main` → 28 on this
+branch**, and the diff of `ci.yml`'s `- name:` lines is exactly the one removed step — nothing else moved.
+Plus `apps/studio/package.json`'s script, and the stale pointers in `docs/26`, `docs/34`, `styles.css`'s
+header and three `main.ts` comments. **`lint-doc-gates` going green proves only that the documents agree
+with CI about a gate that no longer exists** — it is not evidence for the argument above, and this entry
+does not offer it as such.
+
+**The gate's own last words, which are the cleanest statement that it was done:** run on the scoped tree
+before deletion it reports **0 unreviewed pairings** and *"13 allowlist entries no longer minted
+anywhere"* — every reviewed pairing it existed to hold had become a `mix()` at its call site.
+
+**Gates: 28 of 28 in `ci.yml` order, plus `build:site` and `audit:modes --check-badges`.** Engine 2197/2197
+· MCP 49/49 · NB regression PASS · `regen --check` 104 artifacts · token contract unchanged · aliases
+982/982, mode contracts 536/536 · studio typecheck/test 150/build/`check:ignore` 16 engine files/`lint:contrast`
+· **smoke 819/819, 15,638 text nodes across 72 states — the baseline exactly**, read from the command's own
+output · plugin typecheck/test/build (0 `node:` builtins) · TokenPress 274/build · exporter comparison ·
+consumability · lint-skills/us-english/voice/doc-gates/layout-claims/payload-manifest/overlay-completeness/
+paint/shape-index/typecheck-components · `build:site` (not a CI step) · `audit:modes --check-badges` 46
+badged sections. **#784's Node-24 action bump is deliberately not here** — a runner change inside a cleanup
+PR makes a cleanup regression and a runner regression indistinguishable.
 
 ---
 
@@ -3120,6 +3308,325 @@ only after the fact in a retrospective log a lane may never read.
 
 ---
 
+## (2026-08-13) — The component registry, and the gate arm that keeps it honest (#742, `docs/38` Arc 3)
+
+**STATUS: shipped.** `packages/engine/components/index.ts` exports `componentDefs`; `test.ts` iterates
+it; `typecheck-components.ts` gains a **registry arm** in both directions. `docs/38` §2's row *"There
+is no component registry"* is now false and has been rewritten.
+
+**The registry is the easy half; the constraint is the whole task.** `docs/38` Arc 3 states it — *"the
+registry has to BE the thing the gate reads. A second list maintained beside it would restore the
+defect that gate was written for."* So the registry is the gate's **SUBJECT** and `git ls-files` stays
+its **ORACLE**. Replacing the `git ls-files` call with a read of the registry would have been `docs/34`
+shape 1 in its purest form: the gate confirming a list agrees with itself, which it always does.
+
+**The gap that had to be closed, and why it is not the obvious one.** `tsconfig.json`'s `include` is a
+glob over the whole defs directory, so a new def file is typechecked *whether or not anything imports
+it*. Both existing directions therefore went green over a def the registry had never heard of.
+**Measured, not argued**: a sixth def added to `components/` and left out of the registry passed
+`origin/main`'s gate at **exit 0** — and its output counted `index.ts` itself as a seventh def, which
+is the second thing the arm had to fix.
+
+**Design chosen: keep the glob, add the arm (option A) — and the rejected alternative is worth
+recording.** Option B was to narrow `include` to `components/index.ts`, so a def the registry does not
+import is genuinely never typechecked and the existing forward direction reports it with no new code at
+all. It is the more elegant shape — registry completeness becomes structurally identical to coverage —
+and it was rejected for two reasons. First, the `include` records a **measurement** (398 errors over the
+whole engine, 0 over the defs, 375 of them missing ambient Node types) and a scope decision that #657
+deliberately did not ride; narrowing it would rewrite that reasoning for a reason unrelated to why it
+was chosen. Second, it **couples two failures that should stay apart**: forgetting to register a def is
+bookkeeping, and under the narrow scope that one slip would *also* stop typechecking the def — one
+mistake, two losses, the second invisible. Kept apart, the def stays checked and the registry failure is
+reported on its own terms.
+
+**How the arm links a file to a registry entry: object identity, not names.** Each tracked def file is
+**imported** and its export values are tested with `Set.has` against `componentDefs`. Nothing depends on
+`button.ts` exporting a binding called `button`, or on a def's `id` matching its filename — conventions
+that hold today, and that a gate anchored on them would stop detecting the moment one moved (`docs/34`
+shape 9). Parsing `index.ts` for import statements was the alternative and is worse twice over: it
+reimplements module resolution inside the gate, and it goes green on a re-export line naming a def the
+file never actually puts in the set.
+
+**`index.ts` is not a def, and saying so took three separate decisions** — the subtlety that could
+silently have swallowed one. The forward and converse arms still run over the **full tracked set**,
+because the registry is a `.ts` file in the declared scope like any other: it must be typechecked, and
+it must not read as untracked residue. Only the **floor** and the **two registry directions** run over
+`defsOnly(tracked, REGISTRY)`, which removes exactly one literal path — otherwise a directory holding
+nothing but an empty registry would satisfy `defs.length >= 3` by itself, and the registry would be
+asked to export itself into its own list. And because that literal is a name its subject can move, the
+run now **asserts `REGISTRY` names a file git tracks**: a renamed registry fails there, loudly, instead
+of quietly re-entering the def set.
+
+**Mutations, all five run, exit codes recorded.**
+
+| mutation | gate | exit | what it printed |
+|---|---|---|---|
+| sixth def added, **not** registered | `origin/main`'s | **0** | `✓ … 7 tracked def(s)` — the gap, measured |
+| sixth def added, **not** registered | new | **1** | `1 tracked def(s) missing from the registry's componentDefs` → names `packages/engine/components/mutation-probe.ts` |
+| sixth def added **and** registered | new | **0** | `6 tracked def(s)` — `index.ts` correctly not counted, and not reported as a stray |
+| a def inline in the registry, exported by no def file | new | **1** | `1 registry entr(ies) exported by no tracked def file` → `inline-def` |
+| `REGISTRY` untracked | new | **1** | `… is not tracked by git — the registry is this gate's subject, so its absence is not a pass` |
+
+The **passing** mutation is not a formality: proving only the failing direction leaves you unable to
+distinguish a working gate from one that fails on everything, and this one also had to demonstrate that
+`index.ts` is excluded from the def count *without* being reported as residue.
+
+**The blind spot, named rather than implied.** The arm asserts each def file contributes **at least one**
+export to the set. A file defining two defs and registering one **passes** — the file contributed. So
+does a file that only re-exports a def defined elsewhere. Closing either means deciding which of a
+module's exports *are* defs, and the only classifier available is a shape test over the very type under
+test. One def per file is the convention; this arm does not enforce it, and that sentence is in the
+gate's header rather than left for a reader to discover.
+
+**`lint-payload-manifest.ts` was NOT a consumer — the issue's "Done when" was wrong about current
+state.** It maintains no def list. Its universe is *generated artifacts* (`out/**` walked, plus
+`ENGINE_ARTIFACTS` / `SCHEMA_ARTIFACTS` imported from `regen.ts`), and component defs are hand-authored
+source that is neither emitted nor committed as an artifact. Wiring the registry into it would have
+**invented** a coupling to satisfy the issue text rather than removed a second list. Reported instead,
+and `docs/38` Arc 3 corrected in the same PR, since that doc carried the same assumption.
+
+**One consequence in `test.ts` worth carrying.** Swapping a hand-written five-entry pair list for a loop
+over `componentDefs` makes the loop's reach depend on the set being live — a loop over an empty set
+asserts nothing and reports it as a clean suite. So a **floor** goes with the swap
+(`componentDefs.length >= 5`). Liveness only; completeness is the gate's job, because a completeness
+claim made inside `test.ts` would be the set checking itself. Assertion count moved 2134 → **2135**,
+exactly the floor, confirming nothing was lost in the swap.
+
+---
+
+## (2026-08-13) — The four-byte cliff was not a cliff: worst-chunk fullness is an artifact of greedy packing
+
+**STATUS: corrected.** A reviewer pushed back on #761's headline before the schema PR could quote it, and
+they were right. #761 reported Button's fullest chunk at **41,996 B against a 42,000 B budget — "four bytes
+of headroom"** — and read that as the constraint that makes the `nest-exposed` schema decision tight. It is
+not a constraint at all. This corrects the tool, adds the number nobody measured, and leaves the wrong
+paragraph in the #761 entry with a pointer rather than rewriting it.
+
+**Why the number was meaningless, from the packer's own code.** `pack` adds variants to a chunk *until the
+next one would not fit*:
+
+```
+if (cur.length && size + cost > budgetBytes) { groups.push(cur); cur = []; size = shell; }
+```
+
+So the fullest chunk is **always within one variant of the budget**, no matter how much or how little room
+exists. 41,996 of 42,000 measures how evenly the last bin happened to fill — not scarcity. And chunk
+overflow is not a failure mode: the budget bounds ONE `figma_execute` call, calls are unbounded, and the
+packer's answer to growth is another chunk. #761's own table showed exactly that (36 chunks across every
+exposure shape) and I still read the fullness as a cliff.
+
+**The compounding error is that I had already proven this instrument was broken.** The same entry records
+worst-chunk going *down* (41,996 → 41,939) as the payload grew 2 KB, and concludes "worst-chunk is not a
+cost signal." Then it turns around and uses worst-chunk fullness as the ceiling. A number that improves
+when the payload grows cannot be measuring room — one argument disqualifies it for both uses, and I applied
+it to one. That is the transferable lesson: when an instrument is found non-monotonic, the finding
+invalidates *every* reading taken from it, not the one that prompted the check.
+
+**The real cliff, which nobody had measured.** What re-packing cannot fix is a single variant too big to
+ship alone — and `pack`'s own comment says what happens then: *"ALWAYS at least one variant per chunk, even
+one that does not fit … a one-variant over-budget chunk is reported by its own `bytes` and fails visibly at
+the transport."* The packer's designed response to that case is to ship something that breaks. So the
+ceiling is **shell + largest single variant** — the indivisible unit:
+
+| | shell (every chunk) | largest variant | indivisible unit | real headroom | budget used |
+|---|---|---|---|---|---|
+| Button (648 variants) | 18,954 B | 1,668 B | **20,622 B** | **21,378 B** | **49.1%** |
+| IconButton (162 variants) | 15,756 B | 965 B | **16,721 B** | **25,279 B** | **39.8%** |
+
+Button's largest variant would have to grow **13.8×** to become unpackable; IconButton's **27.2×**. Exposure
+moves the unit by **19–35 B**. The byte budget is not close to anything.
+
+**The conclusion survives and is strengthened.** #761's actual recommendation — that cost does not
+distinguish per-property opt-in from all-or-nothing, so the schema decision must turn on expressiveness
+(name collisions when two nested instances expose the same axis, whether a def author can be trusted to
+enumerate) — was right for a better reason than the one given. The two schemas differ by ~1,700 B total and
+**35 B at the only place a cliff could exist**. The schema PR should quote *this* entry, not #761's headline.
+
+**What does scale, if anything is to be watched: the SHELL.** Every chunk pays it in full, so shell growth
+is multiplied by the chunk count. It is already **45.1% of the budget for Button before a single variant**,
+and simulated growth costs: +1,000 B → 38 chunks, +4,000 B → 44, +16,000 B → 127. Exposure adds nothing to
+the shell, because a per-node field rides in `PLANS` — which is *why* it is cheap. A future field in the
+payload **header** is the expensive shape, and that is now in the tool as a contrast row so the next person
+sizing a payload field sees which half they are adding to.
+
+**Both terms are recovered from the real packer's output, not modeled.** Variant costs use the same
+`JSON.stringify(spec).length + 1` the packer charges (the `+1` is the comma in the `PLANS` array literal),
+and the shell is the fullest chunk's *measured* bytes minus the variants it actually holds. Deriving the
+shell from the template instead would have been the `docs/34` failure: the shell is a fixpoint over the
+chunk count, so a modeled one is the wrong width. Shell sensitivity is likewise simulated by shrinking the
+budget and re-running the real `planSetChunks` — arithmetically identical to shell growth, and it avoids a
+second model of the packer.
+
+**Also corrected in the tool:** the `executeBytes` ceiling row now says it bounds one call rather than the
+set, and `propertiesPerSet` records that properties are not bounded by the byte ceiling *at all* —
+`PROPS_ALL` rides only in the FINAL chunk, so the property count and the payload budget are independent
+axes. #761 implied they were linked.
+
+**Gates: all 25 green** (same list as #761; the diff is one tool file and two docs). Engine `test.ts`
+2134/2134 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts · `lint-layout-claims`/`lint-doc-gates`
+clean · studio and plugin suites unchanged · TokenPress `test` 274 assertions · `lint-us-english` and
+`lint-voice` last.
+
+**Worktree note, since main changed under me:** CLAUDE.md now prescribes `npm ci` for a fresh worktree
+rather than a hand-rolled symlink loop. #761's report of a missing `jszip` was me hitting exactly the
+problem that instruction solves — the fix is `npm ci`, not linking the 12 transitive packages by hand.
+
+---
+
+## (2026-08-13) — The external studio review: what the line count hid, and the seams the defect record named (#765–#772)
+
+**STATUS: recorded, not built.** An outside design-system developer read the repo cold on 2026-08-13.
+Eight issues carry the owner's calls on what he raised — #765 and #766 (decisions), #767 and #768
+(`priority:now` tasks), #769–#772 (the four cleanup pieces). **This PR is docs only**: `docs/38` §7 for
+the arcs boundary, and this entry for the reasoning. No code moved, and nothing here closes an issue.
+
+**The review, in one line.** *"The site is neat, but the code is concerning. The site itself is nearly
+9k lines of code in a single typescript file. Definitely needs a cleanup, and an architectural plan."*
+He proposed a three-layer split: a token generation library, apps that implement it, and
+templates/presets.
+
+**He is right that it needs a plan. The line count is the wrong thing to plan against, and that
+correction changed the shape of the work** — which is why it is the first thing recorded here rather
+than a footnote in an issue.
+
+| | |
+|---|---|
+| total lines | **8,801** |
+| comment lines | **2,625** |
+| the CSS template literal | **~1,384** |
+| → actual logic | **~4,800** |
+| top-level declarations | 298 |
+| `render*` functions | 65 |
+
+So "9k lines of code" overstates by roughly double. **The comment density is doctrine, not bloat** —
+`CLAUDE.md` requires the reasoning to live beside the code, and that discipline is the reason ten agents
+worked inside this one file concurrently on 2026-08-07, across disjoint scopes, without colliding. A
+plan that treats the comments as the problem would delete the property that makes the file survivable.
+
+**Trap for whoever re-verifies these numbers.** They were measured against `main` at `0917f45` and were
+already one commit stale when #768 was filed: #723 (`aa66968`) landed the export dialog and took the
+file to **9,088** lines, with the CSS literal at **L7580–9041** rather than the L7370–8754 the issue
+records. The conclusion is untouched — the ratio barely moves — but a re-verifier running `wc -l` today
+gets a different number than the issue states, and would be right to. Re-measure before quoting; the
+argument is the ratio, never the absolute.
+
+**Why the plan cuts along defect-revealed seams rather than by line count.** Of ~17 defects fixed in and
+around this file on 2026-08-07, **almost none were "couldn't find the code" or "changed X, broke
+unrelated Y"** — the classic symptoms of a file that is merely too big. They were prose drift, contrast,
+target sizes, overflow. Three were genuinely architectural, and each names its own seam:
+
+| defect | root cause | seam |
+|---|---|---|
+| #485 — any select change jumped the page to the top | `workspace.innerHTML = ''` and a full rebuild on every commit | no update granularity (#771) |
+| #388 — engine throws were invisible outside one page | the error bar rendered only inside `renderPrimitives`' Color-page paint closure | no shared page chrome (#772) |
+| #464 / #515 — `.pfield.slider` picked up an unrelated `.slider{margin-top:16px}` 70 lines away | flat CSS namespace | scoped styles (#769 → #770) |
+
+The last row is the tell, and it is why the done-condition is what it is. `apps/studio/lint-classes.mjs`
+exists *because* the architecture makes the collision possible; the repo's response to a structural
+defect was to build a gate to police it. **Done is therefore not a line count — it is that
+`lint-classes.mjs` can be deleted** (#768). Scoped styles make cross-surface collisions impossible
+rather than reviewed-and-allowlisted, and retiring the gate is the proof the seam actually closed. The
+same logic supplies the other two done-conditions: no page can render an engine error invisibly, and no
+single control change re-renders the whole workspace. Anything beyond those three is scope creep on a
+refactor, which is the most expensive place to have it.
+
+**The gate-coupling trap, verified in the tree rather than assumed — and it is why this cannot be done
+in trivially small commits.** Four gates are coupled to `apps/studio/src/main.ts` **by path**, and two
+of them **fail closed** when they find nothing to scan:
+
+| gate | coupling |
+|---|---|
+| `apps/studio/lint-classes.mjs` | `readFile(resolve(root, 'src/main.ts'))`; exits 1 with *"no top-level CSS rules found in src/main.ts"* |
+| `apps/studio/lint-contrast.mjs` | the same read; exits 1 with *"no `:root{}` block found in src/main.ts"* |
+| `packages/engine/lint-layout-claims.ts` | carries `apps/studio/src/main.ts` in an explicit path list |
+| `packages/engine/lint-voice.ts` | its header documents a carve-out **specifically** about the CSS-in-template-literal living in this file — the one place a C-style comment survives esbuild into the shipped bundle, because it is string content |
+
+Move the CSS and the first two fire immediately, **correctly** — that is them working as designed, and
+it is the #502 lesson (prove you looked) doing its job. But it means the CSS extraction and the scoping
+each have to carry their gate migration *in the same PR*, and `lint-voice.ts`'s carve-out comment goes
+stale the moment the CSS moves. Per #646: a comment asserting a protection the adjacent code no longer
+provides is itself the defect. A reviewer who asks for these to be split into smaller commits is asking
+for a red main.
+
+**#767 is a hard prerequisite, and the reason is not caution.** Refactoring ~4,800 lines of interaction
+logic behind `tsc --noEmit` and three lint gates is how a working dashboard becomes subtly broken in a
+way nobody notices for weeks. **One correction to #767's own framing, worth carrying**: it says the
+studio has no `test` script, which was true when the reviewer's read was taken and is not true of
+`main` — `npm run -w @prism3/studio test` runs two pure-module suites (#722 provenance, #723 export
+settings, 150 assertions). The gap #767 names is real and unchanged, but it is *DOM and interaction*
+coverage, not the absence of tests: both existing suites live outside `main.ts` precisely because
+`main.ts` touches `document` at import time and cannot load under `tsx`. That constraint is itself
+evidence for the same seam the cleanup is cutting along.
+
+**The owner's calls, all six.**
+
+1. **#765 — the public library surface stays contract-checked** (lean, filed open for discussion). Layers
+   1 and 2 of the reviewer's split already exist: `packages/engine/` is the portable core and the two
+   apps are thin hosts over it (`docs/07`). What is missing is a *public surface* on it, which reframes
+   the ask from "build a library" to "export the one already there". The fork is whether that surface
+   lets a caller emit a set that fails its own contrast contracts. Option 1 (checked) is the lean;
+   option 3 (tiered, unchecked path clearly named) was considered and is the cheapest to build, and was
+   not taken because "clearly named" is doing all the work — a library with an easy unsafe path gets
+   used through it.
+2. **#766 Q1 — the studio stays a contract-enforcing studio**, not a generic token generator (lean).
+   Generic generation is commoditized; the contracts plus the mode system plus the Figma round-trip are
+   the differentiator. **The counter is recorded rather than dismissed**: a generic surface is a much
+   wider funnel, and if the funnel matters more than the differentiator this lean is wrong.
+3. **#766 Q2 — the tier-based IA proposal is wireframe-and-validate, explicitly not an approved build**,
+   and it is cross-referenced onto #267 and #328 rather than run as a separate direction, because it is
+   a concrete proposal for both of those already-open decisions.
+4. **#767 — headless smoke suite** (#333's option A, closing that question). Not jsdom units: the
+   defects this file produces are rendering and interaction defects (#330's stale label, #422's frozen
+   specimen, #485's scroll jump, #555's invisible text) and none of them is a shape bug.
+5. **#767's dependency call — take Playwright as a devDependency scoped to `apps/studio` only.** Every
+   drive to date went through the `PLAYWRIGHT_MODULE` escape hatch pointed at a global install, which is
+   the "reach that is an accident rather than a declared scope" shape `docs/34` names, and is
+   unacceptable for a CI gate. The engine core stays dependency-free and buildless; that invariant does
+   not move.
+6. **#767 lands advisory for one week, then gates.** A flaky browser suite that blocks every PR is the
+   fastest way to erode trust in gates generally, and this repo's gate discipline is an asset worth
+   protecting. The flip is filed as a follow-up rather than left to memory, because an ungated suite
+   rots.
+
+**Two deferrals, both deliberate.** **Presets/templates** — the reviewer's third layer, and by his read
+the one with the clearest commercial pull — is deferred behind #765 and **not filed as work**, recorded
+in #768 so the idea is not lost. It cannot be scoped until the library fork is decided: a "MUI preset"
+either satisfies the contract or proves presets may opt out, which *is* #765 arriving through the back
+door. And the **IA overhaul** stays at wireframe-and-validate, per call 3.
+
+**Sequencing, and the boundary that keeps it from over-reaching.** #767 first, then two parallel tracks:
+#769 → #770 (CSS extraction, then scoping), and #771 / #772 (render granularity, page chrome)
+independent of the CSS work. The owner accepted pausing other work for this. **`docs/38` §7 records the
+measured scope of that pause**, because "the cleanup takes priority" reads much wider than it is: the
+component arcs (`docs/38` Arcs 1–4) are engine-side and the cleanup is `apps/studio/`, so the overlap is
+near-zero and **the arcs do not pause**. What queues behind it is the other *studio* work — #388's Part
+B (already pending #377) and the #267/#328 IA decisions, which is where #766 parked the wireframe
+anyway. The timing argument is in §7 with the note that it expires: 2026-08-07 cleared the studio
+backlog and there are currently zero open studio PRs, so `main.ts` is at its least-contended point, and
+every week re-accumulates in-flight work to conflict with.
+
+**Placement note for §7.** It went in as a new section after §6 rather than into §6, and rather than
+into §2's table or an arc body. §6 is about **dependencies**; §7 is about **scope boundaries**.
+Different questions, so different sections — and adjacent ones, so a reader working through what the
+plan depends on meets what it does not cross next. No arc definition and no existing section was
+touched.
+
+**Gates: all 28 of `ci.yml`'s gate steps green**, run in full per `CLAUDE.md` principle 4 rather than trimmed on the grounds that
+this is a docs change — four of the gates (`lint-us-english`, `lint-voice`, `lint-layout-claims`,
+`lint-doc-gates`) read prose, and `lint-layout-claims` polices exactly the kind of path claim §7 and this
+entry are full of. Engine `test.ts` 2135/2135 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts
+byte-matched · `nb-regression` exit 0 · `token-contract --check` unchanged ·
+`lint-skills`/`lint-doc-gates`/`lint-layout-claims`/`lint-payload-manifest`/`typecheck-components`/
+`lint-overlay-completeness` clean. Studio `typecheck`/`test` 150 assertions/`build`/`check:ignore`/
+`lint:contrast`/`lint:classes`. Plugin `typecheck`/`test`/`build` (0 `node:` builtins). TokenPress
+`test`/`build`. `exporter-comparison/gate.ts`. `check:consumability`. `lint-us-english` and `lint-voice`
+last, after the web build.
+
+**Next, and not in this PR:** #767. Nothing in the cleanup should start before it, and #768 says so in
+its own text — this entry exists so that ordering survives the context that produced it.
+
+---
+
 ## (2026-08-13) — The focus ring shipped flush, and both diagnoses in the issue were wrong (#801, first instance of #802)
 
 **STATUS: shipped.** `packages/engine/lint-absolute-inset.ts` asserts that an absolutely-positioned part
@@ -3455,140 +3962,6 @@ existence, so those were left alone); `lint-doc-gates.ts` and a full `npx tsx ve
 clean afterward — 30/30, 29 PASS + smoke ADVISORY. Worth recording because this is precisely the failure
 mode arm 3 was built to convert from a silent merge-order accident into a named, fixable diff line, and it
 did exactly that on the first PR positioned to test it.
-
----
-
-## (2026-08-14) — Scoped class names, and `lint-classes.mjs` retired as the proof (#770)
-
-**STATUS: shipped.** Piece 2 of 4 under #768, held to last because it ends in a **gate deletion** and the
-"this defect class is now unrepresentable" argument has to be made against the final shape of the code.
-`apps/studio/lint-classes.mjs` is deleted, with its CI step and its four documents.
-
-**WHAT THE DEFECT ACTUALLY WAS, stated tightly, because the fix is only as good as the statement.** Not
-"two classes on one element" — that is the *symptom* the gate could see. It was: **a class token minted
-for one surface silently matching a rule authored for another, invisible at the mint site and findable
-only by looking at a render.** `.pfield.slider` picked up a standalone `.slider{margin-top:16px}` 70 lines
-away, and that 16px *was* the palette row's misalignment in full; three alignment fixes could not touch it
-because it was never an alignment problem (#464). `.psl-range` lost to `.range{margin-top:10px}` on source
-order at equal specificity, 33px → 44px. `.seg` added chrome the `select` beside it had no equivalent of
-(#484). The **silence** is the defect; the pairing is just where it shows up.
-
-**THE MECHANISM, and why this one rather than the obvious ones.** No hashing, no CSS-in-JS, no build step,
-no dependency — three things this repo could not afford and one it does not want:
-
-> **A class name belongs to the scope named before its first dash, or is the whole name. An element's
-> class list stays in one scope, plus a declared shared vocabulary that provably cannot carry a rule
-> on its own.**
-
-Measured before choosing it: the studio's 563 top-level rules already sit in **140 de-facto scopes**
-(`sg-`, `mo-`, `exdlg-`, …), and **836 of 836 mints** conform after 19 sites are corrected. So the naming
-convention was already there and only the *enforcement* was missing — which is why this lands as ~300
-lines rather than a rewrite of 1,500 lines of CSS. A hash-per-build or CSS-modules scheme would have
-worked too and was rejected on two grounds: it needs a build step in five esbuild entries that
-deliberately have none, and **it would have silently undone #791** — see the determinism check below.
-
-**ENFORCED IN TWO PLACES, NEITHER OF THEM A LINT STEP** — which is the whole reason it was worth trading a
-gate for:
-
-1. **`el`'s type.** `Scoped<T>` resolves to `never` when T's tokens do not share a scope, so
-   `el('div', 'pfield slider')` is a **compile error** under `typecheck`, already a CI gate. Deliberate
-   composition is spelled `mix(...)` **at the mint site** — the review `ALLOWED` forced from 8,000 lines
-   away, moved to the one place that can see the surrounding layout. All 13 live allowlist entries became
-   `mix()` calls with their reason beside them.
-2. **`installStyles`.** The only path by which `styles.css` becomes CSS. It refuses a stylesheet in which
-   a shared token keys a top-level rule on its own, and re-derives the utility invariant (#544's
-   `NON_BOX_PROP`) from the **shipped** text. There is no build of this app in which it did not run.
-
-`checkScope` repeats (1) at runtime for class strings the type system only ever sees as `string` —
-template literals and values threaded through helpers. That is the hole a type-level rule always has, and
-it is closed rather than documented. **It earned its keep immediately**: it found two cross-scope mints
-the static analysis had missed entirely (`rx prm` and `mctx-b derived`), both built by concatenation.
-
-**WHY THE TWO TOGETHER CLOSE IT.** A rule reaches an element only through a class the element carries. By
-(1) an element's tokens are one scope's members plus shared tokens. A scope member is spelled with its
-scope, so the rule it matches is that scope's, *by name*. A shared token cannot match a single-class rule
-at all, because by (2) no such rule may exist for one — it can only appear in a **compound**
-(`.pfield.slider`), which requires the anchor and therefore cannot act on an element of another scope. The
-two lists cannot be abused to reopen it either: **putting a scope head into `STATES` makes its own rule
-illegal under (2); leaving it out makes the mint a type error under (1).** Both doors, not one — driven,
-both ways, below.
-
-**WHAT REMAINS REPRESENTABLE, written down rather than left for the next reader to find.**
-`mix('pfield', 'slider')` reproduces #464 exactly. Deliberate: genuine composition exists (the export
-dialog reusing `.seg`, a token pill flagged by the style guide) and pretending otherwise would push it into
-a template literal, where nothing checks it. What is closed is the *silence* — the composition is named in
-the same expression that creates the element, and there is no way to not name it. That is the honest
-claim, and it is the one the PR body makes.
-
-**THE `.pfield.slider` RECONSTRUCTION — both doors, driven.** Worth more than the gate's absence:
-
-| reconstruction | result |
-|---|---|
-| re-add `.slider{margin-top:16px}`, `slider` still a shared state | **boot refused**, page renders nothing: *"'.slider' key a top-level rule while listed as a shared state"* |
-| …then promote `slider` to a scope so the rule is legal | **mint refused at render**: *"class list \"pfield slider\" spans scopes"*; `document.querySelector('.pfield.slider')` → no such element |
-| `el('div', 'seg exdlg-seg')` written as a literal | **compile error** — `Argument of type '"seg exdlg-seg"' is not assignable to parameter of type 'Mix'` |
-
-The canonical site was rewritten from `'pfield slider' + (editable ? '' : ' ro')` to two literals *so that
-it is covered by the type and not only by the runtime check* — a concatenation is `string` to TypeScript,
-and the site #464 was found on should be the one the compiler reads.
-
-**THE #791 TRAP, and it is the reason ordering mattered.** #791's reconciler keeps a workspace region when
-its **signature** — serialized markup plus every control's live value — is unchanged. A scoping mechanism
-that generates non-stable class names makes every signature differ on every render: every region swaps,
-#791 is silently undone, everything stays green. Checked directly rather than argued from the design:
-
-- The exact signature (`JSON.stringify(controlValues) + outerHTML`) reproduced and taken **three times per
-  state** across four pages — **STABLE**, byte-identical, every time. Class lists across a full workspace
-  rebuild: **IDENTICAL**.
-- Region keeps driven on `origin/main` and on this branch, same clicks, same brands, identity by held node
-  reference: **identical, region for region.** aurora/Surfaces 6 of 10 kept — the exact number #791's PR
-  reports for that repro. aurora/Palettes 3 of 6, Size & radius and Layout 6 of 6, both brands.
-
-**A methodology trap worth recording, because it cost a full re-run.** The first "baseline" comparisons
-were taken with `git stash` — which is a **no-op once your work is a commit rather than a working-tree
-change**, so they compared the branch against itself and reported a reassuring zero. Both "baselines" were
-retaken with a detached `origin/main` checkout. *After a rebase, `stash` is not how you get a baseline.*
-The second trap, in the same probe: tagging `.ws` children with a marker attribute to measure identity
-**changes `outerHTML`, which is the signature**, so every region swapped and the probe read 1-of-10 kept.
-An instrument that writes into the thing it measures (`docs/34` shape 8, through a new door). Hold node
-references instead.
-
-**Evidence that no pixel moved.** 72-state sweep (9 pages × 4 modes × 2 brands) against `origin/main`:
-**68 of 72 byte-identical**. The four are three `Motion` and one `Preview` — and a control run of the sweep
-against *itself* differs on the same kind of set (Motion ×3, Preview ×2), because both animate. `Preview`
-was then captured in isolation four times per build: **identical md5 on both**, so the sweep difference is
-sweep-order, not a change. Markup across all 72 states differs on exactly **8 states, all Palettes** —
-the one intended change, below — and nothing else.
-
-**`.range` is deleted, not scoped.** Removing the `range` token from the palette slider's mint left the
-rule with no consumer at all, so it goes. Two things fall out: the `.pfield.slider .psl-range{margin:0}`
-neutralizer has nothing left to neutralize (kept, inert, with the comment rewritten — a comment asserting
-a protection the code no longer provides is itself the defect, #646), and `range` stops being a scope
-shared by two unrelated components (`.range` the slider, `.range-row/-f/-tg` the responsive-type editor) —
-the one genuine stem conflation in the file, which the law would otherwise have blessed.
-
-**THE FIVE-FILE DELETION, budgeted rather than discovered.** `lint-doc-gates.ts` enforces that
-`CLAUDE.md` §4, `CONTRIBUTING.md` §3 and `.github/pull_request_template.md` §Gates match `ci.yml`, so the
-deletion fails that gate until all four move together. **29 gate steps on `origin/main` → 28 on this
-branch**, and the diff of `ci.yml`'s `- name:` lines is exactly the one removed step — nothing else moved.
-Plus `apps/studio/package.json`'s script, and the stale pointers in `docs/26`, `docs/34`, `styles.css`'s
-header and three `main.ts` comments. **`lint-doc-gates` going green proves only that the documents agree
-with CI about a gate that no longer exists** — it is not evidence for the argument above, and this entry
-does not offer it as such.
-
-**The gate's own last words, which are the cleanest statement that it was done:** run on the scoped tree
-before deletion it reports **0 unreviewed pairings** and *"13 allowlist entries no longer minted
-anywhere"* — every reviewed pairing it existed to hold had become a `mix()` at its call site.
-
-**Gates: 28 of 28 in `ci.yml` order, plus `build:site` and `audit:modes --check-badges`.** Engine 2197/2197
-· MCP 49/49 · NB regression PASS · `regen --check` 104 artifacts · token contract unchanged · aliases
-982/982, mode contracts 536/536 · studio typecheck/test 150/build/`check:ignore` 16 engine files/`lint:contrast`
-· **smoke 819/819, 15,638 text nodes across 72 states — the baseline exactly**, read from the command's own
-output · plugin typecheck/test/build (0 `node:` builtins) · TokenPress 274/build · exporter comparison ·
-consumability · lint-skills/us-english/voice/doc-gates/layout-claims/payload-manifest/overlay-completeness/
-paint/shape-index/typecheck-components · `build:site` (not a CI step) · `audit:modes --check-badges` 46
-badged sections. **#784's Node-24 action bump is deliberately not here** — a runner change inside a cleanup
-PR makes a cleanup regression and a runner regression indistinguishable.
 
 ---
 
@@ -5431,325 +5804,6 @@ fired correctly twice — first refusing the defs as *"untracked residue is not 
 **Suite:** 2191 passed, 0 failed (from 2123). **Next:** `icon-button` is now unblocked (it is the first def to
 exercise `inherits`), `field-label` and `field-message` gain anatomy blocks, and #758 plus #740's `PartDef`
 stroke decision are what stand between `focus-ring` and a materialized ring.
-
----
-
-## (2026-08-13) — The external studio review: what the line count hid, and the seams the defect record named (#765–#772)
-
-**STATUS: recorded, not built.** An outside design-system developer read the repo cold on 2026-08-13.
-Eight issues carry the owner's calls on what he raised — #765 and #766 (decisions), #767 and #768
-(`priority:now` tasks), #769–#772 (the four cleanup pieces). **This PR is docs only**: `docs/38` §7 for
-the arcs boundary, and this entry for the reasoning. No code moved, and nothing here closes an issue.
-
-**The review, in one line.** *"The site is neat, but the code is concerning. The site itself is nearly
-9k lines of code in a single typescript file. Definitely needs a cleanup, and an architectural plan."*
-He proposed a three-layer split: a token generation library, apps that implement it, and
-templates/presets.
-
-**He is right that it needs a plan. The line count is the wrong thing to plan against, and that
-correction changed the shape of the work** — which is why it is the first thing recorded here rather
-than a footnote in an issue.
-
-| | |
-|---|---|
-| total lines | **8,801** |
-| comment lines | **2,625** |
-| the CSS template literal | **~1,384** |
-| → actual logic | **~4,800** |
-| top-level declarations | 298 |
-| `render*` functions | 65 |
-
-So "9k lines of code" overstates by roughly double. **The comment density is doctrine, not bloat** —
-`CLAUDE.md` requires the reasoning to live beside the code, and that discipline is the reason ten agents
-worked inside this one file concurrently on 2026-08-07, across disjoint scopes, without colliding. A
-plan that treats the comments as the problem would delete the property that makes the file survivable.
-
-**Trap for whoever re-verifies these numbers.** They were measured against `main` at `0917f45` and were
-already one commit stale when #768 was filed: #723 (`aa66968`) landed the export dialog and took the
-file to **9,088** lines, with the CSS literal at **L7580–9041** rather than the L7370–8754 the issue
-records. The conclusion is untouched — the ratio barely moves — but a re-verifier running `wc -l` today
-gets a different number than the issue states, and would be right to. Re-measure before quoting; the
-argument is the ratio, never the absolute.
-
-**Why the plan cuts along defect-revealed seams rather than by line count.** Of ~17 defects fixed in and
-around this file on 2026-08-07, **almost none were "couldn't find the code" or "changed X, broke
-unrelated Y"** — the classic symptoms of a file that is merely too big. They were prose drift, contrast,
-target sizes, overflow. Three were genuinely architectural, and each names its own seam:
-
-| defect | root cause | seam |
-|---|---|---|
-| #485 — any select change jumped the page to the top | `workspace.innerHTML = ''` and a full rebuild on every commit | no update granularity (#771) |
-| #388 — engine throws were invisible outside one page | the error bar rendered only inside `renderPrimitives`' Color-page paint closure | no shared page chrome (#772) |
-| #464 / #515 — `.pfield.slider` picked up an unrelated `.slider{margin-top:16px}` 70 lines away | flat CSS namespace | scoped styles (#769 → #770) |
-
-The last row is the tell, and it is why the done-condition is what it is. `apps/studio/lint-classes.mjs`
-exists *because* the architecture makes the collision possible; the repo's response to a structural
-defect was to build a gate to police it. **Done is therefore not a line count — it is that
-`lint-classes.mjs` can be deleted** (#768). Scoped styles make cross-surface collisions impossible
-rather than reviewed-and-allowlisted, and retiring the gate is the proof the seam actually closed. The
-same logic supplies the other two done-conditions: no page can render an engine error invisibly, and no
-single control change re-renders the whole workspace. Anything beyond those three is scope creep on a
-refactor, which is the most expensive place to have it.
-
-**The gate-coupling trap, verified in the tree rather than assumed — and it is why this cannot be done
-in trivially small commits.** Four gates are coupled to `apps/studio/src/main.ts` **by path**, and two
-of them **fail closed** when they find nothing to scan:
-
-| gate | coupling |
-|---|---|
-| `apps/studio/lint-classes.mjs` | `readFile(resolve(root, 'src/main.ts'))`; exits 1 with *"no top-level CSS rules found in src/main.ts"* |
-| `apps/studio/lint-contrast.mjs` | the same read; exits 1 with *"no `:root{}` block found in src/main.ts"* |
-| `packages/engine/lint-layout-claims.ts` | carries `apps/studio/src/main.ts` in an explicit path list |
-| `packages/engine/lint-voice.ts` | its header documents a carve-out **specifically** about the CSS-in-template-literal living in this file — the one place a C-style comment survives esbuild into the shipped bundle, because it is string content |
-
-Move the CSS and the first two fire immediately, **correctly** — that is them working as designed, and
-it is the #502 lesson (prove you looked) doing its job. But it means the CSS extraction and the scoping
-each have to carry their gate migration *in the same PR*, and `lint-voice.ts`'s carve-out comment goes
-stale the moment the CSS moves. Per #646: a comment asserting a protection the adjacent code no longer
-provides is itself the defect. A reviewer who asks for these to be split into smaller commits is asking
-for a red main.
-
-**#767 is a hard prerequisite, and the reason is not caution.** Refactoring ~4,800 lines of interaction
-logic behind `tsc --noEmit` and three lint gates is how a working dashboard becomes subtly broken in a
-way nobody notices for weeks. **One correction to #767's own framing, worth carrying**: it says the
-studio has no `test` script, which was true when the reviewer's read was taken and is not true of
-`main` — `npm run -w @prism3/studio test` runs two pure-module suites (#722 provenance, #723 export
-settings, 150 assertions). The gap #767 names is real and unchanged, but it is *DOM and interaction*
-coverage, not the absence of tests: both existing suites live outside `main.ts` precisely because
-`main.ts` touches `document` at import time and cannot load under `tsx`. That constraint is itself
-evidence for the same seam the cleanup is cutting along.
-
-**The owner's calls, all six.**
-
-1. **#765 — the public library surface stays contract-checked** (lean, filed open for discussion). Layers
-   1 and 2 of the reviewer's split already exist: `packages/engine/` is the portable core and the two
-   apps are thin hosts over it (`docs/07`). What is missing is a *public surface* on it, which reframes
-   the ask from "build a library" to "export the one already there". The fork is whether that surface
-   lets a caller emit a set that fails its own contrast contracts. Option 1 (checked) is the lean;
-   option 3 (tiered, unchecked path clearly named) was considered and is the cheapest to build, and was
-   not taken because "clearly named" is doing all the work — a library with an easy unsafe path gets
-   used through it.
-2. **#766 Q1 — the studio stays a contract-enforcing studio**, not a generic token generator (lean).
-   Generic generation is commoditized; the contracts plus the mode system plus the Figma round-trip are
-   the differentiator. **The counter is recorded rather than dismissed**: a generic surface is a much
-   wider funnel, and if the funnel matters more than the differentiator this lean is wrong.
-3. **#766 Q2 — the tier-based IA proposal is wireframe-and-validate, explicitly not an approved build**,
-   and it is cross-referenced onto #267 and #328 rather than run as a separate direction, because it is
-   a concrete proposal for both of those already-open decisions.
-4. **#767 — headless smoke suite** (#333's option A, closing that question). Not jsdom units: the
-   defects this file produces are rendering and interaction defects (#330's stale label, #422's frozen
-   specimen, #485's scroll jump, #555's invisible text) and none of them is a shape bug.
-5. **#767's dependency call — take Playwright as a devDependency scoped to `apps/studio` only.** Every
-   drive to date went through the `PLAYWRIGHT_MODULE` escape hatch pointed at a global install, which is
-   the "reach that is an accident rather than a declared scope" shape `docs/34` names, and is
-   unacceptable for a CI gate. The engine core stays dependency-free and buildless; that invariant does
-   not move.
-6. **#767 lands advisory for one week, then gates.** A flaky browser suite that blocks every PR is the
-   fastest way to erode trust in gates generally, and this repo's gate discipline is an asset worth
-   protecting. The flip is filed as a follow-up rather than left to memory, because an ungated suite
-   rots.
-
-**Two deferrals, both deliberate.** **Presets/templates** — the reviewer's third layer, and by his read
-the one with the clearest commercial pull — is deferred behind #765 and **not filed as work**, recorded
-in #768 so the idea is not lost. It cannot be scoped until the library fork is decided: a "MUI preset"
-either satisfies the contract or proves presets may opt out, which *is* #765 arriving through the back
-door. And the **IA overhaul** stays at wireframe-and-validate, per call 3.
-
-**Sequencing, and the boundary that keeps it from over-reaching.** #767 first, then two parallel tracks:
-#769 → #770 (CSS extraction, then scoping), and #771 / #772 (render granularity, page chrome)
-independent of the CSS work. The owner accepted pausing other work for this. **`docs/38` §7 records the
-measured scope of that pause**, because "the cleanup takes priority" reads much wider than it is: the
-component arcs (`docs/38` Arcs 1–4) are engine-side and the cleanup is `apps/studio/`, so the overlap is
-near-zero and **the arcs do not pause**. What queues behind it is the other *studio* work — #388's Part
-B (already pending #377) and the #267/#328 IA decisions, which is where #766 parked the wireframe
-anyway. The timing argument is in §7 with the note that it expires: 2026-08-07 cleared the studio
-backlog and there are currently zero open studio PRs, so `main.ts` is at its least-contended point, and
-every week re-accumulates in-flight work to conflict with.
-
-**Placement note for §7.** It went in as a new section after §6 rather than into §6, and rather than
-into §2's table or an arc body. §6 is about **dependencies**; §7 is about **scope boundaries**.
-Different questions, so different sections — and adjacent ones, so a reader working through what the
-plan depends on meets what it does not cross next. No arc definition and no existing section was
-touched.
-
-**Gates: all 28 of `ci.yml`'s gate steps green**, run in full per `CLAUDE.md` principle 4 rather than trimmed on the grounds that
-this is a docs change — four of the gates (`lint-us-english`, `lint-voice`, `lint-layout-claims`,
-`lint-doc-gates`) read prose, and `lint-layout-claims` polices exactly the kind of path claim §7 and this
-entry are full of. Engine `test.ts` 2135/2135 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts
-byte-matched · `nb-regression` exit 0 · `token-contract --check` unchanged ·
-`lint-skills`/`lint-doc-gates`/`lint-layout-claims`/`lint-payload-manifest`/`typecheck-components`/
-`lint-overlay-completeness` clean. Studio `typecheck`/`test` 150 assertions/`build`/`check:ignore`/
-`lint:contrast`/`lint:classes`. Plugin `typecheck`/`test`/`build` (0 `node:` builtins). TokenPress
-`test`/`build`. `exporter-comparison/gate.ts`. `check:consumability`. `lint-us-english` and `lint-voice`
-last, after the web build.
-
-**Next, and not in this PR:** #767. Nothing in the cleanup should start before it, and #768 says so in
-its own text — this entry exists so that ordering survives the context that produced it.
-
----
-
-## (2026-08-13) — The four-byte cliff was not a cliff: worst-chunk fullness is an artifact of greedy packing
-
-**STATUS: corrected.** A reviewer pushed back on #761's headline before the schema PR could quote it, and
-they were right. #761 reported Button's fullest chunk at **41,996 B against a 42,000 B budget — "four bytes
-of headroom"** — and read that as the constraint that makes the `nest-exposed` schema decision tight. It is
-not a constraint at all. This corrects the tool, adds the number nobody measured, and leaves the wrong
-paragraph in the #761 entry with a pointer rather than rewriting it.
-
-**Why the number was meaningless, from the packer's own code.** `pack` adds variants to a chunk *until the
-next one would not fit*:
-
-```
-if (cur.length && size + cost > budgetBytes) { groups.push(cur); cur = []; size = shell; }
-```
-
-So the fullest chunk is **always within one variant of the budget**, no matter how much or how little room
-exists. 41,996 of 42,000 measures how evenly the last bin happened to fill — not scarcity. And chunk
-overflow is not a failure mode: the budget bounds ONE `figma_execute` call, calls are unbounded, and the
-packer's answer to growth is another chunk. #761's own table showed exactly that (36 chunks across every
-exposure shape) and I still read the fullness as a cliff.
-
-**The compounding error is that I had already proven this instrument was broken.** The same entry records
-worst-chunk going *down* (41,996 → 41,939) as the payload grew 2 KB, and concludes "worst-chunk is not a
-cost signal." Then it turns around and uses worst-chunk fullness as the ceiling. A number that improves
-when the payload grows cannot be measuring room — one argument disqualifies it for both uses, and I applied
-it to one. That is the transferable lesson: when an instrument is found non-monotonic, the finding
-invalidates *every* reading taken from it, not the one that prompted the check.
-
-**The real cliff, which nobody had measured.** What re-packing cannot fix is a single variant too big to
-ship alone — and `pack`'s own comment says what happens then: *"ALWAYS at least one variant per chunk, even
-one that does not fit … a one-variant over-budget chunk is reported by its own `bytes` and fails visibly at
-the transport."* The packer's designed response to that case is to ship something that breaks. So the
-ceiling is **shell + largest single variant** — the indivisible unit:
-
-| | shell (every chunk) | largest variant | indivisible unit | real headroom | budget used |
-|---|---|---|---|---|---|
-| Button (648 variants) | 18,954 B | 1,668 B | **20,622 B** | **21,378 B** | **49.1%** |
-| IconButton (162 variants) | 15,756 B | 965 B | **16,721 B** | **25,279 B** | **39.8%** |
-
-Button's largest variant would have to grow **13.8×** to become unpackable; IconButton's **27.2×**. Exposure
-moves the unit by **19–35 B**. The byte budget is not close to anything.
-
-**The conclusion survives and is strengthened.** #761's actual recommendation — that cost does not
-distinguish per-property opt-in from all-or-nothing, so the schema decision must turn on expressiveness
-(name collisions when two nested instances expose the same axis, whether a def author can be trusted to
-enumerate) — was right for a better reason than the one given. The two schemas differ by ~1,700 B total and
-**35 B at the only place a cliff could exist**. The schema PR should quote *this* entry, not #761's headline.
-
-**What does scale, if anything is to be watched: the SHELL.** Every chunk pays it in full, so shell growth
-is multiplied by the chunk count. It is already **45.1% of the budget for Button before a single variant**,
-and simulated growth costs: +1,000 B → 38 chunks, +4,000 B → 44, +16,000 B → 127. Exposure adds nothing to
-the shell, because a per-node field rides in `PLANS` — which is *why* it is cheap. A future field in the
-payload **header** is the expensive shape, and that is now in the tool as a contrast row so the next person
-sizing a payload field sees which half they are adding to.
-
-**Both terms are recovered from the real packer's output, not modeled.** Variant costs use the same
-`JSON.stringify(spec).length + 1` the packer charges (the `+1` is the comma in the `PLANS` array literal),
-and the shell is the fullest chunk's *measured* bytes minus the variants it actually holds. Deriving the
-shell from the template instead would have been the `docs/34` failure: the shell is a fixpoint over the
-chunk count, so a modeled one is the wrong width. Shell sensitivity is likewise simulated by shrinking the
-budget and re-running the real `planSetChunks` — arithmetically identical to shell growth, and it avoids a
-second model of the packer.
-
-**Also corrected in the tool:** the `executeBytes` ceiling row now says it bounds one call rather than the
-set, and `propertiesPerSet` records that properties are not bounded by the byte ceiling *at all* —
-`PROPS_ALL` rides only in the FINAL chunk, so the property count and the payload budget are independent
-axes. #761 implied they were linked.
-
-**Gates: all 25 green** (same list as #761; the diff is one tool file and two docs). Engine `test.ts`
-2134/2134 · `mcp-test.ts` 49/49 · `regen --check` 104 artifacts · `lint-layout-claims`/`lint-doc-gates`
-clean · studio and plugin suites unchanged · TokenPress `test` 274 assertions · `lint-us-english` and
-`lint-voice` last.
-
-**Worktree note, since main changed under me:** CLAUDE.md now prescribes `npm ci` for a fresh worktree
-rather than a hand-rolled symlink loop. #761's report of a missing `jszip` was me hitting exactly the
-problem that instruction solves — the fix is `npm ci`, not linking the 12 transitive packages by hand.
-
----
-
-## (2026-08-13) — The component registry, and the gate arm that keeps it honest (#742, `docs/38` Arc 3)
-
-**STATUS: shipped.** `packages/engine/components/index.ts` exports `componentDefs`; `test.ts` iterates
-it; `typecheck-components.ts` gains a **registry arm** in both directions. `docs/38` §2's row *"There
-is no component registry"* is now false and has been rewritten.
-
-**The registry is the easy half; the constraint is the whole task.** `docs/38` Arc 3 states it — *"the
-registry has to BE the thing the gate reads. A second list maintained beside it would restore the
-defect that gate was written for."* So the registry is the gate's **SUBJECT** and `git ls-files` stays
-its **ORACLE**. Replacing the `git ls-files` call with a read of the registry would have been `docs/34`
-shape 1 in its purest form: the gate confirming a list agrees with itself, which it always does.
-
-**The gap that had to be closed, and why it is not the obvious one.** `tsconfig.json`'s `include` is a
-glob over the whole defs directory, so a new def file is typechecked *whether or not anything imports
-it*. Both existing directions therefore went green over a def the registry had never heard of.
-**Measured, not argued**: a sixth def added to `components/` and left out of the registry passed
-`origin/main`'s gate at **exit 0** — and its output counted `index.ts` itself as a seventh def, which
-is the second thing the arm had to fix.
-
-**Design chosen: keep the glob, add the arm (option A) — and the rejected alternative is worth
-recording.** Option B was to narrow `include` to `components/index.ts`, so a def the registry does not
-import is genuinely never typechecked and the existing forward direction reports it with no new code at
-all. It is the more elegant shape — registry completeness becomes structurally identical to coverage —
-and it was rejected for two reasons. First, the `include` records a **measurement** (398 errors over the
-whole engine, 0 over the defs, 375 of them missing ambient Node types) and a scope decision that #657
-deliberately did not ride; narrowing it would rewrite that reasoning for a reason unrelated to why it
-was chosen. Second, it **couples two failures that should stay apart**: forgetting to register a def is
-bookkeeping, and under the narrow scope that one slip would *also* stop typechecking the def — one
-mistake, two losses, the second invisible. Kept apart, the def stays checked and the registry failure is
-reported on its own terms.
-
-**How the arm links a file to a registry entry: object identity, not names.** Each tracked def file is
-**imported** and its export values are tested with `Set.has` against `componentDefs`. Nothing depends on
-`button.ts` exporting a binding called `button`, or on a def's `id` matching its filename — conventions
-that hold today, and that a gate anchored on them would stop detecting the moment one moved (`docs/34`
-shape 9). Parsing `index.ts` for import statements was the alternative and is worse twice over: it
-reimplements module resolution inside the gate, and it goes green on a re-export line naming a def the
-file never actually puts in the set.
-
-**`index.ts` is not a def, and saying so took three separate decisions** — the subtlety that could
-silently have swallowed one. The forward and converse arms still run over the **full tracked set**,
-because the registry is a `.ts` file in the declared scope like any other: it must be typechecked, and
-it must not read as untracked residue. Only the **floor** and the **two registry directions** run over
-`defsOnly(tracked, REGISTRY)`, which removes exactly one literal path — otherwise a directory holding
-nothing but an empty registry would satisfy `defs.length >= 3` by itself, and the registry would be
-asked to export itself into its own list. And because that literal is a name its subject can move, the
-run now **asserts `REGISTRY` names a file git tracks**: a renamed registry fails there, loudly, instead
-of quietly re-entering the def set.
-
-**Mutations, all five run, exit codes recorded.**
-
-| mutation | gate | exit | what it printed |
-|---|---|---|---|
-| sixth def added, **not** registered | `origin/main`'s | **0** | `✓ … 7 tracked def(s)` — the gap, measured |
-| sixth def added, **not** registered | new | **1** | `1 tracked def(s) missing from the registry's componentDefs` → names `packages/engine/components/mutation-probe.ts` |
-| sixth def added **and** registered | new | **0** | `6 tracked def(s)` — `index.ts` correctly not counted, and not reported as a stray |
-| a def inline in the registry, exported by no def file | new | **1** | `1 registry entr(ies) exported by no tracked def file` → `inline-def` |
-| `REGISTRY` untracked | new | **1** | `… is not tracked by git — the registry is this gate's subject, so its absence is not a pass` |
-
-The **passing** mutation is not a formality: proving only the failing direction leaves you unable to
-distinguish a working gate from one that fails on everything, and this one also had to demonstrate that
-`index.ts` is excluded from the def count *without* being reported as residue.
-
-**The blind spot, named rather than implied.** The arm asserts each def file contributes **at least one**
-export to the set. A file defining two defs and registering one **passes** — the file contributed. So
-does a file that only re-exports a def defined elsewhere. Closing either means deciding which of a
-module's exports *are* defs, and the only classifier available is a shape test over the very type under
-test. One def per file is the convention; this arm does not enforce it, and that sentence is in the
-gate's header rather than left for a reader to discover.
-
-**`lint-payload-manifest.ts` was NOT a consumer — the issue's "Done when" was wrong about current
-state.** It maintains no def list. Its universe is *generated artifacts* (`out/**` walked, plus
-`ENGINE_ARTIFACTS` / `SCHEMA_ARTIFACTS` imported from `regen.ts`), and component defs are hand-authored
-source that is neither emitted nor committed as an artifact. Wiring the registry into it would have
-**invented** a coupling to satisfy the issue text rather than removed a second list. Reported instead,
-and `docs/38` Arc 3 corrected in the same PR, since that doc carried the same assumption.
-
-**One consequence in `test.ts` worth carrying.** Swapping a hand-written five-entry pair list for a loop
-over `componentDefs` makes the loop's reach depend on the set being live — a loop over an empty set
-asserts nothing and reports it as a clean suite. So a **floor** goes with the swap
-(`componentDefs.length >= 5`). Liveness only; completeness is the gate's job, because a completeness
-claim made inside `test.ts` would be the set checking itself. Assertion count moved 2134 → **2135**,
-exactly the floor, confirming nothing was lost in the swap.
 
 ---
 
@@ -10014,6 +10068,1437 @@ so the prose count is gone rather than corrected, matching the register's own st
 
 ---
 
+## (2026-08-07) — Backfill `DEPRECATIONS` for the 2.0.0 motion-easing rename (#543)
+
+**STATUS: shipped.** `Prism3/engine/version.ts`, `Prism3/docs/30-versioning-and-compatibility.md`,
+`Prism3/schema/token-contract.json`. No `CONTRACT_VERSION` bump — see below for why none was needed.
+
+**The bug.** #531 renamed the three guaranteed paths `motion.easing.{enter,exit,emphasized}` to
+`motion.easing.{decelerate,accelerate,expressive}` and correctly bumped `CONTRACT_VERSION` to 2.0.0
+(MAJOR, a rename is a removal + an add). But `DEPRECATIONS` — the table that exists *specifically* so
+a MAJOR removal ships its own migration — was left empty, and two docs comments went on to assert
+"nothing in the guaranteed surface has ever been renamed" as if that were still true: `version.ts`'s
+own comment on `DEPRECATIONS`, and `docs/30`'s §Deprecations section. Both said the opposite of what
+had just shipped.
+
+**The fix.** Populated `DEPRECATIONS` with the three rename entries (`since: '2.0.0'`, each
+`replacedBy` verified against the live guaranteed set — `motion.easing.{decelerate,accelerate,
+expressive}` all resolve). Rewrote both false comments to name this rename as the worked example
+instead of claiming the table has never been used.
+
+**The `--accept` question, resolved without a workaround.** The issue flagged this as open: the
+committed baseline (`schema/token-contract.json`) can only be rewritten by
+`token-contract.ts --accept`, which refuses unless `CONTRACT_VERSION` has already been bumped by the
+increment the diff requires — and this change adds no new path, removes none, retypes none, so
+`classify()` reports `level: 'none'`. Reading the gate's actual logic (not assumed) showed it already
+has the path this needs: `--accept` computes `informationalOnly` separately from `level` — true when
+`level === 'none'` but `deprecations` (or `brandDependent`, or `engineVersion`) differs from the
+baseline — and for `level: 'none'`, `satisfiesBump` only requires the *current* `CONTRACT_VERSION`
+equal the baseline's, which it already does (both 2.1.0 — a later PR, #573, bumped past 2.0.0 for an
+unrelated MINOR addition since #531 merged). So `--accept` ran clean on the first try: `✓ baseline
+accepted at 2.1.0 (no surface change)`. No CONTRACT_VERSION bump, no gate override, no workaround —
+this is exactly the "backfill an already-shipped version's metadata" case the informational-only path
+was built for. Left alone: this file's own **(2026-08-04) — Versioning: the token *names* are the
+contract, and a gate that cannot rewrite itself** entry, which also says `DEPRECATIONS` ships **empty**
+— it's a dated log entry accurate as of when it was written, not a live claim, so per this file's
+append-only convention it stays as history rather than being retroactively edited.
+
+**Gates run locally, all green:** `regen.ts` (no drift beyond the two source edits), `regen.ts --check`
+(88 artifacts, clean worktree), `test.ts` (1865 passed), `mcp-test.ts` (49 passed), `token-contract.ts
+--check` (passes post-accept), `lint-skills.ts`, `nb-regression.ts` (PASS, unchanged — this touches no
+generated value), `lint-us-english.ts` (94 files, clean — ran after `web` typecheck + build so the
+built-bundle surface was actually present to scan), `web` typecheck, `web` build.
+
+---
+
+## (2026-08-07) — `lint-classes` closes three mechanically-demonstrated blind spots (#544)
+
+**STATUS: shipped.** `web/lint-classes.mjs` only — no `main.ts` changes. All three defects named in
+#544 were confirmed by mutation before the fix and confirmed fixed after, then the mutation was
+reverted; the committed diff carries none of them.
+
+**1. The UTILITIES exemption was unchecked.** `.mono`/`.faint` skip the collision check on the claim
+they "carry no layout of their own that a host class could fight" — that was a comment, not a check.
+Adding `margin-top:16px` to `.mono`'s own rule left the old gate green (57 entries, clean); every one
+of the ~40 `X mono` mints would have silently inherited it. Fixed by asserting the invariant: each
+UTILITIES class's own top-level rule is parsed and every declared property must match `NON_BOX_PROP`
+(`font-*`, `color`, `letter-spacing`) — anything else fails closed, as does a listed utility whose rule
+can't be found at all (same #502 "prove you looked" posture as the existing owns-empty check).
+
+**2. The stem exemption assumed a dash-prefix never spans two surfaces — `tok-` already did.**
+`.tok-hexv`/`.tok-alias` (token-value display) and `.tok-seg` (the view segment's own L3 modifier, #466
+— an unrelated surface, already carrying its own explicit `pvseg tok-seg` ALLOWED entry) share only the
+first dash-segment. A synthetic `tok-hexv tok-seg` mint confirmed the old gate exempted it before ever
+reaching ALLOWED. **Chose to narrow the rule over building a stem→surface registry**: redefined
+"extends" as a literal dash-prefix relationship (`b === a || a.startsWith(b+'-') || b.startsWith(a+'-')`)
+rather than "shares a first dash-segment". This closes the `tok-` hole with zero fallout — every
+pairing the old loose rule was silently covering (`sg-card sg-mid` and eight siblings) was *already*
+hand-listed in ALLOWED for other reasons, so narrowing added no new required entries; a registry would
+have been pure bookkeeping for the same result.
+
+**3. Rule ownership inside a grouped selector was invisible.** The `owns` scan anchored on
+`^\.class\s*\{`, so `.zzz, .range{...}` matched nothing — and this wasn't hypothetical, the file
+already had three such rules (`.brandsel,.barbtn{...}` etc. at what was line 6829). Regrouping `.range`
+as `.zzz-544-mut, .range{...}` made a synthetic `range psl-val` mint (previously correctly flagged) pass
+clean on the old gate. Fixed by matching a top-level comma-separated run of simple class selectors and
+adding every member to `owns` — CSS grouping semantics mean each selector in the group owns the whole
+rule body, not just the first. This fix alone surfaced one **real**, previously-invisible pairing:
+`barbtn navbtn` (the responsive nav-toggle button, `.brandsel,.barbtn{...}` grouped rule + `.navbtn{
+display:none}` flipped to `flex` only inside the narrow-width media query) — confirmed intentional by
+reading the cascade, not just added to make the gate pass, and now has an ALLOWED entry with the
+reasoning inline.
+
+**Smaller, same theme.** The 8 `el()` mints using template-literal class arguments (`` `sg-tc ${cls}
+sg-tchd` `` and similar) were invisible to the mint scanner, which only matched quoted-string
+arguments — extended rather than documented-as-a-gap: a third regex captures backtick literals, and
+`${...}` segments are stripped before tokenizing so only the statically-known surrounding class names
+are checked (the same truncate-at-the-dynamic-part posture the existing single-quote regex already took
+via its `[^'$]+` exclusion). This surfaced two more real pairings needing review: `sg-tc sg-tchd` and
+`sg-tc sg-tcrow` (the palette table's header/row variants, same family as the already-allowed `sg-tc
+sg-t sg-tcrow`), plus `pswatch ro ao-chk` and `sw ao-chk` (swatches on the alpha-checker background)
+that were reachable via templates in two other spots.
+
+**ALLOWED went from 57 entries to 21.** Fixes 1–2 made the majority of the old list — every `X mono`
+entry (UTILITIES-prefiltered) and the `sf-ex-*` family (genuine same-surface prefix-extension) —
+mechanically unreachable *before* the fix and *unchanged after*: they never reach the ALLOWED membership
+check either way, so keeping them documented a check the code doesn't perform. Pruned them rather than
+commenting each as dead — the file's own header already states the point of the two mechanical
+exemptions is to keep this list small; 40 vestigial entries contradicted that. The 5 new pairings above
+were added; everything else that was already reaching the ALLOWED check (`sg-card` family,
+`start-card`/`start-alt` family, `brandmenu`/`ctable`/`mtbl-`/`tf-in` cross-surface pairs, `pvseg
+tok-seg`) stayed, unchanged.
+
+**Verification.** Full CLAUDE.md §4 sequence green: `regen.ts` / `--check` (88 artifacts, no drift),
+`test.ts` (1865), `mcp-test.ts` (49), `token-contract.ts --check` (485 guaranteed, unchanged),
+`lint-skills.ts`, the NB regression (11/11 contrast, 23/23 dimensions, ΔE00 mean 1.95), `lint-us-english.ts`
+(94 files, run after `npm run -w @prism3/web build` per its own trap-2 requirement), `web` typecheck +
+build, and `lint:classes` itself (801 mints, 21 entries, clean).
+
+**What's still out of scope.** Two rules concatenated on one physical line without a newline between
+them (`.sg-g3{...}.sg-g5{...}`) is a different blind spot from the grouped-selector one fixed here — the
+second rule on such a line is still invisible to `owns` since it isn't at `^`. Not one of #544's three
+named defects; noted for whoever next touches this file. Also left untouched, per explicit scope: any of
+`main.ts`'s mode-badge logic (`SECTION_MODE_SCOPE`, `modeScopeBadge`, `attachModeBadges`) — that's #545,
+currently live under PR #581.
+
+---
+
+## (2026-08-07) — The mode badge's kept guard now covers both halves of its own case (#545)
+
+**STATUS: shipped.** `web/src/main.ts` (`modeScopeBadge`), `web/mode-audit.mjs`. Held back deliberately
+until #581 (`#574`'s "measure view controls out of `hasControls`" fix) merged, since both touched the
+same badge logic; re-verified against post-#581 `main` before fixing, and again after #543/#544 landed
+on top of that during this session.
+
+**The defect, confirmed unchanged by #581.** `modeScopeBadge` still branched `perMode → hasControls →
+'Non-editable'`. For a per-mode section rendered in a derived mode (`scope === 'per-mode'` and
+`DERIVED_MODES.has(currentMode)`), `perMode` is false by construction, so if that section's controls
+happen to render, `hasControls` wins first and the badge reads "Editing · All modes" over controls the
+engine refuses for that mode — exactly the case the issue named. #581 only changed *which* controls
+count toward `hasControls` (excluding `[data-view-only]`); it never touched this branch's precedence.
+
+**Why it stayed invisible, confirmed by reading rather than assumed.** No page renders a per-mode
+section's controls in a derived mode today: `renderScreen` and `controlSplitPage` both replace
+`sections(host)` wholesale with `renderGeneratedNote()` whenever `DERIVED_MODES.has(currentMode)`, so
+the buggy branch never fires by construction. `mode-audit.mjs --check-badges` inherited the blind spot
+for a second, independent reason: its measurement loop only ever clicks Light and Dark, so `currentMode`
+is never derived at the moment a badge is captured either — two unrelated reasons landing on the same
+"unreachable today" conclusion the previous session's kept-guard comment already stated.
+
+**The fix.** Added `derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode)` in
+`modeScopeBadge`, tested ahead of `hasControls` in both the label (`b.append`) and tooltip (`b.title`)
+branches: `editable = perMode || (hasControls && !derivedPerMode)`. The existing "UNREACHABLE TODAY"
+tooltip fallback already had the right text for the no-controls half of this case; the fix routes the
+controls-present half into that same fallback instead of duplicating the message.
+
+**The audit fix went further than the issue's literal ask, because the literal ask was a no-op here.**
+The issue asked for the same precedence check in `mode-audit.mjs`'s `expected` derivation, but that
+derivation has no "current mode is derived" signal to guard — the script never visits a derived mode, so
+a parallel-looking edit would have changed nothing that runs. Extended the audit instead to click every
+`.mctx-b.derived` button per stage and snapshot it, pushing new claims with `expected: 'none'` for any
+section that measured `EDITS` in the Light/Dark pass (this repo's existing proxy for `scope ===
+'per-mode'`, since `SECTION_MODE_SCOPE` is hand-maintained from that same measurement) — ahead of
+`hasControls`, mirroring the fixed precedence rather than restating it. This closes the *real* blind spot
+(the audit never checked a derived-mode badge at all) rather than the literal one named. A stage is
+clicked back to Light after its derived-mode pass: `probeSection` only re-clicks the `.stage` tab, never
+a mode button, so leaving a stage on a derived mode broke every later probe for unrelated Light/Dark
+claims with false `section-gone` errors — caught by running the extension before adding the reset, not
+predicted in advance.
+
+**Verified the fix has teeth, not just green output.** Temporarily patched `renderScreen` to always call
+`sections(host)` even in a derived mode (reverted before commit) so a per-mode section's controls
+actually render there — something no page does today. With the real fix in place, both the live badge
+and the audit's `expected` read `Non-editable` / `'none'`. Then temporarily reverted only the
+`derivedPerMode` guard (kept the audit extension and the render hack): the audit caught 16 mismatches,
+all reading "measured EDITS(derived) -> expected badge 'none', page renders 'all-modes'" — reproducing
+the exact pre-fix lie and proving the new audit coverage would have caught it. Restored the real fix and
+removed the render hack before committing; `git diff` against the fix commit carries neither.
+
+**Verification.** `--check-badges` passes **46/46** (up from 28 — the 18 new claims are the derived-mode
+pass, all `expected: 'none'`, confirming the architectural guard holds in practice, not just by comment).
+Full CLAUDE.md §4 sequence green against post-#543/#544 `main`: `regen.ts` / `--check` (88 artifacts, no
+drift), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (485 guaranteed,
+unchanged), `lint-skills.ts`, the NB regression (11/11 contrast, 23/23 dimensions, PASS),
+`lint-us-english.ts` (94 files, run after `web` build), `web` typecheck + build, `lint:classes` (801
+mints, 21 entries, clean — #544's rewrite), and `audit:modes --check-badges` itself.
+
+---
+
+## (2026-08-07) — prism3-theme's SKILL.md prose drifted from three engine levers it documents (#549)
+
+**STATUS: shipped.** `Prism3/skills/prism3-theme/SKILL.md`, three table-row fixes. No engine code
+changed — this was a documentation-only prose audit against the levers it describes.
+
+**Finding 1 (HIGH) — `disabledStrategy` dichotomy was stale and pointed the wrong way.** The skill
+documented `'accessible' | 'conventional'`, default `'accessible'`, with `'conventional'` sold as "the
+sub-AA exempt look". The real lever (`Prism3/engine/theme.ts`) is `'full' | 'reduced'`, default
+`'reduced'` — `'full'` (undocumented in the skill) promises a fixed 4.5:1; `'reduced'` dials a
+`disabledMin` floor (3–4.5, default 3). `accessible`/`conventional` still parse, but
+`normalizeDisabledStrategy` collapses BOTH to `'reduced'` — the documented dichotomy selected nothing —
+and `normalizeDisabledMin` actively clamps a legacy `'conventional'` input UP to the 3:1 floor, raising
+its contrast from the old ~2:1 exempt look (the owner's 2026-07-29 decision not to use the WCAG
+1.4.3/1.4.11 inactive-component exemption — see `theme.ts`'s `DISABLED_FLOOR_MIN`/`DISABLED_FLOOR_MAX`
+comments). So the skill promised the opposite of what the input actually does. Rewrote the table row to
+document `full`/`reduced` as the real values, `reduced` as the real default, what each does, and that
+`accessible`/`conventional` survive only as legacy aliases that both resolve to `reduced` — never to the
+low-contrast look the old prose promised.
+
+**Finding 2 (MED) — omitted `families` does not yield "a system-font stack".** The skill said omitting
+`typography.families` falls back to system fonts. The actual default is the engine's own faces (Inter;
+JetBrains Mono for the `code` category) with a system fallback tail appended (`TYPE_FAMILY_DEFAULT` /
+`asStack` in `theme.ts`). `Prism3/schema/theme-schema.json` (~line 301) already states this correctly;
+matched its wording rather than inventing new phrasing, so the two surfaces describing the same lever
+stay in sync.
+
+**Finding 3 (MED) — `status` shape omitted `info`.** The skill's table documented
+`{ success/warning/danger }`. `theme-schema.json` (~line 205) and the `BrandInput.status` type in
+`theme.ts` both accept `info` as a fourth optional hue override; doc 21
+(`semantic-role-rebasing.md`) treats the closed four-hue set as deliberate. Added `info` to the
+documented shape.
+
+**Why `lint-skills.ts` caught none of these — noted in the PR, not fixed here.** The gate's coverage
+check confirms a skill's quoted names *resolve* and that `documents: brandInput` covers every top-level
+property (or names it in `omits:`) — it does not check that a documented enum's *values* are current
+rather than stale legacy aliases (findings 1 and 3 both named a real property with a stale/incomplete
+value set, which passes), and it has no mechanism for a behavior claim like "omitting X yields Y" at all
+(finding 2 is prose, not a name). Extending the gate to catch either class is a real gap but a separate,
+larger decision — out of scope for this issue; `lint-skills.ts` stayed green throughout this fix, as
+expected, since nothing about resolvable names or top-level coverage changed.
+
+---
+
+## (2026-08-07) — Dashboard prose audit: seven stale/misdirecting user-visible strings (#547)
+
+**STATUS: shipped.** `web/src/main.ts` only. Companion to #552 (internal code comments, same file,
+fixed by a different concurrent agent) — this pass touched only rendered strings (innerHTML/textContent/
+template-literal copy a user actually reads), not `//`/`/* */` documentation.
+
+**1–2 (HIGH/MED) — "Edit modes" pointed at a control #432 removed.** The mode-strip popover that used to
+manage which modes exist was retired in #432; that job moved to the brand menu's "Modes" section
+(`renderBrandMenu`). Three strings still told the user to go to "Edit modes": the derived-mode note's
+`genview-hint`, the derived-mode-cell tooltip in the typeface-bindings table, and (folded into the same
+fix) the derived-mode note's failing-chip text, which separately promised "see the preview below" — false
+on `sizeRadius`/`layout` (`controlSplitPage` returns right after the note, no specimen at all) and on
+`surfaces`/`typography` (`renderScreen` calls them with `() => []`, always empty). Repointed the "which
+modes exist" copy at the brand menu; repointed the failing-chip copy at Preview → Contrast contracts (a
+target that's real on every page, unlike a per-page "below" that isn't always there); dropped the
+`genview-hint`'s preview-below promise rather than auditing it per page, per the issue's stated
+preference for generalizing over building the missing renders.
+
+**3 (MED) — style-guide "Accent palettes are opt-in and would add blocks."** `renderPreviewStyleGuide`'s
+Interactive section only ever calls `paletteBlock` for Primary/Neutral/Destructive (plus a hand-built
+Disabled block) — it never loops over promoted accent palettes the way the live editing page does, so the
+blocks the blurb promised never render regardless of the opt-in state. Corrected the copy to say what the
+section actually covers instead of promising blocks that don't exist. **Left for reviewer
+consideration:** the alternative fix — looping the style guide over promoted accents the way the editor
+does — is a real feature, out of scope per the issue's explicit preference for correcting words over
+building behavior; flagging in case product wants that parity.
+
+**4 (MED) — the five `on-*` derived-role descriptions overclaimed "black or white."** `onColor` in
+`Prism3/engine/modes.ts` softens to a near-white (`N025`)/near-black (`N950`) neutral step in standard
+modes, escalating to pure black/white only if the softened pick can't clear `onMin` — pure extremes are
+the unconditional pick only in HC, and `TEXT_DERIVED_ROLES` is never shown in a derived mode (`renderScreen`
+swaps in `renderGeneratedNote` there), so the copy only needed to be right for the standard-mode case.
+Reworded `text.on-brand`/`on-success`/`on-warning`/`on-danger`/`on-info` to "a near-black or near-white
+pick" so the description doesn't contradict the resolved swatch shown beside it. **Deliberately left
+untouched:** the `/* DERIVED ... */` block comment two lines above (`"a binary black/white pick"`)
+restates the same inaccuracy but is a code comment, not rendered copy — in #552's scope, not this one.
+
+**5 (MED, real bug not just prose) — gradient live preview ignored the Interpolation select.**
+`inputGradientCss` hardcoded `in oklch` in the generated CSS regardless of `g.interpolation`, so picking
+sRGB in the per-gradient Interpolation dropdown never changed what the swatch rendered even though the
+engine does honor the per-gradient value. Fixed by reading `g.interpolation ?? 'oklch'` into both the
+linear and radial branches. Small, mechanical, matches the adjacent control — no other behavior changed.
+
+**6 (LOW) — motion hero named a curve that no longer exists.** "the emphasized easing curve" predates
+#531's rename; curves are now `linear`/`standard`/`decelerate`/`accelerate`/`expressive`/`calm`, and
+`emphasized` survives only as a transition *role* bound to the `expressive` curve. Swapped the hero copy
+to name the current curve. (The nearby "The Motion specimen traces the emphasized card" in
+`renderEasingEditor`'s description was checked and left alone — `emphasized` really is the name of one of
+the four transition cards the specimen draws, per `theme.ts`'s `transitions` array, so that string is
+still accurate.)
+
+**7 (LOW) — derived-chip tooltip overclaimed for wireframe.** "Auto-derived from your contrast contracts"
+was applied to every `.mctx-b.derived` chip, but wireframe is a mechanical grayscale (the file's own
+`renderGeneratedNote` copy already says so), not contrast-derived. Made the tooltip mode-conditional:
+wireframe gets its own accurate string, HC keeps the original.
+
+**Verification.** Item 5 is the one real logic change in this batch, so ran the full CLAUDE.md §4
+sequence rather than skipping to prose-only checks: `regen.ts` / `--check` (88 artifacts in this worktree,
+no drift), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (485
+guaranteed, unchanged), `lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions,
+PASS), `web` typecheck (clean) + build, then `lint-us-english.ts` against the freshly built bundle (94
+files, clean). All green.
+
+---
+
+## (2026-08-07) — Prose audit: retired by name, still taught as current — action.* purged from docs 01/06/14/17/31 + engine README (#550)
+
+**STATUS: shipped (docs-only).** Six files: `Prism3/engine/README.md`, `Prism3/docs/{01-token-architecture,06-surface-and-content-color-model,14-component-layer,17-consumption-eval,31-descriptive-vocabulary}.md`.
+
+**The bug.** `color.action.*` stopped being emitted a while back — the live interactive layer is `interactive.{primary,neutral,destructive}.*` (docs/20), disabled ink is the cross-cutting `disabled.on-fill`, not a per-family `.disabled` state. Several docs never got the memo: the engine README taught `action.*` as the current model in one passage while correctly calling it retired forty lines earlier (self-contradiction, not just staleness); docs/01's "As built" blockquote — whose entire job is to state current truth over the surrounding draft spec — had the polarity backwards, naming `action.*` as committed and `interactive`/`text.on-emphasis` as superseded; docs/06 carried `action.*`, `text.on-action`, `text.on-disabled` in sections marked resolved/locked with no superseded marker at all; docs/14, docs/17, and docs/31 used dead names (`color.action.default`, `modeLevers.<mode>.radiusScale`) as teaching examples of correct usage.
+
+**Verification, not assumption.** Walked `out/aurora.tokens.json` (committed, regenerated) to get the real emitted shape before touching prose: color groups are `background, scrim, foreground, interactive, disabled, field, text, icon, border` — no `action` anywhere. Confirmed `text.on-{semantic}`/`text.on-inverse` exist but `text.on-primary`/`text.on-action`/`text.on-disabled` do not. Confirmed `disabled.on-fill` is the single cross-cutting ink-on-disabled-fill token (Carbon's `text-on-color-disabled`), not a per-family `action.disabled`/`text.on-disabled` pair. Confirmed `radius` (not `radiusScale`) is the `modeLevers.<mode>.*` key in `theme-schema.json` (`additionalProperties: false` would reject `radiusScale` there — the global lever keeps that name, only the per-mode override renamed).
+
+**One number changed underneath the rename, not just the name.** The README's aurora-floor illustration said `action.default` resolves to `accent.600` at 4.95:1. The current equivalent, `interactive.primary.fill.rest`, resolves to `accent.500` at 3.76:1 (`modes-report.md`, aurora light) — the fill target is 3:1 now, not the old 4.5:1 text-like bar, so the numbers moved along with the states splitting from a single `default` into `rest`/`hover`/`pressed`/… Updated the illustration's numbers to match rather than just swapping the token name onto stale figures.
+
+**Scope discipline, deliberately narrow.** Left `docs/17-consumption-eval.md` line ~103 alone — it's a historical record of what an agent actually guessed in a past eval run (`color.action.*` was live vocabulary then), not a teaching example of current-correct usage; rewriting it would falsify the experiment log. Left docs/06 §6 decision 1 ("`action` placement — top-level `action.*`") alone too — same historical-decision-record class as the eval line, and not one of the three passages named in the issue. Didn't touch `foreground.danger.default` (should be `foreground.danger`, no `.default`) sitting one line from the `action.default` fix in the README's aurora dialect passage — a real dead name, but a different one than this issue's `action.*` vocabulary, and touching it risked colliding with #551/#554 editing the same README concurrently for unrelated stale claims. Flagging it here since nothing else will: `foreground.danger.default` in `Prism3/engine/README.md`'s aurora-dialect paragraph is still wrong and needs its own fix.
+
+**Gates:** `regen.ts` / `regen.ts --check` (88 artifacts, worktree-clean count per the CLAUDE.md note) / `test.ts` (1920 passed) / `mcp-test.ts` (49 passed) / `token-contract.ts --check` (unchanged, contract 2.1.0) / `lint-skills.ts` (clean) / `lint-us-english.ts` (clean, 94 files — required a one-off `npm run build` in `web/` since the fresh worktree had no `dist/` for the gate's built-bundle scope check; not a source change) all green.
+
+---
+
+## (2026-08-07) — Five stale-prose fixes across shipped decisions-log strings and the MCP surface (#548)
+
+**STATUS: shipped.** `Prism3/engine/theme.ts`, `Prism3/engine/mcp.ts`, `Prism3/engine/ai-metadata.ts`,
+`Prism3/engine/test.ts`. This cluster mattered because the prose SHIPS — into every generated artifact's
+decisions log (`out/*.tokens.json`, `out/*.ai.json`), into the `.ai.json` agent-metadata guidance, and
+into the MCP `tools/list` descriptions + per-call hints a consuming agent reads at runtime — so a wrong
+claim here misleads a consumer or agent, not just a maintainer reading source.
+
+**1 (HIGH). `solid-tint` named a token role that is never emitted.** Three sites in `theme.ts` (the
+`BrandInput.outlineInteraction` doc comment, the resolved-theme type's doc comment, and the runtime
+decisions-log note built in `nbThemeFrom`/`brandTheme` that ships into every generated artifact) all
+claimed `solid-tint` emits `foreground.<color>-subtle`. It never did — `modes.ts` (`interactiveOverlayFamily`
++ the `subtle-fill` write, ~line 143/742, #288) emits `interactive.<color>.subtle-fill.{hover,pressed,selected}`;
+`foreground.<color>-subtle` was never a real role for the per-column case (only the five fixed status
+semantics use `foreground.*`). `levers.ts` (~line 152–154) already had the corrected prose from a prior
+pass and was the reference for the right wording; all three `theme.ts` sites now name the actual emitted
+path. Propagated automatically by `regen.ts` into every `out/*.ai.json`/`.tokens.json` decisions log and
+into `modes-report.md` / `wendys-fidelity-report.md`.
+
+**2 (HIGH). `theme_brand`'s advertised payload size understated reality.** The shipped tool description
+and per-result `hint` both cited `~270,000`/`~220,000` chars (`~120,000` tokens combined) for `tokens`/
+`aiMetadata` on a four-mode brand. Measured fresh rather than trusted: called `callTool('theme_brand', …)`
+in-process against the exact `mcp-probe` fixture `test.ts` already uses for this size gate (`{ id, primary,
+neutral }`, `ALL_MODES` default = 4 modes) and diffed `content[0].text.length` per `include` combination.
+Real numbers: **tokens ≈ 536,770 chars, aiMetadata ≈ 287,283 chars, combined ≈ 823,581 chars (~205,000
+tokens)**. Neither of the two other numbers already in the file was right either: the shipped `270k/220k`
+undercounted (closer in relative terms but still off by roughly 2×), and a THIRD, "roughly-correct"
+internal comment nearby (`833,819`/`516,761` chars) overcounted by 55–80% against this same fixture —
+verified independently rather than treated as ground truth per the issue's instruction. Updated the
+shipped tool description, the shipped per-result hint, the two internal comments in `mcp.ts` that stated
+the same now-stale figures (for consistency within the file), and the `test.ts` assertion messages that
+restated the old numbers (`~490KB together` → `~824KB together`; `833,819 / 516,761 / 5,803 chars` →
+`536,770 / 287,283 / 3,653 chars`; `vs ~834,000 for tokens` → `vs ~537,000 for tokens`) — the assertions
+themselves already passed; only the message text was stale. `export_theme`'s own `~830,000 chars`
+description (a different tool, a different three-section bundle) was left alone — out of this issue's
+scope and not internally inconsistent with anything touched here.
+
+**3 (MED). `ai-metadata.ts`'s `font` primitive guidance said "(Phase 2)" for a tier that already
+shipped.** The typography semantic-composite tier it pointed at exists (same file, `type.*` entries,
+~line 300–347) and `out/nb.ai.json` carries 43 `type.*` composite entries today. Reworded to point at
+the `type.*` entries directly instead of a phase label that reads as "not built yet".
+
+**4 (MED). The weight-role note dropped the fifth role.** `nbThemeFrom`'s decisions note (ships in
+`out/nb.tokens.json` and every derivative report) said `weight roles subtle/default/emphasis/strong →
+300/400/600/700` — four roles. `WEIGHT_ROLE_ORDER` (`theme.ts`) has always included a fifth, `max`
+(default 900), and the emitted tree carries `weight-role.max`. Updated the note to list all five.
+
+**5 (MED). `mcp.ts`'s header comment undercounted its own tool surface.** Listed three tools
+(`list_levers`/`theme_brand`/`validate_brand`) in prose while `toolDefs` defines six — `score_consumption`,
+`theme_from_brief`, and `export_theme` were live and undocumented at the top of the file. Added all three
+with one-line descriptions matching their actual `toolDefs` entries.
+
+**Verification.** Full CLAUDE.md §4 sequence, run in the isolated worktree (`/tmp/p3-mcp548`, `web/dist`
+built locally just to satisfy the lint-us-english surface check — gitignored, not committed):
+`regen.ts` (regenerated, 8 emit steps ok) / `regen.ts --check` (**88** committed artifacts byte-match —
+this worktree's expected count, not the 89 the shared checkout sometimes shows), `test.ts` (**1920**
+passed), `mcp-test.ts` (**49** passed), `token-contract.ts --check` (guaranteed 485, unchanged),
+`lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions, **PASS**, aggregate ΔE00
+1.95), `lint-us-english.ts` (94 shipped files, clean). `out/*.ai.json`/`.tokens.json` diffs from `regen.ts`
+are exactly the expected propagation of items 1, 3 and 4's wording fixes into every brand's emitted
+decisions log and `.ai.json` — no unrelated drift.
+
+---
+
+## (2026-08-07) — Prose audit: eleven docs still called shipped capabilities unbuilt (#551)
+
+**STATUS: fixed.** Docs-only. Eleven status-prose corrections across `Prism3/docs/*`,
+`Prism3/engine/README.md`, and `plugin/README.md` — each claimed something was
+unbuilt/backlog/TODO that has actually shipped on `main`. Verified each against current
+code before writing the fix (not just against the issue's description):
+
+1. `docs/05-token-coverage-roadmap.md` — the Figma round-trip section ("unbuilt…
+   Backlog (large)") → `emit-figma.ts` + `materialise-to-figma.ts` + `plugin/src/write-figma.ts`
+   all exist and are regen-gated; marked shipped, closing summary updated to match.
+2. `docs/28-component-anatomy-schema.md` — "Nothing here is built" / "nowhere ❌" /
+   "no `icon` category at all" → `AnatomyDef` (#327), the emitted tree carries
+   `size.*.gap`, `size.*.padding-x-visual`, and `icon.size.{xs,sm,md,lg,xl}` (walked a
+   committed `out/*.tokens.json` to confirm the exact leaf names before writing the fix).
+3. `Prism3/engine/README.md` "Next increments" — writer "still backlog" → shipped, with
+   `plugin/src/write-figma.ts`'s idempotent apply named. Hit the US-English gate here:
+   quoting the real filename `materialise-to-figma.ts` (en-GB spelling, a pre-existing
+   project identifier out of this PR's scope to rename) trips `lint-us-english.ts` because
+   `engine/README.md` is one of its explicitly gated surfaces and the scan is plain
+   substring matching with no markdown/identifier awareness — worked around by describing
+   the file instead of quoting its name, rather than touching the gate or renaming the file.
+4. `docs/08-theming-interfaces.md` — §1's status table said all three surfaces (Figma
+   plugin, web playground, MCP server) were "to build" while §7 already marked two ✅;
+   reconciled §1 with reality (`plugin/`, `web/`, `engine/mcp.ts` all built) and marked
+   §7 step 4 (Figma plugin shell) ✅ too, which had been left unmarked.
+5. `docs/07-e2e-journey.md` — the layer-4 status row and §9 items 3–5 were stale; MCP
+   (`engine/mcp.ts`, 6 tools, CI-gated) and the plugin write path are done; the component
+   library (§9 item 5) marked 🔶 started (5 components authored in `engine/components/*`,
+   WC/React/Storybook/Code Connect projections still pending) rather than claiming it done.
+6. `docs/33-skills-adoption-plan.md` — "`prism3-theme` is already stale" / "no gate" →
+   both fixed (the skill teaches `personality` + named `radiusScale` stops;
+   `engine/lint-skills.ts` is CI-gated). Phrased as "gated in CI", not "the skill is
+   currently perfect" — did not investigate the sibling #549 staleness claim.
+7. `docs/22-plugin-plan.md` — "Only typography remains" → shipped as #237
+   (`emit-figma-font.ts` + `plugin/src/write-text-styles.ts`, wired in `plugin/src/main.ts`);
+   added as row 9 in the phase table rather than editing row 8's text in place.
+8. `docs/03-open-questions.md` Item 5 (icon contrast floor) → marked **RESOLVED**: shipped
+   as the per-brand `iconContrast: 'text' | '3:1'` lever (`theme.ts`, `levers.ts`, wired in
+   `modes.ts`). Left Item 9 (update-in-place vs build-from-scratch) alone — it's a
+   different open question than the one #551 named, and is still genuinely open in prose
+   even though the shipped writer took the update-in-place lean; noted that lean in
+   `docs/05` without overclaiming Item 9 itself was formally resolved.
+9. `docs/21-semantic-role-rebasing.md` §7 — described a since-removed `renderRoleColors`
+   bespoke control; `roleColors` now lives inline per status ramp on the Palettes page
+   (`statusRow`, #59) via a Source select (Auto / Custom hue / Use `<palette>`). Rewrote
+   to match current `web/src/main.ts`.
+10. `docs/16-code-review-findings.md` — verified CR-01 (`contrast()` no longer rounds
+    before threshold comparisons — `color.ts` now has an explicit comment citing this
+    finding), CR-06 (`nb-regression.ts` sets `process.exitCode = 1` on any failure), and
+    CR-07 (the flagged `innerHTML` sink is gone; `main.ts` now comments that external
+    names use `textContent`) fixed on `main`. Marked only those three; left the doc's
+    "findings only, nothing fixed" framing for the rest since the other findings weren't
+    checked and remain presumed open.
+11. Three small ones: `docs/04-theming-playground.md` header ("Not slated for build yet")
+    → built, it's `web/`. `plugin/README.md` (~178–180) — Apply materialises "core-palette
+    + color" only → corrected to the whole generated system (8 FLOAT collections +
+    shadow/gradient styles + font vars/Text Styles), matching what the same README's own
+    #237 section already documented. `docs/09-architecture-and-repos.md` — repo sketch
+    named a `figma-plugin/` directory that was never the real name → `plugin/` (both
+    occurrences).
+
+**Scope discipline.** Left `Prism3/engine/README.md` and other shared docs otherwise
+untouched — sibling issues #550 and #554 (concurrent agents) touch the same files at
+different, non-overlapping claims; only item 3's exact passage was edited here.
+
+**Gates.** Full CLAUDE.md §4 sequence green: `regen.ts` / `--check` (88 artifacts in this
+worktree, no drift — expected per CLAUDE.md's worktree note), `test.ts` (1920 passed),
+`mcp-test.ts` (49 passed), `token-contract.ts --check` (485 guaranteed, unchanged),
+`lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions, PASS),
+`lint-us-english.ts` (94 files, run after a `web` build — see item 3 above for the one
+false-alarm-shaped hit it caught).
+
+---
+
+## (2026-08-07) — Prose audit: the numeric drift sweep (#554)
+
+**STATUS: docs-only, shipped.** No engine, schema, or emitted-artifact code changed except
+`web/vercel-ignore.sh` (one array entry) — see below.
+
+Filed as "248→444, 477→484, eight README spots" — every one of those specific numbers had
+already drifted further by the time this landed, which is the useful finding: main moved under
+the issue *while it was open* (today alone: #543/#544/#545), so the fix re-measured everything
+against the current committed artifacts rather than trusting the filed numbers. Nothing was
+copied from the issue text without an independent run.
+
+**What actually re-measured true, vs. the issue's guess:**
+
+| claim | issue said | actual (re-measured) |
+|---|---|---|
+| mode contrast contracts (per brand, 4 modes) | 444 (111×4) | **488** — `emit-dtcg`/`cli` stats, confirmed identically for nb/aurora/harbor |
+| guaranteed token-name paths | 484 (contract 2.0.0) | **485** (contract **2.1.0** — #573's `border.focus-inverse` landed after the issue's snapshot) |
+| levers / advanced | 35 / 20 | **38** / 20 |
+| preview-spec components / variants | 8 / 22 | 8 / **25** |
+| regen-gated artifacts | 85 | **88** (matches `CLAUDE.md`'s own worktree count) |
+| unit tests | 202 *and* 189 (two disagreeing spots in the same README) | **1920** both places |
+| per-brand aliases (nb/aurora/harbor) | 627/628/622 | **936/937/934** |
+| Figma `color.<mode>.json` variable count | 95 | **151** |
+| engine top-level `.ts` files (web bundle doc) | 43 | **44** |
+
+The multiplier in "111×4" was never right at any point — `modeChecks` in `tree.ts` already sums
+across all four built-in modes (light/dark/hc-light/hc-dark) in one number, so the doc phrasing
+("N/N contracts across four modes") was always describing the summed total, not a per-mode count
+to multiply. 488 is that total, re-derived live from `cli.ts`/`emit-dtcg.ts` output on the current
+tree, not backed into from a guess.
+
+**The one non-doc fix.** `web/README.md` and `web/vercel-ignore.sh`'s own comment both claimed
+"13 of 43 `.ts` files ... other 30 excluded", but the engine directory has 44 top-level `.ts`
+files today — `lint-skills.ts` was never added to either the bundled set or `EXCLUDED` when it
+landed. That is a real gap, not just stale prose: an unlisted file still resolves safely (the
+script's default is "trigger a build"), but the doc's arithmetic can't be made to close without
+either lying about the exclusion count or actually fixing the list. Added `lint-skills.ts` to
+`EXCLUDED` (alongside `lint-us-english.ts`, the same shape of file) — verified with
+`node web/vercel-ignore-check.mjs` (13 bundled / 31 excluded / 44 total) and
+`npm run -w @prism3/web typecheck` (clean).
+
+**One doc rewritten wholesale, not patched.** `Prism3/README.md`'s status paragraph and file tree
+predated typography/dimension/motion coverage entirely — it still said "NB only", "28/28
+cross-mode contracts", "44/44 aliases", and listed `schema/` as 3 files when it now has 7 and
+`out/` as nb-only when it now emits nb/aurora/harbor/wendys + `out/figma/**`. Patching individual
+numbers there would have left internally-contradictory prose, so the paragraph and tree were
+rewritten to the current shape instead.
+
+**Also fixed while in the neighborhood:** docs/20's state enumeration (§3, `<state>`) listed
+`rest`/`hover`/`pressed`/`selected` but omitted `focused` — which the engine emits for every
+interactive fill column (`modes.ts` `FILL_STATES`) and which the very same doc's §3a roles list
+already named. Added it to the enumeration rather than opening a separate issue for a one-line
+omission sitting three lines from the numbers already being touched.
+
+**Gates.** `regen.ts` (no artifact diff — docs-only), `regen.ts --check` 88/88, `test.ts`
+1920/1920, `mcp-test.ts` 49/49, `token-contract.ts --check` (unchanged, 2.1.0/485), `lint-skills.ts`
+clean, NB regression PASS (ΔE00 1.95, 11/11 contrast, 23/23 dimensions), `lint-us-english.ts`
+clean (94 files, built `web/dist/main.js` included in the scan). `web typecheck` clean (touched
+`web/vercel-ignore.sh` + `web/README.md`).
+
+**Sibling PRs.** #550 and #551 were filed concurrently against the same `Prism3/engine/README.md`
+(the `action.*` vocabulary and unbuilt-capability claims respectively, both untouched here) — a
+rebase on merge order is expected, not a conflict signal.
+
+---
+
+## (2026-08-07) — Prose audit: engine comments asserting retired mechanisms (#553)
+
+**STATUS: shipped.** Sixteen `engine/*.ts` comment/docstring sites plus `Prism3/schema/theme-schema.json`'s
+`modeLevers` description. Pure prose except one real behaviour change, called out below.
+
+**Five mechanism claims, all stale.** `theme.ts`'s file-opening comment still said "Wireframe … is not
+yet a mode" — it's been a full built-in mode (grayscale, `modes.ts` `BUILTIN_MODES`, radius zeroed in
+`tree.ts`) since #48; reworded to state what it does. Five `ModeLevers` sites (four in `theme.ts`,
+one in `theme-schema.json`) said "today `radius`, with `tempo`/`density` slotting in later" — the type
+has carried nine axes (`radius`/`tempo`/`density`/`families`/`weights`/`lineHeights`/`letterSpacings`/
+`easings`/`shadow`/`typeSizes`) for a while, all fixed to describe the current axis set rather than a
+single-axis future. `eval.ts`'s header called contract-compliance "the next metric — deferred to the
+harness phase" and said "compute two mechanical metrics" — `scoreContractCompliance` is implemented in
+the same file, wired into `runEval` (`eval-run.ts`) and shipped over MCP (`mcp.ts`); now says three,
+framed as shipped not deferred. `emit-brandinput.ts` (and a duplicate in `test.ts`) justified reading
+`schema/example-brands.json` by claiming `design-md.ts` "is node-only" — its own header says pure, no
+`node:*`, no I/O, confirmed by its one import (a type-only import of `BrandInput`). The real reason:
+the raw `examples/*.design.md` text lives on disk, and *reading* it needs `node:fs`, which the browser
+sandbox lacks — the parser itself would run fine in-browser if handed the text. Reworded to state that.
+
+**The "seven FLOAT collections" claim (four sites: `emit-figma-dims.ts` ×2, `emit-figma.ts` ×2) was
+undercounting by one.** `FigmaDimsCollections` has eight members — `icon` joined after #324 and
+`icon.json` is a committed artifact — so all four now say eight and name `icon` in the enumerations.
+
+**Real behaviour fix, not just prose: `read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS` was missing `icon`.**
+Same undercount as the comments above, but this one is live data gating `collectionsPresent` in
+`FloatReadbackVerdict` — a dropped `icon` collection in a Figma readback would have passed silently.
+Added `'icon'` to the array (confirmed the collection name is genuinely `'icon'` via `emit-figma-dims.ts`
+and `materialise-to-figma.ts`'s own collection list). Verified safe: `regen.ts --check` and
+`token-contract.ts --check` both still green after the change, and the two doc-comment sites naming the
+same array (`ReadbackSnapshot.float`'s JSDoc) got the same fix for consistency.
+
+**Nine drifted numbers, re-measured against current committed artifacts rather than trusted from the
+issue** (several had drifted further since filing, as the issue predicted): `version.ts`'s "480 paths…
+promised at 1.x" → 485 (live `token-contract.ts` guaranteed count); the changelog jumped straight from
+1.1.0 to 2.1.0 with no 1.2.0/2.0.0 entries, so both were backfilled from git history (`#522`/`#527` for
+1.2.0's easing-role tier, `#531` for 2.0.0's easing-curve rename) with a running path-count per bump so
+the arithmetic (477→480→484→484→485) is self-checking. `token-contract.ts`'s "477" → 485 (same live
+count). `preview.ts`'s "248/248" → 488/488 (122 checked roles × 4 modes, measured live off `harbor`,
+`aurora`, and `nbTheme()` — all three agree). `vocabulary.ts`'s "567-token system" → 575 (measured via
+`pathsOf(brandTheme(MINIMAL_BRAND))`, the same corpus member `token-contract.ts` uses for "sparsest
+input"). `tree.ts`'s "binds 6 … other 9" → 7 bound / 8 dead (`LINE_HEIGHT_KEYS` has 7 entries since
+#388 added `cozy`; `LINE_HEIGHT_LADDER` has 15). `theme.ts`'s "both ramps are 6 long" → leading is 7
+(`LINE_HEIGHT_KEYS`), tracking is 6 (`LETTER_SPACING_KEYS`) — never was true that both were 6.
+`lint-us-english.ts`'s "Two traps" → Four (the list below it enumerates 1, 1b, 2, 3). `regen.ts`'s
+"seven emitters" → eight (`STEPS` array literally has 8 entries — undercounted even before drift).
+`mcp.ts`'s "the schema's 32 top-level fields" (and a duplicate in `test.ts`) → 33, with the "11 it never
+mentioned" → 12, both measured live via `nonLeverFields`/`manifestRootKeys` against the current schema
+and lever manifest (21 lever keys unchanged; the 33rd field is `personality`, non-lever).
+
+**Trap for whoever re-verifies this later.** Several of these numbers (guaranteed-path count, schema
+field count, contract count) are load-bearing elsewhere too — `token-contract.ts`'s own header, docs/30
+— and were *not* touched here because the issue scoped this to `engine/*.ts` comments specifically.
+`docs/30-versioning-and-compatibility.md` still says "477 paths" as of this PR; that's real drift, just
+out of scope for #553.
+
+**Gate confirmation, in order:** `regen.ts` (regenerated clean) → `regen.ts --check` (88/88 in sync,
+consistent with CLAUDE.md's noted worktree-vs-main artifact-count difference) → `test.ts` (1920/1920,
+including the `icon` collection addition) → `mcp-test.ts` (49/49) → `token-contract.ts --check` (485
+guaranteed, baseline unchanged) → `lint-skills.ts` (clean) → `nb-regression.ts` (PASS, ΔE00 1.95,
+11/11 contracts, 23/23 dimensions) → `web` build + `tsc --noEmit` (clean) → `lint-us-english.ts` (94
+files, clean). All green on a fresh worktree (`/tmp/p3-enginecomments553`, `node_modules` symlinked
+from the shared checkout).
+
+---
+
+## (2026-08-07) — Fix: plugin read-back never surfaced the `icon` FLOAT collection
+
+**STATUS: shipped.** Found during independent review of #597, not filed as an issue first — CI on
+`main` went red immediately after #596 merged, on a PR (#597) that never touches plugin code, so the
+break had to predate it.
+
+**Root cause.** #596 corrected `Prism3/engine/read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS` to include
+`icon` (#324's artboard-ladder axis), matching what `emit-figma-dims.ts` actually emits. That fix was
+right, but it exposed a second, independent bug it wasn't looking for: `plugin/src/read-figma.ts`'s own
+hardcoded `FLOAT_COLLECTIONS` list — the plugin's read-back path, separate from the engine's file emit —
+was also missing `icon`, so `readFigmaVariables` never surfaced the collection into the snapshot even
+though `buildFloatWritePlan`/`applyFloatPlan` (`write-plan.ts:194`) genuinely write it. Two matching
+gaps had been masking each other since #324: the verifier didn't expect `icon`, and the reader didn't
+read it, so nothing ever caught the plugin round-trip silently dropping a whole axis. #596 fixed one
+side of that pair and, correctly, turned the other into a visible failure.
+
+**Fix.** Added `icon` to `read-figma.ts`'s `FLOAT_COLLECTIONS` (same position as `write-plan.ts`'s
+`floatPlanFor('icon', …)` call, between `size` and `border-width`). Also updated the two test-local
+collection lists that had the same drift for the same reason and were about to go stale again the
+same way (`test-readback.ts`'s inline assertion array, `test-write-float.ts`'s `EXPECTED` + its
+"eight FLOAT collections" doc comment, now nine).
+
+**Verification.** `npm run -w @prism3/plugin test` — all 8 suites ALL PASS (was: `plugin read-back`
+2 FAILED on `collectionsPresent`, reproduced first on the unmodified checkout, then confirmed absent
+before #596 (`cd58f2d`) and present at #596's merge commit (`300a422`), isolating it to #596's diff
+rather than to #597 or to environment drift). Full gate suite otherwise unaffected: `regen.ts --check`
+88/88, `test.ts` 1920/1920, `mcp-test.ts` 49/49, `token-contract.ts --check` unchanged (2.1.0/485),
+`nb-regression.ts` PASS, `lint-skills.ts` clean, `web`/`plugin` typecheck + build clean,
+`lint-us-english.ts` clean (94 files), `check:ignore`/`lint:contrast`/`lint:classes` clean.
+
+---
+
+## (2026-08-07) — Prose audit: `main.ts` comments asserting retired mechanisms (#552)
+
+**STATUS: shipped.** `web/src/main.ts` comments only — no runtime behavior change. Sibling to #547 (same
+file, disjoint scope: rendered user copy vs. code comments); expect a rebase, not a conflict, since the
+two touch different lines almost everywhere.
+
+**All seven mechanism claims were still live and all corrected, by re-reading the code they described
+rather than trusting the issue text.** `pageHasModeVaryingControl`'s JSDoc claimed Typography keeps the
+mode bar and its editors write via `currentMode`; the function actually returns `false` for the whole
+page (three pages fail it unconditionally now, not two — `layout`, `palettes`, `typography` — plus
+`preview` conditionally), and the editors write via column-scoped `setModeLever(m, ...)`.
+`renderTypeRamp` repeated the same false claim; both fixed together. The `-inv` pair warning near the
+status-color darkening logic described a variable (`--ok-inv`/`--warn-inv`/`--danger-inv`) that grepped
+to nothing anywhere in the repo, and `lint-contrast.mjs`'s `PAIRS` never measures against `--ink` —
+removed the false warning, pointed at the real gate instead. The `.slider`/`.range` neutralizer comment
+still described a `.slider{margin-top:16px}` rule PR #516 deleted three weeks ago along with its
+neutralizer; only `.range` survives (exempted from `lint:classes` because `range`/`psl-range` share a
+stem), so the comment now only claims what's still true. `renderModeStrip`'s two comments called the
+strip "the persistent header mode-selector" with "per-mode contrast ✓/✗ marks" — it's workspace
+furniture (#432), and the marks were retired by #54; both sites fixed. The mode-context block claimed
+"view-only until the override layer exists" and put the mode-set config in an "Edit modes" popover on
+the strip — the override layer (`brandState.overrides`, `modeAnchors`, `modeLevers`) is written
+throughout, and the config UI moved to the brand dropdown menu back in #432 (a second, accurate comment
+already said so three lines below the stale one — deleted the stale duplicate rather than trying to
+reconcile two docstrings for the same function). `LIVE_CONTROLS`'s comment cited #97/#99 as still-open
+work; all three bespoke editors and all three specimens now exist and are routed, so it was rewritten to
+describe what's actually left on the generic fallback path (`baseMd`, `disabledMin`, and
+`radiusScale`/`density`/`shadow.softness`/`motionPersonality.tempo` specifically on Light, where a
+per-mode bespoke editor takes over everywhere else). The "Semantic tab" comment named a NAV tab that
+doesn't exist (it's "Interactive"), a `disabledStrategy` value (`'accessible'`) that isn't one of the
+real values (`full`/`reduced`), and a "trailing catch-all" that a repo-wide grep doesn't find — like the
+mode-context case, an accurate replacement comment already sat directly below it; deleted the stale one.
+
+**Ten drifted numbers, six unchanged from the issue's snapshot, three needed correcting, one genuinely
+brand-dependent split.** Measured live against the current engine (aurora + harbor, matching the file's
+own resolution logic — `buildTree`/`resolveAllModes` over `brandTheme`), not assumed from the issue text:
+- "6 of 147 colour roles alias the same target in every mode" → **151 colour roles total** (was 147,
+  brand-invariant), **10 keep the same alias every mode on aurora, 9 on harbor** (was 6 — the one number
+  that had drifted on both brands, not just one).
+- "441 of them (every colour)" override entries → **453** (was 441; the shadow-shape count, 7, was
+  already correct and unchanged).
+- "(30 of them: grid → space → dimension)" one-hop semantic aliases → **32 on aurora, 30 on harbor**
+  (harbor still matches the original number exactly; aurora has since grown an extra breakpoint tier).
+- "every one of the 38 composites" → **37 on aurora, 38 on harbor** (harbor unchanged; aurora dropped one).
+- "the 8 duration-ms primitives" → **9 on aurora, 8 on harbor** (harbor unchanged).
+- "~4 of 21 steps" → **~4 of 20 steps** (the ramp has always been the engine's 20-step scale per
+  `ramp.ts`; 21 was wrong, and correcting it makes the neighboring "80% fail" claim land exactly instead
+  of approximately).
+- "the pill is used in 17 places" → **27** (literal `tokenPill(` call-site count, file has grown).
+- "every one of the ~130 uses is 9-15px" (`--faint`/`--muted`) → **143** combined usages (literal count).
+- "reaching loose needs +4 or +5" → **needs +5** (the `+4` case doesn't occur in current `display`-group
+  leading data on either brand — dropped, not just re-numbered).
+- "92px measured: widest label '2 tighter'" → the quoted label doesn't exist any more (#411 replaced
+  word-form nudge labels with signed deltas); rewrote to name the actual current widest label
+  ("default") rather than invent a new unverified pixel figure — no browser in this environment to
+  re-measure text width honestly, so the box is left wide with the reasoning corrected rather than the
+  number re-guessed.
+
+Three of the four brand-dependent numbers (composites, duration-ms primitives, one-hop aliases) turned
+out to still exactly match **harbor** as originally written — only aurora had drifted, and only the
+same-alias-every-mode count had drifted on *both* brands. Comments now cite aurora (the file's actual
+boot default, `bootBrand() → BRANDS.aurora`) with harbor noted parenthetically where they differ, so the
+number a reader checks against a fresh `npm run dev` matches what's written.
+
+**One corrupted comment.** Near `tokenPill`'s doc, two sentences about text-selection-exactness and
+`text-overflow` had been spliced together mid-word (a duplicated "which is what keeps a text..." clause
+with the connecting text missing). Rewritten as one coherent sentence; no factual content was recovered
+or lost, just the readability.
+
+**Gates run locally, all green:** `regen.ts` (comment-only change, artifacts byte-identical after
+regen), `regen.ts --check` (88 artifacts in this worktree, per the documented worktree-vs-main-checkout
+discrepancy), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (unchanged,
+contract 2.1.0), `lint-skills.ts` (clean), `lint-us-english.ts` (94 shipped files, clean — run *after*
+`npm run -w @prism3/web build` so the bundle is in scope, per its own documented trap), `npm run -w
+@prism3/web typecheck` (clean at every intermediate step, not just at the end — re-run after every edit
+inside the `STYLE` template literal per the backtick trap), `npm run -w @prism3/web build` (530.2kb,
+succeeds).
+
+---
+
+## (2026-08-07) — `.tf-bulk` row height mismatch: `select.sm` vs `.tf-addbtn` (#558)
+
+**STATUS: shipped.** `web/src/main.ts` CSS only — one 6-line scoped rule, no runtime/behavior change.
+
+Typography → Semantics → Typefaces, the "Set every text category to" row (`.tf-bulk`): `select.sm`
+measured 33.4px, `.tf-addbtn` ("Apply to all") measured 36.1px beside it. Traced both box models —
+`.select.sm` is `padding:6px 9px` at `font-size:12.5px`, `.tf-addbtn` is `padding:7px 16px` at
+`font-size:13px`, neither sets its own `line-height` so both inherit `body`'s `1.55`; the arithmetic
+(`12.5*1.55+12+2border=33.375` vs `13*1.55+14+2border=36.15`) reproduces the reported pixels almost
+exactly and confirmed neither number was a rendering-engine surprise, just the CSS as written.
+
+**`.tf-addbtn` is not a free-floating value — it already has an established, correct pairing
+elsewhere.** It's also the "Add face" submit CTA on Primitives, sitting beside `.tf-in` (a text input:
+`padding:7px 9px`, `font-size:13px`), and that pairing already lands both at 36.1px — the comment above
+the rule even says it was modelled on that pairing (#405). So `.tf-addbtn`'s base values are correct for
+its OTHER usage; changing them globally to chase `.select.sm`'s 33.4px would have fixed this row and
+broken that one. `.select.sm` likewise is correct everywhere else it appears — always standalone, never
+previously paired with a button, so nothing else in the file validates or invalidates its height in a
+row context. `.tf-bulk` turned out to be the only place in the file pairing `select.sm` with a button at
+all, so there was no third existing "compact select + button" convention to defer to either.
+
+**Fix: a `.tf-bulk .tf-addbtn` scoped override**, dropping only this row's button to
+`padding:6px 16px;font-size:12.5px` — literally `.select.sm`'s own padding-block and font-size numbers,
+reused rather than invented, landing both controls at the same 33.375px. `.select.sm` and the base
+`.tf-addbtn` rule are both untouched, so the Add-face/`.tf-in` pairing stays exactly as it was.
+
+**Verified live**, not just by arithmetic: built `web/dist` and drove it with Playwright
+(`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, per #333 — this repo still carries no
+Playwright dependency). Before the fix: `select.sm` 33.375px / `.tf-addbtn` 36.140625px, matching the
+issue's reported 33.4/36.1 to sub-pixel precision. After: both 33.375px exactly. Separately measured the
+Primitives "Add face" row (`.tf-in` + `.tf-addbtn`) post-fix to confirm the scoped selector didn't leak:
+still 36.140625px both, unchanged.
+
+**Trap for next time:** when two adjacent controls in a row mismatch height, check whether either class
+already has an established, correct pairing ELSEWHERE in the file before equalizing — the button here
+looked like the obvious thing to shrink, but it was `.select.sm` sitting in an unfamiliar context
+(paired with a button for the first time anywhere in the file) that was the actual anomaly, not the
+button's own values.
+
+---
+
+## (2026-08-07) — Fix: `applyFull()` selects jump the page to top (#485)
+
+**STATUS: shipped, fixed at the general level.** Some selects on Surfaces (`surfaces.${mode}.base`,
+`surfaces.${mode}.floorStep`) and the per-mode re-point `<select>` inside `renderRepointTable` (shared by
+Typography → Semantics line-height and letter-spacing) reset the viewport to the top of the page on
+every change. Root cause: both were `applyFull()` callers, and `applyFull()` → `renderWorkspace()` does
+`workspace.innerHTML = ''` then rebuilds the page from scratch — clearing scroll position as a side
+effect of the DOM teardown, not something any individual call site controlled.
+
+**Fixed once in `renderWorkspace()` itself, per the issue's own suggested direction, rather than
+patching each `applyFull()` call site.** Save `window.scrollY` immediately before the `innerHTML = ''`
+teardown, restore it with `window.scrollTo(0, scrollY)` after the rebuild completes (natural clamp if
+the rebuilt page is shorter). This fixes every current `applyFull()` caller — including ones the issue
+flagged as "likely share this" but didn't enumerate (main.ts ~1953/1963/1975/2041/2577/3677) — and every
+future one, since the fix lives at the teardown/rebuild boundary rather than at each writer. No call site
+was downgraded to `apply()`: nothing in the confirmed sites or spot-checks showed `apply()` (the light
+path — repaints only the volatile specimen area) already recomputing what `applyFull()` needed, so
+scroll-restore was the correct fix everywhere touched, not a stopgap.
+
+Page navigation (rail clicks → `build()`, which does `app.innerHTML = ''` before minting a fresh
+`workspace` and calling `renderWorkspace()`) is unaffected: `window.scrollY` is read *inside*
+`renderWorkspace()`, by which point `build()`'s own teardown has already collapsed the document height,
+so the captured value is already ~0 there — nav-to-top behavior is unchanged.
+
+**Verified live with Playwright** (`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, no repo
+dependency per #333): scrolled partway down, changed each confirmed select, confirmed `window.scrollY`
+holds steady. Spot-checked two of the "likely share this" sites (a Size & radius select, an Interactive
+page select) and confirmed the same fix covers them without any code specific to those pages. Confirmed
+the harness itself is meaningful by reverting the fix and rebuilding: all four confirmed sites plus the
+Interactive spot-check reproduced the jump (`scrollY` 400 → 0), then re-confirmed green after restoring.
+
+**Trap hit and recovered from, worth recording since it reproduces exactly the failure mode
+`CLAUDE.md`'s worktree section warns about:** mid-task, to compare fixed-vs-broken behavior, this session
+ran `git stash push -- web/src/main.ts` / `git stash pop` inside its own worktree. `refs/stash` is a
+single ref shared across **all** worktrees of a repository, not per-worktree — and another concurrent
+session was doing the same kind of stash dance in `/tmp/p3-tfbulk558` (`fix/tfbulk-height-558`, #558) at
+the same time. The pop returned the *other* session's stashed diff (an unrelated `.tf-addbtn` CSS change)
+into this worktree, and — by the same mechanism in reverse — this session's own `#485` diff ended up
+sitting in *their* worktree instead, stripped out of the shared stash stack entirely (`git stash list`
+came back empty after). Recovered by diffing both worktrees against `HEAD`, saving each diff to a `.patch`
+file, `git checkout -- web/src/main.ts` in both trees to null them out, then `git apply`-ing each patch
+back into its rightful worktree. Both worktrees confirmed clean afterward (each showing only its own
+change) and `refs/stash` confirmed empty. **Lesson: `git stash` (push, pop, or an editor/tool's
+auto-stash) must be treated as repo-global, exactly like a branch checkout — never run it in a worktree
+another session might be touching, not even transiently for local comparison.** Use `git diff` /
+`git apply` / a plain `.patch` file for any same-worktree toggle-the-fix-on-and-off need instead; it
+never touches a ref outside the current worktree.
+
+Gates run clean: `regen.ts` (no drift, 88 committed artifacts in this worktree — the documented
+worktree-vs-main-checkout count, see `CLAUDE.md`), `regen.ts --check`, `test.ts` (1920/1920),
+`mcp-test.ts` (49/49), `token-contract.ts --check` (485 guaranteed, unchanged), `lint-skills.ts`, the NB
+regression (PASS, ΔE00 mean 1.95), `lint-us-english.ts`, `web` typecheck, `web` build.
+
+---
+
+## (2026-08-07) — Neutral row: Source no longer sits lower than Hue/Chroma/Anchor (#394)
+
+**STATUS: shipped.** `web/src/main.ts`, `.porigin` only — CSS, no runtime behavior change.
+
+**The literal bug #394 reported was already gone by the time this was picked up.** #394 (filed
+2026-08-03) diagnosed the drift against `.porigin{align-items:flex-end}` and natural-sized `.pfield`
+label/control boxes — but #464 (merged 2026-08-04, the day after filing) replaced that whole mechanism
+with `.pfield{display:grid;grid-template-rows:auto minmax(33px,auto)}`: row 1 sizes to the label
+(matching `.psl-top`'s height by construction rather than by a pinned px value), row 2 is a shared
+`minmax(33px,auto)` band every control — `.select.sm`, `.psl-range`, `.panchor` — centers in. Measured
+live (Playwright, 1280–1920px): Source/Hue/Chroma/Anchor label tops agree to 0.18px under Custom tint and
+Auto — sub-pixel, not a fix to make. **Don't re-apply this issue's literal prescription** (an explicit
+`.pfield` label height + a sized `.select.sm` wrapper) on top of the grid mechanism; it would fight a
+mechanism that already generalizes better than the prescription would.
+
+**What was still broken, found only by checking the third source the issue's own "Done when" names:**
+Pinned color renders `show-hex`, which shows a hex readout `Custom tint`/`Auto` don't — widening `.pident`
+by ~61px. At that width `.pident + .porigin + .pfield.r`'s natural (unshrunk) sizes summed to 800.45px
+against the row's 800px budget: 0.45px over. `flex-wrap` is a binary per line, not a squeeze, so that
+sub-pixel overflow dropped Anchor onto its own line entirely — a *worse* version of the original
+complaint (a totally different top edge, not just a few px off), and it would have sailed through
+verification if "under Custom tint" were read as the whole job rather than a floor. Fix: `.porigin{gap:22px}`
+→ `20px`. `.porigin` has exactly one multi-field consumer (the neutral row's Source+Hue+Chroma); every
+`statusRow` origin holds a lone Source pfield, where an internal gap is inert, so this doesn't touch
+status-ramp spacing. −2px × 2 internal gaps reclaims 4px against a 0.45px deficit — margin for
+font-rendering variance across platforms, not just the exact number measured in one Chromium build.
+Reverified all three sources at 1024–1920px: single line, 0.18–0.19px drift throughout. (Below the 900px
+rail-collapse breakpoint the row already needed multi-line wrap before this change — genuinely
+insufficient width, not this bug — and still does; untouched, correctly.)
+
+**Why fix a bug the issue's stated root cause doesn't predict, in the same PR:** the issue's own "Done
+when" requires the shared top edge to hold across all three sources, "since the fix touches shared CSS,
+not a Custom-tint-specific path" — true, and it's exactly why checking only the state in the screenshot
+would have missed this. The two bugs are unrelated (one a height mismatch, since fixed by #464; one a
+sub-pixel width overflow, present both before and after #464 — confirmed via `git diff` on the `#464`
+commit range, gap:22px unchanged either side), but both block the same acceptance bar, so both got fixed
+here rather than filing a second issue for something already found and already small.
+
+---
+
+## (2026-08-07) — Fix: the "gates" checklists in CLAUDE.md, CONTRIBUTING.md and the PR template didn't equal what CI runs
+
+**STATUS: shipped.** Docs only — `CLAUDE.md`, `CONTRIBUTING.md`, `.github/pull_request_template.md`.
+No code, no engine, no gate logic touched.
+
+**Found while diagnosing why #601 and #602 both shipped `lint:classes` broken.** Both PRs' own "Gates:
+all pass" tables were built honestly — neither omitted a gate they'd run and failed to mention, they
+simply never ran `lint:classes` at all, because none of the three documents a contributor (human or
+agent) is pointed at to learn what "the gates" are actually named it. `.github/pull_request_template.md`
+— the literal text every PR body starts from — listed four checks total: `test.ts`, `nb-regression.ts`,
+`emit-dtcg.ts`, and "Web (if touched): `tsc --noEmit`". CI (`.github/workflows/ci.yml`) runs seventeen
+steps, unconditionally, on every PR regardless of what changed. `CONTRIBUTING.md` §3 and `CLAUDE.md`
+principle 4 were each missing a different, overlapping subset of the same set — `check:ignore`,
+`lint:contrast`, `lint:classes`, and `lint-us-english.ts` were absent from all three; `CLAUDE.md` also
+never mentioned the web or plugin gates in principle 4 at all (it separately documents
+`lint-us-english.ts` in the US-English section three principles up, disconnected from the "before
+pushing" list). This is not a story about two careless PRs — it's a document that stopped tracking the
+gate it was supposed to summarize as the gate list grew (#281, #333, #355, #464, #492 all added a CI
+step over time; none updated these three files), and two independently-authored sessions both followed
+it faithfully into the same hole.
+
+**Fix.** All three documents now list the full CI-matching gate set, grouped engine/web/plugin, in CI's
+own run order, with the same explanatory parentheticals CI's own step comments carry. The PR template
+and `CONTRIBUTING.md` both gained an explicit line stating CI runs the web/plugin gates unconditionally
+— removing the old "(if touched)" / "if you touched a surface" framing, which was itself part of the
+same failure: it invited a contributor with an engine-only-looking diff to skip gates CI runs regardless.
+`CLAUDE.md`'s principle 4 now closes with a paragraph naming #601/#602 as the concrete evidence for why
+the list has to equal CI's, not a remembered subset of it.
+
+**What this does not fix.** There is still no automated gate keeping these three documents in sync with
+`.github/workflows/ci.yml` as it grows further — the same drift that caused this could recur the next
+time a step is added to CI without a matching doc edit. That would need its own gate (extract the step
+names from the workflow YAML, diff against what the docs claim) and is a real option for a future PR,
+not attempted here — this fix closes the gap that's open today, not the class of gap.
+
+**Verification.** Docs-only change; no code gate applies. Cross-checked all three new lists against
+`.github/workflows/ci.yml`'s actual `steps:` by name and by the `npm run`/`npx tsx` command each step
+invokes — every command in the new checklists matches a real CI step verbatim, and every CI step
+(except the internal artifact-count self-check, which isn't a contributor-facing gate) now appears in
+at least the `CLAUDE.md` and PR-template lists.
+
+---
+
+## (2026-08-07) — Weight roles specimen goes per-mode, reopening #422's own prior "drop the column" fix
+
+**STATUS: shipped.** `renderWeightTable` (`web/src/main.ts`) now renders one specimen per MODE cell,
+resolved from that mode's own `value` (baseline override, mode-lever re-point, or fallback) — the same
+number its stepper already computes and shows as digits. Previously the specimen was gone entirely.
+
+**Why this reopens rather than follows #424.** #422 was filed as "the specimen is frozen at baseline."
+#424 (2026-08-03, same day) closed it by deleting the Specimen column outright, reasoning that "Weight
+roles by face" already answers what a weight looks like. It doesn't, for this table's actual question:
+that table is deliberately MODE-BLIND (owner, 2026-08-01) — its per-face specimen is fixed at the row's
+baseline numeric, never the mode-resolved one. So #424 traded a wrong-but-visible answer for no answer,
+and the GitHub issue was never actually closed (state stayed `open` — the commit trailer `(#423, #422)`
+wasn't a closing keyword). This PR is the fix #422 was originally asking for.
+
+**Open design call — resolved toward the codebase's own precedent, not the only defensible answer.**
+Now that a role's numeric can differ per mode, one specimen per row is ambiguous: light/baseline always
+(simple, silently wrong once a mode re-points), current-mode-only (matches the mode strip's own scoping
+elsewhere), or one specimen per mode cell. Went with **per-mode-cell**, because that's what "Weight roles
+by face" already does structurally (a specimen built INSIDE the per-column loop, from that column's own
+data) — mirroring it here per mode instead of per face keeps the table's shape self-consistent with its
+neighbor rather than introducing a third pattern. It also has a free side effect: living inside the
+existing mode column (as a second line under the stepper, via a new `.wt-spec{display:block}` — same
+"second line under the control" shape as `.mtbl-worth`) rather than a trailing column means #424's
+overflow fix (888px → ~704px) is untouched; nothing new was added to the table's width. **Open to being
+overridden toward baseline-only or current-mode-only if a reviewer prefers either** — this was a
+consistency-driven default, not a claim that per-mode-cell is the only right shape.
+
+**Verification.** Live in a real browser (Playwright, `PLAYWRIGHT_MODULE` pointed at a global install,
+mode-audit.mjs's pattern — this repo takes no Playwright dependency, see #333): stepped Dark's `subtle`
+weight from 300→400 on the `harbor` sample brand — Dark's own specimen (`fontWeight`) updated to 400 live,
+while Light/HC light/HC dark specimens on the same row stayed at 300, independently resolved. Also
+exercised the derived-mode (`auto`) reading branch on `aurora`: its specimen re-renders correctly off the
+resolved reading, not just the editable-stepper branch.
+
+Gates: `regen --check` (88, worktree-clean count) · `test.ts` 1920/0 · `mcp-test.ts` 49/0 ·
+`token-contract.ts --check` (485 guaranteed, unchanged) · `lint-skills.ts` clean · NB regression PASS
+(11/11 contrast, 23/23 dimensions, ΔE00 mean 1.95) · `lint-us-english.ts` clean (94 files) · web
+typecheck + build clean.
+
+---
+
+## (2026-08-07) — Sub-24px interactive targets, WCAG 2.5.8 (#559)
+
+**STATUS: shipped.** Fixes the primary target from the visual anomaly sweep (`.adv-bp button.adv-x`,
+the Layout breakpoint "×" remove button, measured 12.8×15px) and closes one of the two "worth a look"
+items; the third stays open as a convention decision. Respects the issue's own triage exactly — no
+scope expansion beyond what it flagged as fixable.
+
+**The convention: `.hit-min`.** A shared CSS class (`web/src/main.ts`, next to `.mono`/`.faint`) that
+decouples the optical (painted) box from a >=24 CSS px hit box via an unpainted `::before`,
+`position:absolute` so it's out of flow — never shifts layout, never grows what's actually painted,
+only widens where clicks register. Each dimension floors at `max(24px,100%)` — never shrinks below the
+host's own box, so a control already past the floor (`.toggle`'s 38px width) gets no unneeded
+horizontal padding; the pseudo just exactly overlays it on that axis. `--hit-dx`/`--hit-dy` custom
+properties (default 0, centered) let a packed host bias the box off-center instead of centering blind
+into a neighbor's territory.
+
+**`.adv-x` (fixed).** 12.77×15px own box, in a row with only 2px of clearance to its own paired
+`.adv-num` input on one side and 8px to the next breakpoint cell on the other — 22.77px of width
+available total, 1.23px short of the 24px floor even before any bias, so *some* encroachment on a
+neighbor's hit-box is mathematically unavoidable at this row's existing spacing (spacing itself was
+explicitly out of scope — no layout/gap change, per "no layout reflow in the surrounding row").
+`--hit-dx:4px` biases the box fully toward the roomier side; measured live with Playwright
+(`elementFromPoint` sweeps, 1px steps) at **zero overlap into the button's own paired input** and
+~1.2px into the far edge of the *next* cell's input — never the input this row's own button belongs
+to. Height needed no bias (15px own height, ~7.8px clearance each side in this row — ample). Verified:
+24×24+ hit box in both dimensions, `.adv-bp` cell x-coordinates identical pre/post-fix (zero reflow,
+pseudo is out-of-flow), "×" glyph screenshot-identical (pure overlay, no paint change).
+
+**`.knob-body input.toggle` (fixed).** 38×22px, 2px under on height only. `.hit-min`'s default
+(centered, no bias) is exactly right here: width `max(24px,100%)` = the toggle's own 38px (no
+horizontal change at all — confirmed via sweep, hit box stays exactly 430–468px, unchanged), height
+`max(24px,100%)` = 24px (was 22), closing the gap with ~8px/7px of margin to the knob-label above and
+knob-desc below (`.knob > .knob-body{margin-top:8px}`, `.knob-desc{margin:7px 0 0}`) — no risk of
+eating into either.
+
+**`.adv-row input[type=checkbox]` (left alone — spacing exception holds, as the issue predicted).**
+13×13px own box, but it's a **native `<label class="adv-row">` wrapping the checkbox** — clicking the
+label's text (`.adv-row-lab`, confirmed live: `page.locator('.adv-row-lab').click()` toggles the
+checkbox) makes the effective click target the *whole row*, not just the 13px box. Measured vertical
+clearance to the nearest other target (the `minViewport` row below) is ~26–29px — far past any
+reasonable 2.5.8 spacing-exception threshold. No fix applied; this is exactly the "likely saved by row
+pitch" the issue flagged for a look, confirmed rather than assumed.
+
+**Out of scope, untouched, as directed:** `.mcell button.mstep`/`.mreset` (weight steppers — spacing
+exception already conformant), `input[type=range]` sliders (flagged for a future convention decision,
+not asserted deficient), `.cs-c input[type=checkbox]` (style-guide toggles — conformant via spacing,
+listed in the issue so nobody re-flags it).
+
+**Verification.** Playwright (Chromium via `PLAYWRIGHT_MODULE` pointed at a global install — this repo
+still has no Playwright dependency, #333) measured live against the built `web/dist`: hit-area
+bounding boxes via `elementFromPoint` sweeps (not just `getBoundingClientRect`, which only reports the
+painted box), before/after screenshots of the affected rows byte-eyeballed for zero visual drift, and
+`.adv-bp` cell x-coordinates diffed pre/post-fix (identical) to confirm no layout reflow. All measurement
+scripts were scratch, not committed — the fix is CSS/DOM-class-only, no new npm dependency, no new
+committed test harness. `regen.ts`, `--check`, `test.ts`, `mcp-test.ts`, `token-contract.ts --check`,
+`lint-skills.ts`, `nb-regression.ts`, `lint-us-english.ts`, `web` `typecheck` and `build` all pass —
+none of these gates touch `web/src/main.ts` styling/DOM output, so a clean run here does not by itself
+prove the fix (the Playwright measurement is what does); it does prove the change introduced no
+regression elsewhere.
+
+**Trap for whoever reaches the range-slider convention decision next:** the same `.hit-min` class
+should mostly cover it, but sliders are a genuine gray area (the *thumb* is the semantic target, not
+the full track, and browsers don't expose the thumb as a separately stylable box without vendor
+pseudo-elements like `::-webkit-slider-thumb`/`::-moz-range-thumb`, which don't support `::before`
+themselves) — don't assume `.hit-min` drops in unchanged; measure the thumb's own hit box first.
+
+---
+
+## (2026-08-07) — Fix: `lint:classes` was red on `main` — #602's own allowlist fix never landed
+
+**STATUS: shipped.** `web/lint-classes.mjs` only — one `ALLOWED` entry added.
+
+**How this happened.** #602 ("Sub-24px interactive targets", below) shipped a new `adv-x hit-min`
+class pairing without an `ALLOWED` entry for it — the same failure shape #601 hit. A follow-up fix was
+made on #602's own branch (mirroring how #601 was closed out: verify the pairing is safe, add the
+entry, re-run gates, merge) and its completion was reported as successful. It wasn't: the commit that
+actually got squash-merged into `main` (`4e323402…`, timestamped hours before the fix ran) is the
+**original, unfixed** PR commit — `web/lint-classes.mjs` is not among its two changed files. The fix
+commit either was never created on the branch or never reached the ref GitHub squash-merged from; either
+way, nothing caught the mismatch before merge because the fix's own local verification ran clean against
+its *local worktree*, not against what actually landed. Found only because the next PR in the queue
+(#605) independently re-ran the full gate suite against a fresh `main` checkout, as the review protocol
+requires, and hit the same red `lint:classes` #601/#602 already established as a known failure shape.
+
+**Fix.** Added `'adv-x hit-min'` to `ALLOWED`, verified directly (not delegated) this time: confirmed
+`.hit-min`/`.hit-min::before` (`web/src/main.ts:6918-6919`) add only `position:relative` plus an
+out-of-flow, absolutely-positioned pseudo-element, while `.adv-x` (`:7402-7403`) sets unrelated
+properties (border/background/color/cursor/font-size/line-height/padding/`--hit-dx`) — no property
+collision, so the pairing only widens the click target without changing what paints. Ran the full gate
+suite locally, then independently re-confirmed on `origin/main` after pushing (not just in the local
+worktree) that the merged commit's diff actually contains the `lint-classes.mjs` change before
+considering this closed.
+
+**The open question this leaves.** Why the earlier fix's push/merge diverged from what its own local
+verification checked is still unexplained — worth being suspicious of any future "verified locally, then
+merged" report for this repo until reproduced independently, the same discipline `#605`'s reviewer
+already applied by re-deriving gate results against a fresh checkout rather than trusting a prior PR's
+claimed green state.
+
+---
+
+## (2026-08-07) — A gate that keeps the docs' gate checklists in sync with `ci.yml` (#613)
+
+**STATUS: shipped.** #610 fixed a concrete instance of this — `CLAUDE.md` principle 4,
+`CONTRIBUTING.md` §3, and `.github/pull_request_template.md` each documented a "gates to run before
+pushing" checklist shorter than what `ci.yml` actually ran; the PR template listed 4 checks against
+CI's 17, and #601/#602 each shipped `lint:classes` silently broken by following that shorter
+checklist faithfully. #610 fixed the snapshot; nothing stopped it drifting again the next time a CI
+step landed without a matching doc edit. This is that stop: `Prism3/engine/lint-doc-gates.ts`, wired
+into `ci.yml` as the final gate.
+
+**What it compares, and why that's the whole design.** `.github/workflows/ci.yml` parsed *live* —
+hand-rolled, dependency-free parser for its flat `- name: ... run: ...` step shape, same convention
+as `lint-us-english.ts`/`lint-skills.ts` — against the three documents' own text. A hand-written "the
+gates CI runs" constant would have made this gate agree with itself forever regardless of what
+`ci.yml` actually contains (`docs/34`, shape 2 — subject and oracle sharing a derivation); parsing the
+real file is what lets a *new* CI step landing without a doc edit actually fail this gate.
+
+**Scope, per the issue's design notes.** Only `run:` steps invoking `npm run`/`npx tsx` — `uses:`
+steps and `npm ci` are excluded automatically (they match neither pattern). One step needs an
+*explicit* exclusion: "Drift gate still covers the full artifact set" embeds `npx tsx
+Prism3/engine/regen.ts --check` as input to its own `count == 88` assertion, so a naive substance-scan
+would wrongly demand its own doc representation on top of the "Committed artifacts have not drifted"
+step it's a meta-check on. Kept as a named, auditable list (`NOT_A_DISTINCT_GATE`) with a comment
+honest about the recursion: if a future CI step joins this shape and isn't added there, the gate
+false-positives on it — the same caveat `ci.yml`'s own "88 committed artifacts" check states about
+itself.
+
+**Substance match, not verbatim** — `CONTRIBUTING.md` writes `npm run typecheck -w @prism3/web`;
+`ci.yml` writes `npm run -w @prism3/web typecheck`. Same command, different arg order, so exact-string
+matching would false-positive on harmless rephrasing. `gateTokensOf` extracts the identifying pieces
+(script + workspace, or the bare `.ts` filename), `docHas` checks each appears anywhere in a doc.
+
+**Proved it can fail, per `docs/34`** — not just synthetic self-check samples (though those exist too,
+covering the quoted-colon parsing trap #298 originally hit, block-scalar `run: |` parsing, and
+exclusion-list survival through the full `findGaps` path): a real mutation against `CONTRIBUTING.md`
+(deleting its `lint:classes` line) was run through the live gate before this shipped, confirmed it
+failed naming that exact step and that exact doc, then reverted.
+
+**One real gap found immediately, and fixed as part of turning the gate on** (in scope — a sync fix,
+not the "further restructuring" the issue excludes): `CLAUDE.md` principle 4 named "the NB regression"
+in prose without its filename, unlike every sibling gate in that sentence. Fixed to `` `npx tsx
+Prism3/engine/nb-regression.ts` (the NB regression) `` so the gate is green against real `main` before
+being made a required check — otherwise wiring it into CI would have broken every future PR
+immediately. The gate then correctly flagged *itself* once wired in (`lint-doc-gates.ts` wasn't yet
+named in any of the three docs) — added to all three, same convention `lint-skills.ts` follows.
+
+**Note on `lint:classes`:** while running the full local gate sequence for this PR, `lint:classes`
+failed — verified via `git stash` against a byte-identical `origin/main` that this was pre-existing
+and unrelated to this diff (the `adv-x hit-min` pairing below). Filed as #615, which turned out to be
+a duplicate of the fix landing concurrently as #614 (see the entry immediately below) — closed
+accordingly once #614 merged.
+
+**Gates: `test.ts` 1205/1205 (unchanged) · `nb-regression.ts` exit 0 · `regen.ts --check` 88/88 ·
+`lint-doc-gates.ts` clean (new) · web/plugin typecheck+build clean · `lint-us-english.ts` clean.**
+`out/*`: byte-identical — nothing here touches the engine's generation path.
+
+---
+
+## (2026-08-07) — `avoid_when_level`: RFC 2119 MUST/SHOULD on `.ai.json` guidance, derived not authored (#621)
+
+**STATUS: shipped, narrow scope by owner decision.** #621 was filed as a `[decision]`, not a
+`[task]` — the owner-raised question (source: a Nathan Curtis piece on Cloudflare's Codex) was
+whether `.ai.json` guidance should carry an explicit normative level, given that doing so creates a
+standing obligation: *"a `MUST` with no gate behind it is worse than no label."* Four options were on
+the table (levels+lifecycle / levels-only / defer to the component layer / full Codex adoption);
+asked rather than assumed, and the owner picked **option 1, narrowly scoped** — label the one thing
+that's already live (`avoid_when`), skip naming the approved→enforced lifecycle and the docs `status`
+frontmatter question for now (both left as open follow-ons, not decided against).
+
+**What shipped.** `avoid_when_level: 'MUST' | 'SHOULD'` on every semantic-tier `.ai.json` color role
+(`Prism3/engine/ai-metadata.ts`), sitting beside the pre-existing `avoid_when` string (additive, not a
+restructure — `avoid_when` itself is unchanged, so this isn't the breaking `avoid_when.level` /
+`statements[]` shape the issue floated as an alternative). `$schema` bumped `0.1` → `0.2` on the
+sidecar's own version string.
+
+**Derived, not authored — the load-bearing design constraint.** `avoid_when_level` is computed as
+`light.min > 0 ? 'MUST' : 'SHOULD'` — the exact same condition that already gates whether
+`contrast_with` gets attached. Not a coincidence: a token is `MUST` *because a real computed contrast
+contract exists for it*, never because someone typed `MUST` on a per-statement basis. That's what
+keeps the label non-driftable — it can only ever be as strong as the contract computation it reads.
+
+**Verified against real data, not just structurally.** Two checks in `test.ts`, over the real aurora
+brand (151 emitted color roles, not a synthetic sample): (1) the structural invariant the issue's own
+Verify section asked for — every `MUST` carries a `contrast_with` entry and vice versa, i.e. *"every
+emitted MUST maps to a named gate"* is checked mechanically; (2) two concrete, independently-verifiable
+anchors, per `docs/34` shape 5 ("it resolves" is not "it is right") — `text.primary` is `MUST` with its
+real 7:1 AAA contract, and `border.primary` (explicitly "decorative," its own `avoid_when` says a
+contract-bound border is a *different* token) is `SHOULD`, not a false MUST.
+
+**Mutation-tested, per `docs/34`'s actual rule** (not "does the suite go red," but "is *this* check in
+the failure list"): temporarily hard-coded `avoid_when_level` to always `'SHOULD'`, reran `test.ts`,
+confirmed exactly the two data-dependent assertions failed by name (`text.primary`'s concrete check and
+the "every gated role is MUST" structural check — the other two, having nothing left to find, correctly
+stayed green), then reverted.
+
+**Gates: `test.ts` 1924/1924 (+4 new) · `mcp-test.ts` 49/49 · `nb-regression.ts` exit 0 ·
+`regen.ts --check` 88/88 · `token-contract.ts --check` unchanged (this is `.ai.json` shape, which the
+token-name contract deliberately does not cover — confirmed, not assumed) · web/plugin typecheck+build
+clean · `lint-us-english.ts` clean.** `out/*`: the four committed `.ai.json` fixtures regenerated
+(new field on every color role); DTCG `tokens.json` untouched.
+
+**Left for later, explicitly not decided against:** naming the approved→enforced lifecycle, whether
+`typography`/`gradient` tier entries get a level too, and the docs `status` frontmatter question. First
+real application is still the component layer (`14` §3) once it exists, per the issue.
+
+---
+
+## (2026-08-07) — Fix: "Auto" override-picker label showed the live (overridden) step, not the true baseline (#330)
+
+**STATUS: shipped, PR open.** `web/src/main.ts` only — no engine change, no emitted-artifact change.
+
+**The bug, confirmed live before touching anything.** Every per-mode color-override picker's "Auto"
+option is built by `stepPicker` to read `Auto · <palette> <step>`, and every call site computed that
+`<step>` as `stepKeyOf(r.path)` off `iRoles()`/`resolveAllModes(theme)` — the theme's CURRENT resolved
+state, which already reflects any active override or fill-anchor pin. So the instant a user set an
+override, "Auto" silently started echoing their own last pick instead of the engine's baseline — then
+clicking "Auto" (which correctly clears the deviation via `setFillOverride`/`col.setStep(undefined)`
+and re-resolves) landed on a DIFFERENT value than the option had just displayed. Verified with a real
+Playwright session (`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, mode-audit.mjs's pattern,
+throwaway probe script, not committed) against unmodified `main` before writing any fix: set an
+override, reopen the picker, and the Auto label had drifted to the override's own step every time.
+
+**Fix: one shared primitive, two thin wrappers, not six-plus independent patches.** `baselineOf(roleKey,
+mode, without)` resolves `roleKey` against a THEME CLONE with `without` applied — a full re-resolve, not
+a patch of the live role, so it stays correct even if the engine ever derives one role's baseline from
+another role's own deviation (a field patch could not notice that; a fresh `resolveAllModes` always
+would). Two wrappers, because the engine has two independent live-deviation layers, not one:
+- `baselineStepOf(roleKey, mode)` — clears `theme.overrides[mode][roleKey]` (the A1 per-mode
+  colour-override layer `setFillOverride` writes). Covers every Source/Step select in the interactive
+  matrix, the Surfaces fill/foreground/text editors, and Backgrounds → Inverse.
+- `baselineAnchorStepOf(roleKey, mode, name)` — clears whichever of `theme.modeAnchors[mode][name]` /
+  `theme.actionAnchorStep` / `theme.destructiveAnchorStep` / `theme.interactivePalettes[i].anchorStep`
+  applies (the A2b fill-anchor layer `col.setStep` writes) — mirroring exactly what that same picker's
+  own `onPick(undefined)` clears. Needed because the interactive matrix's "Fill · rest" row for
+  anchor-bearing columns (primary/destructive/accents) is driven by the anchor layer, not the override
+  layer; Neutral has no anchor and uses `baselineStepOf` like everything else. Discovering this second
+  layer live (the anchor-branch picker showed the identical drift-then-correct-revert symptom) is why
+  the fix isn't a single find-and-replace of `stepKeyOf(r.path)` → `baselineStepOf(roleKey)`.
+
+**Eight call sites fixed**, all confirmed live pre/post-fix with the same Playwright probe (override →
+reopen picker → confirm Auto label unchanged → click Auto → confirm the resulting swatch matches
+exactly what the label displayed, for every site): the interactive matrix's generic per-state cell
+(`iStates`, e.g. Fill · rest → Hover), its labeled slot cell (`slotRow`), `fillRestRow`'s two branches
+(the anchor branch for Primary/Destructive/accents, and the plain-override branch for Neutral),
+`overlayRow` (Overlay wash · hover), `subtleFillRow` (Subtle tint · hover — the originally-reported
+instance), Surfaces → Backgrounds → Inverse, and Surfaces → Foreground fills editor.
+
+**Deviation from the intake note, and why.** The intake said `renderForegroundEditor`'s Text & ink
+picker (the neutral ladder + palette-anchored inks) does NOT have this bug because it labels Auto bare
+`'Auto'` — that was true of an earlier hand-rolled version of that control, but a prior refactor moved it
+onto the same shared `stepPicker` everything else uses (its own comment says as much: "the hand-rolled
+copy this replaces … withheld" the auto step), so on current `main` it reads `Auto · neutral 900` and
+carries the identical bug. Confirmed live the same way as the other eight sites before deciding to fix
+it: label drifted after an override, then correctly reverted on Auto click. Fixed both its call sites
+(`baselineStepOf`) rather than leaving a ninth, now-provably-broken instance in a PR whose whole point is
+closing this class of bug — flagging the deviation here per this file's own instruction to record what a
+diff can't show. **Trap for whoever revisits this:** a stated "X doesn't have this bug" claim is only as
+current as the code it was checked against — always re-verify live against the actual branch tip rather
+than trusting a prior description, however specific.
+
+**Explicitly untouched, per the issue:** the separate complaint that Subtle tint's default (primary 100)
+"reads too dark" and should default to 050 — that's the engine's baseline computation, a design
+question, not this display bug. `fillRestRow`'s own contrast-floor warning message (`warn = ...
+stepKeyOf(r.path) doesn't clear the contrast floor…`) is intentionally left reading the LIVE resolved
+role — it's reporting the consequence of the pin the user just applied, not naming a baseline.
+
+**Gates:** `regen.ts` / `--check` (88 artifacts, worktree-expected), `test.ts` (1920/1920),
+`mcp-test.ts` (49/49), `token-contract.ts --check` (485 guaranteed, unchanged), `lint-skills.ts`,
+`nb-regression.ts` (pass), `lint-us-english.ts` (94 files, clean), `web` `typecheck` + `build`,
+`lint-contrast.mjs`, `lint-classes.mjs` — all green.
+
+---
+
+## (2026-08-07) — Rendered-contrast sweep: five confirmed defects fixed (#555)
+
+**STATUS: shipped.** Fixes the five confirmed-real clusters from the rendered-contrast sweep
+(`Prism3/docs/reports/rendered-contrast-2026-08-06.md`) — all below `lint:contrast` (#516), the value
+gate, by construction: it checks token *values*, this sweep checked what actually *renders*, and all
+five clusters are cases where a legal token value gets undermined by how `web/src/main.ts` composites
+it at render time. `lint:contrast` stayed green throughout, as expected — this fix operates entirely
+below it.
+
+**The shared root cause behind three of the five.** Clusters 1, 3, and 4 are the same mistake in three
+places: a specimen's ink and its ground are resolved *independently* — one hardcoded/CSS-fixed, the
+other mode-resolved — on the assumption that a fixed value and a mode-resolved value will always agree.
+They stop agreeing exactly at the case each specimen exists to demonstrate: an "inverse" band flips
+which side of light/dark it's on depending on the CURRENT mode (dark's inverse is light, not always
+dark), and a "neutral surface tier" flips from pale to dark between Light and Dark modes. A value that's
+correct in Light silently inverts into a same-color-on-itself failure in Dark. The fix in both directions
+is the same shape: stop assuming, compute the *other* half from what the first half actually resolved
+to — `legibleInkOn(bgHex)` picks whichever of a dark/light ink pair actually clears against a background
+whose lightness isn't known statically (added once, used by clusters 1 and 4); `exGround(dark)` reads
+the real `background.primary` / `background.inverse.primary` for the current mode instead of leaving
+`.exbox` transparent-through-to-chrome or hardcoding `.exbox.dark` to `#0d0d10` (cluster 3).
+
+**Cluster 2 (`.mo-playnote`) and 5 (`.tpw-mark.unknown`) were simpler, single-site fixes** — no
+shared mechanism with the others: `.mo-playnote` was fading an already-floor-adjacent `--faint`
+(4.628:1, #355's whole remaining margin) through `opacity: .75`, which the value gate cannot see
+because it never renders anything; swapped to `--muted` at full opacity, per the issue's own diagnosis
+("darker ink at full opacity, not a fade through the floor"). `.tpw-mark.unknown` was reusing
+`--line2` — a border-hairline color — as text color for the "?" glyph; swapped to `--muted`.
+
+**Verification: rendered, not just read.** This repo deliberately carries no Playwright dependency
+(#333); wrote a throwaway probe (not committed) using the `PLAYWRIGHT_MODULE` escape hatch
+`web/mode-audit.mjs` documents — build the app, serve it, launch headless Chromium, walk the DOM
+composite-over-opaque-ground (alpha-composite translucent layers, multiply cumulative CSS `opacity`
+into the ink) exactly as the original sweep did. Sanity-anchored first: `--ink` on `--paper` measured
+15.97:1 in every one of the three brand runs (aurora, harbor, wendys — wendys via the same
+`prism3:brandInput` localStorage-injection the report used, since the studio's own design.md upload
+only parses the engine-native dialect). All five clusters confirmed fixed post-build, pre/post:
+
+| cluster | before | after |
+|---|---|---|
+| 1 · style-guide inverse-row state labels | 1.51-1.61:1 | 5.03-17.48:1 |
+| 2 · `.mo-playnote` | 3.12:1 | 7.41:1 |
+| 3 · `.exbox` links (Dark) | 1.00-1.07:1 | 4.87-18.13:1 |
+| 4 · `.sf-ex-fill` Card/Panel/Nested (Dark) | 1.02-1.26:1 | 12.97-16.76:1 |
+| 5 · `.tpw-mark.unknown` (wendys) | 1.36:1 | 7.41:1 |
+
+**One thing the probe surfaced that is deliberately NOT fixed here.** Fixing cluster 3's box
+background exposed (rather than caused) a pre-existing, un-gated pairing: the "Overlay wash" specimen
+(`overlayRow`, Interactive page) renders `interactive.<palette>.text.rest` ink directly on its own
+translucent hover/pressed wash blended over the box — e.g. aurora Dark `#0088be` on `#252526`,
+3.83:1. This is not cluster 3's mechanism (no fixed-vs-mode-resolved mismatch; the wash is
+*correctly* translucent and *correctly* composites over whatever's behind it) and carries no
+`iBadge`/contrast contract in the app at all — confirmed by inspecting the live DOM, `overlayRow`'s
+`iRow` call passes no badge, unlike every gated pairing elsewhere on the page. It was already failing
+before this fix (originally miscomputed against the wrong, accidentally-white ground at 3.99:1,
+`.exbox span.ibtn`/`#0088be` in the original report's table) — my fix changed *which* wrong-looking
+number it produces, not whether it's gated. Flagging as a follow-up candidate, same as the `--line`
+hairline judgment call the original report already deferred to an owner decision.
+
+**Trap for whoever re-verifies this:** the probe's biggest time sink wasn't the fix, it was the
+harness. Typography carries **no in-page mode switcher at all** (`pageHasModeVaryingControl()` hard-
+excludes `'typography'` — every mode-varying value is already rendered as a column) so `currentMode`
+has to be set from a page that has one (any other page) before navigating to Typography; the mode then
+persists as global state. Separately, `renderScreen` swaps a page's entire body for a placeholder under
+a derived mode (`DERIVED_MODES` — hc-light/hc-dark/wireframe) carried over from a prior page, so a
+probe that leaves mode on `HC dark` after one page and navigates to a `renderScreen`-based page next
+finds no DOM to query at all, not a selector miss. Reset to a base mode before each new page, not just
+before each new mode within a page.
+
+---
+
+## (2026-08-07) — Narrow-band layout fixes: Interactive pill clip + Palettes hex overflow (#560, #334)
+
+**STATUS: shipped, one PR for both.** Same defect shape one page apart, as #334 itself predicted: a
+fixed-width sibling column eating room a token/hex label needed, at a viewport band narrow enough that
+nobody had swept it before. `web/src/main.ts` only, both fixes CSS-only (plus two `title` attributes on
+#334) — no lever, engine, or DTCG changes.
+
+**#560 — the two longest token paths in the system clip on Interactive at ~1114-1126px.**
+`.arow-main`'s mid column is exactly `viewport − 800px` between the 900px stack breakpoint and #app's
+1200px cap (56px swatch + two 20px gaps + 300px `.aex` are fixed; `minmax(0,1fr)` absorbs 100% of the
+remaining slack, so the relationship is 1:1 — measured directly, not derived from the CSS by eye).
+`color.interactive.destructive.on-inverse.{fill,text}.rest`, both 325px at the pill's font, need the mid
+column at 327px (325 + the pill's 2px border) — viewport ≥ 1127px. Below that and down to ~1114px,
+those two are the ONLY pills still clipping (every shorter path already fit); 1120px, the issue's report
+width, sits inside that band. Fix: trim `.aex` by 12px (300→288) in a `@media(min-width:901px) and
+(max-width:1199px)` band, scoped `.arow:not(.arow-lead)` so lead rows (Action palette, Button emphasis,
+…) — different grid template, no swatch column, never carry a pill — are untouched rather than left with
+12px of dead space in their track. Moves the cure threshold to viewport ≥ 1115px, covering the reported
+band with 5px to spare (7px needed, 12px given). Verified with Playwright (`PLAYWRIGHT_MODULE` pointed
+at a global install, per `mode-audit.mjs`'s pattern): 0/21 pills clipped at 1120px, both brands, both
+Light and Dark (was 2/21 clipped before the fix); swept 1100-1200px in 1px steps around the old
+threshold to confirm the new one lands where the math says.
+
+**#334 — Palettes ramp hex labels overflow the page ~901-919px, and turned out not to be band-specific.**
+The issue's own diagnosis was right: `.strip`/`.labs`' flex items (`.sw`, `.lab`) never got `min-width:0`,
+so ten unbreakable hex strings (`#e2e2e2`, no break opportunity) set a content floor `flex:1` couldn't
+shrink past, and the row overflowed the page rather than yielding — worst right where the >900px sidebar
+layout charges 210px + 60px gap against the same content the ≤900px stacked layout doesn't, since no
+`@media(max-width)` query can express "901px of viewport is less ramp room than 900px." **Took the
+issue's preferred fix, not the padding fallback**: `.pramp-wrap{container-type:inline-size}` plus
+`@container` rules at the same 512px/352px thresholds the existing `#315` viewport queries already use
+(640px/480px viewport, minus #app's + `.psec`'s padding) — now evaluated against the ramp's own
+rendered width instead of the viewport, so the sidebar transition lands in the tier its actual space
+calls for, correctly on both sides of every future breakpoint, not just this one. Kept the #315 media
+queries as-is rather than replacing them (redundant below 900px, harmless, and removing them wasn't
+this fix's job). Layered a structural belt-and-braces on top since the container-query fix alone only
+matches design intent, not a font-metrics guarantee: `.lab{min-width:0}` + `.lab-hex{overflow:hidden;
+text-overflow:ellipsis;white-space:nowrap}` (same elision pattern `.tpill` already uses, #289) with
+`title` set to the full hex — this is what actually makes the "zero overflow, any width" guarantee
+verifiable rather than tuned-and-hoped-for; it also silently fixed a wider pre-existing overflow this
+sandbox's fallback monospace font was producing all the way down to 500px (no real monospace font
+installed here, so `var(--mono)`'s whole stack fell through to the browser generic, which runs
+noticeably wider per character than SF Mono/JetBrains Mono — the 901-919px band was just the first place
+the margin ran out). Verified with Playwright: `document.documentElement.scrollWidth −
+document.documentElement.clientWidth === 0` at 880/900/901/910/919/920/950/1280px, both brands; the
+existing ≤480px hex-drop and ≤640px padding tiers still fire unchanged at those exact viewport widths
+(confirmed via computed style, not just visually); 1280px screenshot shows full untruncated hex.
+
+**Trap for whoever re-verifies this:** don't trust this sandbox's absolute overflow-pixel numbers against
+the issue's reported ones (140px+ measured here vs. "~10px" in the issue) — the gap is the substituted
+fallback monospace font, not a wrong diagnosis. Confirm the FIX by sweeping for zero overflow and by
+checking the #315 tiers still fire at their original widths, not by chasing a specific px figure.
+
+Gates run: `regen.ts` / `regen.ts --check` (88 artifacts, worktree-clean count), `test.ts` (1920/1920),
+`mcp-test.ts` (49/49), `token-contract.ts --check` (unchanged, contract 2.1.0), `lint-skills.ts` (clean),
+`nb-regression.ts` (PASS, ΔE00 1.95, 11/11 contrast, 23/23 dimensions), `lint-us-english.ts` (clean, 94
+files), `web` `typecheck` + `build` clean. Also ran (not required by the task, but touched web CSS/DOM):
+`lint:classes` (clean, `.pramp-wrap` is a new mint with no existing sibling to collide with),
+`lint:contrast` (clean, unrelated to either fix), `check:ignore` (clean, unrelated).
+
+---
+
+## (2026-08-07) — Duplicate variants: the pressed ghost button (#536 item 1)
+
+**STATUS: shipped.** Closes the last *defect* in #536's duplicate-variant finding. Three token keys and
+a gate correction; `out/*` byte-identical (88 artifacts), no version bump — the projection changes, the
+emitted token tree does not, because `color.interactive.*.overlay.pressed` already existed.
+
+**The fix, and it was pre-diagnosed.** `.text` keyed `overlay.hover` but no `overlay.pressed` while
+`.outline` keyed both, so all 36 `appearance=text, state=pressed` rows fell back to their rest overlay
+and projected byte-identical to rest — a pressed ghost button with no pressed feedback. The FINDING note
+sitting in `button.ts` said "closing this is one line per intent", and that held exactly: the token
+existed for all three intents at alpha 0.2 (vs hover's 0.1) and was already bound by `.outline`.
+
+**Fixed in the DEF, not in `paintOf`'s fallback**, and that is the load-bearing decision. The
+projection's fall-back to the unqualified key is *correct* — a pending button's fill really is its rest
+fill — so teaching it to synthesize a pressed overlay when a def omits one would paint a wash no brand
+authored, and would have converted every future instance of this gap from a visible duplicate into an
+invisible invention. A missing key means "this appearance does not paint that part in that state". The
+bug was that `.text` does paint it.
+
+**What actually found it: checking a comment's claim rather than its conclusion.** `test.ts` already
+pinned these counts (36 structural / 90 visual) and had done since #563 — my first read of the situation,
+that nothing gated duplicate rendering, was wrong. The gate was there and green. What was wrong was a
+comment beside it asserting focus-visible was "the only duplicate class that was a DEFECT — pressed's 36
+and pending's 54 are both admitted in `codeOnly`". That is false: `codeOnly` has seven entries and not
+one mentions `pressed` or the spinner. **Reading 36 duplicates as licensed is what kept them shipping
+past a gate that was counting them correctly the whole time.** A pinned number tells you the count; only
+the prose tells you whether the count is acceptable, and nothing gates the prose.
+
+**Counts now 0 structural / 54 visual** (was 36 / 90). The 54 are the `leading=true` half of `pending`,
+where the spinner replaces the leading visual and inherits its cell, size and ink — a layer rename,
+invisible on canvas. Left open deliberately; see the next item.
+
+**A zero-expecting assertion needed its own proof.** `total(struct) === 0` cannot distinguish "nothing
+duplicates" from "the comparison stopped comparing" — doc 34 shape 4 with the constant supplied by the
+fix rather than the fixture. So the counter is parameterized over the def and re-run against one with the
+three new keys stripped, requiring the 36 to come back. **Measured, not assumed:** with the counter's
+state loop short-circuited, `total(struct) === 0` *passed* and only the new line failed. The zero alone
+would have been vacuous within one refactor. Three mutations, each caught by the intended gate by name
+(revert one intent's key → 12 named; short-circuit the loop → the counter line; make the counter ignore
+the def it is handed → the counter line).
+
+**Not fixed here, and not a defect:** the other two duplicate causes measured over the 648-row set are
+matrix-*shape* questions, not bugs — 54 groups collapsing on `leading` at `state=pending` (the spinner
+owns the cell; #536 item 2's stated open question) and 36 collapsing on `intent` at `state=disabled`
+(`disabled.*` is cross-cutting by design, docs/20 §7, so one disabled skin serves every intent). Both
+ask the same thing — should the projected set enumerate an axis that provably moves no pixels? — which
+converges with #487 §4's reasoning and Figma's ~30-variant guidance. Filed separately; it needs a
+decision before code, and asserting it away in `test.ts` would have foreclosed that decision silently.
+
+**Trap for the next person, met head-on.** `AnatomyPlan` carries `coord`, an echo of the caller's own
+input. A duplicate-detection signature over the *whole* plan therefore reports **648 distinct of 648** —
+`text/rest` and `text/pressed` differ on exactly one line, the coord label, and nothing else. My first
+measurement script did this and cleanly "proved" there were no duplicates at all. Sign `plan.root`. The
+existing gate gets this right (`sig()` walks the node tree); the mistake is available to anyone writing a
+fresh probe, which is most people.
+
+**Pre-existing, not from this PR:** `web` `lint:classes` fails on `main` at `4d276a3` with one
+unreviewed pairing, `adv-x hit-min` — #602 landed `.hit-min` on an element that already owned `.adv-x`
+without allowlisting the pairing. Reproduced on a clean checkout at the same commit. Will red CI here
+until fixed; out of scope for a token-def PR.
+
+---
+
+## (2026-08-07) — Variant matrix shape: accept the disabled collapse, gate it, defer pending (#612)
+
+**STATUS: shipped (the disabled half).** Two decisions from #612, one implemented and one deliberately
+left open. `out/*` byte-identical, no version bump — a `codeOnly` entry and four assertions.
+
+**Decision 1 — the intent-at-disabled collapse is ACCEPTED, not fixed.** All three intents render one
+row at `state=disabled` (36 groups of 3). `disabled.*` is cross-cutting by design (docs/20 §7 —
+`color.disabled.fill` has no intent in the path), so this is the token tier being correct and the
+projection reporting it faithfully. The coordinate stays *meaningful*: a designer selecting
+`intent=destructive, state=disabled` finds it where they look and gets the right pixels; they are merely
+the same pixels as the other two intents. Pruning would make the set's shape depend on a per-coordinate
+measurement — a new class of thing to gate — for a **72-row (11%)** saving.
+
+**Decision 2 — pending/leading stays OPEN**, because it is a modeling question, not a redundancy. The
+spinner replaces the leading visual, so `leading=true|false` differ only by a layer name; but whether a
+leading icon should *survive* pending was never decided (#536 item 2 deferred it). Pruning would settle
+it by hiding it, and the 54 rows are the only thing still prompting the question.
+
+**Corrected the numbers before deciding, and they moved the argument.** #612 said "90 fewer rows, 648 →
+558" — wrong on both counts. That was the *visual duplicate* count carried into a *removable row* claim.
+The disabled cause removes **72**, not 36: collapsing three intents to one drops **two** rows per group.
+Real prune payoff is 648 → **522 (−19.4%)**, and in what a designer performs, 48 paste chunks → ~39. For
+scale, dropping a whole axis would give 648 → 324 (`trailing`) or → 216 (`size`), so pruning is a trim,
+not what brings the set near Figma's ~30-per-set guidance. Nothing breaks at 648 today: chunking splits
+by measured bytes.
+
+**THE FIND, and it is the sharpest instance of doc 34's "a declaration that also satisfies the check it
+exempts you from" so far.** `admits()` matches a `codeOnly` entry *leading* with the term. The obvious
+wording for this admission — `intent at state=disabled — …` — leads with `intent`, so it also admits
+dropping the **whole `intent` axis** from the projection. Measured: with that wording, removing `intent`
+from `variantAxes` took `figmaPropertyErrors` from **1 error to 0**. An entry documenting a 72-row
+redundancy would have silently switched off the gate protecting a 3-value axis. Shipped as
+`intent-at-disabled redundancy` — the hyphenated compound is what keeps the term from being a leading
+whole word — and **both directions are asserted**, because the point is not that the shipped wording is
+safe but that the compound is *why*, and a future editor tidying it must fail here.
+
+**The collapse was completely unmeasured.** Every prior assertion compares a row against its **own**
+`rest` sibling — same intent, same appearance, same size — so a collapse *across* intents is invisible to
+it however large. 36 groups sat in the projected set while three assertions above reported clean. Not a
+broken gate: the counter was right about the question it asked, and nobody had asked this one. Scope
+silence, doc 34.
+
+**Four mutations, and three of my first four were BAD** — worth recording, because the harness caught my
+own errors before it caught the code's:
+- *Pointing `disabled.fill` at an interactive token* is still one fixed token for all three intents, so
+  it cannot produce a per-intent difference. A real docs/20 §7 reversal has to change the **lookup**
+  (`paintOf` resolving `{intent}.{appearance}.{slot}` before `disabled.{slot}`) — that fires 8 failures.
+- *Mutating `withNames`* left `sig` untouched, and `distinctAcrossIntents` calls `sig` directly.
+- *Renaming the admission* survived everything — **a real gap**, now closed. Every assertion measured the
+  projection and none read `codeOnly`, so an accepted-by-design duplicate whose admission had vanished
+  was indistinguishable from an unnoticed one. The entry **is** the decision; the counts only say what
+  happens, never that anyone chose it. That is #536 item 1's lesson pointed at its own fix.
+
+**Both directions on the collapse assertion, for the same reason.** `distinctAcrossIntents('disabled')
+=== 1` alone is what a broken `sig` returns for *everything*, so `rest === 3` is asserted beside it.
+Confirmed: with `sig` stubbed to a constant, the `rest === 3` half is what fails.
+
+---
+
 ## (2026-08-07) — The component lane gets a trigger: `applyComponentPlan` had no caller (#483)
 
 **STATUS: shipped.** #483's five build steps were all done and **nothing called any of them** — the plugin's
@@ -11509,434 +12994,6 @@ eight checks assert the file is structurally *sane*, never that it is *this bran
 
 ---
 
-## (2026-08-07) — Variant matrix shape: accept the disabled collapse, gate it, defer pending (#612)
-
-**STATUS: shipped (the disabled half).** Two decisions from #612, one implemented and one deliberately
-left open. `out/*` byte-identical, no version bump — a `codeOnly` entry and four assertions.
-
-**Decision 1 — the intent-at-disabled collapse is ACCEPTED, not fixed.** All three intents render one
-row at `state=disabled` (36 groups of 3). `disabled.*` is cross-cutting by design (docs/20 §7 —
-`color.disabled.fill` has no intent in the path), so this is the token tier being correct and the
-projection reporting it faithfully. The coordinate stays *meaningful*: a designer selecting
-`intent=destructive, state=disabled` finds it where they look and gets the right pixels; they are merely
-the same pixels as the other two intents. Pruning would make the set's shape depend on a per-coordinate
-measurement — a new class of thing to gate — for a **72-row (11%)** saving.
-
-**Decision 2 — pending/leading stays OPEN**, because it is a modeling question, not a redundancy. The
-spinner replaces the leading visual, so `leading=true|false` differ only by a layer name; but whether a
-leading icon should *survive* pending was never decided (#536 item 2 deferred it). Pruning would settle
-it by hiding it, and the 54 rows are the only thing still prompting the question.
-
-**Corrected the numbers before deciding, and they moved the argument.** #612 said "90 fewer rows, 648 →
-558" — wrong on both counts. That was the *visual duplicate* count carried into a *removable row* claim.
-The disabled cause removes **72**, not 36: collapsing three intents to one drops **two** rows per group.
-Real prune payoff is 648 → **522 (−19.4%)**, and in what a designer performs, 48 paste chunks → ~39. For
-scale, dropping a whole axis would give 648 → 324 (`trailing`) or → 216 (`size`), so pruning is a trim,
-not what brings the set near Figma's ~30-per-set guidance. Nothing breaks at 648 today: chunking splits
-by measured bytes.
-
-**THE FIND, and it is the sharpest instance of doc 34's "a declaration that also satisfies the check it
-exempts you from" so far.** `admits()` matches a `codeOnly` entry *leading* with the term. The obvious
-wording for this admission — `intent at state=disabled — …` — leads with `intent`, so it also admits
-dropping the **whole `intent` axis** from the projection. Measured: with that wording, removing `intent`
-from `variantAxes` took `figmaPropertyErrors` from **1 error to 0**. An entry documenting a 72-row
-redundancy would have silently switched off the gate protecting a 3-value axis. Shipped as
-`intent-at-disabled redundancy` — the hyphenated compound is what keeps the term from being a leading
-whole word — and **both directions are asserted**, because the point is not that the shipped wording is
-safe but that the compound is *why*, and a future editor tidying it must fail here.
-
-**The collapse was completely unmeasured.** Every prior assertion compares a row against its **own**
-`rest` sibling — same intent, same appearance, same size — so a collapse *across* intents is invisible to
-it however large. 36 groups sat in the projected set while three assertions above reported clean. Not a
-broken gate: the counter was right about the question it asked, and nobody had asked this one. Scope
-silence, doc 34.
-
-**Four mutations, and three of my first four were BAD** — worth recording, because the harness caught my
-own errors before it caught the code's:
-- *Pointing `disabled.fill` at an interactive token* is still one fixed token for all three intents, so
-  it cannot produce a per-intent difference. A real docs/20 §7 reversal has to change the **lookup**
-  (`paintOf` resolving `{intent}.{appearance}.{slot}` before `disabled.{slot}`) — that fires 8 failures.
-- *Mutating `withNames`* left `sig` untouched, and `distinctAcrossIntents` calls `sig` directly.
-- *Renaming the admission* survived everything — **a real gap**, now closed. Every assertion measured the
-  projection and none read `codeOnly`, so an accepted-by-design duplicate whose admission had vanished
-  was indistinguishable from an unnoticed one. The entry **is** the decision; the counts only say what
-  happens, never that anyone chose it. That is #536 item 1's lesson pointed at its own fix.
-
-**Both directions on the collapse assertion, for the same reason.** `distinctAcrossIntents('disabled')
-=== 1` alone is what a broken `sig` returns for *everything*, so `rest === 3` is asserted beside it.
-Confirmed: with `sig` stubbed to a constant, the `rest === 3` half is what fails.
-
----
-
-## (2026-08-07) — Duplicate variants: the pressed ghost button (#536 item 1)
-
-**STATUS: shipped.** Closes the last *defect* in #536's duplicate-variant finding. Three token keys and
-a gate correction; `out/*` byte-identical (88 artifacts), no version bump — the projection changes, the
-emitted token tree does not, because `color.interactive.*.overlay.pressed` already existed.
-
-**The fix, and it was pre-diagnosed.** `.text` keyed `overlay.hover` but no `overlay.pressed` while
-`.outline` keyed both, so all 36 `appearance=text, state=pressed` rows fell back to their rest overlay
-and projected byte-identical to rest — a pressed ghost button with no pressed feedback. The FINDING note
-sitting in `button.ts` said "closing this is one line per intent", and that held exactly: the token
-existed for all three intents at alpha 0.2 (vs hover's 0.1) and was already bound by `.outline`.
-
-**Fixed in the DEF, not in `paintOf`'s fallback**, and that is the load-bearing decision. The
-projection's fall-back to the unqualified key is *correct* — a pending button's fill really is its rest
-fill — so teaching it to synthesize a pressed overlay when a def omits one would paint a wash no brand
-authored, and would have converted every future instance of this gap from a visible duplicate into an
-invisible invention. A missing key means "this appearance does not paint that part in that state". The
-bug was that `.text` does paint it.
-
-**What actually found it: checking a comment's claim rather than its conclusion.** `test.ts` already
-pinned these counts (36 structural / 90 visual) and had done since #563 — my first read of the situation,
-that nothing gated duplicate rendering, was wrong. The gate was there and green. What was wrong was a
-comment beside it asserting focus-visible was "the only duplicate class that was a DEFECT — pressed's 36
-and pending's 54 are both admitted in `codeOnly`". That is false: `codeOnly` has seven entries and not
-one mentions `pressed` or the spinner. **Reading 36 duplicates as licensed is what kept them shipping
-past a gate that was counting them correctly the whole time.** A pinned number tells you the count; only
-the prose tells you whether the count is acceptable, and nothing gates the prose.
-
-**Counts now 0 structural / 54 visual** (was 36 / 90). The 54 are the `leading=true` half of `pending`,
-where the spinner replaces the leading visual and inherits its cell, size and ink — a layer rename,
-invisible on canvas. Left open deliberately; see the next item.
-
-**A zero-expecting assertion needed its own proof.** `total(struct) === 0` cannot distinguish "nothing
-duplicates" from "the comparison stopped comparing" — doc 34 shape 4 with the constant supplied by the
-fix rather than the fixture. So the counter is parameterized over the def and re-run against one with the
-three new keys stripped, requiring the 36 to come back. **Measured, not assumed:** with the counter's
-state loop short-circuited, `total(struct) === 0` *passed* and only the new line failed. The zero alone
-would have been vacuous within one refactor. Three mutations, each caught by the intended gate by name
-(revert one intent's key → 12 named; short-circuit the loop → the counter line; make the counter ignore
-the def it is handed → the counter line).
-
-**Not fixed here, and not a defect:** the other two duplicate causes measured over the 648-row set are
-matrix-*shape* questions, not bugs — 54 groups collapsing on `leading` at `state=pending` (the spinner
-owns the cell; #536 item 2's stated open question) and 36 collapsing on `intent` at `state=disabled`
-(`disabled.*` is cross-cutting by design, docs/20 §7, so one disabled skin serves every intent). Both
-ask the same thing — should the projected set enumerate an axis that provably moves no pixels? — which
-converges with #487 §4's reasoning and Figma's ~30-variant guidance. Filed separately; it needs a
-decision before code, and asserting it away in `test.ts` would have foreclosed that decision silently.
-
-**Trap for the next person, met head-on.** `AnatomyPlan` carries `coord`, an echo of the caller's own
-input. A duplicate-detection signature over the *whole* plan therefore reports **648 distinct of 648** —
-`text/rest` and `text/pressed` differ on exactly one line, the coord label, and nothing else. My first
-measurement script did this and cleanly "proved" there were no duplicates at all. Sign `plan.root`. The
-existing gate gets this right (`sig()` walks the node tree); the mistake is available to anyone writing a
-fresh probe, which is most people.
-
-**Pre-existing, not from this PR:** `web` `lint:classes` fails on `main` at `4d276a3` with one
-unreviewed pairing, `adv-x hit-min` — #602 landed `.hit-min` on an element that already owned `.adv-x`
-without allowlisting the pairing. Reproduced on a clean checkout at the same commit. Will red CI here
-until fixed; out of scope for a token-def PR.
-
----
-
-## (2026-08-07) — Narrow-band layout fixes: Interactive pill clip + Palettes hex overflow (#560, #334)
-
-**STATUS: shipped, one PR for both.** Same defect shape one page apart, as #334 itself predicted: a
-fixed-width sibling column eating room a token/hex label needed, at a viewport band narrow enough that
-nobody had swept it before. `web/src/main.ts` only, both fixes CSS-only (plus two `title` attributes on
-#334) — no lever, engine, or DTCG changes.
-
-**#560 — the two longest token paths in the system clip on Interactive at ~1114-1126px.**
-`.arow-main`'s mid column is exactly `viewport − 800px` between the 900px stack breakpoint and #app's
-1200px cap (56px swatch + two 20px gaps + 300px `.aex` are fixed; `minmax(0,1fr)` absorbs 100% of the
-remaining slack, so the relationship is 1:1 — measured directly, not derived from the CSS by eye).
-`color.interactive.destructive.on-inverse.{fill,text}.rest`, both 325px at the pill's font, need the mid
-column at 327px (325 + the pill's 2px border) — viewport ≥ 1127px. Below that and down to ~1114px,
-those two are the ONLY pills still clipping (every shorter path already fit); 1120px, the issue's report
-width, sits inside that band. Fix: trim `.aex` by 12px (300→288) in a `@media(min-width:901px) and
-(max-width:1199px)` band, scoped `.arow:not(.arow-lead)` so lead rows (Action palette, Button emphasis,
-…) — different grid template, no swatch column, never carry a pill — are untouched rather than left with
-12px of dead space in their track. Moves the cure threshold to viewport ≥ 1115px, covering the reported
-band with 5px to spare (7px needed, 12px given). Verified with Playwright (`PLAYWRIGHT_MODULE` pointed
-at a global install, per `mode-audit.mjs`'s pattern): 0/21 pills clipped at 1120px, both brands, both
-Light and Dark (was 2/21 clipped before the fix); swept 1100-1200px in 1px steps around the old
-threshold to confirm the new one lands where the math says.
-
-**#334 — Palettes ramp hex labels overflow the page ~901-919px, and turned out not to be band-specific.**
-The issue's own diagnosis was right: `.strip`/`.labs`' flex items (`.sw`, `.lab`) never got `min-width:0`,
-so ten unbreakable hex strings (`#e2e2e2`, no break opportunity) set a content floor `flex:1` couldn't
-shrink past, and the row overflowed the page rather than yielding — worst right where the >900px sidebar
-layout charges 210px + 60px gap against the same content the ≤900px stacked layout doesn't, since no
-`@media(max-width)` query can express "901px of viewport is less ramp room than 900px." **Took the
-issue's preferred fix, not the padding fallback**: `.pramp-wrap{container-type:inline-size}` plus
-`@container` rules at the same 512px/352px thresholds the existing `#315` viewport queries already use
-(640px/480px viewport, minus #app's + `.psec`'s padding) — now evaluated against the ramp's own
-rendered width instead of the viewport, so the sidebar transition lands in the tier its actual space
-calls for, correctly on both sides of every future breakpoint, not just this one. Kept the #315 media
-queries as-is rather than replacing them (redundant below 900px, harmless, and removing them wasn't
-this fix's job). Layered a structural belt-and-braces on top since the container-query fix alone only
-matches design intent, not a font-metrics guarantee: `.lab{min-width:0}` + `.lab-hex{overflow:hidden;
-text-overflow:ellipsis;white-space:nowrap}` (same elision pattern `.tpill` already uses, #289) with
-`title` set to the full hex — this is what actually makes the "zero overflow, any width" guarantee
-verifiable rather than tuned-and-hoped-for; it also silently fixed a wider pre-existing overflow this
-sandbox's fallback monospace font was producing all the way down to 500px (no real monospace font
-installed here, so `var(--mono)`'s whole stack fell through to the browser generic, which runs
-noticeably wider per character than SF Mono/JetBrains Mono — the 901-919px band was just the first place
-the margin ran out). Verified with Playwright: `document.documentElement.scrollWidth −
-document.documentElement.clientWidth === 0` at 880/900/901/910/919/920/950/1280px, both brands; the
-existing ≤480px hex-drop and ≤640px padding tiers still fire unchanged at those exact viewport widths
-(confirmed via computed style, not just visually); 1280px screenshot shows full untruncated hex.
-
-**Trap for whoever re-verifies this:** don't trust this sandbox's absolute overflow-pixel numbers against
-the issue's reported ones (140px+ measured here vs. "~10px" in the issue) — the gap is the substituted
-fallback monospace font, not a wrong diagnosis. Confirm the FIX by sweeping for zero overflow and by
-checking the #315 tiers still fire at their original widths, not by chasing a specific px figure.
-
-Gates run: `regen.ts` / `regen.ts --check` (88 artifacts, worktree-clean count), `test.ts` (1920/1920),
-`mcp-test.ts` (49/49), `token-contract.ts --check` (unchanged, contract 2.1.0), `lint-skills.ts` (clean),
-`nb-regression.ts` (PASS, ΔE00 1.95, 11/11 contrast, 23/23 dimensions), `lint-us-english.ts` (clean, 94
-files), `web` `typecheck` + `build` clean. Also ran (not required by the task, but touched web CSS/DOM):
-`lint:classes` (clean, `.pramp-wrap` is a new mint with no existing sibling to collide with),
-`lint:contrast` (clean, unrelated to either fix), `check:ignore` (clean, unrelated).
-
----
-
-## (2026-08-07) — Rendered-contrast sweep: five confirmed defects fixed (#555)
-
-**STATUS: shipped.** Fixes the five confirmed-real clusters from the rendered-contrast sweep
-(`Prism3/docs/reports/rendered-contrast-2026-08-06.md`) — all below `lint:contrast` (#516), the value
-gate, by construction: it checks token *values*, this sweep checked what actually *renders*, and all
-five clusters are cases where a legal token value gets undermined by how `web/src/main.ts` composites
-it at render time. `lint:contrast` stayed green throughout, as expected — this fix operates entirely
-below it.
-
-**The shared root cause behind three of the five.** Clusters 1, 3, and 4 are the same mistake in three
-places: a specimen's ink and its ground are resolved *independently* — one hardcoded/CSS-fixed, the
-other mode-resolved — on the assumption that a fixed value and a mode-resolved value will always agree.
-They stop agreeing exactly at the case each specimen exists to demonstrate: an "inverse" band flips
-which side of light/dark it's on depending on the CURRENT mode (dark's inverse is light, not always
-dark), and a "neutral surface tier" flips from pale to dark between Light and Dark modes. A value that's
-correct in Light silently inverts into a same-color-on-itself failure in Dark. The fix in both directions
-is the same shape: stop assuming, compute the *other* half from what the first half actually resolved
-to — `legibleInkOn(bgHex)` picks whichever of a dark/light ink pair actually clears against a background
-whose lightness isn't known statically (added once, used by clusters 1 and 4); `exGround(dark)` reads
-the real `background.primary` / `background.inverse.primary` for the current mode instead of leaving
-`.exbox` transparent-through-to-chrome or hardcoding `.exbox.dark` to `#0d0d10` (cluster 3).
-
-**Cluster 2 (`.mo-playnote`) and 5 (`.tpw-mark.unknown`) were simpler, single-site fixes** — no
-shared mechanism with the others: `.mo-playnote` was fading an already-floor-adjacent `--faint`
-(4.628:1, #355's whole remaining margin) through `opacity: .75`, which the value gate cannot see
-because it never renders anything; swapped to `--muted` at full opacity, per the issue's own diagnosis
-("darker ink at full opacity, not a fade through the floor"). `.tpw-mark.unknown` was reusing
-`--line2` — a border-hairline color — as text color for the "?" glyph; swapped to `--muted`.
-
-**Verification: rendered, not just read.** This repo deliberately carries no Playwright dependency
-(#333); wrote a throwaway probe (not committed) using the `PLAYWRIGHT_MODULE` escape hatch
-`web/mode-audit.mjs` documents — build the app, serve it, launch headless Chromium, walk the DOM
-composite-over-opaque-ground (alpha-composite translucent layers, multiply cumulative CSS `opacity`
-into the ink) exactly as the original sweep did. Sanity-anchored first: `--ink` on `--paper` measured
-15.97:1 in every one of the three brand runs (aurora, harbor, wendys — wendys via the same
-`prism3:brandInput` localStorage-injection the report used, since the studio's own design.md upload
-only parses the engine-native dialect). All five clusters confirmed fixed post-build, pre/post:
-
-| cluster | before | after |
-|---|---|---|
-| 1 · style-guide inverse-row state labels | 1.51-1.61:1 | 5.03-17.48:1 |
-| 2 · `.mo-playnote` | 3.12:1 | 7.41:1 |
-| 3 · `.exbox` links (Dark) | 1.00-1.07:1 | 4.87-18.13:1 |
-| 4 · `.sf-ex-fill` Card/Panel/Nested (Dark) | 1.02-1.26:1 | 12.97-16.76:1 |
-| 5 · `.tpw-mark.unknown` (wendys) | 1.36:1 | 7.41:1 |
-
-**One thing the probe surfaced that is deliberately NOT fixed here.** Fixing cluster 3's box
-background exposed (rather than caused) a pre-existing, un-gated pairing: the "Overlay wash" specimen
-(`overlayRow`, Interactive page) renders `interactive.<palette>.text.rest` ink directly on its own
-translucent hover/pressed wash blended over the box — e.g. aurora Dark `#0088be` on `#252526`,
-3.83:1. This is not cluster 3's mechanism (no fixed-vs-mode-resolved mismatch; the wash is
-*correctly* translucent and *correctly* composites over whatever's behind it) and carries no
-`iBadge`/contrast contract in the app at all — confirmed by inspecting the live DOM, `overlayRow`'s
-`iRow` call passes no badge, unlike every gated pairing elsewhere on the page. It was already failing
-before this fix (originally miscomputed against the wrong, accidentally-white ground at 3.99:1,
-`.exbox span.ibtn`/`#0088be` in the original report's table) — my fix changed *which* wrong-looking
-number it produces, not whether it's gated. Flagging as a follow-up candidate, same as the `--line`
-hairline judgment call the original report already deferred to an owner decision.
-
-**Trap for whoever re-verifies this:** the probe's biggest time sink wasn't the fix, it was the
-harness. Typography carries **no in-page mode switcher at all** (`pageHasModeVaryingControl()` hard-
-excludes `'typography'` — every mode-varying value is already rendered as a column) so `currentMode`
-has to be set from a page that has one (any other page) before navigating to Typography; the mode then
-persists as global state. Separately, `renderScreen` swaps a page's entire body for a placeholder under
-a derived mode (`DERIVED_MODES` — hc-light/hc-dark/wireframe) carried over from a prior page, so a
-probe that leaves mode on `HC dark` after one page and navigates to a `renderScreen`-based page next
-finds no DOM to query at all, not a selector miss. Reset to a base mode before each new page, not just
-before each new mode within a page.
-
----
-
-## (2026-08-07) — Fix: "Auto" override-picker label showed the live (overridden) step, not the true baseline (#330)
-
-**STATUS: shipped, PR open.** `web/src/main.ts` only — no engine change, no emitted-artifact change.
-
-**The bug, confirmed live before touching anything.** Every per-mode color-override picker's "Auto"
-option is built by `stepPicker` to read `Auto · <palette> <step>`, and every call site computed that
-`<step>` as `stepKeyOf(r.path)` off `iRoles()`/`resolveAllModes(theme)` — the theme's CURRENT resolved
-state, which already reflects any active override or fill-anchor pin. So the instant a user set an
-override, "Auto" silently started echoing their own last pick instead of the engine's baseline — then
-clicking "Auto" (which correctly clears the deviation via `setFillOverride`/`col.setStep(undefined)`
-and re-resolves) landed on a DIFFERENT value than the option had just displayed. Verified with a real
-Playwright session (`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, mode-audit.mjs's pattern,
-throwaway probe script, not committed) against unmodified `main` before writing any fix: set an
-override, reopen the picker, and the Auto label had drifted to the override's own step every time.
-
-**Fix: one shared primitive, two thin wrappers, not six-plus independent patches.** `baselineOf(roleKey,
-mode, without)` resolves `roleKey` against a THEME CLONE with `without` applied — a full re-resolve, not
-a patch of the live role, so it stays correct even if the engine ever derives one role's baseline from
-another role's own deviation (a field patch could not notice that; a fresh `resolveAllModes` always
-would). Two wrappers, because the engine has two independent live-deviation layers, not one:
-- `baselineStepOf(roleKey, mode)` — clears `theme.overrides[mode][roleKey]` (the A1 per-mode
-  colour-override layer `setFillOverride` writes). Covers every Source/Step select in the interactive
-  matrix, the Surfaces fill/foreground/text editors, and Backgrounds → Inverse.
-- `baselineAnchorStepOf(roleKey, mode, name)` — clears whichever of `theme.modeAnchors[mode][name]` /
-  `theme.actionAnchorStep` / `theme.destructiveAnchorStep` / `theme.interactivePalettes[i].anchorStep`
-  applies (the A2b fill-anchor layer `col.setStep` writes) — mirroring exactly what that same picker's
-  own `onPick(undefined)` clears. Needed because the interactive matrix's "Fill · rest" row for
-  anchor-bearing columns (primary/destructive/accents) is driven by the anchor layer, not the override
-  layer; Neutral has no anchor and uses `baselineStepOf` like everything else. Discovering this second
-  layer live (the anchor-branch picker showed the identical drift-then-correct-revert symptom) is why
-  the fix isn't a single find-and-replace of `stepKeyOf(r.path)` → `baselineStepOf(roleKey)`.
-
-**Eight call sites fixed**, all confirmed live pre/post-fix with the same Playwright probe (override →
-reopen picker → confirm Auto label unchanged → click Auto → confirm the resulting swatch matches
-exactly what the label displayed, for every site): the interactive matrix's generic per-state cell
-(`iStates`, e.g. Fill · rest → Hover), its labeled slot cell (`slotRow`), `fillRestRow`'s two branches
-(the anchor branch for Primary/Destructive/accents, and the plain-override branch for Neutral),
-`overlayRow` (Overlay wash · hover), `subtleFillRow` (Subtle tint · hover — the originally-reported
-instance), Surfaces → Backgrounds → Inverse, and Surfaces → Foreground fills editor.
-
-**Deviation from the intake note, and why.** The intake said `renderForegroundEditor`'s Text & ink
-picker (the neutral ladder + palette-anchored inks) does NOT have this bug because it labels Auto bare
-`'Auto'` — that was true of an earlier hand-rolled version of that control, but a prior refactor moved it
-onto the same shared `stepPicker` everything else uses (its own comment says as much: "the hand-rolled
-copy this replaces … withheld" the auto step), so on current `main` it reads `Auto · neutral 900` and
-carries the identical bug. Confirmed live the same way as the other eight sites before deciding to fix
-it: label drifted after an override, then correctly reverted on Auto click. Fixed both its call sites
-(`baselineStepOf`) rather than leaving a ninth, now-provably-broken instance in a PR whose whole point is
-closing this class of bug — flagging the deviation here per this file's own instruction to record what a
-diff can't show. **Trap for whoever revisits this:** a stated "X doesn't have this bug" claim is only as
-current as the code it was checked against — always re-verify live against the actual branch tip rather
-than trusting a prior description, however specific.
-
-**Explicitly untouched, per the issue:** the separate complaint that Subtle tint's default (primary 100)
-"reads too dark" and should default to 050 — that's the engine's baseline computation, a design
-question, not this display bug. `fillRestRow`'s own contrast-floor warning message (`warn = ...
-stepKeyOf(r.path) doesn't clear the contrast floor…`) is intentionally left reading the LIVE resolved
-role — it's reporting the consequence of the pin the user just applied, not naming a baseline.
-
-**Gates:** `regen.ts` / `--check` (88 artifacts, worktree-expected), `test.ts` (1920/1920),
-`mcp-test.ts` (49/49), `token-contract.ts --check` (485 guaranteed, unchanged), `lint-skills.ts`,
-`nb-regression.ts` (pass), `lint-us-english.ts` (94 files, clean), `web` `typecheck` + `build`,
-`lint-contrast.mjs`, `lint-classes.mjs` — all green.
-
----
-
-## (2026-08-07) — `avoid_when_level`: RFC 2119 MUST/SHOULD on `.ai.json` guidance, derived not authored (#621)
-
-**STATUS: shipped, narrow scope by owner decision.** #621 was filed as a `[decision]`, not a
-`[task]` — the owner-raised question (source: a Nathan Curtis piece on Cloudflare's Codex) was
-whether `.ai.json` guidance should carry an explicit normative level, given that doing so creates a
-standing obligation: *"a `MUST` with no gate behind it is worse than no label."* Four options were on
-the table (levels+lifecycle / levels-only / defer to the component layer / full Codex adoption);
-asked rather than assumed, and the owner picked **option 1, narrowly scoped** — label the one thing
-that's already live (`avoid_when`), skip naming the approved→enforced lifecycle and the docs `status`
-frontmatter question for now (both left as open follow-ons, not decided against).
-
-**What shipped.** `avoid_when_level: 'MUST' | 'SHOULD'` on every semantic-tier `.ai.json` color role
-(`Prism3/engine/ai-metadata.ts`), sitting beside the pre-existing `avoid_when` string (additive, not a
-restructure — `avoid_when` itself is unchanged, so this isn't the breaking `avoid_when.level` /
-`statements[]` shape the issue floated as an alternative). `$schema` bumped `0.1` → `0.2` on the
-sidecar's own version string.
-
-**Derived, not authored — the load-bearing design constraint.** `avoid_when_level` is computed as
-`light.min > 0 ? 'MUST' : 'SHOULD'` — the exact same condition that already gates whether
-`contrast_with` gets attached. Not a coincidence: a token is `MUST` *because a real computed contrast
-contract exists for it*, never because someone typed `MUST` on a per-statement basis. That's what
-keeps the label non-driftable — it can only ever be as strong as the contract computation it reads.
-
-**Verified against real data, not just structurally.** Two checks in `test.ts`, over the real aurora
-brand (151 emitted color roles, not a synthetic sample): (1) the structural invariant the issue's own
-Verify section asked for — every `MUST` carries a `contrast_with` entry and vice versa, i.e. *"every
-emitted MUST maps to a named gate"* is checked mechanically; (2) two concrete, independently-verifiable
-anchors, per `docs/34` shape 5 ("it resolves" is not "it is right") — `text.primary` is `MUST` with its
-real 7:1 AAA contract, and `border.primary` (explicitly "decorative," its own `avoid_when` says a
-contract-bound border is a *different* token) is `SHOULD`, not a false MUST.
-
-**Mutation-tested, per `docs/34`'s actual rule** (not "does the suite go red," but "is *this* check in
-the failure list"): temporarily hard-coded `avoid_when_level` to always `'SHOULD'`, reran `test.ts`,
-confirmed exactly the two data-dependent assertions failed by name (`text.primary`'s concrete check and
-the "every gated role is MUST" structural check — the other two, having nothing left to find, correctly
-stayed green), then reverted.
-
-**Gates: `test.ts` 1924/1924 (+4 new) · `mcp-test.ts` 49/49 · `nb-regression.ts` exit 0 ·
-`regen.ts --check` 88/88 · `token-contract.ts --check` unchanged (this is `.ai.json` shape, which the
-token-name contract deliberately does not cover — confirmed, not assumed) · web/plugin typecheck+build
-clean · `lint-us-english.ts` clean.** `out/*`: the four committed `.ai.json` fixtures regenerated
-(new field on every color role); DTCG `tokens.json` untouched.
-
-**Left for later, explicitly not decided against:** naming the approved→enforced lifecycle, whether
-`typography`/`gradient` tier entries get a level too, and the docs `status` frontmatter question. First
-real application is still the component layer (`14` §3) once it exists, per the issue.
-
----
-
-## (2026-08-07) — A gate that keeps the docs' gate checklists in sync with `ci.yml` (#613)
-
-**STATUS: shipped.** #610 fixed a concrete instance of this — `CLAUDE.md` principle 4,
-`CONTRIBUTING.md` §3, and `.github/pull_request_template.md` each documented a "gates to run before
-pushing" checklist shorter than what `ci.yml` actually ran; the PR template listed 4 checks against
-CI's 17, and #601/#602 each shipped `lint:classes` silently broken by following that shorter
-checklist faithfully. #610 fixed the snapshot; nothing stopped it drifting again the next time a CI
-step landed without a matching doc edit. This is that stop: `Prism3/engine/lint-doc-gates.ts`, wired
-into `ci.yml` as the final gate.
-
-**What it compares, and why that's the whole design.** `.github/workflows/ci.yml` parsed *live* —
-hand-rolled, dependency-free parser for its flat `- name: ... run: ...` step shape, same convention
-as `lint-us-english.ts`/`lint-skills.ts` — against the three documents' own text. A hand-written "the
-gates CI runs" constant would have made this gate agree with itself forever regardless of what
-`ci.yml` actually contains (`docs/34`, shape 2 — subject and oracle sharing a derivation); parsing the
-real file is what lets a *new* CI step landing without a doc edit actually fail this gate.
-
-**Scope, per the issue's design notes.** Only `run:` steps invoking `npm run`/`npx tsx` — `uses:`
-steps and `npm ci` are excluded automatically (they match neither pattern). One step needs an
-*explicit* exclusion: "Drift gate still covers the full artifact set" embeds `npx tsx
-Prism3/engine/regen.ts --check` as input to its own `count == 88` assertion, so a naive substance-scan
-would wrongly demand its own doc representation on top of the "Committed artifacts have not drifted"
-step it's a meta-check on. Kept as a named, auditable list (`NOT_A_DISTINCT_GATE`) with a comment
-honest about the recursion: if a future CI step joins this shape and isn't added there, the gate
-false-positives on it — the same caveat `ci.yml`'s own "88 committed artifacts" check states about
-itself.
-
-**Substance match, not verbatim** — `CONTRIBUTING.md` writes `npm run typecheck -w @prism3/web`;
-`ci.yml` writes `npm run -w @prism3/web typecheck`. Same command, different arg order, so exact-string
-matching would false-positive on harmless rephrasing. `gateTokensOf` extracts the identifying pieces
-(script + workspace, or the bare `.ts` filename), `docHas` checks each appears anywhere in a doc.
-
-**Proved it can fail, per `docs/34`** — not just synthetic self-check samples (though those exist too,
-covering the quoted-colon parsing trap #298 originally hit, block-scalar `run: |` parsing, and
-exclusion-list survival through the full `findGaps` path): a real mutation against `CONTRIBUTING.md`
-(deleting its `lint:classes` line) was run through the live gate before this shipped, confirmed it
-failed naming that exact step and that exact doc, then reverted.
-
-**One real gap found immediately, and fixed as part of turning the gate on** (in scope — a sync fix,
-not the "further restructuring" the issue excludes): `CLAUDE.md` principle 4 named "the NB regression"
-in prose without its filename, unlike every sibling gate in that sentence. Fixed to `` `npx tsx
-Prism3/engine/nb-regression.ts` (the NB regression) `` so the gate is green against real `main` before
-being made a required check — otherwise wiring it into CI would have broken every future PR
-immediately. The gate then correctly flagged *itself* once wired in (`lint-doc-gates.ts` wasn't yet
-named in any of the three docs) — added to all three, same convention `lint-skills.ts` follows.
-
-**Note on `lint:classes`:** while running the full local gate sequence for this PR, `lint:classes`
-failed — verified via `git stash` against a byte-identical `origin/main` that this was pre-existing
-and unrelated to this diff (the `adv-x hit-min` pairing below). Filed as #615, which turned out to be
-a duplicate of the fix landing concurrently as #614 (see the entry immediately below) — closed
-accordingly once #614 merged.
-
-**Gates: `test.ts` 1205/1205 (unchanged) · `nb-regression.ts` exit 0 · `regen.ts --check` 88/88 ·
-`lint-doc-gates.ts` clean (new) · web/plugin typecheck+build clean · `lint-us-english.ts` clean.**
-`out/*`: byte-identical — nothing here touches the engine's generation path.
-
----
-
 ## (2026-08-06) — A gate whose value is conditional on staying naive (`packages/tokens`)
 
 **STATUS: new `packages/tokens` workspace (`@prism3/tokens`) + CI + CLAUDE.md.** No engine change —
@@ -12007,505 +13064,6 @@ a list shorter than CI — a gate absent from the checklist is one that will not
 **Dependency posture:** Style Dictionary is the repo's first real runtime dependency. It lives in the
 workspace and is never imported by `Prism3/engine/` — the buildless, no-`npm install` invariant is what
 lets the engine bundle into the Figma plugin sandbox.
-
----
-
-## (2026-08-07) — Fix: `lint:classes` was red on `main` — #602's own allowlist fix never landed
-
-**STATUS: shipped.** `web/lint-classes.mjs` only — one `ALLOWED` entry added.
-
-**How this happened.** #602 ("Sub-24px interactive targets", below) shipped a new `adv-x hit-min`
-class pairing without an `ALLOWED` entry for it — the same failure shape #601 hit. A follow-up fix was
-made on #602's own branch (mirroring how #601 was closed out: verify the pairing is safe, add the
-entry, re-run gates, merge) and its completion was reported as successful. It wasn't: the commit that
-actually got squash-merged into `main` (`4e323402…`, timestamped hours before the fix ran) is the
-**original, unfixed** PR commit — `web/lint-classes.mjs` is not among its two changed files. The fix
-commit either was never created on the branch or never reached the ref GitHub squash-merged from; either
-way, nothing caught the mismatch before merge because the fix's own local verification ran clean against
-its *local worktree*, not against what actually landed. Found only because the next PR in the queue
-(#605) independently re-ran the full gate suite against a fresh `main` checkout, as the review protocol
-requires, and hit the same red `lint:classes` #601/#602 already established as a known failure shape.
-
-**Fix.** Added `'adv-x hit-min'` to `ALLOWED`, verified directly (not delegated) this time: confirmed
-`.hit-min`/`.hit-min::before` (`web/src/main.ts:6918-6919`) add only `position:relative` plus an
-out-of-flow, absolutely-positioned pseudo-element, while `.adv-x` (`:7402-7403`) sets unrelated
-properties (border/background/color/cursor/font-size/line-height/padding/`--hit-dx`) — no property
-collision, so the pairing only widens the click target without changing what paints. Ran the full gate
-suite locally, then independently re-confirmed on `origin/main` after pushing (not just in the local
-worktree) that the merged commit's diff actually contains the `lint-classes.mjs` change before
-considering this closed.
-
-**The open question this leaves.** Why the earlier fix's push/merge diverged from what its own local
-verification checked is still unexplained — worth being suspicious of any future "verified locally, then
-merged" report for this repo until reproduced independently, the same discipline `#605`'s reviewer
-already applied by re-deriving gate results against a fresh checkout rather than trusting a prior PR's
-claimed green state.
-
----
-
-## (2026-08-07) — Sub-24px interactive targets, WCAG 2.5.8 (#559)
-
-**STATUS: shipped.** Fixes the primary target from the visual anomaly sweep (`.adv-bp button.adv-x`,
-the Layout breakpoint "×" remove button, measured 12.8×15px) and closes one of the two "worth a look"
-items; the third stays open as a convention decision. Respects the issue's own triage exactly — no
-scope expansion beyond what it flagged as fixable.
-
-**The convention: `.hit-min`.** A shared CSS class (`web/src/main.ts`, next to `.mono`/`.faint`) that
-decouples the optical (painted) box from a >=24 CSS px hit box via an unpainted `::before`,
-`position:absolute` so it's out of flow — never shifts layout, never grows what's actually painted,
-only widens where clicks register. Each dimension floors at `max(24px,100%)` — never shrinks below the
-host's own box, so a control already past the floor (`.toggle`'s 38px width) gets no unneeded
-horizontal padding; the pseudo just exactly overlays it on that axis. `--hit-dx`/`--hit-dy` custom
-properties (default 0, centered) let a packed host bias the box off-center instead of centering blind
-into a neighbor's territory.
-
-**`.adv-x` (fixed).** 12.77×15px own box, in a row with only 2px of clearance to its own paired
-`.adv-num` input on one side and 8px to the next breakpoint cell on the other — 22.77px of width
-available total, 1.23px short of the 24px floor even before any bias, so *some* encroachment on a
-neighbor's hit-box is mathematically unavoidable at this row's existing spacing (spacing itself was
-explicitly out of scope — no layout/gap change, per "no layout reflow in the surrounding row").
-`--hit-dx:4px` biases the box fully toward the roomier side; measured live with Playwright
-(`elementFromPoint` sweeps, 1px steps) at **zero overlap into the button's own paired input** and
-~1.2px into the far edge of the *next* cell's input — never the input this row's own button belongs
-to. Height needed no bias (15px own height, ~7.8px clearance each side in this row — ample). Verified:
-24×24+ hit box in both dimensions, `.adv-bp` cell x-coordinates identical pre/post-fix (zero reflow,
-pseudo is out-of-flow), "×" glyph screenshot-identical (pure overlay, no paint change).
-
-**`.knob-body input.toggle` (fixed).** 38×22px, 2px under on height only. `.hit-min`'s default
-(centered, no bias) is exactly right here: width `max(24px,100%)` = the toggle's own 38px (no
-horizontal change at all — confirmed via sweep, hit box stays exactly 430–468px, unchanged), height
-`max(24px,100%)` = 24px (was 22), closing the gap with ~8px/7px of margin to the knob-label above and
-knob-desc below (`.knob > .knob-body{margin-top:8px}`, `.knob-desc{margin:7px 0 0}`) — no risk of
-eating into either.
-
-**`.adv-row input[type=checkbox]` (left alone — spacing exception holds, as the issue predicted).**
-13×13px own box, but it's a **native `<label class="adv-row">` wrapping the checkbox** — clicking the
-label's text (`.adv-row-lab`, confirmed live: `page.locator('.adv-row-lab').click()` toggles the
-checkbox) makes the effective click target the *whole row*, not just the 13px box. Measured vertical
-clearance to the nearest other target (the `minViewport` row below) is ~26–29px — far past any
-reasonable 2.5.8 spacing-exception threshold. No fix applied; this is exactly the "likely saved by row
-pitch" the issue flagged for a look, confirmed rather than assumed.
-
-**Out of scope, untouched, as directed:** `.mcell button.mstep`/`.mreset` (weight steppers — spacing
-exception already conformant), `input[type=range]` sliders (flagged for a future convention decision,
-not asserted deficient), `.cs-c input[type=checkbox]` (style-guide toggles — conformant via spacing,
-listed in the issue so nobody re-flags it).
-
-**Verification.** Playwright (Chromium via `PLAYWRIGHT_MODULE` pointed at a global install — this repo
-still has no Playwright dependency, #333) measured live against the built `web/dist`: hit-area
-bounding boxes via `elementFromPoint` sweeps (not just `getBoundingClientRect`, which only reports the
-painted box), before/after screenshots of the affected rows byte-eyeballed for zero visual drift, and
-`.adv-bp` cell x-coordinates diffed pre/post-fix (identical) to confirm no layout reflow. All measurement
-scripts were scratch, not committed — the fix is CSS/DOM-class-only, no new npm dependency, no new
-committed test harness. `regen.ts`, `--check`, `test.ts`, `mcp-test.ts`, `token-contract.ts --check`,
-`lint-skills.ts`, `nb-regression.ts`, `lint-us-english.ts`, `web` `typecheck` and `build` all pass —
-none of these gates touch `web/src/main.ts` styling/DOM output, so a clean run here does not by itself
-prove the fix (the Playwright measurement is what does); it does prove the change introduced no
-regression elsewhere.
-
-**Trap for whoever reaches the range-slider convention decision next:** the same `.hit-min` class
-should mostly cover it, but sliders are a genuine gray area (the *thumb* is the semantic target, not
-the full track, and browsers don't expose the thumb as a separately stylable box without vendor
-pseudo-elements like `::-webkit-slider-thumb`/`::-moz-range-thumb`, which don't support `::before`
-themselves) — don't assume `.hit-min` drops in unchanged; measure the thumb's own hit box first.
-
----
-
-## (2026-08-07) — Weight roles specimen goes per-mode, reopening #422's own prior "drop the column" fix
-
-**STATUS: shipped.** `renderWeightTable` (`web/src/main.ts`) now renders one specimen per MODE cell,
-resolved from that mode's own `value` (baseline override, mode-lever re-point, or fallback) — the same
-number its stepper already computes and shows as digits. Previously the specimen was gone entirely.
-
-**Why this reopens rather than follows #424.** #422 was filed as "the specimen is frozen at baseline."
-#424 (2026-08-03, same day) closed it by deleting the Specimen column outright, reasoning that "Weight
-roles by face" already answers what a weight looks like. It doesn't, for this table's actual question:
-that table is deliberately MODE-BLIND (owner, 2026-08-01) — its per-face specimen is fixed at the row's
-baseline numeric, never the mode-resolved one. So #424 traded a wrong-but-visible answer for no answer,
-and the GitHub issue was never actually closed (state stayed `open` — the commit trailer `(#423, #422)`
-wasn't a closing keyword). This PR is the fix #422 was originally asking for.
-
-**Open design call — resolved toward the codebase's own precedent, not the only defensible answer.**
-Now that a role's numeric can differ per mode, one specimen per row is ambiguous: light/baseline always
-(simple, silently wrong once a mode re-points), current-mode-only (matches the mode strip's own scoping
-elsewhere), or one specimen per mode cell. Went with **per-mode-cell**, because that's what "Weight roles
-by face" already does structurally (a specimen built INSIDE the per-column loop, from that column's own
-data) — mirroring it here per mode instead of per face keeps the table's shape self-consistent with its
-neighbor rather than introducing a third pattern. It also has a free side effect: living inside the
-existing mode column (as a second line under the stepper, via a new `.wt-spec{display:block}` — same
-"second line under the control" shape as `.mtbl-worth`) rather than a trailing column means #424's
-overflow fix (888px → ~704px) is untouched; nothing new was added to the table's width. **Open to being
-overridden toward baseline-only or current-mode-only if a reviewer prefers either** — this was a
-consistency-driven default, not a claim that per-mode-cell is the only right shape.
-
-**Verification.** Live in a real browser (Playwright, `PLAYWRIGHT_MODULE` pointed at a global install,
-mode-audit.mjs's pattern — this repo takes no Playwright dependency, see #333): stepped Dark's `subtle`
-weight from 300→400 on the `harbor` sample brand — Dark's own specimen (`fontWeight`) updated to 400 live,
-while Light/HC light/HC dark specimens on the same row stayed at 300, independently resolved. Also
-exercised the derived-mode (`auto`) reading branch on `aurora`: its specimen re-renders correctly off the
-resolved reading, not just the editable-stepper branch.
-
-Gates: `regen --check` (88, worktree-clean count) · `test.ts` 1920/0 · `mcp-test.ts` 49/0 ·
-`token-contract.ts --check` (485 guaranteed, unchanged) · `lint-skills.ts` clean · NB regression PASS
-(11/11 contrast, 23/23 dimensions, ΔE00 mean 1.95) · `lint-us-english.ts` clean (94 files) · web
-typecheck + build clean.
-
----
-
-## (2026-08-07) — Fix: the "gates" checklists in CLAUDE.md, CONTRIBUTING.md and the PR template didn't equal what CI runs
-
-**STATUS: shipped.** Docs only — `CLAUDE.md`, `CONTRIBUTING.md`, `.github/pull_request_template.md`.
-No code, no engine, no gate logic touched.
-
-**Found while diagnosing why #601 and #602 both shipped `lint:classes` broken.** Both PRs' own "Gates:
-all pass" tables were built honestly — neither omitted a gate they'd run and failed to mention, they
-simply never ran `lint:classes` at all, because none of the three documents a contributor (human or
-agent) is pointed at to learn what "the gates" are actually named it. `.github/pull_request_template.md`
-— the literal text every PR body starts from — listed four checks total: `test.ts`, `nb-regression.ts`,
-`emit-dtcg.ts`, and "Web (if touched): `tsc --noEmit`". CI (`.github/workflows/ci.yml`) runs seventeen
-steps, unconditionally, on every PR regardless of what changed. `CONTRIBUTING.md` §3 and `CLAUDE.md`
-principle 4 were each missing a different, overlapping subset of the same set — `check:ignore`,
-`lint:contrast`, `lint:classes`, and `lint-us-english.ts` were absent from all three; `CLAUDE.md` also
-never mentioned the web or plugin gates in principle 4 at all (it separately documents
-`lint-us-english.ts` in the US-English section three principles up, disconnected from the "before
-pushing" list). This is not a story about two careless PRs — it's a document that stopped tracking the
-gate it was supposed to summarize as the gate list grew (#281, #333, #355, #464, #492 all added a CI
-step over time; none updated these three files), and two independently-authored sessions both followed
-it faithfully into the same hole.
-
-**Fix.** All three documents now list the full CI-matching gate set, grouped engine/web/plugin, in CI's
-own run order, with the same explanatory parentheticals CI's own step comments carry. The PR template
-and `CONTRIBUTING.md` both gained an explicit line stating CI runs the web/plugin gates unconditionally
-— removing the old "(if touched)" / "if you touched a surface" framing, which was itself part of the
-same failure: it invited a contributor with an engine-only-looking diff to skip gates CI runs regardless.
-`CLAUDE.md`'s principle 4 now closes with a paragraph naming #601/#602 as the concrete evidence for why
-the list has to equal CI's, not a remembered subset of it.
-
-**What this does not fix.** There is still no automated gate keeping these three documents in sync with
-`.github/workflows/ci.yml` as it grows further — the same drift that caused this could recur the next
-time a step is added to CI without a matching doc edit. That would need its own gate (extract the step
-names from the workflow YAML, diff against what the docs claim) and is a real option for a future PR,
-not attempted here — this fix closes the gap that's open today, not the class of gap.
-
-**Verification.** Docs-only change; no code gate applies. Cross-checked all three new lists against
-`.github/workflows/ci.yml`'s actual `steps:` by name and by the `npm run`/`npx tsx` command each step
-invokes — every command in the new checklists matches a real CI step verbatim, and every CI step
-(except the internal artifact-count self-check, which isn't a contributor-facing gate) now appears in
-at least the `CLAUDE.md` and PR-template lists.
-
----
-
-## (2026-08-07) — Neutral row: Source no longer sits lower than Hue/Chroma/Anchor (#394)
-
-**STATUS: shipped.** `web/src/main.ts`, `.porigin` only — CSS, no runtime behavior change.
-
-**The literal bug #394 reported was already gone by the time this was picked up.** #394 (filed
-2026-08-03) diagnosed the drift against `.porigin{align-items:flex-end}` and natural-sized `.pfield`
-label/control boxes — but #464 (merged 2026-08-04, the day after filing) replaced that whole mechanism
-with `.pfield{display:grid;grid-template-rows:auto minmax(33px,auto)}`: row 1 sizes to the label
-(matching `.psl-top`'s height by construction rather than by a pinned px value), row 2 is a shared
-`minmax(33px,auto)` band every control — `.select.sm`, `.psl-range`, `.panchor` — centers in. Measured
-live (Playwright, 1280–1920px): Source/Hue/Chroma/Anchor label tops agree to 0.18px under Custom tint and
-Auto — sub-pixel, not a fix to make. **Don't re-apply this issue's literal prescription** (an explicit
-`.pfield` label height + a sized `.select.sm` wrapper) on top of the grid mechanism; it would fight a
-mechanism that already generalizes better than the prescription would.
-
-**What was still broken, found only by checking the third source the issue's own "Done when" names:**
-Pinned color renders `show-hex`, which shows a hex readout `Custom tint`/`Auto` don't — widening `.pident`
-by ~61px. At that width `.pident + .porigin + .pfield.r`'s natural (unshrunk) sizes summed to 800.45px
-against the row's 800px budget: 0.45px over. `flex-wrap` is a binary per line, not a squeeze, so that
-sub-pixel overflow dropped Anchor onto its own line entirely — a *worse* version of the original
-complaint (a totally different top edge, not just a few px off), and it would have sailed through
-verification if "under Custom tint" were read as the whole job rather than a floor. Fix: `.porigin{gap:22px}`
-→ `20px`. `.porigin` has exactly one multi-field consumer (the neutral row's Source+Hue+Chroma); every
-`statusRow` origin holds a lone Source pfield, where an internal gap is inert, so this doesn't touch
-status-ramp spacing. −2px × 2 internal gaps reclaims 4px against a 0.45px deficit — margin for
-font-rendering variance across platforms, not just the exact number measured in one Chromium build.
-Reverified all three sources at 1024–1920px: single line, 0.18–0.19px drift throughout. (Below the 900px
-rail-collapse breakpoint the row already needed multi-line wrap before this change — genuinely
-insufficient width, not this bug — and still does; untouched, correctly.)
-
-**Why fix a bug the issue's stated root cause doesn't predict, in the same PR:** the issue's own "Done
-when" requires the shared top edge to hold across all three sources, "since the fix touches shared CSS,
-not a Custom-tint-specific path" — true, and it's exactly why checking only the state in the screenshot
-would have missed this. The two bugs are unrelated (one a height mismatch, since fixed by #464; one a
-sub-pixel width overflow, present both before and after #464 — confirmed via `git diff` on the `#464`
-commit range, gap:22px unchanged either side), but both block the same acceptance bar, so both got fixed
-here rather than filing a second issue for something already found and already small.
-
----
-
-## (2026-08-07) — Fix: `applyFull()` selects jump the page to top (#485)
-
-**STATUS: shipped, fixed at the general level.** Some selects on Surfaces (`surfaces.${mode}.base`,
-`surfaces.${mode}.floorStep`) and the per-mode re-point `<select>` inside `renderRepointTable` (shared by
-Typography → Semantics line-height and letter-spacing) reset the viewport to the top of the page on
-every change. Root cause: both were `applyFull()` callers, and `applyFull()` → `renderWorkspace()` does
-`workspace.innerHTML = ''` then rebuilds the page from scratch — clearing scroll position as a side
-effect of the DOM teardown, not something any individual call site controlled.
-
-**Fixed once in `renderWorkspace()` itself, per the issue's own suggested direction, rather than
-patching each `applyFull()` call site.** Save `window.scrollY` immediately before the `innerHTML = ''`
-teardown, restore it with `window.scrollTo(0, scrollY)` after the rebuild completes (natural clamp if
-the rebuilt page is shorter). This fixes every current `applyFull()` caller — including ones the issue
-flagged as "likely share this" but didn't enumerate (main.ts ~1953/1963/1975/2041/2577/3677) — and every
-future one, since the fix lives at the teardown/rebuild boundary rather than at each writer. No call site
-was downgraded to `apply()`: nothing in the confirmed sites or spot-checks showed `apply()` (the light
-path — repaints only the volatile specimen area) already recomputing what `applyFull()` needed, so
-scroll-restore was the correct fix everywhere touched, not a stopgap.
-
-Page navigation (rail clicks → `build()`, which does `app.innerHTML = ''` before minting a fresh
-`workspace` and calling `renderWorkspace()`) is unaffected: `window.scrollY` is read *inside*
-`renderWorkspace()`, by which point `build()`'s own teardown has already collapsed the document height,
-so the captured value is already ~0 there — nav-to-top behavior is unchanged.
-
-**Verified live with Playwright** (`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, no repo
-dependency per #333): scrolled partway down, changed each confirmed select, confirmed `window.scrollY`
-holds steady. Spot-checked two of the "likely share this" sites (a Size & radius select, an Interactive
-page select) and confirmed the same fix covers them without any code specific to those pages. Confirmed
-the harness itself is meaningful by reverting the fix and rebuilding: all four confirmed sites plus the
-Interactive spot-check reproduced the jump (`scrollY` 400 → 0), then re-confirmed green after restoring.
-
-**Trap hit and recovered from, worth recording since it reproduces exactly the failure mode
-`CLAUDE.md`'s worktree section warns about:** mid-task, to compare fixed-vs-broken behavior, this session
-ran `git stash push -- web/src/main.ts` / `git stash pop` inside its own worktree. `refs/stash` is a
-single ref shared across **all** worktrees of a repository, not per-worktree — and another concurrent
-session was doing the same kind of stash dance in `/tmp/p3-tfbulk558` (`fix/tfbulk-height-558`, #558) at
-the same time. The pop returned the *other* session's stashed diff (an unrelated `.tf-addbtn` CSS change)
-into this worktree, and — by the same mechanism in reverse — this session's own `#485` diff ended up
-sitting in *their* worktree instead, stripped out of the shared stash stack entirely (`git stash list`
-came back empty after). Recovered by diffing both worktrees against `HEAD`, saving each diff to a `.patch`
-file, `git checkout -- web/src/main.ts` in both trees to null them out, then `git apply`-ing each patch
-back into its rightful worktree. Both worktrees confirmed clean afterward (each showing only its own
-change) and `refs/stash` confirmed empty. **Lesson: `git stash` (push, pop, or an editor/tool's
-auto-stash) must be treated as repo-global, exactly like a branch checkout — never run it in a worktree
-another session might be touching, not even transiently for local comparison.** Use `git diff` /
-`git apply` / a plain `.patch` file for any same-worktree toggle-the-fix-on-and-off need instead; it
-never touches a ref outside the current worktree.
-
-Gates run clean: `regen.ts` (no drift, 88 committed artifacts in this worktree — the documented
-worktree-vs-main-checkout count, see `CLAUDE.md`), `regen.ts --check`, `test.ts` (1920/1920),
-`mcp-test.ts` (49/49), `token-contract.ts --check` (485 guaranteed, unchanged), `lint-skills.ts`, the NB
-regression (PASS, ΔE00 mean 1.95), `lint-us-english.ts`, `web` typecheck, `web` build.
-
----
-
-## (2026-08-07) — `.tf-bulk` row height mismatch: `select.sm` vs `.tf-addbtn` (#558)
-
-**STATUS: shipped.** `web/src/main.ts` CSS only — one 6-line scoped rule, no runtime/behavior change.
-
-Typography → Semantics → Typefaces, the "Set every text category to" row (`.tf-bulk`): `select.sm`
-measured 33.4px, `.tf-addbtn` ("Apply to all") measured 36.1px beside it. Traced both box models —
-`.select.sm` is `padding:6px 9px` at `font-size:12.5px`, `.tf-addbtn` is `padding:7px 16px` at
-`font-size:13px`, neither sets its own `line-height` so both inherit `body`'s `1.55`; the arithmetic
-(`12.5*1.55+12+2border=33.375` vs `13*1.55+14+2border=36.15`) reproduces the reported pixels almost
-exactly and confirmed neither number was a rendering-engine surprise, just the CSS as written.
-
-**`.tf-addbtn` is not a free-floating value — it already has an established, correct pairing
-elsewhere.** It's also the "Add face" submit CTA on Primitives, sitting beside `.tf-in` (a text input:
-`padding:7px 9px`, `font-size:13px`), and that pairing already lands both at 36.1px — the comment above
-the rule even says it was modelled on that pairing (#405). So `.tf-addbtn`'s base values are correct for
-its OTHER usage; changing them globally to chase `.select.sm`'s 33.4px would have fixed this row and
-broken that one. `.select.sm` likewise is correct everywhere else it appears — always standalone, never
-previously paired with a button, so nothing else in the file validates or invalidates its height in a
-row context. `.tf-bulk` turned out to be the only place in the file pairing `select.sm` with a button at
-all, so there was no third existing "compact select + button" convention to defer to either.
-
-**Fix: a `.tf-bulk .tf-addbtn` scoped override**, dropping only this row's button to
-`padding:6px 16px;font-size:12.5px` — literally `.select.sm`'s own padding-block and font-size numbers,
-reused rather than invented, landing both controls at the same 33.375px. `.select.sm` and the base
-`.tf-addbtn` rule are both untouched, so the Add-face/`.tf-in` pairing stays exactly as it was.
-
-**Verified live**, not just by arithmetic: built `web/dist` and drove it with Playwright
-(`PLAYWRIGHT_MODULE=$(npm root -g)/playwright/index.js`, per #333 — this repo still carries no
-Playwright dependency). Before the fix: `select.sm` 33.375px / `.tf-addbtn` 36.140625px, matching the
-issue's reported 33.4/36.1 to sub-pixel precision. After: both 33.375px exactly. Separately measured the
-Primitives "Add face" row (`.tf-in` + `.tf-addbtn`) post-fix to confirm the scoped selector didn't leak:
-still 36.140625px both, unchanged.
-
-**Trap for next time:** when two adjacent controls in a row mismatch height, check whether either class
-already has an established, correct pairing ELSEWHERE in the file before equalizing — the button here
-looked like the obvious thing to shrink, but it was `.select.sm` sitting in an unfamiliar context
-(paired with a button for the first time anywhere in the file) that was the actual anomaly, not the
-button's own values.
-
----
-
-## (2026-08-07) — Prose audit: `main.ts` comments asserting retired mechanisms (#552)
-
-**STATUS: shipped.** `web/src/main.ts` comments only — no runtime behavior change. Sibling to #547 (same
-file, disjoint scope: rendered user copy vs. code comments); expect a rebase, not a conflict, since the
-two touch different lines almost everywhere.
-
-**All seven mechanism claims were still live and all corrected, by re-reading the code they described
-rather than trusting the issue text.** `pageHasModeVaryingControl`'s JSDoc claimed Typography keeps the
-mode bar and its editors write via `currentMode`; the function actually returns `false` for the whole
-page (three pages fail it unconditionally now, not two — `layout`, `palettes`, `typography` — plus
-`preview` conditionally), and the editors write via column-scoped `setModeLever(m, ...)`.
-`renderTypeRamp` repeated the same false claim; both fixed together. The `-inv` pair warning near the
-status-color darkening logic described a variable (`--ok-inv`/`--warn-inv`/`--danger-inv`) that grepped
-to nothing anywhere in the repo, and `lint-contrast.mjs`'s `PAIRS` never measures against `--ink` —
-removed the false warning, pointed at the real gate instead. The `.slider`/`.range` neutralizer comment
-still described a `.slider{margin-top:16px}` rule PR #516 deleted three weeks ago along with its
-neutralizer; only `.range` survives (exempted from `lint:classes` because `range`/`psl-range` share a
-stem), so the comment now only claims what's still true. `renderModeStrip`'s two comments called the
-strip "the persistent header mode-selector" with "per-mode contrast ✓/✗ marks" — it's workspace
-furniture (#432), and the marks were retired by #54; both sites fixed. The mode-context block claimed
-"view-only until the override layer exists" and put the mode-set config in an "Edit modes" popover on
-the strip — the override layer (`brandState.overrides`, `modeAnchors`, `modeLevers`) is written
-throughout, and the config UI moved to the brand dropdown menu back in #432 (a second, accurate comment
-already said so three lines below the stale one — deleted the stale duplicate rather than trying to
-reconcile two docstrings for the same function). `LIVE_CONTROLS`'s comment cited #97/#99 as still-open
-work; all three bespoke editors and all three specimens now exist and are routed, so it was rewritten to
-describe what's actually left on the generic fallback path (`baseMd`, `disabledMin`, and
-`radiusScale`/`density`/`shadow.softness`/`motionPersonality.tempo` specifically on Light, where a
-per-mode bespoke editor takes over everywhere else). The "Semantic tab" comment named a NAV tab that
-doesn't exist (it's "Interactive"), a `disabledStrategy` value (`'accessible'`) that isn't one of the
-real values (`full`/`reduced`), and a "trailing catch-all" that a repo-wide grep doesn't find — like the
-mode-context case, an accurate replacement comment already sat directly below it; deleted the stale one.
-
-**Ten drifted numbers, six unchanged from the issue's snapshot, three needed correcting, one genuinely
-brand-dependent split.** Measured live against the current engine (aurora + harbor, matching the file's
-own resolution logic — `buildTree`/`resolveAllModes` over `brandTheme`), not assumed from the issue text:
-- "6 of 147 colour roles alias the same target in every mode" → **151 colour roles total** (was 147,
-  brand-invariant), **10 keep the same alias every mode on aurora, 9 on harbor** (was 6 — the one number
-  that had drifted on both brands, not just one).
-- "441 of them (every colour)" override entries → **453** (was 441; the shadow-shape count, 7, was
-  already correct and unchanged).
-- "(30 of them: grid → space → dimension)" one-hop semantic aliases → **32 on aurora, 30 on harbor**
-  (harbor still matches the original number exactly; aurora has since grown an extra breakpoint tier).
-- "every one of the 38 composites" → **37 on aurora, 38 on harbor** (harbor unchanged; aurora dropped one).
-- "the 8 duration-ms primitives" → **9 on aurora, 8 on harbor** (harbor unchanged).
-- "~4 of 21 steps" → **~4 of 20 steps** (the ramp has always been the engine's 20-step scale per
-  `ramp.ts`; 21 was wrong, and correcting it makes the neighboring "80% fail" claim land exactly instead
-  of approximately).
-- "the pill is used in 17 places" → **27** (literal `tokenPill(` call-site count, file has grown).
-- "every one of the ~130 uses is 9-15px" (`--faint`/`--muted`) → **143** combined usages (literal count).
-- "reaching loose needs +4 or +5" → **needs +5** (the `+4` case doesn't occur in current `display`-group
-  leading data on either brand — dropped, not just re-numbered).
-- "92px measured: widest label '2 tighter'" → the quoted label doesn't exist any more (#411 replaced
-  word-form nudge labels with signed deltas); rewrote to name the actual current widest label
-  ("default") rather than invent a new unverified pixel figure — no browser in this environment to
-  re-measure text width honestly, so the box is left wide with the reasoning corrected rather than the
-  number re-guessed.
-
-Three of the four brand-dependent numbers (composites, duration-ms primitives, one-hop aliases) turned
-out to still exactly match **harbor** as originally written — only aurora had drifted, and only the
-same-alias-every-mode count had drifted on *both* brands. Comments now cite aurora (the file's actual
-boot default, `bootBrand() → BRANDS.aurora`) with harbor noted parenthetically where they differ, so the
-number a reader checks against a fresh `npm run dev` matches what's written.
-
-**One corrupted comment.** Near `tokenPill`'s doc, two sentences about text-selection-exactness and
-`text-overflow` had been spliced together mid-word (a duplicated "which is what keeps a text..." clause
-with the connecting text missing). Rewritten as one coherent sentence; no factual content was recovered
-or lost, just the readability.
-
-**Gates run locally, all green:** `regen.ts` (comment-only change, artifacts byte-identical after
-regen), `regen.ts --check` (88 artifacts in this worktree, per the documented worktree-vs-main-checkout
-discrepancy), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (unchanged,
-contract 2.1.0), `lint-skills.ts` (clean), `lint-us-english.ts` (94 shipped files, clean — run *after*
-`npm run -w @prism3/web build` so the bundle is in scope, per its own documented trap), `npm run -w
-@prism3/web typecheck` (clean at every intermediate step, not just at the end — re-run after every edit
-inside the `STYLE` template literal per the backtick trap), `npm run -w @prism3/web build` (530.2kb,
-succeeds).
-
----
-
-## (2026-08-07) — Fix: plugin read-back never surfaced the `icon` FLOAT collection
-
-**STATUS: shipped.** Found during independent review of #597, not filed as an issue first — CI on
-`main` went red immediately after #596 merged, on a PR (#597) that never touches plugin code, so the
-break had to predate it.
-
-**Root cause.** #596 corrected `Prism3/engine/read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS` to include
-`icon` (#324's artboard-ladder axis), matching what `emit-figma-dims.ts` actually emits. That fix was
-right, but it exposed a second, independent bug it wasn't looking for: `plugin/src/read-figma.ts`'s own
-hardcoded `FLOAT_COLLECTIONS` list — the plugin's read-back path, separate from the engine's file emit —
-was also missing `icon`, so `readFigmaVariables` never surfaced the collection into the snapshot even
-though `buildFloatWritePlan`/`applyFloatPlan` (`write-plan.ts:194`) genuinely write it. Two matching
-gaps had been masking each other since #324: the verifier didn't expect `icon`, and the reader didn't
-read it, so nothing ever caught the plugin round-trip silently dropping a whole axis. #596 fixed one
-side of that pair and, correctly, turned the other into a visible failure.
-
-**Fix.** Added `icon` to `read-figma.ts`'s `FLOAT_COLLECTIONS` (same position as `write-plan.ts`'s
-`floatPlanFor('icon', …)` call, between `size` and `border-width`). Also updated the two test-local
-collection lists that had the same drift for the same reason and were about to go stale again the
-same way (`test-readback.ts`'s inline assertion array, `test-write-float.ts`'s `EXPECTED` + its
-"eight FLOAT collections" doc comment, now nine).
-
-**Verification.** `npm run -w @prism3/plugin test` — all 8 suites ALL PASS (was: `plugin read-back`
-2 FAILED on `collectionsPresent`, reproduced first on the unmodified checkout, then confirmed absent
-before #596 (`cd58f2d`) and present at #596's merge commit (`300a422`), isolating it to #596's diff
-rather than to #597 or to environment drift). Full gate suite otherwise unaffected: `regen.ts --check`
-88/88, `test.ts` 1920/1920, `mcp-test.ts` 49/49, `token-contract.ts --check` unchanged (2.1.0/485),
-`nb-regression.ts` PASS, `lint-skills.ts` clean, `web`/`plugin` typecheck + build clean,
-`lint-us-english.ts` clean (94 files), `check:ignore`/`lint:contrast`/`lint:classes` clean.
-
----
-
-## (2026-08-07) — Prose audit: engine comments asserting retired mechanisms (#553)
-
-**STATUS: shipped.** Sixteen `engine/*.ts` comment/docstring sites plus `Prism3/schema/theme-schema.json`'s
-`modeLevers` description. Pure prose except one real behaviour change, called out below.
-
-**Five mechanism claims, all stale.** `theme.ts`'s file-opening comment still said "Wireframe … is not
-yet a mode" — it's been a full built-in mode (grayscale, `modes.ts` `BUILTIN_MODES`, radius zeroed in
-`tree.ts`) since #48; reworded to state what it does. Five `ModeLevers` sites (four in `theme.ts`,
-one in `theme-schema.json`) said "today `radius`, with `tempo`/`density` slotting in later" — the type
-has carried nine axes (`radius`/`tempo`/`density`/`families`/`weights`/`lineHeights`/`letterSpacings`/
-`easings`/`shadow`/`typeSizes`) for a while, all fixed to describe the current axis set rather than a
-single-axis future. `eval.ts`'s header called contract-compliance "the next metric — deferred to the
-harness phase" and said "compute two mechanical metrics" — `scoreContractCompliance` is implemented in
-the same file, wired into `runEval` (`eval-run.ts`) and shipped over MCP (`mcp.ts`); now says three,
-framed as shipped not deferred. `emit-brandinput.ts` (and a duplicate in `test.ts`) justified reading
-`schema/example-brands.json` by claiming `design-md.ts` "is node-only" — its own header says pure, no
-`node:*`, no I/O, confirmed by its one import (a type-only import of `BrandInput`). The real reason:
-the raw `examples/*.design.md` text lives on disk, and *reading* it needs `node:fs`, which the browser
-sandbox lacks — the parser itself would run fine in-browser if handed the text. Reworded to state that.
-
-**The "seven FLOAT collections" claim (four sites: `emit-figma-dims.ts` ×2, `emit-figma.ts` ×2) was
-undercounting by one.** `FigmaDimsCollections` has eight members — `icon` joined after #324 and
-`icon.json` is a committed artifact — so all four now say eight and name `icon` in the enumerations.
-
-**Real behaviour fix, not just prose: `read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS` was missing `icon`.**
-Same undercount as the comments above, but this one is live data gating `collectionsPresent` in
-`FloatReadbackVerdict` — a dropped `icon` collection in a Figma readback would have passed silently.
-Added `'icon'` to the array (confirmed the collection name is genuinely `'icon'` via `emit-figma-dims.ts`
-and `materialise-to-figma.ts`'s own collection list). Verified safe: `regen.ts --check` and
-`token-contract.ts --check` both still green after the change, and the two doc-comment sites naming the
-same array (`ReadbackSnapshot.float`'s JSDoc) got the same fix for consistency.
-
-**Nine drifted numbers, re-measured against current committed artifacts rather than trusted from the
-issue** (several had drifted further since filing, as the issue predicted): `version.ts`'s "480 paths…
-promised at 1.x" → 485 (live `token-contract.ts` guaranteed count); the changelog jumped straight from
-1.1.0 to 2.1.0 with no 1.2.0/2.0.0 entries, so both were backfilled from git history (`#522`/`#527` for
-1.2.0's easing-role tier, `#531` for 2.0.0's easing-curve rename) with a running path-count per bump so
-the arithmetic (477→480→484→484→485) is self-checking. `token-contract.ts`'s "477" → 485 (same live
-count). `preview.ts`'s "248/248" → 488/488 (122 checked roles × 4 modes, measured live off `harbor`,
-`aurora`, and `nbTheme()` — all three agree). `vocabulary.ts`'s "567-token system" → 575 (measured via
-`pathsOf(brandTheme(MINIMAL_BRAND))`, the same corpus member `token-contract.ts` uses for "sparsest
-input"). `tree.ts`'s "binds 6 … other 9" → 7 bound / 8 dead (`LINE_HEIGHT_KEYS` has 7 entries since
-#388 added `cozy`; `LINE_HEIGHT_LADDER` has 15). `theme.ts`'s "both ramps are 6 long" → leading is 7
-(`LINE_HEIGHT_KEYS`), tracking is 6 (`LETTER_SPACING_KEYS`) — never was true that both were 6.
-`lint-us-english.ts`'s "Two traps" → Four (the list below it enumerates 1, 1b, 2, 3). `regen.ts`'s
-"seven emitters" → eight (`STEPS` array literally has 8 entries — undercounted even before drift).
-`mcp.ts`'s "the schema's 32 top-level fields" (and a duplicate in `test.ts`) → 33, with the "11 it never
-mentioned" → 12, both measured live via `nonLeverFields`/`manifestRootKeys` against the current schema
-and lever manifest (21 lever keys unchanged; the 33rd field is `personality`, non-lever).
-
-**Trap for whoever re-verifies this later.** Several of these numbers (guaranteed-path count, schema
-field count, contract count) are load-bearing elsewhere too — `token-contract.ts`'s own header, docs/30
-— and were *not* touched here because the issue scoped this to `engine/*.ts` comments specifically.
-`docs/30-versioning-and-compatibility.md` still says "477 paths" as of this PR; that's real drift, just
-out of scope for #553.
-
-**Gate confirmation, in order:** `regen.ts` (regenerated clean) → `regen.ts --check` (88/88 in sync,
-consistent with CLAUDE.md's noted worktree-vs-main artifact-count difference) → `test.ts` (1920/1920,
-including the `icon` collection addition) → `mcp-test.ts` (49/49) → `token-contract.ts --check` (485
-guaranteed, baseline unchanged) → `lint-skills.ts` (clean) → `nb-regression.ts` (PASS, ΔE00 1.95,
-11/11 contracts, 23/23 dimensions) → `web` build + `tsc --noEmit` (clean) → `lint-us-english.ts` (94
-files, clean). All green on a fresh worktree (`/tmp/p3-enginecomments553`, `node_modules` symlinked
-from the shared checkout).
 
 ---
 
@@ -12615,510 +13173,6 @@ one day late.
 `token-contract --check` unchanged (2.1.0, 485) · `lint-skills` clean · `lint-us-english` clean, 94
 files in 6 groups · NB regression exit 0 · DTCG aliases + contrast contracts pass · web `tsc` clean.
 `out/*` **byte-identical** — gate and docs only. No version bump.
-
----
-
-## (2026-08-07) — Prose audit: the numeric drift sweep (#554)
-
-**STATUS: docs-only, shipped.** No engine, schema, or emitted-artifact code changed except
-`web/vercel-ignore.sh` (one array entry) — see below.
-
-Filed as "248→444, 477→484, eight README spots" — every one of those specific numbers had
-already drifted further by the time this landed, which is the useful finding: main moved under
-the issue *while it was open* (today alone: #543/#544/#545), so the fix re-measured everything
-against the current committed artifacts rather than trusting the filed numbers. Nothing was
-copied from the issue text without an independent run.
-
-**What actually re-measured true, vs. the issue's guess:**
-
-| claim | issue said | actual (re-measured) |
-|---|---|---|
-| mode contrast contracts (per brand, 4 modes) | 444 (111×4) | **488** — `emit-dtcg`/`cli` stats, confirmed identically for nb/aurora/harbor |
-| guaranteed token-name paths | 484 (contract 2.0.0) | **485** (contract **2.1.0** — #573's `border.focus-inverse` landed after the issue's snapshot) |
-| levers / advanced | 35 / 20 | **38** / 20 |
-| preview-spec components / variants | 8 / 22 | 8 / **25** |
-| regen-gated artifacts | 85 | **88** (matches `CLAUDE.md`'s own worktree count) |
-| unit tests | 202 *and* 189 (two disagreeing spots in the same README) | **1920** both places |
-| per-brand aliases (nb/aurora/harbor) | 627/628/622 | **936/937/934** |
-| Figma `color.<mode>.json` variable count | 95 | **151** |
-| engine top-level `.ts` files (web bundle doc) | 43 | **44** |
-
-The multiplier in "111×4" was never right at any point — `modeChecks` in `tree.ts` already sums
-across all four built-in modes (light/dark/hc-light/hc-dark) in one number, so the doc phrasing
-("N/N contracts across four modes") was always describing the summed total, not a per-mode count
-to multiply. 488 is that total, re-derived live from `cli.ts`/`emit-dtcg.ts` output on the current
-tree, not backed into from a guess.
-
-**The one non-doc fix.** `web/README.md` and `web/vercel-ignore.sh`'s own comment both claimed
-"13 of 43 `.ts` files ... other 30 excluded", but the engine directory has 44 top-level `.ts`
-files today — `lint-skills.ts` was never added to either the bundled set or `EXCLUDED` when it
-landed. That is a real gap, not just stale prose: an unlisted file still resolves safely (the
-script's default is "trigger a build"), but the doc's arithmetic can't be made to close without
-either lying about the exclusion count or actually fixing the list. Added `lint-skills.ts` to
-`EXCLUDED` (alongside `lint-us-english.ts`, the same shape of file) — verified with
-`node web/vercel-ignore-check.mjs` (13 bundled / 31 excluded / 44 total) and
-`npm run -w @prism3/web typecheck` (clean).
-
-**One doc rewritten wholesale, not patched.** `Prism3/README.md`'s status paragraph and file tree
-predated typography/dimension/motion coverage entirely — it still said "NB only", "28/28
-cross-mode contracts", "44/44 aliases", and listed `schema/` as 3 files when it now has 7 and
-`out/` as nb-only when it now emits nb/aurora/harbor/wendys + `out/figma/**`. Patching individual
-numbers there would have left internally-contradictory prose, so the paragraph and tree were
-rewritten to the current shape instead.
-
-**Also fixed while in the neighborhood:** docs/20's state enumeration (§3, `<state>`) listed
-`rest`/`hover`/`pressed`/`selected` but omitted `focused` — which the engine emits for every
-interactive fill column (`modes.ts` `FILL_STATES`) and which the very same doc's §3a roles list
-already named. Added it to the enumeration rather than opening a separate issue for a one-line
-omission sitting three lines from the numbers already being touched.
-
-**Gates.** `regen.ts` (no artifact diff — docs-only), `regen.ts --check` 88/88, `test.ts`
-1920/1920, `mcp-test.ts` 49/49, `token-contract.ts --check` (unchanged, 2.1.0/485), `lint-skills.ts`
-clean, NB regression PASS (ΔE00 1.95, 11/11 contrast, 23/23 dimensions), `lint-us-english.ts`
-clean (94 files, built `web/dist/main.js` included in the scan). `web typecheck` clean (touched
-`web/vercel-ignore.sh` + `web/README.md`).
-
-**Sibling PRs.** #550 and #551 were filed concurrently against the same `Prism3/engine/README.md`
-(the `action.*` vocabulary and unbuilt-capability claims respectively, both untouched here) — a
-rebase on merge order is expected, not a conflict signal.
-
----
-
-## (2026-08-07) — Prose audit: eleven docs still called shipped capabilities unbuilt (#551)
-
-**STATUS: fixed.** Docs-only. Eleven status-prose corrections across `Prism3/docs/*`,
-`Prism3/engine/README.md`, and `plugin/README.md` — each claimed something was
-unbuilt/backlog/TODO that has actually shipped on `main`. Verified each against current
-code before writing the fix (not just against the issue's description):
-
-1. `docs/05-token-coverage-roadmap.md` — the Figma round-trip section ("unbuilt…
-   Backlog (large)") → `emit-figma.ts` + `materialise-to-figma.ts` + `plugin/src/write-figma.ts`
-   all exist and are regen-gated; marked shipped, closing summary updated to match.
-2. `docs/28-component-anatomy-schema.md` — "Nothing here is built" / "nowhere ❌" /
-   "no `icon` category at all" → `AnatomyDef` (#327), the emitted tree carries
-   `size.*.gap`, `size.*.padding-x-visual`, and `icon.size.{xs,sm,md,lg,xl}` (walked a
-   committed `out/*.tokens.json` to confirm the exact leaf names before writing the fix).
-3. `Prism3/engine/README.md` "Next increments" — writer "still backlog" → shipped, with
-   `plugin/src/write-figma.ts`'s idempotent apply named. Hit the US-English gate here:
-   quoting the real filename `materialise-to-figma.ts` (en-GB spelling, a pre-existing
-   project identifier out of this PR's scope to rename) trips `lint-us-english.ts` because
-   `engine/README.md` is one of its explicitly gated surfaces and the scan is plain
-   substring matching with no markdown/identifier awareness — worked around by describing
-   the file instead of quoting its name, rather than touching the gate or renaming the file.
-4. `docs/08-theming-interfaces.md` — §1's status table said all three surfaces (Figma
-   plugin, web playground, MCP server) were "to build" while §7 already marked two ✅;
-   reconciled §1 with reality (`plugin/`, `web/`, `engine/mcp.ts` all built) and marked
-   §7 step 4 (Figma plugin shell) ✅ too, which had been left unmarked.
-5. `docs/07-e2e-journey.md` — the layer-4 status row and §9 items 3–5 were stale; MCP
-   (`engine/mcp.ts`, 6 tools, CI-gated) and the plugin write path are done; the component
-   library (§9 item 5) marked 🔶 started (5 components authored in `engine/components/*`,
-   WC/React/Storybook/Code Connect projections still pending) rather than claiming it done.
-6. `docs/33-skills-adoption-plan.md` — "`prism3-theme` is already stale" / "no gate" →
-   both fixed (the skill teaches `personality` + named `radiusScale` stops;
-   `engine/lint-skills.ts` is CI-gated). Phrased as "gated in CI", not "the skill is
-   currently perfect" — did not investigate the sibling #549 staleness claim.
-7. `docs/22-plugin-plan.md` — "Only typography remains" → shipped as #237
-   (`emit-figma-font.ts` + `plugin/src/write-text-styles.ts`, wired in `plugin/src/main.ts`);
-   added as row 9 in the phase table rather than editing row 8's text in place.
-8. `docs/03-open-questions.md` Item 5 (icon contrast floor) → marked **RESOLVED**: shipped
-   as the per-brand `iconContrast: 'text' | '3:1'` lever (`theme.ts`, `levers.ts`, wired in
-   `modes.ts`). Left Item 9 (update-in-place vs build-from-scratch) alone — it's a
-   different open question than the one #551 named, and is still genuinely open in prose
-   even though the shipped writer took the update-in-place lean; noted that lean in
-   `docs/05` without overclaiming Item 9 itself was formally resolved.
-9. `docs/21-semantic-role-rebasing.md` §7 — described a since-removed `renderRoleColors`
-   bespoke control; `roleColors` now lives inline per status ramp on the Palettes page
-   (`statusRow`, #59) via a Source select (Auto / Custom hue / Use `<palette>`). Rewrote
-   to match current `web/src/main.ts`.
-10. `docs/16-code-review-findings.md` — verified CR-01 (`contrast()` no longer rounds
-    before threshold comparisons — `color.ts` now has an explicit comment citing this
-    finding), CR-06 (`nb-regression.ts` sets `process.exitCode = 1` on any failure), and
-    CR-07 (the flagged `innerHTML` sink is gone; `main.ts` now comments that external
-    names use `textContent`) fixed on `main`. Marked only those three; left the doc's
-    "findings only, nothing fixed" framing for the rest since the other findings weren't
-    checked and remain presumed open.
-11. Three small ones: `docs/04-theming-playground.md` header ("Not slated for build yet")
-    → built, it's `web/`. `plugin/README.md` (~178–180) — Apply materialises "core-palette
-    + color" only → corrected to the whole generated system (8 FLOAT collections +
-    shadow/gradient styles + font vars/Text Styles), matching what the same README's own
-    #237 section already documented. `docs/09-architecture-and-repos.md` — repo sketch
-    named a `figma-plugin/` directory that was never the real name → `plugin/` (both
-    occurrences).
-
-**Scope discipline.** Left `Prism3/engine/README.md` and other shared docs otherwise
-untouched — sibling issues #550 and #554 (concurrent agents) touch the same files at
-different, non-overlapping claims; only item 3's exact passage was edited here.
-
-**Gates.** Full CLAUDE.md §4 sequence green: `regen.ts` / `--check` (88 artifacts in this
-worktree, no drift — expected per CLAUDE.md's worktree note), `test.ts` (1920 passed),
-`mcp-test.ts` (49 passed), `token-contract.ts --check` (485 guaranteed, unchanged),
-`lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions, PASS),
-`lint-us-english.ts` (94 files, run after a `web` build — see item 3 above for the one
-false-alarm-shaped hit it caught).
-
----
-
-## (2026-08-07) — Five stale-prose fixes across shipped decisions-log strings and the MCP surface (#548)
-
-**STATUS: shipped.** `Prism3/engine/theme.ts`, `Prism3/engine/mcp.ts`, `Prism3/engine/ai-metadata.ts`,
-`Prism3/engine/test.ts`. This cluster mattered because the prose SHIPS — into every generated artifact's
-decisions log (`out/*.tokens.json`, `out/*.ai.json`), into the `.ai.json` agent-metadata guidance, and
-into the MCP `tools/list` descriptions + per-call hints a consuming agent reads at runtime — so a wrong
-claim here misleads a consumer or agent, not just a maintainer reading source.
-
-**1 (HIGH). `solid-tint` named a token role that is never emitted.** Three sites in `theme.ts` (the
-`BrandInput.outlineInteraction` doc comment, the resolved-theme type's doc comment, and the runtime
-decisions-log note built in `nbThemeFrom`/`brandTheme` that ships into every generated artifact) all
-claimed `solid-tint` emits `foreground.<color>-subtle`. It never did — `modes.ts` (`interactiveOverlayFamily`
-+ the `subtle-fill` write, ~line 143/742, #288) emits `interactive.<color>.subtle-fill.{hover,pressed,selected}`;
-`foreground.<color>-subtle` was never a real role for the per-column case (only the five fixed status
-semantics use `foreground.*`). `levers.ts` (~line 152–154) already had the corrected prose from a prior
-pass and was the reference for the right wording; all three `theme.ts` sites now name the actual emitted
-path. Propagated automatically by `regen.ts` into every `out/*.ai.json`/`.tokens.json` decisions log and
-into `modes-report.md` / `wendys-fidelity-report.md`.
-
-**2 (HIGH). `theme_brand`'s advertised payload size understated reality.** The shipped tool description
-and per-result `hint` both cited `~270,000`/`~220,000` chars (`~120,000` tokens combined) for `tokens`/
-`aiMetadata` on a four-mode brand. Measured fresh rather than trusted: called `callTool('theme_brand', …)`
-in-process against the exact `mcp-probe` fixture `test.ts` already uses for this size gate (`{ id, primary,
-neutral }`, `ALL_MODES` default = 4 modes) and diffed `content[0].text.length` per `include` combination.
-Real numbers: **tokens ≈ 536,770 chars, aiMetadata ≈ 287,283 chars, combined ≈ 823,581 chars (~205,000
-tokens)**. Neither of the two other numbers already in the file was right either: the shipped `270k/220k`
-undercounted (closer in relative terms but still off by roughly 2×), and a THIRD, "roughly-correct"
-internal comment nearby (`833,819`/`516,761` chars) overcounted by 55–80% against this same fixture —
-verified independently rather than treated as ground truth per the issue's instruction. Updated the
-shipped tool description, the shipped per-result hint, the two internal comments in `mcp.ts` that stated
-the same now-stale figures (for consistency within the file), and the `test.ts` assertion messages that
-restated the old numbers (`~490KB together` → `~824KB together`; `833,819 / 516,761 / 5,803 chars` →
-`536,770 / 287,283 / 3,653 chars`; `vs ~834,000 for tokens` → `vs ~537,000 for tokens`) — the assertions
-themselves already passed; only the message text was stale. `export_theme`'s own `~830,000 chars`
-description (a different tool, a different three-section bundle) was left alone — out of this issue's
-scope and not internally inconsistent with anything touched here.
-
-**3 (MED). `ai-metadata.ts`'s `font` primitive guidance said "(Phase 2)" for a tier that already
-shipped.** The typography semantic-composite tier it pointed at exists (same file, `type.*` entries,
-~line 300–347) and `out/nb.ai.json` carries 43 `type.*` composite entries today. Reworded to point at
-the `type.*` entries directly instead of a phase label that reads as "not built yet".
-
-**4 (MED). The weight-role note dropped the fifth role.** `nbThemeFrom`'s decisions note (ships in
-`out/nb.tokens.json` and every derivative report) said `weight roles subtle/default/emphasis/strong →
-300/400/600/700` — four roles. `WEIGHT_ROLE_ORDER` (`theme.ts`) has always included a fifth, `max`
-(default 900), and the emitted tree carries `weight-role.max`. Updated the note to list all five.
-
-**5 (MED). `mcp.ts`'s header comment undercounted its own tool surface.** Listed three tools
-(`list_levers`/`theme_brand`/`validate_brand`) in prose while `toolDefs` defines six — `score_consumption`,
-`theme_from_brief`, and `export_theme` were live and undocumented at the top of the file. Added all three
-with one-line descriptions matching their actual `toolDefs` entries.
-
-**Verification.** Full CLAUDE.md §4 sequence, run in the isolated worktree (`/tmp/p3-mcp548`, `web/dist`
-built locally just to satisfy the lint-us-english surface check — gitignored, not committed):
-`regen.ts` (regenerated, 8 emit steps ok) / `regen.ts --check` (**88** committed artifacts byte-match —
-this worktree's expected count, not the 89 the shared checkout sometimes shows), `test.ts` (**1920**
-passed), `mcp-test.ts` (**49** passed), `token-contract.ts --check` (guaranteed 485, unchanged),
-`lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions, **PASS**, aggregate ΔE00
-1.95), `lint-us-english.ts` (94 shipped files, clean). `out/*.ai.json`/`.tokens.json` diffs from `regen.ts`
-are exactly the expected propagation of items 1, 3 and 4's wording fixes into every brand's emitted
-decisions log and `.ai.json` — no unrelated drift.
-
----
-
-## (2026-08-07) — Prose audit: retired by name, still taught as current — action.* purged from docs 01/06/14/17/31 + engine README (#550)
-
-**STATUS: shipped (docs-only).** Six files: `Prism3/engine/README.md`, `Prism3/docs/{01-token-architecture,06-surface-and-content-color-model,14-component-layer,17-consumption-eval,31-descriptive-vocabulary}.md`.
-
-**The bug.** `color.action.*` stopped being emitted a while back — the live interactive layer is `interactive.{primary,neutral,destructive}.*` (docs/20), disabled ink is the cross-cutting `disabled.on-fill`, not a per-family `.disabled` state. Several docs never got the memo: the engine README taught `action.*` as the current model in one passage while correctly calling it retired forty lines earlier (self-contradiction, not just staleness); docs/01's "As built" blockquote — whose entire job is to state current truth over the surrounding draft spec — had the polarity backwards, naming `action.*` as committed and `interactive`/`text.on-emphasis` as superseded; docs/06 carried `action.*`, `text.on-action`, `text.on-disabled` in sections marked resolved/locked with no superseded marker at all; docs/14, docs/17, and docs/31 used dead names (`color.action.default`, `modeLevers.<mode>.radiusScale`) as teaching examples of correct usage.
-
-**Verification, not assumption.** Walked `out/aurora.tokens.json` (committed, regenerated) to get the real emitted shape before touching prose: color groups are `background, scrim, foreground, interactive, disabled, field, text, icon, border` — no `action` anywhere. Confirmed `text.on-{semantic}`/`text.on-inverse` exist but `text.on-primary`/`text.on-action`/`text.on-disabled` do not. Confirmed `disabled.on-fill` is the single cross-cutting ink-on-disabled-fill token (Carbon's `text-on-color-disabled`), not a per-family `action.disabled`/`text.on-disabled` pair. Confirmed `radius` (not `radiusScale`) is the `modeLevers.<mode>.*` key in `theme-schema.json` (`additionalProperties: false` would reject `radiusScale` there — the global lever keeps that name, only the per-mode override renamed).
-
-**One number changed underneath the rename, not just the name.** The README's aurora-floor illustration said `action.default` resolves to `accent.600` at 4.95:1. The current equivalent, `interactive.primary.fill.rest`, resolves to `accent.500` at 3.76:1 (`modes-report.md`, aurora light) — the fill target is 3:1 now, not the old 4.5:1 text-like bar, so the numbers moved along with the states splitting from a single `default` into `rest`/`hover`/`pressed`/… Updated the illustration's numbers to match rather than just swapping the token name onto stale figures.
-
-**Scope discipline, deliberately narrow.** Left `docs/17-consumption-eval.md` line ~103 alone — it's a historical record of what an agent actually guessed in a past eval run (`color.action.*` was live vocabulary then), not a teaching example of current-correct usage; rewriting it would falsify the experiment log. Left docs/06 §6 decision 1 ("`action` placement — top-level `action.*`") alone too — same historical-decision-record class as the eval line, and not one of the three passages named in the issue. Didn't touch `foreground.danger.default` (should be `foreground.danger`, no `.default`) sitting one line from the `action.default` fix in the README's aurora dialect passage — a real dead name, but a different one than this issue's `action.*` vocabulary, and touching it risked colliding with #551/#554 editing the same README concurrently for unrelated stale claims. Flagging it here since nothing else will: `foreground.danger.default` in `Prism3/engine/README.md`'s aurora-dialect paragraph is still wrong and needs its own fix.
-
-**Gates:** `regen.ts` / `regen.ts --check` (88 artifacts, worktree-clean count per the CLAUDE.md note) / `test.ts` (1920 passed) / `mcp-test.ts` (49 passed) / `token-contract.ts --check` (unchanged, contract 2.1.0) / `lint-skills.ts` (clean) / `lint-us-english.ts` (clean, 94 files — required a one-off `npm run build` in `web/` since the fresh worktree had no `dist/` for the gate's built-bundle scope check; not a source change) all green.
-
----
-
-## (2026-08-07) — Dashboard prose audit: seven stale/misdirecting user-visible strings (#547)
-
-**STATUS: shipped.** `web/src/main.ts` only. Companion to #552 (internal code comments, same file,
-fixed by a different concurrent agent) — this pass touched only rendered strings (innerHTML/textContent/
-template-literal copy a user actually reads), not `//`/`/* */` documentation.
-
-**1–2 (HIGH/MED) — "Edit modes" pointed at a control #432 removed.** The mode-strip popover that used to
-manage which modes exist was retired in #432; that job moved to the brand menu's "Modes" section
-(`renderBrandMenu`). Three strings still told the user to go to "Edit modes": the derived-mode note's
-`genview-hint`, the derived-mode-cell tooltip in the typeface-bindings table, and (folded into the same
-fix) the derived-mode note's failing-chip text, which separately promised "see the preview below" — false
-on `sizeRadius`/`layout` (`controlSplitPage` returns right after the note, no specimen at all) and on
-`surfaces`/`typography` (`renderScreen` calls them with `() => []`, always empty). Repointed the "which
-modes exist" copy at the brand menu; repointed the failing-chip copy at Preview → Contrast contracts (a
-target that's real on every page, unlike a per-page "below" that isn't always there); dropped the
-`genview-hint`'s preview-below promise rather than auditing it per page, per the issue's stated
-preference for generalizing over building the missing renders.
-
-**3 (MED) — style-guide "Accent palettes are opt-in and would add blocks."** `renderPreviewStyleGuide`'s
-Interactive section only ever calls `paletteBlock` for Primary/Neutral/Destructive (plus a hand-built
-Disabled block) — it never loops over promoted accent palettes the way the live editing page does, so the
-blocks the blurb promised never render regardless of the opt-in state. Corrected the copy to say what the
-section actually covers instead of promising blocks that don't exist. **Left for reviewer
-consideration:** the alternative fix — looping the style guide over promoted accents the way the editor
-does — is a real feature, out of scope per the issue's explicit preference for correcting words over
-building behavior; flagging in case product wants that parity.
-
-**4 (MED) — the five `on-*` derived-role descriptions overclaimed "black or white."** `onColor` in
-`Prism3/engine/modes.ts` softens to a near-white (`N025`)/near-black (`N950`) neutral step in standard
-modes, escalating to pure black/white only if the softened pick can't clear `onMin` — pure extremes are
-the unconditional pick only in HC, and `TEXT_DERIVED_ROLES` is never shown in a derived mode (`renderScreen`
-swaps in `renderGeneratedNote` there), so the copy only needed to be right for the standard-mode case.
-Reworded `text.on-brand`/`on-success`/`on-warning`/`on-danger`/`on-info` to "a near-black or near-white
-pick" so the description doesn't contradict the resolved swatch shown beside it. **Deliberately left
-untouched:** the `/* DERIVED ... */` block comment two lines above (`"a binary black/white pick"`)
-restates the same inaccuracy but is a code comment, not rendered copy — in #552's scope, not this one.
-
-**5 (MED, real bug not just prose) — gradient live preview ignored the Interpolation select.**
-`inputGradientCss` hardcoded `in oklch` in the generated CSS regardless of `g.interpolation`, so picking
-sRGB in the per-gradient Interpolation dropdown never changed what the swatch rendered even though the
-engine does honor the per-gradient value. Fixed by reading `g.interpolation ?? 'oklch'` into both the
-linear and radial branches. Small, mechanical, matches the adjacent control — no other behavior changed.
-
-**6 (LOW) — motion hero named a curve that no longer exists.** "the emphasized easing curve" predates
-#531's rename; curves are now `linear`/`standard`/`decelerate`/`accelerate`/`expressive`/`calm`, and
-`emphasized` survives only as a transition *role* bound to the `expressive` curve. Swapped the hero copy
-to name the current curve. (The nearby "The Motion specimen traces the emphasized card" in
-`renderEasingEditor`'s description was checked and left alone — `emphasized` really is the name of one of
-the four transition cards the specimen draws, per `theme.ts`'s `transitions` array, so that string is
-still accurate.)
-
-**7 (LOW) — derived-chip tooltip overclaimed for wireframe.** "Auto-derived from your contrast contracts"
-was applied to every `.mctx-b.derived` chip, but wireframe is a mechanical grayscale (the file's own
-`renderGeneratedNote` copy already says so), not contrast-derived. Made the tooltip mode-conditional:
-wireframe gets its own accurate string, HC keeps the original.
-
-**Verification.** Item 5 is the one real logic change in this batch, so ran the full CLAUDE.md §4
-sequence rather than skipping to prose-only checks: `regen.ts` / `--check` (88 artifacts in this worktree,
-no drift), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (485
-guaranteed, unchanged), `lint-skills.ts` (clean), the NB regression (11/11 contrast, 23/23 dimensions,
-PASS), `web` typecheck (clean) + build, then `lint-us-english.ts` against the freshly built bundle (94
-files, clean). All green.
-
----
-
-## (2026-08-07) — prism3-theme's SKILL.md prose drifted from three engine levers it documents (#549)
-
-**STATUS: shipped.** `Prism3/skills/prism3-theme/SKILL.md`, three table-row fixes. No engine code
-changed — this was a documentation-only prose audit against the levers it describes.
-
-**Finding 1 (HIGH) — `disabledStrategy` dichotomy was stale and pointed the wrong way.** The skill
-documented `'accessible' | 'conventional'`, default `'accessible'`, with `'conventional'` sold as "the
-sub-AA exempt look". The real lever (`Prism3/engine/theme.ts`) is `'full' | 'reduced'`, default
-`'reduced'` — `'full'` (undocumented in the skill) promises a fixed 4.5:1; `'reduced'` dials a
-`disabledMin` floor (3–4.5, default 3). `accessible`/`conventional` still parse, but
-`normalizeDisabledStrategy` collapses BOTH to `'reduced'` — the documented dichotomy selected nothing —
-and `normalizeDisabledMin` actively clamps a legacy `'conventional'` input UP to the 3:1 floor, raising
-its contrast from the old ~2:1 exempt look (the owner's 2026-07-29 decision not to use the WCAG
-1.4.3/1.4.11 inactive-component exemption — see `theme.ts`'s `DISABLED_FLOOR_MIN`/`DISABLED_FLOOR_MAX`
-comments). So the skill promised the opposite of what the input actually does. Rewrote the table row to
-document `full`/`reduced` as the real values, `reduced` as the real default, what each does, and that
-`accessible`/`conventional` survive only as legacy aliases that both resolve to `reduced` — never to the
-low-contrast look the old prose promised.
-
-**Finding 2 (MED) — omitted `families` does not yield "a system-font stack".** The skill said omitting
-`typography.families` falls back to system fonts. The actual default is the engine's own faces (Inter;
-JetBrains Mono for the `code` category) with a system fallback tail appended (`TYPE_FAMILY_DEFAULT` /
-`asStack` in `theme.ts`). `Prism3/schema/theme-schema.json` (~line 301) already states this correctly;
-matched its wording rather than inventing new phrasing, so the two surfaces describing the same lever
-stay in sync.
-
-**Finding 3 (MED) — `status` shape omitted `info`.** The skill's table documented
-`{ success/warning/danger }`. `theme-schema.json` (~line 205) and the `BrandInput.status` type in
-`theme.ts` both accept `info` as a fourth optional hue override; doc 21
-(`semantic-role-rebasing.md`) treats the closed four-hue set as deliberate. Added `info` to the
-documented shape.
-
-**Why `lint-skills.ts` caught none of these — noted in the PR, not fixed here.** The gate's coverage
-check confirms a skill's quoted names *resolve* and that `documents: brandInput` covers every top-level
-property (or names it in `omits:`) — it does not check that a documented enum's *values* are current
-rather than stale legacy aliases (findings 1 and 3 both named a real property with a stale/incomplete
-value set, which passes), and it has no mechanism for a behavior claim like "omitting X yields Y" at all
-(finding 2 is prose, not a name). Extending the gate to catch either class is a real gap but a separate,
-larger decision — out of scope for this issue; `lint-skills.ts` stayed green throughout this fix, as
-expected, since nothing about resolvable names or top-level coverage changed.
-
----
-
-## (2026-08-07) — The mode badge's kept guard now covers both halves of its own case (#545)
-
-**STATUS: shipped.** `web/src/main.ts` (`modeScopeBadge`), `web/mode-audit.mjs`. Held back deliberately
-until #581 (`#574`'s "measure view controls out of `hasControls`" fix) merged, since both touched the
-same badge logic; re-verified against post-#581 `main` before fixing, and again after #543/#544 landed
-on top of that during this session.
-
-**The defect, confirmed unchanged by #581.** `modeScopeBadge` still branched `perMode → hasControls →
-'Non-editable'`. For a per-mode section rendered in a derived mode (`scope === 'per-mode'` and
-`DERIVED_MODES.has(currentMode)`), `perMode` is false by construction, so if that section's controls
-happen to render, `hasControls` wins first and the badge reads "Editing · All modes" over controls the
-engine refuses for that mode — exactly the case the issue named. #581 only changed *which* controls
-count toward `hasControls` (excluding `[data-view-only]`); it never touched this branch's precedence.
-
-**Why it stayed invisible, confirmed by reading rather than assumed.** No page renders a per-mode
-section's controls in a derived mode today: `renderScreen` and `controlSplitPage` both replace
-`sections(host)` wholesale with `renderGeneratedNote()` whenever `DERIVED_MODES.has(currentMode)`, so
-the buggy branch never fires by construction. `mode-audit.mjs --check-badges` inherited the blind spot
-for a second, independent reason: its measurement loop only ever clicks Light and Dark, so `currentMode`
-is never derived at the moment a badge is captured either — two unrelated reasons landing on the same
-"unreachable today" conclusion the previous session's kept-guard comment already stated.
-
-**The fix.** Added `derivedPerMode = scope === 'per-mode' && DERIVED_MODES.has(currentMode)` in
-`modeScopeBadge`, tested ahead of `hasControls` in both the label (`b.append`) and tooltip (`b.title`)
-branches: `editable = perMode || (hasControls && !derivedPerMode)`. The existing "UNREACHABLE TODAY"
-tooltip fallback already had the right text for the no-controls half of this case; the fix routes the
-controls-present half into that same fallback instead of duplicating the message.
-
-**The audit fix went further than the issue's literal ask, because the literal ask was a no-op here.**
-The issue asked for the same precedence check in `mode-audit.mjs`'s `expected` derivation, but that
-derivation has no "current mode is derived" signal to guard — the script never visits a derived mode, so
-a parallel-looking edit would have changed nothing that runs. Extended the audit instead to click every
-`.mctx-b.derived` button per stage and snapshot it, pushing new claims with `expected: 'none'` for any
-section that measured `EDITS` in the Light/Dark pass (this repo's existing proxy for `scope ===
-'per-mode'`, since `SECTION_MODE_SCOPE` is hand-maintained from that same measurement) — ahead of
-`hasControls`, mirroring the fixed precedence rather than restating it. This closes the *real* blind spot
-(the audit never checked a derived-mode badge at all) rather than the literal one named. A stage is
-clicked back to Light after its derived-mode pass: `probeSection` only re-clicks the `.stage` tab, never
-a mode button, so leaving a stage on a derived mode broke every later probe for unrelated Light/Dark
-claims with false `section-gone` errors — caught by running the extension before adding the reset, not
-predicted in advance.
-
-**Verified the fix has teeth, not just green output.** Temporarily patched `renderScreen` to always call
-`sections(host)` even in a derived mode (reverted before commit) so a per-mode section's controls
-actually render there — something no page does today. With the real fix in place, both the live badge
-and the audit's `expected` read `Non-editable` / `'none'`. Then temporarily reverted only the
-`derivedPerMode` guard (kept the audit extension and the render hack): the audit caught 16 mismatches,
-all reading "measured EDITS(derived) -> expected badge 'none', page renders 'all-modes'" — reproducing
-the exact pre-fix lie and proving the new audit coverage would have caught it. Restored the real fix and
-removed the render hack before committing; `git diff` against the fix commit carries neither.
-
-**Verification.** `--check-badges` passes **46/46** (up from 28 — the 18 new claims are the derived-mode
-pass, all `expected: 'none'`, confirming the architectural guard holds in practice, not just by comment).
-Full CLAUDE.md §4 sequence green against post-#543/#544 `main`: `regen.ts` / `--check` (88 artifacts, no
-drift), `test.ts` (1920 passed), `mcp-test.ts` (49 passed), `token-contract.ts --check` (485 guaranteed,
-unchanged), `lint-skills.ts`, the NB regression (11/11 contrast, 23/23 dimensions, PASS),
-`lint-us-english.ts` (94 files, run after `web` build), `web` typecheck + build, `lint:classes` (801
-mints, 21 entries, clean — #544's rewrite), and `audit:modes --check-badges` itself.
-
----
-
-## (2026-08-07) — `lint-classes` closes three mechanically-demonstrated blind spots (#544)
-
-**STATUS: shipped.** `web/lint-classes.mjs` only — no `main.ts` changes. All three defects named in
-#544 were confirmed by mutation before the fix and confirmed fixed after, then the mutation was
-reverted; the committed diff carries none of them.
-
-**1. The UTILITIES exemption was unchecked.** `.mono`/`.faint` skip the collision check on the claim
-they "carry no layout of their own that a host class could fight" — that was a comment, not a check.
-Adding `margin-top:16px` to `.mono`'s own rule left the old gate green (57 entries, clean); every one
-of the ~40 `X mono` mints would have silently inherited it. Fixed by asserting the invariant: each
-UTILITIES class's own top-level rule is parsed and every declared property must match `NON_BOX_PROP`
-(`font-*`, `color`, `letter-spacing`) — anything else fails closed, as does a listed utility whose rule
-can't be found at all (same #502 "prove you looked" posture as the existing owns-empty check).
-
-**2. The stem exemption assumed a dash-prefix never spans two surfaces — `tok-` already did.**
-`.tok-hexv`/`.tok-alias` (token-value display) and `.tok-seg` (the view segment's own L3 modifier, #466
-— an unrelated surface, already carrying its own explicit `pvseg tok-seg` ALLOWED entry) share only the
-first dash-segment. A synthetic `tok-hexv tok-seg` mint confirmed the old gate exempted it before ever
-reaching ALLOWED. **Chose to narrow the rule over building a stem→surface registry**: redefined
-"extends" as a literal dash-prefix relationship (`b === a || a.startsWith(b+'-') || b.startsWith(a+'-')`)
-rather than "shares a first dash-segment". This closes the `tok-` hole with zero fallout — every
-pairing the old loose rule was silently covering (`sg-card sg-mid` and eight siblings) was *already*
-hand-listed in ALLOWED for other reasons, so narrowing added no new required entries; a registry would
-have been pure bookkeeping for the same result.
-
-**3. Rule ownership inside a grouped selector was invisible.** The `owns` scan anchored on
-`^\.class\s*\{`, so `.zzz, .range{...}` matched nothing — and this wasn't hypothetical, the file
-already had three such rules (`.brandsel,.barbtn{...}` etc. at what was line 6829). Regrouping `.range`
-as `.zzz-544-mut, .range{...}` made a synthetic `range psl-val` mint (previously correctly flagged) pass
-clean on the old gate. Fixed by matching a top-level comma-separated run of simple class selectors and
-adding every member to `owns` — CSS grouping semantics mean each selector in the group owns the whole
-rule body, not just the first. This fix alone surfaced one **real**, previously-invisible pairing:
-`barbtn navbtn` (the responsive nav-toggle button, `.brandsel,.barbtn{...}` grouped rule + `.navbtn{
-display:none}` flipped to `flex` only inside the narrow-width media query) — confirmed intentional by
-reading the cascade, not just added to make the gate pass, and now has an ALLOWED entry with the
-reasoning inline.
-
-**Smaller, same theme.** The 8 `el()` mints using template-literal class arguments (`` `sg-tc ${cls}
-sg-tchd` `` and similar) were invisible to the mint scanner, which only matched quoted-string
-arguments — extended rather than documented-as-a-gap: a third regex captures backtick literals, and
-`${...}` segments are stripped before tokenizing so only the statically-known surrounding class names
-are checked (the same truncate-at-the-dynamic-part posture the existing single-quote regex already took
-via its `[^'$]+` exclusion). This surfaced two more real pairings needing review: `sg-tc sg-tchd` and
-`sg-tc sg-tcrow` (the palette table's header/row variants, same family as the already-allowed `sg-tc
-sg-t sg-tcrow`), plus `pswatch ro ao-chk` and `sw ao-chk` (swatches on the alpha-checker background)
-that were reachable via templates in two other spots.
-
-**ALLOWED went from 57 entries to 21.** Fixes 1–2 made the majority of the old list — every `X mono`
-entry (UTILITIES-prefiltered) and the `sf-ex-*` family (genuine same-surface prefix-extension) —
-mechanically unreachable *before* the fix and *unchanged after*: they never reach the ALLOWED membership
-check either way, so keeping them documented a check the code doesn't perform. Pruned them rather than
-commenting each as dead — the file's own header already states the point of the two mechanical
-exemptions is to keep this list small; 40 vestigial entries contradicted that. The 5 new pairings above
-were added; everything else that was already reaching the ALLOWED check (`sg-card` family,
-`start-card`/`start-alt` family, `brandmenu`/`ctable`/`mtbl-`/`tf-in` cross-surface pairs, `pvseg
-tok-seg`) stayed, unchanged.
-
-**Verification.** Full CLAUDE.md §4 sequence green: `regen.ts` / `--check` (88 artifacts, no drift),
-`test.ts` (1865), `mcp-test.ts` (49), `token-contract.ts --check` (485 guaranteed, unchanged),
-`lint-skills.ts`, the NB regression (11/11 contrast, 23/23 dimensions, ΔE00 mean 1.95), `lint-us-english.ts`
-(94 files, run after `npm run -w @prism3/web build` per its own trap-2 requirement), `web` typecheck +
-build, and `lint:classes` itself (801 mints, 21 entries, clean).
-
-**What's still out of scope.** Two rules concatenated on one physical line without a newline between
-them (`.sg-g3{...}.sg-g5{...}`) is a different blind spot from the grouped-selector one fixed here — the
-second rule on such a line is still invisible to `owns` since it isn't at `^`. Not one of #544's three
-named defects; noted for whoever next touches this file. Also left untouched, per explicit scope: any of
-`main.ts`'s mode-badge logic (`SECTION_MODE_SCOPE`, `modeScopeBadge`, `attachModeBadges`) — that's #545,
-currently live under PR #581.
-
----
-
-## (2026-08-07) — Backfill `DEPRECATIONS` for the 2.0.0 motion-easing rename (#543)
-
-**STATUS: shipped.** `Prism3/engine/version.ts`, `Prism3/docs/30-versioning-and-compatibility.md`,
-`Prism3/schema/token-contract.json`. No `CONTRACT_VERSION` bump — see below for why none was needed.
-
-**The bug.** #531 renamed the three guaranteed paths `motion.easing.{enter,exit,emphasized}` to
-`motion.easing.{decelerate,accelerate,expressive}` and correctly bumped `CONTRACT_VERSION` to 2.0.0
-(MAJOR, a rename is a removal + an add). But `DEPRECATIONS` — the table that exists *specifically* so
-a MAJOR removal ships its own migration — was left empty, and two docs comments went on to assert
-"nothing in the guaranteed surface has ever been renamed" as if that were still true: `version.ts`'s
-own comment on `DEPRECATIONS`, and `docs/30`'s §Deprecations section. Both said the opposite of what
-had just shipped.
-
-**The fix.** Populated `DEPRECATIONS` with the three rename entries (`since: '2.0.0'`, each
-`replacedBy` verified against the live guaranteed set — `motion.easing.{decelerate,accelerate,
-expressive}` all resolve). Rewrote both false comments to name this rename as the worked example
-instead of claiming the table has never been used.
-
-**The `--accept` question, resolved without a workaround.** The issue flagged this as open: the
-committed baseline (`schema/token-contract.json`) can only be rewritten by
-`token-contract.ts --accept`, which refuses unless `CONTRACT_VERSION` has already been bumped by the
-increment the diff requires — and this change adds no new path, removes none, retypes none, so
-`classify()` reports `level: 'none'`. Reading the gate's actual logic (not assumed) showed it already
-has the path this needs: `--accept` computes `informationalOnly` separately from `level` — true when
-`level === 'none'` but `deprecations` (or `brandDependent`, or `engineVersion`) differs from the
-baseline — and for `level: 'none'`, `satisfiesBump` only requires the *current* `CONTRACT_VERSION`
-equal the baseline's, which it already does (both 2.1.0 — a later PR, #573, bumped past 2.0.0 for an
-unrelated MINOR addition since #531 merged). So `--accept` ran clean on the first try: `✓ baseline
-accepted at 2.1.0 (no surface change)`. No CONTRACT_VERSION bump, no gate override, no workaround —
-this is exactly the "backfill an already-shipped version's metadata" case the informational-only path
-was built for. Left alone: this file's own **(2026-08-04) — Versioning: the token *names* are the
-contract, and a gate that cannot rewrite itself** entry, which also says `DEPRECATIONS` ships **empty**
-— it's a dated log entry accurate as of when it was written, not a live claim, so per this file's
-append-only convention it stays as history rather than being retroactively edited.
-
-**Gates run locally, all green:** `regen.ts` (no drift beyond the two source edits), `regen.ts --check`
-(88 artifacts, clean worktree), `test.ts` (1865 passed), `mcp-test.ts` (49 passed), `token-contract.ts
---check` (passes post-accept), `lint-skills.ts`, `nb-regression.ts` (PASS, unchanged — this touches no
-generated value), `lint-us-english.ts` (94 files, clean — ran after `web` typecheck + build so the
-built-bundle surface was actually present to scan), `web` typecheck, `web` build.
 
 ---
 

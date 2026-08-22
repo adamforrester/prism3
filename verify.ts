@@ -421,6 +421,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-context-nodes.ts'),
   },
   {
+    id: 'lint-progress-order',
+    ciStep: 'docs/00-progress.md stays newest-entry-first',
+    cmd: engine('lint-progress-order.ts'),
+  },
+  {
     id: 'lint-payload-manifest',
     ciStep: 'Every emitted artifact is classified payload or ours',
     cmd: engine('lint-payload-manifest.ts'),
