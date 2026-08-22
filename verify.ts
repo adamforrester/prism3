@@ -416,6 +416,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-decisions-index.ts'),
   },
   {
+    id: 'lint-context-nodes',
+    ciStep: 'A context node is a group unless a stated reason says otherwise',
+    cmd: engine('lint-context-nodes.ts'),
+  },
+  {
     id: 'lint-payload-manifest',
     ciStep: 'Every emitted artifact is classified payload or ours',
     cmd: engine('lint-payload-manifest.ts'),

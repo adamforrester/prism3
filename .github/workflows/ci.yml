@@ -295,6 +295,13 @@ jobs:
       - name: Every recorded decision is indexed, and every index row is real
         run: npx --yes tsx@4 packages/engine/lint-decisions-index.ts
 
+      # A leaf that later needs siblings is a MAJOR contract break — we paid one for `border.inverse`
+      # in #891 (a major, two DEPRECATIONS entries, and a new NB_KNOWN_RENAMES mechanism). A group with
+      # one child is verbosity. Asymmetric costs, so the default is the cheap error and the expensive
+      # one is argued for in `LEAF_OK` with a reason (#892).
+      - name: A context node is a group unless a stated reason says otherwise
+        run: npx --yes tsx@4 packages/engine/lint-context-nodes.ts
+
       # `out/` mixed the brand's token trees (which travel to a client on eject) with a regression
       # report and a preview page (which do not), and NOTHING said which was which — the only thing
       # distinguishing them was that a human knew. Every payload-assembling tool in the field declares
