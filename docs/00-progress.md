@@ -189,19 +189,26 @@ is a layout prop with two values, not a coordinate the paint grammar needs. `err
 state because it changes the border ink at both selections, not because a switch validates.
 
 **#900, third instance — and it constrains the answer rather than confirming the gap.** Commented on the
-issue from measurement. The track has **no** brand-specified width, height or thumb diameter anywhere
+issue from measurement (#933 is cited there too, since the mechanism gap changes what an anatomy block
+would need). The track has **no** brand-specified width, height or thumb diameter anywhere
 in the emitted tier; `size.*.height` is 40/48/56 on nb, harbor and wendys but **32/40/48 on aurora**,
 while `icon.size.*` is **16/20/24 on all four** — brand-invariant, which sharpens the trap rather than
 softening it. `icon.size.*` stays unbound, in `notes.unverified`, as both predecessors left it.
 
-**One new finding that the #900 comment needs and that is filed separately: a switch's two boxes cannot
-both be painted.** Measured live with a probe against the real executor, not read off the source:
-`anatomy-figma.ts` paints `fill`/`border` only under `if (p.kind === 'box' && p.role === 'target')`, and
-`component-schema.ts` refuses more than one `role: 'target'` per def. A two-box probe validates with
-**zero errors** and produces `track paints={...} / thumb paints=null`. Every def with an anatomy block
-today has `boxes=1, targets=1`, so nothing had exercised it. This does not block `switch` (no anatomy
-block) but it blocks the anatomy block for a switch specifically, and it is a mechanism gap rather than
-a missing token — filed as its own issue rather than noted here, per one-concern-per-PR.
+**One new finding that the #900 comment needs, filed as #933: a switch's two boxes cannot both be
+painted, and the diagnosis is sharper than "a paint is missing".** `anatomy-figma.ts:893` attaches
+paints only under `if (p.kind === 'box' && p.role === 'target')`, and `component-schema.ts:1787` permits
+exactly one `target` per def. So `role: 'target'` — which means *"what does the user click"* — is the
+thing deciding *"what carries color"*, and **a switch is the first component where those two parts
+differ**. Measured with a two-box probe over the real def and the real `figmaAnatomyPlan`, not read off
+the source: both configurations validate with **zero errors**, each paints exactly one box, and the
+thumb never receives a `paints` field at all. **The worse half is the configuration a hit-area author
+would reach for** — a switch's whole row is clickable, like a checkbox's — where the track's `on` fill
+paints the **entire label row**: a brand-colored band with the label sitting on it, a colorless track
+and an invisible thumb, at zero validation errors. Every def with an anatomy block today is
+`boxes=1, targets=1` (all six checked), so the two-box case had never been exercised. #802's class. It
+does not block `switch` (no anatomy block); it blocks the anatomy block for a switch specifically, and
+it is a mechanism gap rather than a missing token.
 
 **Verified by mutation, per `docs/34`** — six, each naming `switch`:
 
