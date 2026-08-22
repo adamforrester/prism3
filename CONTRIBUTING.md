@@ -126,6 +126,16 @@ npx tsx packages/engine/lint-decisions-index.ts      # every recorded decision i
                                                     # indexed. The converse is the point — nothing else
                                                     # catches a decision that exists only in an issue
                                                     # thread, or a decision superseded by a later one
+npx tsx packages/engine/lint-progress-order.ts       # docs/00-progress.md stays newest-entry-first (#931). Exempt from every OTHER
+                                                    # gate touching this file (lint-advisory-expiry.ts, lint-decisions-index.ts,
+                                                    # lint-layout-claims.ts, lint-shape-index.ts, lint-voice.ts) for CONTENT, correctly —
+                                                    # an append-only dated log is accurate prose forever. That argument was applied
+                                                    # file-wide, so ORDERING fell through the gap those five open together. A rebase
+                                                    # routinely lands the incoming entry second with no textual conflict; three hand-fixes
+                                                    # in 24 hours across two lanes is what filed this. EXPECTED = sorted(dates,
+                                                    # descending), a real transformation of the parsed headings, never a restatement
+                                                    # of the file (docs/34 shape 1). Fails on 0 matched headings rather than passing
+                                                    # over nothing (shape 9)
 npx tsx packages/engine/lint-payload-manifest.ts     # every emitted artifact is classified payload or ours
                                                     # (#674). The manifest is AUTHORED, never regenerated:
                                                     # built from a scan it would classify each new artifact
