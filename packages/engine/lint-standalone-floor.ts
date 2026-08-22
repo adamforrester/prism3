@@ -52,10 +52,10 @@
  * ── WHY A RULE OVER SIX MECHANISMS RATHER THAN "IS IT focus-ring" ───────────────────────────────
  *
  * The rule is authored from a corpus measurement, not from the def that failed. Across all six
- * projecting defs, every node acquires extent through one of six mechanisms and **21 of 22 node names
+ * projecting defs, every node acquires extent through one of seven mechanisms and **21 of 22 node names
  * have one**:
  *
- *     icon         glyph          bound.width + bound.height
+ *     icon         glyph          glyphViewBox (bound.width + bound.height until #864)
  *     button       container      bound.height + layoutMode with 1-4 children
  *                  label          characters (a TEXT node sizes to its content)
  *                  leading/trailing/spinner   bound.width + bound.height, and an instance
@@ -146,6 +146,17 @@ const SIZE_SOURCES: Array<{ id: string; why: string; has: (n: FigmaNodePlan) => 
   { id: 'characters', why: 'a TEXT node with content sizes to that content', has: (n) => n.type === 'TEXT' && Boolean(n.characters) },
   { id: 'instance', why: 'an instance inherits the extent of the component it instantiates', has: (n) => n.type === 'INSTANCE_SWAP' || n.type === 'NESTED_INSTANCE' },
   { id: 'absoluteInset', why: 'an absolutely-sited part is resized to its parent grown by the inset', has: (n) => Boolean(n.absoluteInset) },
+  // The SEVENTH mechanism, added by #864 — and it is the case this file's header predicted rather than
+  // a widening to go green. `icon`'s root stopped being a `box` with `size.{size}` bound on both axes
+  // and became the glyph itself, sized by the ARTBOARD its SVG document declares: Figma's importer
+  // reads the `viewBox` and returns a frame of that box, so the extent is real and comes from neither a
+  // bound variable nor a child. The predicate reads `glyphViewBox` and NOT `glyphSvg`, which is the
+  // whole decision: `glyphSvg` is the document, and a document can perfectly well declare no artboard —
+  // Figma then sizes the frame to the ink, which is the 14x2 `minus` that `lint-glyph-geometry.ts`
+  // exists to refuse. `glyphViewBox` is the plan's claim that the box is DECLARED, so it is the field
+  // that answers this file's question. Both non-zero, because a `0x0` artboard is an extent in name
+  // only and reads as a successful build exactly like #869's 100x100.
+  { id: 'glyphViewBox', why: 'a glyph frame is sized by the artboard its SVG document declares, which Figma\'s importer reads off the viewBox', has: (n) => Boolean(n.glyphViewBox && n.glyphViewBox[0] > 0 && n.glyphViewBox[1] > 0) },
 ];
 
 /**
@@ -167,6 +178,7 @@ const PREDICATE_CASES: Record<string, { yes: FigmaNodePlan; no: FigmaNodePlan; n
   characters: { yes: node({ type: 'TEXT', characters: 'Label' }), no: node({ type: 'TEXT', characters: '' }), noWhy: 'a TEXT node with empty content is #510/#796\'s blank node, not a sized one' },
   instance: { yes: node({ type: 'NESTED_INSTANCE', nestTarget: 'FocusRing' }), no: node({ type: 'FRAME' }), noWhy: 'a plain FRAME inherits no component\'s extent' },
   absoluteInset: { yes: node({ absoluteInset: 'focus/ring/offset' }), no: node({}), noWhy: 'no inset means nothing resizes it to its parent' },
+  glyphViewBox: { yes: node({ type: 'GLYPH', glyphSvg: '<svg viewBox="0 0 24 24">…</svg>', glyphViewBox: [24, 24] }), no: node({ type: 'GLYPH', glyphSvg: '<svg viewBox="0 0 24 24">…</svg>', glyphViewBox: [0, 0] }), noWhy: 'a 0x0 artboard is an extent in name only — the importer falls back to sizing the frame to its ink, so the member\'s box becomes whatever the glyph happens to draw. The near-miss carries a glyphSvg on purpose: a predicate reading the DOCUMENT rather than the declared box would count this' },
 };
 
 for (const s of SIZE_SOURCES) {

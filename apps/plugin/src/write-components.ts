@@ -114,6 +114,11 @@ export interface CompNode {
   readonly height?: number;
   readonly boundVariables?: unknown;
   fills?: unknown;
+  /** NO GEOMETRY FIELD, and the absence is deliberate (#864). Figma's SVG importer owns a glyph's
+   *  outline, so this executor never writes path data — and it does not READ it either: what it asks of
+   *  an imported glyph is whether a VECTOR came back with a non-zero box, which `type` and `width` /
+   *  `height` above already answer. A `vectorPaths` port would be a surface for the `createVector` route
+   *  the plan's `glyphSvg` field records two measurements against. */
   strokes?: unknown;
   strokeWeight?: unknown;
   strokeAlign?: unknown;
@@ -206,6 +211,24 @@ export interface ComponentsApi {
   };
   createText(): CompNode;
   createFrame(): CompNode;
+  /** A GLYPH, built from the complete SVG document the plan carries (#864) — Figma's own SVG importer,
+   *  which returns a FRAME sized to the document's artboard with the outline inside it.
+   *
+   *  `createVector()` + `vectorPaths` was the alternative, was built first on this branch, and is
+   *  deliberately not used. Its two measurements are recorded on `FigmaNodePlan.glyphSvg`: Figma's
+   *  `vectorPaths` grammar excludes `H`/`V` (22 of 39 glyphs use them), and a `VectorNode`'s box is its
+   *  INK, so `minus` would be a 14×2 main component stretching non-uniformly into the square every host
+   *  binds. The extra level the frame adds is the artboard, which is what makes that binding uniform.
+   *
+   *  **WHAT THIS CANNOT BE CHECKED FOR OFFLINE, stated rather than implied.** `createNodeFromSvg` parses
+   *  SVG inside Figma; there is no importer in Node, so no gate in this repo verifies the child structure
+   *  it returns. The harness shim below models a frame wrapping a sized vector because that is what the
+   *  typings and the editor's own import feature describe, and a model is not evidence. The only
+   *  mechanism that can catch the real host disagreeing is the runtime `NO VECTOR` miss at the build
+   *  branch — same posture as `lint-absolute-inset.ts`'s header naming what it cannot see. That
+   *  mechanism became reliable only with #907, which fixed the build hanging before its summary — the
+   *  surface where a miss is read — so a miss reported here is now actually seen. */
+  createNodeFromSvg(svg: string): CompNode;
   createComponentFromNode(node: CompNode): CompNode;
   combineAsVariants(nodes: readonly CompNode[], parent: unknown): CompSet;
   currentPage: {
@@ -553,6 +576,39 @@ export const applyComponentPlan = async (
       } else {
         node = wr(nested.createInstance());
       }
+    } else if (n.type === 'GLYPH') {
+      // THE GLYPH (#864). The only node here whose content is geometry rather than a box, a binding or a
+      // nomination — so it is also the only one that can be built successfully and contain nothing, which
+      // is precisely what #864 was: four artboards created without throwing.
+      //
+      // Figma's OWN SVG importer, per the port's note. It returns a FRAME on the document's artboard with
+      // the outline inside, so `node` here is the artboard and the glyph is its child.
+      node = wr(api.createNodeFromSvg(n.glyphSvg ?? ''));
+      // READ BACK THE GEOMETRY, and this is the read-back the whole issue turns on. Every other read-back
+      // in this executor asks whether a write Figma ACCEPTED was retained; this one asks whether anything
+      // was DRAWN, because a frame with a valid name and no outline inside is indistinguishable — from
+      // every other check here — from a glyph that rendered.
+      //
+      // The quantity is the one a human would check, and #864's own Verify section is why it is stated
+      // that way: "the node has children" passes on an empty group, and "a vector exists" passes on a
+      // zero-area path. So: a VECTOR, with a non-zero box.
+      const drawn = (node.findAll?.((x) => x.type === 'VECTOR') ?? []).filter((v) => {
+        const box = v as CompNode;
+        return (box.width ?? 0) > 0 && (box.height ?? 0) > 0;
+      });
+      if (drawn.length === 0)
+        misses.push(`${n.name}.glyphSvg -> NO VECTOR (submitted ${n.glyphSvg?.length ?? 0} chars of SVG; the import produced no outline with area, so the member would be an empty artboard — #864)`);
+      // THE ARTBOARD, read back as well, because an importer is free to size its result to the INK — and
+      // that is #864's own class rather than a hypothetical: `minus` is 14×2 of drawing on a 24×24
+      // artboard, and a member sized to its drawing distorts inside the square every host binds onto the
+      // slot it swaps a glyph into (`size.{size}.icon`).
+      if (n.glyphViewBox && (node.width !== n.glyphViewBox[0] || node.height !== n.glyphViewBox[1]))
+        misses.push(`${n.name}.glyphViewBox -> ${n.glyphViewBox[0]}x${n.glyphViewBox[1]} (the imported frame reads ${node.width}x${node.height}; the glyph was sized to its ink rather than to its artboard, so every host binding a square would distort it)`);
+      // SCALE, on the OUTLINE and not on the frame. The frame is resized by whoever instances it — a host
+      // binds `size.{size}.icon` onto its own slot — and a child left at Figma's MIN/MIN default keeps the
+      // 24px it was drawn at, so a 16px instance would show the glyph's top-left corner. This is the one
+      // property of the import that gets overridden, which is why it is the only write in this branch.
+      for (const v of drawn) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
     } else {
       node = wr(api.createFrame());
       node.clipsContent = false;
@@ -640,11 +696,13 @@ export const applyComponentPlan = async (
       }
     }
     if (n.descendantFills) {
-      // The ink lives on the VECTORs inside the swapped instance; an instance fill paints a square
-      // behind the glyph.
+      // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is
+      // a painted square behind the glyph. True of a swapped instance, where a HOST is pushing ink down,
+      // and true of a `GLYPH`, whose wrapper is the artboard Figma's importer returned. One field, one
+      // meaning, from whichever side.
       const vecs = node.findAll ? node.findAll((x) => x.type === 'VECTOR') : [];
       if (vecs.length === 0)
-        misses.push(`${n.name}.descendantFills -> ${n.descendantFills} (no VECTOR inside the instance to paint)`);
+        misses.push(`${n.name}.descendantFills -> ${n.descendantFills} (no VECTOR inside this node to paint)`);
       for (const vec of vecs) {
         const p = paint(n.descendantFills, 'descendantFills');
         if (p) wr(vec as CompNode).fills = [p];

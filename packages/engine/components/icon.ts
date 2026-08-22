@@ -83,16 +83,39 @@ export const icon: ComponentDef = {
   // a disabled Button is Button's `disabled.icon` paint reaching in, not a state this component owns.
   states: [],
 
-  // `size` is the grid. `tone` is the color-expression model, and it is a real axis rather than a
-  // prop-only concern because a semantic ink is a different component in Figma's sense — see the
-  // codeOnly entry for why it does not project.
+  // `name` is which glyph — the grid, as of #864. `tone` is the color-expression model, and it is a real
+  // axis rather than a prop-only concern because a semantic ink is a different component in Figma's sense
+  // — see the codeOnly entry for why it does not project.
   //
   // NOT declared: `fill` (outlined↔filled) and `weight`. Both are real axes in the field (§4 —
   // Material's FILL/wght variable-font axes, SF Symbols' rendering modes), and both are properties of
   // the SET's delivery rather than of a glyph slot the token tier can bind. Declaring them here would
   // put an axis in the component API that nothing in this repo can supply a value for.
+  // `name` IS THE FIGMA GRID, AND `size` IS NOT AN AXIS HERE ANY MORE (#864). Both halves of that need
+  // saying, because the second is a removal from a def that has carried it since #741.
+  //
+  // #864 was this def building four empty artboards — one per size rung, each containing nothing. The
+  // geometry existed in `ICON_PATHS` and nothing reached it, so what the Figma leg needs is a member PER
+  // GLYPH; a member per size rung is four copies of the same empty square. Enumerating both would be
+  // 4 × 39 = 156 members carrying each glyph's path FOUR times, for members that differ only by a
+  // dimension — and a vector is scaled to the box it sits in, so those four are the same drawing.
+  //
+  // `size` therefore leaves `variants` rather than merely leaving `variantAxes`, and that is forced
+  // rather than chosen: `figmaAnatomySet` hands `figmaAnatomyPlan` an undefined size for an axis it does
+  // not project, and the plan refuses a sizeless coordinate for a def that DECLARES sizes (#795's guard,
+  // deliberately — a sizeless plan would stand in for a grid the def enumerates). So a def cannot declare
+  // a size axis it does not project.
+  //
+  // WHAT THAT DOES NOT COST, measured rather than assumed: nothing downstream binds a size on an icon
+  // INSTANCE. `button.ts` and `icon-button.ts` each bind `size.{size}.icon` on their own slot — the host
+  // sizes the square it swaps a glyph into, which is the composition #756's identity mapping describes.
+  // The `size` PROP stays, with all four rungs and its `md` default, because a code consumer sizes an icon
+  // directly and `lint-rung-names.ts` arm 2 still compares the enum against these bindings.
+  //
+  // `tone` still does not project — see the codeOnly entry, whose reason (`inherit` has no Figma
+  // coordinate) is untouched by any of this.
   variants: {
-    size: ['x-small', 'small', 'medium', 'large'],
+    name: [...ICON_NAMES],
     tone: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'],
   },
 
@@ -133,16 +156,34 @@ export const icon: ComponentDef = {
     'tone.info': 'color.icon.info',
   },
 
-  // ONE PART, and the brief is why rather than brevity (§2): "the 'anatomy' most people picture (the
-  // paths) matters less than this governance". What an icon component structurally IS is a square
-  // artboard at a fixed rung, and the glyph geometry inside it is the SET's content — a different
-  // artifact, versioned like an API (§10), not a node tree this schema can hold. So the def carries
-  // the governance it can bind and admits the geometry it cannot.
+  // ONE PART, AND IT IS THE GLYPH ITSELF (#864).
+  //
+  // This part used to be a `box` — a square artboard whose note said it "carries the glyph paths", and
+  // it carried nothing. That was #864: four members built without throwing, each an empty frame, with
+  // every gate legitimately green because a node that exists is all any of them checked. The def named
+  // the vocabulary in a prop enum and nothing connected the enum to `ICON_PATHS`.
+  //
+  // So the part is now `kind: 'vector'` and NAMES A GLYPH, templated on the `name` axis. `'{name}'`
+  // resolves per member against the set at projection, which is the distinction that matters here: a
+  // static `glyph: 'check'` also projects 39 correctly-named members and every one of them draws a check
+  // mark. Measured on this branch before it was fixed, which is why the templating exists and why the
+  // gate for this checks each member's path against `ICON_PATHS[its own name]` rather than checking that
+  // a vector is present.
+  //
+  // NO SIZE BINDING, and the schema refuses one: a vector is scaled to the box it sits in, so the
+  // artboard is the HOST's binding to make (`size.{size}.icon` on button's and icon-button's slots).
+  // Binding it here would state the same square twice, on the box that owns it and on the outline inside
+  // it, with nothing to notice when the two disagree.
+  //
+  // The brief's §2 point survives this, restated rather than dropped: "the 'anatomy' most people picture
+  // (the paths) matters less than this governance". True — and it was never an argument for the paths
+  // being absent. The set is still the versioned vocabulary (§10) and this def still does not author
+  // geometry; it names a member of that vocabulary and fails loudly when the name stops resolving.
   anatomy: {
     root: 'glyph',
     parts: {
       glyph: {
-        kind: 'box',
+        kind: 'vector',
         // `target` in the schema's sense — the single node that owns this component's paint and
         // dimensions — and NOT in the interaction sense, which an icon never has (§5). Worth stating
         // because the two readings diverge here for the first time: every def so far has been a
@@ -150,12 +191,11 @@ export const icon: ComponentDef = {
         // on a glyph claims the former only. The a11y consequence of the latter is carried by the
         // `touch-target` codeOnly entry, which puts the 44×44 floor on the wrapper where it belongs.
         role: 'target',
-        // ONE key, BOTH axes — the square. `size` rather than a `height` plus a matching `width`
-        // because two bindings that must agree can be rebound on one axis with nothing noticing,
-        // while a single key cannot drift from itself. Exactly the artboard `PartDef.size` was
-        // written for.
-        size: 'size.{size}',
-        note: 'The square base-4/base-8 artboard at one grid rung. Carries the glyph paths, which are the set\'s content rather than declared parts — see codeOnly.',
+        // WHICH glyph, by name in the set's vocabulary, resolved at the member's own coordinate. Never
+        // path data — see `PartDef.glyph`: the name is the contract surface `icon.name` already types,
+        // so a glyph that leaves the set is a projection failure rather than an invisible gap.
+        glyph: '{name}',
+        note: 'The glyph outline itself, drawn on the set\'s square artboard and scaled to whatever box it is instanced into. The geometry comes from the set (`ICON_PATHS`) by name, so this def references the vocabulary without authoring it.',
       },
     },
     // The ceilings. Every entry is structure the brief states and the Figma leg provably cannot hold.
@@ -164,7 +204,7 @@ export const icon: ComponentDef = {
       // admitted by an entry that STARTS with the axis name, because a passing mention inside an
       // entry about something else is a gate satisfied by unrelated prose (the #563 finding).
       'tone — the ink axis, declared in `variants` and deliberately not a Figma variant, and as of #795 the reason is ONE reason rather than three. The surviving one is the interesting one and always was: `inherit` (`currentColor`) is the DEFAULT and Figma has no equivalent — a Figma node\'s fill is a value, never an inheritance from its host, so the most common tone has no coordinate to occupy. Projecting the eight semantic tones and silently dropping the default would ship a set whose default member is the one thing the API does not default to. The other two are gone, and both were OURS rather than Figma\'s. STRUCTURAL: this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it — #795 deleted that list, so the projector would carry `tone` today if this def asked, and the def does not ask. PAINT: `paintOf` used to key every lookup as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolved nothing; #758 replaced that with this def\'s own `paintKeys` and the tone ink resolves at every tone — verified in `test.ts`, which plans this def at `{tone: danger}` and asserts the `color/icon/danger` binding. So the set projects over `size` and paints along `tone`, which is the shape #795\'s `variantAxes` doc comment cites as the field\'s original meaning.',
-      'glyph paths — the vector geometry itself is not a declared part, and cannot be. `PartKind` has no vector kind, and it should not: the paths are the SET\'s content, governed as a versioned vocabulary with its own deprecation and codemod discipline (§10), while this def governs the artboard the set is drawn on. A materializer builds the square and the set supplies what goes in it.',
+      'glyph fill vs stroke — the set ships FILLED outlines (`fill="currentColor"` on a closed path, verified across all 39 sources), so a materializer paints the vector and never strokes it. A stroked-icon set is the other half of the field (Feather, Lucide) and would need a stroke weight plus a cap/join treatment, none of which `PartDef` can carry — the same wall the `stroke weight` entry below describes, met from the geometry side. Stated here because the def now DOES declare the geometry (#864) and this is the part of it that still cannot be declared.',
       'optical baseline shift — a glyph\'s bounding box is rarely its visual center of mass, so an inline icon needs an optical shift (Material Symbols moves ~11.5% of the text size down, aligning the glyph center to the x-height rather than the box). That is a relationship between a glyph and the TEXT beside it, resolved at render; Figma centers a node in its parent frame and has nowhere to state it. The recurring polish bug the brief names — an icon sitting a pixel low beside its label — lives entirely in this gap.',
       'stroke weight — a constant tuned to the typeface rather than a per-icon value (Atlassian\'s 1.5px matches its 1.5px typeface stroke by the squint test; Material\'s baseline is 2dp). It is a property of the SET, so no single glyph component can carry it, and `PartDef` has no stroke-weight field to carry it with — the same wall `focus-ring` meets from the other side.',
       'label routing — the whole a11y contract is a DOM shape: present makes `role="img"` + `aria-label`, absent makes `aria-hidden="true"` (§6). Figma has no accessibility tree, so the one prop that decides whether this component is announced at all is invisible to the Figma leg. It is not a variant either — the meaningful/decorative split is semantic, not visual, and the two cells are pixel-identical.',
@@ -174,20 +214,27 @@ export const icon: ComponentDef = {
     ],
   },
 
-  // `size` alone, and since #795 that is a CHOICE rather than a filter. This comment used to read "the
-  // projectable axis list in `anatomy-figma.ts` is intent/appearance/size, and `size` is the only one of
-  // this def's two axes on it"; that list is deleted, so the enumeration would carry `tone` if this def
-  // listed it. It does not, for the `inherit` reason in codeOnly above. Four members, one per grid rung.
+  // `name` ALONE — 39 members, one per glyph, each carrying its own outline (#864). This used to be
+  // `['size']`, four members that were four empty squares.
   //
-  // This def is the one #795's `variantAxes` doc comment points at: it projects along `size` and PAINTS
-  // along `tone`, which is what the field always meant — the axes that become the Figma grid, not the
-  // axes the def has.
+  // Still the def #795's `variantAxes` doc comment points at, and now more sharply: it projects along
+  // `name` and PAINTS along `tone`, so the projected axis set and the def's axis set are disjoint. That is
+  // exactly the distinction the field was created for — the axes that become the Figma grid, not the axes
+  // the def has — and this is the first def where the two share no member at all.
+  //
+  // `size` is not here and is not in `variants` either; see the `variants` comment for why the second
+  // follows from the first rather than being a separate decision.
+  //
+  // MEASURED: 39 members in ONE paste chunk, with the indivisible unit (shell + largest single variant)
+  // at 40% of `SET_CHUNK_BYTES`. Each glyph's path travels once, which is the property that made this
+  // shape the cheap one — enumerating size as well would ship every path four times for members that are
+  // the same drawing at four scales.
   //
   // No `stateAxis`: `states` is `[]`, so there is nothing to project. No `swaps`: an icon has no slot
   // — it IS what fills someone else's. `booleans` is stated-empty rather than omitted, which is the
   // established way this schema says "considered, and none survive".
   figmaProperties: {
-    variantAxes: ['size'],
+    variantAxes: ['name'],
     booleans: {},
   },
 

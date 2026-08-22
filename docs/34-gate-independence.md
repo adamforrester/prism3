@@ -390,9 +390,20 @@ rather than at the non-empty floor that exists to catch exactly it. Same lesson 
 in — **the fixture tests the function, the floor tests the literal, and sharing a constant between them
 merges two failures into whichever fires first.**
 
+**And the empty set need not come from a stale string — a `try/catch` produces one too** (#864). The
+glyph gate's stray-node arm wrapped its projection in `catch { stray = [] }`, so a subject that could
+not be projected at all came back as *nothing to report*: mutating the projector until five defs threw
+left the gate at **exit 0**. This is the `vercel-ignore-check` sentence with a different cause — *"I
+could not look"* rendered as *"I looked and found nothing"* — and it happened inside a gate written with
+this section open, which is the useful part. A `try/catch` in a gate is not error handling; it is an
+**answer about the subject**, and it needs a verdict as much as any comparison does. Either the throw is
+a named failure, or the set of subjects that legitimately cannot be examined is enumerated by hand
+(there, the two defs with no `anatomy` block) so that a sixth one fails. Never both silently.
+
 **Tell:** the gate names the world in a string — a path prefix, a directory name, a regex over one. Ask
 what happens to that string when the thing it names is renamed, and whether anything would say so. A
-second tell, cheaper to spot: **the gate prints a count nothing asserts.**
+second tell, cheaper to spot: **the gate prints a count nothing asserts.** A third: **a `catch` whose
+body assigns an empty result**, or a guard whose false branch skips assertions rather than failing them.
 **Fix:** a self-check that feeds the detector a known-bad input and fails if it comes back clean, and —
 where the gate has a scope — an assertion that the recognized set is **non-empty**. Then, before any
 rename, sweep for the literal old name and treat each hit as **a detector to repoint, not prose to
@@ -839,6 +850,21 @@ files in one directory, one covered and one not, look identical to a reader; thi
 directory that holds the manifest. The fix has the same shape as #674's and the same justification: a
 new schema file **fails until a human classifies it**, and that friction is the feature.
 
+**And the widest form of scope silence: the property is in NO gate's scope** (#864). `icon` built four
+empty artboards and every gate in `CLAUDE.md` §4 was green — not one of them weakly, all of them
+legitimately, because each asks whether a thing EXISTS, whether a ref RESOLVES, whether a count MATCHES,
+or whether nothing THREW, and **an empty artboard satisfies all four.** No oracle was wrong and no
+comparison was collapsed, so nothing above this line applies; the finding is a *question nobody had
+written down*. Two things make it worth a paragraph rather than a row. First, the tell is not available
+from inside any gate — it comes from asking question 8 about the whole list at once: *if every gate is
+green, what would a person see?* Here, a blank square. Second, the same fix turned up the **artboard**
+half of the defect, which no version of the empty-artboard question would have found: a Figma
+`VectorNode` is sized to its ink, only 19 of 39 glyphs are square, and both hosts bind one
+`size.{size}.icon` to width **and** height — so `minus` at 14×2 in that slot is a bar 7× too thick. That
+is the generalizable sentence, and it is about *membership* rather than about gates: **a node whose box
+IS its content cannot be a member of a set whose consumers bind a square.** The document declares
+`width`/`height` so the importer is denied that freedom.
+
 **A declaration that also satisfies the check it exempts you from.** `omits: personality` was itself
 prose *about* `personality`, so the exemption was suppressed twice and only the second suppression
 was ever load-bearing — mutating the exemption dead exited 0 (#514). Keep the two inputs disjoint:
@@ -877,6 +903,10 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-21 `[in review]` | `icon`'s Figma projection — the whole gate list (#864) | scope | **four empty artboards**, pasted into a real Figma file, reporting **0 misses**, with every gate in `CLAUDE.md` §4 legitimately green. The def declared a `size` axis and carried no geometry anywhere, so the plugin built four correctly named, correctly sized, correctly painted frames with **nothing inside them** — and the tranche whose checkbox and radio render glyph indicators was blocked behind it. Nothing anywhere asked whether a component *draws*: every gate on that list asks whether a thing EXISTS, whether a ref RESOLVES, whether a count MATCHES, or whether nothing THREW, and an empty artboard satisfies all four at once. `#802`'s class and its largest instance, and the reason it is filed as `scope` rather than as a weak comparison: **no gate's oracle was wrong, because the property was in no gate's scope** — so the fix is a gate that did not exist (`lint-glyph-geometry.ts`), not a stronger assertion in one that did. Found by a designer looking at the pasted set |
+| 2026-08-21 `[in review]` | `lint-glyph-geometry.ts`'s own stray-node arm (#864, first revision) | 9 | the gate written for the row above, **exit 0** while five defs threw. Its no-vector-part branch shipped `catch { stray = [] }`, so mutating the projector's geometry condition to one matching every part turned *"I could not look"* into *"I looked and found nothing"* — the same sentence shape 9 is about (`✓ no bundled engine file is on the skip list` over an empty set), inside a gate written with this file open. Fixed by guarding on the two defs that are *legitimately* unprojectable (`text-field`, `textarea`) and reporting a throw as a named failure; the same mutation now fails 5 times, and its sibling 820. **The lesson is the placement, not the swallow:** a `try/catch` in a gate is an *answer* about the subject, so it needs a verdict as much as any comparison does |
+| 2026-08-21 `[in review]` | `test.ts` icon block, `p.size === 'md'` (#864, found while fixing it) | 9 | **five assertions dead for eleven PRs**, at `2260 passed, 0 failed`. #844 respelled the size enum in t-shirt words; the guard `iconSet.find((p) => p.size === 'md')` kept a pre-rename literal, came back `undefined` from that PR onward, and the whole `if` body stopped executing — including the "measured ceiling" line whose *own comment* warns that a test passing for a reason its message denies is worse than a missing test. The guard was correct code written for a real hazard (an empty projection crashing the block and discarding every named failure), which is what made it unreadable as a defect. Two things measured while repairing it: a **second** stale `'md'` sat inside the block, so fixing the literal alone made the suite crash rather than pass; and the guard is now keyed on a question the set can meet (*is there a member to read*) rather than on a coordinate spelled in a vocabulary that can move. Filed as #918 |
+| 2026-08-21 `[in review]` | `lint-paint.ts` `censusable()` (#864, found while fixing it) | 15 | **18 colour bindings** across three defs (`icon` 8, `field-message` 8, `focus-ring` 2) outside arms 2 and 3 for months, in a file whose whole output reads as coverage. They were excluded by `(def.variants?.size ?? []).length > 0` — a **proxy** for *"can this def be projected"*, true when it was written and made false by #795, which taught `figmaAnatomyPlan` to plan a def with no size axis. The wrinkle that makes this harder than shape 15's first instance: the exclusion was **documented**, printed under `uncovered` with a stated reason, and a stale reason reads exactly like a fact about a scope that is correctly small. Filed as #919. Found only because `icon` moved its Figma grid off `size` and so fell out of a scope it had been the motivating member of |
 | 2026-08-14 `[in review]` | `test.ts` pending-spinner block (#848) | 16 | a button with **no label and two icons**, in a live Figma paste, past eleven assertions in the block written for exactly this part. `replaces: 'leadingVisual'` named one slot, so `leading=false, trailing=true` — which *has* a visual cell — took the label-overlay branch anyway: spinner + trailing visual, label at 0%. The width gate passed (both cells existed at rest, both stayed filled, padding unchanged); the mechanism gate passed (it samples `trailing: false` only, so it never reached the coordinate where the branches disagree). Second instance of shape 16 in two days, and the one that promoted its tell to **question 8**: *if this gate is green, what would a person see?* Every assertion in the block measured geometry, because **width had become the hard-won invariant after #612** — the two assertions it replaced were pinning a 28px growth as correct — and a hard-won invariant crowds out its neighbors. Nothing asked whether text survived, whether there was one spinner, or whether the spinner was over the thing it stood for. Found by a designer looking at a column of pasted variants |
 | 2026-08-14 `[in review]` | both executors' test doubles, `x`/`y` (#848) | 4 | the 4th and 5th instance of the same constant: `x: 0, y: 0` as plain fields, so **centering on the parent and centering on a sibling are the same coordinate** and the 12px-off spinner the fix exists to correct was unmeasurable. Both doubles now derive a flow child's position from the parent's padding and its preceding flow siblings, which is what made the geometry gate writable at all. The same doubles' own headers already recorded this finding three times (`width`, `height`, TEXT measurement) — the sweep half of shape 4 |
 | 2026-08-14 | `anatomy-figma.ts` empty-projection gate (#795) | 14 | the gate **the ticket asked for**, unreachable, at `2220 passed, 0 failed` with the throw neutered. `if (plans.length === 0) throw` was written on a real measurement — under the *old* nested loops, `figmaAnatomySet(fieldMessage, { variantAxes: [] })` did return OK with 0 plans — and **the same PR** rewrote that function into a cartesian fold where `one<T>()` maps an absent or empty axis to `[undefined]`, so the product of nothing is one empty coordinate and the set returns **1 plan named `""`**. Zero stopped being reachable in the diff that motivated the check. Shape 14 rather than 4 because the quantity moves and reports truly; the **comparison point** sits where no member of the population can land — and shape 14's own tell is what found it, once run: feed the gate the defect it was written for. Fixed by asking for what genuinely cannot be true (a member with **no variant coordinate at all**) of `planComponentName`'s *output*, not by re-reading `variantAxes` |
@@ -943,7 +973,8 @@ gives:
    source, there is no gate.
 2. **Can it fail?** Break the subject and confirm *this* gate is in the failure list, by name.
 3. **Did it look?** If the gate has a scope, is every surface it claims to cover represented in what
-   it actually opened?
+   it actually opened? And if any part of it can decline to look — a `catch`, a `continue`, a guard
+   whose false branch skips assertions — does that path produce a **verdict**, or an empty set (#864)?
 4. **Does it name the world in a string?** If the detector holds a path, prefix or regex over one, ask
    what happens when that name moves — and whether anything would say so. Question 2 does not cover
    this: the rename *is* the break, and the gate answers by going green (shape 9).

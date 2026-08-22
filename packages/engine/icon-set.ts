@@ -33,11 +33,27 @@
  * `more-vertical`). Naming those bare would mean renaming them the day a line variant arrives, and a
  * rename is the one thing this file exists to prevent.
  *
- * **The wart:** for glyphs that are pure strokes — `plus`, `minus`, `close` — the source set's
- * `-fill` is a HEAVIER WEIGHT, not a filled shape. So `close-filled` is a bolder X rather than a
- * solid one. That is the source set conflating two ideas under one suffix, and we mirror it rather
- * than inventing a second suffix (`-bold`) that would apply to three glyphs and split the
- * vocabulary. Documented here so the next reader knows it was seen rather than missed.
+ * **The wart, MEASURED — and it is worse than the earlier reading of it.** For glyphs that are pure
+ * strokes there is no filled shape to draw, so the source set has nothing to put under `-fill`. This
+ * paragraph used to say the `-fill` was a HEAVIER WEIGHT ("`close-filled` is a bolder X"). That was
+ * an assumption, and #864 measured it false for all three of them:
+ *
+ *   · `add-line.svg` and `add-fill.svg` are **byte-identical** (sha256 `e3af16eef67d`, 177 bytes).
+ *   · `close-line.svg` and `close-fill.svg` are **byte-identical** (sha256 `2d004b029720`, 345 bytes).
+ *   · `subtract-line.svg` and `subtract-fill.svg` differ by exactly the winding of one rectangle —
+ *     `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`. Same 14×2 ink box, same pixels.
+ *
+ * So `plus-filled` and `plus` render the same glyph, as do `close-filled`/`close` and
+ * `minus-filled`/`minus`: **6 of the 39 names are 3 distinct shapes**, and the vocabulary holds 37
+ * distinct paths rather than 39. That is not a mapping error — each name resolves to the file it
+ * claims — so `emit-icons.ts`, which compares both directions of *filenames*, structurally cannot
+ * see it. It is a provenance defect in the source set, filed as #917.
+ *
+ * We keep the names rather than deleting three of them, because dropping a name from `icon.name` is a
+ * MAJOR contract break to fix a cosmetic duplication, and because a branded set swapped in later may
+ * well draw all six distinctly. What is corrected here is the *claim*: they are duplicates, not bolder
+ * variants. Anyone reasoning about `-filled` as a weight axis would be reasoning from a shape that is
+ * not there.
  *
  * ── ADDING OR REMOVING A GLYPH ──────────────────────────────────────────────────────────────────
  *

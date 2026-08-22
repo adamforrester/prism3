@@ -300,7 +300,12 @@ const setCensus = (def: ComponentDef): Tally | null => {
  * census pins it at zero assignments and can never fail.
  */
 const gridCensus = (def: ComponentDef): Tally => {
-  const sizes = def.variants?.size ?? [];
+  // `[undefined]` FOR A SIZELESS DEF, not `[]` (#864). `[]` makes the loop body unreachable and the census
+  // comes back `0 members / 0 assignments` — a number no mutation can move, in a file that reads as
+  // coverage, which is precisely the defect the header's `set`-vs-`grid` paragraph is about. `undefined`
+  // is how `figmaAnatomyPlan` is told "no size coordinate" (#795), and a def with no size axis is exactly
+  // the caller that should say it.
+  const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
   const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
   let combos: Record<string, string>[] = [{}];
   for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
@@ -310,30 +315,39 @@ const gridCensus = (def: ComponentDef): Tally => {
   for (const size of sizes) for (const c of combos) for (const st of states) {
     const plan = figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading: true, trailing: true, swapTarget: 'FPO-default-icon' } as never);
     members++;
-    const coord = `size=${size}${Object.entries(c).map(([k, v]) => `,${k}=${v}`).join('')},state=${st ?? 'rest'}`;
+    const coord = `${size === undefined ? '' : `size=${size}`}${Object.entries(c).map(([k, v]) => `,${k}=${v}`).join('')},state=${st ?? 'rest'}`;
     paintRows(plan.root, '', coord, rows);
   }
   return tally(rows, members);
 };
 
 /**
- * The defs a census can be taken of at all: they have an anatomy to project and a `size` axis, which
- * `figmaAnatomyPlan` requires. Everything outside is still covered by arm 1, which reads `tokens`
- * directly and needs no projection — but NOT by arms 2 and 3, and that gap is the point of the list
- * below. Named with the REASON rather than a count, because the count is what went stale: this comment
- * said "Three of the seven" while listing four, and `field-label` has since left the list.
+ * The defs a census can be taken of at all: **the ones with an `anatomy` block**, which is what
+ * `figmaAnatomyPlan` needs and the whole of what it needs. Everything outside is still covered by arm 1,
+ * which reads `tokens` directly and needs no projection — but NOT by arms 2 and 3.
  *
- *   - `focus-ring`, `field-message` — an anatomy block and no `size` axis. Both have one type scale, and
- *     `figmaAnatomyPlan` requires a declared `size` while `planComponentName` always writes `size=`, so
- *     they project at NO coordinate by our own construction. Filed as #795: it now blocks two
- *     defs for one reason and has stopped being a per-def note.
- *   - `text-field` — no anatomy at all, so `figmaAnatomyPlan` cannot be called. Arc 2 step 5.
+ *   - `text-field`, `textarea` — no anatomy at all, so `figmaAnatomyPlan` cannot be called. Arc 2 step 5.
  *
- * `field-label` entered the census in #796 and is the reason to state this precisely: an `anatomy` block
- * is necessary and not sufficient (docs/38 §2). Having one does not put a def in here; having one plus a
- * size axis does.
+ * THIS USED TO ALSO REQUIRE A `size` AXIS, AND THAT CLAUSE HAD GONE FALSE (#864). It was true when it was
+ * written and its stated reason — *"`figmaAnatomyPlan` requires a declared `size` while
+ * `planComponentName` always writes `size=`, so they project at NO coordinate"* — is exactly what #795
+ * changed: a sizeless def projects, and `planComponentName` writes no `size=` for one. Measured when
+ * `icon` moved its Figma grid from `size` to `name` and fell out of a scope it had been the motivating
+ * member of: `focus-ring` and `field-message` project fine and had been excluded for years on a reason
+ * that had stopped holding, so the clause was costing **18 colour bindings** across three defs
+ * (icon 8, field-message 8, focus-ring 2) — every one of which arms 2 and 3 now reach, at 8/8, 8/8, 2/2.
+ *
+ * The generalizable part is not the arithmetic. **A scope predicate is a CLAIM, and a proxy for the claim
+ * goes stale silently while the claim stays true.** `variants.size.length > 0` stood in for "can this be
+ * projected"; when the projector changed, the proxy kept excluding defs and the gate kept reporting them
+ * under `uncovered` with a reason that read like a fact. Nothing could catch it, because a shrinking scope
+ * with a printed explanation is indistinguishable from a scope that is correctly small. The predicate is
+ * now the claim itself — call the projector, and the defs it can plan are the defs in scope.
+ *
+ * `field-label` entered the census in #796 and is still the reason to state this precisely: an `anatomy`
+ * block is necessary AND, as of this change, sufficient (docs/38 §2 — the necessity half is unchanged).
  */
-const censusable = (): ComponentDef[] => componentDefs.filter((d) => !!d.anatomy && (d.variants?.size ?? []).length > 0);
+const censusable = (): ComponentDef[] => componentDefs.filter((d) => !!d.anatomy);
 
 /**
  * Arm 1. For every paint key whose LEADING segment is a declared axis value, the ref must contain
@@ -424,7 +438,6 @@ const reachability = (): { covered: { id: string; reached: number; total: number
   for (const def of componentDefs) {
     const colour = Object.entries(def.tokens ?? {}).filter(([, ref]) => typeof ref === 'string' && ref.startsWith('color.'));
     if (!def.anatomy) { uncovered.push(`${def.id} (no anatomy — figmaAnatomyPlan cannot be called; ${colour.length} colour bindings)`); continue; }
-    if (!(def.variants?.size ?? []).length) { uncovered.push(`${def.id} (no size axis — figmaAnatomyPlan refuses every coordinate; ${colour.length} colour bindings)`); continue; }
 
     // One sentinel per colour key, so a returned variable names exactly ONE key even where the real
     // refs collide. See the header: matching by ref let #784's own defect pass this arm.
@@ -433,6 +446,7 @@ const reachability = (): { covered: { id: string; reached: number; total: number
     colour.forEach(([key], i) => { sentinel.set(`color/probe-${i}`, key); tokens[key] = `color.probe-${i}`; });
     const probed = { ...def, tokens } as ComponentDef;
 
+    const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
     const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
     let combos: Record<string, string>[] = [{}];
     for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
@@ -443,7 +457,7 @@ const reachability = (): { covered: { id: string; reached: number; total: number
       for (const v of [n.paints?.fills, n.paints?.strokes, n.descendantFills]) if (v) hit.add(v);
       for (const c of n.children) walk(c);
     };
-    for (const size of def.variants!.size!) for (const c of combos) for (const st of states)
+    for (const size of sizes) for (const c of combos) for (const st of states)
       for (const leading of [false, true]) for (const trailing of [false, true])
         walk(figmaAnatomyPlan(probed, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root);
 

@@ -9,6 +9,149 @@
 
 ---
 
+## (2026-08-21) — Four empty artboards, and the fix that nearly shipped a distorted glyph (#864)
+
+**STATUS: in review.** `icon`'s Figma projection is a 39-member `name` set drawing real geometry, via
+`figma.createNodeFromSvg`. New gate `lint-glyph-geometry.ts`. Three defects found while fixing it,
+filed as #917, #918 and #919. No token change, no `out/` drift — `regen --check` stays at 104.
+
+**What was wrong.** `icon` declared a `size` axis, four rungs, and no geometry anywhere. The 39 glyphs
+had existed in `icon-glyphs.ts` since #833 and **nothing imported `ICON_PATHS`** — `icon.ts` took only
+`ICON_NAMES`, for the prop enum. So the plugin built four correctly named, correctly sized, correctly
+painted frames with nothing inside them, reported **0 misses**, and every gate in `CONTRIBUTING.md` §3
+was green. Legitimately green, all of them: each asks whether a thing EXISTS, whether a ref RESOLVES,
+whether a count MATCHES, or whether nothing THREW, and **an empty artboard satisfies all four.** It
+blocked tranche 1, whose `checkbox` and `radio` render glyph indicators.
+
+**The shape decision: a name axis, size-agnostic.** One set, 39 members, `name` as the Figma grid;
+geometry ships once. The alternative — keeping `size` and enumerating both — is 4 × 39 = 156 members
+carrying each path four times, for members that differ only by a dimension, and a vector is scaled to
+the box it sits in, so those four are the same drawing. `size` therefore leaves `variants` rather than
+merely leaving `variantAxes`, which is **forced rather than chosen**: `figmaAnatomySet` hands the plan
+an undefined size for an unprojected axis and #795's guard refuses a sizeless coordinate for a def that
+*declares* sizes. The `size` **prop** stays, all four rungs and its `md` default, because a code
+consumer sizes an icon directly. Nothing downstream loses anything, measured: `button.ts:279` and
+`icon-button.ts:187` bind `size.{size}.icon` on their own swap slots, so the host sizes the square.
+`name` joins `VARIANT_AXES` — the first axis whose values are a *vocabulary* rather than a design
+choice, spread from the set, so `icon.ts` cannot spell one wrong.
+
+**The route, and the reason it reversed mid-branch.** `createVector()` + `vectorPaths` was built first.
+Two measurements killed it, and the second is the one that matters:
+
+1. `vectorPaths` accepts a **subset** of SVG's path grammar — the typings enumerate `M L Q C Z` and no
+   more. **22 of 39 glyphs use `H`/`V`** (every arrow, both minuses, both plusses, both warning
+   triangles). A converter is writable; keeping one right for every glyph added later is a new
+   correctness surface whose failure mode is *a wrong shape that builds fine*.
+2. **A `VectorNode`'s box IS its ink.** Only 19 of 39 glyphs are square; `minus` is 14×2,
+   `more-vertical-filled` is 4×18. Both hosts bind one square `size.{size}.icon` onto the slot, so a
+   14×2 main component in it is a bar 7× too thick — *builds fine, renders wrong*, which is **#864's
+   own class reintroduced by #864's fix.** Found while fixing the first, and the generalizable
+   sentence is about membership rather than about glyphs: **a node whose box IS its content cannot be a
+   member of a set whose consumers bind a square.**
+
+`createNodeFromSvg` answers both — Figma's own parser handles the full grammar, and it returns a FRAME
+sized to the `viewBox` with the outline inside. The extra level is the artboard, so it is the feature
+rather than the cost. The plan therefore carries a **complete SVG document** (`glyphSvg`) plus a
+read-back expectation (`glyphViewBox`): a fifth API shape with its own field, on the argument
+`textStyle`, `effectStyle`, `paints` and `absoluteInset` each got one — `createNodeFromSvg(svg)` is a
+**constructor**, not a property write, so squeezing an SVG into `bound` would imply a
+`setBoundVariable('svg', …)` that is not an API. The document declares `width`/`height` as well as
+`viewBox`, which is what denies the importer the freedom to size the result to the ink.
+
+**Stated limit, rather than implied.** There is no SVG importer in Node, so **nothing in this repo
+verifies the subtree Figma returns.** The harness shim models a frame wrapping a sized vector because
+that is what the typings and the editor's import feature describe, and a model is not evidence. The only
+mechanism that can catch the live host disagreeing is the executors' runtime `NO VECTOR` miss — which
+fails loudly rather than producing a plausible empty frame, #864's lesson applied to its own fix. That
+mitigation became reliable only with **#907**, which fixed the build hanging before its summary
+rendered; before this morning a `NO VECTOR` miss would have been swallowed. Same posture as
+`lint-absolute-inset.ts`'s header naming what it cannot see.
+
+**The gate, and the quantity it measures.** `lint-glyph-geometry.ts`: a `vector` part submits an outline
+that **draws something** — filled, non-zero box area, its own outline, one per glyph across all 39, on a
+square artboard the document declares. Not *"the plan has a `glyphSvg`"* and not *"the document parses"*;
+`docs/34` shape 16 is why. Two of the ten mutations are the whole argument:
+
+- Templating all 39 members to draw `check` leaves **`test.ts` at 2274 passed / 0 failed** — its sample
+  member *is* `check` — while the new gate fails by name. Four members carrying no geometry and 39
+  carrying one are the same defect at opposite extremes, and a count of members reports both as a pass.
+- `fill="none"` on every path leaves **every area and count check green**. A bounding box exists whether
+  or not anything is painted, so box area is necessary and not sufficient.
+
+Independence: EXPECTED is the vocabulary, with `ICON_VIEWBOX` **re-parsed in the gate** — the projector
+calls `viewBoxDims()`, so importing it would make both halves one derivation. **The duplicated parse is
+the gate.** ACTUAL is the submitted document, read back by parsing it. The ink is measured by the gate's
+own walker, which **flattens** curves rather than hull-bounding them (a cubic's hull is larger than the
+curve, and overstating ink lets an empty glyph pass on its handles) and **throws** on an unmodelled
+command, because both shortcuts err toward *measures nothing and calls it clean*.
+
+**Two defects in the gate itself, worth knowing before copying it.**
+
+- **Its exemption list was wrong on first run, and the gate said so.** `DUPLICATE_PATHS` declared
+  `minus|minus-filled` as one shape; the stale-exemption arm failed, correctly. The two paths are
+  distinct *strings* — `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`, differing only in winding —
+  and render identically. So the header now states 39 names = **37 distinct path strings** = **36
+  distinct shapes**, and names that gap as the gate's own blind spot: it compares strings.
+- **The no-vector-part arm shipped `catch { stray = [] }` for one revision** — *"I could not look"*
+  reported as *"I looked and found nothing"*, `docs/34` **shape 9**, inside a gate written to avoid
+  exactly that. Mutating the projector's geometry condition to one matching every part made five defs
+  throw and the gate exit **0**. Fixed by guarding on the two defs that are *legitimately*
+  unprojectable (`text-field`, `textarea`) and reporting a throw as a named failure; the same mutation
+  now fails 5 times, its sibling 820. **The lesson is the placement, not the swallow: a `try/catch` in
+  a gate is an answer about the subject, so it needs a verdict as much as any comparison does.**
+
+**Three defects found on the way, filed rather than folded in** — #917, #918, #919.
+
+- **#918 — `test.ts`'s icon block had five dead assertions for eleven PRs**, at `2260 passed, 0 failed`. #844
+  respelled the size enum in t-shirt words; the guard `iconSet.find((p) => p.size === 'md')` kept a
+  pre-rename literal, returned `undefined` from that PR onward, and the whole `if` body stopped
+  running — including the "measured ceiling" line whose own comment warns that a test passing for a
+  reason its message denies is worse than a missing test. A **second** stale `'md'` sat inside the
+  block, so repairing the literal alone made the suite crash rather than pass. Repaired here as a side
+  effect of the shape change; the guard is now keyed on a question the set can meet.
+- **#919 — `lint-paint.ts`'s `censusable()` excluded 18 colour bindings** across three defs (`icon` 8,
+  `field-message` 8, `focus-ring` 2). `(def.variants?.size ?? []).length > 0` was a **proxy** for "can
+  this be projected", true when written and made false by #795. The exclusion was *documented*, printed
+  under `uncovered` with a stated reason — and a stale reason reads exactly like a fact about a scope
+  that is correctly small. The predicate is now the claim itself: call the projector. `icon`'s census
+  moves 36 → 351 coordinates, and `focus-ring` and `field-message` become censusable for the first
+  time; the baseline was re-accepted with the deltas read, and the ratio holds (312/351 = 32/36 = 8 of
+  9 tones inked, `inherit` taking none).
+- **#917 — three `-fill` source files draw their `-line` sibling.** `add-line.svg` ≡ `add-fill.svg` (sha256
+  `e3af16eef67d`), `close-line.svg` ≡ `close-fill.svg` (`2d004b029720`), and `subtract-*` differ only
+  in winding. `icon-set.ts`'s "wart" paragraph claimed the `-fill` was a *heavier weight* ("`close-filled`
+  is a bolder X"); that was an assumption and it is measured false for all three. Each name resolves to
+  the file it claims, so `emit-icons.ts` — which checks both directions of *filenames* — structurally
+  cannot see it. A provenance defect in the source set, and #917 carries the keep-vs-drop decision. The names stay for now: dropping one from `icon.name` is
+  a MAJOR contract break to fix a cosmetic duplication, and a branded set may draw all six distinctly.
+
+**Also corrected in the same diff, because it was a claim inside this change:** the `VARIANT_AXES`
+comment first predicted icon's grid census would multiply "by 39 (36 → 1404)". The measured figure is
+**351** — the same change that added `name` took `size` out of `variants`, so the product went
+4 × 9 → 39 × 9, not 36 × 39. Written as measured now, with the ×39 reading named as the wrong one.
+
+**Measured ink census, for anyone reasoning about the set:** 37 distinct paths, min width 4, min height
+2, **min area 28**, nothing outside the 0..24 viewBox. Thinnest are `minus`/`minus-filled` at 14×2,
+`more-horizontal-filled` 18×4, `more-vertical-filled` 4×18.
+
+**One gate from `main` had to be extended, and it is the case that gate predicted.** `icon`'s root
+stopped being a `box` with `size.{size}` bound on both axes and became the glyph, so
+`lint-standalone-floor.ts` (#869) saw a root acquiring none of its six extent mechanisms and failed —
+correctly. Its own header names the situation: *"if the PROJECTOR gains a seventh way to size a node
+and nobody adds it here, the first def relying on it alone fails arm A, and the fix is to decide
+whether the new mechanism really determines an extent."* It does: Figma's importer reads the `viewBox`
+and returns a frame of that box. So `glyphViewBox` is the seventh entry, with the near-miss case its
+table requires — and the predicate reads **`glyphViewBox`, never `glyphSvg`**, which is the decision
+rather than a detail. A document can perfectly well declare no artboard, and Figma then sizes the frame
+to the ink; that is the 14×2 `minus` this PR's other gate exists to refuse. Mutation-verified in both
+directions, exit status captured directly: pointing the predicate at `glyphSvg` fails its own negative
+case by name, and dropping `glyphViewBox` from the projected plan fails arm A for `icon`.
+
+**Gates:** `npm run verify` → **38/38 gates reached a verdict in 87s — 38 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY** (37 before this one).
+
+---
+
 ## (2026-08-21) — The paint grammar goes axis-led, and the exemption becomes a declaration (#910 review)
 
 **STATUS: merged-ready**, folded into the `checkbox` PR rather than shipped as a follow-up, because it
