@@ -108,6 +108,16 @@ npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo
                                                     # The second half is the point: two of the three
                                                     # defects that filed this were ABSENCES, and no sweep
                                                     # for wrong strings finds a row that is not there
+npx tsx packages/engine/lint-context-nodes.ts        # a context node (`inverse` / `on-inverse`) is a
+                                                    # GROUP unless named in LEAF_OK with a reason
+                                                    # (#892). The default is asymmetric-cost, not
+                                                    # taste: a leaf that later needs siblings is a
+                                                    # MAJOR break, a group with one child is
+                                                    # verbosity. Both directions — an unadmitted leaf
+                                                    # fails, AND an entry whose node has since gained
+                                                    # siblings fails as stale. The reason must say
+                                                    # whether the node is single-valued BY CONCEPT or
+                                                    # merely so far; those age differently
 npx tsx packages/engine/lint-decisions-index.ts      # every recorded decision is indexed, and every
                                                     # index row is real (#886), both directions: an
                                                     # index row must resolve to a real `Decided (date,
