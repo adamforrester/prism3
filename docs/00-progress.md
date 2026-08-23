@@ -12,6 +12,92 @@
 
 ---
 
+## (2026-08-23) — the verdict stopped waiting on a diagnostic that had already failed (#908)
+
+**STATUS: in review.** `measureSettle` and a named `verdictBeforeSettle` move into `build-telemetry.ts`;
+`buildComponents` starts the probe, posts the verdict, then awaits. No new gate — the assertions land in
+the existing `plugin-test`, mutation-verified three ways by name.
+
+**The measurement, because two of the issue's own numbers turned out to be a floor rather than a ceiling.**
+`measureSettle`'s budget is in **ticks** (`MAX_TICKS = 400`), so its wall-clock cost is `400 × host work per
+tick`. Driving the real `settlePoint` over the real loop:
+
+| host work per tick | ticks | wall clock | returns |
+|---|---|---|---|
+| idle | 3 | 3ms | 1ms |
+| 5ms | 3 | 18ms | 6ms |
+| 10ms | 400 | 4399ms | `null` |
+| 20ms | 400 | **8399ms** | `null` |
+| 50ms | 400 | 20400ms | `null` |
+| 100ms | 400 | **40331ms** | `null` |
+
+So **#908's 8.4s is one point on a line, not a cap** — the same probe costs 40s on a host four times busier,
+which is well past where a delay and a permanent hang are the same event to a designer. And **the transition
+is a cliff, not a slope**: 5ms of work per tick settles in three ticks because the lag lands under
+`CALM_LAG_MS = 8`; 10ms never settles at all. 18ms against 4399ms, for a doubling of load. Both answers to
+the issue's second question: 8.4s is the **budget being waited out**, not a real cost, and what it returns in
+that case is `null` — the verdict was delayed by a measurement that failed.
+
+**The issue's option 2 is refuted, and it is worth recording because it is the obvious fix.** Bounding the
+probe by wall clock (~500ms) is wrong twice over. It would **disable the instrument for its designed case**:
+a single solid 2s freeze is measured correctly today — 2003ms, in four ticks, one loud sample then a calm
+run — and under a 500ms bound returns `null`. And it would **not even cap the wall clock**, because a wall
+check can only run *between* ticks and a solid stall holds the thread *inside* one: the same freeze took
+2001ms to give up. The general form: any bound large enough to admit the 1m10s freeze this probe exists to
+measure is necessarily larger than the delay #908 is about, so the delay had to come out by **ordering**, not
+by shrinking the budget. `settlePoint([2000, 1, 1, 1]) === 1` is pinned as the sample shape that makes this
+true.
+
+**Option 1, with the coupling #684 defended left intact.** The probe is **started and not awaited**, so it
+still begins at the instant the executor returns — the moment being measured — and the console telemetry
+still carries its number, describing the same run. The only thing that changed is who waits. The answer to
+the issue's first question is that the verdict never depended on the probe at all: `summary` is built from
+the executor's counts and has **never** carried the settle figure, so nothing a designer reads was coupled to
+it. Both console blocks now run *after* the await, deliberately — a `console.log` is main-thread work and
+printing inside the sampling window could push an otherwise-idle file off its calm run. The verdict post is
+inside the window, which is correct rather than a compromise: it is real work happening after the executor
+returned, and it is sub-millisecond.
+
+**Why an unawaited promise got a named function.** `main.ts` calls `figma.showUI` at module scope and cannot
+be imported — the same constraint that put the rest of `build-telemetry.ts` where it is. Passing the probe in
+means a test can supply one that **never resolves**, the busy host taken to its limit, and assert the verdict
+still went out. That assertion cannot pass on the old code: with `await probe()` first, nothing is ever
+posted. The unawaited promise **is** the fix, and its header says not to tidy it.
+
+**Three mutations, three distinct named failures:**
+
+| mutation | named failure |
+|---|---|
+| `await probe()` before `postVerdict` — #908 exactly | `the verdict is posted while the probe is still running (sequence: probe-start)` **and** `the probe starts BEFORE the verdict posts` |
+| `postVerdict()` before starting the probe | `the probe starts BEFORE the verdict posts, so what it measures is unchanged (verdict → probe-start)` |
+| exhausted budget returned as a number | `a host busier than CALM_LAG_MS=8 never settles and reports NOT MEASURED rather than the budget (145)` |
+
+The second mutation is the one worth having: it guards *what the probe measures*, which a test asserting only
+"the verdict was posted" would pass on an implementation that never started the probe. One assertion —
+`and the settle result is still outstanding` — is a **companion, not a discriminator**: it stays true under
+mutation A, and it is there to prove the first assertion was not passing for a trivial reason.
+
+**A defect this change would have introduced, closed in the same commit.** Moving the verdict *before* the
+console telemetry means a throw in the telemetry tail reaches the catch and overwrites a correct "built"
+verdict with "apply failed" — reporting a successful build as a failure because a diagnostic could not be
+formatted. `verdictPosted` guards it: once the build has reported itself built, a later throw goes to the
+console. Not a pre-existing defect found and left (principle 3) — one created by this reordering, so closing
+it belongs here.
+
+**Which terminating conditions were exercised, since the standard carries over from #870.** All six of
+`test-build-verdict.mjs`, 100 of 100, unchanged. The probe path is reached by exactly three of them — clean,
+with misses, and already-built — which all go through `verdictBeforeSettle` identically. The other three
+cannot reach it by construction: **unknown def** and **not buildable standalone** (#869) return before the
+probe exists, and **errored** throws to the catch. That is not a gap in coverage; it is why the change is
+confined to three conditions and could not regress the other three.
+
+**What it does not claim.** No Figma and no main thread here, the same limit `test-build-verdict.mjs` states:
+this proves the *ordering* holds and the probe's budget behaves as measured, not that a live host settles when
+the probe says it did. The 8.4s and 40s figures come from a synthetic busy loop driving the real predicate,
+not from Figma.
+
+---
+
 ## (2026-08-22) — `CLAUDE.md` principle 4 shrinks to a bare gate list, and the pinned region survives (#924)
 
 **STATUS: shipped.** First of the five `docs/43` grooming issues (#924–#928), landed alone and first

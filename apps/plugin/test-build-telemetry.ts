@@ -18,8 +18,8 @@
  * confident, wrong readout, which is worse than no instrument at all.
  */
 import {
-  phaseStats, summarize, chunkLine, summaryLines, settlePoint,
-  FRAME_MS, SLOW_CHUNK_FRAMES, CALM_LAG_MS, CALM_TICKS,
+  phaseStats, summarize, chunkLine, summaryLines, settlePoint, measureSettle, verdictBeforeSettle,
+  FRAME_MS, SLOW_CHUNK_FRAMES, CALM_LAG_MS, CALM_TICKS, MAX_TICKS,
 } from './src/build-telemetry';
 import type { ComponentProgress } from './src/write-components';
 
@@ -219,12 +219,88 @@ ok(settlePoint([CALM_LAG_MS, CALM_LAG_MS, CALM_LAG_MS]) === 0,
 ok(settlePoint([CALM_LAG_MS + 1, CALM_LAG_MS, CALM_LAG_MS, CALM_LAG_MS]) === 1,
   `and one millisecond over is not (${CALM_LAG_MS + 1}ms)`);
 
+// ---- #908: the verdict does not wait on the probe -------------------------------------------
+// THE DEFECT: `measureSettle()` was awaited before `component-result` was posted, so a busy host held the
+// panel on `⋯ Building…` for the whole tick budget and then reported a settle figure of `null` — the
+// designer's verdict delayed by a diagnostic that had failed. What follows pins the ORDER, which is the
+// fix, and the probe's own budget behaviour, which is why the order had to change rather than the budget.
+//
+// A PROBE THAT NEVER RESOLVES is the busy host taken to its limit, and it is the assertion that could not
+// pass on the old code: with `const settleMs = await probe(); postVerdict();` nothing is ever posted.
+{
+  const seq: string[] = [];
+  let resolved = false;
+  const never = (): Promise<number | null> => { seq.push('probe-start'); return new Promise(() => { /* never */ }); };
+  const pending = verdictBeforeSettle(never, () => { seq.push('verdict'); });
+  void pending.then(() => { resolved = true; });
+  // One macrotask is more than enough for a microtask chain to drain, so this is not a race: if the verdict
+  // were behind the probe it would still be unposted here, and it would stay unposted forever.
+  await new Promise<void>((r) => { setTimeout(r, 20); });
+  ok(seq.includes('verdict'), `the verdict is posted while the probe is still running (sequence: ${seq.join(' → ') || 'nothing ran'})`);
+  ok(!resolved, 'and the settle result is still outstanding, so the verdict genuinely did not wait for it');
+  // BOTH DIRECTIONS OF THE ORDER, because "verdict was posted" alone would pass on an implementation that
+  // never started the probe at all. The probe must start FIRST: it measures the stall from the executor's
+  // return, so starting it after the post would move what it measures.
+  ok(seq[0] === 'probe-start' && seq[1] === 'verdict',
+    `the probe starts BEFORE the verdict posts, so what it measures is unchanged (${seq.join(' → ')})`);
+}
+
+// The happy path still returns the probe's number to the caller — the console telemetry block consumes it,
+// which is the coupling #684's comment defended and #908 had to keep.
+ok(await verdictBeforeSettle(async () => 42, () => { /* posted */ }) === 42,
+  'the settle figure still reaches the caller, so the telemetry block can carry it');
+
+// A verdict that THROWS must not strand the caller: the catch in `buildComponents` depends on the
+// rejection arriving rather than being swallowed by the unawaited probe.
+let threw = '';
+try {
+  await verdictBeforeSettle(async () => 1, () => { throw new Error('post failed'); });
+} catch (e) { threw = (e as Error).message; }
+ok(threw === 'post failed', `a throwing verdict rejects rather than hanging the build (${threw || 'nothing thrown'})`);
+
+// ---- #908: the probe's budget is in TICKS, and that is the mechanism ------------------------
+// An idle host settles in a few ticks and costs nothing — the case that made the old ordering look fine.
+const idle = await measureSettle();
+ok(idle !== null && idle < 200, `an idle host settles and reports a number (${idle}ms)`);
+
+// A BUSY HOST BURNS THE WHOLE BUDGET AND REPORTS NOTHING. Run at a small `maxTicks` so the suite stays
+// fast; the shipped budget is 400, and the wall cost is `maxTicks × host work per tick`, which is why 20ms
+// of work per tick measured 8399ms in the real probe and 100ms measured 40331ms. The delay is not capped.
+{
+  const TICKS = 12;
+  const BURN = 12; // > CALM_LAG_MS, so `settlePoint` never sees a calm run
+  const t0 = Date.now();
+  // Occupy the thread between ticks the way a reconciling host does. A timer chain competing with a
+  // spinning thread is exactly what the probe samples, so this drives the real function rather than a copy.
+  const spin = setInterval(() => { const end = Date.now() + BURN; while (Date.now() < end); }, 1);
+  const busy = await measureSettle(TICKS);
+  clearInterval(spin);
+  const wall = Date.now() - t0;
+  ok(busy === null, `a host busier than CALM_LAG_MS=${CALM_LAG_MS} never settles and reports NOT MEASURED rather than the budget (${busy})`);
+  // The budget is spent, not short-circuited — the assertion that identifies the cost as the BUDGET being
+  // waited out rather than a real settle time. Loose lower bound: the point is the order of magnitude.
+  ok(wall >= TICKS * BURN * 0.5,
+    `and it spends the whole tick budget doing it — ${TICKS} ticks cost ${wall}ms, so the shipped 400 would cost ~${Math.round((wall / TICKS) * 400)}ms on this host`);
+}
+
+// WHY THE BUDGET IS NOT MOVED TO WALL CLOCK, which is #908's own proposed alternative. A single solid
+// stall is ONE tick: the thread is held inside it, so a wall-clock check between ticks cannot preempt it,
+// and any bound short enough to cap #908's delay is far shorter than the 1m10s freeze this probe exists to
+// measure — it would return `null` for exactly its designed case. Pinned here as the SAMPLE SHAPE, which
+// is the part a future reader needs: one loud lag then a calm run, settling at the stall's length.
+ok(settlePoint([2000, 1, 1, 1]) === 1,
+  'a single solid freeze is one loud sample followed by calm, so the probe needs only a few ticks to measure a very long stall');
+
 // The constants are pins with a stated basis, not derivations — same honesty as `CHUNK`. Loose bounds:
 // they only catch a threshold left at 0 or set somewhere absurd.
 ok(FRAME_MS === 16, `FRAME_MS is one frame at ~60fps (${FRAME_MS})`);
 ok(SLOW_CHUNK_FRAMES > 1 && SLOW_CHUNK_FRAMES < 20, `SLOW_CHUNK_FRAMES is a plausible perceptual budget (${SLOW_CHUNK_FRAMES})`);
 ok(CALM_LAG_MS > 0 && CALM_LAG_MS < FRAME_MS, `CALM_LAG_MS is inside one frame — idle, not merely better (${CALM_LAG_MS})`);
 ok(CALM_TICKS >= 2, `CALM_TICKS requires more than one quiet sample (${CALM_TICKS})`);
+// MAX_TICKS is pinned by VALUE, not bounded, because #908's cost is `MAX_TICKS × host work per tick` and
+// the table in `measureSettle`'s header quotes wall-clock figures computed from this number. A change here
+// makes that table wrong, which is the kind of documented measurement that otherwise rots silently.
+ok(MAX_TICKS === 400, `MAX_TICKS is the budget the header's measured table is computed from (${MAX_TICKS})`);
 
 console.log(`\nplugin BUILD TELEMETRY: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
