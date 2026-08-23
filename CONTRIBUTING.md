@@ -107,7 +107,11 @@ npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo
                                                     # every tracked layer is named in the layout tables.
                                                     # The second half is the point: two of the three
                                                     # defects that filed this were ABSENCES, and no sweep
-                                                    # for wrong strings finds a row that is not there
+                                                    # for wrong strings finds a row that is not there.
+                                                    # Adding a workspace under `apps/` or `packages/`
+                                                    # therefore requires editing CLAUDE.md's layer table,
+                                                    # README.md and docs/09 §3 in the SAME PR — #669
+                                                    # shipped a README.md with no `skills/` row at all
 npx tsx packages/engine/lint-context-nodes.ts        # a context node (`inverse` / `on-inverse`) is a
                                                     # GROUP unless named in LEAF_OK with a reason
                                                     # (#892). The default is asymmetric-cost, not
