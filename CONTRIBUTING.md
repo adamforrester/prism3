@@ -232,6 +232,45 @@ npx tsx packages/engine/lint-paint.ts               # the component tier's colou
                                                     # stroke.inverse (#656's invisible ring), and no census
                                                     # can see it — focus-ring has no `size` axis, so it
                                                     # cannot be projected at all
+npx tsx packages/engine/lint-paint-placement.ts      # which NODE carries the colour (#933). The gate above
+                                                    # asks whether a binding is painted AT ALL — its arm 3
+                                                    # collects every variable of every coordinate into one
+                                                    # flat set and DISCARDS the node — so nothing held an
+                                                    # answer to "did the paint land on the part the def
+                                                    # nominated". The projector's box branch read
+                                                    # role === 'target', which means "what does the user
+                                                    # click", to decide "what carries colour". Every
+                                                    # anatomy in the corpus is ONE box and ONE target and
+                                                    # they are the same part, so nothing exercised it; a
+                                                    # switch is where they come apart (its whole ROW is
+                                                    # clickable, the fill belongs to the TRACK), and the
+                                                    # configuration a hit-area author reaches for painted
+                                                    # the track's `on` fill across the entire label row.
+                                                    # Both configurations validated with ZERO errors —
+                                                    # #802's class. Measured with the defect restored:
+                                                    # test.ts 2331/0 and lint-paint.ts GREEN.
+                                                    # EXPECTED is `allowed()` here, restating per kind
+                                                    # which properties a part may carry and reading a
+                                                    # box's own paintSlots; ACTUAL is which nodes came
+                                                    # back with paints.fills/strokes. The restatement IS
+                                                    # the gate — importing the dispatch would put one
+                                                    # expression on both sides (docs/34 shape 1).
+                                                    # IT CARRIES ITS OWN TWO-BOX FIXTURE because the
+                                                    # corpus CANNOT express the shape: restoring the
+                                                    # coupling leaves every corpus arm legitimately green
+                                                    # (measured), so a corpus-only run is shape 15 — the
+                                                    # comparison right, the SET excluding the only case
+                                                    # that can fail it. The excluded member is not a
+                                                    # member (no def has two boxes), so the fix is to
+                                                    # BUILD one, not to relate it. Its load-bearing
+                                                    # arm is metamorphic: moving role 'target' between two
+                                                    # boxes must not change the placement map at all.
+                                                    # WHICH VARIABLE is lint-paint.ts's, not this file's —
+                                                    # re-deriving paintOf here would be a second bad copy
+                                                    # of a resolver, agreeing with the first wherever it
+                                                    # is wrong. No characterization baseline: a uniform
+                                                    # loss is caught by arm B, so an authored one would
+                                                    # buy nothing and read as coverage
 npx tsx packages/engine/lint-rung-names.ts          # a def's size enum names the ENGINE's rungs, not a
                                                     # brief's (#756). The KB briefs and the emitted tier
                                                     # use the SAME rung names for DIFFERENT values, offset

@@ -12,6 +12,112 @@
 
 ---
 
+## (2026-08-23) — `role: 'target'` stops deciding what carries colour (#933)
+
+**STATUS: in review.** Closes #933, the remaining blocker on switch's anatomy block now that #951
+landed `control.size.*`. Two boxes, one target: the schema had no way to say which box paints, so the
+projector used the one field that happened to correlate.
+
+**The defect, and why it is the #802 class.** `anatomy-figma.ts`'s box branch read
+`p.kind === 'box' && p.role === 'target'`, and `component-schema.ts` permits exactly one `target` per
+def. So `role: 'target'` — *"what does the user click"*, a hit-area and accessibility concept — was
+deciding *"what carries colour"*. The two concepts have the same answer in **all five** anatomies in
+the corpus (one box, one target, and they are the same part), which is why nothing ever exercised it.
+A switch is where they come apart: its whole **row** is clickable, so the row is the target, while the
+fill belongs to the **track**. Probed on a real def, **both configurations validated with zero
+errors**, and the one a hit-area author reaches for painted the track's `on` fill across the entire
+label row. Structurally valid output that does not do its job — every variable resolves, nothing
+throws, and no gate that asks *does it resolve* can see it.
+
+**Measured with the coupling restored, because "no gate sees it" is a claim:** `test.ts` **2331 passed
+/ 0 failed**, `lint-paint.ts` **exit 0**, `typecheck-components.ts` **exit 0**. `lint-paint.ts` arm 3
+walks every node of every coordinate and flattens the variables it finds into one flat set — the right
+question for #784, half the corpus authored and painting nothing — and it **discards the node**. So
+*"is this binding painted at all"* was answered everywhere and *"did it land on the part the def
+nominated"* nowhere.
+
+**The decision: an explicit declaration, `paintSlots` on the part.** #933 asked for one of three shapes
+and this is the third, argued. A box declares which paint slots it takes —
+`paintSlots: ['overlay', 'fill', 'border']` on Button's `container` — order is precedence, `border`
+reaches `strokes` and every other word competes for the single `fills` array. `p.role` is now read
+**nowhere** in `anatomy-figma.ts`, and `PartDef.role`'s doc comment (which said the target owns "the
+hit area, radius, fill and border" — the conflation, written down) now says hit area and focus ring
+only.
+
+*Why not (a), a bare "carries paint" flag:* because `paintOf(slot)` is **part-blind** — it takes a slot
+string and reads `def.tokens[key]` through `def.paintKeys`; it never sees which part asked. A boolean
+tells the projector *that* a box paints and not *what*, so it would still have to guess the slot.
+
+*Why not (b), let any `kind: 'box'` paint and let the paint keys decide:* **falsified by measurement,
+not by taste.** Because `paintOf` is part-blind, `row`, `track` and `thumb` all resolve the same
+variable — `color/interactive/primary/fill/selected`. Option (b) is therefore strictly worse than the
+bug: instead of one wrong box painted, every box is painted, identically.
+
+*And no default, deliberately.* An implicit "the single box paints" rule would change meaning silently
+the day a def gains a second box, and it would give the new gate an EXPECTED with a magic discriminator
+in it. `field-label` and `field-message` legitimately declare nothing — their boxes key no
+`fill`/`overlay`/`border` at all, the ink is on their text children — and the *forgot to declare* case
+is covered from the other side by `lint-paint.ts`'s existing reachability arm, verified: dropping
+Button's declaration fires it **33 times**.
+
+**The gate: `lint-paint-placement.ts`.** EXPECTED is this file's own `allowed()` — per part kind, plus a
+box's own `paintSlots`, mapped to `fills`/`strokes` here and nowhere else. ACTUAL is which nodes came
+back carrying `paints.fills` / `paints.strokes`, walked out of the projected plans over the **full
+declared grid** (never `figmaAnatomySet` — `icon` paints along `tone`, an axis the Figma set does not
+enumerate, so a set-based enumeration pins it at 0). The restatement **is** the gate; importing the
+projector's dispatch would put one expression on both sides.
+
+**It carries its own two-box fixture, and that is the load-bearing part.** A corpus-only version is
+`docs/34` **shape 15** — the comparison right, the set it walks excluding the only case that can fail
+it — and restoring the coupling leaves arms A, B and E *legitimately* green over every real component.
+Shape 15's own fix (relate the excluded members) has no purchase, because the excluded member is not a
+member: no def has two boxes. So arm D builds one, from `button` rather than by hand so the paint
+grammar underneath resolves — a synthetic def with two tokens would leave every arm passing over an
+empty tree. Its central assertion is **metamorphic**: moving `role: 'target'` between the two boxes
+must not change the placement map *at all*. One projector, two inputs differing in one field, an
+invariance the schema promises — no EXPECTED needed, and shape 16's remedy (state the quantity a human
+would check) applied before the fact rather than after.
+
+**Six mutations, each failing by name.** Restore the coupling → D2 + arm B twice + D4, with the three
+gates above staying green. Ignore `paintSlots` (option b) → arm A four times, in both fixture
+configurations. Route `border` to `fills` → six failures, including arm A on the **real**
+`focus-ring.ring`. Delete the box branch (uniform loss) → arm B across every painting def. Drop
+Button's declaration → D2 + arm S + arm E. Neuter the two-boxes-one-slot schema rule → arm S by name.
+The first of those is the headline: it is the only mutation the rest of CI cannot see.
+
+**Two traps worth carrying forward.** A first draft of arm D diagnosed *`role` changed the paint*
+rather than stating the measurement — but the same discrepancy is produced by three different causes
+(reading `role`, ignoring `paintSlots`, routing a slot to the wrong property), so a message naming one
+reads as a false lead under the other two. Both messages now state what carries what against what it
+declared. And this entry's own shape citation was **wrong on the first pass** — filed as shape 14
+(a threshold below the defect) where it is shape 15 (a set excluding it). `lint-shape-index.ts` was
+green, correctly: its arm B checks a cited number **exists**, and its own header says it cannot check
+the citation means the right shape. That judgment is review's, and this is the first time it mattered.
+
+**No version bump, stated rather than skipped.** `ENGINE_VERSION` bumps on any behavior change, but its
+scope is the emitted token layer it is stamped into: this changes the component tier's Figma
+projection, no committed artifact under `out/` moves (`regen.ts` → no drift, `lint-paint.ts`'s census
+byte-identical before and after), and the MCP surface is untouched. Precedent agrees — #758, #795 and
+#801 all changed projection or executor behavior and none touched `version.ts`. `CONTRACT_VERSION`
+stands: no token name moved.
+
+**Scope, and the freeze that expired mid-task.** #933 was scoped to `anatomy-figma.ts` and
+`component-schema.ts` because PR #960 was rewriting prose across all ten def files and a rebase over a
+renamed field there is silent rather than a conflict (#947 flagged exactly this). **#960 merged as
+`a9fa66a` during the work**, so the freeze lifted and the explicit route became available; five def
+files carry declarations or a comment recording that their absence is deliberate. Checkbox, radio and
+switch are still **not** bound to `control.size.*` — that is the natural next task and a separate
+concern. Filed while here: **#965**, the `paintSlot` (text, singular) / `paintSlots` (box, plural)
+split — two shapes for one concept, left unmerged deliberately, and #708's exact precedent for why
+that is worth closing; and **#966**, a stale count inside `NESTED_WITHOUT_ANATOMY`'s use-site comment
+(*"`text-field` is the only entry"* against a table of five), found because a trial anatomy on `switch`
+turned its `focus-ring` binding into a `paintKeys` error. That error is **correct and documented** — the
+table says all five exemptions go when their anatomy blocks land — so the defect is the prose, not the
+check; the sentence that went stale is the one carrying the removal trigger.
+
+**Gates:** `npm run verify` → all gates reached a verdict, **41** now that this one is registered.
+`regen.ts --check` → byte-identical, 114/114.
+
 ## (2026-08-23) — a ground is DECLARED, not overridden; and the gate that could not have caught it (#956)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.15.0 → 0.16.0. `CONTRACT_VERSION` stands at 5.2.0 (576

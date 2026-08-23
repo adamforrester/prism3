@@ -160,6 +160,9 @@ export const iconButton: ComponentDef = {
     parts: {
       container: {
         kind: 'box',
+        // Button's grammar, so Button's slots and Button's precedence — see its `container` for why the
+        // order is written down rather than left in the projector (#933).
+        paintSlots: ['overlay', 'fill', 'border'],
         role: 'target',
         children: ['icon', 'focusRing'],
         // FIXED on both axes, which follows from the square rather than being a separate choice: one

@@ -376,6 +376,20 @@ jobs:
       - name: Component paint is where the defs say it is
         run: npx --yes tsx@4 packages/engine/lint-paint.ts
 
+      # #933, and the seam with the step above is the point: `lint-paint.ts` asks whether a binding is
+      # painted AT ALL — its arm 3 collects every variable of every coordinate into one flat set and
+      # DISCARDS the node — so nothing held an answer to "did the paint land on the part the def
+      # nominated". The projector's box branch read `role === 'target'`, which means "what does the user
+      # click", to decide "what carries colour". Every anatomy in the corpus is one box and one target and
+      # they are the same part, so nothing exercised it; a switch is where they come apart, and the
+      # configuration a hit-area author reaches for painted the track's `on` fill across the whole label
+      # row. Both configurations validated with ZERO errors — #802's class, structurally valid output that
+      # does not do its job. Measured with the defect restored: test.ts 2331/0 and lint-paint.ts green.
+      # Which is why this gate CARRIES ITS OWN TWO-BOX FIXTURE: the corpus cannot express the shape, so a
+      # corpus-only run would be a gate nothing can exercise.
+      - name: Component paint lands on the part the def nominated
+        run: npx --yes tsx@4 packages/engine/lint-paint-placement.ts
+
       # #756: the KB briefs and the emitted tier use THE SAME RUNG NAMES FOR DIFFERENT VALUES, offset
       # by one rung and agreeing on every value over the overlap. A def adopting the brief's names makes
       # `icon.size.md` mean 24 in the token layer and 20 in the component API — both halves valid, every
