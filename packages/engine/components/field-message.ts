@@ -123,6 +123,8 @@ export const fieldMessage: ComponentDef = {
         // `target` in the schema's sense — this def's paint and geometry owner — not the interaction
         // sense, on `icon`'s terms. A message takes no focus; the FIELD it describes does, and this
         // node's relationship to that field is a DOM one (see codeOnly).
+        // NO `paintSlots`, deliberately (#933), for `field-label`'s reason: the tone lives in the
+        // caption's ink and the glyph's, both of which are children. This box paints nothing.
         role: 'target',
         // START, not baseline, and this differs from `field-label` deliberately: the glyph beside a
         // possibly-wrapping caption should align to the caption's FIRST line, which `start` gives and

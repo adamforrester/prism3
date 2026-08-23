@@ -257,6 +257,13 @@ export const button: ComponentDef = {
     parts: {
       container: {
         kind: 'box',
+        // THE ORDER IS THE PRECEDENCE (#933): the overlay if it resolves, otherwise the fill. `filled`
+        // keys a fill and no overlay; `outline` and `text` key an overlay and no fill, because they have
+        // no fill to change for hover and express it as a translucent wash on this same node. Exactly
+        // one of the two resolves at any coordinate, so the order is a tie-break that never fires — it
+        // is written down because the projector used to hold it as a hardcoded `??` and the def that
+        // depends on it could not see it.
+        paintSlots: ['overlay', 'fill', 'border'],
         role: 'target',
         children: ['leadingVisual', 'label', 'trailingVisual', 'focusRing'],
         // justify: center is the CONSTANT (docs/28 §5.2). Primer ties alignment to purpose —

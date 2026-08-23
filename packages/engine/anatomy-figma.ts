@@ -884,25 +884,44 @@ export const figmaAnatomyPlan = (
       textStyle = figmaTextStyleName(ref);
     }
 
-    // PAINT BY PART KIND, not by part name. `container` takes the fill/border because it is the
-    // `target`; `label` takes ink because it is text; a slot takes ink on its VECTOR descendants.
-    // Keyed off `role`/`kind` so this generalizes to the other four defs rather than hard-coding
-    // Button's part names — and so a def that names its box something else still paints.
+    // PAINT BY PART KIND, and for a box by the part's OWN DECLARATION. `label` takes ink because it is
+    // text; a slot takes ink on its VECTOR descendants; a box takes the slots it names in `paintSlots`.
+    // Nothing here reads `role` — see below, and see the field's own note for why it still exists.
     const paints: { fills?: string; strokes?: string } = {};
     let descendantFills: string | undefined;
-    if (p.kind === 'box' && p.role === 'target') {
-      // `outline` and `text` key no `.fill`, so an unfilled box is the correct projection of both —
-      // not a dropped binding. `text` keys no border either; only `outline` does.
+    if (p.kind === 'box') {
+      // THIS LINE USED TO READ `p.kind === 'box' && p.role === 'target'`, and that was #933: `role`
+      // answers "what does the user click", and it was also deciding "what carries colour". The two
+      // have the same answer in every def written so far — every anatomy in the corpus is one box and
+      // one target, and they are the same part — so nothing ever exercised the difference. A switch is
+      // where they come apart: its whole ROW is clickable, which makes the row the target, while the
+      // fill belongs to the TRACK. Probed against the real def, both configurations validated with
+      // ZERO errors and the row-as-target one painted the track's `on` fill across the entire label
+      // row. Structurally valid output that does not do its job — nothing resolves to nothing, nothing
+      // throws, and no gate that asks "does it resolve" can see it.
       //
-      // THE OVERLAY IS THE SAME SLOT AS THE FILL, and this is #487 §8's per-appearance rule rather
-      // than a shortcut. `filled` expresses hover by CHANGING its fill; `outline` and `text` have no
-      // fill to change, so they express it as a translucent overlay — which in Figma is a fill on the
-      // same node. One node, one `fills` array, two different token families reaching it depending on
-      // appearance. Overlay wins when both resolve, because for `filled` only the fill resolves and
-      // for the other two only the overlay does; a collision would mean the def keyed both, which is
-      // a def-tier contradiction worth surfacing rather than silently ordering.
-      const fill = paintOf('overlay') ?? paintOf('fill');
-      const border = paintOf('border');
+      // `paintSlots` IS A LIST BECAUSE `paintOf` IS PART-BLIND. It takes a slot and never learns which
+      // part asked, so the cheaper repair — let any box paint and let the def's keys decide — was
+      // measured and is worse than the defect: row, track and thumb all came back bound to the same
+      // `color/interactive/primary/fill/selected`. The field's note carries that measurement.
+      //
+      // `outline` and `text` key no `.fill`, so an unfilled box is the correct projection of both — not
+      // a dropped binding. `text` keys no border either; only `outline` does.
+      const declared = p.paintSlots ?? [];
+      // THE OVERLAY IS THE SAME SLOT AS THE FILL, and this is #487 §8's per-appearance rule rather than
+      // a shortcut. `filled` expresses hover by CHANGING its fill; `outline` and `text` have no fill to
+      // change, so they express it as a translucent overlay — which in Figma is a fill on the same node.
+      // One node, one `fills` array, two token families reaching it depending on appearance. Which wins
+      // is now the DEF'S declaration order rather than a `??` here: for `filled` only the fill resolves
+      // and for the other two only the overlay does, so a def keying both is stating a contradiction,
+      // and it should be reading its own answer to that rather than inheriting ours.
+      let fill: string | undefined;
+      for (const slot of declared) {
+        if (slot === 'border') continue; // the one EDGE slot — it reaches `strokes`, never `fills`
+        fill = paintOf(slot);
+        if (fill) break;
+      }
+      const border = declared.includes('border') ? paintOf('border') : undefined;
       if (fill) paints.fills = fill;
       if (border) paints.strokes = border;
     } else if (p.kind === 'text') {

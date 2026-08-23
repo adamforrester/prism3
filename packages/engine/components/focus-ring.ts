@@ -147,9 +147,15 @@ export const focusRing: ComponentDef = {
     parts: {
       ring: {
         kind: 'box',
-        // `target` in this schema's sense — the single node owning this component's paint — and not
-        // in the interaction sense, which a ring never has. Same distinction `icon` draws, and worth
-        // repeating because both primitives are the first defs where the two readings come apart.
+        // `paintSlots` NAMES THE EDGE AND NOTHING ELSE, because a ring is a stroke: it keys `border`
+        // and `border.inverse` and no fill anywhere, so a filled ring would be a painted rectangle over
+        // whatever it is meant to be drawing attention to.
+        paintSlots: ['border'],
+        // `target` in the a11y/interaction sense only, which a ring never has — it is here because the
+        // schema requires exactly one, and a one-part anatomy has one candidate. This comment used to
+        // read "`target` in this schema's sense — the single node owning this component's paint", which
+        // was true of the projector and was #933: paint moved to `paintSlots` above, and the two
+        // readings this comment noticed were coming apart are now two fields.
         role: 'target',
         note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no dimension of its own.',
       },

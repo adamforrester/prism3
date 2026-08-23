@@ -139,8 +139,22 @@ export type NestingRelation =
 
 export type PartDef = {
   kind: PartKind;
-  /** `target` marks the single a11y/interaction target — the node that owns the hit area,
-   *  radius, fill and border. Exactly one part per anatomy may claim it. */
+  /** `target` marks the single a11y/interaction target — the node that owns the hit area and the
+   *  focus ring. Exactly one part per anatomy may claim it.
+   *
+   *  IT DOES NOT DECIDE WHICH PART PAINTS, and it used to (#933). The projector's box branch read
+   *  `role === 'target'`, so "what does the user click" was also answering "what carries colour" —
+   *  two questions that have the same answer in every def written so far and come apart the moment
+   *  one does not. A switch is the case: its whole ROW is clickable, so the row is the target, while
+   *  the fill belongs to the track. Both configurations validated with zero errors, and the one a
+   *  hit-area author reaches for painted the track's `on` fill across the entire label row. Paint is
+   *  now `paintSlots`, declared per part; nothing in the projector reads this field.
+   *
+   *  SO WHY DOES IT STILL EXIST. Because it answers the question it names. A materializer needs one
+   *  node to attach the interactive role, the accessible name and the focus ring to, and `icon`'s
+   *  target is a `vector` with no box anywhere in its anatomy — which is the clearest evidence the
+   *  two concepts were never the same one. Do not delete it as unused on the strength of the
+   *  projector no longer reading it; the a11y tier is downstream of here. */
   role?: 'target' | 'presentation';
   /** Ordered. Order IS the visual order — a materializer appends children in this sequence. */
   children?: string[];
@@ -190,6 +204,26 @@ export type PartDef = {
    *  distinct ink ROLE, not a distinct part. `indicator` qualifies (a name and its de-emphasised
    *  suffix are two roles); "this part happens to need its own colour" does not. */
   paintSlot?: string;
+  /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
+   *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
+   *  that. The words must come from `BOX_PAINT_SLOTS`.
+   *
+   *  WHY A LIST AND NOT A FLAG, and this is measured rather than argued. #933 was filed as "`role`
+   *  decides paint", so the obvious repair is to drop `role` from the branch and let any box paint,
+   *  with the def's own paint keys deciding what each one gets. That was implemented against a
+   *  two-box switch anatomy and probed: the row, the track AND the thumb all came back bound to the
+   *  SAME variable, `color/interactive/primary/fill/selected`. `paintOf` takes a slot and never sees
+   *  which part asked — the identical blindness #796 measured one kind over, where both of
+   *  `field-label`'s text nodes came back `color/text/primary`. So "let the keys decide" is not a
+   *  weaker fix than this one, it is strictly worse than the bug: it paints three nodes where the
+   *  defect painted one wrong node. A box has to name its slots because nothing else can.
+   *
+   *  ORDER IS PRECEDENCE, for the ground slots. `['overlay', 'fill']` reads "the overlay if it
+   *  resolves, otherwise the fill", which is #487 §8's per-appearance rule that `filled` expresses
+   *  hover by changing its fill while `outline` and `text` have no fill to change and express it as a
+   *  translucent overlay on the same node. That rule used to be a hardcoded `??` in the projector with
+   *  a paragraph explaining it; as a declaration it is visible in the def that depends on it. */
+  paintSlots?: readonly string[];
   /** For `vector` parts: WHICH glyph, by its name in the icon vocabulary (#864).
    *
    *  A NAME, resolved against `ICON_PATHS` at projection — never the path data itself. Two reasons, and
@@ -1152,6 +1186,24 @@ export const PAINT_SLOTS = ['fill', 'overlay', 'border', 'label', 'icon', 'indic
 export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator']);
 
 /**
+ * The slots a `box` part may declare in `paintSlots` (#933) — a NAMED SUBSET of `PAINT_SLOTS`, not a
+ * second vocabulary. The dispatch words are unchanged; this says which of them land on a box.
+ *
+ * `label`, `icon` and `indicator` are missing on purpose. They are INK roles, and ink belongs on the
+ * node that draws the glyph or the glyph's own vector — a box taking one would put a filled rectangle
+ * BEHIND the thing it was meant to colour. That is not a prediction: it is #864's measured failure met
+ * from the other side. `createNodeFromSvg` hands back a frame wrapping the outline, a fill on that
+ * frame painted a square behind every glyph in the set, and the fix was to route ink to the vector by
+ * descendant search. A box declaring `paintSlots: ['icon']` would re-open that from the def tier, where
+ * it would read like a deliberate choice.
+ *
+ * Which leaves the two grounds and the one edge, and the split is exhaustive by construction rather
+ * than by a list the projector also keeps: `border` is the only edge slot, so it is the only one that
+ * reaches `strokes`, and everything else competes for the single `fills` array in declaration order.
+ */
+export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border'] as const;
+
+/**
  * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
  *
  * Closed for the reason `PAINT_SLOTS` is closed, one tier up: at 7 components free-form state strings
@@ -1786,6 +1838,21 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   const targets = names.filter((n) => parts[n].role === 'target');
   if (targets.length !== 1) e.push(`anatomy: exactly one part must have role 'target' (found ${targets.length}${targets.length ? `: ${targets.join(', ')}` : ''})`);
 
+  // NO TWO BOXES MAY CLAIM THE SAME SLOT (#933). `paintOf` dispatches on the slot alone and is blind to
+  // which part asked, so two boxes naming `fill` do not divide the fill between them — they both take
+  // the SAME variable, and one of them is wrong. That is not the shape of a def with two painted
+  // surfaces; it is the shape of a def that has not decided which surface is the fill. Measured on a
+  // two-box switch anatomy before this rule existed: row, track and thumb all bound
+  // `color/interactive/primary/fill/selected`. A def that genuinely needs a second painted box needs a
+  // second SLOT for it, which is a `PAINT_SLOTS` decision and deliberately a harder one to make.
+  const claimants = new Map<string, string[]>();
+  for (const n of names)
+    for (const slot of parts[n].kind === 'box' ? parts[n].paintSlots ?? [] : [])
+      claimants.set(slot, [...(claimants.get(slot) ?? []), n]);
+  for (const [slot, who] of claimants)
+    if (who.length > 1)
+      e.push(`anatomy: parts [${who.join(', ')}] all declare paintSlots '${slot}' — the projector resolves a slot once, so every one of them would bind the same variable rather than each getting its own`);
+
   // Every binding key anatomy names must be a slot the component actually binds, at every size.
   const bindingKeys = (p: PartDef): string[] =>
     [p.gap, p.height, p.radius, p.size, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
@@ -1986,6 +2053,24 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // the #784 shape arriving through the field that exists to prevent it.
     if (p.kind === 'text' && p.paintSlot !== undefined && !(PAINT_SLOTS as readonly string[]).includes(p.paintSlot))
       e.push(`anatomy part '${n}': paintSlot '${p.paintSlot}' is not a slot the projector dispatches — it asks only for [${PAINT_SLOTS.join(', ')}]. A part naming a word outside that list resolves no paint and projects unpainted. Do NOT add it to PAINT_SLOTS to clear this: a new slot needs a distinct ink ROLE and a real dispatch behind it (see PAINT_SLOTS)`);
+    // ---- `paintSlots`, the BOX kind's field (#933) ----
+    // The same wrong-kind rule as `paintSlot` above, for the same reason: only the box branch reads it,
+    // so on any other kind it validates clean, is silently ignored, and leaves an author believing the
+    // part paints. A `text` part choosing its ink says `paintSlot`; a `vector`'s ink follows its kind.
+    if (p.kind !== 'box' && p.paintSlots !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'paintSlots' — only a 'box' part chooses which paint slots it takes; a 'text' part names its ink with 'paintSlot' and every other kind's paint follows from its kind`);
+    if (p.kind === 'box' && p.paintSlots !== undefined) {
+      if (p.paintSlots.length === 0)
+        e.push(`anatomy part '${n}' declares an EMPTY 'paintSlots' — a box that paints nothing says so by omitting the field, and an empty list reads as a declaration that was meant to say something`);
+      for (const slot of p.paintSlots)
+        if (!(BOX_PAINT_SLOTS as readonly string[]).includes(slot))
+          e.push(`anatomy part '${n}': paintSlots names '${slot}', which a box may not take — a box takes only [${BOX_PAINT_SLOTS.join(', ')}]. ${(PAINT_SLOTS as readonly string[]).includes(slot) ? `'${slot}' is an INK role: it belongs on the text or vector node that draws the mark, and on a box it would paint a rectangle behind it (see BOX_PAINT_SLOTS)` : `'${slot}' is not a slot the projector dispatches at all — it asks only for [${PAINT_SLOTS.join(', ')}]`}`);
+      // A repeated word is either a typo or a belief that repetition means something. Neither should
+      // project: the second occurrence can never win the precedence loop the first already answered.
+      const dupes = p.paintSlots.filter((s, i) => p.paintSlots!.indexOf(s) !== i);
+      if (dupes.length)
+        e.push(`anatomy part '${n}': paintSlots repeats [${[...new Set(dupes)].join(', ')}] — order is precedence, so a repeat can only ever be unreachable`);
+    }
     // ---- the vector kind (#864) ----
     // A vector's CONTENT is its geometry, so a vector naming no glyph is the empty artboard #864 was
     // filed for arriving one tier earlier: it would project a node with nothing in it and every gate

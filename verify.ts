@@ -446,6 +446,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-paint.ts'),
   },
   {
+    id: 'lint-paint-placement',
+    ciStep: 'Component paint lands on the part the def nominated',
+    cmd: engine('lint-paint-placement.ts'),
+  },
+  {
     id: 'lint-rung-names',
     ciStep: "A def's size enum names the engine's rungs, not a brief's",
     cmd: engine('lint-rung-names.ts'),

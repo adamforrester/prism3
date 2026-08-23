@@ -101,6 +101,9 @@ export const fieldLabel: ComponentDef = {
         // NOT the interaction sense, on `icon`'s terms: a label takes no focus. What it DOES own that a
         // glyph does not is a real a11y relationship, the native `<label for>`, and that is a DOM fact
         // with no Figma expression (see codeOnly).
+        // NO `paintSlots`, deliberately (#933): this box is structure. The label's ink is on its two
+        // TEXT children, each naming its own slot, and the def keys no fill, overlay or border at all —
+        // so a declaration here would name a slot that resolves to nothing at every coordinate.
         role: 'target',
         // BASELINE, not center, and this is the one alignment choice here that is a design decision
         // rather than a default: the marker sits beside running text at a different type step in the
