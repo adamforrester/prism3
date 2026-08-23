@@ -12,6 +12,58 @@
 
 ---
 
+## (2026-08-23) — `against` meant two opposite things; 1,296 ratios per run were unverifiable because of it (#963)
+
+**STATUS: shipped.** Stacked on #962. `ENGINE_VERSION` 0.16.0 → 0.17.0. `CONTRACT_VERSION` stands at
+5.2.0. Gates stay at **41** — this needed no new gate, it removed an exclusion from an existing one.
+
+**The defect.** `against` carried two opposite arrows and nothing in the data said which. On an
+ordinary role it names the surface the role sits on (`ratio = contrast(me, against)`). On a
+translucent WASH it named the **ink that ends up on top**, and the ground the wash composited over was
+recorded *nowhere at all* — so the relationship was three-way with its middle term missing. Any
+consumer reading `against` uniformly, which is the only way to read a field, was wrong for 18 roles
+per mode and could not tell.
+
+**The fix is a declaration, not a rename.** `against` is now the ground on every role; a wash adds
+`contrastModel: 'ink-on-composite'` and `legibleFor` (the ink `min` actually bounds). `put` gained a
+sibling `putWash`, and `ResolvedRole` became a union so `legibleFor` + `alpha` are REQUIRED exactly
+when the model is composite. The shape that caused this is no longer expressible.
+
+**Why declared and not inferred — `scrim.default` is the whole argument.** It carries `alpha: 0.4`
+and is genuinely `ink-on-surface` (`against: 'self'`, ungated). Reading the model off "does it have an
+alpha" would have misclassified a real role on day one. It is also #956's trap wearing new clothes: a
+discriminator derived from the code it is meant to check agrees with itself. Same posture as
+`axes.ts` classifying a collection and `payload-manifest.json` classifying an artifact — a new thing
+must SAY which it is.
+
+**What it bought, which is the point of doing it now rather than later.** `lint-ratio-truth.ts`
+excluded all 18 outright, because with the ground unrecorded they were not recomputable at all —
+**1,296 ratios per run taken on trust**, in the one gate whose entire job is not taking ratios on
+trust. It now dispatches on the declared model and checks both shapes: **10,080 → 11,376**. Arm E
+asserts label and shape agree both directions, and runs BEFORE arm A uses the model to choose a
+recomputation, so a mislabelled role fails saying it is mislabelled rather than being measured the
+wrong way and reported as a ratio error. That ordering is the direct application of #962's M3 lesson:
+an early skip or dispatch placed before the arm it would invalidate is how a gate goes quietly blind.
+
+**A correction to my own framing, recorded because the diff cannot show it.** #963's issue body said
+`ai-metadata.ts` "reads backwards" for overlays. Measured: **it did not.** `contrast_with.token` wants
+the ink, and `against` happened to be carrying the ink, so that field was already correct — every
+emitted `contrast_with.token` is byte-identical across this change. It had to be repointed at
+`legibleFor` to STAY correct once `against` moved, which is a migration, not a fix, and the unchanged
+output is the evidence it followed correctly. The claim that was true is narrower: the DTCG tree's
+`against` was wrong for those roles, and that is what consumers read. *Writing the fix is when you
+find out which half of your own issue was accurate.*
+
+**No colour and no token name moves.** The emitted diff is metadata only: `against` on 18 roles per
+mode now names a different (and correct) token, two fields appear beside it, and `ai.json` gains
+`composited_over`. A MINOR for the observable shape change, not for any value.
+
+**Checked before starting, per the #960 caution:** `against` does not reach the component defs or the
+anatomy schema — every hit in `packages/engine/components/*.ts` is the English word in prose. No def
+sweep, so nothing to coordinate.
+
+---
+
 ## (2026-08-23) — CLAUDE.md's squash-merge paragraph shrinks; two of three proposed hooks got a real answer this week, and they differ (#927)
 
 **STATUS: shipped.** Fourth of the five `docs/43` grooming issues. `CLAUDE.md`: **27,887 → 27,250
@@ -175,6 +227,8 @@ check; the sentence that went stale is the one carrying the removal trigger.
 
 **Gates:** `npm run verify` → all gates reached a verdict, **41** now that this one is registered.
 `regen.ts --check` → byte-identical, 114/114.
+
+---
 
 ## (2026-08-23) — a ground is DECLARED, not overridden; and the gate that could not have caught it (#956)
 

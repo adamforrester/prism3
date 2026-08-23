@@ -102,6 +102,41 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.17.0: `against` means ONE thing on every role (#963). It carried two opposite senses and nothing
+ * in the data said which. On an ordinary role it names the surface the role sits on, and
+ * `ratio = contrast(me, against)`. On a translucent WASH the arrow reversed: `against` named the INK
+ * that ends up on top, and the ground the wash composited over was recorded nowhere at all.
+ *
+ * A wash now declares its shape. `against` is the GROUND — so the field reads the same way on every
+ * role — and two new ones carry what used to be crammed into it: `contrastModel: 'ink-on-composite'`
+ * and `legibleFor`, the ink that must survive on the composited result, which is what `min` actually
+ * bounds. Both are emitted only on those 18 roles per mode, so an ordinary role's plain
+ * `against` + `contrast` now means exactly what a consumer would assume it means.
+ *
+ * DECLARED at the `put` site, never inferred, for a concrete reason rather than a stylistic one:
+ * `scrim.default` carries `alpha: 0.4` and is genuinely `ink-on-surface`, so reading the model off
+ * "does it have an alpha" would misclassify a real role on day one. It is also #956's trap in new
+ * clothes — a discriminator derived from the code it is meant to check agrees with itself.
+ * `ResolvedRole` is a union, so `legibleFor` and `alpha` are REQUIRED exactly when the model is
+ * `ink-on-composite`: the shape that caused this is no longer expressible.
+ *
+ * The payoff is verification. `lint-ratio-truth.ts` excluded all 18 outright — 1,296 ratios per run
+ * taken on trust — because with the middle term missing they were not recomputable at all. It now
+ * dispatches on the declared model and checks both shapes: **10,080 → 11,376 ratios**, plus a fifth
+ * arm asserting the label and the shape agree in both directions.
+ *
+ * NO emitted colour moves and no token name moves, so `CONTRACT_VERSION` stands at 5.2.0. A minor
+ * rather than a patch because the emitted METADATA SHAPE changed observably: `against` on 18 roles
+ * per mode now names a different (and correct) token, and two fields appear beside it.
+ *
+ * One thing worth recording precisely, because the tempting summary is wrong: `ai.json`'s
+ * `contrast_with.token` was ALREADY correct. That field wants the ink, and `against` happened to be
+ * carrying it — every emitted `contrast_with.token` is byte-identical across this change. It had to
+ * be repointed at `legibleFor` to STAY correct once `against` moved, which is a migration, not a fix,
+ * and the unchanged output is the evidence it followed correctly. What it genuinely gains is
+ * `composited_over`: "4.5:1 with text.primary" was never actionable without knowing which ground the
+ * wash sat on to make it true, and that was recorded nowhere an agent could read. (#963)
+ *
  * 0.16.0: a GROUND is declared, not overridden (#956). `surfaces.<mode>.inverseBase` joins `base` and
  * `floorStep`; the `overrides` post-pass now REFUSES a ground that has such an input, naming it; a
  * ground without one is applied and WARNED with the dependents it left stale; and every role below
@@ -232,7 +267,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.16.0';
+export const ENGINE_VERSION = '0.17.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

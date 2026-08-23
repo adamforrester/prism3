@@ -188,7 +188,26 @@ So the fix is not a new mechanism — it is the existing one extended to the ban
 
 **The gate had to be independent to exist at all.** `test.ts` has asserted "all mode contrast contracts hold" for a long time by reading each role's own `ratio` — asking the reporting path whether the reporting path is right, which in this failure agreed with itself. `lint-ratio-truth.ts` recomputes from the **final emitted colors** (10,080 ratios across 5 corpus brands + 13 declared-surface cases) and never reads `ratio` to decide the truth. It sweeps moved grounds deliberately: at defaults every brand is clean, so a corpus-only run would report a confident zero over precisely the inputs that cannot show the bug.
 
-**One stated hole and one repaired reference.** The 18 translucent overlays are unverified by that gate and counted in its output — they model `against` in the *opposite* direction (the role is the wash, `against` names the ink composited on top), so one field carries two meanings; filed, not renamed here. And nine `against` strings still read `text.on-inverse` after §9.2's promotion made it a group, resolving to no role and falling back to the page surface — #922's rule one layer down, where the consumer is data and so never runs at all.
+**One stated hole and one repaired reference.** The 18 translucent overlays are unverified by that gate and counted in its output — they model `against` in the *opposite* direction (the role is the wash, `against` names the ink composited on top), so one field carries two meanings; filed as §9.6, which closed it. And nine `against` strings still read `text.on-inverse` after §9.2's promotion made it a group, resolving to no role and falling back to the page surface — #922's rule one layer down, where the consumer is data and so never runs at all.
+
+### 9.6 Decided (2026-08-23, #963): `against` means one thing; a wash declares that it is one
+
+`against` names **the surface a role sits on**, on every role, with `ratio = contrast(me, against)`. A translucent wash — the 18 `interactive.<c>[.inverse].overlay.*` roles — declares itself with two more fields:
+
+| field | on an ordinary role | on a wash |
+|---|---|---|
+| `against` | the surface I sit on | the ground I composite **over** |
+| `contrastModel` | *(absent)* | `'ink-on-composite'` |
+| `legibleFor` | *(absent)* | the ink that must survive on the result |
+| `ratio` | `contrast(me, against)` | `contrast(legibleFor, composite(against, me, alpha))` |
+
+**The problem was one field carrying two opposite arrows with nothing to distinguish them.** A wash is not ink; it is a veil, and what has to stay legible is the ink *on top of* the result. Before this, `against` on those roles named that ink, so any consumer reading `against` uniformly — as a consumer must — was wrong for 18 roles per mode with no way to detect it.
+
+**Declared, never inferred**, and `scrim.default` is why that is not pedantry: it carries `alpha: 0.4` and is genuinely `ink-on-surface` (`against: 'self'`, ungated). Reading the model off "does this have an alpha" would misclassify a real role immediately. It is also §9.5's trap in new clothes — a discriminator derived from the code it is meant to check agrees with itself. `ResolvedRole` is a union, so `legibleFor` and `alpha` are *required* exactly when the model is `ink-on-composite`, and `putWash` is a separate function from `put`: the shape that caused this is no longer expressible.
+
+**What it bought.** `lint-ratio-truth.ts` had excluded all 18 outright — **1,296 ratios per run taken on trust** — because with the ground recorded nowhere they were not recomputable at all. It now dispatches on the declared model and verifies both shapes: **10,080 → 11,376 ratios**, with a fifth arm asserting the label and the shape agree in both directions.
+
+**Recorded precisely, because the tempting summary is wrong:** `ai.json`'s `contrast_with.token` was *already* correct. That field wants the ink, and `against` happened to be carrying it — every emitted `contrast_with.token` is byte-identical across this change. Repointing it at `legibleFor` was a **migration to stay correct**, not a fix. What it genuinely gains is `composited_over`, since "4.5:1 with `text.primary`" was never actionable without knowing which ground made it true.
 
 ## 10. Levers (brand inputs)
 

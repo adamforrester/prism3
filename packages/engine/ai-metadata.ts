@@ -269,7 +269,26 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
       mode_overrides,
     };
     if (d.paired_with) ai.paired_with = d.paired_with;
-    if (light.min > 0) ai.contrast_with = [{ token: light.against, min: `${light.min}:1`, ratio: Math.round(light.ratio * 100) / 100 }];
+    // `contrast_with` names the token the ratio was measured WITH — for a translucent wash that is
+    // `legibleFor`, the ink that must survive on the composited result.
+    //
+    // This is a MIGRATION, not a bug fix, and the distinction is worth keeping straight: the old
+    // `light.against` was already correct here, because `against` on an overlay HELD the ink. This
+    // field wanted the ink and `against` happened to be carrying it. Verified rather than assumed —
+    // every emitted `contrast_with.token` is byte-identical across this change. What #963 moves is
+    // `against` itself, to mean the ground on every role; so this line has to follow, or it would
+    // start naming the page where it used to name the ink. The emitted output not moving is the
+    // evidence it followed correctly.
+    //
+    // `composited_over` is the genuinely new part, and it closes a real gap: "4.5:1 with
+    // text.primary" was never actionable on its own, because which ground the wash sat on to make
+    // that true was recorded nowhere an agent could read.
+    if (light.min > 0) ai.contrast_with = [{
+      token: light.model === 'ink-on-composite' ? light.legibleFor : light.against,
+      min: `${light.min}:1`,
+      ratio: Math.round(light.ratio * 100) / 100,
+      ...(light.model === 'ink-on-composite' ? { composited_over: light.against } : {}),
+    }];
     colorRoles[roleKey] = ai;
   }
 

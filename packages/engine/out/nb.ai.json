@@ -2323,7 +2323,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 15.51
+          "ratio": 15.51,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2346,7 +2347,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.11
+          "ratio": 12.11,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2369,7 +2371,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.11
+          "ratio": 12.11,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2392,7 +2395,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 15.51
+          "ratio": 15.51,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2415,7 +2419,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.11
+          "ratio": 12.11,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2438,7 +2443,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.11
+          "ratio": 12.11,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2461,7 +2467,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 15.51
+          "ratio": 15.51,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2484,7 +2491,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.11
+          "ratio": 12.11,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2507,7 +2515,8 @@
         {
           "token": "text.primary",
           "min": "4.5:1",
-          "ratio": 12.11
+          "ratio": 12.11,
+          "composited_over": "background.primary"
         }
       ]
     },
@@ -2531,7 +2540,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 14.26
+          "ratio": 14.26,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2555,7 +2565,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 10.07
+          "ratio": 10.07,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2579,7 +2590,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 10.07
+          "ratio": 10.07,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2603,7 +2615,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 14.26
+          "ratio": 14.26,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2627,7 +2640,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 10.07
+          "ratio": 10.07,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2651,7 +2665,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 10.07
+          "ratio": 10.07,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2675,7 +2690,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 14.26
+          "ratio": 14.26,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2699,7 +2715,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 10.07
+          "ratio": 10.07,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },
@@ -2723,7 +2740,8 @@
         {
           "token": "text.on-inverse.primary",
           "min": "4.5:1",
-          "ratio": 10.07
+          "ratio": 10.07,
+          "composited_over": "background.inverse.primary"
         }
       ]
     },

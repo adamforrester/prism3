@@ -71,6 +71,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | `docs/34` holds the diagnosis; `CLAUDE.md` holds a countermeasure only when it's unhookable and statable in one clause | 2026-08-22 | `docs/43-agent-instruction-surface.md` | #922 |
 | The inverse surface-context is not optional — the `inverse` lever is removed | 2026-08-23 | `docs/20-interactive-color-system.md` §9.4 | #895 |
 | A ground is declared, not overridden | 2026-08-23 | `docs/20-interactive-color-system.md` §9.5 | #956 |
+| `against` means one thing; a wash declares that it is one | 2026-08-23 | `docs/20-interactive-color-system.md` §9.6 | #963 |
 
 ## Known gaps, named rather than silent
 
