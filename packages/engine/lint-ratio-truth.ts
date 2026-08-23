@@ -97,6 +97,58 @@ const CASES: Array<{ label: string; input: BrandInput }> = [
   { label: 'surfaces.light.inverseBase=black', input: { ...MINIMAL_BRAND, surfaces: { light: { inverseBase: 'black' } } } as BrandInput },
 ];
 
+/**
+ * Every role some other role is measured against or through, read off a default build (#964).
+ *
+ * A ground is not only what `against` names. Since #963 a translucent wash names a second role in
+ * `legibleFor` — the ink whose legibility its `ratio` reports — and moving THAT desynchronises the
+ * wash exactly as moving the ground does. Both edges count, and forgetting the second is how the
+ * count in #964's own table came out one short: `text.on-inverse.primary` only became reachable as a
+ * ground when #962 repaired the nine `against` strings that had been dangling since #892.
+ */
+export const groundsOf = (theme: ReturnType<typeof brandTheme>): string[] => {
+  const light = resolveAllModes(theme).find((m) => m.mode === 'light');
+  if (!light) return [];
+  const roles = light.roles as Record<string, { against?: string; legibleFor?: string }>;
+  const g = new Set<string>();
+  for (const r of Object.values(roles)) {
+    for (const ref of [r.against, r.legibleFor])
+      if (ref && ref !== 'self' && ref in roles) g.add(ref);
+  }
+  return [...g].sort();
+};
+
+/**
+ * ONE CASE PER GROUND, ROUTED THROUGH `overrides` (#964).
+ *
+ * These exist because of a hole this gate had and could not see. Every case above builds through
+ * `surfaces`, so arms A–C never exercised the `overrides` route at all — the same blindness that let
+ * #962's ground refusal go unheld until arm D was written for it. A re-derivation could have landed
+ * and left this gate green without ever having checked it.
+ *
+ * **Written and confirmed FAILING before the fix that makes them pass.** Against the pre-#964 engine
+ * they report 700+ stale ratios across the 18 grounds that have no declarative input. A gate authored
+ * after the fix cannot tell you the fix was needed, and this one is the whole evidence that it was.
+ *
+ * DISCOVERED, not hardcoded: the ground set comes from the tree, so a role that becomes a ground is
+ * covered the day it does rather than the day someone remembers. That is discovery of WHAT TO TEST —
+ * the EXPECTED is still `contrast()` over final colours and never the engine's own bookkeeping. The
+ * floor below guards the one risk this takes on, which is the discovery silently returning few.
+ *
+ * Two steps per ground rather than one: a ground already sitting near `500` barely moves when pushed
+ * there, and a case that does not move the colour cannot detect a stale dependent no matter how
+ * broken the engine is.
+ */
+const OVERRIDE_CASES = (): Array<{ label: string; input: BrandInput }> =>
+  groundsOf(brandTheme(MINIMAL_BRAND)).flatMap((ground) =>
+    (GROUND_INPUT[ground] ? [] : ['500', '100']).map((step) => ({
+      // A ground WITH a declarative input is excluded here because the engine refuses it outright —
+      // that refusal is arm D's subject, and routing it through this sweep would only re-assert the
+      // throw under a second name.
+      label: `overrides.light[${ground}]=neutral.${step}`,
+      input: { ...MINIMAL_BRAND, overrides: { light: { [ground]: { palette: 'neutral', step } } } } as BrandInput,
+    })));
+
 const failures: string[] = [];
 let checked = 0, confessions = 0;
 
@@ -185,6 +237,16 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
 
 for (const { id, theme } of corpus()) sweep(`corpus:${id}`, theme);
 for (const c of CASES) sweep(c.label, brandTheme(c.input));
+const overrideCases = OVERRIDE_CASES();
+for (const c of overrideCases) sweep(c.label, brandTheme(c.input));
+
+// FLOOR 3 — the override sweep is DISCOVERED, so it is the one arm that can quietly shrink to nothing
+// without any code changing: a rename in `against`/`legibleFor` would empty `groundsOf` and every case
+// with it, and the run would go green over an empty set. `docs/34` shape 9. The count is the tree's,
+// not a target — 18 grounds without a declarative input at the time of writing, and the floor sits
+// below that rather than at it so adding an input to one is not a failure.
+if (overrideCases.length < 24)
+  failures.push(`only ${overrideCases.length} override case(s) generated from ${groundsOf(brandTheme(MINIMAL_BRAND)).length} discovered ground(s) — \`groundsOf\` is finding far fewer than the tree holds, so this sweep is asserting over almost nothing. Check whether \`against\`/\`legibleFor\` moved.`);
 
 // ARM D — the refusal itself is held here, and it is here because a mutation proved it had to be.
 // Deleting the ground refusal from `modes.ts` left every arm above CLEAN: the sweep builds themes
