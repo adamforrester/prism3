@@ -8,8 +8,8 @@
  * `from './emit-figma'` importer + the `npx tsx packages/engine/emit-figma.ts` CLI are unchanged.
  *
  * This module holds:
- *   • `buildFigmaDims(theme)` — the eight FLOAT primitive/semantic collections
- *     (`core-dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`),
+ *   • `buildFigmaDims(theme)` — the nine FLOAT primitive/semantic collections
+ *     (`core-dimension`/`space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/`opacity`),
  *   • `buildFigmaLayout(theme)` — the `layout` collection with one mode per breakpoint,
  *   • their local helpers (`pxFromValue`/`aliasFigName`), scope maps, and `LAYOUT_MODES`.
  *
@@ -58,13 +58,20 @@ export type FigmaDimsCollections = {
    *  is chosen independently of the control it sits in (a compact button can carry a large glyph),
    *  and Figma scopes differ — WIDTH_HEIGHT only, no padding sibling. */
   icon: FigmaCollectionFile;
+  /** Control-box ladder (#900) — a checkbox square, a radio circle, a switch track. Its own
+   *  collection because collections here mirror the DTCG top-level family 1:1, and this is a
+   *  `control.*` family rather than a `size/` sub-branch. Note the reasoning is NOT `icon`'s: a
+   *  control box is chosen WITH the control it belongs to, which is exactly why it is density-
+   *  derived where the glyph ladder is fixed. Both fields are WIDTH_HEIGHT — a `width` here is a
+   *  switch track's, not a padding sibling. */
+  control: FigmaCollectionFile;
   borderWidth: FigmaCollectionFile;
   focus: FigmaCollectionFile;
   opacity: FigmaCollectionFile;
 };
 
 // ---------------------------------------------------------------------------
-// DIMS (docs/10 §7 items 1-2). Eight FLOAT collections; every semantic aliases
+// DIMS (docs/10 §7 items 1-2). Nine FLOAT collections; every semantic aliases
 // into a `dimension/…` (or `space/…`) primitive so the geometric scale is shared.
 //   dimension    → fine-grid primitives (REF TIER, hidden from publishing).
 //   space        → spacing rhythm, aliased. Scope: GAP.
@@ -75,6 +82,9 @@ export type FigmaDimsCollections = {
 //                  t-shirt and prop (`md/height`), matching the colour/font convention.
 //   icon         → artboard ladder (#324), its own collection (not a `size/` sub-branch)
 //                  since an icon size is chosen independently of its control. Scope: WIDTH_HEIGHT.
+//   control      → control-box ladder (#900) — `<rung>/height` (a checkbox square, a radio circle,
+//                  a switch track's height) and `<rung>/width` (a switch track's width). Both alias
+//                  dimension. Scope: WIDTH_HEIGHT for both — `width` is a track, not a padding.
 //   border-width → hairline/thick/heavy + none, aliased. Scope: STROKE_FLOAT.
 //   focus        → ring.width / ring.offset / ring.offset-field (STROKE_FLOAT). The
 //                  fourth `focus.ring.style` DTCG token (a `strokeStyle: 'solid'`
@@ -208,6 +218,26 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     };
   });
 
+  // control — one FLOAT per (rung, field) pair, aliasing the dimension grid exactly as the DTCG tier
+  // does, so a Figma checkbox/radio/switch has a variable to bind its box against (#900). Names use
+  // `/` between rung and field (`control/size/md/height`), matching every sibling collection.
+  const controlVars: FigmaVar[] = [];
+  for (const rung of Object.keys(brand.control?.size ?? {})) {
+    for (const field of ['height', 'width']) {
+      const leaf = brand.control.size[rung][field];
+      if (!leaf) continue;
+      const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
+      controlVars.push({
+        name: `control/size/${rung}/${field}`,
+        resolvedType: 'FLOAT',
+        scopes: SIZE_HEIGHT_SCOPES,
+        description: desc(leaf),
+        value: pxFromValue(tree, leaf.$value),
+        alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,
+      });
+    }
+  }
+
   const borderVars: FigmaVar[] = Object.keys(brand['border-width']).map((key) => {
     const leaf = brand['border-width'][key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
@@ -265,6 +295,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     radius: radiusFiles,
     size: c('size', sizeVars),
     icon: c('icon', iconVars),
+    control: c('control', controlVars),
     borderWidth: c('border-width', borderVars),
     focus: c('focus', focusVars),
     opacity: c('opacity', opacityVars),

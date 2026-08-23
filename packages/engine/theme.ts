@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -129,6 +129,11 @@ export type Dims = {
   // prohibits arbitrary/off-grid icon sizes, so this is invariant across brands, modes and density;
   // what varies is only whether the brand's grid can express it (checked at emit).
   icons: IconSizeStep[];
+  // Control tier (#900) — a small control's OWN box (checkbox square, radio circle, switch track).
+  // Unlike `icons` this IS density-derived, through the same window `sizes` uses: a control box is
+  // chosen with the control it belongs to, so a compact brand's boxes sit one rung below a
+  // comfortable brand's. See `controlSizes` for the ladder and why it is not the icon one.
+  controls: ControlSizeStep[];
   density: Density;
   radiusScaleValue: number;
   spaceBase: number;
@@ -141,6 +146,11 @@ export type Dims = {
   // sub-leaf (height / padding-x / padding-y) whose px differs from light carries a per-mode override.
   // Absent when no modeLevers.density → byte-identical.
   sizesByMode?: Record<string, SizeStep[]>;
+  // Per-mode CONTROL tiers (#900) — the same seam, for the same reason. A mode running a different
+  // density re-derives its control ladder via the SAME `controlSizes(density)` buildDims uses. Wired
+  // rather than deferred because the alternative is the #708 shape: the box would keep the baseline
+  // mode's dimension while its row and padding moved, resolving to a real value and the wrong one.
+  controlsByMode?: Record<string, ControlSizeStep[]>;
 };
 
 /** A declared palette promoted to a full `interactive.<name>.*` column (docs/20 §3). `name` is
@@ -475,23 +485,39 @@ export type BrandInputAuthored =
     personality?: string[];
   };
 
-const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
+/** Exported for `test.ts` only, and for one specific reason (#900): the grid-extras guards below are
+ *  unreachable through either public theme builder. `brandTheme` hardcodes `GRID_BASE`, and
+ *  `nbThemeFrom` — the one route that carries a `baseUnit` — hardcodes `comfortable`, so no theme the
+ *  engine can build combines a coarse grid with the density whose top control rung (28px) is the only
+ *  px the control extras actually rescue. Measured, not assumed: every other control px and EVERY icon
+ *  px is already fed in by the space extras at base 4, 6 and 8, so deleting either of those lines
+ *  changes no committed output. A guard nothing can exercise is a guard nothing can notice the loss of,
+ *  which is `docs/34`'s shape 14 — so the seam is opened here rather than the guard left unfalsifiable. */
+export const buildDims =(baseUnit: number, spaceBase: number, density: Density, rScale: number, baseMd: number, extras: number[] = []): Dims => {
   // Space is `mult × spaceBase`; the dimension grid is `baseUnit`-stepped. At a non-default spaceBase the
   // half-steps (1.5×/0.25×/0.75×) land OFF the grid (e.g. spaceBase 12 → space.150 = 18px, absent from the
   // baseUnit-4 grid), so `space.<k> → {dimension.<px>}` would dangle (#274). Feed every space px into the
   // grid as extras, so each space alias resolves by construction. At the default spaceBase 8 these already
   // land on the grid, so committed out/* is byte-identical.
   const space = spaceScale(spaceBase);
+  // Control px join the grid extras for the same reason the icon ladder's do, one line below — with the
+  // margin MEASURED rather than assumed, because it turned out to be one px wide. Of the six control px
+  // at each density, the space extras above already supply every one except SPACIOUS `lg`'s 28px height,
+  // at base 4, 6 and 8 alike. So this line rescues exactly `spacious` + a coarse baseUnit; `test.ts`
+  // pins that case through the export above, since no theme builder can reach it.
+  const controls = controlSizes(density);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
     // (e.g. 6) the fixed icon ladder lands OFF the grid, and `icon.size.<k> -> {dimension.<px>}`
     // would dangle. Feeding them in makes every icon alias resolve by construction. At baseUnit 4
     // they are already grid members, so committed out/* is unaffected.
-    grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px)]),
+    grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px),
+      ...controls.flatMap((c) => [c.height, c.width])]),
     space,
     radius: radiusScale(rScale, baseMd, 128),
     sizes: componentSizes(density, spaceBase),
     icons: iconSizes(),
+    controls,
     density,
     radiusScaleValue: rScale,
     spaceBase,
@@ -2060,8 +2086,15 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // -size tier via the SAME componentSizes(density, spaceBase) buildDims uses. Only a mode whose density
   // DIFFERS from the baseline gets an entry (no-diff suppression) → byte-identical when unused.
   const sizesByMode: Record<string, SizeStep[]> = {};
+  const controlsByMode: Record<string, ControlSizeStep[]> = {};
   for (const [m, lev] of Object.entries(modeLevers)) {
-    if (lev?.density && lev.density !== density) sizesByMode[m] = componentSizes(lev.density, spaceBase);
+    if (lev?.density && lev.density !== density) {
+      sizesByMode[m] = componentSizes(lev.density, spaceBase);
+      // The control ladder rides the same lever (#900). Same no-diff suppression by construction:
+      // `controlSizes` is a pure function of the density, so a mode at the baseline density is
+      // filtered out by the condition above rather than by a JSON compare.
+      controlsByMode[m] = controlSizes(lev.density);
+    }
   }
   notes.push(`dimension axis: ${baseUnit}px grid, ${spaceBase}px space rhythm, density '${density}' (drives component sizes), radius scale ${rScale} (baseMd ${baseMd}px)`);
   notes.push(`motion: tempo '${input.motionPersonality?.tempo ?? 'standard'}' scales the duration ramp; easing roles + springs + composite transitions generated; reduce-motion variants derived (informational preserved, vestibular → 0)`);
@@ -2352,7 +2385,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
     neutralEmphasis, inverseContext, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
-    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode } : {}) },
+    dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
     typography,
     shadow,

@@ -1,0 +1,84 @@
+{
+  "$collection": "control",
+  "$mode": "Default",
+  "variables": [
+    {
+      "name": "control/size/sm/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.sm — 12px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: compact). A SQUARE control reads this on both axes.",
+      "value": 12,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/12"
+      }
+    },
+    {
+      "name": "control/size/sm/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.sm width — 24px track width for a two-position control, i.e. a switch (2x the 12px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+      "value": 24,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/24"
+      }
+    },
+    {
+      "name": "control/size/md/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.md — 16px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: compact). A SQUARE control reads this on both axes.",
+      "value": 16,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/16"
+      }
+    },
+    {
+      "name": "control/size/md/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.md width — 32px track width for a two-position control, i.e. a switch (2x the 16px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+      "value": 32,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/32"
+      }
+    },
+    {
+      "name": "control/size/lg/height",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.lg — 20px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: compact). A SQUARE control reads this on both axes.",
+      "value": 20,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/20"
+      }
+    },
+    {
+      "name": "control/size/lg/width",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.lg width — 40px track width for a two-position control, i.e. a switch (2x the 20px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+      "value": 40,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/40"
+      }
+    }
+  ]
+}

@@ -12,6 +12,110 @@
 
 ---
 
+## (2026-08-23) — #900: `control.size.*` is a group from the start, and the density check that proves it is not the glyph ladder
+
+**STATUS: in review.** The token family only — checkbox, radio and switch are **not** bound to it here
+(one concern: binding three defs would put their anatomy review on top of a tier decision).
+`CONTRACT_VERSION` **5.1.0 → 5.2.0** (6 added, MINOR); `ENGINE_VERSION` 0.13.0 → **0.14.0** (rebased
+onto #893, which took 0.13.0). Committed artifacts **111 → 114**
+(`out/figma/{aurora,nb,wendys}/control.json`; harbor has no Figma emission).
+
+**The shape, decided before the code.** `control.size.{sm,md,lg}` is a **group** carrying `height` and
+`width`, not a single rung. The alternative — one leaf plus a `control.track-ratio` token — was named as
+the hedge and not taken. The argument is #892's bill, still warm: `border.inverse` was authored as a
+leaf under an unstated convention, and promoting it to a group cost a MAJOR bump, DEPRECATIONS entries
+and a whole new rename mechanism. Checkbox and radio read `height` for **both** axes; only switch reads
+`width`. The thumb diameter is deliberately **absent** — anatomy derives it from `height` plus a
+declared inset, per #801's split where the tier holds the inputs and a downstream layer does the
+arithmetic.
+
+**The ladder, and why it must not be brand-invariant.** `CONTROL_RUNGS = [12, 16, 20, 24, 28]`, windowed
+by the same `DENSITY_START` as `componentSizes` — so `sm/md/lg` are three consecutive on-grid steps that
+shift a full rung with density. `width = 2 × height` (Carbon 24×48, Ant 22×44, Fluent 20×40 all
+converge there). Measured across the corpus: **aurora 12/16/20 · nb 16/20/24 · harbor 16/20/24 ·
+wendys 16/20/24.** That divergence is the whole point, and it is asserted rather than hoped for.
+`icon.size.*` is 16/20/24 in *all four* brands, deliberately — glyphs must land on the hardware pixel
+grid, so `ICON_SIZES` is fixed, not parametric. A control family that came out equal in all four brands
+would have been that ladder under a new name whatever its `$description` claimed, so `test.ts` asserts
+the divergence **and** the inverse (`icon.size.*` equal across nb and aurora) as one paired decision.
+Every value stays a `dimension` grid member at `baseUnit` 4, so no committed `dimension.*` family
+changed and the diff is purely additive under `control.*`.
+
+**A gate that could not fail, caught by mutating it.** `buildDims` feeds the control px into
+`dimensionGrid`'s extras so every leaf aliases a grid step rather than minting a literal. The first
+assertion for that line **passed with the line deleted** — the shape `docs/34` is about, in my own new
+code. Measuring the cause is the finding: at `spaceBase` 8 the space extras already supply
+`0,2,4,6,8,12,16,20,24,32,40,48,56,64,72,80,88,96`, which covers **every** control px at every density
+at base 4, 6 and 8 **except 28** — spacious `lg`'s height. So the control feed rescues exactly one px at
+exactly one input, and that input is unreachable through either public theme builder: `brandTheme`
+hardcodes `GRID_BASE`, and `nbThemeFrom` — the only route that reads `density.baseUnit` — hardcodes
+`comfortable`. A guard nothing can exercise is a guard nothing notices the loss of (`docs/34` shape 14),
+so `buildDims` is now **exported for `test.ts`**, with a header saying why, and the assertion runs
+`buildDims(6, 8, 'spacious', 1, 4)` against the authored px set plus a negative control proving 28 is on
+neither the base-6 ladder nor the space extras. It now fails by name when the line is removed.
+
+**And the same measurement indicts the line above it.** The **icon** extras feed rescues **zero** px at
+base 4, 6 or 8 — every icon px is already a space px — so `theme.ts`'s claim that feeding them in "makes
+every icon alias resolve by construction" overstates what that line does. Out of scope here; filed as
+its own issue rather than left in prose.
+
+**Two independently-authored halves, and the reader half caught the omission.** `apps/plugin/src/read-figma.ts`
+carries its **own** `FLOAT_COLLECTIONS` list, separate from `read-back.ts`'s `EXPECTED_FLOAT_COLLECTIONS`.
+Adding the collection to the engine side alone left `plugin-test` red on `collectionsPresent` — the
+duplication working exactly as intended. Ten FLOAT collections now, wired at every station: dims
+emitter, write plan, materialise axes, read-back expectation, plugin reader, the two plugin tests, and
+`axes.ts` (`control: 'none'`, since its modes are not an axis). Adding the entry made the axis table's own
+prose wrong in `axes.ts` **and** `gate.ts`'s user-facing error string — and it was **already** wrong by one
+before this PR, since #893's `surface` entry moved the table to 17 while both files still said 16. Now 14
+of 18, in all four places.
+
+**Mutation battery — seven, each confirmed failing BY NAME** (`docs/34`'s standard: not "does the suite
+go red", but "is *my* gate among the failures, by name"):
+
+| # | Mutation | Named failure |
+|---|---|---|
+| 1 | control px dropped from the grid extras | coarse-baseUnit arm — `OFF-GRID: 28` |
+| 2 | rung authored as a **leaf**, not a group | group arm — `NOT A GROUP: sm, md, lg` (+16 more) |
+| 3 | `controlSizes` ignores density | brand-variance arm — `nb 16/20/24, aurora 16/20/24, …` |
+| 4 | colliding rungs `[12,12,16,20,24]` | distinct-heights arm — `12/12/16` |
+| 5 | `CONTROL_TRACK_RATIO = 3` | 2×-ratio arm — `OFF: sm, md, lg` |
+| 6a | per-mode derivation dropped | per-mode arm — `NO OVERRIDE: sm.height, …` |
+| 6b | per-mode override written unwrapped | wrapped-shape arm — `undefined/undefined ≠ 12` |
+| 7 | `control` removed from `axes.ts` | exporter gate — `UNCLASSIFIED COLLECTION: control`, 3 brands |
+
+**Mutation 2 answers the owner's question, and the first attempt answered it wrongly.** The question was
+whether anything at all catches authoring the tier as a leaf — because if nothing does, #892's lesson is
+still unstated convention. Something does, twice: the shape arm here, and `token-contract.ts --check`
+independently, which reports it **MAJOR** with 6 REMOVED / 3 ADDED and exits 1. But the shape arm did
+not *speak* on the first run — the value loop dereferenced `grp[rung].height.$extensions` and the process
+**crashed at `test.ts:561`** before printing a summary line. A crash is not a named failure: it reports
+no gate, and the one assertion written for exactly this mutation was the one silenced. Every read
+downstream of a shape assertion is now optional-chained, with a comment saying that this is not
+politeness — nothing downstream of the assertion may take the process down before it can report. That is
+a general repair, not a local one: **a shape check is worthless if the value checks beneath it are the
+first to touch the missing shape.**
+
+**Per-mode overrides wired, not deferred.** A `modeLevers.density` mode moves the row and its padding;
+a control box that kept the baseline mode's dimension while everything around it moved is #708's shape
+again — every layer accepts the write and nothing reads the number. Both directions asserted: an
+override at the mode's own ladder px in the wrapped `{ $value, px, note }` shape the overlay projector
+reads, and **no** override when the mode's density matches the brand's.
+
+**Recorded, not fixed — the `width` naming hazard.** `height` on a square control *is* both axes, so a
+sibling called `width` invites a checkbox to bind both and render 20×40. Mitigated in the emitted
+`$description` ("A square control uses `height` on both axes and does not read this") and in comments.
+The name is the owner's decision; the risk is recorded rather than renamed.
+
+**In passing:** `apps/plugin/README.md` claimed "the eight FLOAT collections" and its list already
+omitted `icon` — stale before this PR. Corrected to the ten, named.
+
+**What this unblocks.** Checkbox and radio can bind now. **Switch cannot** — it still needs **#933**:
+a switch's two boxes cannot both be painted because `role: 'target'` is deciding what carries colour.
+That is independent of the tier. Read this as the token family landing, not as tranche 1's anatomy work
+clearing.
+
+---
+
 ## (2026-08-23) — the verdict stopped waiting on a diagnostic that had already failed (#908)
 
 **STATUS: in review.** `measureSettle` and a named `verdictBeforeSettle` move into `build-telemetry.ts`;

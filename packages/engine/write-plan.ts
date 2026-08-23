@@ -192,6 +192,7 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
     floatPlanFor('radius', dims.radius), // 1 or 2 modes (Default [+ wireframe])
     floatPlanFor('size', [dims.size]),
     floatPlanFor('icon', [dims.icon]),   // #324 — the visual slot's bindable size
+    floatPlanFor('control', [dims.control]), // #900 — a small control's OWN box (checkbox/radio/switch)
     floatPlanFor('border-width', [dims.borderWidth]),
     floatPlanFor('focus', [dims.focus]),
     floatPlanFor('opacity', [dims.opacity]),

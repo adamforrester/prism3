@@ -102,6 +102,23 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.14.0: the `control.size.*` tier — a small control's OWN box (`{sm,md,lg}.{height,width}`), which
+ * no token expressed. Purely additive: six new leaves per brand, no existing value or name moves, and
+ * no brand's `dimension` ladder changes because every rung was already on the grid at the default base.
+ *
+ * A MINOR rather than a PATCH for the reason the whole tier exists: the artifact gains content a
+ * consumer can observe, and it gains a Figma collection — `control.json`, the tenth FLOAT collection,
+ * which the write plan, the paste path and the read-back all now expect by name. A brand's emitted file
+ * set moving is compatibility-relevant even though nothing already emitted changed.
+ *
+ * The one thing worth reading twice is the DENSITY behaviour, because it is the property that says this
+ * is a real tier and not a rename. `icon.size.*` is 16/20/24 in all four brands — fixed by construction,
+ * since an off-grid glyph blurs. This ladder is windowed by the same `DENSITY_START` `componentSizes`
+ * uses, so aurora (compact) emits 12/16/20 where nb, harbor and wendys emit 16/20/24. Had it come out
+ * equal in all four it would have BEEN the glyph ladder under a new name, whatever its descriptions
+ * claimed; `test.ts` asserts the divergence and the icon ladder's invariance side by side so the pair
+ * reads as one decision. (#900)
+ *
  * 0.13.0: the `surface` Figma collection (#893) — two modes, 122 rows, every one an alias into
  * `color`. A MINOR because the artifact SET grew: a consumer of `out/figma/**` sees two new files.
  *
@@ -152,7 +169,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.13.0';
+export const ENGINE_VERSION = '0.14.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -198,6 +215,17 @@ export const ENGINE_VERSION = '0.13.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 5.2.0: 6 added guaranteed paths, no removal and no retype, so MINOR — `control.size.{sm,md,lg}.
+ * {height,width}`, a small control's own box (checkbox square, radio circle, switch track). (570 → 576)
+ *
+ * Authored as a GROUP per rung from the start, and that is the whole reason it is a MINOR. The obvious
+ * cheaper shape was one leaf per rung — a checkbox and a radio are square and need a single number —
+ * with a switch's track ratio bolted on later. 5.0.0 above is what that costs: `text.on-inverse` was
+ * authored as a leaf under an unstated convention, and promoting it to a group was a MAJOR, two
+ * `DEPRECATIONS` entries and a rename mechanism, for a token whose VALUE never moved. The switch is
+ * the third instance in the same tranche and its track is not square, so the group was going to be
+ * needed inside the same release. Pay for the right shape while the break is still free. (#900)
  *
  * 5.1.0: 17 added guaranteed paths, no removal and no retype, so MINOR — `border.inverse.{primary,
  * secondary,brand,danger,info,success,warning}` (7), `foreground.inverse.<semantic>` (5) and
@@ -271,7 +299,7 @@ export const ENGINE_VERSION = '0.13.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '5.1.0';
+export const CONTRACT_VERSION = '5.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
