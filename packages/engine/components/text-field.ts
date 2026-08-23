@@ -7,7 +7,7 @@
  * field parts — `field-label` (the accessible name) and `field-message` (helper / validation) —
  * rather than re-declaring their tokens. So this def's `tokens` block is the INPUT CHROME only
  * (fill, the stateful border, placeholder, focus ring, disabled skin, geometry); label and
- * message colour/type live in their own defs and are reused by Select / NumberField later. That
+ * message color/type live in their own defs and are reused by Select / NumberField later. That
  * is the "composed slots" half of the brief's hybrid, expressed in the data model. The host owns
  * the WIRING the parts can't: useId-generated ids tying label→input and stitching the
  * aria-describedby chain (helper + error), plus aria-invalid on error (§6, §11).
@@ -20,7 +20,7 @@
  *   component's live edge, §4) · disabled → the shared disabled.* skin (contrast-exempt).
  *
  * Scope: the BASE field only. NumberField is a separate component (different keyboard + locale
- * parsing); SearchField / PasswordField are thin specialisations; email / url / tel stay as
+ * parsing); SearchField / PasswordField are thin specializations; email / url / tel stay as
  * `type` + inputmode + autocomplete here (brief §3). Validation is PRESENTATIONAL by default —
  * the field renders the `error` it is handed; a form library owns timing. No validation engine
  * is baked in.
@@ -41,10 +41,10 @@ export const textField: ComponentDef = {
     { name: 'value', type: 'string', required: false, description: 'Controlled value; pair with onChange. A controlled value with no onChange is read-only by accident.' },
     { name: 'defaultValue', type: 'string', required: false, description: 'Uncontrolled initial value — preferred for form-library ergonomics.' },
     { name: 'onChange', type: 'function', required: false, description: 'Change handler (also onBlur / onFocus).' },
-    { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). NOT number — use NumberField. search / password are better served by their thin specialisations.' },
+    { name: 'type', type: "enum: 'text' | 'email' | 'url' | 'tel' | 'search' | 'password'", values: ['text', 'email', 'url', 'tel', 'search', 'password'], default: 'text', required: false, description: 'Attribute-only variants (mobile keyboard + autofill). NOT number — use NumberField. search / password are better served by their thin specializations.' },
     { name: 'placeholder', type: 'string', required: false, description: 'An example only ("name@example.com"); vanishes on input; nothing load-bearing lives here.' },
     { name: 'helpText', type: 'string | node', required: false, description: 'Persistent guidance (rendered as FieldMessage, default tone); wired via aria-describedby. Show the format BEFORE failure.' },
-    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error tone). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not colour-only. The input itself swaps to a border-only error boundary.' },
+    { name: 'error', type: 'string | node', required: false, description: 'Error message (rendered as FieldMessage, error tone). Sets aria-invalid + adds the id to aria-describedby. Say what and how to fix (SC 3.3.3); the message pairs an icon, so it is not color-only. The input itself swaps to a border-only error boundary.' },
     { name: 'required', type: 'boolean', default: false, required: false, description: 'Sets required / aria-required; the label marks the minority (§7).' },
     { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled — removed from tab order, not submitted, silent to AT, contrast-exempt. Reserve for fields irrelevant in the current state.' },
     { name: 'readOnly', type: 'boolean', default: false, required: false, description: 'DISTINCT from disabled — focusable, selectable/copyable, SUBMITTED, passes contrast. Use for a value the user may read/copy but not edit (a generated key). The component\'s live edge (§4).' },
@@ -82,7 +82,7 @@ export const textField: ComponentDef = {
     style: ['outline'], // default; filled/underline are theming, not an API axis
   },
 
-  // INPUT CHROME ONLY — label + message colour/type live in field-label / field-message (composed).
+  // INPUT CHROME ONLY — label + message color/type live in field-label / field-message (composed).
   // Border is the one stateful slot: rest/hover from field.*, focus/error/read-only from generic
   // border roles, disabled from the shared disabled skin. The value ink is full-contrast text.primary
   // in every non-disabled state (read-only included — it is NOT dimmed); disabled swaps to the
@@ -91,11 +91,11 @@ export const textField: ComponentDef = {
   // THE PAINT GRAMMAR (#758) — SLOT-LED with a state suffix, the mirror image of Button's, whose state
   // suffix follows two axis values. This def's paint varies by state and by nothing else: `size` is
   // geometry and `style` has one value. So the qualified template leads and the bare slot is the rest
-  // value, the same fallback shape `focus-ring` uses over a colour axis instead of a state.
+  // value, the same fallback shape `focus-ring` uses over a color axis instead of a state.
   //
   // THE FOUR DEFECTS THIS DECLARATION SURFACED, all fixed in #784 — and the interesting part is that
   // #758's comment here NAMED two of them and deferred both, which is how the other two survived. Six
-  // of twelve colour bindings were reachable at no coordinate at all:
+  // of twelve color bindings were reachable at no coordinate at all:
   //
   //   `border.focus`    → `border.focus-visible`  the STATE segment named a state this def does not
   //   `border.readonly` → `border.read-only`      declare, so `{slot}.{state}` never produced the key
@@ -168,7 +168,7 @@ export const textField: ComponentDef = {
 
   content: {
     labelPattern: 'Noun phrase, sentence case, ≤3 words, no trailing colon; never the placeholder (see field-label).',
-    errorPattern: 'What is wrong AND how to fix it (SC 3.3.3); icon + text, not colour-only (see field-message).',
+    errorPattern: 'What is wrong AND how to fix it (SC 3.3.3); icon + text, not color-only (see field-message).',
     emptyPattern: 'The empty state is just the label + optional placeholder — there is no separate empty UI.',
   },
 
@@ -184,7 +184,7 @@ export const textField: ComponentDef = {
       'Use the placeholder as the label, or put load-bearing text in it',
       'Use type="number" for numeric input — use NumberField (email/url/tel stay as type here)',
       'Bake a validation engine or timing into the field — render the error you are handed',
-      'Signal error with the border colour alone — the message carries the text + icon',
+      'Signal error with the border color alone — the message carries the text + icon',
     ],
     contentGuidelines: 'Label = noun phrase, sentence case, no trailing colon. Placeholder = example only. Helper carries the format up front. Error says what + how to fix, never "Invalid input".',
   },
@@ -207,7 +207,7 @@ export const textField: ComponentDef = {
   notes: {
     contested: [
       'Bundled props vs composed slots — ship both: props for the 90% vertical-form case, composed FieldLabel/FieldMessage slots for the 10% custom layout (brief §3).',
-      'How far to split the typed family — NumberField separate; SearchField/PasswordField thin specialisations; email/url/tel stay as type+attributes (brief §3).',
+      'How far to split the typed family — NumberField separate; SearchField/PasswordField thin specializations; email/url/tel stay as type+attributes (brief §3).',
       'Validation ownership/timing — presentational default; the form library owns timing (brief §3, §6).',
       'warning as a distinct state — optional; many systems fold it into helper/error (brief §4).',
     ],

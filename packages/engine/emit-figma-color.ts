@@ -168,7 +168,7 @@ export const parseColor = (v: unknown): FigmaColor => {
   // M-08: loud-fail instead of a silent {0,0,0,1}. An unresolvable alias target
   // (`parseColor(undefined)`) or a malformed colour would otherwise ship as a BLACK
   // swatch carrying a dangling alias — exactly the silent degradation the emitter must not do.
-  throw new Error(`emit-figma parseColor: cannot parse colour '${s}' — expected #hex (3/6/8) or rgb()/rgba(); an unresolved alias or malformed value reached the emitter`);
+  throw new Error(`emit-figma parseColor: cannot parse color '${s}' — expected #hex (3/6/8) or rgb()/rgba(); an unresolved alias or malformed value reached the emitter`);
 };
 
 /** Every leaf under a subtree, as [dotted-path-from-tree-root, leaf]. */
@@ -196,7 +196,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     // don't see them in the picker; the local picker in the definer file
     // still shows them (Figma has no scopes-based local-hide — see the
     // module-level PRIMITIVE marker comment for the API limitation).
-    // Scopes stay at the four colour fill/stroke targets so, if a component
+    // Scopes stay at the four color fill/stroke targets so, if a component
     // author does need to bind a raw primitive for a bespoke case, the
     // picker guidance is still correct per role family.
     variables: leaves(tree[root].palette, `${root}.palette`).map(([dotted, leaf]) => ({

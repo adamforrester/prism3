@@ -1,5 +1,5 @@
 /**
- * IconButton — the icon-only specialisation of Button (KB brief §6, §10, §12).
+ * IconButton — the icon-only specialization of Button (KB brief §6, §10, §12).
  *
  * It exists as a DISTINCT component for one reason: an icon-only control has no visible
  * text, so its accessible name must be REQUIRED at the type level — "button, unlabelled" is
@@ -50,15 +50,15 @@ export const iconButton: ComponentDef = {
   // is what makes this removal safe here: see the note in `button.ts`, where it was NOT.
 
   // Icon-only is SQUARE: the height role drives both dimensions, so padding-x = padding-y.
-  // Colour skin follows Button's reconciled interactive.* model (same colour × appearance);
+  // Color skin follows Button's reconciled interactive.* model (same color × appearance);
   // this delta binds the square geometry + the base focus contract + the icon-glyph skins.
   // The icon glyph binds the same interactive inks Button's label does (on-fill for filled,
-  // text for outline/text) — every colour now carries the full state shape (v1 gap closed).
+  // text for outline/text) — every color now carries the full state shape (v1 gap closed).
 
   // Same paint grammar as the substrate (#758), and stated rather than inherited: `inherits` records
   // the API delta, not the skin, and `paintOf` reads this def's own field. Repeating two lines is the
   // cheaper error than a lookup that walks `inherits` and resolves to a grammar nobody reading this
-  // file can see — the 162-member set's colour would then depend on a file it does not name.
+  // file can see — the 162-member set's color would then depend on a file it does not name.
   paintKeys: ['{intent}.{appearance}.{slot}.{state}', '{intent}.{appearance}.{slot}'],
 
   tokens: {
@@ -219,7 +219,7 @@ export const iconButton: ComponentDef = {
       // prose from an import and is right not to try, since a check that parsed import syntax would miss
       // a builtin reached any other way. This comment observes the same rule it explains — the plugin
       // build does not minify, so a comment naming the literal would trip the check it documents.
-      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. So `focus-ring` and `ring-width` are bound in `tokens` and neither reaches a Figma node — the engine verifies that a ring is nominated, which variant, and where it sits, and nothing about its colour or weight. Accepted on the same terms as Button, and for the same reason — the ring is one shared thing.',
+      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. So `focus-ring` and `ring-width` are bound in `tokens` and neither reaches a Figma node — the engine verifies that a ring is nominated, which variant, and where it sits, and nothing about its color or weight. Accepted on the same terms as Button, and for the same reason — the ring is one shared thing.',
       'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on all 162 members would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Keeping it would have left
       // an entry admitting an axis this def no longer declares — an exemption with nothing to exempt,

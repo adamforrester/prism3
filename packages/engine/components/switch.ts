@@ -83,7 +83,7 @@
  * coordinate — it reverses a row's `direction`. That makes it an ANATOMY concern (a `LayoutDef`
  * field), and this def has no anatomy block to hold it. Declaring it as an axis would double every
  * paint coordinate for a distinction that paints nothing: #758's shape, a member that projects and
- * has no colour to carry. Recorded in `notes.unverified` as the anatomy-tier requirement it is.
+ * has no color to carry. Recorded in `notes.unverified` as the anatomy-tier requirement it is.
  *
  * ── `pending` IS DECLARED, AND IT IS THE ONLY DEF IN THE FAMILY THAT DECLARES IT ────────────────
  *
@@ -103,7 +103,7 @@
  *
  * ── `error` IS AN OUTCOME, NOT A VALIDATION — THE SHARPEST STATE DIFFERENCE FROM CHECKBOX ───────
  *
- * Brief §4: *"an optimistic update FAILED — revert the thumb, error-colour the track, link a message
+ * Brief §4: *"an optimistic update FAILED — revert the thumb, error-color the track, link a message
  * via aria-describedby; this is OUTCOME error (the toggle didn't take), not validation error."* Same
  * coordinate name as checkbox's and radio's, opposite semantics — theirs fires when a form is
  * submitted with a required box unticked, this one fires when the network refused. The binding is
@@ -123,9 +123,9 @@
  * **Whether switch's arithmetic changes that, with the number rather than the impression** (#910's
  * table is the model). Counted from the defs rather than estimated:
  *
- *     checkbox   26 colour bindings, 20 selection-keyed
- *     radio      18 colour bindings, 12 selection-keyed
- *     switch     22 colour bindings, 16 selection-keyed
+ *     checkbox   26 color bindings, 20 selection-keyed
+ *     radio      18 color bindings, 12 selection-keyed
+ *     switch     22 color bindings, 16 selection-keyed
  *
  * So switch sits between its two siblings and the tradeoff moves in the same direction as checkbox's
  * without reaching it. Had the exemption been per-KEY rather than per-AXIS, this def would have added
@@ -166,7 +166,7 @@
  * answer is not *"what rung"* but *"how many dimensions does a control-size family carry"*, and the
  * answer is now constrained by a third instance rather than confirmed by a second. Measured and
  * carried to the issue rather than guessed at here: **the brief specifies no numeric track width,
- * track height or thumb diameter anywhere** — §4 says "thumb position + stark track-colour contrast",
+ * track height or thumb diameter anywhere** — §4 says "thumb position + stark track-color contrast",
  * §8 gives durations, and no dimension appears in §15's schema. Whatever #900 decides, it is deciding
  * without a brief-supplied target, which is a fact about the decision and not a gap in this def.
  *
@@ -188,7 +188,7 @@
  * 1.57 – 1.58:1 and still invisible. Neither works, so the off thumb takes the DARK ink
  * (`interactive.neutral.on-fill`) at **12.33 – 12.36:1** against the interactive fill, and that
  * pairing exists only in the interactive family. This is also the honest reading of the brief's
- * §6 rule — *thumb POSITION distinguishes on/off, not track colour alone* — since a boundary the eye
+ * §6 rule — *thumb POSITION distinguishes on/off, not track color alone* — since a boundary the eye
  * cannot find is a position it cannot read.
  *
  * **The thumb is therefore SELECTION-KEYED, which no sibling's glyph is, and it had to be.** Measured:
@@ -213,7 +213,7 @@
  * pixel-identical to a rest switch while reading in the def as though the brief's *"visually distinct
  * from disabled"* requirement had been met. The brief's own answer is a **lock affordance** — a
  * glyph, not an ink — which is anatomy. So nothing is bound and `notes.unverified` carries the
- * measurement, because "no token exists" and "the token that exists is the same colour" are different
+ * measurement, because "no token exists" and "the token that exists is the same color" are different
  * facts and only one of them is true here.
  */
 import { ComponentDef } from '../component-schema';
@@ -242,7 +242,7 @@ export const switchDef: ComponentDef = {
     { name: 'labelPosition', type: "enum: 'leading' | 'trailing'", values: ['leading', 'trailing'], default: 'leading', required: false, description: 'THE STRUCTURAL DIVERGENCE FROM CHECKBOX AND RADIO, where the control always leads. Defaults to label-LEADING because a switch\'s habitat is the settings row, with the toggle at the row\'s trailing edge where the eye expects it; flip to control-leading when a switch sits inline among other form controls, for sibling alignment. A PROP and not a variants axis: it changes a row\'s direction and no ink at any coordinate, so it is an anatomy concern (see the header).' },
     { name: 'pending', type: 'boolean', required: false, default: 'false', description: 'FIRST-CLASS HERE, and the state that exists because immediacy meets latency. Locks input, swaps the thumb for a spinner and announces `aria-busy`. The practice ships optimistic-by-default — flip instantly, revert and message on failure — with this as the alternative for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful. Mandating optimism universally puts the orchestration burden on every consumer; mandating the lock kills the immediacy that is the whole component.' },
     { name: 'isReadOnly', type: 'boolean', required: false, default: 'false', description: 'SUPPORTED, which is not obvious for a toggle. Enterprise dashboards need users to review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers. So: `aria-readonly="true"`, focusable and IN the tab order, at full WCAG contrast (unlike disabled), and visually distinct from disabled. No clean native readonly exists for a checkbox input — implement via `aria-readonly` plus a prevented toggle.' },
-    { name: 'showStateLabel', type: 'boolean', required: false, default: 'false', description: 'The on/off affordance — an inner-track checkmark or I/O icons, OFF by default, since thumb position plus track colour carries the state. Add only where state legibility genuinely demands it. This is NOT hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output ("Airplane Mode On, switch, on"), and does not localise or expand cleanly.' },
+    { name: 'showStateLabel', type: 'boolean', required: false, default: 'false', description: 'The on/off affordance — an inner-track checkmark or I/O icons, OFF by default, since thumb position plus track color carries the state. Add only where state legibility genuinely demands it. This is NOT hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output ("Airplane Mode On, switch, on"), and does not localize or expand cleanly.' },
     { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — "switches rarely warrant a large" (brief §15), which is the first size divergence in the family; `field-label` is the corpus precedent for a two-rung ladder. Scales the row: the label-to-control gap and the row\'s minimum height. The TRACK and THUMB are NOT bound (#900, see `notes.unverified`) and this is the instance that constrains that issue, because a track is not square. Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
   ],
 
@@ -258,7 +258,7 @@ export const switchDef: ComponentDef = {
   //
   // `label-side` and `affordance` are in brief §15's variants block and are NOT axes here:
   // `labelPosition` is a prop because it paints nothing (header), and `affordance` selects the thumb's
-  // CONTENT, which is anatomy. Neither is a colour dimension, and an axis that paints nothing doubles
+  // CONTENT, which is anatomy. Neither is a color dimension, and an axis that paints nothing doubles
   // every coordinate for no ink.
   variants: {
     size: ['small', 'medium'],
@@ -291,7 +291,7 @@ export const switchDef: ComponentDef = {
     // these two keys.
     'off.icon': 'color.interactive.neutral.on-fill',
 
-    // ── THE ON TRACK — the brief's "stark track-colour contrast", and the pairing the tier gates:
+    // ── THE ON TRACK — the brief's "stark track-color contrast", and the pairing the tier gates:
     // `on-fill` is contract-checked against the fill the ink sits on, which is what makes a filled
     // track the safe treatment here for the reason radio's filled disc was chosen over an outlined
     // ring. 8.20–8.29:1 against the page on three brands, 6.85:1 on aurora.
@@ -337,7 +337,7 @@ export const switchDef: ComponentDef = {
     role: 'switch (native <input type="checkbox" role="switch">), with aria-checked true/false — announced "on"/"off", NOT "checked"',
     wcag: [
       '4.1.2 Name Role Value (the switch role and aria-checked doing the work)',
-      '1.4.1 Use of Color (thumb POSITION distinguishes on from off, never track colour alone)',
+      '1.4.1 Use of Color (thumb POSITION distinguishes on from off, never track color alone)',
       '1.4.11 Non-text Contrast (the off-state track must be distinguishable from the background) / 2.4.13 Focus Appearance',
       '2.5.8 Target Size (the whole row, as checkbox)',
       '4.1.3 Status Messages (the async outcome or error of an immediate change)',
@@ -361,14 +361,14 @@ export const switchDef: ComponentDef = {
       'Default to optimistic: flip immediately, then revert and say what failed if the effect did not take',
       'Guard the re-toggle race — lock input on the first interaction until the effect resolves, or coordinate a pending state internally',
       'Support read-only for settings a user may review but not change: focusable, in the tab order, at full contrast',
-      'Let thumb POSITION carry the state, so the control still reads without colour',
+      'Let thumb POSITION carry the state, so the control still reads without color',
     ],
     dont: [
       'Use a switch for a binary that is submitted with a form — if a Save button sits anywhere in the flow it is a Checkbox, and Apple rejects App Store submissions over exactly this',
       'Use a switch whose toggle reveals a sub-form that must be filled before the data is valid — that is progressive disclosure, not an immediate mutation, and it is the most common real misuse',
       'Put aria-pressed on a switch — it corrupts the announcement; aria-pressed is a toggle BUTTON, performing an action or setting a view mode',
       'Reach for a SwitchGroup — there is none, deliberately: a settings list is a list of rows, and compiling a multi-select array is Checkbox\'s job',
-      'Hardcode "On"/"Off" text beside the label — redundant, duplicative for screen readers, and it does not localise',
+      'Hardcode "On"/"Off" text beside the label — redundant, duplicative for screen readers, and it does not localize',
       'Add a third or indeterminate state — role="switch" coerces aria-checked="mixed" to false',
       'Switch on something consequential or hard to reverse without confirmation, or where the user cannot perceive that the effect happened',
       'Put the focus ring on the thumb — it moves, so the indicator would travel with it',
@@ -413,7 +413,7 @@ export const switchDef: ComponentDef = {
       'READ-ONLY BINDS NOTHING, and here the reason is a MEASUREMENT rather than an absence — which is the difference from checkbox and radio. A candidate exists: `text-field` binds `border.read-only: color.border.secondary`. But `color.border.secondary` resolves to the SAME palette step as `color.interactive.neutral.border.rest` in all four brands (nb neutral.400, harbor neutral.450, wendys and aurora neutral.400), so binding it would produce a read-only switch pixel-identical to a rest switch while reading in the def as though the brief\'s "visually distinct from disabled" requirement had been met. The brief\'s actual answer is a LOCK AFFORDANCE — a glyph, not an ink — which is anatomy.',
       'PENDING BINDS NO PAINT, and no def in the corpus binds any: `button` has declared `pending` since #843 and binds nothing for it, and the tier emits no pending ink. What the state actually changes is the thumb\'s CONTENT (a spinner replaces it) and the track\'s interactivity, both anatomy-tier. Declared because the coordinate is real and a consumer must implement it, recorded here so nobody reads the state as decorative.',
       'THE LABEL SIDE IS AN ANATOMY REQUIREMENT WITH NO EXPRESSION HERE. `labelPosition` is a prop and the thing it actually controls is a row\'s `direction` in a `LayoutDef`, which this def has no anatomy block to hold. Under RTL it inverts twice over — the row mirrors AND the thumb travel flips, since "on" sits at the inline-end — and logical properties make that automatic in CSS while a Figma projection would need it stated.',
-      'THE THUMB TRAVEL IS THE COMPONENT\'S DEFINING MOTION AND HAS NO EXPRESSION IN THE SCHEMA. Brief §8 is emphatic that the slide is functional rather than decorative — it is the literal RECEIPT that the immediate action registered: a ~150-200ms ease-in-out `transform` translate (never an animated width) with a synchronised track-colour crossfade, snapping optimistically on an async toggle with a spinner cross-fading onto the thumb, and sliding BACK on failure as the physical metaphor for rejection. Under prefers-reduced-motion the slide drops to 0ms. The engine emits `motion.duration-ms.*` and this def has no motion field to point at.',
+      'THE THUMB TRAVEL IS THE COMPONENT\'S DEFINING MOTION AND HAS NO EXPRESSION IN THE SCHEMA. Brief §8 is emphatic that the slide is functional rather than decorative — it is the literal RECEIPT that the immediate action registered: a ~150-200ms ease-in-out `transform` translate (never an animated width) with a synchronized track-color crossfade, snapping optimistically on an async toggle with a spinner cross-fading onto the thumb, and sliding BACK on failure as the physical metaphor for rejection. Under prefers-reduced-motion the slide drops to 0ms. The engine emits `motion.duration-ms.*` and this def has no motion field to point at.',
       'THE INNER-TRACK AFFORDANCE (`showStateLabel`) NAMES NO GLYPH. The checkmark or I/O icons it selects are `icon` names the def cannot reference without an anatomy block, and the I/O pair in particular may not exist in the 39-name icon set.',
       'THE WHOLE-ROW HIT TARGET IS EXPRESSED ONLY AS `size.*.min-height`, the row\'s floor. Where the expanding padding sits, and how it relates to the track\'s own dimensions, is an anatomy concern this def has no block to state — and it is sharper here than on the siblings, because the control sits at the row\'s TRAILING edge by default rather than at its start.',
       'THE ASYNC RACE IS AN IMPLEMENTATION REQUIREMENT NOTHING HERE CAN HOLD: user toggles, local state flips, request fires, user toggles again before it resolves, and two mutations resolve out of order. The fix is to lock input on the first interaction until the promise settles, or to coordinate a pending state internally. It lives in `docs.do` prose.',

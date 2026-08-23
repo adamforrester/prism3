@@ -75,11 +75,12 @@ const STEMS = /\b[A-Za-z]*grey[A-Za-z]*\b/gi;
 // usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
 const NOT_EN_GB = new Set([
   'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'rise', 'rises',
-  'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'precise', 'concise', 'exercise',
-  'exercises', 'compromise', 'compromises', 'revise', 'revised', 'revises', 'devise', 'devised',
-  'devises', 'supervise', 'enterprise', 'expertise', 'noise', 'raise', 'raises', 'raised', 'advertise',
-  'advertised', 'advertises', 'praise', 'praised', 'cruise', 'paradise', 'franchise', 'merchandise',
-  'poise', 'poised', 'guise', 'disguise', 'excise', 'incise', 'anise', 'demise', 'chastise', 'baptise',
+  'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'promising', 'precise', 'concise',
+  'exercise', 'exercises', 'exercised', 'exercising', 'premise', 'premises', 'compromise', 'compromises',
+  'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'supervise', 'enterprise', 'expertise',
+  'noise', 'raise', 'raises', 'raised', 'advertise', 'advertised', 'advertises', 'praise', 'praised',
+  'cruise', 'paradise', 'franchise', 'merchandise', 'poise', 'poised', 'guise', 'disguise', 'excise',
+  'incise', 'anise', 'demise', 'chastise', 'baptise',
   'your', 'yours', 'our', 'ours', 'four', 'hour', 'hours', 'pour', 'pours', 'tour', 'tours', 'detour',
   'source', 'sources', 'sourced', 'sourcing', 'resource', 'resources', 'outsource', 'flour', 'devour',
   'contour', 'contours', 'velour', 'dour', 'scour', 'sour',

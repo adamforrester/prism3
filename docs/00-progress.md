@@ -12,6 +12,68 @@
 
 ---
 
+## (2026-08-23) — #849 decided (comments in scope too), 111 en-GB fixes clear the plugin bundle (#947)
+
+**STATUS: shipped.** Closes #947. Fixes both halves #954 left red: the 108 string-literal hits
+(`description`/`note`/`aria`/`avoidWhen`/`errorPattern`/`keyboard` fields) across ten component defs,
+and — per the owner's decision below — the 67 comment hits in the same files. Neither alone clears
+`lint-us-english.ts`: exempting every comment still leaves 108 literals; fixing every literal still
+leaves 67 comments.
+
+**#849 decided: comments in `packages/engine/components/*.ts` are in scope.** CLAUDE.md already
+narrows the comment carve-out for `apps/studio/src` on the argument that "which comments esbuild
+keeps in the bundle is an implementation detail, so an exemption the gate cannot see is not
+enforceable." That argument is about bundle-reachability, not about the directory — and component
+defs demonstrably reach a bundle (`apps/plugin/dist/{main.js,ui.html}`), so the same narrowing
+applies to them by the same reasoning. Recorded as a decision here (and per the general policy, not
+duplicated into `docs/42` — #947 is not a `Decided (date, #issue): title` heading).
+
+**Two more hits found reaching the bundle, outside the original 175/115 count.** Rebuilding after the
+component-def fixes and re-scanning `apps/plugin/dist/main.js` directly (not just the source files)
+still showed 2 hits: a comment in `packages/engine/emit-figma-color.ts` ("the four colour fill/stroke
+targets") and a string literal in `apps/plugin/src/main.ts` ("${colorVars} colour vars"). Neither is a
+component def, but both demonstrably survive esbuild's bundling into `main.js` — the same
+bundle-reachability test the #849 decision above rests on — so both are fixed too. Two other
+comments that *look* like the same case (`apps/plugin/src/write-figma.ts:74`, `packages/engine/
+read-back.ts:28`) do **not** appear in the built bundle (esbuild evidently strips them) and were left
+alone — fixing a comment that never ships would be scope creep past what #849 decided, and the
+inconsistency in which comments esbuild keeps is exactly the fact the decision's own argument rests
+on. Checked empirically, not assumed either way.
+
+**Four false positives found and added to `NOT_EN_GB`, not "fixed" in source.** The initial pattern
+scan over the ten component-def files found 115 hits, not 111: `premise`/`premises` (2), `exercised`
+(1) and `promising` (1) are ordinary English matched by the `-ise`/`-ise+ed`/`-is+ing` suffix pattern,
+identical in both dialects — the same class already in `NOT_EN_GB` for `promise`/`exercise` at their
+other conjugations, which simply hadn't been carried to every form. Per the absolute rule, a false
+positive is fixed by adding to `NOT_EN_GB`, never by narrowing the scan or rewriting correct prose.
+That leaves exactly 111 genuine en-GB spellings, all mechanical word substitutions
+(`colour`→`color`, `behaviour`→`behavior`, `neutralise`→`neutralize`, etc.) with no change in meaning.
+
+**Verified against the actual built bundle, not the source grep.** After the fixes, rebuilt both
+`apps/plugin/dist/main.js` and `ui.html` and re-scanned them directly with the gate's own
+pattern/`NOT_EN_GB` logic: 0 hits in both. Then, to validate #954's own "done when" criterion
+directly rather than assuming it, temporarily applied #954's `lint-us-english.ts` scope-widening
+patch on top of this work and ran the fully-widened gate: **clean, 128 files scanned, including both
+plugin surfaces** — confirming #954 will go green once both PRs land, in either order. The patch was
+reverted before committing; this PR does not include #954's scope change.
+
+**No `ENGINE_VERSION` bump.** The instructions raised this as an open question, on the premise that
+"emitted artifact bytes change." Measured rather than assumed: `regen.ts --check` reports 0 drift,
+114/114, both before and after every fix here. Component defs are outside `regen`'s universe
+entirely — no `emit-*.ts` file imports from `components/`, only the lint gates and
+`typecheck-components.ts` do — and `ENGINE_VERSION`'s own header scopes it to what's "stamped into
+every emitted TREE." Nothing here touches an emitted tree; this is a prose-only fix reaching the
+Figma plugin's bundled panel text and the component defs' own description fields, a different
+consumption path `ENGINE_VERSION` was never scoped to cover. Stated explicitly rather than left
+implicit, per the instructions' own ask.
+
+**Gates.** `npm run verify` → 40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY.
+`regen.ts --check` → 114/114, unchanged. `token-contract.ts --check` → 576 guaranteed, contract
+5.2.0, unchanged. `lint-us-english.ts` (current, unwidened scope) → clean, unaffected by this PR
+since it doesn't touch `apps/studio/dist`.
+
+---
+
 ## (2026-08-23) — the `inverse` lever is removed; removing a lever removed no path (#895)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.13.0 → 0.14.0. `CONTRACT_VERSION` **stands** at 5.1.0, and

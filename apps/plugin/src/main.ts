@@ -410,7 +410,7 @@ const seedFromFile = async (): Promise<void> => {
     const v = verifyReadback(snap);
     const failed = Object.entries(v.checks).filter(([, ok]) => !ok).map(([k]) => k);
     const summary =
-      `Existing theme: ${v.details.colorVars} colour vars, modes ${v.details.modes.join('/') || '—'}` +
+      `Existing theme: ${v.details.colorVars} color vars, modes ${v.details.modes.join('/') || '—'}` +
       (v.ok ? ' — contract holds ✓' : ` — FAILED: ${failed.join(', ')}`);
     // `present: true` regardless of `ok`: the variables ARE here, and whether the contract verified is
     // a separate fact. Collapsing the two would make a contract failure look like an unthemed file.

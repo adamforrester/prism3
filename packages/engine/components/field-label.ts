@@ -5,13 +5,13 @@
  * form control (TextField now; Select / Checkbox-group / NumberField later), so "the label is
  * always present, always associated" holds family-wide rather than per host.
  *
- * Why its own ComponentDef (not a slot): it binds its own type + colour and has an axis
+ * Why its own ComponentDef (not a slot): it binds its own type + color and has an axis
  * (size) plus a disabled dim — a small stateful part, not an inert glyph. It is the DOM-present
  * accessible name (§6: a visually-hidden label is the only "label-less" case, and even then it
  * exists) — the single most load-bearing a11y node in the field, so it earns a definition.
  *
  * The practice default is the STATIC top-aligned label (brief §2, §13) — floating labels are
- * out of favour for a11y and i18n. This part models that default; a floating treatment would be
+ * out of favor for a11y and i18n. This part models that default; a floating treatment would be
  * a motion concern on the host, not a different label component.
  */
 import { ComponentDef } from '../component-schema';
@@ -23,7 +23,7 @@ export const fieldLabel: ComponentDef = {
   category: 'form',
   status: 'draft',
   description:
-    'The visible, persistent label above a form field — the field\'s accessible name — with an optional required/optional indicator and a size that pairs with the control. A shared field part: the same component above every field control. Static top-aligned by default (the practice default; floating labels are out of favour).',
+    'The visible, persistent label above a form field — the field\'s accessible name — with an optional required/optional indicator and a size that pairs with the control. A shared field part: the same component above every field control. Static top-aligned by default (the practice default; floating labels are out of favor).',
 
   props: [
     { name: 'children', type: 'string | node', required: true, description: 'The label text — a noun phrase, sentence case, ≤3 words, no trailing colon ("Email address", not "Enter your email address here").' },
@@ -41,19 +41,19 @@ export const fieldLabel: ComponentDef = {
   },
 
   // Label ink is the strong primary content role; the indicator is muted (secondary) so the
-  // "(optional)" suffix reads as de-emphasised; disabled dims to the shared disabled ink.
+  // "(optional)" suffix reads as de-emphasized; disabled dims to the shared disabled ink.
   // Two sizes bind the type system's two label steps (type.label.{sm,md}.emphasis).
 
   // THE PAINT GRAMMAR (#758): a bare slot, because this def's ink does not vary by any of its axes.
   // `size` changes the type step and `indicator` changes which text is present — neither changes a
-  // colour. So the grammar is one template with no axis placeholder at all, which is a shape the
+  // color. So the grammar is one template with no axis placeholder at all, which is a shape the
   // hardcoded `{intent}.{appearance}.{slot}` could not express and the reason this def was one of the
   // five that projected unpainted.
   //
   // THE KEYS ARE SPELLED IN THE PROJECTOR'S SLOT VOCABULARY (#784), and this def is why that rule
   // exists. Until #784 these were `text` and `indicator` — a grammar that passed every check #758
   // shipped while painting NOTHING, because `paintOf` is asked for `label` on a text node and never for
-  // a slot named `text`. Measured before the rename: 0 of 3 colour bindings reachable at any coordinate.
+  // a slot named `text`. Measured before the rename: 0 of 3 color bindings reachable at any coordinate.
   //
   // THE SECOND TEXT PART'S INK IS ITS OWN SLOT (#796), and this is a CORRECTED decision rather than a
   // new one — the comment that stood here was wrong, and wrong in the exact way #784 was about.
@@ -64,7 +64,7 @@ export const fieldLabel: ComponentDef = {
   // MEASURED, and it does not: `paintOf` takes a SLOT and never sees which part asked, so the
   // `kind === 'text'` branch called `paintOf('label')` for every text node. Both parts came back
   // `color/text/primary`, and `indicator.label` → `color.text.secondary` was authored, resolvable and
-  // reached at NO coordinate — the de-emphasised "(optional)" suffix would have shipped in
+  // reached at NO coordinate — the de-emphasized "(optional)" suffix would have shipped in
   // full-strength primary ink. A rename that produced a dead key, inside #784's own fix.
   //
   // So the indicator part declares `paintSlot: 'indicator'` and the key is `indicator`, a slot the
@@ -84,7 +84,7 @@ export const fieldLabel: ComponentDef = {
     'indicator': 'color.text.secondary',
     'disabled.label': 'color.disabled.text',
     'disabled.indicator': 'color.disabled.text',
-    // NOT renamed: these bind TYPE, not colour, and are resolved by `anatomy`'s `type` field through
+    // NOT renamed: these bind TYPE, not color, and are resolved by `anatomy`'s `type` field through
     // `varOf` rather than by any paint template. #784 is a paint rule and this is not paint.
     'size.small.text': 'type.label.sm.emphasis',
     'size.medium.text': 'type.label.md.emphasis',
@@ -134,7 +134,7 @@ export const fieldLabel: ComponentDef = {
         // `figmaProperties.booleans` requires `optional: true`, and `present()` then drops the node the
         // boolean would toggle. No def in the corpus uses `booleans` (both declare it stated-empty),
         // which is why that contradiction has never surfaced.
-        note: 'The required/optional marker — "*" or "(optional)", in the muted indicator ink so it reads as de-emphasised beside the name. Never the sole signal: the field carries required / aria-required.',
+        note: 'The required/optional marker — "*" or "(optional)", in the muted indicator ink so it reads as de-emphasized beside the name. Never the sole signal: the field carries required / aria-required.',
       },
     },
     codeOnly: [
@@ -164,7 +164,7 @@ export const fieldLabel: ComponentDef = {
   // def. `characters` lands on a text node ONLY where a TEXT property names that part
   // (`anatomy-figma.ts:650`), so with `children` alone the `indicator` projected as a TEXT node with
   // correct ink, correct type style and **no content at all** — an empty, zero-width node in Figma. The
-  // whole point of `paintSlot: 'indicator'` is that the marker reads as de-emphasised beside the name, and
+  // whole point of `paintSlot: 'indicator'` is that the marker reads as de-emphasized beside the name, and
   // an invisible node reads as nothing: #796's paint fix was true and pointless at the same time.
   //
   // This is #510's defect at one-node scale, and that precedent is why it is worth a comment rather than
@@ -177,7 +177,7 @@ export const fieldLabel: ComponentDef = {
   //
   // The default is `(optional)` rather than `*` because it is the marker this def's own prop docs
   // recommend (mark the MINORITY, and "(optional)" is the shape that carries meaning without a legend),
-  // and because a one-glyph placeholder in a de-emphasised ink is exactly the projection a designer
+  // and because a one-glyph placeholder in a de-emphasized ink is exactly the projection a designer
   // mistakes for an empty node — the thing this fix is for.
   figmaProperties: {
     variantAxes: ['size'],
@@ -220,7 +220,7 @@ export const fieldLabel: ComponentDef = {
   ai: {
     primaryPurpose: 'Name a form field visibly and programmatically.',
     whenToUse: 'Above every field control — the accessible name for the input.',
-    avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favour of a placeholder.',
+    avoidWhen: 'As a section heading or standalone text (use a heading) — this is bound to one control via htmlFor. Never omit it in favor of a placeholder.',
     commonPartners: ['text-field', 'number-field', 'select', 'checkbox', 'field-message'],
     triggerKeywords: ['label', 'field label', 'form label', 'required indicator', 'optional field'],
     generationPriority: 3,
