@@ -155,8 +155,6 @@ export const leverManifest: Lever[] = [
   { key: 'neutralEmphasis', group: 'advanced', label: 'Neutral emphasis', control: 'enum', default: 'subtle',
     options: enumOpts(['subtle', 'Subtle (light gray)'], ['strong', 'Strong (bold near-black/white)']),
     description: 'The neutral interactive fill boldness — subtle light gray (a surface) or a strong near-black/near-white fill.' },
-  { key: 'inverse', group: 'advanced', label: 'Inverse surface-context', control: 'toggle', default: true,
-    description: 'Generate the interactive.<color>.inverse column — text, fill, border and on-fill — for controls on a dark hero / inverse section (a light CTA on dark).' },
   { key: 'interactivePalettes', group: 'color', label: 'Interactive palettes', control: 'list', advanced: true, itemLabel: 'accent column (name + palette [+ anchorStep])',
     description: 'Promote declared palettes (a `brandColors` entry, or `primary`) to full interactive.<name>.* columns — fill/states, on-fill, text, border, overlay. The generalized accent lever; edit via the interactive cards. Supersedes the back-compat single-column `accentPalette` input.' },
   { key: 'gradients', group: 'advanced', label: 'Gradients', control: 'toggle', default: false,

@@ -65,7 +65,7 @@ actionAnchorStep?: number;       // optional fill-step override for the built-in
 destructiveAnchorStep?: number;  // optional fill-step override for the built-in destructive column
 ```
 
-**Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.inverse.*` (when `inverse` is on), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 488-contract machinery (§13).
+**Roles emitted** per column (`<name>` = `entry.name ?? entry.palette`): `interactive.<name>.fill.{rest,hover,pressed,focused,selected}`, `interactive.<name>.on-fill`, `interactive.<name>.text`, `interactive.<name>.border`, `interactive.<name>.inverse.*` (unconditional since #895), and the `interactive.<name>.overlay.{hover,pressed,selected}` washes (when `outlineInteraction: 'overlay-neutral'`). Every one is contrast-gated per mode by the same 488-contract machinery (§13).
 
 **Naming.** `name` (or the palette name it defaults to) must be a single lowercase slug and must be **unique** and **must not collide** with a built-in column (`primary`/`neutral`/`destructive`) — the engine throws a clear error otherwise, mirroring the `actionPalette`/`brandColors` validation. The `palette` must be a **defined palette** (validated like `actionPalette`); an undefined palette throws.
 
@@ -151,12 +151,28 @@ Whether a colour-selecting control's *range* — which palettes it may point at 
 
 So: `textPalettes` (a text-colour range widening) and the inverse-surface control's range widening are decided on their own merits, each time, not by a shared rule.
 
+### 9.4 Decided (2026-08-23, #895): the inverse surface-context is not optional — the `inverse` lever is removed
+
+The toggle is gone from `levers.ts`, `BrandInput`, `Theme` and `theme-schema.json`, and the three guards it drove in `modes.ts` are unconditional.
+
+**The reason is a contract violation reachable from a control, not a preference about coverage.** Set `inverse: false` and a brand emitted 157 colour roles instead of 236. All **79** of the lost paths are in the committed `guaranteed` set — 13.9% of 570 — so a consumer writing `prism.color.text.on-inverse.primary` got a reference resolving to nothing, with no error, no `CONTRACT_VERSION` bump and no gate firing. `token-contract.ts --check` could not see it, because the corpus runs every lever at its **default**: a gate that only ever observes the default cannot find a defect that lives off it.
+
+**#895 measured 30 when it was filed. #892 grew it to 79** — the inverse gap-filling landed 49 more paths inside the same guard without anyone re-deciding that the guard should hold them. That growth is what turned "document the sharp edge" into "remove it": a lever whose blast radius silently expands with unrelated work is not one a description can make safe.
+
+**Removing a lever is not removing a path**, and the check confirms it: `guaranteed` stands at 570 before and after, `CONTRACT_VERSION` stays 5.1.0, and no emitted value moves in any of the four corpus brands. Those 79 paths were *already* guaranteed. The lever was a way to make the engine break that guarantee, not something the guarantee rested on — so removing it makes the contract true rather than changing what it says.
+
+**The alternative was worse on its own terms.** Keeping the toggle would have obliged the contract to demote 79 paths to `brandDependent`, because that is what it would then truthfully say — demoting a family every brand actually ships, to preserve a control nobody could reach (below).
+
+**It never rendered.** #895 left open whether the toggle was merely hard to find in the studio; it was not there at all. `leversFor()` is called exactly once, for `'motion'`, so `pageOfLever`'s fallback — whose comment lists `inverse` among the levers routed to the Interactive page — describes routing that never executes. The Interactive page hand-builds its controls by key, and no key was `inverse`. The general defect that permits (a manifest lever that silently never renders) outlives this issue and is filed separately.
+
+**Not the last of its class.** Sweeping every enumerable lever setting against the committed baseline finds two more levers that remove guaranteed paths: `outlineInteraction` at `solid-tint`/`none` (18 `interactive.*.overlay.*`) and `typography.displayCeiling` below `xl` (up to 3 `type.display.*.strong`). Both differ from `inverse` in disposition — removing those paths is each lever's declared purpose, so the honest fix is almost certainly to demote the paths rather than delete the lever — and both are the owner's call, filed separately. `test.ts` pins the inverse-vocabulary half of that sweep as an exact set, so the exemption fails in both directions.
+
 ## 10. Levers (brand inputs)
 
 - **`outlineInteraction`** — `overlay-neutral` · `overlay-tint` (the colour's hue at low alpha) · `solid-tint` · `none`. How an outline/text control expresses hover (the "what do we fill it with" question, answered per brand). *(inc-2: `overlay-neutral` (default) generates the neutral washes + composited-contrast gate; `solid-tint`/`none` opt out. `overlay-tint` is scheduled — needs per-colour alpha ramps.)*
 - **`neutralEmphasis`** — `subtle` (light-grey, the default) · `strong` (bold near-black neutral). The neutral button's boldness.
 - **`interactivePalettes`** — the extensible set of opt-in interactive columns (§3a); each promotes a declared palette to a full `interactive.<name>.*` family with an optional `anchorStep`. `accentPalette` is the retained one-column back-compat alias. `actionAnchorStep` / `destructiveAnchorStep` override the built-in primary/destructive fill anchors.
-- **`inverse`** — whether the brand ships the inverse surface-context (§9).
+- ~~**`inverse`**~~ — **removed in #895.** The inverse surface-context (§9) is unconditional. It was a toggle whose off-state deleted 79 contract-guaranteed paths, which is not a lever so much as a way to break the contract from a control. What remains configurable is the inverse surface's own *value* — the `background.inverse.primary` override — which moves colors without removing names.
 
 ## 11. Naming — one reconciled Prism3 scheme, no mixing
 

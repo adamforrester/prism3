@@ -14382,7 +14382,7 @@
         "disabled: 'reduced' (default) — disabled text/icon clears 3:1 on the floor: visibly dimmed but legible, where Primer/USWDS sit. Never below 3:1 — this system does not use the WCAG 1.4.3/1.4.11 inactive-component exemption. Set disabledStrategy:'full' to guarantee AA text instead.",
         "interactive overlays: 'overlay-neutral' (default) — outline/text controls + rows/menus hover with a translucent neutral wash (interactive.<color>.overlay.*), contrast-verified on the composited surface. Set 'solid-tint' (opaque interactive.<color>.subtle-fill.{hover,pressed,selected}) or 'none' to opt out.",
         "action anchored at accent 'accent' step 500 (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor",
-        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: on (interactive.<color>.inverse generated)"
+        "neutral interactive emphasis: 'subtle' (light-gray, default); inverse surface-context: always generated (#895 removed the lever)"
       ]
     }
   }

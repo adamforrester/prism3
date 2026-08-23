@@ -695,90 +695,96 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // inverse surface-context (docs/20 §9): the ink for an OUTLINE / TEXT interactive control
   // placed on a dark hero / inverse section — a light CTA on dark, generated + contrast-verified
   // against the inverse surface (not a hand-mirrored -inverse twin). Independent of light/dark
-  // theme; a light-only brand still needs it. The `inverse` lever gates it.
-  if (theme.inverseContext) {
-    // The full inverse column (docs/20 §9) — a filled CTA + outline/text control placed on a dark hero /
-    // inverse band, generated + contrast-verified against `background.inverse.primary` (not a hand-mirrored
-    // twin). `inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
-    // contrast on the dark band); `inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
-    // band (states walk toward the palette like the page fill); `inverse.on-fill` = the dark ink on it.
+  // theme; a light-only brand still needs it.
+  //
+  // UNCONDITIONAL since #895. It used to sit behind an `inverse` toggle — a lever whose off-state
+  // deleted 79 contract-GUARANTEED paths, so a consumer's `prism.text.on-inverse.primary` resolved to
+  // nothing with no error anywhere. That is exactly the failure `CONTRACT_VERSION` exists to prevent,
+  // and a lever cannot opt out of the guarantee the contract makes on its behalf. #892 grew the blast
+  // radius from 30 paths to 79 without anyone re-deciding, which is what made removal the answer
+  // rather than a warning in the description. What stays configurable is the inverse surface's own
+  // VALUE (the `background.inverse.primary` override) — that moves colours without removing names.
+  // The full inverse column (docs/20 §9) — a filled CTA + outline/text control placed on a dark hero /
+  // inverse band, generated + contrast-verified against `background.inverse.primary` (not a hand-mirrored
+  // twin). `inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
+  // contrast on the dark band); `inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
+  // band (states walk toward the palette like the page fill); `inverse.on-fill` = the dark ink on it.
+  //
+  // The qualifier is `inverse`, not `on-inverse`, since #891. `on-` means exactly one thing in this
+  // tree — INK ON the named ground (`on-fill`, `text.on-brand`) — and a context qualifier wearing it
+  // put both senses in one path: `primary.on-inverse.on-fill` read as ink-on-ink. `inverse.fill.rest`
+  // is the case that settles it — the token is a FILL, and the old name called it ink.
+  const invColumn = (name: string, palette: string | null, anchor: number): void => {
+    const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
+    const textNum = (textRest as RatedNum).num;
+    const invInk: Record<string, Cand> = {};
+    for (const st of ['default', 'hover', 'pressed'] as const) {
+      const stKey = st === 'default' ? 'rest' : st;
+      const c: Cand = (st === 'default' || !palette) ? textRest
+        : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
+      put(`interactive.${name}.inverse.text.${stKey}`, rated(c, invRgb),
+        `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
+      invInk[stKey] = c;
+    }
+    // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
+    // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
+    // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
+    const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
+    // `FILL_STATES`, not a hand-written three (#892). This loop read
+    // `['default','hover','pressed']` while the page's `iFill` walked all five, so `fill.focused`
+    // and `fill.selected` were absent from every inverse column — and `focused` is the
+    // accessibility-relevant one: a keyboard-focused control on a dark hero had no fill to resolve.
     //
-    // The qualifier is `inverse`, not `on-inverse`, since #891. `on-` means exactly one thing in this
-    // tree — INK ON the named ground (`on-fill`, `text.on-brand`) — and a context qualifier wearing it
-    // put both senses in one path: `primary.on-inverse.on-fill` read as ink-on-ink. `inverse.fill.rest`
-    // is the case that settles it — the token is a FILL, and the old name called it ink.
-    const invColumn = (name: string, palette: string | null, anchor: number): void => {
-      const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
-      const textNum = (textRest as RatedNum).num;
-      const invInk: Record<string, Cand> = {};
-      for (const st of ['default', 'hover', 'pressed'] as const) {
-        const stKey = st === 'default' ? 'rest' : st;
-        const c: Cand = (st === 'default' || !palette) ? textRest
-          : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
-        put(`interactive.${name}.inverse.text.${stKey}`, rated(c, invRgb),
-          `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
-        invInk[stKey] = c;
-      }
-      // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
-      // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
-      // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
-      const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
-      // `FILL_STATES`, not a hand-written three (#892). This loop read
-      // `['default','hover','pressed']` while the page's `iFill` walked all five, so `fill.focused`
-      // and `fill.selected` were absent from every inverse column — and `focused` is the
-      // accessibility-relevant one: a keyboard-focused control on a dark hero had no fill to resolve.
-      //
-      // It was ONE omission, not two: the same literal appears in the `text` loop above, and both
-      // were written when the inverse column only had rest/hover/pressed to mirror. Reading the state
-      // list from the shared constant is what stops the next state added to `FILL_STATES` from
-      // silently skipping the inverse column again. The step rule below is the page rule verbatim
-      // (`fillStateCand`: hover/focused one step, pressed/selected two) with the direction reversed,
-      // which is the only thing that legitimately differs on an inverse ground.
-      for (const st of FILL_STATES) {
-        const stKey = st === 'default' ? 'rest' : st;
-        const c: Cand = st === 'default' ? fillRest
-          : walk(palette ?? r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
-        put(`interactive.${name}.inverse.fill.${stKey}`, rated(c, invRgb),
-          `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
-      }
-      put(`interactive.${name}.inverse.on-fill`, onColor(fillRest.rgb),
-        `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.inverse.fill.rest`, onMin);
-      // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
-      // for the same reason the page border does — the intent "the edge matches its label" is no
-      // less true on a dark hero, and `invInk` is already resolved and gated against `invRgb`.
-      //
-      // This REPLACES a step-500 pick nudged against `invRgb`, and #467's finding is why the
-      // replacement is safe rather than merely equivalent. That pick was declared against the
-      // inverse surface so the contract covers it; before it existed the page border was the only
-      // edge emitted and was verified against `background.primary` alone — a mid-tone clears 3:1 on
-      // BOTH grounds just inside a window (page-contrast 3.00 … ~6.48 for the emitted inverse
-      // surface) and nothing checked the far edge. Wendy's brand red, never nudged, landed 3.30 on
-      // the inverse band — 0.30 from failing with every gate green, and a darker action color fails
-      // outright. Following the ink retires that whole margin problem: the ink is gated at
-      // `secondaryMin` against `invRgb`, a STRICTER bar than the border's `nonTextMin`, so the edge
-      // now inherits a pick that has already cleared 4.5:1 on this exact ground instead of one
-      // sitting 0.30 above 3:1. The declared minimum stays the border's own — a future
-      // non-matching source must be held to its own bar, not to the ink's.
-      //
-      // Neutral has no palette, so its ink is `pickMostExtreme` and its states collapse; it takes
-      // the same own-anchor treatment as the page-ground neutral border above.
-      if (palette) iBorder(name, invInk, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
-      else {
-        const iBdRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
-        const iBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === iBdRest.path)!.num;
-        const iBdGuard = guardFrom(contrast(iBdRest.rgb, invRgb), invRgb, cfg.nonTextMin);
-        iBorder(name, {
-          rest: iBdRest,
-          hover: walk(r2p.neutral, iBdNum, 2, -dir, iBdGuard),
-          pressed: walk(r2p.neutral, iBdNum, 4, -dir, iBdGuard),
-        }, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
-      }
-    };
-    invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
-    invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
-    invColumn('neutral', null, 0);
-    for (const entry of theme.interactivePalettes) invColumn(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
-  }
+    // It was ONE omission, not two: the same literal appears in the `text` loop above, and both
+    // were written when the inverse column only had rest/hover/pressed to mirror. Reading the state
+    // list from the shared constant is what stops the next state added to `FILL_STATES` from
+    // silently skipping the inverse column again. The step rule below is the page rule verbatim
+    // (`fillStateCand`: hover/focused one step, pressed/selected two) with the direction reversed,
+    // which is the only thing that legitimately differs on an inverse ground.
+    for (const st of FILL_STATES) {
+      const stKey = st === 'default' ? 'rest' : st;
+      const c: Cand = st === 'default' ? fillRest
+        : walk(palette ?? r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
+      put(`interactive.${name}.inverse.fill.${stKey}`, rated(c, invRgb),
+        `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
+    }
+    put(`interactive.${name}.inverse.on-fill`, onColor(fillRest.rgb),
+      `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.inverse.fill.rest`, onMin);
+    // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
+    // for the same reason the page border does — the intent "the edge matches its label" is no
+    // less true on a dark hero, and `invInk` is already resolved and gated against `invRgb`.
+    //
+    // This REPLACES a step-500 pick nudged against `invRgb`, and #467's finding is why the
+    // replacement is safe rather than merely equivalent. That pick was declared against the
+    // inverse surface so the contract covers it; before it existed the page border was the only
+    // edge emitted and was verified against `background.primary` alone — a mid-tone clears 3:1 on
+    // BOTH grounds just inside a window (page-contrast 3.00 … ~6.48 for the emitted inverse
+    // surface) and nothing checked the far edge. Wendy's brand red, never nudged, landed 3.30 on
+    // the inverse band — 0.30 from failing with every gate green, and a darker action color fails
+    // outright. Following the ink retires that whole margin problem: the ink is gated at
+    // `secondaryMin` against `invRgb`, a STRICTER bar than the border's `nonTextMin`, so the edge
+    // now inherits a pick that has already cleared 4.5:1 on this exact ground instead of one
+    // sitting 0.30 above 3:1. The declared minimum stays the border's own — a future
+    // non-matching source must be held to its own bar, not to the ink's.
+    //
+    // Neutral has no palette, so its ink is `pickMostExtreme` and its states collapse; it takes
+    // the same own-anchor treatment as the page-ground neutral border above.
+    if (palette) iBorder(name, invInk, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
+    else {
+      const iBdRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
+      const iBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === iBdRest.path)!.num;
+      const iBdGuard = guardFrom(contrast(iBdRest.rgb, invRgb), invRgb, cfg.nonTextMin);
+      iBorder(name, {
+        rest: iBdRest,
+        hover: walk(r2p.neutral, iBdNum, 2, -dir, iBdGuard),
+        pressed: walk(r2p.neutral, iBdNum, 4, -dir, iBdGuard),
+      }, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
+    }
+  };
+  invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
+  invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
+  invColumn('neutral', null, 0);
+  for (const entry of theme.interactivePalettes) invColumn(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
 
   // interactive overlays (docs/20 §6) — translucent hover/pressed/selected washes that
   // composite over ANY surface (page, dark hero, image), the outline/text-appearance and
@@ -829,19 +835,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // (page, dark hero, image)" — true of the MECHANISM (a translucent neutral does composite over
     // anything) and false of the RESULT on the one ground it named explicitly. Both now say which
     // ground they are for.
-    if (theme.inverseContext) {
-      const invOverlayPal = cfg.family === 'light' ? 'white-alpha' : 'black-alpha';
-      const invOverlayBase = cfg.family === 'light' ? WHITE : BLACK;
-      const invContentRgb = pickMostExtreme(textCands, invRgb).rgb;   // the strongest ink on the band
-      for (const color of overlayColors) {
-        for (const [st, step] of OVERLAY_ALPHA) {
-          const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
-          put(`interactive.${color}.inverse.overlay.${st}`,
-            { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
-            `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
-            'text.on-inverse', cfg.secondaryMin);
-          roles[`interactive.${color}.inverse.overlay.${st}`].alpha = step / 100;
-        }
+    const invOverlayPal = cfg.family === 'light' ? 'white-alpha' : 'black-alpha';
+    const invOverlayBase = cfg.family === 'light' ? WHITE : BLACK;
+    const invContentRgb = pickMostExtreme(textCands, invRgb).rgb;   // the strongest ink on the band
+    for (const color of overlayColors) {
+      for (const [st, step] of OVERLAY_ALPHA) {
+        const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
+        put(`interactive.${color}.inverse.overlay.${st}`,
+          { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
+          `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
+          'text.on-inverse', cfg.secondaryMin);
+        roles[`interactive.${color}.inverse.overlay.${st}`].alpha = step / 100;
       }
     }
   }
@@ -1135,7 +1139,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //   muted  — mirrored across the ramp (`1000 - step`), the same way the tint step is. `chromatic`
   //            still gates the result, so the mirror is a starting point rather than a promise.
   //
-  // A brand with `inverseContext: false` still gets the page ground; only the second pass is gated.
+  // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
+  // it, so the inverse content set is now as unconditional as the page one.
   const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, dir, tint: subtleTint, mutedStep, page: true };
   const inverseGround: Ground = { base: invRgb, baseName: 'background.inverse.primary', floor: cfg.bgInverse.secondary.rgb, floorName: 'background.inverse.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
@@ -1154,10 +1159,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // These two are the LAST context-node leaves in the tree: measured before writing them, seven of
   // the nine already were groups. So this completes the one-at-a-time migration rather than
   // continuing it, and the rule about how FUTURE context nodes are authored is a separate change.
-  if (theme.inverseContext) {
-    for (const s of buildContent(textProfile, inverseGround)) put(`text.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
-    for (const s of buildContent(iconProfile, inverseGround)) put(`icon.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
-  }
+  for (const s of buildContent(textProfile, inverseGround)) put(`text.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
+  for (const s of buildContent(iconProfile, inverseGround)) put(`icon.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
 
   // ------------------------------------------------------------------- borders
   // Neutral (primary/secondary), inverse, semantic, and the focus ring. In HC the

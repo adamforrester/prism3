@@ -509,14 +509,6 @@
       "description": "The neutral interactive fill boldness — subtle light gray (a surface) or a strong near-black/near-white fill."
     },
     {
-      "key": "inverse",
-      "group": "advanced",
-      "label": "Inverse surface-context",
-      "control": "toggle",
-      "default": true,
-      "description": "Generate the interactive.<color>.inverse column — text, fill, border and on-fill — for controls on a dark hero / inverse section (a light CTA on dark)."
-    },
-    {
       "key": "interactivePalettes",
       "group": "color",
       "label": "Interactive palettes",

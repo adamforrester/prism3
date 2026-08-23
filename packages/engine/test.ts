@@ -36,7 +36,7 @@ import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './version';
-import { buildContract, corpus, pathsOf, MINIMAL_BRAND } from './token-contract';
+import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
@@ -1189,7 +1189,7 @@ for (const b of brands) {
 // INVERSE + neutralEmphasis + accentPalette (docs/20 §9/§10/§3, increment 4).
 {
   // (a) inverse surface-context: interactive.<color>.inverse present + gated against the
-  //     inverse surface in every mode; the `inverse` lever opts out.
+  //     inverse surface in every mode. Unconditional since #895 — see (a2).
   const modes = resolveAllModes(nbTheme());
   const invFails: string[] = [];
   for (const m of modes)
@@ -1200,9 +1200,58 @@ for (const b of brands) {
       if (r.min > 0 && r.ratio < r.min) invFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
     }
   ok(invFails.length === 0, 'inverse: interactive.<color>.inverse.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
-  const noInv = resolveAllModes({ ...nbTheme(), inverseContext: false })
-    .flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.') && k.includes('.inverse.'));
-  ok(noInv.length === 0, 'inverse: inverse=false emits no inverse-column inks' + (noInv.length ? ` — ${noInv.slice(0, 2).join(',')}` : ''));
+  // (a2) NO LEVER GATES THE INVERSE VOCABULARY (#895). This replaces the test that asserted the
+  // opposite — `inverse: false` emits no inverse inks — because that behaviour WAS the defect: a
+  // toggle that deleted 79 contract-GUARANTEED paths, so `prism.text.on-inverse.primary` resolved to
+  // nothing with no error and no `CONTRACT_VERSION` bump. The old gate could not see it: the corpus
+  // runs every lever at its DEFAULT, so `token-contract.ts --check` never builds a brand with the
+  // lever off. A gate that only ever observes the default cannot find a defect that lives off it.
+  //
+  // So this sweeps the enumerable lever space instead of trusting the default — every toggle at both
+  // values, every enum at every option, over `MINIMAL_BRAND` (the sparsest input the engine accepts),
+  // and asks which committed-guaranteed inverse paths went missing.
+  //
+  // EQUALITY, not "is empty", and that is deliberate in both directions. The answer today is not zero:
+  // `outlineInteraction` at `solid-tint` / `none` removes the 9 `interactive.<c>.inverse.overlay.*`
+  // paths, because emitting no overlay tokens is that lever's entire declared purpose. That is the
+  // SAME structural defect wearing a different disposition — the honest fix there is almost certainly
+  // to demote those paths to `brandDependent` (the contract is wrong, not the lever), which is a
+  // separate decision and a separate issue. Pinning the exact set means the day someone fixes it this
+  // test fails and says "tighten me", and the day a NEW lever starts gating inverse paths it fails
+  // too. A subset assertion would notice only the second.
+  {
+    const setPath = (o: any, p: string, v: unknown): void => {
+      const ks = p.split('.'); let c = o;
+      for (const k of ks.slice(0, -1)) { if (typeof c[k] !== 'object' || c[k] === null) c[k] = {}; c = c[k]; }
+      c[ks[ks.length - 1]] = v;
+    };
+    const isInv = (p: string) => /(^|\.)inverse(\.|$)|(^|\.)on-inverse(\.|$)/.test(p);
+    const guaranteedInv = Object.keys(readBaseline().guaranteed).filter(isInv);
+    const removable = new Set<string>();
+    for (const l of leverManifest) {
+      const vals: unknown[] = l.control === 'toggle' ? [true, false]
+        : l.control === 'enum' ? (l.options ?? []).map((o) => o.value)
+        : [];
+      for (const v of vals) {
+        const input = structuredClone(MINIMAL_BRAND) as any;
+        setPath(input, l.key, v);
+        const emitted = pathsOf(brandTheme(input));
+        for (const p of guaranteedInv) if (!emitted.has(p)) removable.add(p);
+      }
+    }
+    // The 9 known-removable, and why each is here rather than fixed: `outlineInteraction` opts out of
+    // overlay tokens by design. Listed literally so the exemption is a claim about specific paths.
+    const KNOWN = (['primary', 'neutral', 'destructive'] as const)
+      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.interactive.${c}.inverse.overlay.${s}`))
+      .sort();
+    const got = [...removable].sort();
+    const unexpected = got.filter((p) => !KNOWN.includes(p));
+    const fixed = KNOWN.filter((p) => !got.includes(p));
+    ok(unexpected.length === 0 && fixed.length === 0,
+      `inverse: no lever removes a guaranteed inverse path beyond outlineInteraction's ${KNOWN.length} overlays (swept ${guaranteedInv.length} guaranteed inverse paths)` +
+      (unexpected.length ? ` — NEWLY REMOVABLE: ${unexpected.slice(0, 4).join(', ')}` : '') +
+      (fixed.length ? ` — no longer removable, tighten KNOWN: ${fixed.slice(0, 4).join(', ')}` : ''));
+  }
 
   // (a3) THE COVERAGE REGISTER, both directions (#892 step 5 / #893). Every semantic colour role
   // either has an inverse counterpart or is named in `INVERSE_GAPS` with the reason it does not — so

@@ -69,6 +69,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | Normalize `on-inverse` and `-inverse` to `.inverse.` | 2026-08-21 | `docs/20-interactive-color-system.md` §9.2 | #891 |
 | A colour control's range is decided case-by-case, not by one universal rule | 2026-08-21 | `docs/20-interactive-color-system.md` §9.3 | #894 |
 | `docs/34` holds the diagnosis; `CLAUDE.md` holds a countermeasure only when it's unhookable and statable in one clause | 2026-08-22 | `docs/43-agent-instruction-surface.md` | #922 |
+| The inverse surface-context is not optional — the `inverse` lever is removed | 2026-08-23 | `docs/20-interactive-color-system.md` §9.4 | #895 |
 
 ## Known gaps, named rather than silent
 
@@ -76,10 +77,16 @@ decision recorded there is correct prose forever and is not this file's subject 
   not yet in heading form, so not yet indexable. Migrating one is a small, welcome PR; the gate does
   not ask for it and does not let it happen invisibly either, since an inline `**Decision:**` is not
   matched by the detector at all.
-- **#895** (whether the `inverse` lever should be removed or its 30 paths demoted to
-  `brandDependent`) is **not** indexed. It was investigated and confirmed as a real defect, but the
-  issue's own record is explicit that the decision itself is still the owner's to make — indexing it
-  now would assert a decision that has not happened.
+- **Two more levers can delete guaranteed paths**, found by the sweep #895 prompted and **not** yet
+  indexed for the same reason #895 was not until it was decided: `outlineInteraction` at
+  `solid-tint`/`none` removes 18 `interactive.*.overlay.*`, and `typography.displayCeiling` below
+  `xl` removes up to 3 `type.display.*.strong`. Both are structurally what #895 was, but neither
+  resolves the same way — removing those paths is each lever's declared purpose, so the honest fix is
+  probably to demote the paths to `brandDependent` rather than delete the lever. That is the owner's
+  call; filed as an issue with the measurement, and indexed here once made.
+
+  (#895 itself is now indexed above — it was held out of the table while the decision was still open,
+  which is the posture this bullet is repeating rather than a new kind of exception.)
 
 ## Maintaining this file
 

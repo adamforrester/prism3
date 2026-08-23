@@ -235,9 +235,6 @@ export type Theme = {
   // Neutral interactive emphasis (docs/20 §10). 'subtle' (default): a light-grey neutral
   // fill; 'strong': a bold near-black (light) / near-white (dark) neutral fill.
   neutralEmphasis: 'subtle' | 'strong';
-  // Inverse surface-context (docs/20 §9): generate the `interactive.<color>.inverse` column
-  // for outline/text controls placed on a dark hero / inverse section. Default on.
-  inverseContext: boolean;
   // Extensible interactive palettes (docs/20 §3). Each declared palette is promoted to a full
   // `interactive.<name>.*` column (fill+states / on-fill / text / border / inverse / overlay),
   // anchored at `anchorStep` (default 500). The built-in primary/neutral/destructive columns are
@@ -404,9 +401,6 @@ export type BrandInput = {
   /** Neutral interactive emphasis (docs/20 §10). 'subtle' (default) is a light-grey
    *  neutral fill; 'strong' is a bold near-black/near-white neutral fill. */
   neutralEmphasis?: 'subtle' | 'strong';
-  /** Generate the inverse surface-context (docs/20 §9) — the `interactive.<color>.inverse`
-   *  column for controls on a dark hero / inverse section. Default true. */
-  inverse?: boolean;
   /** Opt-in accent interactive colour (docs/20 §3) — the BACK-COMPAT single-column lever. Names a
    *  declared palette (typically a `brandColors` entry) to get a full `interactive.accent.*` column.
    *  Omit → no accent column (never falls back to primary). Must differ from the action palette.
@@ -2368,8 +2362,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (actionBrandColor) notes.push(`action anchored at accent '${actionPalette}' step ${actionAnchorStep} (its pinned lightness) — the brand's own shade, nudged only if it fails AA on the floor`);
 
   const neutralEmphasis = input.neutralEmphasis ?? 'subtle';
-  const inverseContext = input.inverse ?? true;
-  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: ${inverseContext ? 'on (interactive.<color>.inverse generated)' : 'off'}`);
+  notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);
 
   return {
     id: input.id, root, namespace: `${root}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
@@ -2383,7 +2376,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     disabledMin: dMin,
     iconContrast: input.iconContrast ?? 'text',
     outlineInteraction: input.outlineInteraction ?? 'overlay-neutral',
-    neutralEmphasis, inverseContext, interactivePalettes,
+    neutralEmphasis, interactivePalettes,
     actionAnchorStep: input.actionAnchorStep, destructiveAnchorStep: input.destructiveAnchorStep,
     dims: { ...buildDims(baseUnit, spaceBase, density, rScale, baseMd), ...(Object.keys(radiusByMode).length ? { radiusByMode } : {}), ...(Object.keys(sizesByMode).length ? { sizesByMode, controlsByMode } : {}) },
     motion,
@@ -2435,7 +2428,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
     roleAnchorStep: { brand: 550, neutral: 500, success: 500, warning: 500, danger: 550, info: 500, action: 550 },
     disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',
-    neutralEmphasis: 'subtle', inverseContext: true, interactivePalettes: [],
+    neutralEmphasis: 'subtle', interactivePalettes: [],
     dims, motion: buildMotion(),
     typography: buildTypography(),
     shadow: buildShadow(s.neutralHue.hue, { tint: { amount: 0 } }),  // NB ships pure-black shadows

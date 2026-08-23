@@ -240,11 +240,6 @@
       "default": "subtle",
       "description": "OPTIONAL. The neutral interactive fill's boldness (docs/20 §10). 'subtle' (default): a light-gray neutral fill (a surface). 'strong': a bold near-black (light) / near-white (dark) neutral fill that clears the non-text floor."
     },
-    "inverse": {
-      "type": "boolean",
-      "default": true,
-      "description": "OPTIONAL. Generate the inverse surface-context (docs/20 §9) — the `interactive.<color>.inverse` column (text, fill, border and on-fill) for outline/text controls on a dark hero / inverse section (a light CTA on dark), contrast-verified against the inverse surface. Default true; even a light-only brand needs it. Set false to omit."
-    },
     "accentPalette": {
       "type": "string",
       "description": "OPTIONAL. Opt-in accent interactive color (docs/20 §3) — the BACK-COMPAT single-column lever. Names a declared palette (typically a `brandColors` entry) to get a full `interactive.accent.*` column. Must differ from the action palette — never falls back to primary. Omit → no accent column. Superseded by `interactivePalettes` (which, when set, wins and ignores this)."
