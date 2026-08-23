@@ -29,7 +29,7 @@
  *  1. `PartDef` HAS NO STROKE FIELD — **STILL STANDING (#740), and it is why this def now projects and
  *     is still not DONE.** Its geometry vocabulary is gap / height / radius / size / type / inset /
  *     padding. A ring is a stroke and nothing else, so the one thing this component IS has no field to
- *     be declared in. `tokens` below binds the stroke's colour, weight and style, and every binding
+ *     be declared in. `tokens` below binds the stroke's color, weight and style, and every binding
  *     resolves against both brands' emitted trees — but no PART can carry the weight or the style, so
  *     no plan binds them to a node. As of #795 the ring PROJECTS: 2 members, `color=default` and
  *     `color=inverse`, each with its stroke COLOUR bound. What comes out is a ring-shaped box with the
@@ -54,7 +54,7 @@
  *     `{intent}.{appearance}.{slot}` (`anatomy-figma.ts`), so a def whose paint axis is `color`
  *     resolved no paint at all; #758 replaced that hardcoded template with this def's own `paintKeys`.
  *     That was necessary and not sufficient: the keys #758 shipped here were spelled `stroke`, which
- *     the projector never dispatches, so the ring's colour was still reachable at 0 of 2 coordinates.
+ *     the projector never dispatches, so the ring's color was still reachable at 0 of 2 coordinates.
  *     #784 renamed them to `border`.
  *
  * So this def is REAL, gate-checked and PROJECTED as of #795 — 2 members, both with their ink bound —
@@ -105,17 +105,17 @@ export const focusRing: ComponentDef = {
 
   // THE PAINT GRAMMAR (#758), and here ORDER is the whole declaration. The qualified template leads,
   // so `color=inverse` finds `border.inverse` and `color=default` falls through to the bare `border`.
-  // Reverse the two and every ring paints the default colour — both variants are valid rings, so
+  // Reverse the two and every ring paints the default color — both variants are valid rings, so
   // nothing downstream would notice, which is the same invisibility #656 turned on.
   //
   // The DEFAULT value is the one with no segment of its own. That is not an accident of authoring: the
-  // ring has one canonical colour and `inverse` is the exception, so the unqualified key IS the
+  // ring has one canonical color and `inverse` is the exception, so the unqualified key IS the
   // default. `paintKeys` can say that; the `{intent}.{appearance}.{slot}` template this replaces could
   // not say it at all, which is wall 4 of the four this def's header lists.
   //
   // THE SLOT VOCABULARY (#784). Until #784 these keys were spelled `stroke` / `stroke.inverse` — the
   // word this file's own prose uses for the ring's substance, and a word the projector never asks for.
-  // `paintOf` dispatches `border` for a stroke, so BOTH colour bindings resolved at 0 of 2 coordinates:
+  // `paintOf` dispatches `border` for a stroke, so BOTH color bindings resolved at 0 of 2 coordinates:
   // the grammar #758 shipped was correct in shape and painted nothing. Renamed to the dispatched slot.
   // The surrounding prose still says "stroke", deliberately — that is the CSS/Figma property this def
   // binds, and only the KEY has to match the projector.
@@ -123,7 +123,7 @@ export const focusRing: ComponentDef = {
   // NOTE ON WHAT THIS ALONE BOUGHT: the stroke's COLOUR became resolvable and the ring did not become
   // projectable — the three structural walls above were untouched, and `figmaProperties` stayed absent
   // for them. #795 took walls 2 and 3 down, so both keys now resolve at real coordinates (`border` at
-  // `color=default`, `border.inverse` at `color=inverse`). Wall 1 is why that is a bound colour on a
+  // `color=default`, `border.inverse` at `color=inverse`). Wall 1 is why that is a bound color on a
   // node with no stroke to wear it.
   paintKeys: ['{slot}.{color}', '{slot}'],
 
@@ -169,16 +169,16 @@ export const focusRing: ComponentDef = {
       // here any more; `offset` does not, and its entry is what keeps that a decision rather than a gap.
       // This check now runs for real, because `figmaProperties` is present.
       'offset — the context parameter (`control` ≈2px / `field` 0), and the one axis this def deliberately does NOT project (#795, decided on #801\'s measurement). Not a projector limit: the enumeration would carry it happily now that it reads `variantAxes`. The reason is that the offset is consumed by the HOST\'s `inset` binding and Figma\'s `x`/`y` accept no variable, so #801 measured the payload resolving it to a NUMBER at paste and writing that — an axis over it would ship two members differing only by a value the platform cannot hold, and a designer switching `offset=field` on an instance would see nothing move. So it stays a paste-time parameter the host supplies: `text-field`\'s field-specific offset comes from the PARENT at paste, not from a coordinate on this set. An already-pasted ring does not re-position when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.',
-      'stroke weight and stroke colour — the ring\'s entire visual substance, and `PartDef` has no field for either. Its geometry vocabulary is gap / height / radius / size / type / inset / padding; a stroke is not among them. So `tokens` binds `color.border.focus`, `focus.ring.width` and `focus.ring.style` and every one resolves against every emitted brand, while no PART can carry them and therefore no plan can bind them to a node. This is the wall Button\'s codeOnly entry used to describe as a deliberate trade — it is not; it is an unexamined schema gap, and expressing it needs a `PartDef` stroke field, which is a schema decision under #740.',
+      'stroke weight and stroke color — the ring\'s entire visual substance, and `PartDef` has no field for either. Its geometry vocabulary is gap / height / radius / size / type / inset / padding; a stroke is not among them. So `tokens` binds `color.border.focus`, `focus.ring.width` and `focus.ring.style` and every one resolves against every emitted brand, while no PART can carry them and therefore no plan can bind them to a node. This is the wall Button\'s codeOnly entry used to describe as a deliberate trade — it is not; it is an unexamined schema gap, and expressing it needs a `PartDef` stroke field, which is a schema decision under #740.',
       'the stroke, restated as the materialization ceiling — the def PROJECTS as of #795 (`figmaProperties` below declares `color`, and the set builds two members with their ink bound), and what it projects is not yet a ring. Before #795 this entry said the def was deliberately not materializable because a `variantAxes: [\'color\']` block would validate and then throw; that is now simply false, and the honest replacement is narrower: nesting resolves by NAME against the live file (`compByName.get(n.nestTarget)`), so once the projected set is pasted, Button\'s `nests: \'focus-ring\'` binds to OUR members rather than to a hand-built component — which closes the docs/14 §1 inversion for the NODE while wall 1 keeps it open for the stroke. Read the remaining gap as "the members are strokeless", not as "the def cannot project".',
       ':focus-visible condition — the ring appears on exactly one host state, and that state is a POINTER-vs-KEYBOARD distinction the browser makes at runtime. Figma has no state machine, so a projected ring is a variant coordinate a designer selects, never a state an interaction triggers. This is why Button\'s `focusRing` part declares `when: \'focus-visible\'` — the condition has to be stated in the def, because nothing downstream can infer it.',
-      'high-contrast / forced-colors — a focus indicator must survive a forced-colors mode that replaces every authored colour, which in CSS means `outline` rather than a border or box-shadow (an outline is preserved where a shadow is dropped). Figma has no forced-colors concept and no outline primitive distinct from a stroke, so the one property that keeps the ring visible for the users who most depend on it cannot be expressed in the Figma leg at all.',
-      'the 3:1 adjacent-contrast contract — 1.4.11 requires the ring to clear 3:1 against BOTH the surface behind it and the control edge beside it, which is a relationship between three colours resolved per host and per mode. The `color` axis is the design\'s answer to it (`inverse` exists because the default ring fails against a brand-filled surface), but the contract itself is a computation over a host this def cannot see, so no single ring component can carry it.',
+      'high-contrast / forced-colors — a focus indicator must survive a forced-colors mode that replaces every authored color, which in CSS means `outline` rather than a border or box-shadow (an outline is preserved where a shadow is dropped). Figma has no forced-colors concept and no outline primitive distinct from a stroke, so the one property that keeps the ring visible for the users who most depend on it cannot be expressed in the Figma leg at all.',
+      'the 3:1 adjacent-contrast contract — 1.4.11 requires the ring to clear 3:1 against BOTH the surface behind it and the control edge beside it, which is a relationship between three colors resolved per host and per mode. The `color` axis is the design\'s answer to it (`inverse` exists because the default ring fails against a brand-filled surface), but the contract itself is a computation over a host this def cannot see, so no single ring component can carry it.',
     ],
   },
 
   // IT PROJECTS AS OF #795 — two members, `color=default` and `color=inverse`, each with its stroke
-  // colour bound. This block was ABSENT until #795 on a reason that was true when written and is not
+  // color bound. This block was ABSENT until #795 on a reason that was true when written and is not
   // now: `variantAxes: ['color']` passed `figmaPropertyErrors` and then threw inside `figmaAnatomySet`,
   // so the def would have claimed a projection it did not have. Walls 2 and 3 are down, so it has one.
   //

@@ -89,7 +89,7 @@ export const textarea: ComponentDef = {
   // decision rather than an omission.
   //
   // `pending`, not `loading` (#843, resolved by #868 while this def was in review). The AI-streaming
-  // case (brief §4: content streamed into the field to rewrite or summarise, carrying aria-busy) is
+  // case (brief §4: content streamed into the field to rewrite or summarize, carrying aria-busy) is
   // the same async-in-flight concept `button` and `icon-button` already name `pending`, and #868
   // closed `loading` out of the vocabulary entirely — a rejected name returning through a fourth def
   // would have been the exact shape #868 filed the vocabulary to stop.
@@ -108,7 +108,7 @@ export const textarea: ComponentDef = {
   // bare slot is the rest value.
   paintKeys: ['{slot}.{state}', '{slot}'],
 
-  // INPUT CHROME ONLY, same composition call as the substrate — label and message colour/type live in
+  // INPUT CHROME ONLY, same composition call as the substrate — label and message color/type live in
   // `field-label` / `field-message` and are composed, not re-declared here.
   //
   // TWO THINGS THIS BLOCK DOES NOT CARRY, both deliberate and both invisible unless stated:
@@ -164,7 +164,7 @@ export const textarea: ComponentDef = {
     ],
     keyboard: 'Native multi-line editing with undo/redo, spellcheck and IME. Enter inserts a newline — that is the contract aria-multiline advertises and the default. submitOnEnter inverts it for composers, and then Shift+Enter inserts the newline, a real submit button still exists, and the swap is stated visibly near the field.',
     focus: ':focus-visible with the field ring. A textarea is a large focus surface, so the indicator is inset on the container rather than a thick outer ring. forwardRef must reach the <textarea> itself, not the wrapper. Auto-resize must not move the caret or scroll the viewport — the measurement is synchronous with input, and it must also run on PROGRAMMATIC value changes (a reset, or AI-inserted text), which is the common auto-grow bug.',
-    aria: 'The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never colour-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.',
+    aria: 'The counter is the central problem and it is two nodes, not one: the visual counter is aria-hidden and updates instantly, while a separate visually-hidden node carries announcements. Two channels — the static limit folded into aria-describedby so tabbing in announces the ceiling, and a threshold-based polite live region that speaks only near the limit (per-keystroke counting makes the field unusable), escalating to assertive only on breach. Over-limit sets aria-invalid and is ANNOUNCED, never color-only. aria-busy while content streams. Preserve the native aria-multiline; do not reconstruct a textarea from contenteditable, which loses undo/redo, spellcheck, reliable IME and form submission. Set dir="auto" so content direction can differ from UI direction, and do not run counting or auto-grow measurement mid-IME-composition.',
   },
 
   content: {
@@ -178,15 +178,15 @@ export const textarea: ComponentDef = {
     do: [
       'Set maxRows whenever auto-growing — uncapped growth pushes the submit affordance off-screen on a long paste',
       'Enforce a character limit softly (allow over, flag invalid, block submit) and count by grapheme, not by string length',
-      'Announce the over-limit through the live region and aria-invalid — colour alone is not a signal',
-      'Normalise \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line',
+      'Announce the over-limit through the live region and aria-invalid — color alone is not a signal',
+      'Normalize \\r\\n to \\n on paste before counting or storing, and resize once per paste rather than once per inserted line',
     ],
     dont: [
       'Offer horizontal or both resize — it shatters grid and flex layouts and breaks responsive viewports',
       'Use the native maxlength attribute for substantial text — it silently swallows pasted overflow with no feedback',
       'Bake submit-on-Enter into the base component — it is a composer opt-in that always keeps a real submit button and a visible hint',
       'Reach for contenteditable to add formatting — cross the boundary to a real rich-text editor instead',
-      'Drop in a one-row Textarea as a "bigger input" — the semantics and the Enter behaviour differ from TextField',
+      'Drop in a one-row Textarea as a "bigger input" — the semantics and the Enter behavior differ from TextField',
     ],
     contentGuidelines: 'Counter reads "240 / 280" or "40 characters remaining"; over-limit reads "12 characters over the limit" — constructive and numeric, never "Too long." If Enter submits, say so near the field.',
   },
@@ -215,13 +215,13 @@ export const textarea: ComponentDef = {
     contested: [
       'resize as a VARIANT AXIS vs a prop — brief §15 lists `resize: [none, vertical, auto]` under `variants`, and §4 calls it "more like an author-chosen variant than a runtime state". Declared here as a prop ONLY. Two reasons: `VARIANT_AXES` is closed (#847) and does not contain `resize`, and adding it would duplicate a member already carried by the prop — the exact criticism `modifiers` carries in the vocabulary\'s own header (#845). The named alternative is to admit `resize` to `VARIANT_AXES` with a stated reason, which is the right move IF the drag handle turns out to need a projected Figma member; that is an anatomy question this def cannot answer yet.',
       'modifiers: [auto-grow, show-count] — brief §15 lists these as an axis. Not declared, and NOT a judgment call: `modifiers` is not in `VARIANT_AXES`. #845 removed it — from both defs that carried it and from the vocabulary itself (`component-schema.ts` §2 of the closed-vocabulary header: "**RESOLVED (#845): removed, from both defs and from this list**"; `button.ts` opens its variants block with `NO modifiers AXIS`). Since `variants` is typed `Partial<Record<VariantAxis, string[]>>`, declaring it does not compile, and `validateComponentDef` rejects it a second time at runtime. The reason it was removed is the same one that would disqualify it here — its values are not alternatives along one dimension: `auto-grow` is already a value of `resize`, `show-count` is already a boolean prop, and a textarea can be both at once, which is what makes them booleans rather than coordinates. The real alternative is to petition to RE-OPEN `VARIANT_AXES` with a stated reason, the way the `resize` entry above contemplates for itself. (An earlier version of this entry said the alternative was to "declare it and accept the duplication", which reads as a trade-off available to the author and is not one — the file would not build. Corrected in #904; the conclusion never moved, only the reason under it.)',
-      'The focus indicator on a large surface — brief §4 argues a saturated ring around a 600×400 textarea is visual noise and favours an inset indicator or a background/border tint (Atlassian). This def binds the same `focus.ring.offset-field` the substrate does, because that is the only field ring the engine emits. The alternative is a large-surface ring token, which is engine surface a def should not author unilaterally.',
+      'The focus indicator on a large surface — brief §4 argues a saturated ring around a 600×400 textarea is visual noise and favors an inset indicator or a background/border tint (Atlassian). This def binds the same `focus.ring.offset-field` the substrate does, because that is the only field ring the engine emits. The alternative is a large-surface ring token, which is engine surface a def should not author unilaterally.',
       'Enter-key ownership — submit-on-Enter is an opt-in here, never the base default. The alternative (composers invert it by default) is what chat surfaces actually ship, and the brief rejects it for the base component because silently hijacking Enter breaks the platform expectation for every non-chat use.',
       'Soft vs hard maxLength — soft, always. The alternative is the native maxlength attribute, which is one line of code and silently truncates pasted overflow; the brief rejects it on AT grounds specifically, since input simply stops being accepted with no announcement.',
-      'Distinct component vs a multiline prop on TextField — Polaris and Material 3 model this as `multiline={4}` on a universal field. The practice ships a distinct component (brief §1), and the reason is machinery rather than symmetry: auto-grow measurement, resize chrome, scroll management, line-break normalisation and grapheme counting are non-overlapping with a single-line field and would tax every plain input in the app.',
+      'Distinct component vs a multiline prop on TextField — Polaris and Material 3 model this as `multiline={4}` on a universal field. The practice ships a distinct component (brief §1), and the reason is machinery rather than symmetry: auto-grow measurement, resize chrome, scroll management, line-break normalization and grapheme counting are non-overlapping with a single-line field and would tax every plain input in the app.',
     ],
     unverified: [
-      'CSS `field-sizing: content` as the auto-grow mechanism — the brief calls it the biggest near-term implementation shift and prioritises it behind an @supports query with the ghost-sizer JS polyfill as fallback. It also says explicitly not to treat its own version numbers (Chromium 123+, "Firefox following") as settled. NOT verified in this pass, which was authoring rather than research; verify before any implementation reads it as current.',
+      'CSS `field-sizing: content` as the auto-grow mechanism — the brief calls it the biggest near-term implementation shift and prioritizes it behind an @supports query with the ghost-sizer JS polyfill as fallback. It also says explicitly not to treat its own version numbers (Chromium 123+, "Firefox following") as settled. NOT verified in this pass, which was authoring rather than research; verify before any implementation reads it as current.',
       'The Polaris unbounded-growth bug cited in brief §3 and §13 as the evidence for always setting maxRows — attributed to the external research pass, no `_source-text` backing in the vault. The RULE stands on its own reasoning; the citation is what is unverified.',
       'The error stroke belongs on the CONTAINER, not the input, so a Windows scrollbar docks inside the error boundary rather than breaking it (brief §4). Real, and unexpressible today: `color.border.danger` paints either node and this def has no anatomy block to say which. Lands with the anatomy (docs/40 Arc 2 step 5) — recorded here so the requirement is not lost in the gap.',
       'Brief §4 says `size` scales "typography and padding only", and this def binds padding but NO type token — because the substrate binds none either, so there is no type role for a field value to narrow. The padding half is expressed and the typography half is not, in both defs. Whether the field family should bind a type role is a substrate question, not a Textarea one — filed as #862 rather than decided here, because a child def is the wrong place to make the family\'s type call.',

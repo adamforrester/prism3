@@ -13,20 +13,20 @@
  *    counts primaries per view as if emphasis lived on `intent` alone, but this def made
  *    intent and appearance ORTHOGONAL (the line above), so hierarchy is expressed by
  *    APPEARANCE within one intent — filled / outline / text — and a three-button form is
- *    typically three primaries, one of each appearance, all correctly the brand colour.
+ *    typically three primaries, one of each appearance, all correctly the brand color.
  *  - The state TRIO: isPending (focusable aria-disabled, delayed spinner, width-preserved,
  *    busy-announced), isInactive (focusable disabled — relevant-but-unsatisfied), isDisabled
  *    (native, RESERVED for controls irrelevant to the view) (§4, §13).
  *  - leadingVisual / trailingVisual (not *Icon — the slot holds avatars/counters/spinners) (§2).
- *  - type='button' default (neutralise the platform submit trap) (§3, §11).
+ *  - type='button' default (neutralize the platform submit trap) (§3, §11).
  *  - Icon-ONLY is a distinct component (icon-button) so the accessible name is required at
  *    the type level (§6, §10).
  *
- * Rebound to the interactive colour system (docs/20): the two-axis model is now the
- * reconciled vocabulary — appearance {filled, outline, text} × colour {primary, neutral,
- * destructive} (+ accent when a brand declares one) — bound to `interactive.<colour>.*`
+ * Rebound to the interactive color system (docs/20): the two-axis model is now the
+ * reconciled vocabulary — appearance {filled, outline, text} × color {primary, neutral,
+ * destructive} (+ accent when a brand declares one) — bound to `interactive.<color>.*`
  * with cross-cutting `disabled.*`. This CLOSES the v1 HIGH finding: neutral (was the
- * stateless `foreground.secondary`) now carries hover/pressed/on-fill like every colour,
+ * stateless `foreground.secondary`) now carries hover/pressed/on-fill like every color,
  * so the default button is no longer hover-less. outline/text hover uses the overlay wash
  * (assumes `outlineInteraction: overlay-neutral`, the default). `ghost` is retired — a
  * quiet button is `intent=neutral appearance=text`. (`type.label.lg` gap still stands.)
@@ -45,11 +45,11 @@ export const button: ComponentDef = {
   props: [
     { name: 'children', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. (Not required for the icon-only case — that is a distinct icon-button.)' },
     { name: 'onClick', type: 'function', required: false, description: 'Action handler. Suppressed while isPending or isInactive.' },
-    { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'primary', required: false, description: 'Semantic colour, drawn from interactive.<intent>.* (docs/20). Defaults to primary — the brand colour is the expected look of a button, so an unqualified <Button> should be on-brand rather than gray. EMPHASIS IS THE APPEARANCE AXIS, NOT THIS ONE: a form with three actions is typically three primaries at filled / outline / text, not one primary and two grays. Use neutral when the control genuinely carries no brand weight (a toolbar, a dense table row); destructive for delete/remove. accent is available when the brand declares one. (Reconciled from the old primary/secondary/danger/ghost — secondary→neutral, danger→destructive, ghost retired to intent=neutral appearance=text.)' },
-    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the colour, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
+    { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'primary', required: false, description: 'Semantic color, drawn from interactive.<intent>.* (docs/20). Defaults to primary — the brand color is the expected look of a button, so an unqualified <Button> should be on-brand rather than gray. EMPHASIS IS THE APPEARANCE AXIS, NOT THIS ONE: a form with three actions is typically three primaries at filled / outline / text, not one primary and two grays. Use neutral when the control genuinely carries no brand weight (a toolbar, a dense table row); destructive for delete/remove. accent is available when the brand declares one. (Reconciled from the old primary/secondary/danger/ghost — secondary→neutral, danger→destructive, ghost retired to intent=neutral appearance=text.)' },
+    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Control size — drives height, padding, and label type.' },
     { name: 'fullWidth', type: 'boolean', default: false, required: false, description: 'Stretch to container. Aliases: block / isFullWidth.' },
-    { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralise the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
+    { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).' },
     { name: 'isDisabled', type: 'boolean', default: false, required: false, description: 'Native disabled. RESERVED for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
@@ -93,9 +93,9 @@ export const button: ComponentDef = {
   // preserved somewhere that is not a leading admission, which is what the `slotAxes` comment below now
   // does. Deleting prose a gate reads is the same class of change as deleting the gate.
 
-  // Full colour × appearance × size skin, bound to the interactive.* family + cross-cutting
-  // disabled.*. Every colour now carries the SAME shape (fill+states / on-fill / border / text
-  // / overlay), so the matrix is uniform — no per-colour gaps. State-qualified slots carry a
+  // Full color × appearance × size skin, bound to the interactive.* family + cross-cutting
+  // disabled.*. Every color now carries the SAME shape (fill+states / on-fill / border / text
+  // / overlay), so the matrix is uniform — no per-color gaps. State-qualified slots carry a
   // dotted state suffix. accent is omitted from the base matrix (brand-conditional — it exists
   // only when the brand declares an accent palette). Keys structure the matrix; generators read them.
 
@@ -106,7 +106,7 @@ export const button: ComponentDef = {
   // The state-qualified template LEADS, and the order is the fallback: `primary.filled.fill.hover`
   // wins where it exists, and a state that does not restyle a part falls through to the rest key (a
   // `pending` button's fill is its rest fill). Reverse these two and every state paints its rest
-  // colour — 216 members silently identical to their rest sibling, which is #536 item 1's shape.
+  // color — 216 members silently identical to their rest sibling, which is #536 item 1's shape.
   //
   // `disabled.*` is deliberately NOT a template here: it switches token family rather than qualifying
   // a key, and it is conditional on the appearance having that structure at rest. That is behavior,
@@ -180,7 +180,7 @@ export const button: ComponentDef = {
     'primary.text.overlay.pressed': 'color.interactive.primary.overlay.pressed',
 
     // neutral — no longer the default (2026-08-07), but still the full column. It carries
-    // hover/pressed like every colour (the v1 gap, CLOSED), and that stays true independently of
+    // hover/pressed like every color (the v1 gap, CLOSED), and that stays true independently of
     // which intent is the default: `neutral` is now the *chosen* look for a weightless control
     // rather than what you get by omission, and a chosen look needs states just as much.
     'neutral.filled.fill': 'color.interactive.neutral.fill.rest',
@@ -320,7 +320,7 @@ export const button: ComponentDef = {
     codeOnly: [
       'touch-target-expansion — the optical box and the hit box are deliberately decoupled (::before / absolute overlay), reconciling the WCAG 2.5.8 24×24 floor with Apple HIG 44×44 without inflating a compact button. Figma has no concept of a hit area larger than the frame.',
       'focus-ring-offset — the ring GEOMETRY now projects (an absolute sibling nesting the shared `focus-ring`), but its position is FROZEN at paste: Figma\'s x/y accept no variable binding, so the payload resolves `focus.ring.offset` AND `focus.ring.width` to numbers, sums them, and writes the result (#801 — the ring\'s stroke is drawn INSIDE its own bounds, so the gap the brand asked for has to be widened by the stroke that eats it). Two names freeze exactly as one did. Every bound paint re-themes when a brand changes; an already-pasted ring does not move. AND A REBUILD DOES NOT MOVE IT EITHER, which is the half worth writing down: the executor finds the set by name on the current page and skips each member by name, reporting `✓ already built` without writing any geometry — so to pick up a corrected ring position you must DELETE the existing component set, or build onto a fresh page. This is not specific to the ring; it is true of any geometry, paint or constraint change to an already-pasted set, and it is tracked as #827 because name-based idempotence cannot tell "already built correctly" from "built by an older engine". The `:focus-visible` CONDITION remains unprojectable — Figma carries the ring as a variant coordinate a designer selects, not as a state a pointer triggers.',
-      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens`, and since #801 BOTH numbers reach a Figma node — not as the ring\'s stroke, but as this def\'s own absolute geometry: the host positions the part at -(offset + width), because the ring draws its stroke inside its own bounds and would otherwise consume the whole gap. So this def verifies that a ring is nominated and where it sits, including the compensation that makes "where" visible, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry once claimed: it is projector and schema gaps, neither of them a trade anybody made. TWO of the three are now CLOSED. PAINT (closed #758 → #784): `paintOf` once keyed every lookup as `{intent}.{appearance}.{slot}`, so a def whose axes are colour/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches. STRUCTURE (closed #795): this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by — #795 deleted the axis list and made `size=` conditional on the def declaring `size`, and `focus-ring` now projects two members named exactly `color=default` / `color=inverse`, which is what this def\'s `nesting: { variant: { color: \'default\' } }` asks for (re-verified against `nestVariantMatch`). What is LEFT is one thing: `PartDef` still has no stroke field, so the ring\'s weight and style have no part to be declared on and the projected members are strokeless — a schema decision under #740. Read the remaining gap as "the ring pastes without its stroke", not as "the ring cannot be projected".',
+      'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. `focus-ring`, `ring-width` and `ring-offset` are bound in `tokens`, and since #801 BOTH numbers reach a Figma node — not as the ring\'s stroke, but as this def\'s own absolute geometry: the host positions the part at -(offset + width), because the ring draws its stroke inside its own bounds and would otherwise consume the whole gap. So this def verifies that a ring is nominated and where it sits, including the compensation that makes "where" visible, and nothing more. Sharing the ring is still the right call — the ring is one shared thing (`focus.ring.*` and `color.border.focus` are top-level families) and authoring it N ways in N hosts would be worse. But the UNGATED PART IS NOT A CONSEQUENCE OF SHARING IT, which is what this entry once claimed: it is projector and schema gaps, neither of them a trade anybody made. TWO of the three are now CLOSED. PAINT (closed #758 → #784): `paintOf` once keyed every lookup as `{intent}.{appearance}.{slot}`, so a def whose axes are color/tone resolved nothing; #758 replaced that with each def\'s own `paintKeys` and #784 corrected the ring\'s keys to the slot vocabulary the projector dispatches. STRUCTURE (closed #795): this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size and `planComponentName` always writes a `size=` coordinate the ring has no axis for, so a ring member could never match the coordinate this def nests by — #795 deleted the axis list and made `size=` conditional on the def declaring `size`, and `focus-ring` now projects two members named exactly `color=default` / `color=inverse`, which is what this def\'s `nesting: { variant: { color: \'default\' } }` asks for (re-verified against `nestVariantMatch`). What is LEFT is one thing: `PartDef` still has no stroke field, so the ring\'s weight and style have no part to be declared on and the projected members are strokeless — a schema decision under #740. Read the remaining gap as "the ring pastes without its stroke", not as "the ring cannot be projected".',
       'min-width derivation — resolved to a literal at emit, so the Figma component holds a frozen number rather than the live height×multiplier relationship.',
       'width (auto | full) — declared as a variant axis but deliberately NOT projected into Figma (#487 §4). A designer resizes an auto-layout frame; a variant axis for it doubles the whole set to buy nothing a drag does not already do.',
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Two notes on why it is not
@@ -452,17 +452,17 @@ export const button: ComponentDef = {
   motion: {
     enter: 'none (present on mount)',
     exit: 'none',
-    reduceMotion: 'State transitions (bg/border/shadow) run ~100–150ms via motion tokens; a subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but KEEP the instantaneous colour change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
+    reduceMotion: 'State transitions (bg/border/shadow) run ~100–150ms via motion tokens; a subtle press (scale 0.98) gives tactile feedback. Under prefers-reduced-motion, resolve scale/translate to none but KEEP the instantaneous color change so the state stays perceivable; the pending spinner is functional and its busy state is carried by aria-busy regardless.',
   },
 
   notes: {
     contested: [
       'native isDisabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).',
       'intent bundles hierarchy + tone, so a low-emphasis destructive ("quiet Delete") is expressed as intent=destructive appearance=text rather than a fully orthogonal emphasis×tone split.',
-      'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots (foreground.<colour>-subtle / no hover).',
+      'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots (foreground.<color>-subtle / no hover).',
     ],
     evolution: [
-      'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive colour system (docs/20) gives every colour — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-colour.',
+      'RESOLVED (was the v1 HIGH finding): interaction states existed only on the solid action/danger roles, so the default (neutral) button was hover-less. The interactive color system (docs/20) gives every color — primary/neutral/destructive — the full fill+states/on-fill/border/text/overlay shape, so the matrix is now uniform and the default button has proper hover/pressed. Disabled is the cross-cutting disabled.* family, no longer scattered per-color.',
     ],
     unverified: [
       'FINDING (token layer, still open): no type.label.lg composite — large buttons reuse type.label.md (large differs from medium only in height/padding, not type scale).',
