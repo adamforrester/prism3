@@ -262,11 +262,11 @@ else {
 // A scope must assert each promised surface was reached, never count files. A green run over zero parts,
 // or over a corpus in which no box paints at all, is the failure this arm exists to make impossible.
 const withAnatomy = componentDefs.filter((d) => d.anatomy).map((d) => d.id);
-if (withAnatomy.length < 5) fails.push(`E: only ${withAnatomy.length} defs with an anatomy were projected — the corpus has had five since #758; a shrinking scope is not a passing gate`);
+if (withAnatomy.length < 7) fails.push(`E: only ${withAnatomy.length} defs with an anatomy were projected — the corpus had five when this arm was written at #933 and has seven as of #910; a shrinking scope is not a passing gate`);
 if (!checkedParts) fails.push('E: no anatomy parts were checked at all');
 if (!paintedPlacements) fails.push('E: not one node in the whole corpus came back painted — arm A objects only to paint that is PRESENT, so it cannot see this');
 const painters = componentDefs.filter((d) => Object.values(d.anatomy?.parts ?? {}).some((p) => (p.paintSlots ?? []).length)).map((d) => d.id);
-if (painters.length < 3) fails.push(`E: only ${painters.length} defs declare paintSlots on any box (${painters.join(', ') || 'none'}) — arms A/B have almost nothing to check`);
+if (painters.length < 4) fails.push(`E: only ${painters.length} defs declare paintSlots on any box (${painters.join(', ') || 'none'}) — arms A/B have almost nothing to check. Three when #933 shipped, four as of #910: checkbox is the first def whose painted box is NOT its target, so it is the one that makes arm B's metamorphic claim bite on a real def rather than on the fixture.`);
 
 console.log('paint placement (#933) — which NODE carries the colour\n');
 notes.forEach((n) => console.log(n));

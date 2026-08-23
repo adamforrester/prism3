@@ -419,6 +419,8 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'a NOMINATION, not a paint: it names which colour the nested `focus-ring` component draws, and the ring is a separate def with its own node. `PartDef` has no stroke field for a host to paint a ring with (#740), so no node in this plan can carry it.',
   'icon-button|focus-ring':
     'same as `button|focus-ring` — a nomination for the nested ring, not a paint on any node of this def.',
+  'checkbox|focus-ring':
+    'the third instance of the same shape, and the first on a def whose ring nests inside a NON-target box (the control, not the row). Still a nomination: it names the colour the nested `focus-ring` draws, and no node of this def can carry a ring stroke.',
 };
 
 /**
