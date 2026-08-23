@@ -58,6 +58,13 @@
       "title": "a ground is DECLARED, not overridden",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.5"
+    },
+    {
+      "date": "2026-08-23",
+      "issue": 963,
+      "title": "`against` means one thing; a wash declares that it is one",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.6"
     }
   ]
 }

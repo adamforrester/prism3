@@ -395,6 +395,23 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // light is canonical ($value); the rest carry per-mode overrides — only those the brand
   // opted into (docs/11 Pillar 1). A light-only brand emits no mode overrides.
   const OVERRIDE_MODES = theme.modes.filter((m) => m !== 'light');
+  /**
+   * The two fields that only a TRANSLUCENT WASH carries (#963), emitted only on those roles.
+   *
+   * `against` now means one thing on every role — the surface it sits on, or for a wash the ground it
+   * composites OVER. What differs is what `contrast` measured, so that is what gets named:
+   * `contrastModel: 'ink-on-composite'` plus `legibleFor`, the ink that has to survive on the result.
+   *
+   * Absent on an ordinary role rather than emitted as `'ink-on-surface'` everywhere, and that is a
+   * deliberate asymmetry: a consumer reading `against` + `contrast` with no `contrastModel` gets the
+   * plain meaning, which is now TRUE for every such role. Stamping the default on all ~236 would add
+   * a field per leaf per mode to say "nothing unusual here". The engine-side `ResolvedRole` union is
+   * where the model is mandatory — a role cannot be built without declaring it — so the omission here
+   * cannot become the silent-default trap: nothing infers the model from this file's absence.
+   */
+  const washFields = (r: { model: string; legibleFor?: string }) =>
+    r.model === 'ink-on-composite' ? { contrastModel: r.model, legibleFor: r.legibleFor } : {};
+
   const byMode = new Map(modes.map((m) => [m.mode, m]));
   const lightMode = byMode.get('light')!;
   const colorRoles: Record<string, any> = {};
@@ -403,12 +420,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     for (const m of OVERRIDE_MODES) {
       const rr = byMode.get(m)?.roles[roleKey];
       if (!rr) continue; // defensive — every mode resolves the same role set today
-      modeOverrides[m] = { $value: `{${rr.path}}`, contrast: round(rr.ratio, 2), against: rr.against, ...(rr.min > 0 ? { min: rr.min } : {}) };
+      modeOverrides[m] = { $value: `{${rr.path}}`, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}) };
     }
     // Elevation is not a colour group — a component composes a foreground tier +
     // a shadow step (see docs/06). No parallel `elevation.*` tree is emitted.
     const leaf = aliasLeaf(lr.path, lr.description, {
-      contrast: round(lr.ratio, 2), against: lr.against, ...(lr.min > 0 ? { min: lr.min } : {}),
+      contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
       figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
     });

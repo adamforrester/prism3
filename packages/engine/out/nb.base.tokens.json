@@ -3663,7 +3663,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -3687,7 +3689,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -3711,7 +3715,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -3738,7 +3744,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.10",
                   "contrast": 15.51,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -3762,7 +3770,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.20",
                   "contrast": 12.11,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -3786,7 +3796,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.20",
                   "contrast": 12.11,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -4403,7 +4415,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -4427,7 +4441,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -4451,7 +4467,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -4478,7 +4496,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.10",
                   "contrast": 15.51,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -4502,7 +4522,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.20",
                   "contrast": 12.11,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -4526,7 +4548,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.20",
                   "contrast": 12.11,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -5138,7 +5162,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -5162,7 +5188,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -5186,7 +5214,9 @@
                     "role": "semantic",
                     "aliasOf": "nbds.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -5213,7 +5243,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.10",
                   "contrast": 15.51,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -5237,7 +5269,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.20",
                   "contrast": 12.11,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -5261,7 +5295,9 @@
                   "role": "semantic",
                   "aliasOf": "nbds.palette.black-alpha.20",
                   "contrast": 12.11,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -13367,7 +13403,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.16.0",
+      "version": "0.17.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

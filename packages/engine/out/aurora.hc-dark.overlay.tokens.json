@@ -1529,7 +1529,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -1544,7 +1546,9 @@
                   }
                 },
                 "contrast": 16.75,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               },
               "pressed": {
@@ -1556,7 +1560,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -1571,7 +1577,9 @@
                   }
                 },
                 "contrast": 13.08,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               },
               "selected": {
@@ -1583,7 +1591,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -1598,7 +1608,9 @@
                   }
                 },
                 "contrast": 13.08,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               }
             }
@@ -1613,7 +1625,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.10",
                   "contrast": 15.49,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -1628,7 +1642,9 @@
                 }
               },
               "contrast": 17.49,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             },
             "pressed": {
@@ -1640,7 +1656,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
                   "contrast": 12.1,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -1655,7 +1673,9 @@
                 }
               },
               "contrast": 12.63,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             },
             "selected": {
@@ -1667,7 +1687,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
                   "contrast": 12.1,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -1682,7 +1704,9 @@
                 }
               },
               "contrast": 12.63,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             }
           }
@@ -2359,7 +2383,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2374,7 +2400,9 @@
                   }
                 },
                 "contrast": 16.75,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               },
               "pressed": {
@@ -2386,7 +2414,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2401,7 +2431,9 @@
                   }
                 },
                 "contrast": 13.08,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               },
               "selected": {
@@ -2413,7 +2445,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2428,7 +2462,9 @@
                   }
                 },
                 "contrast": 13.08,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               }
             }
@@ -2443,7 +2479,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.10",
                   "contrast": 15.49,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -2458,7 +2496,9 @@
                 }
               },
               "contrast": 17.49,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             },
             "pressed": {
@@ -2470,7 +2510,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
                   "contrast": 12.1,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -2485,7 +2527,9 @@
                 }
               },
               "contrast": 12.63,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             },
             "selected": {
@@ -2497,7 +2541,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
                   "contrast": 12.1,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -2512,7 +2558,9 @@
                 }
               },
               "contrast": 12.63,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             }
           }
@@ -3179,7 +3227,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -3194,7 +3244,9 @@
                   }
                 },
                 "contrast": 16.75,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               },
               "pressed": {
@@ -3206,7 +3258,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -3221,7 +3275,9 @@
                   }
                 },
                 "contrast": 13.08,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               },
               "selected": {
@@ -3233,7 +3289,9 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse.primary",
+                    "against": "background.inverse.primary",
+                    "contrastModel": "ink-on-composite",
+                    "legibleFor": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -3248,7 +3306,9 @@
                   }
                 },
                 "contrast": 13.08,
-                "against": "text.on-inverse.primary",
+                "against": "background.inverse.primary",
+                "contrastModel": "ink-on-composite",
+                "legibleFor": "text.on-inverse.primary",
                 "min": 7
               }
             }
@@ -3263,7 +3323,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.10",
                   "contrast": 15.49,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -3278,7 +3340,9 @@
                 }
               },
               "contrast": 17.49,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             },
             "pressed": {
@@ -3290,7 +3354,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
                   "contrast": 12.1,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -3305,7 +3371,9 @@
                 }
               },
               "contrast": 12.63,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             },
             "selected": {
@@ -3317,7 +3385,9 @@
                   "role": "semantic",
                   "aliasOf": "prism.palette.black-alpha.20",
                   "contrast": 12.1,
-                  "against": "text.primary",
+                  "against": "background.primary",
+                  "contrastModel": "ink-on-composite",
+                  "legibleFor": "text.primary",
                   "min": 4.5,
                   "figma": {
                     "collection": "color",
@@ -3332,7 +3402,9 @@
                 }
               },
               "contrast": 12.63,
-              "against": "text.primary",
+              "against": "background.primary",
+              "contrastModel": "ink-on-composite",
+              "legibleFor": "text.primary",
               "min": 7
             }
           }

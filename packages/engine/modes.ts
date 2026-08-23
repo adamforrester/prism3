@@ -108,7 +108,43 @@ export type ModeCfg = {
 
 // `ratio` is the RAW WCAG contrast (un-rounded) — compare it directly against `min`; round
 // only when serialising (CR-01). `min` of 0 means "not a contrast-gated role" (surfaces).
-export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number };
+/**
+ * How a role's `ratio` was computed (#963). **Declared at the `put` site, never inferred.**
+ *
+ * Before this, `against` carried two opposite meanings and nothing in the data said which:
+ *
+ *   - `ink-on-surface` — the ordinary case, and what `against` means everywhere now. The role is
+ *     content sitting on a surface; `against` names that surface; `ratio` is `contrast(me, against)`.
+ *   - `ink-on-composite` — a TRANSLUCENT WASH. The role is not ink at all: it is a veil laid over a
+ *     ground, and the thing that must stay legible is the ink on TOP of the result. `against` names
+ *     the ground it composites over, `legibleFor` names that ink, and
+ *     `ratio = contrast(legibleFor, composite(against, me, alpha))`.
+ *
+ * Under the old shape an overlay's `against` named the INK, so a consumer reading `against` uniformly
+ * — as every consumer must — was wrong for 18 roles per mode with no way to detect it. Two have
+ * already been bitten: `ai-metadata.ts` described those roles' ground backwards, and
+ * `lint-ratio-truth.ts` reported them as catastrophic failures on its first run (1.07 where 14.26 is
+ * correct, and the 14.26 was right).
+ *
+ * ── WHY IT IS A FIELD AND NOT A TEST ON `alpha` ─────────────────────────────────────────────────
+ *
+ * Inferring the model from "does it have an alpha" is the trap #956 was about, wearing new clothes:
+ * the discriminator would come from the same code it is meant to check, and it would agree with
+ * itself. It is also plainly WRONG here, which is the useful part — `scrim.default` carries
+ * `alpha: 0.4` and is `ink-on-surface` (`against: 'self'`, ungated). One translucent role in the tree
+ * is not an overlay, so the inference misclassifies it on day one. Declared, like `axes.ts` classifies
+ * a collection and `payload-manifest.json` classifies an artifact: a new role must say which it is.
+ *
+ * The type makes that unavoidable rather than remembered — `legibleFor` is required exactly when the
+ * model is `ink-on-composite`, so there is no way to author a composite role that forgets to name the
+ * ink, and no way to author an ordinary one that carries a stray `legibleFor`.
+ */
+export type ContrastModel = 'ink-on-surface' | 'ink-on-composite';
+
+export type ResolvedRole = { path: string; description: string; ratio: number; against: string; min: number; hex: string; alpha?: number } & (
+  | { model: 'ink-on-surface'; legibleFor?: undefined }
+  | { model: 'ink-on-composite'; legibleFor: string; alpha: number }
+);
 // Per-mode colour override layer (Phase A1). A `PrimitiveRef` repoints a resolved role at an
 // EXISTING primitive step in ANY palette (no raw colours); a `ModeOverrides` map is rolePath →
 // ref, applied only to the customizable modes (light/dark). An `OverrideWarning` records a
@@ -294,9 +330,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // ratio is the RAW contrast — every gate/pass check compares it against `min` un-rounded
   // (CR-01). Rounding to 2dp happens only where it's serialised (tree.ts / ai-metadata.ts).
   const put = (key: string, r: Rated, description: string, against: string, min: number) =>
-    { roles[key] = { path: r.path, description, ratio: r.ratio, against, min, hex: hex(r.rgb) }; rgbByRole.set(key, r.rgb); };
+    { roles[key] = { path: r.path, description, ratio: r.ratio, against, min, hex: hex(r.rgb), model: 'ink-on-surface' }; rgbByRole.set(key, r.rgb); };
   const putSurf = (key: string, c: Cand, description: string) =>
-    { roles[key] = { path: c.path, description, ratio: 1, against: 'self', min: 0, hex: hex(c.rgb) }; rgbByRole.set(key, c.rgb); };
+    { roles[key] = { path: c.path, description, ratio: 1, against: 'self', min: 0, hex: hex(c.rgb), model: 'ink-on-surface' }; rgbByRole.set(key, c.rgb); };
+  /**
+   * A TRANSLUCENT WASH (#963). Separate from `put` because its contrast means something else, and a
+   * separate function is what makes that undeniable at the call site rather than a convention.
+   *
+   * `ground` is what the wash composites over and becomes the role's `against` — so `against` now
+   * means the same thing here as everywhere else. `legibleFor` is the ink that must survive on the
+   * composited result, which is what `min` actually bounds. `hex` stays the OPAQUE wash colour, since
+   * that plus `alpha` is what a renderer needs; the composite is derivable and so is not stored.
+   *
+   * All four of `ground`, `legibleFor`, `alpha` and the model are required, so the shape that caused
+   * #963 — a wash whose `against` silently named the ink — is not expressible any more.
+   */
+  const putWash = (key: string, r: Rated, description: string, ground: string, legibleFor: string, min: number, alpha: number) =>
+    { roles[key] = { path: r.path, description, ratio: r.ratio, against: ground, min, hex: hex(r.rgb), model: 'ink-on-composite', legibleFor, alpha }; rgbByRole.set(key, r.rgb); };
 
   const pStep = (palette: string, num: number): Cand => {
     const steps = ramps.get(palette)!;
@@ -837,14 +887,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
         const ratio = contrast(contentRgb, composite(baseRgb, overlayBase, step / 100));
-        put(`interactive.${color}.overlay.${st}`,
+        // `putWash`, not `put` (#963): `against` is the GROUND this composites over — the page — and
+        // `legibleFor` is the ink that must survive on the result, which is what `cfg.secondaryMin`
+        // bounds. Until #963 those were the same argument, so `against` read `text.primary` and every
+        // consumer that took `against` to mean "the surface I sit on" had it exactly backwards.
+        // `alpha` is passed rather than patched on afterwards, so the role is never briefly of a
+        // shape the type forbids.
+        putWash(`interactive.${color}.overlay.${st}`,
           { path: `${ns}.${overlayPal}.${step}`, rgb: overlayBase, ratio },
           `${color} interactive overlay — ${st} (${step}% neutral wash for the PAGE ground; the dark-band twin is interactive.${color}.inverse.overlay.${st})`,
-          'text.primary', cfg.secondaryMin);
-        // The wash is TRANSLUCENT (`step`% over the base) — record the alpha so consumers can
-        // render the real composite. `hex` stays the opaque base (contrast gates on the composited
-        // result separately); a renderer uses hex+alpha.
-        roles[`interactive.${color}.overlay.${st}`].alpha = step / 100;
+          'background.primary', 'text.primary', cfg.secondaryMin, step / 100);
       }
     }
     // The same three washes for a control on a dark hero / inverse band (#892).
@@ -866,18 +918,20 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
         const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
-        put(`interactive.${color}.inverse.overlay.${st}`,
+        // `putWash` since #963 — see the page twin above. `text.on-inverse.primary` moves from the
+        // `against` slot to `legibleFor`, which is the slot it always meant.
+        //
+        // Worth keeping the history attached to it: that argument read the bare `text.on-inverse`
+        // until #956, because #892 promoted that leaf to a GROUP and this reference was never
+        // repointed. It named a path the tree no longer had, `rgbByRole.get()` returned undefined,
+        // and the lookup fell back to `baseRgb` — the PAGE surface, the one ground these are
+        // definitively not measured on. Nothing complained because an `against` is data, not a
+        // reference a compiler resolves. Both defects lived in this one argument, and they compounded:
+        // the direction confusion is why a dangling reference sat here through a whole rename.
+        putWash(`interactive.${color}.inverse.overlay.${st}`,
           { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
           `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
-          // `.primary`, not the bare `text.on-inverse` this said until #956. That leaf became a GROUP
-          // in #892 and this `against` was never repointed — so for nine roles it named a path the
-          // tree no longer has, `rgbByRole.get()` returned undefined, and the lookup fell back to
-          // `baseRgb`: the PAGE surface, the one ground these are definitively not measured on.
-          // Nothing complained because an `against` is data, not a reference the compiler resolves —
-          // #922's rule ("a rename is finished when its consumers are re-run, not when they are
-          // re-read") one layer down, where the consumer never runs at all.
-          'text.on-inverse.primary', cfg.secondaryMin);
-        roles[`interactive.${color}.inverse.overlay.${st}`].alpha = step / 100;
+          'background.inverse.primary', 'text.on-inverse.primary', cfg.secondaryMin, step / 100);
       }
     }
   }
