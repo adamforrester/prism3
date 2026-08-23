@@ -257,7 +257,7 @@ const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
  * them all; this table only decides whether the message can point somewhere useful or has to say
  * "file one". Adding a row without adding the input behind it would make the error a dead end.
  */
-const GROUND_INPUT: Record<string, string> = {
+export const GROUND_INPUT: Record<string, string> = {
   'background.primary': 'base',
   'background.inverse.primary': 'inverseBase',
 };

@@ -33,7 +33,7 @@
  * brand would pick, because the question is whether the bookkeeping survives — not whether the
  * result is pretty.
  *
- * ── THE THREE ARMS ──────────────────────────────────────────────────────────────────────────────
+ * ── THE FOUR ARMS ───────────────────────────────────────────────────────────────────────────────
  *
  *   A. HONESTY   — recomputed ratio == recorded ratio. Catches a ground moving without its
  *                  dependents being re-derived, which is the #956 defect itself.
@@ -57,11 +57,16 @@
  *                  nine `against` strings still pointing at the pre-#892 `text.on-inverse` after it
  *                  became a group: they resolved to nothing, fell back to the page surface, and no
  *                  compiler complained because an `against` is data, not a reference.
+ *   D. REFUSAL   — a ground that HAS a declarative input is rejected by the override layer, and the
+ *                  rejection names that input. Added after a mutation showed deleting the refusal
+ *                  left arms A-C entirely clean: they build themes through `surfaces`, so they never
+ *                  exercise the `overrides` route the refusal guards. A rule nothing holds is a
+ *                  comment.
  *
  * Run: `npx tsx packages/engine/lint-ratio-truth.ts`
  */
 import { brandTheme, BrandInput } from './theme';
-import { resolveAllModes } from './modes';
+import { resolveAllModes, GROUND_INPUT } from './modes';
 import { contrast, hexToRgb } from './color';
 import { corpus, MINIMAL_BRAND } from './token-contract';
 
@@ -98,10 +103,6 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
     for (const [key, r] of Object.entries(roles)) {
       const against = r.against;
       if (!against || against === 'self') continue;
-      // Translucent washes model `against`/`ratio` the other way round — see arm A's note in the
-      // header. Counted rather than dropped quietly, so the size of the unverified set is visible in
-      // this gate's own output instead of being a fact you have to read the source to learn.
-      if (r.alpha != null) { skippedAlpha++; continue; }
 
       // ARM C — the `against` resolves. Checked before the others because a dangling ground makes
       // every number downstream of it meaningless rather than merely wrong.
@@ -110,6 +111,20 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
           failures.push(`${label}/${m.mode}: '${key}' is measured against '${against}', which is not a role in this mode — the lookup falls back to the page surface, so its ratio describes a ground it was never on.`);
         continue;
       }
+      // Translucent washes model `against`/`ratio` the other way round — see arm A's note in the
+      // header — so arms A and B cannot read them. Counted rather than dropped quietly, so the size
+      // of the unverified set shows in this gate's own output instead of being a fact you must read
+      // the source to learn.
+      //
+      // AFTER arm C, and that ordering is load-bearing rather than tidy. It sat before it at first,
+      // which made arm C dead for exactly the nine roles that motivated it: the stale
+      // `text.on-inverse` strings this PR repaired are all on overlays, so the skip swallowed them
+      // and the mutation that reverts the repair produced a CLEAN run. `docs/34` shape 14 — a gate
+      // calibrated below its own motivating defect — found by mutating rather than by reading, in
+      // the file whose header warns about it. Whether an `against` NAMES A REAL ROLE is independent
+      // of which direction the arrow points, so arm C applies to every role and only the
+      // ratio-recomputing arms step aside.
+      if (r.alpha != null) { skippedAlpha++; continue; }
       if (!(r.min && r.min > 0) || r.ratio == null) continue;
 
       // ARM A — recomputed from the two FINAL colours. Never reads `r.ratio` to decide the truth.
@@ -130,6 +145,25 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
 
 for (const { id, theme } of corpus()) sweep(`corpus:${id}`, theme);
 for (const c of CASES) sweep(c.label, brandTheme(c.input));
+
+// ARM D — the refusal itself is held here, and it is here because a mutation proved it had to be.
+// Deleting the ground refusal from `modes.ts` left every arm above CLEAN: the sweep builds themes
+// through `surfaces`, so it never exercises the `overrides` route at all, and the one thing standing
+// between a user and the original defect was unheld by anything. The `staleDependents` warning still
+// fired, so the outcome was not silent — but "not silent" is a weaker promise than the refusal, and a
+// gate that cannot tell the two apart is not holding the stronger one.
+//
+// Driven off the engine's own `GROUND_INPUT` rather than a copy of it, so a ground gaining an input
+// is covered the day it does, and a ground losing one cannot leave a rule here asserting over nothing.
+for (const [ground, field] of Object.entries(GROUND_INPUT)) {
+  const input = { ...MINIMAL_BRAND, overrides: { light: { [ground]: { palette: 'neutral', step: '300' } } } } as BrandInput;
+  let threw: string | undefined;
+  try { resolveAllModes(brandTheme(input)); } catch (e) { threw = (e as Error).message; }
+  if (!threw)
+    failures.push(`overrides['${ground}'] was ACCEPTED. It is a ground with a declarative input (\`surfaces.<mode>.${field}\`), so the override layer must refuse it — applying it there rewrites one role after everything gated on it has already derived (#956).`);
+  else if (!threw.includes(field))
+    failures.push(`overrides['${ground}'] was refused, but the message does not name \`${field}\` — a refusal that does not say where to go instead is a dead end, which is the half of this rule that makes it usable: "${threw.slice(0, 120)}…"`);
+}
 
 // FLOOR — `docs/34` shape 9. A scan that finds nothing to check reports a clean zero that is
 // indistinguishable from a clean tree. The corpus alone contributes thousands of gated roles; if this
