@@ -12,6 +12,46 @@
 
 ---
 
+## (2026-08-23) — CLAUDE.md's worktree paragraph shrinks to a pointer; the checkout hook is answered "no" (#926)
+
+**STATUS: shipped, hook not built.** Third of the five `docs/43` grooming issues. Two halves, and the
+second is the one worth reading closely.
+
+**The shrink, verified before cutting on it.** The worktree paragraph's `npm ci` setup narrative is
+already fully covered, in more detail, by `.claude/hooks/session-start-npm-ci.sh`'s own header —
+confirmed by reading the script, not assumed. The `npm install --prefix` incident (292 packages
+pruned, 12 scoped directories emptied) and the checkout-in-shared-tree incidents are both already
+carried in full by `.claude/commands/review-pr.md` and `docs/00-progress.md`'s own dated entries —
+`CLAUDE.md`'s prose said as much already ("`.claude/commands/review-pr.md` carries all of these
+measurements") without acting on it. `CLAUDE.md`: **27,887 → 23,436 bytes (−4,451, ~16%)**. What
+survived: every rule and prohibition, terse, plus the pathspec-form's invisible-damage property and
+its two safe alternatives (`git show`, `git diff`) — kept in full because, per the decision below,
+nothing else backs them up.
+
+**The hook: answered honestly, and the answer is no.** #926 asked whether `git checkout <ref> --
+<path>` has a predicate that is checkable from the command string and repo state, not a judgment
+call, with a low enough false-positive rate that people don't learn to ignore it — #944's three false
+positives on the branch-behind hook is the live cost of getting this wrong. The candidate predicate
+(deny when `<path>` is currently dirty, proposed in `docs/43` without this stress test) **fails that
+bar**: the command's most common *legitimate* use is exactly "reset this file to another ref,
+discarding my local edit on purpose" — deliberate discard and accidental discard produce the
+**identical** command string and the **identical** dirty-path state, so "is the path dirty" cannot
+tell them apart. A hard `deny` on that signal would block ordinary, correct git usage as often as it
+catches the mistake. No narrower signal is available from the command string or repo state — the
+ref's identity, whether it differs from HEAD, and prior conversation context are either uninformative
+or unavailable to a shell hook. **A hook that fires on legitimate usage is worse than the prose**, per
+#926's own stated bar, so none is built. This corrects `docs/43`'s own earlier proposal, which called
+the predicate clean without running this check — worth naming since it's the same document five other
+follow-up PRs are reasoning from.
+
+**What that leaves resident.** The pathspec hazard stays in `CLAUDE.md`'s prose — a hazard with no
+hook backing it reaches nobody if it's filed where it's only read on purpose, the same argument
+`docs/43` §5 makes generally. Kept in full: the "spelled like a read, isn't one" framing, the two safe
+alternatives, and the invisible-damage property (only paths that DIFFER between ref and `HEAD` show in
+`git status`, so a byte-identical overwrite is silent).
+
+**Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY**. `regen.ts --check` → byte-identical, 114/114.
 ## (2026-08-23) — #849 decided (comments in scope too), 111 en-GB fixes clear the plugin bundle (#947)
 
 **STATUS: shipped.** Closes #947. Fixes both halves #954 left red: the 108 string-literal hits
