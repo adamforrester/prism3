@@ -2529,7 +2529,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 14.26
         }
@@ -2553,7 +2553,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 10.07
         }
@@ -2577,7 +2577,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 10.07
         }
@@ -2601,7 +2601,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 14.26
         }
@@ -2625,7 +2625,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 10.07
         }
@@ -2649,7 +2649,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 10.07
         }
@@ -2673,7 +2673,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 14.26
         }
@@ -2697,7 +2697,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 10.07
         }
@@ -2721,7 +2721,7 @@
       ],
       "contrast_with": [
         {
-          "token": "text.on-inverse",
+          "token": "text.on-inverse.primary",
           "min": "4.5:1",
           "ratio": 10.07
         }

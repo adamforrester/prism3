@@ -12,6 +12,95 @@
 
 ---
 
+## (2026-08-23) — a ground is DECLARED, not overridden; and the gate that could not have caught it (#956)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.15.0 → 0.16.0. `CONTRACT_VERSION` stands at 5.2.0 (576
+guaranteed, unchanged). Gates **40 → 41**.
+
+**The defect, in one sentence.** `overrides` is a post-pass: it runs after all derivation and rewrites
+exactly one role. Right for a leaf; silently wrong for a **ground**, because everything measured
+against it keeps the value *and the ratio* it derived from the old one. An inverse band of
+`neutral 300` left **53 of 53** gated roles claiming contrast they did not have, worst true ratio
+**1.00:1**, and **zero warnings** — the warning is computed from that same stale number, so
+allow-and-flag degraded to allow-and-silently-lie. Live in the shipped studio, not gated behind #898.
+
+**The measurement that reshaped the fix, and the reason to run it before designing.** The issue
+proposed re-architecting the override layer. Measuring `background.primary` first — the STOP condition
+the owner set — found the opposite: the engine **already contains** the correct mechanism and the page
+ground already uses it. Same page color reached two ways:
+
+| route to `#a5a7aa` | falsely-passing | stale ratios |
+|---|---|---|
+| `surfaces.light.base = 300` (what the studio's Primary control writes) | **0** / 38 | **0** / 41 |
+| `overrides.light['background.primary']` | **33** / 38 | **41** / 41 |
+
+`surfaces` is read inside `resolve()`, during descriptor construction, so the whole ladder and every
+dependent re-derive. `base` never had this defect *because it was always declared there*. So the fix
+is not a new mechanism — it is the existing one extended to the band that never got it
+(`surfaces.<mode>.inverseBase`), and the studio's Inverse control moved onto it. Smaller than the
+issue assumed, and it answers decision 1 (does the ladder re-derive?) for free: the ladder is a pure
+function of the anchor.
+
+**Decision 2 answered properly.** `background.primary` *does* exhibit the defect — but only through
+`overrides`, which the studio never writes for it. Its studio path was already correct, so the page
+ground needed no fix here. The general hazard stays open and is now measured: **19 of the 21 grounds
+in the tree are themselves overridable roles.** Ranked by transitive blast radius:
+`background.inverse.primary` 60, `background.primary` 50, `background.inverse.secondary` 29,
+`text.primary` 9, five `foreground.<semantic>` at 2, ten more at 1. Note the inverse band's set is
+*larger* than the page's, the opposite of the issue's expectation — `against` names the immediate
+ground, and many page roles are gated against `foreground.*` or `field.fill` rather than the page.
+
+**A blanket refusal was written first and was wrong.** "Refuse any ground" broke on the first test run:
+`interactive.<c>.fill.rest` is a ground too (its `on-fill` ink is measured against it), a corpus
+fixture exercises it, and there is no declarative alternative to point at. Refusing it would have
+deleted the ability to retint a button in order to prevent a defect it could instead *report*. The
+rule that survived splits on whether an input EXISTS: one → **throw**, naming it; none → **apply and
+warn**, listing the dependents left stale. Silence is the only outcome ruled out. *A rule that removes
+a working feature to prevent a defect it could report is not the honest reading of "flag, do not
+silently mislead."*
+
+**Both obligations, kept separable.** Re-derivation delivers "generated output always complies" for
+free. Where it physically cannot it must still say so: a declared `base` of neutral 500 leaves **41**
+generated roles short of their minimum (`inverseBase` 500 leaves 30) because no ink is 4.5:1 on
+mid-grey. That was **silent before this PR and is not a regression it introduces** — the contrast
+warning only ever looked at roles the override loop had just touched, so a *generated* role failing
+its own bar was the one case it could not see. Now a single end-of-mode sweep warns on any role below
+its `min`, whatever moved it. No corpus brand gains a warning, so no committed value moved.
+
+**The gate, and why the existing one could not have caught this.** `test.ts` has asserted "all mode
+contrast contracts hold" for a long time as `r.min > 0 && r.ratio < r.min` — reading the number the
+derivation wrote down. **It asks the reporting path whether the reporting path is right, and in the
+one failure that matters it agrees with itself**: `text.on-inverse.primary` recorded 18.10 against a
+band where the truth was 1.71, and every contract check passed. `docs/34` shape 1, and the reason the
+new `lint-ratio-truth.ts` recomputes from the **final emitted colors** and never reads `ratio` to
+decide the truth — 10,080 ratios, 5 corpus brands + 13 declared-surface cases. It sweeps **moved**
+grounds deliberately: at defaults every brand is clean, so a corpus-only run would report a confident
+zero over exactly the inputs that cannot exhibit the bug (shape 14). Two floors (shape 9): a minimum
+check count, and a requirement that the confession arm actually *fires*.
+
+**The gate found something on its first run.** It fired on all 18 translucent overlays — and that was
+the gate being wrong, in an instructive way. For every other role `against` means *the surface I sit
+on* and `ratio` is `contrast(me, that)`. For an overlay the arrow is **reversed**: the role is the
+wash, `against` names the **ink composited on top of it**, and `ratio` is
+`contrast(ink, composite(ground, wash, alpha))` — a three-way relationship whose middle term the role
+does not record. So the recomputation was measuring the wrong pair (1.07 where 14.26 is correct, and
+the 14.26 is right). **One field name carrying two opposite meanings.** Excluded and *counted in the
+gate's own output* rather than dropped quietly, so the size of the unverified set is visible without
+reading the source; filed rather than renamed, because renaming a field on 18 roles is not this PR.
+
+**One repaired reference, and it was mine.** Nine `against` fields still read `text.on-inverse` after
+#892 promoted that leaf to a group at `CONTRACT_VERSION` 5.0.0. They resolved to no role, so
+`rgbByRole.get()` returned undefined and the lookup fell back to `baseRgb` — the PAGE surface, the one
+ground those roles are definitively not on. This is #922's rule ("a rename is finished when its
+consumers are re-run, not when they are re-read") **one layer down, where the consumer is DATA**: it
+never runs, so nothing complains and no compiler helps. It is the only committed-artifact change in
+this PR, and it was shipping in every brand's emitted tree. Arm C of the new gate is the thing that
+would have caught it.
+
+**Mutation-verified, five arms**, work committed before the first (#915). The one that matters:
+restoring the post-pass ordering makes `lint-ratio-truth` fail **by name** on 43 roles, while the
+pre-existing contract check stays green — which is the whole claim of the PR, demonstrated rather than
+asserted.
 ## (2026-08-23) — CLAUDE.md's worktree paragraph shrinks to a pointer; the checkout hook is answered "no" (#926)
 
 **STATUS: shipped, hook not built.** Third of the five `docs/43` grooming issues. Two halves, and the

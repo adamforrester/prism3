@@ -1286,7 +1286,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -1301,7 +1301,7 @@
                   }
                 },
                 "contrast": 14.48,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               },
               "pressed": {
@@ -1313,7 +1313,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -1328,7 +1328,7 @@
                   }
                 },
                 "contrast": 11.33,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               },
               "selected": {
@@ -1340,7 +1340,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -1355,7 +1355,7 @@
                   }
                 },
                 "contrast": 11.33,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               }
             }
@@ -2089,7 +2089,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2104,7 +2104,7 @@
                   }
                 },
                 "contrast": 14.48,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               },
               "pressed": {
@@ -2116,7 +2116,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2131,7 +2131,7 @@
                   }
                 },
                 "contrast": 11.33,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               },
               "selected": {
@@ -2143,7 +2143,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2158,7 +2158,7 @@
                   }
                 },
                 "contrast": 11.33,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               }
             }
@@ -2909,7 +2909,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2924,7 +2924,7 @@
                   }
                 },
                 "contrast": 14.48,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               },
               "pressed": {
@@ -2936,7 +2936,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2951,7 +2951,7 @@
                   }
                 },
                 "contrast": 11.33,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               },
               "selected": {
@@ -2963,7 +2963,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -2978,7 +2978,7 @@
                   }
                 },
                 "contrast": 11.33,
-                "against": "text.on-inverse",
+                "against": "text.on-inverse.primary",
                 "min": 4.5
               }
             }

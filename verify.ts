@@ -421,6 +421,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-context-nodes.ts'),
   },
   {
+    id: 'lint-ratio-truth',
+    ciStep: 'Every reported contrast ratio matches the color it was measured against',
+    cmd: engine('lint-ratio-truth.ts'),
+  },
+  {
     id: 'lint-progress-order',
     ciStep: 'docs/00-progress.md stays newest-entry-first',
     cmd: engine('lint-progress-order.ts'),

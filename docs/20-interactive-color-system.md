@@ -167,6 +167,29 @@ The toggle is gone from `levers.ts`, `BrandInput`, `Theme` and `theme-schema.jso
 
 **Not the last of its class.** Sweeping every enumerable lever setting against the committed baseline finds two more levers that remove guaranteed paths: `outlineInteraction` at `solid-tint`/`none` (18 `interactive.*.overlay.*`) and `typography.displayCeiling` below `xl` (up to 3 `type.display.*.strong`). Both differ from `inverse` in disposition — removing those paths is each lever's declared purpose, so the honest fix is almost certainly to demote the paths rather than delete the lever — and both are the owner's call, filed separately. `test.ts` pins the inverse-vocabulary half of that sweep as an exact set, so the exemption fails in both directions.
 
+### 9.5 Decided (2026-08-23, #956): a ground is DECLARED, not overridden
+
+`surfaces.<mode>.inverseBase` joins `base` and `floorStep`. The `overrides` map now **refuses** a ground that has such an input, naming it in the error; a ground without one is applied and **warned**, listing the roles it left stale. Separately, any role below its `min` is warned, whatever moved it.
+
+**The distinction the tree did not encode: a ground is not a value.** `overrides` is a post-pass — it runs after all derivation and rewrites exactly one role. That is right for a leaf, where nothing downstream was measured against it. It is silently wrong for a ground, because everything gated on it keeps the value *and the ratio* it derived from the old one. Routed through it, an inverse band of `neutral 300` left **53 of 53** gated roles claiming contrast they did not have, worst true ratio **1.00:1**, and **zero warnings** — the warning is computed from the same stale number, so allow-and-flag degraded to allow-and-silently-lie.
+
+**`base` never had this defect, and that is the design argument rather than luck.** It was always declared where `resolve()` could see it, so moving it re-derives the ladder and everything gated on it. Measured, the same page color reached both ways:
+
+| route to `#a5a7aa` | falsely-passing | stale ratios |
+|---|---|---|
+| `surfaces.light.base = 300` | **0** / 38 | **0** / 41 |
+| `overrides.light['background.primary']` | **33** / 38 | **41** / 41 |
+
+So the fix is not a new mechanism — it is the existing one extended to the band that lacked it. The studio's Inverse control now writes `surfaces`, as its Primary control always did.
+
+**Refuse only where there is somewhere better to send them.** A blanket ban on overriding any ground was written first and was wrong: `interactive.<c>.fill.rest` is a ground too (its `on-fill` ink is measured against it), so refusing every ground would delete the ability to retint a button — a real capability, with no declarative alternative to point at. A rule that removes a working feature to prevent a defect it could instead *report* is not the honest reading of "flag, do not silently mislead". Hence the split: an input exists → throw and name it; none exists → apply, and warn with the dependents left stale.
+
+**Two obligations, kept separable on purpose.** *Generated output always complies* and *the user's own choice is allowed and flagged* are different promises, and conflating them ends in refusing a choice that must be allowed. Re-derivation delivers the first for free. Where it physically cannot — no ink is 4.5:1 on mid-grey, so a declared `base` of neutral 500 leaves 41 generated roles short — the promise that can be kept is *complies, or says so*. It warns; it never blocks.
+
+**The gate had to be independent to exist at all.** `test.ts` has asserted "all mode contrast contracts hold" for a long time by reading each role's own `ratio` — asking the reporting path whether the reporting path is right, which in this failure agreed with itself. `lint-ratio-truth.ts` recomputes from the **final emitted colors** (10,080 ratios across 5 corpus brands + 13 declared-surface cases) and never reads `ratio` to decide the truth. It sweeps moved grounds deliberately: at defaults every brand is clean, so a corpus-only run would report a confident zero over precisely the inputs that cannot show the bug.
+
+**One stated hole and one repaired reference.** The 18 translucent overlays are unverified by that gate and counted in its output — they model `against` in the *opposite* direction (the role is the wash, `against` names the ink composited on top), so one field carries two meanings; filed, not renamed here. And nine `against` strings still read `text.on-inverse` after §9.2's promotion made it a group, resolving to no role and falling back to the page surface — #922's rule one layer down, where the consumer is data and so never runs at all.
+
 ## 10. Levers (brand inputs)
 
 - **`outlineInteraction`** — `overlay-neutral` · `overlay-tint` (the colour's hue at low alpha) · `solid-tint` · `none`. How an outline/text control expresses hover (the "what do we fill it with" question, answered per brand). *(inc-2: `overlay-neutral` (default) generates the neutral washes + composited-contrast gate; `solid-tint`/`none` opt out. `overlay-tint` is scheduled — needs per-colour alpha ramps.)*

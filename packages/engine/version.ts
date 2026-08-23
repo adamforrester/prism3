@@ -102,6 +102,44 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.16.0: a GROUND is declared, not overridden (#956). `surfaces.<mode>.inverseBase` joins `base` and
+ * `floorStep`; the `overrides` post-pass now REFUSES a ground that has such an input, naming it; a
+ * ground without one is applied and WARNED with the dependents it left stale; and every role below
+ * its `min` is warned, whatever moved it.
+ *
+ * The defect: `overrides` runs AFTER derivation and rewrites one role. Correct for a leaf, silently
+ * wrong for a ground — everything measured against it kept the value AND the ratio it derived from
+ * the old one. Routed through it, an inverse band of `neutral 300` left 53 of 53 gated roles claiming
+ * contrast they did not have, worst true ratio 1.00:1, and **zero warnings**, because the warning was
+ * computed from the same stale number. Allow-and-flag degraded to allow-and-silently-lie.
+ *
+ * `base` never had this, and that is the whole design argument rather than a coincidence: it was
+ * always declared where `resolve()` could see it, so moving it re-derives the ladder and everything
+ * gated on it. Measured both routes to the same page color — `surfaces.light.base = 300` gives 0
+ * falsely-passing and 0 stale ratios; `overrides['background.primary']` gives 33 and 41. The fix is
+ * therefore not a new mechanism but the existing one extended to the band that lacked it.
+ *
+ * A minor rather than a patch because the accepted INPUT surface moved in both directions — one field
+ * added, and a class of previously-accepted `overrides` entry now rejected. **No token name moves and
+ * no color moves**, so `CONTRACT_VERSION` stands at 5.2.0 (576 guaranteed, unchanged).
+ *
+ * The one committed-artifact change is a reference string, and it was a real shipped error: nine
+ * `against` fields still read `text.on-inverse` after #892 promoted that leaf to a group at
+ * CONTRACT_VERSION 5.0.0. They resolved to no role, so the lookup fell back to the PAGE surface — the
+ * one ground those roles are definitively not on. #922's rule ("a rename is finished when its
+ * consumers are re-run, not when they are re-read") one layer down, where the consumer is DATA and so
+ * never runs at all and no compiler complains.
+ *
+ * Also ships `lint-ratio-truth.ts` (gate 41). `test.ts`'s long-standing "all mode contrast contracts
+ * hold" reads each role's own recorded `ratio`, so it asks the reporting path whether the reporting
+ * path is right and agrees with itself in exactly the failure that matters. The new gate recomputes
+ * from the FINAL emitted colors — 10,080 ratios across 5 corpus brands and 13 declared-surface cases
+ * — and never reads `ratio` to decide the truth. It sweeps moved grounds deliberately: at defaults
+ * every brand is clean, so a corpus-only run would report a confident zero over the only inputs that
+ * cannot exhibit the bug. 18 translucent overlays are excluded and counted in its own output, because
+ * they model `against` in the OPPOSITE direction (the role is the wash, `against` is the ink on top,
+ * `ratio` is ink-vs-composite) — a one-field-two-meanings problem filed rather than renamed here.
+ *
  * 0.15.0: the `inverse` lever is REMOVED — `levers.ts`, `BrandInput.inverse`, `Theme.inverseContext`,
  * the JSON-schema property and the three guards in `modes.ts`. The inverse surface-context is now
  * unconditional.
@@ -194,7 +232,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.15.0';
+export const ENGINE_VERSION = '0.16.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

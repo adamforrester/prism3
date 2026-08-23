@@ -70,6 +70,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | A colour control's range is decided case-by-case, not by one universal rule | 2026-08-21 | `docs/20-interactive-color-system.md` §9.3 | #894 |
 | `docs/34` holds the diagnosis; `CLAUDE.md` holds a countermeasure only when it's unhookable and statable in one clause | 2026-08-22 | `docs/43-agent-instruction-surface.md` | #922 |
 | The inverse surface-context is not optional — the `inverse` lever is removed | 2026-08-23 | `docs/20-interactive-color-system.md` §9.4 | #895 |
+| A ground is declared, not overridden | 2026-08-23 | `docs/20-interactive-color-system.md` §9.5 | #956 |
 
 ## Known gaps, named rather than silent
 

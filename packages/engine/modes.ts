@@ -115,7 +115,11 @@ export type ResolvedRole = { path: string; description: string; ratio: number; a
 // hand-tuned override that still applies + emits but fails its role's contrast min (WARN, never block).
 export type PrimitiveRef = { palette: string; step: string };
 export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primitive step ref
-export type OverrideWarning = { role: string; ratio: number; min: number };
+// `staleDependents` (#956) marks the second kind: the overridden role is a GROUND with no declarative
+// input, so the roles measured against it kept the value and ratio they derived from the OLD one.
+// Optional rather than a separate union member so every existing reader of `{role, ratio, min}` keeps
+// working unchanged — the contrast fields are still the overridden role's own, and still correct.
+export type OverrideWarning = { role: string; ratio: number; min: number; staleDependents?: string[] };
 export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; warnings?: OverrideWarning[] };
 
 /**
@@ -196,7 +200,13 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     // harsh/muddy and pure white halates in dark UIs (KB 31 §halation, §tint-not-
     // black). Light inverse = near-black 950; dark inverse = near-white 25. HC
     // restores the pure extremes (below) for low-vision max contrast.
-    const invBaseNum = family === 'light' ? 950 : 25;
+    // Declarable per mode since #956 (`surfaces.<mode>.inverseBase`), defaulting to the anchors
+    // above. It runs through the SAME `surfAt` + ladder pair as `base` below, so a declared band
+    // re-derives `background.inverse.*`, `foreground.inverse.*` and everything gated against them
+    // rather than being pasted over one role afterwards. That is the difference between a ground and
+    // a value, and it is why this is not an `overrides` entry.
+    const invSpec = cfg.inverseBase ?? (family === 'light' ? 950 : 25);
+    const invBaseNum = invSpec === 'white' ? 0 : invSpec === 'black' ? 1000 : invSpec;
     const invDir = -dir;
     return {
       base: surfAt(baseNum), floor: n(floorStep),
@@ -236,6 +246,21 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
 const FILL_STATES = ['default', 'hover', 'pressed', 'focused', 'selected'] as const;
 const LINK_STATES = ['default', 'hover', 'visited', 'focused'] as const;
 const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
+
+/**
+ * Grounds that HAVE a declarative input, and which `surfaces.<mode>` field it is (#956).
+ *
+ * Only the two page/band anchors are here, and the gap is the point rather than an omission: the
+ * other grounds (`text.primary`, `foreground.<semantic>`, `interactive.<c>.fill.rest`, `field.fill`,
+ * `disabled.fill`, …) are DERIVED roles that happen to also serve as grounds, so there is nowhere
+ * earlier to declare them — they do not exist until derivation has run. The override refusal names
+ * them all; this table only decides whether the message can point somewhere useful or has to say
+ * "file one". Adding a row without adding the input behind it would make the error a dead end.
+ */
+const GROUND_INPUT: Record<string, string> = {
+  'background.primary': 'base',
+  'background.inverse.primary': 'inverseBase',
+};
 
 const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<string, Step[]>): ModeResult => {
   const ns = theme.namespace;
@@ -844,7 +869,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         put(`interactive.${color}.inverse.overlay.${st}`,
           { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
           `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
-          'text.on-inverse', cfg.secondaryMin);
+          // `.primary`, not the bare `text.on-inverse` this said until #956. That leaf became a GROUP
+          // in #892 and this `against` was never repointed — so for nine roles it named a path the
+          // tree no longer has, `rgbByRole.get()` returned undefined, and the lookup fell back to
+          // `baseRgb`: the PAGE surface, the one ground these are definitively not measured on.
+          // Nothing complained because an `against` is data, not a reference the compiler resolves —
+          // #922's rule ("a rename is finished when its consumers are re-run, not when they are
+          // re-read") one layer down, where the consumer never runs at all.
+          'text.on-inverse.primary', cfg.secondaryMin);
         roles[`interactive.${color}.inverse.overlay.${st}`].alpha = step / 100;
       }
     }
@@ -1213,13 +1245,59 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // against its own `against` surface and WARNS (never blocks) when a hand-tuned pick fails the
   // role's contrast min: the generated baseline always passes; a failing tuned override still
   // applies + emits, recorded as a warning. A role absent in this mode is skipped (roles vary by
-  // mode). A malformed ref (unknown palette / step) is a hard error.
+  // mode). A malformed ref (unknown palette / step) is a hard error, and so is a GROUND — see below.
+  //
+  // The ground set, read off the tree that was just built. A role is a ground exactly when some other
+  // role names it as the surface it was measured `against` — no list to keep in step with reality.
+  const groundRoles = new Set<string>();
+  const groundDependents = (g: string): number =>
+    Object.values(roles).filter((r) => r.against === g).length;
+  for (const r of Object.values(roles)) if (r.against && r.against !== 'self') groundRoles.add(r.against);
   const warnings: OverrideWarning[] = [];
   const ov = theme.overrides?.[mode];
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
       const existing = roles[rolePath];
       if (!existing) continue;                             // role absent in this mode → skip (no throw)
+      // ---- a GROUND may not be overridden here (#956) ----
+      // This pass runs AFTER all derivation and rewrites exactly one role. That is correct for a leaf
+      // — a fill, an ink — where nothing downstream was measured against it. It is silently wrong for
+      // a GROUND: every role derived against it keeps the value AND the ratio it got from the old
+      // one, so the tree reports contrast against a surface it no longer contains. Measured on the
+      // sparsest brand, an inverse band of `neutral 300` left 53 of 53 gated roles claiming contrast
+      // they did not have, worst true ratio 1.00:1, with ZERO warnings — because the warning below is
+      // computed from that same stale number. Allow-and-flag became allow-and-silently-lie.
+      //
+      // REFUSING is the honest answer rather than a limitation. The alternative reads as support and
+      // emits a plausible wrong value, which is the #575 shape and the one failure this subsystem
+      // exists to prevent. A ground has to be declared where derivation can still see it — that is
+      // what `surfaces.<mode>.{base,inverseBase}` are, and why `base` never had this defect.
+      //
+      // Derived from the tree itself, not a hardcoded list: any role named as somebody's `against` is
+      // a ground by definition, so a future role that becomes one is covered the day it does. (The
+      // converse trap — a hand-maintained list going stale — is exactly what left nine `against`
+      // strings pointing at the pre-#892 `text.on-inverse` until this same PR.)
+      //
+      // REFUSE only where there is somewhere better to send them. A blanket refusal was written
+      // first and was wrong: `interactive.<c>.fill.rest` is a ground too (its `on-fill` ink is
+      // measured against it), so refusing every ground removed the ability to retint a button — a
+      // real capability, with no declarative alternative to point at, and a fixture in the corpus
+      // exercises it. A rule that deletes a working feature to prevent a defect it could instead
+      // report is not the honest reading of "flag, do not silently mislead".
+      //
+      // So the two cases split by whether an input EXISTS, which is exactly the information
+      // `GROUND_INPUT` carries:
+      //   - has one → THROW naming it. There is a right way to do this and it is one line away.
+      //   - has none → apply it, and WARN naming the roles left stale. Same allow-and-flag posture as
+      //     a failing contrast pick: the choice stands, the consequence is on the record. Silence is
+      //     the only outcome ruled out, because silence is what made this a defect rather than a
+      //     limitation. The general re-derivation that would remove the warning is filed separately.
+      if (groundRoles.has(rolePath) && GROUND_INPUT[rolePath]) {
+        throw new Error(
+          `overrides[${mode}]: '${rolePath}' is a GROUND — ${groundDependents(rolePath)} role(s) are contrast-measured against it, and this layer runs after they are derived, so overriding it here would leave every one of them reporting contrast against a surface the tree no longer has (#956). `
+          + `Set \`surfaces.${mode}.${GROUND_INPUT[rolePath]}\` instead — it is read during derivation, so the ladder and everything gated on it re-derive and stay honest.`,
+        );
+      }
       const steps = ramps.get(ref.palette);
       if (!steps) throw new Error(`overrides[${mode}]: unknown palette '${ref.palette}' (role '${rolePath}')`);
       const step = steps.find((s) => s.key === ref.step);
@@ -1228,9 +1306,38 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const againstRgb = existing.against === 'self' ? newRgb : (rgbByRole.get(existing.against) ?? baseRgb);
       const ratio = contrast(newRgb, againstRgb);
       roles[rolePath] = { ...existing, path: `${ns}.${ref.palette}.${ref.step}`, ratio, hex: hex(newRgb) };
-      if (existing.min > 0 && ratio < existing.min) warnings.push({ role: rolePath, ratio, min: existing.min });
+      // The second warning kind (#956): a ground with no declarative input still moved, so the roles
+      // measured against it are now carrying a ratio for a surface that is gone. One entry naming
+      // them, so the staleness is on the record instead of being the reader's problem to notice.
+      // Its own failing contrast is caught by the final sweep below, not here — a ground override can
+      // leave dependents stale while its OWN contrast passes, and that is the case that used to be
+      // silent, so the two are recorded separately rather than folded into one entry.
+      if (groundRoles.has(rolePath)) {
+        const stale = Object.keys(roles).filter((k) => roles[k].against === rolePath).sort();
+        if (stale.length) warnings.push({ role: rolePath, ratio, min: existing.min, staleDependents: stale });
+      }
     }
   }
+
+  // ---- the contrast sweep (#956) ----
+  // Every role that carries a `min`, checked once at the end, whatever moved it. This replaces a
+  // check that only ever looked at roles the OVERRIDE loop had just touched — which meant the one
+  // case it could not see was a GENERATED role failing its own bar.
+  //
+  // That case is real and was silent. A declared `surfaces.<mode>.base` of neutral 500 leaves 41
+  // generated roles unable to reach their minimum, and `inverseBase` 500 leaves 30: no ink is 4.5:1
+  // on a mid-grey ground, so the ramp has nowhere left to escalate to. The engine was already doing
+  // the right thing with the colours — `chromatic` and `pickMostExtreme` walk as far as the ladder
+  // goes — and then said nothing about coming up short.
+  //
+  // This is the whole of "generated output always complies, and where it physically cannot, it says
+  // so". Warn, never block: the surface was the author's declared choice, and refusing it would be
+  // the engine overruling a decision it was handed. What is ruled out is silence.
+  //
+  // No corpus brand gains a warning — every one clears every bar at its declared surfaces — so this
+  // moves no committed artifact. It fires exactly when someone picks a ground the ramp cannot serve.
+  for (const [rolePath, r] of Object.entries(roles))
+    if (r.min > 0 && r.ratio < r.min) warnings.push({ role: rolePath, ratio: r.ratio, min: r.min });
 
   return { mode, surface: baseRgb, roles, ...(warnings.length ? { warnings } : {}) };
 };

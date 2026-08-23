@@ -51,6 +51,13 @@
       "title": "the inverse surface-context is not optional — the `inverse` lever is removed",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.4"
+    },
+    {
+      "date": "2026-08-23",
+      "issue": 956,
+      "title": "a ground is DECLARED, not overridden",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.5"
     }
   ]
 }

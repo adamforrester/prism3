@@ -122,6 +122,25 @@ npx tsx packages/engine/lint-context-nodes.ts        # a context node (`inverse`
                                                     # siblings fails as stale. The reason must say
                                                     # whether the node is single-valued BY CONCEPT or
                                                     # merely so far; those age differently
+npx tsx packages/engine/lint-ratio-truth.ts          # every reported contrast ratio matches the color
+                                                    # it was measured against (#956), recomputed from
+                                                    # the FINAL emitted colors. `test.ts`'s contract
+                                                    # check reads each role's own recorded `ratio`, so
+                                                    # it asks the reporting path whether the reporting
+                                                    # path is right — and agreed with itself while 43
+                                                    # of 53 roles recorded contrast against a surface
+                                                    # the tree no longer had. This never reads `ratio`
+                                                    # to decide the truth. Also requires a role below
+                                                    # its min to be WARNED: generated output complies
+                                                    # or says so; silence is the one outcome ruled
+                                                    # out. Sweeps MOVED grounds on purpose — at
+                                                    # defaults every brand is clean, so a corpus-only
+                                                    # run would report a confident zero over the only
+                                                    # inputs that cannot show the bug. Stated hole:
+                                                    # the 18 translucent overlays are unverified and
+                                                    # counted in its own output — they model `against`
+                                                    # in the OPPOSITE direction (the role is the wash,
+                                                    # `against` names the ink on top of it)
 npx tsx packages/engine/lint-decisions-index.ts      # every recorded decision is indexed, and every
                                                     # index row is real (#886), both directions: an
                                                     # index row must resolve to a real `Decided (date,
