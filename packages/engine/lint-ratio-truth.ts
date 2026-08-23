@@ -283,7 +283,28 @@ console.log(`Prism3 reported-ratio truth — ${checked} gated ratio(s) recompute
 if (failures.length) {
   console.error(`\n❌ ${failures.length} ratio-truth failure(s):\n`);
   for (const f of failures.slice(0, 25)) console.error(`    ${f}`);
-  if (failures.length > 25) console.error(`    … and ${failures.length - 25} more`);
+  if (failures.length > 25) {
+    console.error(`    … and ${failures.length - 25} more`);
+    // WHICH CASES, not just how many. The 25-line cap prints failures in sweep order, so a large
+    // run shows only the cases swept first — and the ones swept last look like they passed. That is
+    // not hypothetical: measuring whether arm B still bites the re-derived rows, this cap reported a
+    // confident **0** for the override cases when the real answer was **98**, because all 25 printed
+    // lines came from the corpus and `surfaces` sweeps ahead of them. A truncated list read as a
+    // finding for several minutes.
+    //
+    // Same class #954 recorded for `lint-us-english` (a planted regression invisible behind a
+    // backlog). The cap stays — a 200-line dump helps nobody — but a per-case tally cannot be
+    // truncated into a wrong answer, so it goes below the elision rather than above it.
+    const byCase = new Map<string, number>();
+    for (const f of failures) {
+      const label = f.split(':')[0] ?? '?';
+      byCase.set(label, (byCase.get(label) ?? 0) + 1);
+    }
+    console.error(`\n    failures by case (${byCase.size} affected):`);
+    for (const [label, n] of [...byCase].sort((a, b) => b[1] - a[1]).slice(0, 12))
+      console.error(`      ${String(n).padStart(4)}  ${label}`);
+    if (byCase.size > 12) console.error(`      … and ${byCase.size - 12} more case(s)`);
+  }
   process.exit(1);
 }
 console.log('✓ clean — every recorded ratio matches the color it was measured against, and every shortfall is warned.');
