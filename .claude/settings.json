@@ -6,9 +6,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "nl=$(printf \"\\nx\"); nl=${nl%x}; cmd=$(jq -r \".tool_input.command // empty\"); case \"$cmd\" in *\"git push\"*) root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; out=$(cd \"$root\" && npx --yes tsx@4 packages/engine/regen.ts --check 2>&1); code=$?; if [ \"$code\" -ne 0 ]; then reason=\"regen.ts --check failed — committed artifacts have drifted from what the engine emits. Run: npx tsx packages/engine/regen.ts, review + commit the diff, then push again.${nl}${nl}${out}\"; jq -n --arg reason \"$reason\" \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\$reason}}\"; fi ;; *) exit 0 ;; esac",
+            "command": "nl=$(printf \"\\nx\"); nl=${nl%x}; cmd=$(jq -r \".tool_input.command // empty\"); case \"$cmd\" in *\"git push\"*) root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; out=$(cd \"$root\" && npx --yes tsx@4 packages/engine/regen.ts --check 2>&1); code=$?; if [ \"$code\" -ne 0 ]; then reason=\"regen.ts --check failed \u2014 committed artifacts have drifted from what the engine emits. Run: npx tsx packages/engine/regen.ts, review + commit the diff, then push again.${nl}${nl}${out}\"; jq -n --arg reason \"$reason\" \"{hookSpecificOutput:{hookEventName:\\\"PreToolUse\\\",permissionDecision:\\\"deny\\\",permissionDecisionReason:\\$reason}}\"; fi ;; *) exit 0 ;; esac",
             "timeout": 120,
-            "statusMessage": "Checking committed artifacts haven't drifted before push…"
+            "statusMessage": "Checking committed artifacts haven't drifted before push\u2026"
           }
         ]
       }
@@ -21,13 +21,26 @@
             "type": "command",
             "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-npm-ci.sh\"",
             "timeout": 300,
-            "statusMessage": "Populating node_modules if this worktree has none…"
+            "statusMessage": "Populating node_modules if this worktree has none\u2026"
           },
           {
             "type": "command",
             "command": "nl=$(printf \"\\nx\"); nl=${nl%x}; root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$root\"; git fetch origin main --quiet 2>/dev/null || exit 0; counts=$(git rev-list --left-right --count HEAD...origin/main 2>/dev/null); ahead=$(echo \"$counts\" | awk \"{print \\$1}\"); behind=$(echo \"$counts\" | awk \"{print \\$2}\"); if [ -n \"$behind\" ] && [ \"$behind\" -gt 0 ] 2>/dev/null; then stat=$(git diff --stat HEAD...origin/main 2>/dev/null | tail -6); msg=\"This branch is $behind commit(s) behind origin/main (and $ahead ahead). Diffstat since divergence:${nl}${stat}\"; jq -n --arg msg \"$msg\" \"{systemMessage:\\$msg,hookSpecificOutput:{hookEventName:\\\"SessionStart\\\",additionalContext:\\$msg}}\"; fi",
             "timeout": 30,
-            "statusMessage": "Checking branch is current with origin/main…"
+            "statusMessage": "Checking branch is current with origin/main\u2026"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); nl=$(printf '\\nx'); nl=${nl%x}; cmd=$(printf '%s' \"$input\" | jq -r '.tool_input.command // empty'); case \"$cmd\" in *\"git push\"*) out=$(printf '%s' \"$input\" | jq -r '.tool_response.text // empty'); case \"$out\" in *'* [new branch]'*) root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0; cd \"$root\" || exit 0; branch=$(git branch --show-current 2>/dev/null); [ -n \"$branch\" ] || exit 0; git fetch origin main --quiet 2>/dev/null; stat=$(git diff --stat origin/main..\"$branch\" 2>/dev/null); [ -n \"$stat\" ] || exit 0; msg=\"This push reported '* [new branch]' for '$branch' -- the remote had no branch by this name. If you did NOT just create '$branch' for the first time, this can mean it was squash-merged and deleted, and this push recreated it, orphaned from its own PR (CLAUDE.md). Diff vs origin/main:${nl}${nl}${stat}${nl}${nl}If this looks like it would REVERT already-merged work rather than add new work, stop and compare trees (git log --oneline origin/main..$branch) before opening or continuing a PR.\"; jq -n --arg msg \"$msg\" '{systemMessage:$msg}' ;; esac ;; esac; exit 0",
+            "timeout": 60,
+            "statusMessage": "Checking a fresh push didn't recreate a squash-merged branch\u2026"
           }
         ]
       }
