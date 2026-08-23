@@ -52,6 +52,7 @@ import { adaptBrand, assertAdaptable, type Adapted } from './adapt-figma-emissio
 import { runTokenPress, DEFAULT_DTCG_OPTIONS, type TokenPressOutput } from './run-tokenpress.ts';
 import {
   AXIS_MODEL,
+  absentFromProjection,
   STYLE_AXIS_AS_NAME,
   axesRepresentedIn,
   censusFromEmission,
@@ -1138,6 +1139,15 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
   const classification = classifyCollections(censusFromEmission(join(OUT, 'figma', brand)));
   const { union, collisions } = unionTokenPress(out, classification.baseDirs);
   const p3 = readPrism3(brand);
+
+  // Drop the Figma-only collections before pairing (#893). TokenPress reads every Figma collection,
+  // so a collection prism3 deliberately keeps OUT of the DTCG projection comes back as tokenpress-only
+  // paths that no prism3 path can ever pair with. Driven by the axis declaration — see
+  // `absentFromProjection` — so this is a drop someone declared, not a name the comparison exempted.
+  const absent = absentFromProjection();
+  const isAbsent = (k: string): boolean => absent.has(k.split('.')[0]);
+  const absentDropped = [...union.keys()].filter(isAbsent).length;
+  for (const k of [...union.keys()]) if (isAbsent(k)) union.delete(k);
 
   const onlyPrism3 = [...p3.base.keys()].filter((k) => !union.has(k)).sort();
   const onlyTokenPress = [...union.keys()].filter((k) => !p3.base.has(k)).sort();

@@ -92,6 +92,7 @@ export { buildFigmaDims, buildFigmaLayout, LAYOUT_MODES } from './emit-figma-dim
 // they bundle into the plugin. Imported for the CLI below + re-exported so every `from './emit-figma'`
 // importer (and `test.ts`) stay unchanged.
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
+import { buildFigmaSurface, surfaceOmitted } from './emit-figma-surface';
 export type {
   FigmaEffect, FigmaEffectStyle, FigmaEffectStylesFile,
   FigmaPaintStop, FigmaPaintStyle, FigmaPaintStylesFile,
@@ -190,6 +191,10 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   add('shadow-styles.json', shadows);
   const gradients = buildFigmaGradient(theme);
   add('gradient-styles.json', gradients);
+  // The surface-context alias layer (#893). Two modes, no colours of its own — every row points into
+  // `color`. Emitted last because it READS the resolved colour set it aliases.
+  const surface = buildFigmaSurface(theme);
+  for (const s of surface) add(`surface.${s.$mode}.json`, s);
 
   const summary = `palette ${palette.variables.length} + color ${color.length}×${color[0].variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
   return { artifacts, summary };

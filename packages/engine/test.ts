@@ -19,6 +19,8 @@ import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, norm
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole } from './modes';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
+import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
+import { surfaceRows, SURFACE_MODES } from './emit-figma-surface';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
@@ -1064,6 +1066,70 @@ for (const b of brands) {
     // decision was ever good — the same standard `LEAF_OK` and `ZERO_OK` hold.
     const thin = INVERSE_GAPS.filter((g) => g.reason.trim().length < 120).map((g) => g.paths[0]);
     ok(thin.length === 0, `inverse: every INVERSE_GAPS entry states WHY, not merely that${thin.length ? ` — thin: ${thin.join(', ')}` : ''}`);
+
+    // (a4) THE SURFACE COLLECTION (#893). Read out of the COMMITTED emission, not re-derived from
+    // `buildFigmaSurface` — a re-derivation would be the emitter checked against a copy of itself.
+    // `surfaceRows` is imported only for the row-count cross-check, which is the one place the two
+    // halves are SUPPOSED to agree.
+    // The brands with a committed Figma emission — `regen`'s emit-figma step writes these three; a
+    // brand absent here is not a silent skip, the count below is asserted.
+    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/surface.inverse.json`)));
+    ok(figmaBrands.length >= 3, `surface: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+    for (const brand of figmaBrands) {
+      const dir = resolve(HERE, `./out/figma/${brand}`);
+      const colorVars = new Set<string>(
+        JSON.parse(readFileSync(resolve(dir, 'color.light.json'), 'utf8')).variables.map((v: any) => v.name));
+      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `surface.${m}.json`), 'utf8')));
+
+      // THE DEAD POINTER — the failure #893 says the whole sequencing exists to prevent. An alias at
+      // a name no variable carries pastes clean into Figma and resolves to nothing at bind time.
+      const dangling = files.flatMap((f, i) => f.variables
+        .filter((v: any) => !colorVars.has(v.alias?.name))
+        .map((v: any) => `${SURFACE_MODES[i]}:${v.name}→${v.alias?.name ?? 'NO ALIAS'}`));
+      ok(dangling.length === 0,
+        `surface(${brand}): every alias resolves to a real color variable${dangling.length ? ` — DANGLING: ${dangling.slice(0, 3).join(', ')}` : ` (${files[0].variables.length} rows × ${SURFACE_MODES.length} modes)`}`);
+
+      // A row present in one mode and not the other is a half-bound token: switching the mode would
+      // leave the layer pointing at nothing.
+      const names = files.map((f) => new Set<string>(f.variables.map((v: any) => v.name)));
+      const lopsided = [...names[0]].filter((n) => !names[1].has(n)).concat([...names[1]].filter((n) => !names[0].has(n)));
+      ok(lopsided.length === 0, `surface(${brand}): both modes carry the same rows${lopsided.length ? ` — ONLY IN ONE: ${lopsided.slice(0, 3).join(', ')}` : ''}`);
+
+      // THE REGISTER IS ENFORCED, NOT ADVISORY. A gap dispositioned `omit` must have NO row — if it
+      // were emitted as a self-alias anyway, the distinction the register exists to preserve would be
+      // gone from the artifact and a deliberate gap would read exactly like a filled one.
+      const omitted = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'omit');
+      const leaked = omitted.filter((g) => names[0].has(`surface/${g.replace(/^color\./, '').replace(/\./g, '/')}`));
+      ok(leaked.length === 0,
+        `surface(${brand}): a gap dispositioned 'omit' emits NO row${leaked.length ? ` — LEAKED: ${leaked.join(', ')}` : ` (${omitted.length} omitted)`}`);
+
+      // And the converse: a gap dispositioned `self` must be present, with both modes on one target.
+      const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self')
+        .map((g) => `surface/${g.replace(/^color\./, '').replace(/\./g, '/')}`);
+      const missingSelf = selfs.filter((n) => !names[0].has(n));
+      const notSelfAliased = selfs.filter((n) => {
+        const d = files[0].variables.find((v: any) => v.name === n);
+        const i = files[1].variables.find((v: any) => v.name === n);
+        return d && i && d.alias?.name !== i.alias?.name;
+      });
+      ok(missingSelf.length === 0 && notSelfAliased.length === 0,
+        `surface(${brand}): a gap dispositioned 'self' emits a row pointing at ONE target in both modes${missingSelf.length ? ` — MISSING: ${missingSelf.slice(0, 2).join(', ')}` : ''}${notSelfAliased.length ? ` — NOT SELF-ALIASED: ${notSelfAliased.slice(0, 2).join(', ')}` : ''}`);
+
+      // Floor: an empty or near-empty collection would pass every arm above trivially.
+      ok(files[0].variables.length > 100,
+        `surface(${brand}): the collection is populated (${files[0].variables.length} rows)`);
+    }
+    // The four brands ship the IDENTICAL row set — the property that lets the collection be authored
+    // once and shared. It is what 4/4 zero-divergence buys, and it is NOT the acceptance check: a
+    // brand needing `inverse` to point at a structurally DIFFERENT role is only testable at the first
+    // hand-authored client brand (#893, the Mistica case).
+    {
+      const rowSets = figmaBrands.map((b) =>
+        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/surface.inverse.json`), 'utf8'))
+          .variables.map((v: any) => `${v.name}→${v.alias?.name}`).sort().join('|'));
+      ok(new Set(rowSets).size === 1,
+        `surface: every emitted brand ships the identical row set — the shared-collection property (${rowSets[0].split('|').length} rows)`);
+    }
     // Floor: a scan finding nothing to cover would pass both arms trivially (`docs/34` shape 9).
     ok(uncovered.length > 0 && roleSet.size > 100,
       `inverse: the coverage scan sees a real corpus (${roleSet.size} roles, ${uncovered.length} uncovered)`);

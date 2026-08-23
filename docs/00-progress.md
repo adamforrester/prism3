@@ -9,6 +9,65 @@
 
 
 
+
+---
+
+## (2026-08-22) — the `surface` collection: 122 alias rows, and one row deliberately absent
+
+**STATUS: in review.** #893, the last of #871's three. `ENGINE_VERSION` **0.12.0 → 0.13.0**;
+**`CONTRACT_VERSION` deliberately stands at 5.1.0.**
+
+**Two modes, 122 rows, no colours of its own.** `default` points at the page token, `inverse` at its
+counterpart; binding `surface/text/primary` and switching the mode on an ancestor frame swaps a whole
+subtree. It stores POINTERS, so the same row resolves to nb's red and aurora's blue because the values
+stay in `color` — which is why the collection is authored once and shared, growing with neither
+brands nor appearance modes.
+
+**Why the contract does not move, stated because the absence is the claim.** No DTCG path is added.
+`axes.ts` classifies the axis as `crossesAs: 'absent'` — the only axis so classified, and a fourth
+value added for it: not *"one member so nothing to carry"* (`singular`) but *"deliberately not
+carried"*. Surface context reaches code through the CSS cascade instead (#882), a separate build. The
+contract's question is "can my app still resolve the names it references", and nothing here moves a
+name it could reference.
+
+**The register is enforced, not consulted.** The 122 rows are 112 with a real counterpart plus **10
+self-aliased** — the `text`/`icon.on-<semantic>` inks, where the ink sits on a fill and the fill is
+the ground, so one token really is right in both modes. **`scrim.default` has no row at all**, because
+its disposition is `omit` and it is undecided (#940). `test.ts` asserts both directions: an `omit` gap
+emitting a row fails, and a `self` gap missing one — or pointing at two different targets — fails.
+So the distinction #893 worried about is not merely recorded, it is **checked in the artifact**.
+
+**The exporter gate fired, and that was the gate working.** A new Figma collection is read by
+TokenPress and comes back as `surface.*` DTCG paths prism3 does not emit — 369 unpaired. The fix was
+to DECLARE, not exempt: `absentFromProjection()` derives the drop from the axis table, so a Figma-only
+collection nobody classifies still fails as unclassified, and one classified as any other axis still
+fails the unpaired arm. Only an explicit `crossesAs: 'absent'` buys the drop, and writing that down is
+a claim someone made. Mutation-verified both ways — undeclaring it and misclassifying it as
+`appearance` each restore the 366-369 failures.
+
+**Mutation-verified by name**, each restoring clean: an alias pointing at a token that does not exist
+(**the dead pointer #893 says the whole sequencing exists to prevent**) · an `omit` gap emitted as a
+self-alias anyway · the axis undeclared · the axis misclassified. Plus a populated-collection floor
+and a per-brand emission floor, so a dropped brand cannot read as a clean pass.
+
+**The acceptance check is NOT discharged, and the measurement that looks like it does cannot.** All
+three emitted brands ship the identical row set — that is the shared-collection property and it is
+asserted. It does **not** test whether a brand needs `inverse` to point at a structurally DIFFERENT
+semantic role rather than a different value. That is the Mística case from the white-label research
+(*"entirely different accessible text tokens"* for Blau versus Movistar), it forks the alias layer
+per brand and destroys the economic argument for the whole design, and **four generated brands
+agreeing cannot test it.** Only the first hand-authored client brand can. Reported as agreement, and
+said plainly not to settle the question.
+
+**The artifact count moved 105 → 111** (two files × three brands), and `drift-coverage` refused the
+run until `verify.ts` and `ci.yml` were updated together — which is that gate's whole design, since a
+count in one place and not the other is how a shrunken set reads as covered. `CLAUDE.md`'s quoted
+number moved with them.
+
+**One collision to know about.** `schema/token-contract.json` moves by exactly **one line** —
+`engineVersion` 0.12.0 → 0.13.0, an informational stamp; `contractVersion` and all 570 guaranteed
+paths are untouched. `--check` treats a stale stamp as a failure, so the alternative was shipping red
+or skipping a legitimate engine bump. #900 owns the 5.2.0 contract bump and edits different lines.
 ---
 
 ## (2026-08-22) — #892 closes: 11 of 123 remain, and every one of them by decision
