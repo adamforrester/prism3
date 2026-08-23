@@ -12,6 +12,64 @@
 
 ---
 
+## (2026-08-23) — CLAUDE.md's squash-merge paragraph shrinks; two of three proposed hooks got a real answer this week, and they differ (#927)
+
+**STATUS: shipped.** Fourth of the five `docs/43` grooming issues. `CLAUDE.md`: **27,887 → 27,250
+bytes (−637)** — modest, because this paragraph's incident narrative was already fairly compact; full
+record (three races on 2026-08-12, the 2026-08-14 catch) already lived in its own
+`docs/00-progress.md` entries and is now just pointed at rather than restated.
+
+**#926's "no" does not generalize, and it shouldn't — the three proposed hooks fail for three
+different reasons, and telling them apart is the actual work.** #926 (`git checkout <ref> --
+<path>`) failed on ambiguity: deliberate and accidental use produce an identical command string and
+an identical dirty-path state, so nothing discriminates intent — correctly abandoned. #923's bare
+`git stash pop` doesn't share that problem: the fix there is "name an explicit `stash@{n}`," so the
+discriminator is whether a target was named, not what was intended, and the cost to legitimate use is
+one keystroke. #927's own predicate turned out to fail for a **third** reason, distinct from both:
+**observability, not ambiguity.**
+
+**Verified rather than assumed, against the actual Claude Code hooks schema:** `* [new branch]` is
+part of `git push`'s OUTPUT, and a `PreToolUse` hook fires before the tool runs — it never sees output,
+confirmed against the docs (`code.claude.com/docs/en/hooks`, the `PostToolUse` input-schema section).
+So a before-the-fact deny, matching the existing `regen --check`-before-push hook's shape, is
+structurally impossible here — not a judgment call to make, a fact about the API. `PostToolUse` DOES
+receive the tool's result (`tool_response.text`), confirmed by reading the exact schema (which also
+settles a live open question about it: `PostToolUse` cannot deny at all — `hookSpecificOutput` is
+"reserved; not used for this event" — so the false-positive-blocks-legitimate-work risk that sank
+#926 does not transfer here structurally, regardless of how often the trigger fires).
+
+**Built, not just recommended, because the predicate is genuinely clean at the point that matters —
+detection, not classification.** `.claude/settings.json` gains a `PostToolUse`/`Bash` hook: on any
+`git push` whose result contains the literal `* [new branch]`, it diffs the pushed branch against
+`origin/main` and returns a `systemMessage` with the diffstat. The firing condition is a pure string
+match, unambiguous. The hook does **not** try to classify danger — echoing #923's shape, it hands the
+agent the same evidence "compare trees" already asks for, rather than guessing intent itself. Fires on
+every first-time branch push (the common, harmless case too), by design: unlike #944's hook, this one
+is never factually WRONG when it fires — a diffstat is always true — so the cost of firing on the
+harmless case is a diffstat that reads as unremarkable, not a false alarm that erodes trust.
+
+**Two real bugs caught by testing the hook directly rather than trusting the design on paper**, since
+this session's own hooks can't be reloaded mid-session to test live:
+1. The script read stdin via `jq` twice (`.tool_input.command`, then later `.tool_response.text`) —
+   stdin can only be consumed once, so the second read always came back empty. Fixed by capturing
+   `input=$(cat)` once and feeding it to each `jq` call.
+2. `echo "$input" | jq ...` corrupted the JSON: this system's `sh` is `dash`, whose builtin `echo`
+   interprets backslash escapes by default (POSIX `echo -e`-like behavior, unlike bash's `echo`), so
+   the JSON-escaped `\n` inside `tool_response.text` became a literal unescaped newline before jq ever
+   saw it — `jq: parse error: Invalid string: control characters...`. Fixed with `printf '%s'` instead
+   of `echo`, which never interprets its argument.
+
+Both verified fixed by driving the script directly with constructed JSON on stdin (a non-matching
+command, a `git push` with no `[new branch]`, and a real `[new branch]` case against this repo's
+actual `origin/main` — which by coincidence became a live positive-control mid-test when `main`
+advanced during testing, producing a genuine non-empty diffstat and confirming the message reads
+sensibly for an ordinary "branch fell behind" case too, not just the adversarial one).
+
+**Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY**. `regen.ts --check` → byte-identical, 114/114.
+
+---
+
 ## (2026-08-23) — `role: 'target'` stops deciding what carries colour (#933)
 
 **STATUS: in review.** Closes #933, the remaining blocker on switch's anatomy block now that #951
@@ -247,6 +305,9 @@ alternatives, and the invisible-damage property (only paths that DIFFER between 
 
 **Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
 ADVISORY**. `regen.ts --check` → byte-identical, 114/114.
+
+---
+
 ## (2026-08-23) — #849 decided (comments in scope too), 111 en-GB fixes clear the plugin bundle (#947)
 
 **STATUS: shipped.** Closes #947. Fixes both halves #954 left red: the 108 string-literal hits
