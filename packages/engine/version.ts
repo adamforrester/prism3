@@ -102,6 +102,16 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.13.0: the `surface` Figma collection (#893) — two modes, 122 rows, every one an alias into
+ * `color`. A MINOR because the artifact SET grew: a consumer of `out/figma/**` sees two new files.
+ *
+ * `CONTRACT_VERSION` deliberately STANDS at 5.1.0, and the reason is the point rather than an
+ * omission: this adds no DTCG path. The collection is Figma-only by design — `axes.ts` classifies its
+ * axis as `crossesAs: 'absent'`, the only axis so classified — because it stores POINTERS into tokens
+ * the projection already carries. A consumer reading DTCG sees exactly what #891 + #892 finalised.
+ * The contract's job is "can my app still resolve the names it references", and nothing here moves a
+ * name it could reference. (#893)
+ *
  * 0.12.0: #892's last tranche — the seven remaining inverse borders, the five bold inverse semantic
  * fills, and `disabled.inverse.*`. All additive. `disabled` being ground-dependent is the part worth
  * naming: the family is cross-cutting across INTENT, which says nothing about the surface, and a
@@ -142,7 +152,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.12.0';
+export const ENGINE_VERSION = '0.13.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

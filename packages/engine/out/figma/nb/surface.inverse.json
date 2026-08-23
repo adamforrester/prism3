@@ -1,0 +1,1958 @@
+{
+  "$collection": "surface",
+  "$mode": "inverse",
+  "variables": [
+    {
+      "name": "surface/background/primary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "background.primary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/background/inverse/primary"
+      }
+    },
+    {
+      "name": "surface/background/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "background.secondary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/background/inverse/secondary"
+      }
+    },
+    {
+      "name": "surface/background/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "background.tertiary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/background/inverse/tertiary"
+      }
+    },
+    {
+      "name": "surface/border/brand",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.brand for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/brand"
+      }
+    },
+    {
+      "name": "surface/border/danger",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.danger for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/danger"
+      }
+    },
+    {
+      "name": "surface/border/focus",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.focus for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/focus"
+      }
+    },
+    {
+      "name": "surface/border/info",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.info for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/info"
+      }
+    },
+    {
+      "name": "surface/border/primary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.primary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/primary"
+      }
+    },
+    {
+      "name": "surface/border/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.secondary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.33725491166114807,
+        "g": 0.364705890417099,
+        "b": 0.3843137323856354,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/secondary"
+      }
+    },
+    {
+      "name": "surface/border/success",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.success for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.054901961237192154,
+        "g": 0.5098039507865906,
+        "b": 0.26274511218070984,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/success"
+      }
+    },
+    {
+      "name": "surface/border/warning",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.warning for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/border/inverse/warning"
+      }
+    },
+    {
+      "name": "surface/disabled/border",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "disabled.border for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/disabled/inverse/border"
+      }
+    },
+    {
+      "name": "surface/disabled/fill",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "disabled.fill for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/disabled/inverse/fill"
+      }
+    },
+    {
+      "name": "surface/disabled/icon",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "disabled.icon for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/disabled/inverse/icon"
+      }
+    },
+    {
+      "name": "surface/disabled/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "disabled.on-fill for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.43921568989753723,
+        "g": 0.4627451002597809,
+        "b": 0.48627451062202454,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/disabled/inverse/on-fill"
+      }
+    },
+    {
+      "name": "surface/disabled/text",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "disabled.text for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/disabled/inverse/text"
+      }
+    },
+    {
+      "name": "surface/field/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "field.border.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/field/inverse/border/hover"
+      }
+    },
+    {
+      "name": "surface/field/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "field.border.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/field/inverse/border/rest"
+      }
+    },
+    {
+      "name": "surface/field/fill",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "field.fill for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/field/inverse/fill"
+      }
+    },
+    {
+      "name": "surface/field/placeholder",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "field.placeholder for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/field/inverse/placeholder"
+      }
+    },
+    {
+      "name": "surface/foreground/brand",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.brand for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/brand"
+      }
+    },
+    {
+      "name": "surface/foreground/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.brand-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0,
+        "b": 0.01568627543747425,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/brand-subtle"
+      }
+    },
+    {
+      "name": "surface/foreground/danger",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.danger for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/danger"
+      }
+    },
+    {
+      "name": "surface/foreground/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.danger-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.2078431397676468,
+        "g": 0,
+        "b": 0.01568627543747425,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/danger-subtle"
+      }
+    },
+    {
+      "name": "surface/foreground/info",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.info for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/info"
+      }
+    },
+    {
+      "name": "surface/foreground/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.info-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0,
+        "g": 0.09803921729326248,
+        "b": 0.1764705926179886,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/info-subtle"
+      }
+    },
+    {
+      "name": "surface/foreground/primary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.primary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/primary"
+      }
+    },
+    {
+      "name": "surface/foreground/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.secondary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/secondary"
+      }
+    },
+    {
+      "name": "surface/foreground/success",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.success for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.054901961237192154,
+        "g": 0.5098039507865906,
+        "b": 0.26274511218070984,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/success"
+      }
+    },
+    {
+      "name": "surface/foreground/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.success-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0,
+        "g": 0.11372549086809158,
+        "b": 0.03529411926865578,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/success-subtle"
+      }
+    },
+    {
+      "name": "surface/foreground/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.tertiary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/tertiary"
+      }
+    },
+    {
+      "name": "surface/foreground/warning",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.warning for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/warning"
+      }
+    },
+    {
+      "name": "surface/foreground/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "foreground.warning-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.1568627506494522,
+        "g": 0.06666667014360428,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/foreground/inverse/warning-subtle"
+      }
+    },
+    {
+      "name": "surface/icon/brand",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.brand for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/brand"
+      }
+    },
+    {
+      "name": "surface/icon/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.brand-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/brand-subtle"
+      }
+    },
+    {
+      "name": "surface/icon/danger",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.danger for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/danger"
+      }
+    },
+    {
+      "name": "surface/icon/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.danger-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/danger-subtle"
+      }
+    },
+    {
+      "name": "surface/icon/info",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.info for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.22745098173618317,
+        "g": 0.529411792755127,
+        "b": 0.7647058963775635,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/info"
+      }
+    },
+    {
+      "name": "surface/icon/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.info-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.1568627506494522,
+        "g": 0.4274509847164154,
+        "b": 0.6313725709915161,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/info-subtle"
+      }
+    },
+    {
+      "name": "surface/icon/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.link.default for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/link/default"
+      }
+    },
+    {
+      "name": "surface/icon/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.link.focused for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/link/focused"
+      }
+    },
+    {
+      "name": "surface/icon/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.link.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/link/hover"
+      }
+    },
+    {
+      "name": "surface/icon/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.link.visited for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/link/visited"
+      }
+    },
+    {
+      "name": "surface/icon/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.on-brand for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-brand"
+      }
+    },
+    {
+      "name": "surface/icon/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.on-danger for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-danger"
+      }
+    },
+    {
+      "name": "surface/icon/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.on-info for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-info"
+      }
+    },
+    {
+      "name": "surface/icon/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.on-success for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-success"
+      }
+    },
+    {
+      "name": "surface/icon/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.on-warning for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-warning"
+      }
+    },
+    {
+      "name": "surface/icon/primary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.primary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/primary"
+      }
+    },
+    {
+      "name": "surface/icon/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.secondary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/secondary"
+      }
+    },
+    {
+      "name": "surface/icon/success",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.success for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.32156863808631897,
+        "g": 0.5960784554481506,
+        "b": 0.40392157435417175,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/success"
+      }
+    },
+    {
+      "name": "surface/icon/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.success-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.019607843831181526,
+        "g": 0.45490196347236633,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/success-subtle"
+      }
+    },
+    {
+      "name": "surface/icon/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.tertiary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/tertiary"
+      }
+    },
+    {
+      "name": "surface/icon/warning",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.warning for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.729411780834198,
+        "g": 0.4470588266849518,
+        "b": 0.19607843458652496,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/warning"
+      }
+    },
+    {
+      "name": "surface/icon/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "icon.warning-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.6274510025978088,
+        "g": 0.34117648005485535,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/icon/on-inverse/warning-subtle"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.border.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/border/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.border.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/border/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.border.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/border/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.fill.focused for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/fill/focused"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.fill.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/fill/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.fill.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/fill/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.fill.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/fill/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.fill.selected for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/fill/selected"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.on-fill for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/on-fill"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.overlay.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/overlay/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.overlay.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/overlay/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.overlay.selected for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/overlay/selected"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.text.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/text/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.text.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/text/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/destructive/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.destructive.text.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/destructive/inverse/text/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.border.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/border/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.border.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/border/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.border.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/border/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.fill.focused for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/fill/focused"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.fill.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
+        "b": 0.8666666746139526,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/fill/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.fill.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/fill/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.fill.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9098039269447327,
+        "g": 0.9137254953384399,
+        "b": 0.9176470637321472,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/fill/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.fill.selected for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/fill/selected"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.on-fill for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/on-fill"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.overlay.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/overlay/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.overlay.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/overlay/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.overlay.selected for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/overlay/selected"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.text.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/text/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.text.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/text/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/neutral/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.neutral.text.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/neutral/inverse/text/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/border/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.border.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/border/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/border/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.border.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/border/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/border/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.border.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/border/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/fill/focused",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.fill.focused for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/fill/focused"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/fill/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.fill.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/fill/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/fill/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.fill.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/fill/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/fill/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.fill.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/fill/rest"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/fill/selected",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.fill.selected for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/fill/selected"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/on-fill",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.on-fill for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/on-fill"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/overlay/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.overlay.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/overlay/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/overlay/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.overlay.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/overlay/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/overlay/selected",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.overlay.selected for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/overlay/selected"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/text/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.text.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/text/hover"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/text/pressed",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.text.pressed for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/text/pressed"
+      }
+    },
+    {
+      "name": "surface/interactive/primary/text/rest",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "interactive.primary.text.rest for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/interactive/primary/inverse/text/rest"
+      }
+    },
+    {
+      "name": "surface/text/brand",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.brand for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/brand"
+      }
+    },
+    {
+      "name": "surface/text/brand-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.brand-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/brand-subtle"
+      }
+    },
+    {
+      "name": "surface/text/danger",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.danger for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/danger"
+      }
+    },
+    {
+      "name": "surface/text/danger-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.danger-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/danger-subtle"
+      }
+    },
+    {
+      "name": "surface/text/info",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.info for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.22745098173618317,
+        "g": 0.529411792755127,
+        "b": 0.7647058963775635,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/info"
+      }
+    },
+    {
+      "name": "surface/text/info-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.info-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.1568627506494522,
+        "g": 0.4274509847164154,
+        "b": 0.6313725709915161,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/info-subtle"
+      }
+    },
+    {
+      "name": "surface/text/link/default",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.link.default for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/link/default"
+      }
+    },
+    {
+      "name": "surface/text/link/focused",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.link.focused for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8549019694328308,
+        "g": 0.33725491166114807,
+        "b": 0.34117648005485535,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/link/focused"
+      }
+    },
+    {
+      "name": "surface/text/link/hover",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.link.hover for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8705882430076599,
+        "g": 0.42352941632270813,
+        "b": 0.4117647111415863,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/link/hover"
+      }
+    },
+    {
+      "name": "surface/text/link/visited",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.link.visited for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/link/visited"
+      }
+    },
+    {
+      "name": "surface/text/on-brand",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.on-brand for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-brand"
+      }
+    },
+    {
+      "name": "surface/text/on-danger",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.on-danger for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-danger"
+      }
+    },
+    {
+      "name": "surface/text/on-info",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.on-info for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-info"
+      }
+    },
+    {
+      "name": "surface/text/on-success",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.on-success for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-success"
+      }
+    },
+    {
+      "name": "surface/text/on-warning",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.on-warning for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-warning"
+      }
+    },
+    {
+      "name": "surface/text/primary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.primary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.9647058844566345,
+        "g": 0.9686274528503418,
+        "b": 0.9686274528503418,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/primary"
+      }
+    },
+    {
+      "name": "surface/text/secondary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.secondary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.4901960790157318,
+        "g": 0.5137255191802979,
+        "b": 0.529411792755127,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/secondary"
+      }
+    },
+    {
+      "name": "surface/text/success",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.success for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.32156863808631897,
+        "g": 0.5960784554481506,
+        "b": 0.40392157435417175,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/success"
+      }
+    },
+    {
+      "name": "surface/text/success-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.success-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.019607843831181526,
+        "g": 0.45490196347236633,
+        "b": 0.22745098173618317,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/success-subtle"
+      }
+    },
+    {
+      "name": "surface/text/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.tertiary for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/tertiary"
+      }
+    },
+    {
+      "name": "surface/text/warning",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.warning for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.729411780834198,
+        "g": 0.4470588266849518,
+        "b": 0.19607843458652496,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/warning"
+      }
+    },
+    {
+      "name": "surface/text/warning-subtle",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "text.warning-subtle for the inverse surface context — an alias into the color collection",
+      "value": {
+        "r": 0.6274510025978088,
+        "g": 0.34117648005485535,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/text/on-inverse/warning-subtle"
+      }
+    }
+  ]
+}

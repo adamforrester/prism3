@@ -78,7 +78,7 @@ import { join } from 'node:path';
 
 /** The axes prism3 emits. Not an open vocabulary: adding one is a decision about the token model, and
  *  it should land here alongside how the axis reaches DTCG (a path segment, or an overlay). */
-export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'none';
+export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'surface' | 'none';
 
 /** How each axis crosses into the DTCG projection — the fact that decides everything downstream.
  *
@@ -87,12 +87,17 @@ export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'none';
  *  `path`     — the projection carries every member as its own PATH (`grid.sm.*`, `grid.md.*`), so all
  *               members coexist in one file and there is no base member at all.
  *  `singular` — the axis has one member, so it does not cross as anything.
+ *  `absent`   — the axis exists in Figma and has NO DTCG counterpart at all. Distinct from
+ *               `singular`: not "one member so nothing to carry" but "deliberately not carried".
+ *               Added for `surface` (#893), and the distinction is the point — a reader asking why
+ *               the projection has no surface overlays needs to find the answer recorded rather than
+ *               inferred from an absence.
  *
  *  `baseMember` is the mode whose values the `base` projection carries, or `null` when the axis is
  *  path-carried and no single mode corresponds. This is the load-bearing part: `compare.ts` uses it to
  *  decide WHICH TokenPress mode file wins the union, and that decision moved 228 colors into and out
  *  of the difference report the first time it was made by iteration order instead. */
-export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singular'; baseMember: string | null; why: string }> = {
+export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singular' | 'absent'; baseMember: string | null; why: string }> = {
   appearance: {
     crossesAs: 'overlay',
     baseMember: 'light',
@@ -107,6 +112,11 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
     crossesAs: 'overlay',
     baseMember: 'desktop',
     why: 'the fluid type-set axis; the projection bakes the desktop end into `base` and carries the min/max pair in `$extensions.prism3.responsive` rather than as a second overlay',
+  },
+  surface: {
+    crossesAs: 'absent',
+    baseMember: 'default',
+    why: 'the alias layer #871 decided (#893). Figma-only BY DESIGN: it stores pointers into `color`, not values, so there is nothing for DTCG to carry that DTCG does not already have — surface context reaches code through the CSS cascade instead (#882), which is a separate build. `default` is the base member: every row\'s `default` mode points at the page token, so a file that never switches the mode behaves exactly as it did before the collection existed',
   },
   none: {
     crossesAs: 'singular',
@@ -135,6 +145,7 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   color: 'appearance',
   layout: 'breakpoint',
   'type-sets': 'viewport',
+  surface: 'surface',        // #893 — the alias layer; Figma-only, see AXIS_MODEL.surface
 
   // -- single-mode variable collections ---------------------------------------------------------
   'border-width': 'none',
@@ -169,6 +180,20 @@ export const STYLE_AXIS_AS_NAME: { collection: string; prefix: string; axis: Axi
     pairsWith: 'shadow',
   },
 ];
+
+/**
+ * Collections whose axis is declared `absent` — present in Figma, deliberately NOT in the DTCG
+ * projection (`surface`, #893). A round-trip through TokenPress reads them out of the Figma files and
+ * produces DTCG paths for them, and those paths have no prism3 counterpart BY DESIGN.
+ *
+ * The comparison drops them, and it does so FROM THIS DECLARATION rather than from a name list of its
+ * own. That is the difference between declaring and exempting: a new Figma-only collection that
+ * nobody classifies still fails `classifyCollections` as unclassified, and one classified as any
+ * other axis still fails the unpaired arm. Only an explicit `crossesAs: 'absent'` buys the drop, and
+ * writing that down is a claim someone made about what the projection carries.
+ */
+export const absentFromProjection = (): Set<string> =>
+  new Set(Object.entries(COLLECTION_AXIS).filter(([, ax]) => AXIS_MODEL[ax].crossesAs === 'absent').map(([c]) => c));
 
 /** A collection found in the emission but absent from `COLLECTION_AXIS`. Never a default. */
 export type UnclassifiedCollection = { collection: string; modes: string[] };
