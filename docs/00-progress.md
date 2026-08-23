@@ -12,6 +12,51 @@
 
 ---
 
+## (2026-08-23) — CLAUDE.md's US-English paragraph shrunk, and its false premise corrected (#928, #968)
+
+**Two jobs, and #968 mattered more than the byte count.** #928 asked whether the US-English
+paragraph's restatement of `lint-us-english.ts`'s traps could shrink to a pointer — it already had
+(the paragraph only ever pointed at the header, never restated trap content), so the real
+duplication was the comment-carve-out narrative, which mirrored the gate's own `OPEN, AND
+DELIBERATELY NOT DECIDED HERE` header paragraph almost verbatim. #968 found that shared narrative
+rests on a false premise: *"which comments esbuild keeps in the bundle is an implementation detail,
+so an exemption the gate cannot see is not enforceable."* `lint-voice.ts`'s own header had already
+measured that false — 300 whole-line `//` comments were found reaching `apps/studio/dist/main.js`
+because esbuild does not strip comments from an unminified build, and `stripLineComments` is exactly
+the mechanism that blanks them before scanning. The gate can and does tell a comment from shipped
+prose; it was never invisible to it.
+
+**The true reason is simpler than the false one, and unifies both carve-outs.** A comment ships
+once its file is reachable into a built bundle, full stop — that's why `apps/studio/src` comments
+lost their exemption (#464), and why `packages/engine/components/*.ts` comments cross the same line
+the moment an import makes a def reachable into `apps/plugin/dist` (#849, decided: in scope). No
+"cannot see it" reasoning needed on either side; both are plain instances of "emitted artifact
+prose," which the rule already covers.
+
+**Fixed at every site #968 named, plus one it didn't.** CLAUDE.md's paragraph (false premise
+replaced, the stale "58 en-GB instances across six component defs" figure dropped rather than
+re-stated — #947 measured 115 across ten files, #960 fixed 111 after four false positives, and a
+count that goes stale every time a def is authored isn't worth carrying verbatim in a file everyone
+loads), `docs/43-agent-instruction-surface.md`'s row 6 (same stale "#849, explicitly undecided"
+claim), and a correcting comment on merged PR #960 (its body restated the false premise as the
+rationale for its own — correct — decision; can't edit a merged PR body, so the correction is a
+comment instead). Filed #975 for a fourth site found while doing #928's verification step: the gate's
+own header (`lint-us-english.ts`) still carries both the false premise and the stale "#849 open"
+framing that everything else here was citing *from*. Left unfixed in this PR — `lint-voice.ts`'s
+own header calls that file "delicate, heavily self-documented," and this diff was scoped to prose,
+not gate logic — but filed per principle 3 rather than left in a PR body where it isn't discoverable
+work.
+
+**CLAUDE.md: 23,257 → 23,153 bytes.** Smaller than #925/#926/#927's shrinks — this paragraph had
+little true restatement to cut, since the trap-list pointer was already minimal. Most of the byte
+budget here went to fixing content, not removing it.
+
+`npm run verify` → 40/40 PASS. Gates checked directly relevant to this change:
+`lint-doc-gates.ts` (paragraph sits outside principle 4's pinned region — clean), `lint-layout-claims.ts`
+(paragraph sits outside the layer table — clean), `lint-progress-order.ts` (this entry's placement).
+
+---
+
 ## (2026-08-23) — the US-English gate was verified to death over an incomplete set (#937)
 
 **STATUS: in review, and RED ON PURPOSE — read the last section before merging.** #937 reported
