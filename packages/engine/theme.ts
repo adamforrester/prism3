@@ -259,9 +259,21 @@ export type Theme = {
 // 'black', or a neutral step number; `floorStep` names the neutral step used as
 // the floor (defaults: white→50, black→950, a tinted base→one step more tinted).
 export type SurfaceSpec = 'white' | 'black' | number;
+// `inverseBase` anchors the INVERSE band — the dark hero / inverse section. It lives HERE, next to
+// `base`, rather than being reached through the `overrides` map, and that placement is the whole fix
+// in #956: **a ground is not a value.** Setting one has to re-derive everything measured against it,
+// and only this layer runs early enough. `resolve()` feeds it to the same `bgLadder`/`fgLadder` pair
+// `base` uses, so one number moves `background.inverse.*`, `foreground.inverse.*` and every one of
+// the ~60 roles gated on the band together, each re-measured against where the band actually landed.
+//
+// The override post-pass structurally cannot do this: it runs after all derivation and rewrites a
+// single role. Routed through it, an inverse band of `neutral 300` left 53 of 53 gated roles claiming
+// contrast they did not have, and zero warnings — the flag is computed from the stale ratio, so
+// allow-and-flag degraded to allow-and-silently-lie. `base` never had that defect precisely because
+// it was always declared here; this gives the inverse band the same footing.
 export type SurfacesConfig = {
-  light?: { base?: SurfaceSpec; floorStep?: number };
-  dark?:  { base?: SurfaceSpec; floorStep?: number };
+  light?: { base?: SurfaceSpec; floorStep?: number; inverseBase?: SurfaceSpec };
+  dark?:  { base?: SurfaceSpec; floorStep?: number; inverseBase?: SurfaceSpec };
 };
 
 // ---- canonical status hues (engine-supplied; a brand need not specify them) ----

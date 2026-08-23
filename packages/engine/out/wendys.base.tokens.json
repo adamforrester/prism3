@@ -4869,7 +4869,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -4893,7 +4893,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -4917,7 +4917,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -5609,7 +5609,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -5633,7 +5633,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -5657,7 +5657,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -6344,7 +6344,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -6368,7 +6368,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -6392,7 +6392,7 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "figma": {
                       "collection": "color",
@@ -14587,7 +14587,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.15.0",
+      "version": "0.16.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

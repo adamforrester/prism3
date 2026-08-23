@@ -302,6 +302,17 @@ jobs:
       - name: A context node is a group unless a stated reason says otherwise
         run: npx --yes tsx@4 packages/engine/lint-context-nodes.ts
 
+      # `test.ts` has long asserted "all mode contrast contracts hold" by reading each role's own
+      # recorded `ratio` — so it asks the reporting path whether the reporting path is right, and in
+      # the one failure that matters it agreed with itself. A ground moved through the override
+      # post-pass left 43 of 53 roles recording contrast against a surface the tree no longer had, and
+      # every contract check passed (#956). This one recomputes from the FINAL emitted colors and
+      # never reads `ratio` to decide the truth, then requires a shortfall to be warned rather than
+      # silent. It sweeps declared surfaces deliberately: at defaults every brand is clean, so a
+      # corpus-only run would report a confident zero over the only inputs that cannot show the bug.
+      - name: Every reported contrast ratio matches the color it was measured against
+        run: npx --yes tsx@4 packages/engine/lint-ratio-truth.ts
+
       # docs/00-progress.md is newest-entry-first, and a rebase routinely lands the incoming entry
       # SECOND with no textual conflict and nothing to report it (#931 — three hand-fixes in 24
       # hours across two lanes). The file is exempt from every other gate that touches it

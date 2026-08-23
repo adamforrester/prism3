@@ -5538,25 +5538,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.10}",
                         "contrast": 14.48,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.10}",
                         "contrast": 17.49,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.10}",
                         "contrast": 16.75,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -5582,25 +5582,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 11.33,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.20}",
                         "contrast": 12.63,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 13.08,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -5626,25 +5626,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 11.33,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.20}",
                         "contrast": 12.63,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 13.08,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -6878,25 +6878,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.10}",
                         "contrast": 14.48,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.10}",
                         "contrast": 17.49,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.10}",
                         "contrast": 16.75,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -6922,25 +6922,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 11.33,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.20}",
                         "contrast": 12.63,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 13.08,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -6966,25 +6966,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 11.33,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.20}",
                         "contrast": 12.63,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 13.08,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -8198,25 +8198,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.10",
                     "contrast": 14.26,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.10}",
                         "contrast": 14.48,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.10}",
                         "contrast": 17.49,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.10}",
                         "contrast": 16.75,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -8242,25 +8242,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 11.33,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.20}",
                         "contrast": 12.63,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 13.08,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -8286,25 +8286,25 @@
                     "role": "semantic",
                     "aliasOf": "prism.palette.white-alpha.20",
                     "contrast": 10.07,
-                    "against": "text.on-inverse",
+                    "against": "text.on-inverse.primary",
                     "min": 4.5,
                     "modes": {
                       "dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 11.33,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 4.5
                       },
                       "hc-light": {
                         "$value": "{prism.palette.white-alpha.20}",
                         "contrast": 12.63,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       },
                       "hc-dark": {
                         "$value": "{prism.palette.black-alpha.20}",
                         "contrast": 13.08,
-                        "against": "text.on-inverse",
+                        "against": "text.on-inverse.primary",
                         "min": 7
                       }
                     },
@@ -19140,7 +19140,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.15.0",
+      "version": "0.16.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

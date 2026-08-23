@@ -5802,33 +5802,50 @@ const renderSurfacesEditor = (): HTMLElement => {
     }));
   }
 
-  // Inverse — the contrasting band (dark heroes / inverse sections). ADJUSTABLE per mode via the A1
-  // override layer: "Auto" keeps the generated pairing; a neutral step repoints `background.inverse.primary`
-  // (the engine re-derives its contrast and warns, never blocks). `background.inverse.primary` is generated
-  // for every mode, so the row always renders — the `if` is a defensive guard.
+  // Inverse — the contrasting band (dark heroes / inverse sections). Writes
+  // `surfaces.<mode>.inverseBase`, NOT an `overrides` entry, and that is the whole of #956 on this
+  // side of the wire. The band is a GROUND: ~60 roles are contrast-measured against it. `surfaces` is
+  // read during derivation, so moving it re-derives all of them and every reported ratio stays true.
+  // The override layer runs after derivation and rewrites one role, so routing the band through it
+  // left those roles carrying ratios for a surface that was gone — measured at neutral 300, 53 of 53
+  // gated roles claimed contrast they did not have, with no warning, because the warning was computed
+  // from the same stale number. The engine now refuses that route by name; this control does not take
+  // it. `background.inverse.primary` is generated for every mode, so the `if` is a defensive guard.
   const invHex = roles['background.inverse.primary']?.hex;
   if (invHex) {
-    const nPal = theme.roleToPalette.neutral;
-    const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
-    const cur = brandState.overrides?.[mode]?.['background.inverse.primary']?.step;
-    // The shared `stepPicker`, so "Auto" NAMES the step it resolved to (`Auto · neutral 950`) exactly
-    // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
-    // `baselineStepOf` (#330), not `stepKeyOf(r.path)` — the live role already reflects `cur` when an
-    // override is active, so naming it off `r.path` would have Auto echo the very override it clears.
-    const invSel = stepPicker(nPal, nSteps, baselineStepOf('background.inverse.primary', mode),
-      typeof cur === 'string' ? cur : undefined,
-      (step) => setFillOverride('background.inverse.primary', nPal, step));
     // `text.on-inverse.primary` is measured against `background.inverse.primary` exactly — the correct ink
     // for this band regardless of which mode's inverse this is.
     const invText = roles['text.on-inverse.primary']?.hex ?? '#f2f2f6';
-    sec.append(sfRow({
-      swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary',
-      desc: 'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode.',
-      // "Step", not "Base surface" — the Primary row's "Base surface" picks white/black/a neutral, this
-      // repoints a step through the override layer, which is what every other row on the page calls "Step".
-      controls: sfCtl(sfCtlBlock('Step', invSel)),
-      example: sfExSurface(invHex, 'Primary Inverse Background', invText),
-    }));
+    const invRow = (controls: HTMLElement, desc: string): void => {
+      sec.append(sfRow({
+        swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary', desc, controls,
+        example: sfExSurface(invHex, 'Primary Inverse Background', invText),
+      }));
+    };
+    // Configurable only for light/dark, exactly like Primary above and for the same reason: `surfaces`
+    // is keyed by those two, and a custom mode seeds its band from the base mode it inherits.
+    if (mode === 'light' || mode === 'dark') {
+      const nPal = theme.roleToPalette.neutral;
+      const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
+      // `mode as 'light' | 'dark'` for the same reason the Primary row above does it: `ModeName`
+      // widens to `string & {}` for custom modes, so the `if` narrows the VALUE without narrowing the
+      // type enough to index `SurfacesConfig`.
+      const cur = brandState.surfaces?.[mode as 'light' | 'dark']?.inverseBase;
+      // The shared `stepPicker`, so "Auto" NAMES the step it resolved to (`Auto · neutral 950`) exactly
+      // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
+      // `baselineStepOf` (#330), not `stepKeyOf(r.path)` — the live role already reflects `cur` when a
+      // band is set, so naming Auto off `r.path` would have it echo the very value it clears.
+      const invSel = stepPicker(nPal, nSteps, baselineStepOf('background.inverse.primary', mode),
+        cur == null ? undefined : String(cur),
+        (step) => { setPath(brandState, `surfaces.${mode}.inverseBase`, step == null ? undefined : Number(step)); applyFull(); });
+      // "Step" is retained even though this is no longer an override: the control still picks a step
+      // off the neutral ramp, which is what the label describes and what every other row here calls it.
+      invRow(sfCtl(sfCtlBlock('Step', invSel)),
+        'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode. Everything measured against the band re-derives, so a pick the ramp cannot serve is reported rather than silently absorbed.');
+    } else {
+      invRow(sfCtl(sfCtlBlock('Step', el('span', 'sf-derived', 'Seeds from its base mode'))),
+        'The contrasting band for dark heroes / inverse sections. Seeded from this custom mode’s base.');
+    }
   }
   return sec;
 };
