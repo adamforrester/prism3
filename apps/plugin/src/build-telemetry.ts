@@ -219,3 +219,107 @@ export const settlePoint = (lags: number[]): number => {
   }
   return -1;
 };
+
+/**
+ * Measure the POST-COMPLETION SETTLE — how long the host stays stalled after the executor has returned
+ * (#684). The 1m10s freeze the issue records happened *after* the pill said done, so it is not in any
+ * phase total and no amount of chunking removes it: Figma is reconciling a scenegraph that just grew by
+ * thousands of nodes.
+ *
+ * Schedule a chain of `setTimeout(_, 0)` and record how late each one actually fires — see `settlePoint`
+ * above for why the lag *is* the stall. Returns `null` if the tail never settles inside the sample budget,
+ * reported as NOT MEASURED rather than as a number, because a run that is still stalling when sampling
+ * stops has not produced a settle time and printing the budget as one would understate it.
+ *
+ * **THE BUDGET IS IN TICKS, AND ITS WALL-CLOCK COST SCALES WITH HOW BUSY THE HOST IS.** This is the
+ * mechanism behind #908 and it is worth stating in the unit a reader will ask about. Measured at
+ * `MAX_TICKS = 400`, with the shipped `CALM_LAG_MS = 8`:
+ *
+ *   | host work per tick | ticks used | wall clock | returns              |
+ *   |--------------------|------------|------------|----------------------|
+ *   | idle               |          3 |        3ms | 1ms                  |
+ *   | 5ms                |          3 |       18ms | 6ms                  |
+ *   | 10ms               |        400 |     4399ms | null (NOT MEASURED)  |
+ *   | 20ms               |        400 |     8399ms | null (NOT MEASURED)  |
+ *   | 50ms               |        400 |    20400ms | null (NOT MEASURED)  |
+ *   | 100ms              |        400 |    40331ms | null (NOT MEASURED)  |
+ *
+ * Two things follow, and #908 was filed knowing only the first. **The 8.4s it reports is one point on a
+ * line, not a ceiling** — the same probe costs 40s on a host four times busier, which is past the point
+ * where a delay and a permanent hang are the same event to a designer. And **the transition is a cliff,
+ * not a slope**: 5ms of work per tick settles in three ticks because the lag lands under `CALM_LAG_MS`,
+ * and 10ms never settles at all. 18ms against 4399ms, for a doubling of host load.
+ *
+ * **WHY THE BUDGET IS NOT IN WALL CLOCK, WHICH IS THE FIX #908 PROPOSES AND MEASUREMENT REFUTES.** A
+ * ~500ms wall bound looks like the obvious cap and is wrong twice over. It would disable the instrument
+ * for exactly the case it was built for: a single solid 2s freeze is measured correctly today (2003ms, in
+ * four ticks — one loud tick then a calm run), and under a 500ms bound it returns `null`. And it would not
+ * even cap the wall clock, because a wall check can only run *between* ticks and a solid stall holds the
+ * thread *inside* one — the same freeze took 2001ms to give up. Any bound that admits the 1m10s freeze
+ * this probe exists to measure is necessarily larger than the delay #908 is about, so the delay had to be
+ * removed by ORDERING (see `verdictBeforeSettle`) rather than by shrinking the budget.
+ *
+ * `maxTicks` is a parameter only so the tests can pin the tick-budget behaviour without burning the full
+ * 400; every caller takes the default.
+ */
+export const MAX_TICKS = 400;
+export const measureSettle = async (maxTicks: number = MAX_TICKS): Promise<number | null> => {
+  const t0 = Date.now();
+  const lags: number[] = [];
+  const stamps: number[] = [];
+  for (let i = 0; i < maxTicks; i++) {
+    const before = Date.now();
+    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+    const now = Date.now();
+    lags.push(now - before);
+    stamps.push(now - t0);
+    // Stop as soon as it HAS settled rather than always sampling the full budget — `settlePoint` returns
+    // the index that begins the calm run, so re-checking each tick costs a scan of a short array and saves
+    // hundreds of pointless ticks on a healthy build.
+    const at = settlePoint(lags);
+    if (at >= 0) return stamps[at];
+  }
+  return null;
+};
+
+/**
+ * Run the settle probe WITHOUT the designer's verdict waiting on it (#908).
+ *
+ * THE DEFECT THIS REMOVES: the probe was awaited before `component-result` was posted, so on a host busy
+ * enough to matter the panel held `⋯ Building…` for the whole tick budget — 8.4s at 20ms of work per tick,
+ * 40s at 100ms — and then reported a verdict alongside a settle figure of `null`. The designer's verdict
+ * was delayed by a diagnostic, and by a diagnostic that had failed. #870's argument is what makes that
+ * more than a slow build: the verdict line is the ONLY place a build's misses are reported, and an 8.4s
+ * hang is indistinguishable from the permanent one #870 fixed to anyone who has already looked away.
+ *
+ * THE ORDER IS THE WHOLE POINT, so it is a named function with a test rather than three lines inline:
+ *
+ *   1. the probe STARTS FIRST, before `postVerdict` runs. This is not cosmetic — the probe measures the
+ *      stall beginning at the executor's return, so starting it after the post would move what it
+ *      measures. Nothing between its start and the post may await.
+ *   2. `postVerdict` is called and NOT awaited against the probe, so the pill updates immediately.
+ *   3. the probe's result is returned for the caller to await, and is consumed only by the console
+ *      telemetry block.
+ *
+ * WHY THE COUPLING #684's COMMENT DEFENDED SURVIVES INTACT. That comment kept the await first so "the
+ * pill's verdict and the console's settle figure describe the same run". They still do: the probe is
+ * still this build's, started at the same instant, and the telemetry block still carries its number. What
+ * changed is only who waits. The pill never showed the settle figure in the first place — `summary` is
+ * built from the executor's counts and has never carried it — so nothing a designer reads was coupled to
+ * the probe at all.
+ *
+ * WHY IT IS TESTABLE AT ALL, and this is the reason for the seam rather than a preference: `main.ts`
+ * calls `figma.showUI` at module scope and cannot be imported, which is the same constraint that put the
+ * rest of this file here. Passing the probe in means a test can supply one that NEVER RESOLVES — the
+ * busy host taken to its limit — and assert the verdict still went out. Re-inlining this as
+ * `const settleMs = await probe(); postVerdict();` restores #908 exactly, and that test is what fails.
+ * Do not "simplify" the unawaited promise: it is the fix.
+ */
+export const verdictBeforeSettle = async (
+  probe: () => Promise<number | null>,
+  postVerdict: () => void,
+): Promise<number | null> => {
+  const settle = probe();
+  postVerdict();
+  return settle;
+};

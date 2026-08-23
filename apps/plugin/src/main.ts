@@ -28,7 +28,7 @@ import { applyTextStylePlan } from './write-text-styles';
 import { preloadFonts } from './preload-fonts';
 import { applyComponentPlan } from './write-components';
 import type { ComponentProgress } from './write-components';
-import { chunkLine, summaryLines, settlePoint } from './build-telemetry';
+import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
@@ -194,47 +194,6 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
 const SWAP_TARGET = 'FPO-default-icon';
 
 /**
- * Measure the POST-COMPLETION SETTLE — how long the host stays stalled after the executor has returned
- * (#684). The 1m10s freeze the issue records happened *after* the pill said done, so it is not in any
- * phase total and no amount of chunking removes it: Figma is reconciling a scenegraph that just grew by
- * thousands of nodes.
- *
- * HOW IT MEASURES A HANG WITHOUT A STOPWATCH: schedule a chain of `setTimeout(_, 0)` and record how late
- * each one actually fires. On an idle main thread that is ~1-4ms. Scheduled while the host is stalled, the
- * callback cannot run until the thread is free, so the LAG *is* the stall — sampled from inside, with no
- * clock-watching and no guess about when "done" happened. `settlePoint` finds where the lag returns to
- * idle for `CALM_TICKS` consecutive samples (one quiet tick between two long ones is a gap in the work,
- * not the end of it).
- *
- * Returns `null` if the tail never settles inside the sample budget — reported as NOT MEASURED rather than
- * as a number, because a run that is still stalling when sampling stops has not produced a settle time and
- * printing the budget as one would understate it.
- *
- * The budget: `MAX_TICKS` at ~0ms apiece costs nothing on a responsive file (it finishes in the first few
- * ticks) and caps a pathological one. 400 ticks past a settled file is ~1-2s of idle sampling; against the
- * measured 1m10s freeze it is the calm run that ends it, not the budget.
- */
-const MAX_TICKS = 400;
-const measureSettle = async (): Promise<number | null> => {
-  const t0 = Date.now();
-  const lags: number[] = [];
-  const stamps: number[] = [];
-  for (let i = 0; i < MAX_TICKS; i++) {
-    const before = Date.now();
-    await new Promise<void>((resolve) => { setTimeout(resolve, 0); });
-    const now = Date.now();
-    lags.push(now - before);
-    stamps.push(now - t0);
-    // Stop as soon as it HAS settled rather than always sampling the full budget — `settlePoint` returns
-    // the index that begins the calm run, so re-checking each tick costs a scan of a short array and saves
-    // hundreds of pointless ticks on a healthy build.
-    const at = settlePoint(lags);
-    if (at >= 0) return stamps[at];
-  }
-  return null;
-};
-
-/**
  * Materialise the Button COMPONENT SET into this file (#483) — the component tier's write action.
  *
  * ITS OWN ACTION, NOT PART OF `applyTheme` (#652): a theme apply writes variables and is something a
@@ -303,6 +262,12 @@ const measureSettle = async (): Promise<number | null> => {
  * fires at every chunk boundary; the terminal `component-result` still lands exactly once, at the end.
  */
 const buildComponents = async (defId?: string): Promise<void> => {
+  // EXACTLY ONE VERDICT PER BUILD, and this flag exists because #908's reordering is what made a second one
+  // possible. The success verdict now posts BEFORE the console telemetry, so a throw in the telemetry tail
+  // would reach the catch below and overwrite a correct "built" verdict with "apply failed" — reporting a
+  // successful build as a failure because a diagnostic could not be formatted. Cheap to prevent, and the
+  // invariant is one #870 depends on: a designer reads the last verdict rendered.
+  let verdictPosted = false;
   try {
     // ABSENT MEANS BUTTON, which is #483's contract preserved rather than a default chosen here: a UI
     // older than #804 posts no `def`, and it must keep building the thing its own control names.
@@ -361,22 +326,43 @@ const buildComponents = async (defId?: string): Promise<void> => {
         postToUi({ type: 'component-progress', phase: p.phase, done: p.done, total: p.total, chunkMs: p.chunkMs });
       },
     });
-    // The settle probe (#684). Started AFTER the executor returns, which is the exact moment the pill says
-    // done and the file was previously frozen for 1m10s. Awaited before the summary so the summary can
-    // carry the number; the result message is posted after, so the pill's verdict and the console's
-    // settle figure describe the same run.
-    const settleMs = await measureSettle();
-    // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
-    // starved file can produce one miss per binding per member and the whole list is not a summary.
-    const missNote = r.misses.length
-      ? `, ⚠️ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
-      : '';
-    const summary = r.set === null
-      ? `nothing assembled — no set on this page and no member built${missNote}`
-      : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present), ` +
-        `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
-        `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-        `${r.refs} refs across ${r.wiredMembers} members${missNote}`;
+    // THE SETTLE PROBE (#684), RUN WITHOUT THE VERDICT WAITING ON IT (#908). It still starts at the exact
+    // moment the executor returns — the moment the pill says done and the file was previously frozen for
+    // 1m10s — and the console telemetry below still carries its number, so #684's coupling is intact. What
+    // #908 removed is the designer waiting for it: awaited here, a busy host held `⋯ Building…` for the
+    // whole tick budget (8.4s at 20ms of work per tick, 40s at 100ms) and then reported `null`. The
+    // ordering is `verdictBeforeSettle`'s, and its header says why it is a named function with a test.
+    const settleMs = await verdictBeforeSettle(measureSettle, () => {
+      // Cap the miss list rather than the count: `summary` is read in a chrome row that wraps, but a
+      // starved file can produce one miss per binding per member and the whole list is not a summary.
+      const missNote = r.misses.length
+        ? `, ⚠️ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
+        : '';
+      const summary = r.set === null
+        ? `nothing assembled — no set on this page and no member built${missNote}`
+        : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present), ` +
+          `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
+          `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
+          `${r.refs} refs across ${r.wiredMembers} members${missNote}`;
+      // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
+      // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
+      // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason
+      // the theme write's is — never by re-reading the prose above.
+      postToUi({
+        type: 'component-result',
+        ok: r.set !== null && r.misses.length === r.skipped,
+        headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped),
+        summary,
+      });
+      verdictPosted = true;
+    });
+    // BOTH CONSOLE BLOCKS RUN AFTER THE AWAIT, deliberately. They are the only two things left that need
+    // the settle number, and keeping them out of the sampling window matters: a `console.log` is
+    // main-thread work, so printing them while the probe is sampling would show up as lag and could push
+    // an otherwise-idle file off its calm run. The verdict post above IS inside the window, which is
+    // correct rather than a compromise — it is real main-thread work happening after the executor
+    // returned, and it is sub-millisecond.
+    //
     // The #701 hit rate, on its own line and only in the console. It answers "was the search actually
     // avoided this run", which is the question the wire timing above cannot answer on its own: a slow wire
     // pass with 0 retained is the fix not engaging, and a slow one with all of them retained is a cost
@@ -392,23 +378,17 @@ const buildComponents = async (defId?: string): Promise<void> => {
         // the expensive case. Which is why the counter is worth printing: the number alone is not a cost.
         'searches are only expensive during a cold build, when the scenegraph is still reconciling)',
     );
-    // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
-    // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
-    // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason
-    // the theme write's is — never by re-reading the prose above.
     // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
     // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
     for (const line of summaryLines(reports, settleMs)) console.log(line);
-    postToUi({
-      type: 'component-result',
-      ok: r.set !== null && r.misses.length === r.skipped,
-      headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped),
-      summary,
-    });
   } catch (e) {
     // `planSetLayout` throws on a set that could not be assembled coherently — before anything reaches
     // the file. That is a def-tier or scope-tier error, and its message names the cause.
-    postToUi({ type: 'component-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `component build failed: ${(e as Error).message}` });
+    //
+    // GUARDED, per `verdictPosted` above: once the build has reported itself built, a later throw is a
+    // reporting failure and not a build failure, so it goes to the console rather than over the verdict.
+    if (verdictPosted) console.error('[prism3 #908] build reported success; the telemetry tail then threw:', e);
+    else postToUi({ type: 'component-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `component build failed: ${(e as Error).message}` });
   }
 };
 
