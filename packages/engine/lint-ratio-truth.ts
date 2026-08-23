@@ -126,13 +126,26 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
       // things. The distinction is the point: `scrim.default` carries `alpha: 0.4` and is genuinely
       // `ink-on-surface`, so an inference would have misclassified it on day one, which is why the
       // model is declared at the `put` site at all.
+      //
+      // A shape failure `continue`s. It is not enough for this arm to run FIRST — it has to STOP the
+      // row, because arm A below dereferences `roles[legibleFor]` and a missing one throws. Mutating
+      // `legibleFor` away proved it: the failure was recorded and then the process died on the very
+      // next statement, printing a stack trace and no summary. **A crash names no gate**, and the
+      // one assertion written for that mutation was the one silenced — the same shape #951 hit, where
+      // a value check downstream of a shape check touched the missing shape first. Ordering an arm
+      // ahead of another is only half of it; the other half is not falling through.
       if (r.model === 'ink-on-composite') {
-        if (r.legibleFor == null || r.alpha == null)
+        if (r.legibleFor == null || r.alpha == null) {
           failures.push(`${label}/${m.mode}: '${key}' declares model 'ink-on-composite' but is missing ${r.legibleFor == null ? 'legibleFor' : 'alpha'} — its ratio cannot be recomputed, so the role would be unverifiable by construction.`);
-        else if (!(r.legibleFor in roles))
+          continue;
+        }
+        if (!(r.legibleFor in roles)) {
           failures.push(`${label}/${m.mode}: '${key}' names legibleFor '${r.legibleFor}', which is not a role in this mode — the same dangling-reference failure arm C catches on \`against\`, one field over.`);
+          continue;
+        }
       } else if (r.legibleFor != null) {
         failures.push(`${label}/${m.mode}: '${key}' is model '${r.model}' but carries a legibleFor ('${r.legibleFor}') — that field belongs only to a translucent wash, and a stray one means the two models have started blurring again (#963).`);
+        continue;
       }
 
       if (!(r.min && r.min > 0) || r.ratio == null) continue;
