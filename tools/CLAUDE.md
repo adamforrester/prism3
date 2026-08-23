@@ -100,4 +100,4 @@ documentation of a detector to be caught by the detector.
 
 A fourth harness in this directory, undocumented here until now — see its own `README.md` for what it
 does and how to run it (records block-layout structure from a real browser for the `docs/37` corpus,
-#693). Filed as #942 to get proper treatment in this file rather than folded in as an afterthought.
+#693). Filed as #946 to get proper treatment in this file rather than folded in as an afterthought.
