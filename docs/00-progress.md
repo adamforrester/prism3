@@ -202,6 +202,47 @@ not from Figma.
 
 ---
 
+## (2026-08-22) — the `tools/` layer-table cell's depth moves to a nested `tools/CLAUDE.md` (#925)
+
+**STATUS: shipped.** Second of the five `docs/43` grooming issues, started before #924 (principle 4's
+shrink) merged — the two edits don't overlap (~line 18 vs ~line 93) and #924's own PR already answered
+the sequencing question this task existed to ask: does a pinned region survive a restructure? Yes,
+because `lint-doc-gates.ts`'s and `lint-layout-claims.ts`'s predicates both check structure, never
+prose depth.
+
+**Verified rather than trusted: `lint-layout-claims.ts`'s table predicate is exactly what #925 claimed
+— the FIRST CELL only.** Read `tableClaims()` (`lint-layout-claims.ts:248-263`) directly: it slices
+each row on `|`, takes `t.slice(1).split('|')[0]`, and only that first cell's tokens are checked for
+resolution. The second (description) cell is never parsed. Confirmed by mutation, not assumed:
+
+| mutation | result |
+|---|---|
+| gut the `tools/` cell to a one-line description + pointer | ✓ passes (this PR's actual change) |
+| delete the `tools/` row entirely | ✗ fails — arm C, by name: `CLAUDE.md §What this repo is never names: tools/` |
+| add a row for a directory that does not exist | ✗ fails — arm B, by name: `a layout region claims a path git does not track` |
+
+**Result:** `CLAUDE.md` 62,191 → **56,338 bytes (−5,853, ~9%)**, measured against the same baseline
+#924 started from (before either PR's changes are combined by rebase). New `tools/CLAUDE.md`
+(7,694 bytes) carries the full depth, reorganized under one header per harness rather than one run-on
+cell: the gate-vs-tool distinction stated once up front (a tool answers a question and exits 0; a gate
+asserts an answer and fails — why `compare.ts`/`gate.ts` are separate files), why three of four
+harnesses have no gate sibling (each for its own stated reason, not a shared excuse),
+`forward-claim-check`'s recall figure kept with its date and drift rather than quoted bare, and the
+schematic-`#N` trap (a real citation in this kind of prose gets caught by the detector it documents —
+it already happened once).
+
+**One real gap found doing the "verify what's here" pass, filed rather than silently patched:**
+`tools/` has a **fourth** harness, `block-capture/` — real, tracked, has its own `README.md` — that the
+layer-table cell never described, in any of its lives. Not a `lint-layout-claims.ts` gap (`tools/*`
+isn't a workspace glob, so the gate sees `tools/` as one subject, already represented) — a
+documentation-completeness gap nothing was checking. `tools/CLAUDE.md` gives it a one-line pointer so
+it isn't silently absent from the new home too, and #946 tracks writing it up properly.
+
+**Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY**. `regen.ts --check` → byte-identical, 105/105.
+
+---
+
 ## (2026-08-22) — `CLAUDE.md` principle 4 shrinks to a bare gate list, and the pinned region survives (#924)
 
 **STATUS: shipped.** First of the five `docs/43` grooming issues (#924–#928), landed alone and first
