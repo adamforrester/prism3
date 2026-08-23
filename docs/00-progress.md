@@ -70,6 +70,53 @@ paths are untouched. `--check` treats a stale stamp as a failure, so the alterna
 or skipping a legitimate engine bump. #900 owns the 5.2.0 contract bump and edits different lines.
 ---
 
+## (2026-08-22) — `CLAUDE.md` principle 4 shrinks to a bare gate list, and the pinned region survives (#924)
+
+**STATUS: shipped.** First of the five `docs/43` grooming issues (#924–#928), landed alone and first
+on purpose — principle 4 is the region `lint-doc-gates.ts` pins by regex, compared against `ci.yml` in
+both directions, so a botched restructure here is the one that would have blocked #925–#928 from being
+safe to attempt at all.
+
+**The result: `CLAUDE.md` 62,191 → 33,740 bytes (−28,451, a 46% cut), all in principle 4.** The
+per-gate narrative (why each gate exists, what it caught, how it verifies independent of its subject)
+is deleted from `CLAUDE.md` — not lost: it already lived in `CONTRIBUTING.md` §3 and each gate's own
+file header, verified gate-by-gate before deletion rather than assumed. One real gap found doing that
+check: `lint-layout-claims.ts`'s `CONTRIBUTING.md` entry described the check but not the actionable
+consequence ("adding a workspace under `apps/` or `packages/` requires editing three tables in the
+same PR") — ported there before deleting it from `CLAUDE.md`, so the fact survives even though its
+`CLAUDE.md` copy doesn't.
+
+**What survived, non-negotiably, per #924's own scope:** the bare gate list, complete and in order
+(the exact tokens `lint-doc-gates.ts` needs on one line per gate); every ordering constraint
+(`test:smoke`/`test:verdict` after their builds, the exporter gate after the TokenPress build, the
+prose gates after the web build); the instruction to run `npm run verify` rather than gates by hand,
+with its four load-bearing properties (no pipeline between command and exit status, buffered
+per-gate output, enforced ordering, SKIP is not a pass); and the boundary headings themselves
+(`4. **Goal-driven execution...` / `5. **Versioning...`) — untouched, since renumbering either one
+moves the region regex's anchor.
+
+**What #925–#928 now know about whether the pinned regions tolerate restructuring — the actual
+finding, not just a good outcome:** yes, safely, but only if you preserve structure, not prose.
+`lint-doc-gates.ts`'s predicate (verified by reading it, not assumed) is token co-occurrence on a
+single line per gate — it does not read paragraph length, does not check a rationale exists, does not
+check a rationale is accurate. Cutting ~28KB of narrative changed nothing it measures, because none of
+that narrative was ever inside its predicate's view. The corollary that matters for the next four PRs:
+the region's actual constraints are much narrower than "don't touch this" suggests, but they are
+absolute where they apply — drop a bare `.ts` filename, retitle either boundary heading, or split a
+gate's tokens across two lines, and the region fails loudly (verified below), not silently.
+
+**Mutation-verified, the required way — not "did the suite go red" but "did `lint-doc-gates.ts` name
+CLAUDE.md §4 specifically":** deleted ` · \`lint-glyph-geometry.ts\`` from the shrunk Engine bullet.
+`lint-doc-gates.ts` failed by name: `"A glyph draws its own filled outline on a square artboard" is
+missing from CLAUDE.md §4 ... (not on any one line there: lint-glyph-geometry.ts)`. Restored via
+`git checkout -- CLAUDE.md` (committed before mutating, per the repo's own rule); reran clean.
+
+**Gates:** `npm run verify` → **40/40 gates reached a verdict — 40 PASS · 0 FAIL · 0 SKIP · 0
+ADVISORY**, on a fresh container after `npx playwright install chromium chromium-headless-shell`
+(#935/#889's known gap, not this diff). `regen.ts --check` → byte-identical, 105/105.
+
+---
+
 ## (2026-08-22) — #892 closes: 11 of 123 remain, and every one of them by decision
 
 **STATUS: in review.** #892 step 5, stacked on the context-node rule (#936) because step 5 is what
