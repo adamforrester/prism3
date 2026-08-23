@@ -6,7 +6,7 @@
  * something each pass has to remember — four PRs in a row re-derived it and three of them missed
  * something.
  *
- * Four traps, each of which caught a previous pass, are handled here rather than left to the reader:
+ * Five traps, each of which caught a previous pass, are handled here rather than left to the reader:
  *
  *  1. A FIXED WORD LIST UNDER-COUNTS. `colour|grey|behaviour` misses `generalised`, `tokenisation`,
  *     `synthesising`. So this scans the `-is(e|ed|es|ing|ation)` and `-our` PATTERNS and subtracts a
@@ -29,6 +29,38 @@
  *     had the same shape — `catch { return [] }` made an unreadable file count as a clean one.
  *     Both now fail closed via `blind[]`. **A gate must not report a number it did not earn**, which
  *     generalizes traps 1 and 2: each was a case of the scan being narrower than it claimed.
+ *  5. ONE OF TWO BUNDLES IS NOT "THE BUILT BUNDLE" (#937). Trap 2 put `apps/studio/dist` in scope and
+ *     traps 2-4 then spent four passes hardening HOW that directory is read — required, fail-closed,
+ *     represented per surface. None of them asked whether it was the only one. `apps/plugin/dist` is
+ *     the same kind of surface under a different name and was never scanned, so every en-GB spelling
+ *     that reaches the Figma plugin and nothing else shipped past a gate whose headline said `clean`.
+ *
+ *     WHAT MADE IT INVISIBLE, and it is the same shape as trap 3 one level up. A `dist/` directory
+ *     does not exist until something builds it, so the scanned set and the unscanned one look
+ *     identical from outside: both absent in a fresh tree, both appearing after a build, neither
+ *     named anywhere except in this file. The hardening in traps 3 and 4 is all *depth* on one
+ *     surface — `walkRequired` proves the studio bundle was opened, `REQUIRED_SURFACES` proves it was
+ *     represented — and no amount of it is *breadth*. **A gate can be exhaustively verified over a set
+ *     that is itself incomplete, and every one of those verifications passes.**
+ *
+ *     The plugin bundle is not a smaller copy of the studio one. `ui.html` inlines the same shared
+ *     `apps/studio/src` UI, so what the studio bundle already gates is gated twice; the surplus is
+ *     `packages/engine/components/*.ts`, bundled into BOTH plugin files and into no gated artifact —
+ *     their `description` / `note` / `aria` / `avoidWhen` / `errorPattern` prose is read by an agent
+ *     and rendered in the plugin's own panels, and it reached neither `out/**` nor the studio bundle.
+ *     Measured on the first run of this scan: 89 hits in `main.js`, 86 in `ui.html`, of which 34 and
+ *     33 sit in comments (the open question below) and **55 and 53 are prose in string literals**,
+ *     which no open question covers.
+ *
+ * OPEN, AND DELIBERATELY NOT DECIDED HERE. CLAUDE.md's US-English section carves comments out of the
+ * standard, then narrows the carve-out for `apps/studio/src` — because a bundle cannot tell a comment
+ * from a string, so an exemption this gate cannot see is not enforceable — and records as OPEN whether
+ * that same narrowing extends to `packages/engine/components/*.ts`, which #849 owns. Widening the scan
+ * to the plugin bundle does not answer it and must not: this file scans what ships and reports what it
+ * finds. What the scan DOES establish is that #849's answer is not sufficient on its own — exempting
+ * every comment in every component def still leaves 108 prose hits across the two files, because the
+ * `description` and `note` fields were never comments. Those are a separate defect with a separate
+ * owner (#947), not a consequence of the open decision.
  *
  * SCOPE. Everything shipped is gated, and as of this pass that includes the two surfaces previously
  * carried as "reported, never fatal": the hand-authored `theme-schema.json` contract and the engine
@@ -167,6 +199,20 @@ const gated: string[] = [
   // latter writes apps/studio/public/dist, which this does not scan.
   ...walkRequired(join(repo, 'apps/studio/dist'), 'the web bundle is not built — run `npm run -w @prism3/studio build` (NOT build:site, which writes apps/studio/public/dist)')
     .filter((f) => f.endsWith('.js')),
+  // …and the OTHER bundle, which shipped outside this gate for as long as the gate has existed (#937).
+  // Trap 2 is the reason `apps/studio/dist` is here; `apps/plugin/dist` is the identical surface with a
+  // different name, and it carries strictly MORE prose — the same shared `apps/studio/src` UI, inlined,
+  // PLUS the component defs, whose `description`/`note`/`aria`/`avoidWhen` fields reach no other gated
+  // surface. See the header's trap 5 for why the asymmetry was invisible.
+  //
+  // TWO files, claimed individually below rather than by one `/apps/plugin/dist/` predicate: `build.mjs`
+  // writes `main.js` (the sandbox controller) and `ui.html` (the iframe document, with the UI bundle
+  // inlined because the iframe ships `allowedDomains:["none"]` and cannot fetch a second asset). A
+  // single loose promise covering both would stay satisfied by either one alone — the hazard this file's
+  // own root-README comment states as "a promise loose enough to describe two surfaces protects
+  // neither". A third file appearing here is deliberately fatal via the converse check, not absorbed.
+  ...walkRequired(join(repo, 'apps/plugin/dist'), 'the plugin bundle is not built — run `npm run -w @prism3/plugin build`')
+    .filter((f) => f.endsWith('.js') || f.endsWith('.html')),
   // Converted and folded in (owner decision) — previously reported-but-not-fatal because CLAUDE.md
   // held their conversion open. Gated now: leaving a clean surface ungated only defers the regression.
   join(repo, 'packages/engine/schema/theme-schema.json'),
@@ -277,6 +323,12 @@ const REQUIRED_SURFACES: { label: string; test: (f: string) => boolean }[] = [
   // root-level file can satisfy `endsWith('/packages/engine/README.md')`, so its absence stays fatal
   // either way. A promise loose enough to describe two surfaces protects neither.
   { label: 'the root README (the repo front door)', test: (f) => f === join(repo, 'README.md') },
+  // …and the SIXTH and SEVENTH (#937) — the Figma plugin's two shipped files, matched EXACTLY and
+  // separately for the reason the root-README line above states: one predicate over the directory
+  // would let either file vanish while the surface still read as covered, and these two are not
+  // interchangeable (one is the sandbox controller, one is the document a designer looks at).
+  { label: 'the built plugin controller (apps/plugin/dist/main.js)', test: (f) => f === join(repo, 'apps/plugin/dist/main.js') },
+  { label: 'the built plugin UI document (apps/plugin/dist/ui.html)', test: (f) => f === join(repo, 'apps/plugin/dist/ui.html') },
 ];
 const missingSurfaces = REQUIRED_SURFACES.filter((s) => !gated.some(s.test)).map((s) => s.label);
 if (missingSurfaces.length) {

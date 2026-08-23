@@ -12,6 +12,115 @@
 
 ---
 
+## (2026-08-23) — the US-English gate was verified to death over an incomplete set (#937)
+
+**STATUS: in review, and RED ON PURPOSE — read the last section before merging.** #937 reported
+that `lint-us-english.ts` scans `apps/studio/dist` and never `apps/plugin/dist`, so en-GB reaching
+only the Figma plugin ships past a gate whose headline says `clean`. It does. Fixed by widening the
+scan; the two things the widening then surfaced are worth more than the fix.
+
+**The scope was one line; what made it invisible is the finding.** Trap 2 in that file's header put
+`apps/studio/dist` in scope, and traps 3 and 4 then spent four passes hardening *how* that directory
+is read — `walkRequired` so an unbuilt tree fails closed rather than printing `clean`, and
+`REQUIRED_SURFACES` in both directions so a surface cannot leave the scanned set silently. All of it
+is **depth on one surface**, and none of it is **breadth**. Nothing anywhere asked whether
+`apps/studio/dist` was the only bundle. The generalizable form: *a gate can be exhaustively verified
+over a set that is itself incomplete, and every one of those verifications passes* — which is
+`docs/34`'s family, but a member of it that the register does not yet name. The two directories are
+indistinguishable from outside, too: a `dist/` exists only after a build, so the scanned one and the
+unscanned one are both absent in a fresh tree, both present after a build, and neither is named
+anywhere except inside the gate.
+
+**Finding 1 — 175 en-GB spellings were shipping, and 108 of them are not the open question.**
+`apps/plugin/dist/main.js` carries **89**, `ui.html` **86**. `ui.html` inlines the same shared
+`apps/studio/src` UI the studio bundle already gates, so the surplus is entirely
+`packages/engine/components/*.ts`, bundled into both plugin files and into no other gated artifact.
+Split by whether the hit sits in a comment:
+
+| surface | in comments | in string literals | total |
+|---|---|---|---|
+| `apps/plugin/dist/main.js` | 34 | **55** | 89 |
+| `apps/plugin/dist/ui.html` | 33 | **53** | 86 |
+| component def sources (10 of 12 files) | 62 | 53 | 115 |
+
+CLAUDE.md records the comment question as open (#849's, "58 en-GB instances across six component
+defs"). Two corrections fall out of measuring it. The **58 is stale** — 62 comment hits across nine
+defs, 115 overall across ten. And more consequentially, **#849's decision does not clear this
+gate**: exempting every comment in every component def still leaves **108 hits** in string literals,
+because `description`, `note`, `aria`, `avoidWhen` and `errorPattern` were never comments. They are
+prose fields read by an agent and rendered in the plugin's own panels, squarely inside the standard
+CLAUDE.md already states, and they need their own fix. Filed as **#947**.
+
+**Finding 2 — the premise the open question rests on is false, and its sibling gate disproves it.**
+CLAUDE.md's argument for narrowing the comment carve-out in `apps/studio/src` is that "which
+comments esbuild keeps in the bundle is an implementation detail, so an exemption the gate cannot
+see is not enforceable". `lint-voice.ts` **does** see it: `stripLineComments(stripBlockComments())`
+blanks whole-line `//` and `/* */` spans in `.js` bundles before any rule runs, added in #804 when
+that same file's header was measured wrong in the other direction (it had claimed esbuild strips
+comments; `apps/studio/dist/main.js` carries 300 of them). So the mechanism exists and the decision
+is free either way. It is still **not taken here** — and note the repo's own recorded reason points
+away from using it: lint-voice argues the two rule sets have opposite false-positive profiles, since
+"just"/"simply" are ordinary connective prose in this repo's comments while an en-GB spelling in a
+comment is rare and trivial to avoid. That argues for *fixing* the 67, not exempting them. #849's
+owner should have both halves.
+
+**Verified by mutation, five arms, each named.** M1 planted `tokenisation` in a real shipped string
+in each surface's source and rebuilt: 175 → **177**, both hits detected. M1b is the discriminator —
+the same plant with the plugin surface removed from `gated` reports `tokenisation` **zero** times, so
+it is the new surface doing the work and not an existing one. M2 is the negative control the arm
+needs to mean anything: nine correctly-exempt words (`otherwise`, `expertise`, `precise`, `resource`,
+`four tours`, …) planted into both surfaces leave the count at exactly **175**, none flagged — a gate
+red on everything is not a gate. M3 removed `apps/plugin/dist` entirely and the gate fails closed
+naming both surfaces rather than printing `clean` (trap 3, now covering the new surface). M4 covers
+`REQUIRED_SURFACES` in both directions: dropping the walk fires `missingSurfaces` naming both, and
+dropping one promise line while keeping the walk fires the converse `unclaimed` arm naming
+`ui.html`.
+
+**Two files, claimed separately, deliberately.** `build.mjs` writes `main.js` and `ui.html`, and a
+single `/apps/plugin/dist/` predicate would stay satisfied by either alone — the hazard this gate's
+own root-README comment states as "a promise loose enough to describe two surfaces protects
+neither". So each is matched exactly, and a third file appearing there is fatal via the converse
+check rather than absorbed.
+
+**Ordering.** The gate now reads two build outputs, so `verify.ts` declares `after: ['build-web',
+'build-plugin']`. `ci.yml` already ran "Build plugin" before this step, for the `node:`-builtin
+check, so no CI reordering was needed — but the step's comment now says the build is load-bearing
+for the prose gate too, since that is the fact a future reorder would break. The same comment was
+carrying a stale claim (that two surfaces are "printed every run but never fatal"; they were
+converted and gated some passes ago), corrected in place because it is the comment being rewritten.
+
+**Rebased onto three commits mid-review, and two of them mattered.** #924 (#941) shrank CLAUDE.md
+§4 to a bare gate list while this branch was editing the long §4 prose — the one textual conflict,
+resolved by taking main's terse bullet and re-stating the #937 fact in that register, with the
+detail where §4 now sends readers (`CONTRIBUTING.md` §3). And `lint-progress-order.ts`, which landed
+on main in the same window, caught this very entry sitting **fourth** after the rebase: the
+placement trap it was written for, firing on the first branch to hit it. Both bundles were rebuilt
+and re-measured on the rebased tree — the count is still exactly **175** and still confined to the
+two plugin files, so neither #942's telemetry code nor #943's `surface` emitter moved it.
+
+**Not folded in, filed:** the 108 prose hits (**#947**); the identical `apps/plugin/dist` hole in
+`lint-voice.ts` (**#948** — measured at **3** §2 violations in `main.js`, all "simply", all in
+strings, with `ui.html` unmeasured); and a diagnostic one (**#949**), that `walkRequired`'s "the bundle is not built — run
+…" message is unreachable for a directory surface, always shadowed by the earlier `missingSurfaces`
+exit, so a contributor who simply forgot to build is told the gate's scope shrank. That last applies
+to `apps/studio/dist` identically and predates this change. Nothing asserts the two prose gates'
+scopes agree, which is why the divergence is written into both files' headers and into CLAUDE.md
+§4 — `lint-schema-classification.ts`'s both-gates rule covers `schema/` files only, and a bundle is
+not one.
+
+**WHY THIS PR IS RED, AND WHAT CLEARS IT.** `npm run verify`: **40/40 reached a verdict, 39 PASS · 1
+FAIL · 0 SKIP · 0 ADVISORY**, the one failure being `lint-us-english` on the 175 pre-existing hits.
+That is the defect the widening exists to expose, and it is not clearable from inside this PR:
+`#849`'s decision alone leaves 108, and fixing the 108 (#947) alone leaves 67. **Both** are needed, and
+the prose half touches ten component def files that another lane is editing. So this lands red by
+construction and should be sequenced behind the two follow-ups, not merged and reverted. One more
+consequence of leaving it red: the gate prints at most 8 hits per file, so while a backlog of 89
+sits in `main.js`, a newly introduced spelling is counted but **not displayed** — M1's `main.js`
+plant moved the total and never appeared in the output. A red surface is a surface where the next
+regression is invisible.
+
+---
+
 ## (2026-08-23) — `against` meant two opposite things; 1,296 ratios per run were unverifiable because of it (#963)
 
 **STATUS: shipped.** Stacked on #962. `ENGINE_VERSION` 0.16.0 → 0.17.0. `CONTRACT_VERSION` stands at

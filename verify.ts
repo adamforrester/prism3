@@ -38,7 +38,9 @@
  * 3. ORDER IS DECLARED PER GATE AND CHECKED, NOT LEFT TO THE ARRAY. Three orderings are load-bearing
  *    and each one, if violated, produces a PASS rather than an error: `lint-us-english.ts` and
  *    `lint-voice.ts` scan the built `apps/studio/dist/*.js`, so run before `build` they scan a stale
- *    bundle (the trap that got #302 and #310); `tools/exporter-comparison/gate.ts` executes
+ *    bundle (the trap that got #302 and #310) — and as of #937 the US-English gate scans
+ *    `apps/plugin/dist` too, so it now depends on TWO builds and its `after` names both;
+ *    `tools/exporter-comparison/gate.ts` executes
  *    TokenPress's real exporter, so it needs the TokenPress build; the `node:`-builtin check reads
  *    `apps/plugin/dist/main.js`. So every gate declares `after: [...]`, and `assertOrder` checks the
  *    authored array against those declarations BEFORE running anything. The two halves are
@@ -385,15 +387,20 @@ export const GATES: Gate[] = [
     id: 'lint-us-english',
     ciStep: 'US-English gate (shipped text)',
     cmd: engine('lint-us-english.ts'),
-    after: ['build-web'],
-    why: 'its scope includes the built apps/studio/dist/*.js bundle — run earlier it scans a stale one (#302, #310)',
+    after: ['build-web', 'build-plugin'],
+    why: 'it scans BOTH built bundles — apps/studio/dist/*.js and, as of #937, apps/plugin/dist — and run before either build it scans a stale one, or none at all (#302, #310)',
   },
   {
     id: 'lint-voice',
     ciStep: 'Voice lint gate (shipped text)',
     cmd: engine('lint-voice.ts'),
     after: ['build-web'],
-    why: 'same scope as the US-English gate, same reason it runs after the web build',
+    // NOT `build-plugin`, and the difference from the line above is a defect rather than a decision:
+    // this gate's scope has the same apps/plugin/dist hole #937 fixed in its sibling, filed separately
+    // rather than widened here. Adding `build-plugin` to this `after` before the scope moves would
+    // declare a dependency on a directory the gate does not read — an ordering constraint with nothing
+    // behind it is the kind a later edit deletes as noise, which is what `why` exists to prevent.
+    why: 'same apps/studio/dist/*.js scope as the US-English gate, same reason it runs after the web build',
   },
   {
     id: 'lint-doc-gates',

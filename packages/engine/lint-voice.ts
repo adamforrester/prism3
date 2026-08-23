@@ -99,9 +99,15 @@
  *     blanking arbitrary substrings there would be pure risk (a `/* *\/`-shaped span inside real prose
  *     is not impossible) for no benefit.
  *
- * SCOPE — imported from `regen.ts`, identical set to `lint-us-english.ts`: `out/**`, the emitted
- * `schema/`+report artifacts, `apps/studio/dist/*.js` (the BUILT bundle — same trap 2 reasoning), the schema
- * contract, the engine README, and shipped skills. A new emitted artifact is covered automatically
+ * SCOPE — imported from `regen.ts`: `out/**`, the emitted `schema/`+report artifacts,
+ * `apps/studio/dist/*.js` (the BUILT bundle — same trap 2 reasoning), the schema contract, the engine
+ * README, and shipped skills. **NO LONGER IDENTICAL to `lint-us-english.ts`, which is a defect and not
+ * a decision:** #937 added `apps/plugin/dist` (main.js + ui.html) there and deliberately did not widen
+ * this gate in the same PR. Measured with the surface temporarily added here: **3 §2 violations in
+ * `apps/plugin/dist/main.js`**, all "simply", all in string literals rather than comments, with
+ * `ui.html` not yet measured. Filed as #948; until it lands, this sentence is the only place
+ * recording that the two sets diverge, because nothing asserts they agree — the both-gates rule
+ * `lint-schema-classification.ts` enforces covers `schema/` files only, and neither bundle is one. A new emitted artifact is covered automatically
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
  *
