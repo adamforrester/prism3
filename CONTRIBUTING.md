@@ -694,8 +694,14 @@ npm run check:consumability -w @prism3/tokens  # a STOCK Style Dictionary over E
                                           # standard types SD cannot serialize (#635, split by #642);
                                           # asserts the base+overlay projection reads back, and
                                           # refuses custom preprocessors
-npx tsx packages/engine/lint-us-english.ts # run AFTER the web build — its scope includes apps/studio/dist/*.js
-npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here
+npx tsx packages/engine/lint-us-english.ts # run AFTER the web AND plugin builds — its scope is both
+                                          # built bundles: apps/studio/dist/*.js and, since #937,
+                                          # apps/plugin/dist (main.js + ui.html), where the component
+                                          # defs' description/note/aria prose actually ships
+npx tsx packages/engine/lint-voice.ts      # voice-standard.md §2 banned-phrase list (#617) — sibling to lint-us-english.ts, same reason it runs here.
+                                          # NOT the same scope any more: it still has the
+                                          # apps/plugin/dist hole #937 closed above (3 violations
+                                          # measured in main.js), filed as #948 not folded in
 ```
 
 **Green tests are not the finish line.** The standard here is that the change is

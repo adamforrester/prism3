@@ -210,10 +210,13 @@ jobs:
       - name: Skills gate (shipped skills make true claims)
         run: npx --yes tsx@4 packages/engine/lint-skills.ts
 
-      # US English in shipped text. Runs AFTER the web build on purpose: `engine/levers.ts` prose is
+      # US English in shipped text. Runs AFTER BOTH BUILDS on purpose: `engine/levers.ts` prose is
       # inlined into `apps/studio/dist/main.js`, and a source-only grep calls that bundle clean — the trap
-      # that got #302 and #310. Gates out/, the emitted schema + reports, and the built bundle; the
-      # two surfaces CLAUDE.md records as open decisions are printed every run but never fatal.
+      # that got #302 and #310. As of #937 it also scans `apps/plugin/dist` (main.js + ui.html), which
+      # carries the component defs' `description`/`note`/`aria` prose and reaches no other gated
+      # surface; "Build plugin" above is therefore load-bearing for this step, not just for the
+      # node:-builtin check. Gates out/, the emitted schema + reports, and both built bundles — there is
+      # no reported-but-not-fatal surface left, the two CLAUDE.md once held open having been converted.
       - name: US-English gate (shipped text)
         run: npx --yes tsx@4 packages/engine/lint-us-english.ts
 
