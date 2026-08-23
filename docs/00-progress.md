@@ -12,6 +12,77 @@
 
 ---
 
+## (2026-08-23) — the `inverse` lever is removed; removing a lever removed no path (#895)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.13.0 → 0.14.0. `CONTRACT_VERSION` **stands** at 5.1.0, and
+that is the headline rather than a footnote.
+
+**The measurement came first, and it was 2.6× the issue's.** #895 asks for verification by emission
+before anything else, so: `inverse: false` took a brand from **236 emitted color roles to 157**. All
+**79** lost paths are in the committed `guaranteed` set — **13.9% of 570** — by family
+`{interactive: 45, text: 17, icon: 17}`. The `background`/`foreground.inverse` (16) and
+`border`/`field`/`disabled.inverse` (18) sets are unconditional and were never at risk, which is the
+part of the issue's scope note that held. **#895 measured 30 when it was filed; #892 grew it to 79**
+by landing 49 more paths inside the same guard, and nobody re-decided that the guard should hold them.
+*A lever whose blast radius expands with unrelated work is not one a description can make safe* — that
+growth, more than the original 30, is what made removal right rather than a warning in the prose.
+
+**Why no gate caught it, which is the transferable half.** The corpus runs every lever at its
+**default**, so `token-contract.ts --check` never built a brand with the toggle off. A gate that only
+ever observes the default cannot find a defect that lives off it. This is `docs/34`'s family, and it
+is close enough to shape 9 (a dead detector reporting a clean zero) to be worth distinguishing: the
+detector here was alive and correct — it simply was never handed the input that fails.
+
+**Removing a LEVER is not removing a PATH.** The owner flagged that the intuitive read is probably
+wrong, and it was: `guaranteed` is 570 before and after, no path moved to `brandDependent`, no
+`DEPRECATIONS` entry was needed, and the only baseline diff is the informational `engineVersion`
+stamp. Those 79 paths were *already* guaranteed; the lever was a way for the engine to break that
+guarantee, not something the guarantee rested on. **No emitted value moves either** — every corpus
+brand left the lever at its default, so all four trees are byte-identical apart from the `notes` line
+that used to report the toggle's state.
+
+**Rejecting beats ignoring, on the input surface.** `theme-schema.json` is
+`additionalProperties: false`, so a brand input still carrying `inverse` is now hard-rejected rather
+than silently dropped. That is deliberate: `inverse: false` has **no honest normalization** — the only
+thing the engine could still do is generate the family anyway, the exact opposite of what the input
+asked for, so accepting it quietly would be a lie the author gets no signal about.
+`normalizeDisabledStrategy`'s `'conventional'` → `'reduced'` is the precedent for *absorbing* a retired
+input, and it does not apply here precisely because that value had a nearest honest answer to land on.
+Sole reason this is a MINOR and not a PATCH: the accepted input surface shrank.
+
+**#895's open question, answered by code rather than by looking.** The owner could not find the toggle
+in the studio, and the issue asked whether it was a page away or failing to render. **Neither — it was
+never there.** `leversFor()` is called exactly once in `apps/studio/src/main.ts`, for `'motion'`. So
+`pageOfLever`'s fallback, whose own comment lists `inverse` among the levers routed to the Interactive
+page, describes routing that never executes for any page but motion; the Interactive page hand-builds
+its controls by key (`iEnumSelect('outlineInteraction')` and friends) and no key was `inverse`. The
+general defect — **a manifest lever can be added and silently never render** — outlives this issue and
+is filed separately. Worth noting the trap for whoever re-verifies: `docs/24` line 135 records the
+`inverse` toggle as one of two `renderControl` callers, so the *history* says it rendered once. Read
+the call graph, not the changelog.
+
+**The sweep, and what it found beyond the ask.** Building the verification generally — every toggle at
+both values, every enum at every option, over `MINIMAL_BRAND`, diffed against the committed baseline —
+costs **~1s for 46 settings** and finds **two more levers in the same class**: `outlineInteraction` at
+`solid-tint`/`none` removes 18 `interactive.*.overlay.*` (9 of them the inverse overlays #892 just
+added), and `typography.displayCeiling` below `xl` removes up to 3 `type.display.*.strong`. **Not
+fixed here, deliberately** — they are structurally identical but resolve differently, since removing
+those paths is each lever's *declared purpose*, which makes the honest fix demoting the paths to
+`brandDependent` rather than deleting the lever. That is a decision per lever and the owner's to make,
+so it is filed with the measurement rather than shipped inside a PR scoped to one lever.
+
+**What that cost the replacement test, and why it is an equality.** The obvious replacement — "no
+lever removes an inverse path" — is **false**, and measuring saved shipping it: `outlineInteraction`
+still removes 9 inverse overlays. So `test.ts` (a2) sweeps the enumerable lever space and asserts the
+removable inverse set **equals** exactly those 9, listed literally. Both directions matter: a subset
+assertion notices a *new* lever gating inverse paths but goes green forever after someone fixes
+`outlineInteraction`, leaving a stale exemption nobody re-argued — the same rot arm B guards against in
+`lint-context-nodes.ts` and `INVERSE_GAPS`. The full sweep-as-a-gate belongs in its own PR, after the
+two dispositions exist, so its allowlist can carry real reasons instead of placeholders.
+
+**Docs.** `docs/20` §9.4 records the decision; the §10 lever list and the §3a role list are corrected.
+`docs/42` gains the row and loses its "#895 is deliberately not indexed" gap bullet — replaced by the
+same posture for the two levers the sweep surfaced, which are now the open ones.
 ## (2026-08-23) — #900: `control.size.*` is a group from the start, and the density check that proves it is not the glyph ladder
 
 **STATUS: in review.** The token family only — checkbox, radio and switch are **not** bound to it here

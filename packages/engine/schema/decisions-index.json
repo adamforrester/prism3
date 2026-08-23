@@ -44,6 +44,13 @@
       "title": "`docs/34` holds the diagnosis; `CLAUDE.md` holds a countermeasure only when it's unhookable and statable in one clause",
       "doc": "docs/43-agent-instruction-surface.md",
       "section": null
+    },
+    {
+      "date": "2026-08-23",
+      "issue": 895,
+      "title": "the inverse surface-context is not optional — the `inverse` lever is removed",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.4"
     }
   ]
 }

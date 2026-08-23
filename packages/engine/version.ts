@@ -102,6 +102,31 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.15.0: the `inverse` lever is REMOVED — `levers.ts`, `BrandInput.inverse`, `Theme.inverseContext`,
+ * the JSON-schema property and the three guards in `modes.ts`. The inverse surface-context is now
+ * unconditional.
+ *
+ * A minor rather than a patch because the accepted INPUT surface shrank: a brand input carrying
+ * `inverse` is now REJECTED by `theme-schema.json` (`additionalProperties: false`), where before it
+ * was honoured. Rejecting beats silently ignoring, because `inverse: false` has no honest
+ * normalization — the only thing the engine could still do is generate the family anyway, which is
+ * the exact opposite of what the input asked for, so accepting it quietly would be a lie the author
+ * gets no signal about. `'conventional'` → `'reduced'` (`normalizeDisabledStrategy`) is the precedent
+ * for absorbing a retired input rather than rejecting it, and it does not apply here: that value had
+ * a nearest honest answer to land on.
+ *
+ * NO emitted value moves and no name moves. Every corpus brand left the lever at its default, so all
+ * four trees are byte-identical apart from the `notes` line that reported the lever's state.
+ * `CONTRACT_VERSION` therefore STANDS at 5.1.0 — the counter-intuitive half, and worth stating
+ * plainly: removing a LEVER is not removing a PATH. The 79 paths it could delete were already
+ * `guaranteed`; the lever was a way to make the engine BREAK that guarantee, not something the
+ * guarantee rested on. Removing it makes the contract true rather than changing what it says.
+ *
+ * Measured before the fix, not inferred: `inverse: false` took a brand from 236 emitted colour roles
+ * to 157, and all 79 lost paths are in the committed `guaranteed` set — 13.9% of 570. #895 measured
+ * 30 when it was filed; #892 grew it to 79 without anyone re-deciding, which is what turned
+ * "document the sharp edge" into "remove it". (#895)
+ *
  * 0.14.0: the `control.size.*` tier — a small control's OWN box (`{sm,md,lg}.{height,width}`), which
  * no token expressed. Purely additive: six new leaves per brand, no existing value or name moves, and
  * no brand's `dimension` ladder changes because every rung was already on the grid at the default base.
@@ -169,7 +194,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.14.0';
+export const ENGINE_VERSION = '0.15.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
