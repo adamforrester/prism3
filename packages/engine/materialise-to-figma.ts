@@ -51,7 +51,7 @@
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify
  *
- * Scope: ALL FIVE write axes the plugin executor writes — colour (`core-palette` + `color`), the nine
+ * Scope: ALL FIVE write axes the plugin executor writes — colour (`core-palette` + `color`), the ten
  * FLOAT collections (#342), and as of #464 the typography variables (`core-font` + `type-sets`), the
  * Text Styles, and the Effect/Paint styles. The five-vs-two asymmetry is the reason the last three
  * landed: this CLI is the ONLY write path an MCP-driven session can use, so an agent could theme a
@@ -146,6 +146,7 @@ const FLOAT_AXES: { collection: string; modes: string[] | null }[] = [
   { collection: 'radius', modes: ['Default', 'wireframe'] }, // per-mode only for a wireframe brand
   { collection: 'size', modes: null },
   { collection: 'icon', modes: null },
+  { collection: 'control', modes: null },
   { collection: 'border-width', modes: null },
   { collection: 'focus', modes: null },
   { collection: 'opacity', modes: null },
@@ -411,9 +412,9 @@ return {bound,expected:A.length*MODES.length,misses};
 };
 
 // ---- pass: dims-create (every FLOAT collection, N modes, literal fallback values) -------
-// One payload for all nine axes rather than nine payloads: floats are small (≈250 variables
+// One payload for all ten axes rather than ten payloads: floats are small (≈250 variables
 // total against colour's thousands), and a single pass keeps the create/alias ordering honest
-// without asking whoever pastes it to track nine separate steps.
+// without asking whoever pastes it to track ten separate steps.
 const dimsCreatePass = (brand: string): string => {
   const FSC = JSON.stringify(Object.fromEntries(Object.entries(FLOAT_SCOPE_CODE).map(([k, v]) => [v, k])));
   // row: [collection, modes, [[name, scopeCode, description, hidden, [value per mode]]]]

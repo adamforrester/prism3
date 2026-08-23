@@ -186,6 +186,81 @@ export const ICON_SIZES: IconSizeStep[] = [
 ];
 export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }));
 
+// ---------------------------------------------------------------------------
+// CONTROL SIZES (#900). The dimension of a SMALL CONTROL'S OWN BOX — a checkbox's square, a radio's
+// circle, a switch's track. A different quantity from either neighbour, and one with no token at
+// all until now: `size.<t>.height` is the ROW a control sits in (40/48/56 on nb) and `icon.size.*`
+// is the glyph ARTBOARD ladder. Three defs in a row (`checkbox`, `radio`, `switch`) left their
+// control's edge unbound rather than reach for `icon.size.*`, whose values are exactly right and
+// whose meaning is not — the #708 shape, where a binding resolves, typechecks, passes every gate
+// and measures the wrong thing.
+//
+// TWO fields, because the third instance is what constrained the answer: a switch's track is NOT
+// SQUARE, so one rung per size satisfies checkbox and radio and does nothing for a switch.
+//   · `height` — the box's cross-axis edge. A SQUARE control (checkbox, radio) reads this on BOTH
+//     axes. Nothing else is emitted for it: a square's second dimension is not a second decision.
+//   · `width`  — the TRACK width of a two-position control (a switch). Read only by a control that
+//     travels; a checkbox binding it would render a 20x40 box, which is why the emitted description
+//     names the switch rather than leaving `width` to read as the generic partner of `height`.
+//
+// The THUMB is deliberately NOT here. Its diameter is `height` less an inset, and the tier holds the
+// inputs while the layer that knows the geometry does the arithmetic — #801's precedent, where that
+// same split is what let a gate check a GAP rather than a coordinate.
+//
+// DENSITY ACTS HERE, and that is the whole reason this is a windowed ladder rather than a fixed set
+// like `ICON_SIZES`. A control box is chosen WITH the control it belongs to, so a brand running its
+// controls tighter must run their boxes tighter too. The glyph ladder is fixed for the opposite
+// reason — an off-grid glyph blurs, so the field prohibits arbitrary sizes — and the two must not be
+// confused: the window here is the SAME `DENSITY_START` `componentSizes` uses, so a compact brand's
+// ladder sits one rung below a comfortable brand's. That is the observable difference and the thing
+// to check when reading this tier: aurora (compact) emits 12/16/20 where nb, harbor and wendys emit
+// 16/20/24. A control family that came out EQUAL in all four brands would be the glyph ladder under
+// a new name, whatever its description claimed.
+//
+// THE NUMBERS, and what they are and are not grounded in. The corpus holds exactly one brief-supplied
+// target for any of this — checkbox's "a visual box of roughly 16-18px" — and switch's brief
+// specifies no track width, track height or thumb diameter anywhere. Both facts are recorded in the
+// defs that met them, and neither was available to be looked up again here. So:
+//   · The ladder is the five consecutive on-grid steps from 12 to 28. Every rung is a `dimension`
+//     grid member at the default baseUnit, and the emitted token ALIASES the grid rather than
+//     minting a literal — what makes this a tier and not five magic numbers. `buildDims` feeds these
+//     px into the grid extras for the same reason it feeds the icon ladder's: at a coarser baseUnit
+//     they would otherwise land off-grid and the alias would dangle.
+//   · `md` at COMPACT is 16, inside the brief's range. `md` at COMFORTABLE is 20 — two px above it,
+//     and a deliberate divergence rather than a miss. 20 is squarely inside the shipping field
+//     (Fluent's 20x40 switch, MUI's and Mantine's 20px checkbox), the brief's range is one
+//     component's and names no density, and the alternative window — 8/12/16 at compact — puts an
+//     8px box on the smallest rung of the tightest brand, which no system ships.
+//   · `sm` at compact is 12, the ladder's floor, and below the smallest box the field ships
+//     (Spectrum's 14). A 12px box depends on the row's padding for its 24px target (SC 2.5.8,
+//     `MIN_TARGET_PX`) — which is what `size.<t>.height` is for, and which all three defs already
+//     record as an anatomy concern rather than a token one. At the top of the ladder the box alone
+//     clears that floor: 24 at comfortable `lg`, 24/28 at spacious.
+//   · `width` is 2x `height`. The switch track's aspect ratio is the one number the field really
+//     does converge on — Carbon 24x48, Ant 22x44 and Fluent 20x40 are all exactly 2:1 — and doubling
+//     an on-grid height stays on-grid by construction. It is NOT a brand lever: a `control.track-
+//     ratio` token was the named hedge if #900 had gone the other way, and it did not.
+//   · No `spaceBase` parameter, unlike `componentSizes`. The box is anchored to the TYPE it sits
+//     beside (the brief: "`size` scales the control with the type"), not to the spacing rhythm, and
+//     a spaceBase-relative box would walk off the dimension grid at an odd rhythm.
+const CONTROL_RUNGS = [12, 16, 20, 24, 28];
+const CONTROL_NAMES = ['sm', 'md', 'lg'];
+/** The switch track's aspect ratio — `width` = this x `height`. Field-convergent at 2:1. */
+const CONTROL_TRACK_RATIO = 2;
+
+export type ControlSizeStep = { name: string; height: number; width: number };
+
+/** Control-box sizes for a density. The SAME window mechanism as `componentSizes` — three names
+ *  sliding over five rungs, never a clamped shift — so `control.size.md` moves with the brand's
+ *  density lever the way `size.md.height` does, instead of standing still the way the icon ladder
+ *  does. Three names because three is what the corpus asks for: `checkbox` and `radio` declare
+ *  small/medium/large and `switch` declares two, and no def declares a control at `xs` or `xl`. */
+export const controlSizes = (density: Density): ControlSizeStep[] =>
+  CONTROL_NAMES.map((name, i) => {
+    const height = CONTROL_RUNGS[DENSITY_START[density] + i];
+    return { name, height, width: height * CONTROL_TRACK_RATIO };
+  });
+
 // Radius base ramp (px at scale=1) — a small bounded, genuinely-semantic set, so
 // t-shirt naming holds (both NB and Prism2 name it this way).
 const RADIUS_LADDER: { name: string; factor: number }[] = [

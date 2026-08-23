@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
+import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole } from './modes';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
@@ -496,6 +496,181 @@ for (const b of brands) {
 }
 
 
+// CONTROL SIZE TIER (#900). A small control's OWN box — a checkbox's square, a radio's circle, a
+// switch's track. Three defs left that edge unbound because no token expressed it: `size.<t>.height`
+// is the ROW the control sits in and `icon.size.*` is the glyph ARTBOARD. Sits directly below #324's
+// block on purpose, because the two tiers are deliberate opposites and the contrast is the design:
+// the glyph ladder is FIXED (an off-grid glyph blurs), this one is DENSITY-WINDOWED (a brand running
+// its controls tighter must run their boxes tighter). Asserting one without the other would let a
+// later edit quietly turn this into the icon ladder under a new name.
+//
+// EXPECTED is AUTHORED HERE, restating the ladder in the units a human would check it in, rather than
+// imported from `scale.ts` or read back through `controlSizes()` — `docs/34`'s two independent halves.
+// `CONTROL_RUNGS` and `DENSITY_START` are the subject; a table derived from either could not fail when
+// they move. This is the whole ladder, all three densities, as px:
+{
+  const EXPECTED_CONTROL: Record<string, Record<string, { height: number; width: number }>> = {
+    compact:     { sm: { height: 12, width: 24 }, md: { height: 16, width: 32 }, lg: { height: 20, width: 40 } },
+    comfortable: { sm: { height: 16, width: 32 }, md: { height: 20, width: 40 }, lg: { height: 24, width: 48 } },
+    spacious:    { sm: { height: 20, width: 40 }, md: { height: 24, width: 48 }, lg: { height: 28, width: 56 } },
+  };
+  const CONTROL_RUNG_NAMES = ['sm', 'md', 'lg'];
+  // Read a rung's resolved px DEFENSIVELY. Not politeness: with the tier authored as a leaf instead of
+  // a group — the mutation this block's shape check exists for — a direct `grp[n].height.$extensions`
+  // read throws, and a suite that CRASHES reports no failure by name at all. The shape assertion below
+  // is the one that must speak, so nothing downstream of it may take the process down first.
+  const px = (grp: any, rung: string, field: 'height' | 'width'): number | undefined =>
+    grp?.[rung]?.[field]?.$extensions?.prism3?.px;
+  const controlBrand = (density: string, extra: Record<string, unknown> = {}) => brandTheme({
+    id: `c-${density}`, root: 'prism', density, modes: ['light', 'dark'],
+    primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.006, auto: true }, ...extra,
+  } as any);
+
+  // ---- SHAPE: a GROUP from the start, never a rung that grows children later ------------------
+  // This is the assertion #892 paid for. `border.inverse` was authored as a leaf under an unstated
+  // convention, and promoting it to a group cost a MAJOR contract bump, two DEPRECATIONS entries and
+  // a whole rename mechanism. So the group-ness is a CHECKED property here, not a convention: the
+  // rung node must carry no `$value` of its own, and both fields must be leaves under it. Collapsing
+  // `control.size.md` to a single rung fails this by name.
+  {
+    const grp = (buildTree(controlBrand('comfortable')).tree as any).prism.control?.size;
+    ok(!!grp, '#900 control.size.* exists (no token expressed a control\'s own box before)');
+    const notGroups = CONTROL_RUNG_NAMES.filter((n) => !grp?.[n] || grp[n].$value !== undefined
+      || typeof grp[n].height?.$value !== 'string' || typeof grp[n].width?.$value !== 'string');
+    ok(notGroups.length === 0, '#900 every rung is a GROUP carrying `height` + `width` leaves, not a single rung (#892: a leaf promoted to a group costs a MAJOR bump)'
+      + (notGroups.length ? ` — NOT A GROUP: ${notGroups.join(', ')}` : ''));
+    // The THUMB is deliberately absent — its diameter is `height` less an inset, and #801's precedent
+    // is that the tier holds the inputs while the layer that knows the geometry does the arithmetic.
+    // Pinned in both directions so a third field is a decision someone takes, not one that drifts in.
+    const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
+    ok(fields.every((f) => f === 'height+width'),
+      `#900 each rung carries exactly \`height\` + \`width\` — the thumb is NOT in the tier (#801's split: the tier holds the inputs) (got ${[...new Set(fields)].join(' / ')})`);
+    ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
+      `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
+  }
+
+  // ---- VALUES × DENSITY: the window, and the clamping bug it exists to prevent -----------------
+  // `componentSizes` once CLAMPED a shifted index instead of windowing, and aurora shipped with
+  // `size.xs.height` and `size.sm.height` both resolving to `dimension.32` — five names, four values.
+  // The same mechanism is reused here, so the same failure is available: assert three DISTINCT,
+  // strictly increasing heights at EVERY density, not just at the default one.
+  for (const density of Object.keys(EXPECTED_CONTROL)) {
+    const built = buildTree(controlBrand(density));
+    const grp = (built.tree as any).prism.control.size;
+    const wrong: string[] = [];
+    for (const rung of CONTROL_RUNG_NAMES)
+      for (const field of ['height', 'width'] as const) {
+        const want = EXPECTED_CONTROL[density][rung][field];
+        const got = px(grp, rung, field);
+        if (got !== want) wrong.push(`${rung}.${field} ${got} ≠ ${want}`);
+      }
+    ok(wrong.length === 0, `#900 ${density}: the ladder is the authored one` + (wrong.length ? ` — WRONG: ${wrong.join(', ')}` : ''));
+
+    const heights = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'height') ?? NaN);
+    ok(new Set(heights).size === 3 && heights.every((h, i) => i === 0 || h > heights[i - 1]),
+      `#900 ${density}: three DISTINCT, strictly increasing heights — the windowed ladder, not a clamped shift (${heights.join('/')})`);
+
+    // `width` is 2× `height`, read off the two RESOLVED px rather than off `CONTROL_TRACK_RATIO`.
+    const offRatio = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'width') !== (px(grp, n, 'height') ?? NaN) * 2);
+    ok(offRatio.length === 0, `#900 ${density}: every track \`width\` is exactly 2× its \`height\` — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
+      + (offRatio.length ? ` — OFF: ${offRatio.join(', ')}` : ''));
+
+    // THE tier property, same as #324's: an alias into the dimension grid that RESOLVES, not a
+    // literal. `buildDims` feeds these px into the grid extras precisely so this holds at any base.
+    const bad: string[] = [];
+    for (const rung of CONTROL_RUNG_NAMES)
+      for (const field of ['height', 'width'] as const) {
+        const v = String(grp[rung]?.[field]?.$value);
+        const m = v.match(/^\{(.+\.dimension\..+)\}$/);
+        if (!m) bad.push(`${rung}.${field}=${v} (literal)`);
+        else if (!at(built.tree, m[1])) bad.push(`${rung}.${field}→${m[1]} (dangling)`);
+      }
+    ok(bad.length === 0, `#900 ${density}: every leaf aliases a dimension.* step that resolves — what makes this a tier and not six magic numbers`
+      + (bad.length ? ` — ${bad.join(', ')}` : ''));
+  }
+
+  // ---- THE GRID EXTRAS FEED, at the ONE input where it can fail --------------------------------
+  // `buildDims` feeds every control px into `dimensionGrid`'s extras so the aliases resolve at any
+  // baseUnit. The loop above cannot see that line at all: at baseUnit 4 every rung and every doubled
+  // width is already a grid member, so deleting it changes nothing — verified by mutation, and the
+  // first version of this check passed the mutation and had to be thrown away.
+  //
+  // Measured, the margin is ONE px: the space extras already supply five of each density's six control
+  // px at base 4, 6 and 8, and the exception is `spacious` `lg`'s 28px height. That combination is
+  // unreachable through either theme builder (`brandTheme` locks `GRID_BASE`, `nbThemeFrom` locks
+  // `comfortable`), which is why `buildDims` is exported — see its header. Asserting the grid CONTAINS
+  // the px, with the px authored here rather than read off `dims.controls`, so the two halves stay
+  // independent. Both directions: the negative control confirms 28 really is absent from the base-6
+  // ladder, or the positive one would hold for a reason that has nothing to do with the feed.
+  {
+    const coarse = buildDims(6, 8, 'spacious', 1, 4);
+    const SPACIOUS_PX = [20, 40, 24, 48, 28, 56];
+    const grid = new Set(coarse.grid);
+    const absent = SPACIOUS_PX.filter((px) => !grid.has(px));
+    ok(absent.length === 0, `#900 at a coarse baseUnit (6) + spacious density, every control px is on the dimension grid — the extras feed is load-bearing at exactly this input`
+      + (absent.length ? ` — OFF-GRID: ${absent.join(', ')}` : ''));
+    ok(!new Set(dimensionGrid(6, 128, spaceScale(8).map((s) => s.px))).has(28),
+      '#900 …and the negative control: 28 is NOT on the base-6 ladder nor among the space extras, so the assertion above is about the control feed and nothing else');
+  }
+
+  // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
+  // The owner's own trap, encoded: `icon.size.*` is 16/20/24 in ALL FOUR brands, and a control family
+  // that came out brand-invariant would be that ladder under a new name whatever its description
+  // claimed. aurora resolves `compact` (through vocabulary personality, not `modeLevers`), so its
+  // ladder must sit a FULL RUNG below the other three — aurora's `md` equal to their `sm`, not merely
+  // "different somewhere". Read from four built brands, so a brand losing its density lever fails.
+  {
+    const ladder = (t: any) => CONTROL_RUNG_NAMES
+      // Optional-chained for the same reason as `px` above: under the leaf mutation these reads would
+      // throw and the assertion below could never speak. A missing height reads as `x` in the ladder.
+      .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.height?.$extensions?.prism3?.px ?? 'x')
+      .join('/');
+    const aurora = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input);
+    const harbor = brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input);
+    const wendys = brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input);
+    const ladders = { nb: ladder(nbTheme()), aurora: ladder(aurora), harbor: ladder(harbor), wendys: ladder(wendys) };
+    ok(new Set(Object.values(ladders)).size > 1,
+      `#900 control.size.* is NOT brand-invariant — a family equal in all four brands is the glyph ladder renamed (${Object.entries(ladders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    ok(ladders.aurora === '12/16/20' && ladders.nb === '16/20/24' && ladders.harbor === ladders.nb && ladders.wendys === ladders.nb,
+      `#900 aurora (compact) sits a FULL RUNG below nb/harbor/wendys (comfortable) — aurora's \`md\` is their \`sm\` (${Object.entries(ladders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+    // Stated as the inverse of #324's invariance assertion, so the pair reads as one decision.
+    const iconLadder = (t: any) => ICON_SIZES.map((s) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].icon.size[s.name].$extensions.prism3.px).join('/');
+    ok(iconLadder(nbTheme()) === iconLadder(aurora),
+      '#900 …while `icon.size.*` IS equal across those same two brands — the two tiers are opposites by design, not by oversight');
+  }
+
+  // ---- PER-MODE: the same seam `size.*` has, for the same reason ---------------------------------
+  // A `modeLevers.density` mode moves the row and its padding. If the box did not move with them it
+  // would keep the baseline mode's dimension while everything around it changed — #708's shape, where
+  // every layer accepts the write and nothing reads the number. No brand in the corpus sets this, so
+  // the seam is exercised only here.
+  {
+    const grp = (buildTree(controlBrand('comfortable', { modeLevers: { dark: { density: 'compact' } } })).tree as any).prism.control.size;
+    const missing: string[] = [];
+    const wrong: string[] = [];
+    for (const rung of CONTROL_RUNG_NAMES)
+      for (const field of ['height', 'width'] as const) {
+        const mods = grp[rung]?.[field]?.$extensions?.prism3?.modes;
+        if (!mods?.dark) { missing.push(`${rung}.${field}`); continue; }
+        // The WRAPPED shape (`{ $value, px, note }`) is the one the overlay projector reads — #708 was
+        // two shapes for one concept and 28 mode-varying shadows dropped from every overlay.
+        const want = EXPECTED_CONTROL.compact[rung][field];
+        if (mods.dark.px !== want || mods.dark.$value !== `{prism.dimension.${want}}`) wrong.push(`${rung}.${field} ${JSON.stringify(mods.dark.$value)}/${mods.dark.px} ≠ ${want}`);
+      }
+    ok(missing.length === 0, '#900 a `modeLevers.density` mode re-derives the control box, so it moves with the row it sits in (#708: the box must not keep the baseline dimension)'
+      + (missing.length ? ` — NO OVERRIDE: ${missing.join(', ')}` : ''));
+    ok(wrong.length === 0, '#900 the per-mode override carries the WRAPPED `{ $value, px, note }` shape the overlay projector reads, at the compact ladder\'s px'
+      + (wrong.length ? ` — ${wrong.join(', ')}` : ''));
+    // …and the other direction: a mode whose density MATCHES the brand's must add no override at all,
+    // or every mode-agnostic consumer gets a diff that says nothing.
+    const same = (buildTree(controlBrand('comfortable', { modeLevers: { dark: { density: 'comfortable' } } })).tree as any).prism.control.size;
+    const spurious = CONTROL_RUNG_NAMES.filter((n) => same[n]?.height?.$extensions?.prism3?.modes || same[n]?.width?.$extensions?.prism3?.modes);
+    ok(spurious.length === 0, '#900 a mode at the SAME density carries no override — an override that restates the base value is a diff that says nothing'
+      + (spurious.length ? ` — SPURIOUS: ${spurious.join(', ')}` : ''));
+  }
+}
+
+
 // SIZE GAP (#325) — the label<->visual space. `size.*` carried height/padding-x/padding-y but nothing
 // for the space between a leading visual, the label, and a trailing visual, so a Button with an icon
 // had no token for the one measurement that makes it read as assembled.
@@ -838,15 +1013,15 @@ for (const b of brands) {
 }
 
 // FLOAT WRITE PLAN (#146): the geometric axes reshaped for the plugin write executor. The plan must
-// carry the nine collections with the right modes, every cross-collection alias must resolve within
+// carry the ten collections with the right modes, every cross-collection alias must resolve within
 // the plan (0 dangling — the executor binds against one global name map), opacity must be 0–100 (the
 // Figma OPACITY-percent convention), and a wireframe brand must add a distinct `wireframe` radius mode.
 {
   const auroraFloat = buildFloatWritePlan(brandTheme(exampleBrands()['aurora'] as BrandInput));
   const names = auroraFloat.map((c) => c.name);
-  const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'border-width', 'focus', 'opacity', 'layout'];
+  const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
-    `float-plan: nine collections present (${names.join(', ')})`);
+    `float-plan: ten collections present (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
   ok(auroraFloat.find((c) => c.name === 'core-dimension')!.modes.join(',') === 'Default',

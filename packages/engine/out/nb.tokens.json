@@ -18057,12 +18057,100 @@
           }
         }
       }
+    },
+    "control": {
+      "size": {
+        "sm": {
+          "height": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.16}",
+            "$description": "control.size.sm — 16px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: comfortable). A SQUARE control reads this on both axes.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.16",
+                "px": 16,
+                "density": "comfortable"
+              }
+            }
+          },
+          "width": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.32}",
+            "$description": "control.size.sm width — 32px track width for a two-position control, i.e. a switch (2x the 16px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.32",
+                "px": 32,
+                "density": "comfortable"
+              }
+            }
+          }
+        },
+        "md": {
+          "height": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.20}",
+            "$description": "control.size.md — 20px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: comfortable). A SQUARE control reads this on both axes.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.20",
+                "px": 20,
+                "density": "comfortable"
+              }
+            }
+          },
+          "width": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.40}",
+            "$description": "control.size.md width — 40px track width for a two-position control, i.e. a switch (2x the 20px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.40",
+                "px": 40,
+                "density": "comfortable"
+              }
+            }
+          }
+        },
+        "lg": {
+          "height": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.24}",
+            "$description": "control.size.lg — 24px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: comfortable). A SQUARE control reads this on both axes.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.24",
+                "px": 24,
+                "density": "comfortable"
+              }
+            }
+          },
+          "width": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.48}",
+            "$description": "control.size.lg width — 48px track width for a two-position control, i.e. a switch (2x the 24px height, the field-convergent track ratio). A square control uses `height` on both axes and does not read this.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.48",
+                "px": 48,
+                "density": "comfortable"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.13.0",
+      "version": "0.14.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -15,7 +15,7 @@
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey } from './theme';
-import { SizeStep } from './scale';
+import { SizeStep, ControlSizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
 import { ENGINE_VERSION } from './version';
 
@@ -526,6 +526,49 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
   const icon = { size: iconSize };
 
+  // ---- control.size — a small control's OWN box (#900) ----
+  // The third tier of "how big", and the one that had no token at all: `size.<t>.height` is the ROW a
+  // control sits in, `icon.size.*` is the glyph artboard, and a checkbox's square is neither. Three
+  // defs in a row left their control's edge unbound rather than bind the glyph ladder, whose values
+  // are right and whose meaning is not (#708's shape) — see `checkbox`/`radio`/`switch`.
+  //
+  // A GROUP from the start, not a rung that grows children later. `border.inverse` was authored as a
+  // leaf under an unstated convention and promoting it cost a MAJOR bump, two `DEPRECATIONS` entries
+  // and a rename mechanism (#892, CONTRACT_VERSION 5.0.0). A switch's track is not square, so this
+  // family was always going to need a second field; authoring it as one avoids paying that twice.
+  //
+  // Unlike `icon.size` this is DENSITY-VARYING, so it carries per-mode overrides on the same seam
+  // `size.*` uses — a mode at a different density re-derives its control ladder, and a box that kept
+  // the baseline dimension while its row moved would be #708 again. Each rung ALIASES the dimension
+  // grid; `buildDims` feeds the control px into the grid extras so that resolves at any baseUnit.
+  const controlSize: Record<string, any> = {};
+  const controlsByMode = theme.dims.controlsByMode ?? {};
+  const controlModes = (name: string, field: string, ownPx: number, pick: (c: ControlSizeStep) => number): Record<string, unknown> | undefined => {
+    const modeOverrides: Record<string, unknown> = {};
+    for (const [mode, steps] of Object.entries(controlsByMode)) {
+      const mc = steps.find((c) => c.name === name);
+      if (!mc || pick(mc) === ownPx) continue;   // same px → no diff → no override
+      modeOverrides[mode] = gridStepOverride(pick(mc), `density lever override — ${mode} (${field} ${pick(mc)}px)`);
+    }
+    return Object.keys(modeOverrides).length ? modeOverrides : undefined;
+  };
+  const controlLeaf = (px: number, description: string): Token =>
+    gridSet.has(px)
+      ? dimAlias(`${root}.dimension.${px}`, description, { px, density: theme.dims.density })
+      // Unreachable while buildDims feeds the control px into the grid; kept so a future grid change
+      // degrades to a literal rather than emitting a dangling alias.
+      : dimLeaf(px, description);
+  for (const c of theme.dims.controls) {
+    const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: ${theme.dims.density}). A SQUARE control reads this on both axes.`);
+    const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.height}px height, the field-convergent track ratio). A square control uses \`height\` on both axes and does not read this.`);
+    const hMods = controlModes(c.name, 'height', c.height, (x) => x.height);
+    const wMods = controlModes(c.name, 'width', c.width, (x) => x.width);
+    if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
+    if (wMods) widthLeaf.$extensions.prism3.modes = wMods;
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf };
+  }
+  const control = { size: controlSize };
+
   // ---- border-width — numeric primitives via the dimension grid (0/1/2/4) ----
   // 1px hairline floor; no sub-px tokens (unreliable on hi-dpi). Field consensus
   // clusters here (Tailwind 0/1/2/4/8, Atlassian 1/2, Fluent thin/thick).
@@ -813,7 +856,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // ---- assemble under the brand root ----
   // `gradient` is included only when the brand opted in (kept off the tree for
   // brands that declare none — gradients are an opt-in axis, not a default group).
-  const brand = { palette, color: colorRoles, opacity, motion, font, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size };
+  const brand = { palette, color: colorRoles, opacity, motion, font, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size, control };
   const tree = {
     [root]: brand,
     $extensions: {

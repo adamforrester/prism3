@@ -42,7 +42,7 @@
  *   AXES         asserted as DECLARED, per brand (#697). Every collection the emission carries must
  *                appear in `axes.ts`'s table, and every table entry must still be emitted. Neither
  *                direction is optional: an unclassified collection defaulting to `'none'` would be
- *                right 13 times in 16 by accident, and a declaration that cannot notice its own
+ *                right 14 times in 18 by accident, and a declaration that cannot notice its own
  *                obsolescence is the shape #729 fixed in the verdicts.
  *
  *   OPACITY      asserted at 0 (`kind: 'scale'`), as a RULE, and it is #709's regression test at
@@ -311,8 +311,8 @@ const main = async (): Promise<void> => {
         `[${brand}] UNCLASSIFIED COLLECTION: \`${u.collection}\` (modes: ${u.modes.join(', ') || 'none'}) ` +
           'is emitted but its axis is not declared in `tools/exporter-comparison/axes.ts`. Which axis a ' +
           'collection\'s modes represent is human knowledge Figma does not record (#697), so there is ' +
-          'nothing to infer it from — classify it. Do NOT add a default: 13 of 16 entries are `none`, ' +
-          'so a default would be right 13 times and silently wrong on the 14th.'
+          'nothing to infer it from — classify it. Do NOT add a default: 14 of 18 entries are `none`, ' +
+          'so a default would be right 14 times and silently wrong on the 15th.'
       );
     }
     for (const s of r.axes.stale) {

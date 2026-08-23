@@ -130,8 +130,8 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
  *
  * Keys are `$collection` labels as written by `emit-figma.ts`, which are also the filename stems. A
  * collection missing from this table FAILS (see `classifyCollections`) — it is not assumed `'none'`,
- * even though 13 of the 16 entries are `'none'` and a default would be right 13 times out of 16.
- * Being right 13 times out of 16 by accident is the failure mode, not the success case: the 14th is
+ * even though 14 of the 18 entries are `'none'` and a default would be right 14 times out of 18.
+ * Being right 14 times out of 18 by accident is the failure mode, not the success case: the 15th is
  * a new mode-varying collection, which is exactly when the guess is both wrong and silent.
  *
  * The three style collections carry NO modes at all (`text-styles`, `shadow-styles`,
@@ -152,6 +152,7 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   'core-dimension': 'none',
   'core-font': 'none',
   'core-palette': 'none',
+  control: 'none',
   focus: 'none',
   icon: 'none',
   opacity: 'none',
