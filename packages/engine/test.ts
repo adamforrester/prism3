@@ -57,7 +57,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField } from './components/index';
+import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
@@ -637,6 +637,38 @@ for (const b of brands) {
     const iconLadder = (t: any) => ICON_SIZES.map((s) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].icon.size[s.name].$extensions.prism3.px).join('/');
     ok(iconLadder(nbTheme()) === iconLadder(aurora),
       '#900 …while `icon.size.*` IS equal across those same two brands — the two tiers are opposites by design, not by oversight');
+
+    // ---- AND THE CONSUMER HALF (#910): a def must READ the varying family, not the invariant one ----
+    // Everything above is about the token TIER — that `control.size.*` moves with brand density and that
+    // `icon.size.*` does not. Neither says which of the two a control actually BINDS, and measured,
+    // nothing did: repointing checkbox's `size.medium.control` at `icon.size.md` left all 42 gates green,
+    // engine tests included. Both refs resolve, both are dimensions, both are square, and the only
+    // consequence is that aurora's checkbox silently stops being a rung smaller than everyone else's —
+    // #802's profile exactly, where every layer accepts the write and nothing reads the number.
+    //
+    // So the claim is stated where it can fail, and stated as the PROPERTY rather than as the spelling:
+    // the px behind every `size.*.control` ref must DIFFER between a comfortable brand and a compact one.
+    // Resolved out of two built trees through the def's OWN ref, so this is not a grep for `icon.size` —
+    // a brand-invariant control box is the defect, whichever family it came from.
+    const pxOf = (t: any, ref: string): number | undefined => {
+      const tr = buildTree(t).tree as any;
+      return ref.split('.').reduce((n: any, k) => n?.[k], tr[Object.keys(tr)[0]])?.$extensions?.prism3?.px;
+    };
+    const controlRefs = Object.entries(checkbox.tokens ?? {}).filter(([k]) => /^size\.[^.]+\.control$/.test(k));
+    // Represented, never counted, and precise about what it covers: DELETING a binding is caught earlier
+    // and louder by the projector ("anatomy names binding key 'size.medium.control', which tokens does not
+    // bind" — measured), so this arm is not that. What it is for is the pattern below going STALE: rename
+    // the key family and the filter matches nothing, `invariant` is empty, and the assertion after it
+    // passes over zero refs while reporting a clean run (`docs/34` shape 15). The oracle is the def's own
+    // size enum, which cannot agree with the regex by construction.
+    ok(controlRefs.length === (checkbox.variants?.size ?? []).length,
+      `#910 checkbox binds a control box at every size it declares — ${controlRefs.length} of ${(checkbox.variants?.size ?? []).length} (${controlRefs.map(([k]) => k).join(', ') || 'none'})`);
+    const invariant = controlRefs
+      .map(([k, ref]) => ({ k, ref: ref as string, nb: pxOf(nbTheme(), ref as string), au: pxOf(aurora, ref as string) }))
+      .filter((r) => r.nb === undefined || r.au === undefined || r.nb === r.au);
+    ok(invariant.length === 0,
+      '#910 every checkbox `size.*.control` ref resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on aurora, and nothing downstream can see it'
+      + (invariant.length ? ` — INVARIANT: ${invariant.map((r) => `${r.k} → ${r.ref} (nb ${r.nb}, aurora ${r.au})`).join('; ')}` : ''));
   }
 
   // ---- PER-MODE: the same seam `size.*` has, for the same reason ---------------------------------
@@ -8768,6 +8800,50 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const boxLayout = (sizing: { x: string; y: string }) => patched(iconButton, 'container', { layout: { direction: 'row', align: 'center', justify: 'center', sizing } });
       ibBroke('a square box that HUGS on the cross axis fails', /cross-axis sizing is 'hug'/, boxLayout({ x: 'fixed', y: 'hug' }));
       ibBroke('a square box that HUGS on the main axis fails', /main-axis sizing is 'hug'/, boxLayout({ x: 'hug', y: 'fixed' }));
+
+      // The `presentWhen` rules (#910), same discipline: every one of them is an authoring mistake whose
+      // symptom is a part ABSENT from every coordinate, and absence is the direction that ships — a node
+      // that is never built throws nothing, resolves nothing, and reads in the def exactly like one that
+      // is. Each rule was deleted from `anatomyErrors` in turn and the matching line here confirmed to
+      // fail by name. Patched onto `checkbox`, the only def that uses the field.
+      const cbPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(checkbox, part, patch);
+      ibBroke('an EMPTY presentWhen fails — a gate on no axis is not "always present"', /declares an EMPTY 'presentWhen'/, cbPart('mark', { presentWhen: {} }));
+      ibBroke('gating the anatomy ROOT fails — a coordinate whose root is absent has no tree', /is the anatomy ROOT and declares 'presentWhen'/, cbPart('row', { presentWhen: { selection: ['checked'] } }));
+      // Two presence mechanisms on one part. `present()` reads `when` through an early return, so one of
+      // the two silently decides and the other reads as though it were still doing work.
+      ibBroke('an `absolute` (already state-gated by `when`) declaring presentWhen fails', /is kind 'absolute' and declares 'presentWhen' as well as its own 'when'/, cbPart('focusRing', { presentWhen: { selection: ['checked'] } }));
+      // The axis has to be one the def declares AND one Figma enumerates — two separate rules, because a
+      // def can declare an axis it does not project (`variants` is the code contract, `variantAxes` the
+      // Figma one) and a gate on the second kind is dropped from every member of the set.
+      ibBroke('gating on an undeclared axis fails', /gates presence on 'tone', which is not one of this def's variant axes/, cbPart('mark', { presentWhen: { tone: ['danger'] } }));
+      ibBroke("gating on `size` fails BY NAME — a part present at only some rungs is a ladder claim, not a presence one", /'size' is deliberately excluded/, cbPart('mark', { presentWhen: { size: ['medium'] } }));
+      // `tone` rather than an invented name, because axis NAMES are closed (VARIANT_AXES) and a made-up one
+      // fails on that rule instead — which would leave this line green on somebody else's error.
+      ibBroke('gating on an axis the def declares but does not PROJECT fails', /gates presence on 'tone', which figmaProperties\.variantAxes does not project/,
+        { ...checkbox, variants: { ...checkbox.variants, tone: ['neutral', 'danger'] }, anatomy: { ...checkbox.anatomy!, parts: { ...checkbox.anatomy!.parts, mark: { ...checkbox.anatomy!.parts.mark, presentWhen: { tone: ['danger'] } } } } } as ComponentDef);
+      ibBroke('an empty value list fails — satisfied by nothing, so absent everywhere', /gates presence on 'selection' with no values/, cbPart('mark', { presentWhen: { selection: [] } }));
+      ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /gates presence on selection='mixed'/, cbPart('mark', { presentWhen: { selection: ['mixed'] } }));
+      // A gate naming every value is a no-op wearing a condition's clothes: it reads as conditional to
+      // whoever maintains the def and behaves as always-present. The only rule here whose symptom is a
+      // part appearing too OFTEN rather than too rarely, which is why it needs its own line.
+      ibBroke('a gate naming ALL of an axis\'s values fails as a no-op', /gates presence on all 3 values of 'selection'/, cbPart('mark', { presentWhen: { selection: ['unchecked', 'checked', 'indeterminate'] } }));
+
+      // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
+      // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
+      // swaps the whole component into a slot and binds `size.{size}.icon` there, and true of nobody for a
+      // vector nested inside its own def's anatomy: that def IS the host, nothing in the projector resizes
+      // a nested glyph frame, and unsized a 24×24 artboard overflows a 16px control box on both axes. So
+      // the rule was narrowed to the root rather than carved out, and both halves are asserted.
+      // `'size.medium'` rather than a `{size}` template: `icon` declares no size AXIS (its rungs are a
+      // consumer-facing prop, `variants` is `name` × `tone`), so a template here would trip the unrelated
+      // "{size} placeholder with no size variants" rule and leave this line green on someone else's error.
+      ibBroke('a ROOT vector binding `size` still fails, with the instancing reason', /is kind 'vector', binds 'size' and is the anatomy ROOT/, patched(icon, 'glyph', { size: 'size.medium' }));
+      // `size` dropped in the same patch, so this isolates the new rule: leaving both bound trips the
+      // pre-existing "binds both 'size' and 'height'" rule as well, and an assertion that passes on either
+      // of two errors is not evidence about the one it names.
+      ibBroke('a vector binding `height` fails on EITHER axis alone — a glyph artboard is square', /is kind 'vector' but binds 'height'/, cbPart('mark', { size: undefined, height: 'size.{size}.control' }));
+      ok(validateComponentDef(checkbox, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the relaxation is real — a NON-root vector binding 'size' validates clean, which is the whole of what #910 changed here (got [${validateComponentDef(checkbox, nbTree, nbT.root).errors.join('; ')}])`);
     }
 
     // ---- can the spike actually RUN? (#342) ---------------------------------------------------
@@ -10641,6 +10717,34 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'field: an undeclared size is still refused — the relaxation is "no size", not "any size"');
   ok(planThrow(() => figmaAnatomyPlan(focusRing, undefined, {})) === '',
     `focus-ring: a def with NO size axis plans sizelessly without a throw — the other half of the guard, and the half that makes it a relaxation rather than a rename (got '${planThrow(() => figmaAnatomyPlan(focusRing, undefined, {}))}')`);
+
+  // ---- `presentWhen`: variant-gated presence, and the case a full projection cannot reach (#910) ----
+  // Part presence had three mechanisms before this and none keyed on a VARIANT: `optional` (honoured
+  // only for the two hardcoded visual slots), and `overlay`/`absolute`, both gated by `when === state`.
+  // A checkbox forces a fourth, because the vocabulary holds no `unchecked` glyph — an empty box draws
+  // nothing — so `selection`'s three values are two gated parts and the absence of both.
+  //
+  // `lint-glyph-geometry.ts` covers the two SATISFIED/EXCLUDED directions across all 54 members, so the
+  // reason these live here is the THIRD case, which no member of the set can exercise: a plan whose
+  // caller does not supply `selection` at all. It is reachable — the partial-coordinate guard above
+  // throws only when SOME of a template's axes are missing (`missing.length < axes.length`), and
+  // checkbox's grammar names exactly one, so omitting it is a legal structure-only plan. Nothing in the
+  // corpus builds one today, which is precisely why it needs asserting rather than assuming: mutating
+  // the rule to read an absent axis as PRESENT left every gate in the repo green, and it would put the
+  // tick and the dash in one box at once — a tree no member of the set ever builds, so no census, no
+  // paint arm and no geometry arm can see it.
+  const cbGlyphs = (o: Record<string, unknown>): string =>
+    planPartNames(figmaAnatomyPlan(checkbox, 'medium', o as never).root).filter((n) => n === 'mark' || n === 'dash').join('+') || 'neither';
+  ok(cbGlyphs({ selection: 'checked', state: 'rest' }) === 'mark',
+    `checkbox: at selection=checked the tree carries the MARK and not the dash (got '${cbGlyphs({ selection: 'checked', state: 'rest' })}')`);
+  ok(cbGlyphs({ selection: 'indeterminate', state: 'rest' }) === 'dash',
+    `checkbox: at selection=indeterminate it carries the DASH and not the mark — the two gates are read independently, not as an if/else (got '${cbGlyphs({ selection: 'indeterminate', state: 'rest' })}')`);
+  ok(cbGlyphs({ selection: 'unchecked', state: 'rest' }) === 'neither',
+    `checkbox: at selection=unchecked it carries NEITHER — the third value is the absence of both parts, which is why it is a coordinate rather than a glyph (got '${cbGlyphs({ selection: 'unchecked', state: 'rest' })}')`);
+  ok(cbGlyphs({ state: 'rest' }) === 'neither',
+    `checkbox: with NO selection supplied it carries neither — an unsupplied axis reads as ABSENT, the same answer 'absolute' gives when 'state' is undefined, and the conservative one. Returning true here is the mutation every other gate passes (got '${cbGlyphs({ state: 'rest' })}')`);
+  ok(cbGlyphs({}) === 'neither',
+    `checkbox: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
   // ---- the cohort key: engine and PAYLOAD must agree byte for byte on a SIZELESS def (#795) ----
   // `planSetLayout` builds the footprint-cohort key from `plan.size`; the payload's `cellOf` rebuilds it

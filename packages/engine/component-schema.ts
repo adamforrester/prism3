@@ -248,6 +248,34 @@ export type PartDef = {
   glyph?: string;
   /** A slot that need not be present. `false`/absent means required. */
   optional?: boolean;
+  /** VARIANT-GATED PRESENCE (#910): axis → the values at which this part exists. AND-composed across
+   *  axes, so `{ selection: ['checked'] }` means "present at `selection=checked`, absent everywhere
+   *  else", and a part naming two axes appears only where both agree.
+   *
+   *  This is the third presence mechanism and the first one keyed on a VARIANT rather than a state.
+   *  The other two are `optional` (honoured only for the hardcoded `leadingVisual`/`trailingVisual`
+   *  pair, so it is a Button fact rather than a schema one) and `when` on an `overlay`/`absolute` part
+   *  (a STATE, one value per coordinate). Nothing could express "this node exists at some values of a
+   *  variant axis and not at others", and `field-label`'s own `indicator` `codeOnly` entry states the
+   *  consequence it hit: *"Reopening this needs a way to declare a part's absence as a coordinate, not
+   *  a wider axis list."* This is that.
+   *
+   *  WHY A CHECKBOX FORCES IT rather than a cheaper shape. The mark is a glyph, and there is no glyph
+   *  for `unchecked` — an empty box draws nothing, so `glyph: '{selection}'` has no third value to
+   *  resolve. Painting the check in the box's own fill colour would resolve and pass every gate while
+   *  drawing an invisible tick, and deferring the mark to `codeOnly` would need `lint-paint.ts` to
+   *  admit `checked.icon` and `indeterminate.icon` as bindings that legitimately never paint. Absence
+   *  is the coordinate, so absence is what the def has to be able to say.
+   *
+   *  AN ABSENT AXIS MEANS ABSENT, not present — the same answer `absolute`'s `when` gives when no state
+   *  is supplied. A structure-only projection (`figmaAnatomyPlan(def, size, {})`) has no `selection`,
+   *  so it carries neither the check nor the dash rather than both at once, which is a tree no member
+   *  ever builds. Asserting presence on no evidence is the direction that ships.
+   *
+   *  Restricted to axes in `variants` (never `size`, never a state) by `anatomyErrors`, and the axis
+   *  must be one `figmaProperties.variantAxes` actually projects — a gate on an axis Figma does not
+   *  carry makes the part absent from every member of the set, silently. */
+  presentWhen?: Record<string, readonly string[]>;
   /** For `overlay`: the part whose position it takes (width-preserving, per the brief).
    *
    *  An ORDERED LIST of candidates as of #848, resolved to the FIRST one present at this coordinate.
@@ -1462,17 +1490,18 @@ const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   // Same case, same removal trigger: `textarea` binds the substrate's ring and has no `anatomy` yet,
   // so `nests` cannot see it either. Both entries go when their anatomy blocks land.
   'textarea': ['focus-ring'],
-  // Third instance, same shape. `checkbox`'s ring is the CONTROL ring (`focus.ring.offset`) rather than
-  // the field's flush one, but the binding is structurally Button's and the def has no `anatomy`, so
-  // `nests` cannot see it either.
-  'checkbox': ['focus-ring'],
-  // Fourth, and `radio` inherits the entry along with the binding — same control ring, same absent
-  // anatomy block.
+  // `checkbox` WAS the third entry and came out in #910, which is the guard retiring itself as designed:
+  // the def now has an `anatomy` whose `focusRing` part declares `nests: 'focus-ring'`, so `nestedIds`
+  // sees the binding and the exemption stopped being needed. Left as a note because it is the first time
+  // an entry has been removed by the trigger its own comment named, and the removal is not optional — the
+  // stale-direction assertion below fails on an entry whose def has gained a block.
+  //
+  // `radio` inherits the entry along with the binding — same control ring, same absent anatomy block.
   'radio': ['focus-ring'],
-  // Fifth, and it closes the selection-control family. `switch`'s ring sits on the TRACK rather than on
+  // And this one closes the selection-control family. `switch`'s ring sits on the TRACK rather than on
   // a box (brief §4: never on the thumb, which moves), which changes which part will carry it once the
   // anatomy block lands and changes nothing about this entry: the binding is structurally Button's and
-  // the def has no `anatomy`, so `nests` cannot see it. All five go when their anatomy blocks land.
+  // the def has no `anatomy`, so `nests` cannot see it. Both remaining pairs go the same way.
   'switch': ['focus-ring'],
 };
 
@@ -1980,6 +2009,49 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // mis-shaped and the materializer would emit an auto-layout frame where a leaf belongs.
   for (const n of names) {
     const p = parts[n];
+    // ---- VARIANT-GATED PRESENCE (#910) ----
+    // Six rules, and each one is a way the field can be authored so that it validates and then makes the
+    // part vanish from every coordinate — the direction that ships, because a node that is never there
+    // throws nothing, resolves nothing, and looks in the def exactly like a node that is.
+    if (p.presentWhen !== undefined) {
+      const gates = Object.entries(p.presentWhen);
+      if (!gates.length)
+        e.push(`anatomy part '${n}' declares an EMPTY 'presentWhen' — a gate on no axis is not "always present", it is a claim with nothing in it. Drop the field`);
+      // The ROOT cannot be conditional: `figmaAnatomyPlan` builds from the root down, so a coordinate at
+      // which the root is absent has no tree to project at all.
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'presentWhen' — the root is what a coordinate projects, so gating it away leaves that coordinate with no tree`);
+      // TWO GATING MECHANISMS ON ONE PART is ambiguous rather than additive: `present()` reads `when`
+      // through an early return, so whichever it consults first silently decides and the other field
+      // reads as though it were still doing work.
+      if (p.kind === 'overlay' || p.kind === 'absolute')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' and declares 'presentWhen' as well as its own 'when' — that kind is already gated by STATE, and two presence rules on one part means one of them is not consulted`);
+      for (const [axis, values] of gates) {
+        const declared = variantsOf(def)[axis];
+        // `size` is deliberately not admissible. A part present at only some rungs is the rung-ladder
+        // claim (`lint-rung-names.ts`), not a presence one, and nothing in the corpus needs it — so
+        // admitting it here would be adding an unexercised axis to a mechanism whose failure mode is
+        // silent absence. A STATE is refused by the same check, since `states` is not in `variants`.
+        if (axis === 'size' || !declared)
+          e.push(`anatomy part '${n}' gates presence on '${axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}]${axis === 'size' ? " ('size' is deliberately excluded — a part present at only some rungs is a ladder claim, not a presence one)" : ''} — an axis the projector never supplies makes the part absent at EVERY coordinate`);
+        else {
+          if (!Array.isArray(values) || !values.length)
+            e.push(`anatomy part '${n}' gates presence on '${axis}' with no values — an empty list is satisfied by nothing, so the part is absent everywhere`);
+          for (const v of values ?? [])
+            if (!declared.includes(v))
+              e.push(`anatomy part '${n}' gates presence on ${axis}='${v}', which is not a declared value of that axis [${declared.join(', ')}] — the coordinate it names does not exist, so the part never appears`);
+          // A gate naming EVERY value is a no-op wearing a condition's clothes. It reads as "this part is
+          // conditional" to anyone maintaining the def while behaving as "always present".
+          if (Array.isArray(values) && declared.every((v) => values.includes(v)))
+            e.push(`anatomy part '${n}' gates presence on all ${declared.length} values of '${axis}' — that is the same as no gate at all, so either a value is missing from the list or the field should go`);
+          // THE AXIS MUST BE ONE FIGMA CARRIES. `figmaAnatomySet` enumerates `variantAxes`, so a gate on
+          // an axis outside that list is never supplied, `present()` reads `undefined`, and the part is
+          // dropped from every member of the set — a component built with the node simply missing.
+          if (def.figmaProperties && !(def.figmaProperties.variantAxes ?? []).includes(axis))
+            e.push(`anatomy part '${n}' gates presence on '${axis}', which figmaProperties.variantAxes does not project [${(def.figmaProperties.variantAxes ?? []).join(', ') || 'none'}] — the set is enumerated over the projected axes only, so this part would be absent from every member`);
+        }
+      }
+    }
     if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it
@@ -2099,10 +2171,27 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (p.kind === 'vector' && (p.children ?? []).length)
       e.push(`anatomy part '${n}' is kind 'vector' but declares children — a glyph's subtree is Figma's SVG importer's, so a child declared here has nowhere this schema can place it; nest the vector inside a 'box' instead and let the box lay them out`);
     // A glyph is sized by WHOEVER INSTANCES IT — a host binds `size.{size}.icon` onto its own slot — and
-    // the artboard the outline is drawn on comes from the icon set. A `size` binding here would state that
-    // square a third time, on the outline itself, and the three could then disagree with nothing noticing.
-    if (p.kind === 'vector' && (p.size || p.height))
-      e.push(`anatomy part '${n}' is kind 'vector' but binds '${p.size ? 'size' : 'height'}' — a glyph's artboard comes from the icon set and its rendered size comes from the host that instances it, so binding it here states the same square a third time`);
+    // the artboard the outline is drawn on comes from the icon set. A `size` binding on the ROOT would
+    // state that square a third time, on the outline itself, and the three could then disagree with
+    // nothing noticing.
+    //
+    // NARROWED TO THE ROOT BY #910, and the discriminator is the rule's own reason rather than a carve-out
+    // for checkbox. "Whoever instances it" is a real party for `icon.glyph`, which IS its def's root: a
+    // host swaps that component into a slot and binds `size.{size}.icon` onto the slot. It is nobody for a
+    // vector nested in its own def's anatomy — this def IS the host, the glyph node IS its slot, and there
+    // is no instancing step to inherit a size from. Measured: `figma.createNodeFromSvg` returns a frame at
+    // the icon set's own artboard (24×24) and nothing in the plan resizes it, so an unsized mark inside a
+    // 16px control box overflows it by 8px on both axes, centered, at every rung. The projector already
+    // binds both axes from `size` for a non-box part (`anatomy-figma.ts`'s else branch) and the executor
+    // sets SCALE constraints on the outline for exactly this — so the count is TWO here, not three, and
+    // the artboard read-back is unaffected because it runs before any binding is applied.
+    //
+    // `height` stays refused on every vector. A glyph's artboard is square (`lint-glyph-geometry.ts` arm
+    // D asserts it), so binding one axis alone states a non-square one and distorts the outline.
+    if (p.kind === 'vector' && p.height)
+      e.push(`anatomy part '${n}' is kind 'vector' but binds 'height' — a glyph's artboard is square, so binding one axis alone states a shape the icon set does not draw; use 'size', which binds both`);
+    if (p.kind === 'vector' && p.size && n === a.root)
+      e.push(`anatomy part '${n}' is kind 'vector', binds 'size' and is the anatomy ROOT — a root glyph's rendered size comes from the host that instances it (a host binds \`size.{size}.icon\` onto its own slot), so binding it here states the same square a third time and the three can disagree with nothing noticing`);
   }
 
   return e;

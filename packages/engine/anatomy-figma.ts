@@ -780,6 +780,16 @@ export const figmaAnatomyPlan = (
     if (name === 'leadingVisual') return leading;
     if (name === 'trailingVisual') return trailing;
     const p = a.parts[name];
+    // VARIANT-GATED PRESENCE (#910), the first presence rule keyed on a coordinate that is not a state.
+    // AND across axes, and an axis the caller did not supply reads as ABSENT rather than present — the
+    // same answer the `absolute` line below gives when `state` is undefined, and the conservative one:
+    // a structure-only plan of a checkbox carries neither the check nor the dash, where returning `true`
+    // would give it both at once in a tree no member of the set ever builds.
+    if (p?.presentWhen)
+      for (const [axis, values] of Object.entries(p.presentWhen)) {
+        const v = axisValue(axis);
+        if (v === undefined || !values.includes(v)) return false;
+      }
     // An `absolute` part is state-gated exactly as an overlay is — it appears on its `when` state and
     // nowhere else. Read off `when` rather than from a name, so the ring's presence follows the same
     // rule the spinner's does and a second def gets it for free. This is what closes #536 item 3's

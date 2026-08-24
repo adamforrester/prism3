@@ -203,7 +203,7 @@ for (const id of Object.keys(PREDICATE_CASES))
  * fails, which is the direction that matters. Deliberately not derived by asking which defs project —
  * that is the very thing it exists to remember.
  */
-const MUST_PROJECT = ['icon', 'focus-ring', 'button', 'icon-button', 'field-label', 'field-message'];
+const MUST_PROJECT = ['icon', 'focus-ring', 'button', 'icon-button', 'field-label', 'field-message', 'checkbox'];
 
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */
 const declares = (def: ComponentDef): string | undefined => def.figmaProperties?.notStandalone;
