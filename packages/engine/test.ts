@@ -10899,6 +10899,53 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(cbGlyphs({}) === 'neither',
     `checkbox: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
+  // ---- the same three directions as a RULE over every gated part, because the block above is
+  // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
+  // The arms above name `mark` and `dash`. `lint-glyph-geometry.ts`, cited above as covering the
+  // satisfied/excluded directions across all 54 members, ranges over GLYPHS — and radio's dot is a
+  // `box`, so it appears in neither. Radio's gated part therefore had no projection coverage at all: the
+  // whole mechanism could read it as always-present, or never, and the only thing that would move is a
+  // census count nobody could attribute. (#910's own authoring slip was `selection: ['checd']`, which
+  // `anatomyErrors` refuses — but that is the *typo* case, not the *mechanism* case.)
+  //
+  // Ranges over `componentDefs` and asserts the membership BY NAME, so a third def gaining a
+  // `presentWhen` is covered the day it lands rather than the day someone remembers this block.
+  const gatedDefs = componentDefs.filter((d) =>
+    d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
+  const GATED_EXPECTED = ['checkbox', 'radio'];
+  ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
+    `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
+  for (const def of gatedDefs) {
+    const sizes = def.variants?.size ?? [];
+    const size = sizes[Math.min(1, sizes.length - 1)];
+    for (const [name, part] of Object.entries(def.anatomy!.parts)) {
+      if (!part.presentWhen) continue;
+      const axes = Object.entries(part.presentWhen);
+      // A part gated on TWO axes is AND-composed, so "supply the axis and expect presence" stops being
+      // the right question — it needs every gate satisfied at once. None exists today; fail rather than
+      // skip, so the arms below cannot go quietly vacuous over one.
+      ok(axes.length === 1,
+        `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the projection arms below supply ONE axis and would report an AND-composed part as spuriously absent. Handle the composition here rather than letting it read as covered`);
+      if (axes.length !== 1) continue;
+      const [axis, values] = axes[0];
+      // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
+      // directions is the gated one.
+      const rest: Record<string, string> = { state: 'rest' };
+      for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
+      const has = (coord: Record<string, string>): boolean =>
+        planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
+      const declared = def.variants?.[axis] ?? [];
+      for (const v of values)
+        ok(has({ ...rest, [axis]: v }),
+          `#910 ${def.id}: '${name}' IS in the tree at ${axis}=${v} — the gate's own positive case, and a part gated into permanent absence is a def with a dead branch`);
+      for (const v of declared.filter((x) => !values.includes(x)))
+        ok(!has({ ...rest, [axis]: v }),
+          `#910 ${def.id}: '${name}' is NOT in the tree at ${axis}=${v} — the values the gate excludes, which is the direction that makes it a gate rather than a comment`);
+      ok(!has(rest),
+        `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach`);
+    }
+  }
+
   // ---- the cohort key: engine and PAYLOAD must agree byte for byte on a SIZELESS def (#795) ----
   // `planSetLayout` builds the footprint-cohort key from `plan.size`; the payload's `cellOf` rebuilds it
   // by parsing the member NAME. Two derivations, no shared code — the payload has none of this module —
