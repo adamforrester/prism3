@@ -54,6 +54,8 @@
  */
 import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+// Source-text only, for `main.ts`'s wiring — see the `(5)` block below for what that can and cannot see.
+import { readFileSync } from 'node:fs';
 import { button } from '@prism3/engine/components/button';
 import { fieldLabel } from '@prism3/engine/components/field-label';
 import { componentDefs } from '@prism3/engine/components/index';
@@ -1090,18 +1092,50 @@ ok(rOld.stale === 1 && rOld.skipped === 20,
 ok(rOld.misses.some((m) => m.includes(String(unstamped.name)) && m.includes('plan unstamped')),
   `...named as unstamped rather than as a hash mismatch, because those have different remedies (${rOld.misses.find((m) => m.includes('-> STALE'))})`);
 
+// (3b) THE ENGINE HALF IS STORED AND REPORTED, NEVER COMPARED — and this is the arm that keeps it that
+// way. `ENGINE_VERSION` bumps on any behaviour change INCLUDING a pure value change (`docs/30`), so a
+// comparison that read it would report all 648 members stale the day a brand's hue moved four degrees.
+// Every one of them would be a false alarm, and the remedy the note gives is to delete them.
+const verPage: Page = { children: [] };
+await run(grid, { ...full(), page: verPage });
+const verSet = verPage.children[0];
+const bumped = (verSet.children as Node[])[3];
+const wasStamp = stampOf(bumped);
+(bumped.setSharedPluginData as (ns: string, k: string, v: string) => void)(STAMP_NS, STAMP_K, `99.99.99|${wasStamp.split('|')[1]}`);
+ok(stampOf(bumped) !== wasStamp && stampOf(bumped).split('|')[1] === wasStamp.split('|')[1],
+  'reachable: the member now carries a DIFFERENT engine version and the SAME plan hash — the shape a pure value bump produces');
+const rVer = await run(grid, { ...full(), page: verPage });
+ok(rVer.stale === 0 && rVer.skipped === 21,
+  `a member stamped by a different engine build but the same PLAN is still correct — comparing the version half would flag a whole file stale on a value change (stale=${rVer.stale}, skipped=${rVer.skipped})`);
+
+// (5) `main.ts` IS WIRED TO ALL OF THIS, gated by source text only — the same limit `applySurfacePlan`'s
+// suite states. `main.ts` calls `figma.showUI` at module scope so it cannot be imported, and every count
+// above is inert if the panel never receives it. This cannot see a reordering that preserves textual
+// order, and it is not a substitute for running the plugin in a real file.
+const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+ok(/componentHeadline\([^)]*r\.stale[^)]*\)/.test(mainSrc),
+  'main.ts passes the stale count to `componentHeadline`, so the pill can outrank `built N` with it');
+ok(/staleNote\(r\.stale,\s*ENGINE_VERSION\)/.test(mainSrc) && /\$\{stale \? `\. \$\{stale\}` : ''\}/.test(mainSrc),
+  'and appends `staleNote`\'s sentence to the summary the panel shows, rather than computing it into a void');
+ok(/misses\.length - r\.skipped - r\.stale/.test(mainSrc),
+  'and subtracts BOTH the skips and the stale lines before reporting real misses — they are all in `misses[]`');
+
 // (4) THE HASH ITSELF, from the engine side — the two directions that decide whether any of the above
 // means anything. Authored here against `planStamp` directly rather than through the executor.
 ok(planStamp(grid[0]) === planStamp(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: button.variants!.appearance![0], state: button.states![0] })),
   'the same def and the same coordinate hash to the same stamp — a stamp that moved on every regeneration would report every member stale forever');
 ok(new Set(grid.map(planStamp)).size === 21, `21 distinct coordinates give 21 distinct stamps (${new Set(grid.map(planStamp)).size})`);
-// The REVERSE pass earns its keep here: a single-pass 32-bit FNV-1a returns the same digest for two
-// strings that differ only by a transposition often enough to matter, and a collision reports a stale
-// member as correct — a false negative, in the direction that hides the defect.
-const swapped = { ...grid[0], derived: { ...grid[0].derived, a: 'xy', b: 'yx' } };
-const swappedBack = { ...grid[0], derived: { ...grid[0].derived, a: 'yx', b: 'xy' } };
-ok(planStamp(swapped) !== planStamp(swappedBack),
-  'a transposition inside the plan moves the stamp — the second, reversed pass is what makes that true, and a collision here would report a stale member as correct');
+// THE SECOND PASS CARRIES INFORMATION, rather than restating the first. What it buys is width: 32 bits over
+// a 648-member set is ~209,628 pairs against 2^32, about one collision per 20,000 sets — and a collision
+// reports a STALE member as CORRECT, the false-negative direction that hides the defect. 64 bits puts that
+// at ~1 in 8×10^13. What can be gated is the construction, not the bound: the two halves must DIFFER, which
+// they do not if both passes read the string the same way. Asserted over all 21 plans, since a single plan
+// agreeing by chance is a 1-in-4-billion coincidence and 21 of them is not.
+const halves = grid.map(planStamp).map((s) => [s.slice(0, 8), s.slice(8)]);
+ok(halves.every(([a, b]) => a !== b),
+  `the two 32-bit halves differ on every plan, so the digest is really 64 bits wide (${halves.filter(([a, b]) => a === b).length} of 21 identical)`);
+ok(grid.map(planStamp).every((s) => s.length === 16),
+  'and the stamp is 16 hex characters — the width the staleness comparison rests on');
 
 // ---- DEGRADED: a file with no variables ----------------------------------------------------
 // Reported, not thrown, and the set still assembles — a designer gets a structurally correct set they
