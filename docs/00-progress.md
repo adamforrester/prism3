@@ -265,6 +265,62 @@ regression is invisible.
 
 ---
 
+## (2026-08-23) — overriding a ground now re-derives its dependents' ratios; the values stay, and say so (#964)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.17.0 → 0.18.0. `CONTRACT_VERSION` stands at 5.2.0. Gates stay
+at **42** — no new gate; the existing one gained cases.
+
+**The gate was written FIRST, and red.** The owner's instruction was explicit and it was the right
+call: add the `overrides`-driven cases, confirm they fail, and only then fix. They did — **226
+failures** across the 18 grounds — and that number is the whole evidence the fix was needed. Every
+prior case in `lint-ratio-truth.ts` built through `surfaces`, so arms A–C had never exercised the
+`overrides` route at all. Exactly the blindness that left #962's ground refusal unheld until arm D was
+written for it. *A gate authored after a fix cannot tell you the fix was needed*, and this one is
+committed separately, red, so the failing-before state is bisectable rather than asserted.
+
+**The asymmetry that decided the design, measured rather than assumed.** When a ground's colour moves,
+its dependents' RATIOS move — pure arithmetic over the final colours, and recomputed. Their VALUES do
+not, and cannot be from a post-pass: `interactive.<c>.on-fill` is `onColor(rest.rgb)`, a local inside
+`iFill`, not a lookup. Every dependent of the 18 is an ink or a wash picked by a closure that has
+already returned.
+
+That **ruled out the fix #964 proposed first** — ordering the override into derivation so later reads
+see it — because derivation does not read roles back, it reads locals. So the topological-order
+property the issue asked me to assert never came up: *the property that would have needed asserting
+was not the binding one.* Worth recording, because "verify the assumption" and "check whether the
+assumption is the one that matters" are different steps and only the second one settled this.
+
+**What it costs, measured.** 67 dependents across the 18 grounds are left value-stale, and in the
+worst case **all 67** fall short of their bar — **every one warned, none silent**. The reported numbers
+are now true and the shortfalls are named. That is allow-and-flag doing what it promises rather than
+a partial fix; making the values re-derive needs the derivation rules reachable after the fact, which
+is a larger change and is filed rather than smuggled in.
+
+**Direct dependents only**, which is correct rather than cheap: a dependent's own colour does not
+change, so anything measured against IT is unaffected. The edge set covers `legibleFor` as well as
+`against` — since #963 a wash reports the legibility of a second role it names. That edge is also why
+the count is **18** where #964's own table said 17: `text.on-inverse.primary` only became reachable as
+a ground once #962 repaired the nine `against` strings that had been dangling since #892. Three of my
+own PRs had to land in order before the inventory was even countable.
+
+**One quiet bug found on the way.** `rgbByRole` was never updated when an override applied, so a later
+override reading it for its own `against` saw the pre-override colour — override ORDER was silently
+significant. No corpus brand has two overrides where one is the other's ground, so nothing was wrong
+in practice; it was a trap waiting.
+
+**A power shift in the gate, stated because it is a real cost and nobody would see it from the diff.**
+For the rows this fix touches, the engine now computes the ratio the same way `lint-ratio-truth`'s arm
+A recomputes it, so arm A is by-construction true *there*. It keeps full independence over the other
+~11k ratios, which come from ordinary derivation and not from this pass. Arm B — comply-or-confess —
+is what carries the weight on the re-derived rows, and it is not tautological: the warning it demands
+comes from a different code path. Mutation-verified rather than argued.
+
+**No emitted artifact moves.** No corpus brand uses `overrides`, so the entire change is invisible to
+`out/**`; the only committed diff is the `engineVersion` stamp. A MINOR because a brand that DOES use
+overrides gets different (correct) metadata and new warnings.
+
+---
+
 ## (2026-08-23) — `against` meant two opposite things; 1,296 ratios per run were unverifiable because of it (#963)
 
 **STATUS: shipped.** Stacked on #962. `ENGINE_VERSION` 0.16.0 → 0.17.0. `CONTRACT_VERSION` stands at

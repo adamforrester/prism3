@@ -102,6 +102,44 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.18.0: overriding a ground re-derives what was measured against it (#964). #956 gave the two
+ * page/band grounds a declarative input and REFUSED them in the override layer; the other 18 had
+ * nowhere to be sent, so they were applied and merely warned about, and their dependents kept the
+ * ratio they derived from the old ground. Same "reports contrast it does not have" defect at 1–29
+ * roles instead of 60.
+ *
+ * The asymmetry that decided the design, and it was measured rather than assumed. When a ground moves,
+ * its dependents' RATIOS move — pure arithmetic over the final colours, recomputed here. Their VALUES
+ * do not, and cannot be: `interactive.<c>.on-fill` is `onColor(rest.rgb)` from a local inside `iFill`,
+ * not a lookup, so every dependent of the 18 is picked by a closure that has already returned. That
+ * ruled out the obvious fix — ordering the override into derivation so later reads see it — because
+ * derivation does not read roles back; it reads locals. The topological-order question #964 raised
+ * never arose: the property that would have needed asserting is not the one that was binding.
+ *
+ * So the reported number becomes TRUE, and where an unchanged value no longer clears its bar the
+ * final sweep names it. Measured: **67 dependents are left value-stale across the 18 grounds, and in
+ * the worst case all 67 fall short — every one warned, none silent.** That is allow-and-flag doing
+ * exactly what it promises. Making the VALUES re-derive needs the derivation rules reachable after
+ * the fact, which is a larger change and is filed rather than smuggled in.
+ *
+ * DIRECT dependents only, which is correct rather than a shortcut: a dependent's own colour does not
+ * change, so anything measured against IT is unaffected. The edge set covers `legibleFor` as well as
+ * `against` — since 0.17.0 a wash reports the legibility of a second role it names, and moving that
+ * desynchronises it identically.
+ *
+ * `rgbByRole` is now updated when an override applies. It was not, so a later override reading it for
+ * its own `against` saw the pre-override colour: override ORDER was silently significant.
+ *
+ * The `staleDependents` warning is KEPT and reframed rather than removed. Its subject changed — no
+ * longer "these report a number for a surface that is gone", now "these were GENERATED against the
+ * old ground and were not re-derived". The per-role contrast warnings name which ones fall short;
+ * this one is the only thing that says WHY, and that link became actionable exactly when the numbers
+ * became true.
+ *
+ * NO emitted artifact moves — no corpus brand uses `overrides`, so the entire change is invisible to
+ * `out/**`, and `CONTRACT_VERSION` stands at 5.2.0. A minor rather than a patch because a brand that
+ * DOES use overrides gets different (correct) contrast metadata and new warnings. (#964)
+ *
  * 0.17.0: `against` means ONE thing on every role (#963). It carried two opposite senses and nothing
  * in the data said which. On an ordinary role it names the surface the role sits on, and
  * `ratio = contrast(me, against)`. On a translucent WASH the arrow reversed: `against` named the INK
@@ -267,7 +305,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.17.0';
+export const ENGINE_VERSION = '0.18.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
