@@ -223,7 +223,10 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // `/` between rung and field (`control/size/md/height`), matching every sibling collection.
   const controlVars: FigmaVar[] = [];
   for (const rung of Object.keys(brand.control?.size ?? {})) {
-    for (const field of ['height', 'width']) {
+    // Named rather than read off the leaf keys, deliberately: what Figma carries is an authored
+    // decision, so a field added to the DTCG tier does not reach a client's file until someone puts it
+    // here. `dot` arrived with radio's anatomy (#910).
+    for (const field of ['height', 'width', 'dot']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
