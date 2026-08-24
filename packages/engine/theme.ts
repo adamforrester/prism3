@@ -517,6 +517,15 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
   // at base 4, 6 and 8 alike. So this line now rescues two px at the DEFAULT baseUnit, reachable through
   // `brandTheme` like any other brand, where before it rescued one px at an input no public builder could
   // produce. The guard stopped being unfalsifiable by gaining a field rather than by gaining a test.
+  //
+  // AND THE CONSEQUENCE IS NOT THE ONE THE TWO COMMENTS AROUND THIS ONE NAME. Both say the alias "would
+  // dangle"; measured by deleting `c.dot` from this line, it does not — `controlLeaf` falls back to a
+  // LITERAL px, so nb/harbor/wendys emit `md: 10px` and aurora `lg: 10px` beside siblings that still
+  // alias. Nothing about that is a broken reference, which is why the assertion that catches it is #296's
+  // (`primitives are mode-invariant: no NEW literal-valued leaf carries a per-mode variant`) and not an
+  // alias-resolution one: the dot varies by mode, so the literal is what makes it visible. Worth writing
+  // down because the wrong mechanism suggests the wrong gate to check the fix against, and 6 needs no
+  // rescuing at all — the space extras already supply it.
   const controls = controlSizes(density);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit

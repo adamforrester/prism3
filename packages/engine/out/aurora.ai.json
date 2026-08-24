@@ -8832,6 +8832,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "control.size.sm.dot",
         "size.md.padding-y",
         "size.sm.padding-x-visual",
         "size.xs.padding-x-visual",
@@ -8844,6 +8845,7 @@
       "tier": "primitive",
       "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
       "aliased_by": [
+        "control.size.md.dot",
         "radius.md",
         "size.lg.gap",
         "size.lg.padding-y",
@@ -8852,6 +8854,15 @@
         "size.xl.padding-y",
         "size.xs.padding-x",
         "space.100"
+      ]
+    },
+    "dimension.10": {
+      "$description": "10px — dimension primitive",
+      "meaning": "10px grid primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — reference via space / radius / size / border-width / focus.",
+      "aliased_by": [
+        "control.size.lg.dot"
       ]
     },
     "dimension.12": {

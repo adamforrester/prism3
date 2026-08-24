@@ -1217,19 +1217,31 @@ export const PRIMARY_PAINT_SLOTS = new Set(['fill', 'label', 'icon', 'indicator'
  * The slots a `box` part may declare in `paintSlots` (#933) — a NAMED SUBSET of `PAINT_SLOTS`, not a
  * second vocabulary. The dispatch words are unchanged; this says which of them land on a box.
  *
- * `label`, `icon` and `indicator` are missing on purpose. They are INK roles, and ink belongs on the
- * node that draws the glyph or the glyph's own vector — a box taking one would put a filled rectangle
- * BEHIND the thing it was meant to colour. That is not a prediction: it is #864's measured failure met
- * from the other side. `createNodeFromSvg` hands back a frame wrapping the outline, a fill on that
- * frame painted a square behind every glyph in the set, and the fix was to route ink to the vector by
- * descendant search. A box declaring `paintSlots: ['icon']` would re-open that from the def tier, where
- * it would read like a deliberate choice.
+ * `label` and `icon` are missing on purpose. They are INK roles for a node that DRAWS something — a
+ * box taking one would put a filled rectangle BEHIND the thing it was meant to colour. That is not a
+ * prediction: it is #864's measured failure met from the other side. `createNodeFromSvg` hands back a
+ * frame wrapping the outline, a fill on that frame painted a square behind every glyph in the set, and
+ * the fix was to route ink to the vector by descendant search. A box declaring `paintSlots: ['icon']`
+ * would re-open that from the def tier, where it would read like a deliberate choice.
  *
- * Which leaves the two grounds and the one edge, and the split is exhaustive by construction rather
+ * `indicator` WAS in that list and is not any more (#910), and the correction is worth stating because
+ * the original reason was sound and over-general. #864's premise is that a box claiming an ink slot
+ * paints a rectangle behind the glyph or text node that actually draws the mark. An `indicator` need
+ * not be drawn by a child at all: radio's dot IS a box — a filled circle, at `radius.round` — and there
+ * is nothing behind it to obscure, because it draws itself. There is no filled circle in the glyph
+ * vocabulary and minting one would put a bare primitive into a set whose membership rule is that an
+ * entry carries meaning, so a `vector` is not the cheaper route here.
+ *
+ * The premise is kept as a CHECK rather than as this paragraph: `anatomyErrors` refuses a box claiming
+ * `indicator` that has a `vector` or `text` child, which is exactly the configuration #864 measured.
+ * `field-label`'s indicator is unaffected — it is a `text` part reaching `indicator` through the
+ * singular `paintSlot`, a different field and a different branch of the projector.
+ *
+ * Which leaves the three grounds and the one edge, and the split is exhaustive by construction rather
  * than by a list the projector also keeps: `border` is the only edge slot, so it is the only one that
  * reaches `strokes`, and everything else competes for the single `fills` array in declaration order.
  */
-export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border'] as const;
+export const BOX_PAINT_SLOTS = ['overlay', 'fill', 'border', 'indicator'] as const;
 
 /**
  * The RUNTIME INTERACTION STATES a def may declare (#821, argued in `docs/39` §7(a)).
@@ -1881,6 +1893,21 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   for (const [slot, who] of claimants)
     if (who.length > 1)
       e.push(`anatomy: parts [${who.join(', ')}] all declare paintSlots '${slot}' — the projector resolves a slot once, so every one of them would bind the same variable rather than each getting its own`);
+
+  // A BOX MAY CLAIM `indicator` ONLY IF IT DRAWS THE INDICATOR ITSELF (#910). This is #864's premise kept
+  // as a check rather than as prose: a box taking an ink slot paints a rectangle BEHIND the node that
+  // draws the mark, which is measured — a fill on `createNodeFromSvg`'s wrapper frame put a square behind
+  // every glyph in the set. `indicator` left `BOX_PAINT_SLOTS`' exclusion list because a radio's dot is a
+  // filled circle with no child at all, so there is nothing behind it to obscure. A box that claims the
+  // slot AND has a glyph or text child is exactly the configuration the exclusion existed for, so the
+  // widening is scoped to the case that motivated it rather than taken on trust.
+  for (const n of names) {
+    const p = parts[n];
+    if (p.kind !== 'box' || !(p.paintSlots ?? []).includes('indicator')) continue;
+    const drawn = (p.children ?? []).filter((c) => parts[c] && (parts[c].kind === 'vector' || parts[c].kind === 'text'));
+    if (drawn.length)
+      e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, or the fill lands behind the node that does (#864). Move the ink to the drawing part's own slot.`);
+  }
 
   // Every binding key anatomy names must be a slot the component actually binds, at every size.
   const bindingKeys = (p: PartDef): string[] =>

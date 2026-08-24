@@ -29,6 +29,19 @@
       }
     },
     {
+      "name": "control/size/sm/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.sm dot — 6px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 12px box edge, leaving a 3px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+      "value": 6,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/6"
+      }
+    },
+    {
       "name": "control/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -55,6 +68,19 @@
       }
     },
     {
+      "name": "control/size/md/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.md dot — 8px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+      "value": 8,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/8"
+      }
+    },
+    {
       "name": "control/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -78,6 +104,19 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "dimension/40"
+      }
+    },
+    {
+      "name": "control/size/lg/dot",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.lg dot — 10px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+      "value": 10,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "dimension/10"
       }
     }
   ]

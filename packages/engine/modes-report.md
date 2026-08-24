@@ -976,7 +976,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 
 ## nb — dimension axis
 
-Grid (37 primitives, px): 0, 1, 2, 4, 6, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128, 720
+Grid (38 primitives, px): 0, 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128, 720
 
 Space — numbered multiplier, `8px` rhythm (reference tier, density-free):
 
@@ -2010,7 +2010,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 
 ## aurora — dimension axis
 
-Grid (36 primitives, px): 0, 1, 2, 4, 6, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128
+Grid (37 primitives, px): 0, 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128
 
 Space — numbered multiplier, `8px` rhythm (reference tier, density-free):
 
@@ -3043,7 +3043,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 
 ## harbor — dimension axis
 
-Grid (36 primitives, px): 0, 1, 2, 4, 6, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128
+Grid (37 primitives, px): 0, 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128
 
 Space — numbered multiplier, `8px` rhythm (reference tier, density-free):
 

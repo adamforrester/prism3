@@ -363,9 +363,17 @@ export const ENGINE_VERSION = '0.19.0';
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  *
- * 5.3.0: 3 added guaranteed paths, no removal and no retype, so MINOR — `control.size.{sm,md,lg}.dot`,
- * the inner mark of a control that draws one as a filled shape (radio's dot; a switch's thumb next).
- * (576 → 579)
+ * 5.3.0: 4 added guaranteed paths, no removal and no retype, so MINOR. Three are the intended ones —
+ * `control.size.{sm,md,lg}.dot`, the inner mark of a control that draws one as a filled shape (radio's
+ * dot; a switch's thumb next). (576 → 580)
+ *
+ * THE FOURTH IS `dimension.10`, and it is worth naming rather than absorbing into the count, because it
+ * is the tier change reaching a layer nobody edited. Every `control.size.*` leaf ALIASES a dimension
+ * step rather than minting a literal, so `buildDims` feeds the control px into the grid as extras
+ * (#274). `dot` is half an odd-multiple height, and 10px was on NEITHER the base-4 ladder NOR the space
+ * extras NOR the icon ladder — at the DEFAULT baseUnit, in every corpus brand. So the grid gains a step
+ * and a consumer gains a guaranteed name. Additive either way, but a fourth path in a diff that
+ * predicted three is the kind of surprise a MINOR is supposed to absorb visibly.
  *
  * THE GROUP SHAPE PAYING OFF, and worth one sentence because 5.2.0 below argued for it prospectively.
  * That entry chose a group over a leaf on the reasoning that a switch's track would force a second

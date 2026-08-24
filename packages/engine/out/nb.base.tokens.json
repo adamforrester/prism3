@@ -12249,6 +12249,17 @@
           }
         }
       },
+      "10": {
+        "$type": "dimension",
+        "$value": "10px",
+        "$description": "10px — dimension primitive",
+        "$extensions": {
+          "prism3": {
+            "generated": true,
+            "px": 10
+          }
+        }
+      },
       "12": {
         "$type": "dimension",
         "$value": "12px",
@@ -13339,6 +13350,19 @@
                 "density": "comfortable"
               }
             }
+          },
+          "dot": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.8}",
+            "$description": "control.size.sm dot — 8px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 16px box edge, leaving a 4px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.8",
+                "px": 8,
+                "density": "comfortable"
+              }
+            }
           }
         },
         "md": {
@@ -13364,6 +13388,19 @@
                 "role": "semantic",
                 "aliasOf": "nbds.dimension.40",
                 "px": 40,
+                "density": "comfortable"
+              }
+            }
+          },
+          "dot": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.10}",
+            "$description": "control.size.md dot — 10px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 20px box edge, leaving a 5px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.10",
+                "px": 10,
                 "density": "comfortable"
               }
             }
@@ -13395,6 +13432,19 @@
                 "density": "comfortable"
               }
             }
+          },
+          "dot": {
+            "$type": "dimension",
+            "$value": "{nbds.dimension.12}",
+            "$description": "control.size.lg dot — 12px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the 24px box edge, leaving a 6px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at `height` instead.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.dimension.12",
+                "px": 12,
+                "density": "comfortable"
+              }
+            }
           }
         }
       }
@@ -13403,7 +13453,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.18.0",
+      "version": "0.19.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

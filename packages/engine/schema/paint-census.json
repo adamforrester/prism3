@@ -84,6 +84,18 @@
         "assignments": 231,
         "sha256": "7ba60a24836068522adc2fd5da625ab4d0556b4640e46dbf7d703edbe2a66689"
       }
+    },
+    "radio": {
+      "set": {
+        "members": 36,
+        "assignments": 126,
+        "sha256": "d120bcea522659187e28772298c367c581a0b1846c3e4d798f2a494e124fd3fc"
+      },
+      "grid": {
+        "members": 42,
+        "assignments": 147,
+        "sha256": "029579a313633fa6ee61d480c2892ec435277ef920ff0ac3a911f3f25ab935b0"
+      }
     }
   }
 }

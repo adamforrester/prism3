@@ -106,16 +106,44 @@
  * engine's names win. Recorded here because the rule is that the author records it where they meet
  * it, and "checkbox already did" is how the next def stops doing so.
  *
- * ── #900 AGAIN, AND THIS IS THE SECOND INSTANCE OF THREE ────────────────────────────────────────
+ * ── #900 CLOSED, AND THE ONE PLACE THE CHECKBOX PATTERN DID NOT GENERALIZE ──────────────────────
  *
- * The control CIRCLE has no binding, for the identical reason the checkbox square has none: the
- * engine emits no token for a small control's own dimension. `icon.size.*` has values that are
- * exactly right (16/20/24) and a meaning that is not — it is the glyph artboard ladder — so binding
- * it would resolve, typecheck and pass every gate while measuring the wrong thing.
+ * The control CIRCLE is bound — `control.size.*.height`, one key on both axes, square by
+ * construction, exactly as `checkbox` binds its box. That much was a copy. `icon.size.*` remains the
+ * substitution that would resolve, typecheck and pass every gate while measuring the wrong thing:
+ * its values are right (16/20/24) and its meaning is not, because it is the glyph artboard ladder.
  *
- * **Left unbound on purpose rather than worked around**, so that when `switch` meets the same wall
- * the record shows one gap hit three times rather than three defs each inventing a way past it. A
- * workaround here would also be the harder one to unpick, because it would look like a decision.
+ * **The DOT did not copy, and the reason is the finding of this def.** Checkbox's mark is a `vector`
+ * sized `size.{size}.control` — FULL BLEED — and that is correct there because a glyph carries its
+ * optical inset inside its own artboard: `check` draws 16.97×12 of ink on a 24×24 grid (~71%),
+ * `minus` draws 14×2 (58%). A radio's dot is a `box`, and a box has no artboard. Full-bleed makes
+ * the dot BE the disc, `checked.icon → on-fill` paints it, and the result is a solid circle with no
+ * ring — which is not a radio at all. Nothing downstream could have caught that: the size ref
+ * resolves, the paint resolves, the geometry is square, and nothing in the repo reads a filled
+ * shape's proportion.
+ *
+ * So the dot needed a NUMBER, and `control.size.*` grew a third field to hold it —
+ * `control.size.<rung>.dot`, half the box edge (#910). Three things about that are worth recording,
+ * because #900 predicted the opposite:
+ *
+ *   · **#900 said this dimension would be ABSENT**, on #801's split: the tier holds the inputs and a
+ *     downstream layer does the arithmetic. That split still holds for a switch THUMB, whose
+ *     question is where it sits at two selection values. It does not hold here, because the
+ *     arithmetic has nowhere to happen — `anatomyErrors` refuses `inset` on any non-`absolute` part,
+ *     and `sizingMode` maps `'fill'` to Figma `AUTO`, so padding-plus-fill projects a dot of ZERO.
+ *     Both spellings of #900's prescribed route are refused by the code, and opening either would
+ *     put `layoutGrow`/`layoutAlign` through the plan type, the projector and both executors.
+ *   · **The group shape is what made that cheap.** #900 authored `control.size.<rung>` as a GROUP
+ *     rather than a leaf specifically so a second dimension could arrive without a MAJOR bump. It
+ *     arrived, additive, at MINOR — and for a field #900 did not anticipate, which is a stronger
+ *     case for the rule than the one it argued.
+ *   · **The ratio is a CONSTANT, not a brand lever**, on `CONTROL_TRACK_RATIO`'s footing, and it is
+ *     NOT field-convergent: M3 is 0.5, Carbon 0.4, Primer 0.375, a third of spread with ours at the
+ *     top of the range. `scale.ts` carries what it stands on instead, and why a brand should not
+ *     have this knob.
+ *
+ * `switch` still meets a wall, and this def does not clear it: a thumb is present at BOTH selection
+ * values and MOVES between them, which is a positioning question rather than a presence one.
  */
 import { ComponentDef } from '../component-schema';
 
@@ -139,7 +167,7 @@ export const radio: ComponentDef = {
     { name: 'value', type: 'string', required: true, description: 'REQUIRED, where checkbox\'s is optional — this is the option\'s identity within its group, not a string that happens to be submitted. Selection is derived from it: `checked = (group.value === props.value)`. The option never holds a boolean of its own.' },
     { name: 'label', type: 'node', required: false, description: 'Rich content, inline-end of the control, and part of the hit target — checkbox\'s label model, inherited. Option labels are parallel, mutually exclusive and brief: the same grammatical shape across the set, with no overlap that would make two options both apply. Long labels WRAP rather than truncate, with the control top-anchored. Per-option detail or price belongs in `description`, not in the label.' },
     { name: 'description', type: 'node', required: false, description: 'Per-option helper beneath the label, describedby-wired. This is where the detail that makes an option distinguishable goes — the price, the delivery estimate, the caveat.' },
-    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the row — the control-to-label gap and the row\'s minimum height. The control circle itself is NOT bound (#900, see `notes.unverified`): the engine emits no token for a small control\'s own dimension. Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
+    { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Scales the row — the control-to-label gap, the row\'s minimum height, the label\'s type, the circle\'s own diameter and the inner dot\'s. The circle and the dot come from `control.size.*`, which moves a full rung with brand density; a binding to `icon.size.*` would resolve and measure the wrong thing (see the header). Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
   ],
 
   // Checkbox's seven exactly. Brief §4 inherits them and adds three "radio-specific" entries, none of
@@ -185,9 +213,14 @@ export const radio: ComponentDef = {
     'checked.border.hover': 'color.interactive.primary.border.hover',
     'checked.border.pressed': 'color.interactive.primary.border.pressed',
     'checked.border.error': 'color.border.danger',
-    // The inner dot. A glyph in the `icon` slot, as checkbox's check is — the shape differs and the
-    // ink role does not.
-    'checked.icon': 'color.interactive.primary.on-fill',
+    // The inner dot, in the `indicator` slot — NOT `icon`, and that is the second consequence of the
+    // dot being a box rather than a glyph. `icon` is ink for a node that DRAWS something, and a box
+    // claiming it paints a rectangle behind the glyph it meant to colour (#864, measured). The dot has
+    // no glyph behind it because it IS the drawn shape, so it needs a slot of its own — which #933's
+    // one-box-per-slot rule demands anyway, since `control` already owns `fill`. `indicator` was already
+    // in `PAINT_SLOTS` for `field-label`'s de-emphasised suffix and joined `BOX_PAINT_SLOTS` here.
+    // The ink role is unchanged from checkbox's check: `on-fill`, gated against the fill it sits on.
+    'checked.indicator': 'color.interactive.primary.on-fill',
 
     // ── THE ROW'S LABEL — one ink at every coordinate, so it is the bare slot. Page text beside the
     // control, which is why its disabled ink is `disabled.text` and not `disabled.on-fill`.
@@ -203,7 +236,7 @@ export const radio: ComponentDef = {
     // ── DISABLED SKIN (contrast-exempt), the shared cross-cutting family.
     'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
-    'disabled.icon.on-fill': 'color.disabled.on-fill',
+    'disabled.indicator.on-fill': 'color.disabled.on-fill',
     'disabled.label': 'color.disabled.text',
 
     // ── GEOMETRY. `radius.round` is the one geometric difference from checkbox, and it is the whole
@@ -217,6 +250,158 @@ export const radio: ComponentDef = {
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
     'size.large.min-height': 'size.lg.height',
+
+    // ── THE CONTROL CIRCLE, checkbox's binding verbatim. ONE key on BOTH axes of the box, so the
+    // control is round-able by construction rather than by two values that happen to agree; `.width`
+    // sits on the same tier group and is deliberately not read here — it is switch's track.
+    //
+    // `control.size.*.height` AND NOT `icon.size.*`. Measured across the corpus: `icon.size` is
+    // 16/20/24/32/40 and BYTE-IDENTICAL in all four brands, because a glyph artboard is a fixed grid
+    // the icon set draws on. `control.size.*.height` is 16/20/24 on nb, wendys and harbor and 12/16/20
+    // on AURORA. Both refs resolve, both are dimensions, both are square, so the wrong one is invisible
+    // — which is why the claim is asserted in `test.ts` over every def that binds a control field,
+    // rather than trusted to this comment. It was checkbox-shaped until this def arrived.
+    'size.small.control': 'control.size.sm.height',
+    'size.medium.control': 'control.size.md.height',
+    'size.large.control': 'control.size.lg.height',
+
+    // ── THE INNER DOT, and this is the one binding with no checkbox counterpart (#910). Checkbox's
+    // mark is a GLYPH sized at `control` full-bleed, which is right there and wrong here: a glyph's
+    // optical inset lives in its artboard and a filled box has no artboard, so full-bleed would make
+    // the dot the whole disc. `control.size.*.dot` is half the box edge — 8/10/12 on nb, wendys and
+    // harbor, 6/8/10 on aurora, so it tracks brand density exactly as the box it sits in does.
+    'size.small.dot': 'control.size.sm.dot',
+    'size.medium.dot': 'control.size.md.dot',
+    'size.large.dot': 'control.size.lg.dot',
+
+    // ── THE ROW'S TYPE, checkbox's reasoning unchanged: running text BESIDE a control, not a name
+    // announcing a field above one, and `type.label.*` emits only `sm`/`md` so `large` would have no
+    // rung to reach. `type.body.*` is the only family in the tier carrying all three.
+    'size.small.text': 'type.body.sm.default',
+    'size.medium.text': 'type.body.md.default',
+    'size.large.text': 'type.body.lg.default',
+  },
+
+  // ── ANATOMY (#910) ──────────────────────────────────────────────────────────────────────────────
+  //
+  // Checkbox's decomposition with ONE structural mutation, which is the same sentence the header opens
+  // with and it holds at this level too: two boxes (the ROW is the hit target, the CONTROL owns the ink
+  // — #933), a mark gated by `presentWhen` on `selection`, an absolute focus ring on the control, and a
+  // text label. Four of the five parts are checkbox's, adapted only in their `note`.
+  //
+  // THE MUTATION IS THE MARK, and it is a change of KIND rather than of glyph. Checkbox has two `vector`
+  // parts — `check` and `minus`, one per non-empty selection value. Radio has one `box`, because a dot
+  // is not a glyph: there is no filled circle in the engine's 39-name glyph vocabulary, and minting one
+  // would put a primitive shape into a set whose whole membership rule is that an entry carries meaning.
+  // A `box` with `radius: 'radius'` (which radio binds to `radius.round`) is a circle at any size, with
+  // no artboard and therefore no borrowed inset — hence its own `size.{size}.dot` key. See the header
+  // for why that field had to exist and what #900 had predicted instead.
+  //
+  // `unchecked` has no mark at all — an empty ring draws nothing — so the dot is gated rather than
+  // recolored, and `presentWhen: { selection: ['checked'] }` is the whole of it. One value, where
+  // checkbox needed two parts for two.
+  anatomy: {
+    root: 'row',
+    parts: {
+      // THE HIT TARGET, and nothing else. No `paintSlots` (#933): structure, and this def keys no
+      // row-level fill or border for it to name. Its extent comes from its children — `min-height` is in
+      // `codeOnly` for checkbox's reason, that Figma has no floor.
+      row: {
+        kind: 'box',
+        role: 'target',
+        // START, not center — `docs.dont` states it: a control centred against a multi-line label floats
+        // mid-paragraph. Option labels wrap by design here, since the guidance is to wrap rather than
+        // truncate and to keep per-option detail in `description`.
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        gap: 'size.{size}.gap',
+        children: ['control', 'label'],
+      },
+      // THE PAINTED DISC. FIXED on both axes because `size` binds one variable to width and height; a
+      // hugging box would collapse around the dot. `radius` resolves to `radius.round`, which is the one
+      // geometric difference from checkbox and the whole visual distinction between the two controls.
+      control: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['fill', 'border'],
+        size: 'size.{size}.control',
+        radius: 'radius',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
+        children: ['dot', 'focusRing'],
+      },
+      // THE DOT. A `box`, not a `vector`, and sized from its OWN key rather than the control's — the two
+      // departures from checkbox's `mark`, and they are one decision: a filled shape has no artboard to
+      // carry an optical inset, so full-bleed would draw the disc rather than a dot inside it. FIXED on
+      // both axes for the control's reason. `radius` is the same round binding, which at a square box of
+      // any size is a circle.
+      dot: {
+        kind: 'box',
+        role: 'presentation',
+        // `indicator`, NOT `fill` — `control` already owns `fill`, and #933's rule is that two boxes
+        // naming one slot both take the SAME variable rather than dividing it. That is not a widening
+        // to route around the rule; it is what the rule prescribes ("a def that genuinely needs a
+        // second painted box needs a second SLOT"). `indicator` is the honest name for a selection
+        // mark, was already in `PAINT_SLOTS`, and joined `BOX_PAINT_SLOTS` here — see its note for the
+        // #864 condition that admits it, and why this part satisfies it by having no children.
+        paintSlots: ['indicator'],
+        size: 'size.{size}.dot',
+        radius: 'radius',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
+        presentWhen: { selection: ['checked'] },
+        note: 'The inner dot, present only at `checked` — an unchecked radio draws no mark, so this is a gated part rather than a recolored one. Its ink is `checked.icon` (`color.interactive.primary.on-fill`), gated by the token tier against the fill it sits on. Its select micro-motion — a spring scale-up, and a sibling\'s dot animating OUT — has no expression in this schema (see `notes.unverified`).',
+      },
+      // Checkbox's ring, verbatim, on the CONTROL rather than the row: `accessibility.focus` says the ring
+      // is on the control, and `focus.ring.offset` (2) is the control offset rather than the field's flush
+      // `offset-field` (0). The two insets SUM in the executor, siting the ring at -(2+2) = -4, so the
+      // visible gap is a full 2px — #801's finding, that the ring's own inside-drawn stroke eats the offset
+      // unless it is compensated for. The brief's INSTANT-appearance requirement is not expressible here.
+      focusRing: {
+        kind: 'absolute',
+        when: 'focus-visible',
+        nests: 'focus-ring',
+        inset: 'ring-offset',
+        strokeInset: 'ring-width',
+        nesting: { kind: 'nest-fixed', variant: { color: 'default' } },
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the CONTROL so the ring surrounds the circle rather than the whole row.',
+      },
+      // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
+      // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill, not on it.
+      label: {
+        kind: 'text',
+        type: 'size.{size}.text',
+        note: 'The accessible name AND the second half of the hit target. Rich content in code; a plain text node in Figma. Note that the accessible name of the CHOICE is the group\'s label, which no part here can carry — an option label alone announces "radio button, 1 of 3" with no indication of what is being chosen.',
+      },
+    },
+    codeOnly: [
+      // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
+      // passing mention inside an entry about something else does not count (#563).
+      'read-only — the one state in `states` the Figma set does not carry, admitted here rather than dropped, exactly as `checkbox` admits it and `button` admits `inactive`. It binds NOTHING by design (see `states`): a radio has no working native readonly, so there is no treatment to project, and six variants byte-identical to `rest` would read as coverage of a state nobody has designed.',
+      'min-height — `size.*.min-height` is the row\'s FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping option label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
+      'THE GROUP, which is the unit of use and is not this def (#901). The shared `name` that enforces exclusivity, the single scalar value selection is derived from, the single tab stop with roving tabindex and arrow navigation, `orientation`, `required` and all validation live there. A Figma set of options can show what an option looks like at every coordinate and cannot show a group at all — so the exclusivity that makes these radios rather than toggles is absent from the projection by construction, not by omission.',
+      'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout. `row` is the node it lands on — that is what this block makes expressible — but the value is not the def\'s to pick.',
+      'The `description` prop — per-option helper text beneath the label, which is where the detail that distinguishes options goes (a price, a delivery estimate). It is a second text part under `label` rather than beside it, and adding it would double the row\'s vertical shape across all 36 members for content that is optional at every one of them. Left to the code projection, where it is describedby-wired.',
+      'The select micro-motion (brief §8: a spring/scale-up of the dot with a border-color crossfade at roughly 100-150ms, and a SIBLING\'s dot animating out — the only exit animation a radio has, since it can never be deselected on its own). Neither the def schema nor a Figma variant carries motion, so the dot is static at every coordinate. The focus ring\'s INSTANT-appearance requirement is the same gap seen from the other side.',
+    ],
+  },
+
+  figmaProperties: {
+    // BOTH axes, and `selection` is not optional: `presentWhen` gates the dot on it, so an unprojected
+    // `selection` would make the dot absent from every member of the set. `anatomyErrors` refuses that
+    // combination rather than leaving it to be discovered in a Figma file.
+    variantAxes: ['selection', 'size'],
+    // Six of the seven states — `read-only` is admitted in `codeOnly` above. 2 selections x 3 sizes x 6
+    // states = 36 members, checkbox's 54 less the `indeterminate` column radio does not have.
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'] },
+    texts: {
+      // A REAL OPTION from a real group, not "Label" — #798's finding is that a text part with no TEXT
+      // property projects a blank node, and the corollary is that the default is the only copy anyone
+      // reviewing the set will see. A shipping method is the canonical example in `docs.usage`, and it
+      // demonstrates the content rule at the same time: parallel, brief, sentence case, no terminal stop.
+      label: { part: 'label', default: 'Standard shipping' },
+    },
+    // No `swaps` — the dot is geometry this def owns, not a glyph a consumer nominates. No `slotAxes`:
+    // the dot is gated by a COORDINATE rather than by presence, which is the distinction `presentWhen`
+    // exists to draw.
+    booleans: {},
   },
 
   accessibility: {
@@ -292,13 +477,13 @@ export const radio: ComponentDef = {
       'Selection-follows-focus is the practice default and the external research pass argued the opposite (explicit selection, Space to commit), citing the screen-reader-exploration trap and Windows gamepad behavior. Recorded because the contrary position is legitimate and reasoned rather than wrong: the resolution is that follows-focus is native and the APG default, and the exploration cost is better paid by keeping `onChange` cheap than by reimplementing the platform.',
     ],
     unverified: [
-      'THE CONTROL CIRCLE HAS NO BINDING — #900, and this is the SECOND of three instances. Identical to checkbox\'s square: `size.*.height` is a full control\'s height (40/48/56 on nb) and `icon.size.*` is the glyph artboard ladder, whose values (16/20/24) are right and whose meaning is not. Binding it would resolve, typecheck and pass every gate. Left unbound rather than worked around, deliberately, so switch\'s arrival makes this one gap hit three times rather than three defs each inventing a way past it.',
+      'THE DOT\'S RATIO TO ITS BOX IS A CONSTANT AND NOT FIELD-CONVERGENT — `CONTROL_DOT_RATIO` is 0.5, where M3 is 20/10 = 0.5, Carbon 20/8 = 0.4 and Primer 16/6 = 0.375. Three points spanning a third are not convergence, and ours sits at the top of that range rather than the middle, so unlike `CONTROL_TRACK_RATIO`\'s 2:1 this number cannot be justified by pointing at the field. What the same three DO agree on is the resulting GAP — 5, 6, 5px — and a fixed gap cannot be the tier\'s answer, because 12 less two 5s leaves a 2px dot at the compact floor. `scale.ts` states the three properties 0.5 stands on instead (an integer at every rung, a 6px legibility floor, implied gaps that bracket the field\'s 5-6 at the middle rungs) and why it is not a brand lever. A brand wanting the outlined Material skin, in `notes.contested`, would want a different ratio too.',
       'The unchecked disc has no `pressed` binding, for checkbox\'s reason: `color.field.border.*` emits `rest` and `hover` only. The checked coordinates DO paint pressed, so the gap is asymmetric.',
       '`read-only` is declared and binds nothing, as on checkbox. A radio has no working native readonly either.',
       'THE FOCUS RING MUST APPEAR INSTANTLY (brief §6, §8) — a fade lags rapid arrow navigation through a group, which is a radio-specific constraint that checkbox does not have, since checkbox is tabbed to one at a time. The engine emits `motion.duration-ms.*` and this def has no motion field to point at, so the requirement lives in `accessibility.focus` prose and nothing checks it.',
       'The select micro-motion (brief §8: a spring/scale-up of the dot with a border-color crossfade at roughly 100-150ms, and — uniquely — a sibling\'s dot animating OUT, the only exit animation a radio has, since it can never be deselected on its own) has no expression in the def schema at all.',
       '`RadioGroup` and `Radio.Control` are separate components with no def (#901). For radio this is sharper than for checkbox, because the group is MANDATORY rather than optional: the shared `name`, the single scalar value, the roving-tabindex single tab stop, `orientation`, and all validation live there, and none of it is expressible from an option. Recorded in the header at length for that reason.',
-      'The whole-row hit target is expressed here only as `size.*.min-height`, the row\'s floor. Where the expanding padding sits, and how it relates to the control\'s own inset, is an anatomy concern this def has no block to state.',
+      'The whole-row hit target is expressed as `size.*.min-height`, the row\'s floor, and — since #910 — `anatomy.parts.row` is the node the expanding padding would land on. What is still unstated is the VALUE: the row clears SC 2.5.8\'s 24x24 at `medium` and not at `small`, and how much padding to add is a decision about the surrounding layout rather than a property of this component. Admitted in `anatomy.codeOnly` rather than guessed at.',
     ],
   },
 };

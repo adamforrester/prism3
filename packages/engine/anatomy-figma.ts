@@ -694,7 +694,15 @@ export const figmaAnatomyPlan = (
    * one rule rather than two. `outline` and `text` have no fill to sit on, so they keep page ink.
    */
   const STRUCTURAL = new Set(['fill', 'border']);
-  const INK = new Set(['label', 'icon']);
+  // `indicator` is INK, not structure, and the distinction is about the GROUND rather than the node's
+  // kind (#910). A radio's dot is a filled box, so it looks structural; but it is the mark, it sits on
+  // the control's fill, and at `disabled` that fill is `color.disabled.fill` — so its ink has to be the
+  // on-fill form for the same contrast reason #784 gives for a label. Leaving it out resolved
+  // `disabled.indicator` instead, a key no def binds, so the dot kept its checked primary ink on a gray
+  // disc. Not caught by the structural guard above (the dot's presence is `presentWhen`'s business, not
+  // paint's) and not caught by any contrast gate, because the pairing it violates is one nothing had
+  // asked about — arm 3 of `lint-paint.ts` named it, which is what that arm is for.
+  const INK = new Set(['label', 'icon', 'indicator']);
   const restKey = (slot: string): boolean =>
     (def.paintKeys ?? []).some((t) => {
       const k = fillPaintKey(t, slot, { ...paintCoord, state: undefined });
