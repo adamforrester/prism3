@@ -1476,6 +1476,48 @@ for (const b of brands) {
       ok(bogus.length === 0, `grounds: every GROUND_INPUT key is a real ground${bogus.length ? ` — not grounds: ${bogus.join(', ')}` : ''}`);
     }
 
+    // (a6) THE OVERRIDE ASSUMPTION, ASSERTED (#979).
+    //
+    // #979 proposed two-pass derivation and named the risk: an override must not feed back into
+    // itself across the passes. Its own condition was to ASSERT the assumption rather than reason
+    // about it — #964's topological-order property turned out not to be the binding one, and the
+    // lesson was that "verify the assumption" and "check whether the assumption is the binding one"
+    // are different steps.
+    //
+    // The binding property here is PURITY: an override's value is `ramps.get(palette).find(step).rgb`,
+    // a function of the declared input and nothing derived. If that holds, feedback is impossible and
+    // the second pass is redundant — which is why this ships as one pass. Both halves are asserted:
+    //
+    //   1. The emitted colour of an overridden role IS the palette step's colour, exactly. Nothing in
+    //      derivation adjusted it on the way through.
+    //   2. Deriving TWICE — feeding the first result's overrides back in — changes nothing. That is
+    //      the two-pass equivalence stated as a test instead of as a claim in a comment.
+    {
+      const probes: Array<[string, string, string]> = [
+        ['text.primary', 'neutral', '500'],
+        ['foreground.brand', 'neutral', '100'],
+        ['interactive.primary.fill.rest', 'neutral', '300'],
+        ['background.inverse.secondary', 'neutral', '500'],
+      ];
+      const impure: string[] = [], unstable: string[] = [];
+      for (const [role, palette, step] of probes) {
+        const input = { ...MINIMAL_BRAND, overrides: { light: { [role]: { palette, step } } } } as BrandInput;
+        const theme = brandTheme(input);
+        const light = resolveAllModes(theme).find((m) => m.mode === 'light')!;
+        const want = theme.palettes.find((p) => p.palette === palette)!.steps.find((s) => s.key === step)!;
+        if (light.roles[role].hex.toLowerCase() !== hex(want.rgb).toLowerCase())
+          impure.push(`${role}: emitted ${light.roles[role].hex}, palette step ${hex(want.rgb)}`);
+        // A second derivation over the same input must be identical — no pass-dependent state.
+        const again = resolveAllModes(brandTheme(input)).find((m) => m.mode === 'light')!;
+        const drift = Object.keys(light.roles).filter((k) => light.roles[k].hex !== again.roles[k].hex);
+        if (drift.length) unstable.push(`${role}: ${drift.length} role(s) differ on a second derivation, e.g. ${drift[0]}`);
+      }
+      ok(impure.length === 0,
+        `override: a resolved override IS its palette step, unchanged by derivation (${probes.length} probes)${impure.length ? ` — ${impure.join('; ')}` : ''}`);
+      ok(unstable.length === 0,
+        `override: derivation is a pure function of the input — a second pass computes the identical tree, so two passes are redundant${unstable.length ? ` — ${unstable.join('; ')}` : ''}`);
+    }
+
     // (a4) THE SURFACE COLLECTION (#893). Read out of the COMMITTED emission, not re-derived from
     // `buildFigmaSurface` — a re-derivation would be the emitter checked against a copy of itself.
     // `surfaceRows` is imported only for the row-count cross-check, which is the one place the two

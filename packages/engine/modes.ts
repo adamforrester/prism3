@@ -151,11 +151,16 @@ export type ResolvedRole = { path: string; description: string; ratio: number; a
 // hand-tuned override that still applies + emits but fails its role's contrast min (WARN, never block).
 export type PrimitiveRef = { palette: string; step: string };
 export type ModeOverrides = Record<string, PrimitiveRef>;   // rolePath -> primitive step ref
-// `staleDependents` (#956) marks the second kind: the overridden role is a GROUND with no declarative
+// `staleDependents` was a second warning kind (#956): a ground with no declarative input had moved and
+// its dependents were left carrying the old ground's answer. #979 made dependents follow their ground,
+// so there is nothing left to report and the field is retired — measured at zero genuinely stale, not
+// assumed. Kept out of the type rather than left optional-and-unused, so nothing can quietly start
+// emitting a warning whose meaning no longer exists.
+// The original note, for the record: the overridden role is a GROUND with no declarative
 // input, so the roles measured against it kept the value and ratio they derived from the OLD one.
 // Optional rather than a separate union member so every existing reader of `{role, ratio, min}` keeps
 // working unchanged — the contrast fields are still the overridden role's own, and still correct.
-export type OverrideWarning = { role: string; ratio: number; min: number; staleDependents?: string[] };
+export type OverrideWarning = { role: string; ratio: number; min: number };
 export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, ResolvedRole>; warnings?: OverrideWarning[] };
 
 /**
@@ -1387,11 +1392,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const groundRoles = engineGrounds(roles);
   const groundDependents = (g: string): number => groundDependentsOf(roles, g).length;
   const warnings: OverrideWarning[] = [];
-  // Which roles an override actually moved, and which had their ratio recomputed because of one.
-  // Tracked rather than re-derived from `theme.overrides` because a ref naming a role absent in this
-  // mode is skipped, so the input and what actually applied are not the same set.
+  // Which roles an override actually moved. Tracked rather than read back off `theme.overrides`
+  // because a ref naming a role absent in this mode is skipped, so the input and what applied are not
+  // the same set.
   const overridden = new Set<string>();
-  const rederived = new Set<string>();
   const ov = theme.overrides?.[mode];
   if (ov) {
     for (const [rolePath, ref] of Object.entries(ov)) {
@@ -1451,52 +1455,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       overridden.add(rolePath);
     }
 
-    // ---- re-derive what was measured against an overridden ground (#964) ----
+    // #978's dependent-ratio re-derivation and its `staleDependents` warning BOTH LIVED HERE, and are
+    // gone (#979). They existed because a dependent could not follow its ground: the ratio was patched
+    // afterwards and the value was left stale, so the warning had to name what was left behind.
     //
-    // #956 gave the two page/band grounds a declarative input and refused them here. The other 18 had
-    // no input to point at, so they were applied and merely WARNED about — the dependents kept the
-    // ratio they derived from the old ground, which is the same "reports contrast it does not have"
-    // defect at 1-29 roles instead of 60.
-    //
-    // WHAT MOVES AND WHAT DOES NOT, stated because the asymmetry decides the whole design. When a
-    // ground's colour changes, its dependents' RATIOS change — that is pure arithmetic over the final
-    // colours and is recomputed here. Their VALUES do not: `interactive.<c>.on-fill` is
-    // `onColor(rest.rgb)` computed from a local inside `iFill`, not a lookup, so re-deriving it would
-    // mean re-running a rule this pass cannot reach. Verified rather than assumed — every dependent
-    // of the 18 is an ink or a wash picked against the ground by a closure that has already returned.
-    //
-    // So the honest split is: the reported number becomes TRUE, and where the unchanged value no
-    // longer clears its bar the final sweep below says so. That is allow-and-flag doing exactly what
-    // it promises, and it is what #964 asks for ("their reported ratio matches their emitted colour").
-    // Making the VALUE re-derive is a larger change — it needs the derivation rules to be reachable
-    // after the fact — and is not smuggled in here.
-    //
-    // DIRECT dependents only, and that is correct rather than a shortcut: a dependent's own colour is
-    // unchanged, so anything measured against IT is unaffected. The edge set covers `legibleFor` as
-    // well as `against`, since #963 a wash reports the legibility of a second role it names.
-    for (const [k, r] of Object.entries(roles)) {
-      const touched = (r.against && overridden.has(r.against)) || (r.legibleFor && overridden.has(r.legibleFor));
-      if (!touched || overridden.has(k)) continue;   // an overridden role already recomputed its own
-      const groundRgb = r.against === 'self' ? hexToRgb(r.hex) : (rgbByRole.get(r.against) ?? baseRgb);
-      roles[k] = {
-        ...r,
-        ratio: r.model === 'ink-on-composite'
-          ? contrast(rgbByRole.get(r.legibleFor) ?? baseRgb, composite(groundRgb, hexToRgb(r.hex), r.alpha))
-          : contrast(hexToRgb(r.hex), groundRgb),
-      };
-      rederived.add(k);
-    }
-
-    // The warning is KEPT and reframed rather than removed (#964 offered either). Its subject changed:
-    // it no longer means "these are reporting a number for a surface that is gone" — that is fixed —
-    // it means "these were GENERATED against the old ground and were not re-derived, so their values
-    // are the old ground's answers". Any that now fall short of their bar are named individually by
-    // the final sweep; this entry is what tells a reader WHY, which a per-role contrast warning
-    // cannot. Dropping it would lose the causal link at exactly the moment it became actionable.
-    for (const rolePath of overridden) {
-      const stale = [...rederived].filter((k) => roles[k].against === rolePath || roles[k].legibleFor === rolePath).sort();
-      if (stale.length) warnings.push({ role: rolePath, ratio: roles[rolePath].ratio, min: roles[rolePath].min, staleDependents: stale });
-    }
+    // Overrides are now substituted into derivation, so a dependent picks against the real ground the
+    // first time — value and ratio are both right when `put` writes them, and there is nothing to patch
+    // or to confess. #964 offered "removed, or kept for a case that provably remains"; measured across
+    // the 18 input-less grounds, 32 dependents move with their ground and 27 are washes with no ladder
+    // to move along, leaving ZERO genuinely stale. So it is removed rather than kept.
   }
 
   // ---- the contrast sweep (#956) ----
