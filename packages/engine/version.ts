@@ -139,7 +139,7 @@
  * that the substitution takes the ground the dependent DECLARES, with that ground's own value as the
  * fallback — never a neighbour's.
  *
- * No emitted artifact moves: no corpus brand uses `overrides`. `CONTRACT_VERSION` stands at 5.2.0. A
+ * No emitted artifact moves: no corpus brand uses `overrides`. `CONTRACT_VERSION` stands at 5.3.0. A
  * minor because a brand that DOES use overrides now resolves different (correct) colours. (#979)
  * 0.19.0: `control.size.*` grows a third field, `dot` — the inner mark of a control whose mark is a
  * filled shape rather than a glyph, at half the box edge (#910, radio's anatomy). Three px per brand:
