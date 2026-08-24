@@ -423,6 +423,8 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the third instance of the same shape, and the first on a def whose ring nests inside a NON-target box (the control, not the row). Still a nomination: it names the colour the nested `focus-ring` draws, and no node of this def can carry a ring stroke.',
   'radio|focus-ring':
     'the fourth instance, identical to `checkbox|focus-ring` — a nomination for the ring nested inside the control box, not a paint on any node radio owns. Four entries with one reason is now worth reading as a shape rather than four exemptions: every def that NESTS `focus-ring` will land here until `PartDef` gains a stroke field (#740).',
+  'switch|focus-ring':
+    'the fifth instance, and it arrived exactly as the fourth predicted: a nomination for the ring nested inside the TRACK, not a paint on any node switch owns. The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
 };
 
 /**

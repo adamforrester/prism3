@@ -80,10 +80,11 @@
  *
  * **It is a PROP here and not a `variants` axis, deliberately.** `variants` is what the projector
  * crosses into coordinates and what `paintOf` resolves against, and label side changes no ink at any
- * coordinate — it reverses a row's `direction`. That makes it an ANATOMY concern (a `LayoutDef`
- * field), and this def has no anatomy block to hold it. Declaring it as an axis would double every
- * paint coordinate for a distinction that paints nothing: #758's shape, a member that projects and
- * has no color to carry. Recorded in `notes.unverified` as the anatomy-tier requirement it is.
+ * coordinate — it reverses a row's `direction`. That makes it an ANATOMY concern, and the anatomy
+ * block states the DEFAULT (`row.children` is `[label, track]`) while the flipped order stays out of
+ * reach: a prop is not a coordinate, and a row has one child order. Declaring it as an axis would
+ * double every paint coordinate for a distinction that paints nothing: #758's shape, a member that
+ * projects and has no color to carry. `notes.unverified` carries what is still missing, RTL included.
  *
  * ── `pending` IS DECLARED, AND IT IS THE ONLY DEF IN THE FAMILY THAT DECLARES IT ────────────────
  *
@@ -97,9 +98,11 @@
  * assumed: the tier emits no pending ink, and `button` — which has declared `pending` since #843 —
  * binds nothing for it either (grepped: zero `pending` keys across all ten existing defs). What the
  * pending state actually changes is the THUMB's content (a spinner replaces it) and the track's
- * interactivity, both anatomy-tier. So the state is declared because the coordinate is real and a
- * consumer must implement it, and `notes.unverified` says the ink is absent rather than letting a
- * reader infer the state is decorative.
+ * interactivity. The first of those is now expressible — `button`'s `overlay` part is exactly that
+ * shape (#848) — and is deliberately not expressed: it is admitted in `anatomy.codeOnly` rather than
+ * authored, because a spinner part is a second concern in a PR whose subject is the travel. So the
+ * state is declared because the coordinate is real and a consumer must implement it, and the notes say
+ * the ink is absent rather than letting a reader infer the state is decorative.
  *
  * ── `error` IS AN OUTCOME, NOT A VALIDATION — THE SHARPEST STATE DIFFERENCE FROM CHECKBOX ───────
  *
@@ -152,23 +155,49 @@
  * records it where they MEET it, and *"the three defs before me already did"* is how the next def
  * stops doing so.
  *
- * ── #900, AND THIS IS THE THIRD INSTANCE — THE ONE THAT CONSTRAINS THE ANSWER ───────────────────
+ * ── #900's THIRD INSTANCE, NOW BOUND — AND IT IS THE INSTANCE THAT SHAPED THE FAMILY ────────────
  *
- * **The track has no binding, and neither does the thumb.** Same wall as checkbox's square and
- * radio's circle, and left unbound for the same reason: `icon.size.*` has values that are exactly
- * right (16 / 20 / 24, identical in all four brands) and a meaning that is not — it is the GLYPH
- * ARTBOARD ladder. Binding it resolves, typechecks and passes every gate while measuring the wrong
- * thing, which is #708's shape and why neither predecessor bound it.
+ * **The track and the thumb are bound, and the field they read exists because of this def.** When
+ * this def first landed, all three dimensions were unbound for checkbox's and radio's reason:
+ * `icon.size.*` has values that are exactly right (16 / 20 / 24, identical in all four brands) and a
+ * meaning that is not — it is the GLYPH ARTBOARD ladder — so binding it resolves, typechecks and
+ * passes every gate while measuring the wrong thing (#708's shape).
  *
- * **What this instance adds, and it is why #900 was left open until switch landed: a switch's track
- * is not square.** A single `control.size.*` rung satisfies checkbox and radio and does nothing here
- * — a track needs a WIDTH and a HEIGHT, and the thumb needs a diameter. So the question #900 has to
- * answer is not *"what rung"* but *"how many dimensions does a control-size family carry"*, and the
- * answer is now constrained by a third instance rather than confirmed by a second. Measured and
- * carried to the issue rather than guessed at here: **the brief specifies no numeric track width,
- * track height or thumb diameter anywhere** — §4 says "thumb position + stark track-color contrast",
- * §8 gives durations, and no dimension appears in §15's schema. Whatever #900 decides, it is deciding
- * without a brief-supplied target, which is a fact about the decision and not a gap in this def.
+ * **What this instance added was the constraint the first two could not supply: a switch's track is
+ * not square.** A single `control.size.*` rung satisfies checkbox and radio and does nothing here, so
+ * the question #900 had to answer was not *"what rung"* but *"how many dimensions does a control-size
+ * family carry"*. The answer is three: `height` (16/20/24 comfortable, 12/16/20 compact), `width` (2x
+ * the height — the ratio the field converges on), and `dot` (half the height, added for radio). This
+ * def binds all three, and **`width` had been emitted and bound by nothing at all until now** — its
+ * own description in the emitted tree names the consumer it was waiting for: *"track width for a
+ * two-position control, i.e. a switch."*
+ *
+ * Two facts survive the binding rather than being closed by it, and both are in `notes.unverified`
+ * because they are the ones a reader should check first. **The brief specifies no numeric track width,
+ * track height or thumb diameter anywhere** — §4 gives "thumb position + stark track-color contrast",
+ * §8 gives durations, §15's schema carries no dimension — so these bindings satisfy the TIER's stated
+ * intent and no brief-supplied target. And `dot` at half the height was decided for a dot inside a
+ * ring; on a thumb it is the low end of what the field ships, and nobody has built one and looked.
+ *
+ * ── THE THUMB TRAVELS, AND THAT COST THE SCHEMA A MECHANISM (#990) ───────────────────────────────
+ *
+ * A switch is the first component in the corpus where **a part's POSITION is a function of a variant
+ * axis**, and nothing in `PartDef` could say so. The anatomy block below is what closed it, with the
+ * thumb declaring `positionWhen: { selection: { off: 'start', on: 'end' } }` — one part, two places.
+ *
+ * The alternative was two parts gated by `presentWhen`, `thumb-off` and `thumb-on`, which needed no
+ * new mechanism and was rejected: it is a modelling lie a code projection inherits (two elements
+ * toggled, where every real switch is one element that translates), it duplicates every binding on
+ * the moving part with nothing catching divergence, and it is #933's shape — a field doing a second
+ * job in place of the second concept being named.
+ *
+ * **The mechanism's limit, stated because it is the projection's and not this def's.** Figma auto
+ * layout offers no per-child main-axis offset: `layoutAlign`'s MIN/CENTER/MAX are deprecated by Figma
+ * and are the counter axis anyway, and `layoutGrow` is a 0/1 stretch flag. Main-axis distribution
+ * exists only on the frame, as `primaryAxisAlignItems` — so the travel projects onto the TRACK, which
+ * is why the track must be `fixed` along that axis and why the thumb must be its only flow child.
+ * Three positions is therefore the ceiling: a 2- or 3-value axis travels, and a slider's continuous
+ * thumb or a four-segment indicator does not.
  *
  * ── THE OFF-STATE TRACK NEEDS A BORDER, AND THIS IS MEASURED RATHER THAN INHERITED ──────────────
  *
@@ -243,7 +272,7 @@ export const switchDef: ComponentDef = {
     { name: 'pending', type: 'boolean', required: false, default: 'false', description: 'FIRST-CLASS HERE, and the state that exists because immediacy meets latency. Locks input, swaps the thumb for a spinner and announces `aria-busy`. The practice ships optimistic-by-default — flip instantly, revert and message on failure — with this as the alternative for high-latency or critical toggles where an inconsistent intermediate is genuinely harmful. Mandating optimism universally puts the orchestration burden on every consumer; mandating the lock kills the immediacy that is the whole component.' },
     { name: 'isReadOnly', type: 'boolean', required: false, default: 'false', description: 'SUPPORTED, which is not obvious for a toggle. Enterprise dashboards need users to review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers. So: `aria-readonly="true"`, focusable and IN the tab order, at full WCAG contrast (unlike disabled), and visually distinct from disabled. No clean native readonly exists for a checkbox input — implement via `aria-readonly` plus a prevented toggle.' },
     { name: 'showStateLabel', type: 'boolean', required: false, default: 'false', description: 'The on/off affordance — an inner-track checkmark or I/O icons, OFF by default, since thumb position plus track color carries the state. Add only where state legibility genuinely demands it. This is NOT hardcoded "On"/"Off" text adjacent to the label, which is rejected outright: it competes with the track, duplicates the screen-reader output ("Airplane Mode On, switch, on"), and does not localize or expand cleanly.' },
-    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — "switches rarely warrant a large" (brief §15), which is the first size divergence in the family; `field-label` is the corpus precedent for a two-rung ladder. Scales the row: the label-to-control gap and the row\'s minimum height. The TRACK and THUMB are NOT bound (#900, see `notes.unverified`) and this is the instance that constrains that issue, because a track is not square. Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
+    { name: 'size', type: "enum: 'small' | 'medium'", values: ['small', 'medium'], default: 'medium', required: false, description: 'TWO RUNGS, not three — "switches rarely warrant a large" (brief §15), which is the first size divergence in the family; `field-label` is the corpus precedent for a two-rung ladder. Scales the row: the label-to-control gap, the row\'s minimum height, the label\'s type, the TRACK\'s height and length, and the THUMB\'s diameter. All three control dimensions read `control.size.*`, which moves a full rung with brand density — `icon.size.*` would resolve and measure the wrong thing (see the header) — and the track reads TWO of them, `height` and `width`, because a track is not square. Re-declared rather than inherited because the ladder is read by the machinery (`lint-rung-names.ts` arm 2).' },
   ],
 
   // Checkbox's seven, MINUS nothing and PLUS `pending` — the one state addition in the family, and
@@ -289,7 +318,13 @@ export const switchDef: ComponentDef = {
     // The OFF thumb, dark on a light track. Keyed by selection because no single ink bounds both
     // tracks — the best candidate reaches 4.36:1 off and 1.00:1 on. See the header before merging
     // these two keys.
-    'off.icon': 'color.interactive.neutral.on-fill',
+    //
+    // THE SLOT IS `indicator`, NOT `icon`, and that follows from the thumb being a BOX rather than a
+    // glyph — radio's dot took the same rename for the same reason (#910). `paintOf` dispatches on the
+    // slot alone (#933), so a box in the `icon` slot resolves nothing and projects unpainted: the whole
+    // thumb, invisible, at every coordinate. The keys were authored `off.icon`/`on.icon` before this def
+    // had an anatomy to say what kind of node the thumb is; the anatomy is what decides the slot.
+    'off.indicator': 'color.interactive.neutral.on-fill',
 
     // ── THE ON TRACK — the brief's "stark track-color contrast", and the pairing the tier gates:
     // `on-fill` is contract-checked against the fill the ink sits on, which is what makes a filled
@@ -302,8 +337,8 @@ export const switchDef: ComponentDef = {
     'on.border.hover': 'color.interactive.primary.border.hover',
     'on.border.pressed': 'color.interactive.primary.border.pressed',
     'on.border.error': 'color.border.danger',
-    // The ON thumb — light on a dark track, 6.85–9.96:1.
-    'on.icon': 'color.interactive.primary.on-fill',
+    // The ON thumb — light on a dark track, 6.85–9.96:1. `indicator` for the reason above.
+    'on.indicator': 'color.interactive.primary.on-fill',
 
     // ── THE ROW'S LABEL — one ink at every coordinate, so it is the bare slot. Page text beside the
     // control, which is why its disabled ink is `disabled.text` and not `disabled.on-fill`.
@@ -315,11 +350,13 @@ export const switchDef: ComponentDef = {
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
 
-    // ── DISABLED SKIN (contrast-exempt, 1.4.3), the shared cross-cutting family. `icon.on-fill` is
+    // ── DISABLED SKIN (contrast-exempt, 1.4.3), the shared cross-cutting family. `indicator.on-fill` is
     // the thumb: the disabled branch appends its own ground, and `on-fill` is the only one it appends.
+    // The thumb sits ON the track's fill, so it is the on-fill pairing the tier gates rather than the
+    // page one — the label, beside the track, takes `disabled.text` instead.
     'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
-    'disabled.icon.on-fill': 'color.disabled.on-fill',
+    'disabled.indicator.on-fill': 'color.disabled.on-fill',
     'disabled.label': 'color.disabled.text',
 
     // ── GEOMETRY. `radius.round` gives the pill, resolving to `dimension.128` in all four brands —
@@ -331,6 +368,179 @@ export const switchDef: ComponentDef = {
     'size.medium.gap': 'size.md.gap',
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
+
+    // ── THE TRACK'S TWO DIMENSIONS AND THE THUMB'S ONE — #900's third instance, now BOUND. The tier
+    // already carried all three fields: #951 emitted `control.size.<rung>` with `height` and `width`,
+    // and #910 added `dot` for radio. `width` had been emitted and bound by NOTHING until here, and its
+    // own description says why it exists — *"track width for a two-position control, i.e. a switch (2x
+    // the height, the field-convergent track ratio)"*. This def is the consumer it was emitted for.
+    //
+    // `control.size.*` AND NOT `icon.size.*`, the substitution the whole family warns about: `icon.size`
+    // is 16/20/24 in ALL FOUR brands, so binding it would hold the track rigid against exactly the brand
+    // density this family exists to move (aurora is a full rung smaller). Resolves either way and is
+    // checked by property rather than by spelling — see `test.ts`'s consumer-half arm.
+    //
+    // `control` is the HEIGHT and `track` is the WIDTH, which is the naming checkbox and radio set:
+    // `size.*.control` is "this control's own dimension", read on both axes by a square and on one here.
+    // A switch is the def that made the second field necessary — a track is 2:1, so one rung cannot
+    // describe it, and that is the constraint this instance added to #900 rather than confirming.
+    'size.small.control': 'control.size.sm.height',
+    'size.medium.control': 'control.size.md.height',
+    'size.small.track': 'control.size.sm.width',
+    'size.medium.track': 'control.size.md.width',
+    // The THUMB's diameter, half the track's height by the tier's construction. The tier anticipated this
+    // consumer by name — *"a control whose mark is a filled shape, i.e. a radio's dot"*, and its comment
+    // says "a switch's thumb when it lands". What the ratio means for a THUMB rather than a dot is in
+    // `notes.unverified`: half is the low end of what the field ships, and nobody has looked at one.
+    'size.small.dot': 'control.size.sm.dot',
+    'size.medium.dot': 'control.size.md.dot',
+    // The LABEL's type ramp, two rungs where radio has three. `type.body.*` rather than `type.label.*`
+    // for radio's reason — a switch's label is a setting NAME beside a control, not a form field's label
+    // announcing one above it — and it is the only family in the tier carrying every rung anyway.
+    'size.small.text': 'type.body.sm.default',
+    'size.medium.text': 'type.body.md.default',
+  },
+
+  // ── ANATOMY (#990) ──────────────────────────────────────────────────────────────────────────────
+  //
+  // Radio's decomposition with ONE structural mutation, and it is the mutation the whole family had been
+  // deferring: **the thumb MOVES.** Four parts — the ROW is the hit target, the TRACK owns the ink
+  // (#933), the THUMB is the mark, an absolute focus ring sits on the track — plus a text label. Every
+  // part but the thumb is radio's, adapted only in its `note`.
+  //
+  // THE THUMB IS ONE PART IN TWO PLACES, which is what `positionWhen` exists for (#990). The rejected
+  // alternative was two parts, `thumb-off` and `thumb-on`, each gated to one value of `selection` by
+  // `presentWhen`. That shape validates and would have needed no mechanism at all, and it is a modelling
+  // lie in three separate ways: a code projection reading it emits two elements and toggles them, where
+  // every real switch is ONE element that translates; every binding on the thumb exists twice with
+  // nothing in the schema noticing when the copies diverge; and it is #933's shape again — a field made
+  // to do a second job instead of the second concept being named. A position is not an absence.
+  //
+  // WHY THE TRACK BINDS `width` AND IS `fixed` ON BOTH AXES. The travel projects as the TRACK's
+  // `primaryAxisAlignItems` (Figma has no per-child main-axis offset inside auto layout — see
+  // `positionWhen`'s note for the API measurement), and a HUGGING track is exactly as wide as its thumb,
+  // which makes `start` and `end` the same place. So the track's length has to be stated, and #951's
+  // `control.size.*.width` is the number that states it. `anatomyErrors` asserts both halves rather than
+  // trusting this paragraph: a hugging or filling parent, or a second flow child beside the thumb, is
+  // refused at authoring time.
+  //
+  // THE ROW IS LABEL-FIRST, which is the family's one structural divergence: `labelPosition` defaults to
+  // `leading` because a switch's habitat is the settings row with the toggle where the eye expects it.
+  // Checkbox and radio put the control first. The prop is a PROP and not an axis (it paints nothing), so
+  // this order is the default and the flipped one is the code projection's to build.
+  anatomy: {
+    root: 'row',
+    parts: {
+      // THE HIT TARGET, and nothing else. No `paintSlots` (#933): this def keys no row-level fill or
+      // border for one to name. `align: 'start'` for radio's reason — a control centered against a
+      // wrapping label floats mid-paragraph, and this def's content rules say long labels wrap while the
+      // fixed-width track does not shrink. Its extent comes from its children; `min-height` is the row's
+      // FLOOR and is in `codeOnly`, because Figma has no floor.
+      row: {
+        kind: 'box',
+        role: 'target',
+        layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
+        gap: 'size.{size}.gap',
+        children: ['label', 'track'],
+      },
+      // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
+      // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the track's fill
+      // and not on it.
+      label: {
+        kind: 'text',
+        type: 'size.{size}.text',
+        note: 'The accessible name AND the second half of the hit target. Names the SETTING as a stable noun phrase and does not change on toggle — a label flipping between Enable and Disable is this component\'s most common copy bug. Rich content in code; a plain text node in Figma. Note what this part must NOT become: hardcoded "On"/"Off" text beside the name, which duplicates the screen-reader output ("Airplane mode On, switch, on") and does not localize.',
+      },
+      // THE PAINTED TRACK — the pill, and the only part that carries `fill` and `border`. NOT SQUARE, and
+      // it is the first part in the corpus that is not: `height` is the control rung and `width` is twice
+      // it (`control.size.*.width`). FIXED on both axes, which the thumb's travel requires and
+      // `anatomyErrors` checks from both sides. `radius` resolves to `radius.round`, giving a pill at any
+      // rung by the same token that gives radio a circle — one very large radius rather than two shapes.
+      //
+      // The BORDER is load-bearing rather than decorative: brief §6 requires the off track be
+      // distinguishable from the page (1.4.11) and no fill in the tier clears 3:1 at any brand, while this
+      // border clears it at all four (3.20–3.28:1).
+      track: {
+        kind: 'box',
+        role: 'presentation',
+        paintSlots: ['fill', 'border'],
+        height: 'size.{size}.control',
+        width: 'size.{size}.track',
+        radius: 'radius',
+        layout: { direction: 'row', align: 'center', justify: 'start', sizing: { x: 'fixed', y: 'fixed' } },
+        children: ['thumb', 'focusRing'],
+        note: 'The pill. Its `justify` is the FALLBACK the thumb overrides per coordinate (`positionWhen`), so it reads `start` here and is projected `MAX` at `selection=on` — a structure-only plan with no selection supplied keeps `start`, which is the conservative answer rather than a position asserted on no evidence. Its two dimensions are two decisions: 2:1 is the ratio the field converges on, and it is the tier\'s, not this def\'s.',
+      },
+      // THE THUMB. A `box`, like radio's dot and for the same reason — there is no filled circle in the
+      // engine's glyph vocabulary and minting one would put a primitive shape into a set whose membership
+      // rule is that an entry carries meaning. `size` (the square, both axes from one variable) plus round
+      // radius is a circle at any rung.
+      thumb: {
+        kind: 'box',
+        role: 'presentation',
+        // `indicator`, NOT `fill` — the track already owns `fill`, and #933's rule is that two boxes
+        // naming one slot both take the SAME variable rather than dividing it. Radio's dot took this slot
+        // first; the #864 condition that admits a box into an ink slot is satisfied here for radio's
+        // reason too, which is that this part has NO children to be painted behind.
+        paintSlots: ['indicator'],
+        size: 'size.{size}.dot',
+        radius: 'radius',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
+        // THE TRAVEL (#990). Two values, two positions, one part. Projected onto the TRACK's main-axis
+        // distribution, because that is the only main-axis placement Figma's auto layout offers.
+        positionWhen: { selection: { off: 'start', on: 'end' } },
+        note: 'The thumb — ONE part whose position varies, not two parts that take turns. Its ink is selection-keyed and had to be: measured, no single ink in the tier clears 3:1 against both tracks (the best candidate reaches 4.36:1 off and 1.00:1 on, since the two tracks sit on opposite sides of the luminance range), so it takes `off.indicator` (12.33–12.36:1 on the off track) and `on.indicator` (6.85–9.96:1 on the on track). Check that measurement before "simplifying" the two keys into one. It sits FLUSH against the track\'s ends, which no shipped switch does — see `codeOnly`, the inset has no token. Its slide is motion and has no expression here either; what this schema carries is the two endpoints.',
+      },
+      // Radio's ring, verbatim, on the TRACK rather than the row or the thumb — `accessibility.focus` is
+      // explicit that a ring travelling with the thumb reads as two indicators. The two insets SUM in the
+      // executor, siting the ring at -(2+2) = -4 so the visible gap is a full 2px (#801: the ring's own
+      // inside-drawn stroke eats the offset unless compensated). Being `absolute`, it is outside the flow
+      // and so does not count as a second flow child beside the thumb — which is what lets the travel
+      // work at all.
+      focusRing: {
+        kind: 'absolute',
+        when: 'focus-visible',
+        nests: 'focus-ring',
+        inset: 'ring-offset',
+        strokeInset: 'ring-width',
+        nesting: { kind: 'nest-fixed', variant: { color: 'default' } },
+        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the TRACK so the ring surrounds the pill. On the track and never the thumb: the thumb moves, and an indicator that moves with it competes with the one thing that signals state. Its INSTANT-appearance requirement (no transition on the ring, unlike the thumb) is not expressible here.',
+      },
+    },
+    codeOnly: [
+      // MUST LEAD with the term — `figmaPropertyErrors` matches an admission by its first word, so a
+      // passing mention inside an entry about something else does not count (#563).
+      'read-only — declared in `states` and carried by no Figma member, and here the reason is a MEASURED rejection rather than an absent token. `text-field` binds `border.read-only: color.border.secondary`, and that role resolves to the same palette step as `color.interactive.neutral.border.rest` in all four brands (nb neutral.400, harbor neutral.450, wendys/aurora neutral.400) — so binding it would produce a read-only switch pixel-identical to a rest switch while reading in the def as though the brief\'s "visually distinct from disabled" requirement had been met. The brief\'s own answer is a LOCK AFFORDANCE, a glyph rather than an ink, which would be a fifth part nobody has designed.',
+      'pending — first-class in `props` and absent from the set, because it is a THUMB SWAP and not a skin: the brief locks input, replaces the thumb with a spinner and announces `aria-busy`. Button expresses exactly that with an `overlay` part (#848), so the mechanism exists and the part does not; adding it here would be a second concern in a PR whose subject is the travel. What the set would show without it is 24 members with a static thumb, which is what it shows.',
+      'min-height — `size.*.min-height` is the ROW\'S FLOOR and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it on the row would state the wrong quantity and clip a wrapping label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
+      'THE THUMB\'S TRAVEL AS MOTION. What this anatomy carries is the two ENDPOINTS — `positionWhen` names a position per coordinate, and a Figma variant is a still frame. The slide between them (brief §8: roughly 150-200ms, ease-out, with the track color crossfading over the same interval, and `prefers-reduced-motion` collapsing it to an instant jump) has no expression in this schema at all, and it is the animation the component is most recognized by. A designer reading the set sees a thumb at each end and nothing about how it gets there.',
+      'THE THUMB\'S INSET FROM THE TRACK\'S ENDS. The thumb projects FLUSH at both ends — `start` and `end` are the frame\'s edges, and the track carries no padding because no token in the tier expresses the inset: it would be (height - dot) / 2, which is height/4, and that is 4/5/6px at the shipped rungs and a step no space ladder carries. Every shipped switch insets its thumb. Filed rather than guessed at, because the number is a token-tier decision (#900\'s family already grew once) and not this def\'s to mint (#997).',
+      'THE INNER-TRACK AFFORDANCE (`showStateLabel`) — an on/off checkmark or I/O glyph inside the track, off by default. A fifth part, gated on `selection` the way checkbox\'s two marks are, for a prop that is off at every default coordinate; adding it would double the members for content the guidance says to use only where legibility genuinely demands it.',
+      'THE FULL-WIDTH SETTINGS ROW, which is this component\'s actual habitat and is layout rather than anatomy. The row HUGS its children here, so `label` and `track` sit adjacent with the gap between them; a settings panel stretches the row and pins the track to the trailing edge, and `justify` on a hugging row cannot express that. `labelPosition: trailing` — the control-leading order for a switch sitting among other form controls — is the same kind of fact: a prop that reorders this row, and the reordered form is the code projection\'s.',
+      'The `description` prop — helper text beneath the label, describedby-wired, where the CONSEQUENCE of the setting goes. A second text part under `label` rather than beside it, which would change the row\'s vertical shape at all 24 members for content that is optional at every one of them.',
+    ],
+  },
+
+  figmaProperties: {
+    // BOTH axes, and `selection` is not optional: the thumb's `positionWhen` is keyed on it, so an
+    // unprojected `selection` would build every member with the thumb at the track's declared `justify`
+    // — a set of 24 switches that all read as off. `anatomyErrors` refuses that combination rather than
+    // leaving it to be found in a Figma file.
+    variantAxes: ['selection', 'size'],
+    // Six of the EIGHT states — `read-only` and `pending` are both admitted in `codeOnly` above, with
+    // different reasons. 2 selections x 2 sizes x 6 states = 24 members, radio's 36 less the third rung.
+    stateAxis: { name: 'state', values: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'error'] },
+    texts: {
+      // A REAL SETTING, not "Label" — #798's finding is that a text part with no TEXT property projects a
+      // blank node, and the corollary is that this default is the only copy anyone reviewing the set will
+      // see. The brief's canonical example, in the sentence case this def's own content rule requires,
+      // which also demonstrates the rule that the label names the setting and never the state.
+      label: { part: 'label', default: 'Airplane mode' },
+    },
+    // No `swaps` — the thumb is geometry this def owns, not a glyph a consumer nominates. No `slotAxes`:
+    // the thumb is not gated by presence at all, it MOVES, which is the distinction this def added to the
+    // schema.
+    booleans: {},
   },
 
   accessibility: {
@@ -402,20 +612,21 @@ export const switchDef: ComponentDef = {
     contested: [
       'THE `selection` VALUES ARE `[off, on]`, DIVERGING FROM checkbox\'s AND radio\'s `[unchecked, checked]`. #910 settled the axis NAME for the family and left the values open with an ARIA recommendation (`aria-checked` covers all three controls), so this is a decision taken against that recommendation rather than a default. Three grounds, argued in the header: paint-key values describe what is on SCREEN and appear in no ARIA tree; `role="switch"` is announced "on"/"off", so ARIA\'s own OUTPUT is on/off even though its PROPERTY is aria-checked; and `checked` is the word that carries this component\'s most common misuse, since a def spelled `[unchecked, checked]` reads as a checkbox with a different skin. The cost is real and unchecked by anything: the family now spells one axis two ways, there is no cross-def values census in the engine and none is possible from `VARIANT_AXES` (which closes names only), so this divergence is held by prose alone. If the family should have one vocabulary, this is the entry to delete.',
       'THE OFF TRACK TAKES THE INTERACTIVE-NEUTRAL FAMILY where checkbox and radio take the form-field family for their empty box. Forced by the thumb rather than chosen: measured across all four brands, a white thumb is 1.14-1.22:1 on `color.field.fill` and 1.57-1.58:1 on `interactive.neutral.fill.rest`, so the off thumb must take the dark ink, and `interactive.neutral.on-fill` (12.33-12.36:1) exists only in the interactive family. The NAMED ALTERNATIVE is to match the siblings on `color.field.fill` and accept an off thumb with no boundary, which several shipped systems do by relying on a thumb shadow — an effect the token tier does emit but which this def has no field to bind, and which would put a 1.2:1 boundary behind a decorative token.',
-      'THE THUMB IS SELECTION-KEYED (`off.icon` dark, `on.icon` light), which no sibling\'s glyph is — checkbox and radio each have ONE icon ink. Measured: no single ink in the tier clears 3:1 against both tracks, and the closest candidate (`interactive.primary.border.pressed`) is 4.36:1 off and 1.00:1 on, because the two tracks sit on opposite sides of the luminance range. So this is structural to a two-position control rather than a styling choice, and the two keys cannot be collapsed into one.',
+      'THE THUMB IS SELECTION-KEYED (`off.indicator` dark, `on.indicator` light), which no sibling\'s glyph is — checkbox and radio each have ONE icon ink. Measured: no single ink in the tier clears 3:1 against both tracks, and the closest candidate (`interactive.primary.border.pressed`) is 4.36:1 off and 1.00:1 on, because the two tracks sit on opposite sides of the luminance range. So this is structural to a two-position control rather than a styling choice, and the two keys cannot be collapsed into one.',
       'THE ASYNC MODEL SHIPS BOTH STANCES — optimistic-by-default with revert-and-message, plus a first-class `pending` lock. The field genuinely splits here (Carbon and Base Web optimistic-only; Primer\'s `loading`/`loadingLabel` and Atlassian\'s `busy` locking), and the brief\'s reconciliation is deliberate: mandating optimism universally puts the whole orchestration burden on every consumer, and mandating the lock kills the immediacy that is the entire component. Recorded as contested because a system that picks one would read this def as indecisive, and the two-stance answer is the position rather than an absence of one.',
       'READ-ONLY IS SUPPORTED, against the brief author\'s own first instinct and adopted on the external pass\'s argument. It looks paradoxical — an un-toggleable toggle — and the case for it is enterprise: users review permission sets and system config they lack authority to change, and disabling those drops them from the tab order while swapping to static text hides the setting from screen readers and breaks data-table consistency. The contrary position is legitimate rather than wrong.',
       'THE LABEL SIDE DEFAULTS TO LEADING, which is the opposite of every other control in the corpus, and the brief\'s external pass defaulted the other way (control-leading, for sibling alignment with checkbox and radio). Both are defensible, which is why it is a prop; the default follows the dominant habitat, the settings row. It is not a `variants` axis here because it paints nothing at any coordinate — see the header.',
       'THE ON/OFF AFFORDANCE DEFAULTS TO A PLAIN TRACK, with inner-track icons available and off by default. The contested part is not the default but what the icons are FOR: they are a legibility aid, never the 1.4.1 answer, since thumb position already carries the state. Hardcoded adjacent On/Off text is rejected outright rather than defaulted off.',
     ],
     unverified: [
-      'THE TRACK AND THUMB HAVE NO BINDING — #900, and this is the THIRD of three instances, the one the issue was left open for. Same wall as checkbox\'s square and radio\'s circle: the engine emits no token for a small control\'s own dimension, and `icon.size.*` has values that are exactly right (16/20/24, identical in all four brands) and a meaning that is not, being the glyph artboard ladder. Binding it resolves, typechecks and passes every gate. What this instance ADDS is the constraint the first two could not supply: a switch\'s track is NOT SQUARE, so a single `control.size.*` rung satisfies checkbox and radio and does nothing here — a track needs a width AND a height, and the thumb a diameter. Measured and worth stating because it bounds the decision: the brief specifies no numeric track width, track height or thumb diameter anywhere, so #900 is deciding without a brief-supplied target.',
+      'THE TRACK AND THUMB ARE NOW BOUND (#900\'s third and last instance), and what is unverified moved with the binding rather than away. The track reads `control.size.<rung>.height` for its thickness and `control.size.<rung>.width` for its length — 2x the height, the first use of a field the tier had emitted for this def and nothing had ever bound — and the thumb reads `control.size.<rung>.dot`. THREE THINGS NOBODY HAS LOOKED AT. (1) `dot` is HALF the height by the tier\'s construction, which was decided for radio\'s dot inside a ring; on a thumb that reads as a small circle in a wide pill, and the shipped systems put their thumb nearer the track\'s full height. The ratio is a token-tier decision, so this def records the doubt rather than overriding it. (2) At `small` the track is 16x32 (12x24 on aurora, a full rung down) with an 8px thumb — whether that reads as a switch at all is exactly what building one answers, and separately whether a 16px-tall row reaches SC 2.5.8\'s 24x24 target, which is the ROW\'s job and not the track\'s. (3) The brief still specifies no numeric track width, track height or thumb diameter anywhere — §4 gives "thumb position + stark track-color contrast", §8 gives durations, and §15\'s schema carries no dimension — so these bindings satisfy the tier\'s own stated intent and no brief-supplied target.',
+      'THE THUMB SITS FLUSH AGAINST THE TRACK\'S ENDS, which no shipped switch does. `positionWhen` projects `start` and `end` as the track frame\'s own edges, and the inset that should hold the thumb off them would be (height - dot) / 2 = height/4 — 4/5/6px at the shipped rungs, and no space step in any brand carries 5. So the track binds no padding: the number would have to be minted in the token tier, which is #900\'s family growing a fourth field, and that is a decision this def is not entitled to take on its own. Filed as #997. What ships until then is geometrically correct and visually wrong at both endpoints, which is worth stating plainly because it is the first thing anyone will see.',
       'READ-ONLY BINDS NOTHING, and here the reason is a MEASUREMENT rather than an absence — which is the difference from checkbox and radio. A candidate exists: `text-field` binds `border.read-only: color.border.secondary`. But `color.border.secondary` resolves to the SAME palette step as `color.interactive.neutral.border.rest` in all four brands (nb neutral.400, harbor neutral.450, wendys and aurora neutral.400), so binding it would produce a read-only switch pixel-identical to a rest switch while reading in the def as though the brief\'s "visually distinct from disabled" requirement had been met. The brief\'s actual answer is a LOCK AFFORDANCE — a glyph, not an ink — which is anatomy.',
-      'PENDING BINDS NO PAINT, and no def in the corpus binds any: `button` has declared `pending` since #843 and binds nothing for it, and the tier emits no pending ink. What the state actually changes is the thumb\'s CONTENT (a spinner replaces it) and the track\'s interactivity, both anatomy-tier. Declared because the coordinate is real and a consumer must implement it, recorded here so nobody reads the state as decorative.',
-      'THE LABEL SIDE IS AN ANATOMY REQUIREMENT WITH NO EXPRESSION HERE. `labelPosition` is a prop and the thing it actually controls is a row\'s `direction` in a `LayoutDef`, which this def has no anatomy block to hold. Under RTL it inverts twice over — the row mirrors AND the thumb travel flips, since "on" sits at the inline-end — and logical properties make that automatic in CSS while a Figma projection would need it stated.',
-      'THE THUMB TRAVEL IS THE COMPONENT\'S DEFINING MOTION AND HAS NO EXPRESSION IN THE SCHEMA. Brief §8 is emphatic that the slide is functional rather than decorative — it is the literal RECEIPT that the immediate action registered: a ~150-200ms ease-in-out `transform` translate (never an animated width) with a synchronized track-color crossfade, snapping optimistically on an async toggle with a spinner cross-fading onto the thumb, and sliding BACK on failure as the physical metaphor for rejection. Under prefers-reduced-motion the slide drops to 0ms. The engine emits `motion.duration-ms.*` and this def has no motion field to point at.',
-      'THE INNER-TRACK AFFORDANCE (`showStateLabel`) NAMES NO GLYPH. The checkmark or I/O icons it selects are `icon` names the def cannot reference without an anatomy block, and the I/O pair in particular may not exist in the 39-name icon set.',
-      'THE WHOLE-ROW HIT TARGET IS EXPRESSED ONLY AS `size.*.min-height`, the row\'s floor. Where the expanding padding sits, and how it relates to the track\'s own dimensions, is an anatomy concern this def has no block to state — and it is sharper here than on the siblings, because the control sits at the row\'s TRAILING edge by default rather than at its start.',
+      'PENDING BINDS NO PAINT, and no def in the corpus binds any: `button` has declared `pending` since #843 and binds nothing for it, and the tier emits no pending ink. What the state actually changes is the thumb\'s CONTENT (a spinner replaces it) and the track\'s interactivity. The first of those is now EXPRESSIBLE and deliberately not expressed: `button` spells exactly this as an `overlay` part replacing a visual cell (#848), so the mechanism exists and the part is unauthored — admitted in `anatomy.codeOnly`, where it is a scoped omission rather than a schema gap. Recorded here so nobody reads the state as decorative.',
+      'THE LABEL SIDE HAS ONE EXPRESSION AND `labelPosition` STILL HAS NONE. The anatomy states the DEFAULT — `row.children` is `[label, track]`, label-leading, which is the family\'s one structural divergence — and the flipped order the prop selects is not expressible, because a prop is not a coordinate and the row has one child order. RTL is the sharper half and is unchanged by this: it inverts TWICE over, since the row mirrors AND the thumb travel flips (on sits at the inline-END, so `positionWhen`\'s `end` is the right WORD — a logical edge — while the `MAX` it projects to is a physical one, and Figma auto-layout has no direction flag to mirror it). Logical properties make that automatic in CSS; a Figma projection would need it stated, and nothing states it.',
+      'THE TRAVEL\'S TWO ENDPOINTS ARE NOW EXPRESSED AND THE MOTION BETWEEN THEM IS NOT — which is the whole of what #990 closed and the whole of what it did not. `positionWhen: { selection: { off: start, on: end } }` states where the thumb IS at each coordinate, and a Figma variant is a still frame either way. Brief §8 is emphatic that the slide is functional rather than decorative — it is the literal RECEIPT that the immediate action registered: a ~150-200ms ease-in-out `transform` translate (never an animated width) with a synchronized track-color crossfade, snapping optimistically on an async toggle with a spinner cross-fading onto the thumb, and sliding BACK on failure as the physical metaphor for rejection. Under prefers-reduced-motion the slide drops to 0ms. The engine emits `motion.duration-ms.*` and this def has no motion field to point at.',
+      'THE INNER-TRACK AFFORDANCE (`showStateLabel`) NAMES NO GLYPH, and the anatomy arriving does not change that: a `vector` part would have to name a glyph from the 39-name vocabulary or the projection throws (#864), and the I/O pair in particular is not in it. So the part is admitted in `codeOnly` rather than authored against a name that does not resolve.',
+      'THE WHOLE-ROW HIT TARGET NOW HAS A NODE AND STILL HAS NO NUMBER. `row` is the part it lands on — that is what the anatomy block made expressible — and the padding that would expand it to SC 2.5.8\'s 24x24 is a per-consumer decision about the surrounding layout, so no value is bound. It is sharper here than on the siblings for two reasons: the row is label-leading, so the control sits at the trailing edge where a stretched row puts it furthest from the label; and the track itself is only 16px tall at `small` (12 on aurora), which is the smallest control edge in the corpus. `size.*.min-height` remains the code projection\'s floor and is in `codeOnly`, because Figma has no floor.',
       'THE ASYNC RACE IS AN IMPLEMENTATION REQUIREMENT NOTHING HERE CAN HOLD: user toggles, local state flips, request fires, user toggles again before it resolves, and two mutations resolve out of order. The fix is to lock input on the first interaction until the promise settles, or to coordinate a pending state internally. It lives in `docs.do` prose.',
     ],
   },

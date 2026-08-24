@@ -7,6 +7,110 @@
 
 ---
 
+## (2026-08-24) — A part can say WHERE it sits, and the "broader" option could not have said it (#990)
+
+**STATUS: in review.** `ENGINE_VERSION` **0.20.0 → 0.21.0** (renumbered on rebase — #979/#996 landed
+first and took 0.20.0); `CONTRACT_VERSION` stays at **5.3.0** — no token name moved. Gates stay at **42**
+(no new gate file; three existing ones extended). `regen --check` stays at **114** artifacts.
+
+Two `PartDef` fields, landed with their consumer as `paintSlots` was in #967 and `presentWhen` in #977:
+`positionWhen` (a part's place, keyed on one variant axis) and `width` (a box's main-axis edge). Switch's
+`anatomy` block and `figmaProperties` are the consumer — 24 members, root `row`.
+
+**The owner rejected option 3 and asked me to settle options 1 vs 2 by measurement. The measurement
+inverts the issue's own framing.** #990 describes option 1 (`layoutGrow`/`layoutAlign` on the child) as the
+broader fix, since it also closes #989 and makes the padding-plus-fill spelling real. From the vendored
+typings (`@figma/plugin-typings/plugin-api.d.ts:8201-8260`): `layoutAlign`'s `MIN|CENTER|MAX` are
+**deprecated** — Figma moved counter-axis alignment onto the frame as `counterAxisAlignItems`, and *"all
+layers in an auto-layout frame must now have the same counter axis alignment"* — and `layoutGrow` is a
+`number` acting as a 0/1 stretch flag along the primary axis. **Both are stretch flags.** Main-axis
+*placement* exists in exactly one place in the API: `primaryAxisAlignItems`, on the parent frame. So
+option 1 would leave switch's thumb exactly as unable to travel as it was. That is not "narrower vs.
+bundled benefit" — option 1 does not solve the problem it was offered for. #989 stands on its own merits
+and is not a reason to prefer it; option 2 is not a compromise.
+
+**So the field is on the part that MOVES and projects onto the part that CONTAINS it.** `positionWhen:
+Record<axis, Record<value, 'start'|'center'|'end'>>`, resolved through the same `JUSTIFY` map
+`layout.justify` already uses, written as the parent's `primaryAxisAlignItems`. The plan field and both
+executors' writes already existed (`anatomy-figma.ts:1093`, `apps/plugin/src/write-components.ts:793`),
+so this reaches Figma with no new plan field and every existing plan is byte-identical.
+
+**Two preconditions, asserted rather than reasoned about — the owner's instruction, and #990's own history
+is why.** #900 prescribed a derivation the code refused, twice; #964's topological-order assumption turned
+out not to be the binding property. Both of these project a *clean no-op*, which is the worst failure
+direction available:
+
+1. **The parent's main axis must be `fixed`.** A hugging parent is exactly as long as its child, so `MIN`,
+   `CENTER` and `MAX` are one coordinate. `sizingMode` maps **both** `'hug'` and `'fill'` to `AUTO`, so
+   `'fill'` is refused too and the message says why (that is #989, arriving as a trap rather than a fix).
+2. **The part must be its parent's only FLOW child.** `primaryAxisAlignItems` distributes the whole group,
+   so with a sibling present the part's place is a side effect of where its neighbours sit. `absolute` and
+   `overlay` are not flow children — which is the carve-out that lets `focusRing` share the track with the
+   thumb, and it is asserted (switch validates clean with both inside `track`) rather than assumed.
+
+**`PartDef.width`, which is scope the owner has not seen and is here because `positionWhen` cannot work
+without it.** Precondition 1 needs the parent's length *bound*, and `size` is one key driving both axes —
+correct for a square (#910's "a square is one fact"), and unable to describe a 2:1 track. `width` binds the
+main-axis edge, read against `layout.direction`. `control.size.*.width` has been emitted since #951 and
+bound by nothing; it is now bound. `unlockAspectRatio()` runs unconditionally before every dimension write
+in both executors, which is why two distinct variables are safe.
+
+**THE MECHANISM'S CEILING, stated because it decides which of the owner's future cases it can serve.**
+`MIN|CENTER|MAX` is three positions. A **segmented control's indicator** over two or three segments and
+**tabs' active underline** over two or three tabs are expressible today, and neither needs a new field. A
+**slider's thumb** is *not* — it is continuous, and a continuous position is an offset, not a distribution.
+A four-plus-segment indicator is not either. Those need real offsets against the parent's bounds, which is
+a different mechanism and not an extension of this one. Answering the owner's question directly: the shape
+does **not** work only because `selection` happens to have two values — three work — but it does stop at
+three, and the stop is a property of the projection target rather than of the design. Nothing here names
+`switch` or `selection`.
+
+**The hole this pass found in its own mechanism, and closed.** Deleting `if (p.width) bound.width =
+varOf(p.width)` from the projector left **2415/0 green**, plus `lint-paint`, `lint-standalone-floor`,
+`lint-glyph-geometry` and `regen --check` all clean. The def reads as a 2:1 track, the plan binds a height
+with no width, the frame keeps whatever length its fixed sizing was given, and the thumb travels inside a
+box of the wrong size — no node count moves, no paint assignment moves, the census is byte-identical.
+`test.ts` now asserts the binding reaches the plan, with **the def's own token map as the oracle** (the ref
+slash-swapped) against the projector's `varOf`→`figmaVarName` path — two derivations, not one.
+
+**Mutation battery, committed before every mutation (#986).** All 20 `anatomyErrors` rules for the two new
+fields were neutralised one at a time and the matching `test.ts` line confirmed to fail **by name** — the
+two arms sharing rule `2176` (`hug`/`fill`) and the two sharing `2192` (undeclared axis / `size`) were run
+separately, so neither rides on the other's pattern. Three projector mutations:
+
+| mutation | result |
+|---|---|
+| drop `positionOf(childNames) ?? ` from the projector | the two `#990` projection arms fail by name; **every other gate in the repo stays green** — `lint-paint`, `lint-standalone-floor`, `lint-glyph-geometry`, `lint-overlay-completeness`, `regen --check` all exit 0 |
+| write the position to the part instead of the parent | the "OWN distribution is still its declared justify" arm fails by name — the arm that pins the mechanism's *target* rather than its *value* |
+| drop the `width` binding | nothing caught it (see above); now caught by name |
+| switch's thumb loses `positionWhen` | the `POSITIONED_EXPECTED` membership arm fails by name |
+| switch's `track` ref repointed at `icon.size.lg` | `#910`'s brand-density arm fails — the `CONTROL_DEFS`/`track` widening works |
+| switch's `anatomy` removed | `lint-standalone-floor` fails with `SCOPE NOT REPRESENTED: 'switch'` |
+
+**Switch's paint census: 24 set members / 96 assignments, 32 grid coords / 128 assignments.** Reachability
+is **21/22**, matching checkbox's 25/26 and radio's 17/18 — the one unreached binding is the nominated
+focus-ring colour, the *fifth* instance of the #933 part-blindness shape and the first where the ring nests
+inside a non-root box. It is a per-def `UNREACHED_EXPLAINED` entry rather than a rule keyed off `nests`,
+for the reason the entry states: a rule derived from the same field the projection reads could not fail
+(`docs/34` shape 1). Still pending #740.
+
+**Two defects found and filed rather than fixed.** #997: the thumb sits **flush** at both ends of the
+track, because the inset would be `height/4` = 4/5/6px and no space step carries 5 — a token-tier decision
+this def is not entitled to take, recorded in switch's own `notes.unverified` so it is discoverable from
+the def. #998: `test.ts`'s `ok()` buffers, so a throw anywhere discards **every** failure already
+collected — measured at exact parity across `size`/`height`/`width`, and it hides
+`validateComponentDef`'s precise message behind a stack trace.
+
+**Two things carried in from radio's PR unchanged.** Switch's thumb takes the `indicator` slot (in
+`BOX_PAINT_SLOTS` since #992) because `paintOf` is part-blind and `fill` is the track's; `dot` is the right
+name for the thumb's diameter because a box has no artboard. Switch hits both harder than radio did — two
+painted boxes, not one — and the #992 widening covered it without change.
+
+`selection: [off, on]` stands per #930's ARIA grounds. #934 still tracks the fact that nothing catches a
+fourth spelling; no fifth was added here.
+
+---
+
 ## (2026-08-24) — A name match was never proof: stamp the member, and decline to rebuild it (#827)
 
 **STATUS: shipped.** `ENGINE_VERSION` and `CONTRACT_VERSION` **unbumped** — no emitted artifact changes,
