@@ -209,6 +209,25 @@ So the fix is not a new mechanism — it is the existing one extended to the ban
 
 **Recorded precisely, because the tempting summary is wrong:** `ai.json`'s `contrast_with.token` was *already* correct. That field wants the ink, and `against` happened to be carrying it — every emitted `contrast_with.token` is byte-identical across this change. Repointing it at `legibleFor` was a **migration to stay correct**, not a fix. What it genuinely gains is `composited_over`, since "4.5:1 with `text.primary`" was never actionable without knowing which ground made it true.
 
+### 9.7 Decided (2026-08-23, #964): overriding a ground re-derives its dependents' ratios; their values stay, and say so
+
+§9.5 gave `background.primary` and `background.inverse.primary` declarative inputs and made the override layer **refuse** them. The remaining **18** grounds had nowhere to be sent, so they were applied and merely warned about — their dependents kept the ratio they derived from the *old* ground. The same defect §9.5 fixed, at 1–29 roles instead of 60.
+
+**What moves and what does not — the asymmetry decides the design, and it was measured.**
+
+| | when a ground's colour changes |
+|---|---|
+| dependents' **ratios** | change — pure arithmetic over the final colours, **recomputed** |
+| dependents' **values** | do not, and *cannot be* from here |
+
+`interactive.<c>.on-fill` is `onColor(rest.rgb)` — a local inside `iFill`, not a lookup. Every dependent of the 18 is an ink or a wash picked by a closure that has already returned. **That ruled out the obvious fix** — ordering the override into derivation so later reads see it — because derivation does not read roles back; it reads locals. The topological-order question #964 raised never arose: the property that would have needed asserting was not the binding one.
+
+**So the reported number becomes true, and an unchanged value that no longer clears its bar is named.** Measured across the 18 grounds: **67 dependents left value-stale, worst case all 67 falling short — every one warned, none silent.** Allow-and-flag doing exactly what it promises. Making the *values* re-derive needs the derivation rules reachable after the fact; that is a larger change, filed rather than smuggled in.
+
+**Direct dependents only**, which is correct rather than a shortcut: a dependent's own colour does not change, so anything measured against *it* is unaffected. The edge set covers `legibleFor` as well as `against` — since §9.6 a wash reports the legibility of a second role it names, and moving that desynchronises it identically. That edge is also why the count is 18 and #964's table said 17: `text.on-inverse.primary` only became reachable as a ground once §9.5 repaired the nine `against` strings dangling since §9.2.
+
+**The gate was written first, and red.** The override cases were added to `lint-ratio-truth.ts` and confirmed failing — **226 failures** — *before* the fix that makes them pass. Every prior case built through `surfaces`, so arms A–C had never exercised the `overrides` route at all: the same blindness that left §9.5's refusal unheld until arm D was written for it. A gate authored after a fix cannot tell you the fix was needed.
+
 ## 10. Levers (brand inputs)
 
 - **`outlineInteraction`** — `overlay-neutral` · `overlay-tint` (the colour's hue at low alpha) · `solid-tint` · `none`. How an outline/text control expresses hover (the "what do we fill it with" question, answered per brand). *(inc-2: `overlay-neutral` (default) generates the neutral washes + composited-contrast gate; `solid-tint`/`none` opt out. `overlay-tint` is scheduled — needs per-colour alpha ramps.)*

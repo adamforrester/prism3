@@ -65,6 +65,13 @@
       "title": "`against` means one thing; a wash declares that it is one",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.6"
+    },
+    {
+      "date": "2026-08-23",
+      "issue": 964,
+      "title": "overriding a ground re-derives its dependents' ratios; their values stay, and say so",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.7"
     }
   ]
 }

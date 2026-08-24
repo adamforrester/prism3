@@ -12,6 +12,147 @@
 
 ---
 
+## (2026-08-23) — Checkbox projects: a control square that scales with brand density, and the first part-presence keyed on a VARIANT (#910)
+
+**STATUS: in review.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0**. Gates
+stay at **42** — this needed no new gate, it extended five. **The version decision is deliberate and
+stated rather than left implicit:** this is entirely component-tier, so no emitted token tree, no token
+name and no token value moves — `regen.ts` produced **no changes at all**, which is `lint-paint.ts`'s
+header point restated as evidence (component paint is outside regen's universe, which is why the census
+file exists). Precedent is #960 and #967, both component-tier and both unbumped. #932 holds the open
+question of whether the component tier deserves a version of its own; nothing here answers it.
+
+**What was blocking this, and what cleared it.** #951 emitted `control.size.{sm,md,lg}` as a GROUP
+carrying `height` and `width`, closing #900. #967 gave a box its own `paintSlots` so `role: 'target'`
+stopped deciding what carries colour, closing #933. #960 freed the def files of en-GB spellings. With
+all three landed, step 6 of #910 — *build it and look at it* — is reachable on a selection control for
+the first time.
+
+**Checkbox only, not all three.** Authoring three anatomy blocks at once multiplies a shared mistake by
+three before anyone has seen one in Figma. Radio and switch follow this pattern in their own PRs.
+
+**The square reads `control.size.<rung>.height` on BOTH axes** — square by construction rather than by
+two tokens agreeing — with `radius.sm` doing the distinguishing (radio will take `radius.round`). It
+does **not** read `width`; that exists for switch's track. And it deliberately does **not** read
+`icon.size.*`, which is the measurement worth keeping: `icon.size` is byte-identical in all four brands
+(xs 16 / sm 20 / md 24 / lg 32 / xl 40) while `control.size.*.height` is 16/20/24 on nb, wendys and
+harbor and **12/16/20 on aurora**. A control that must scale with brand density has to behave like the
+second, not like a glyph artboard whose job is to be the same size everywhere.
+
+**…and NOTHING ENFORCED THAT, which the mutation matrix found and this PR closes.** Repointing
+`size.medium.control` at `icon.size.md` left **all 42 gates green**, engine tests included: both refs
+resolve, both are `dimension`, both are square, and the single consequence is that aurora's checkbox
+stops being a rung smaller than everyone else's. #802's profile exactly — every layer accepts the write
+and nothing reads the number. The token tier already asserted both halves separately (`control.size.*`
+varies across the four brands; `icon.size.*` does not, stated as the inverse of #324 so the pair reads as
+one decision) and **neither said which family a control BINDS**. So the consumer half is now asserted
+where it can fail, and asserted as the PROPERTY rather than the spelling: the px behind every
+`size.*.control` ref must DIFFER between a comfortable brand and a compact one, resolved out of two built
+trees through the def's own ref. A grep for `icon.size` would have been the wrong check — a
+brand-invariant control box is the defect, whichever family it came from. Its scope arm is precise about
+what it covers, because *deleting* a binding is caught earlier and louder by the projector
+(`anatomy names binding key 'size.medium.control', which tokens does not bind` — measured): the arm is
+there for the day the key pattern is renamed and the filter matches nothing, which would leave the
+invariance assertion passing over an empty set (`docs/34` shape 15).
+
+**`presentWhen` — the fourth part-presence mechanism, and the first keyed on a VARIANT rather than a
+state.** The other three are `optional` (honoured only for the hardcoded `leadingVisual`/`trailingVisual`),
+`overlay` and `absolute` (both gated by `when === state`). A checkbox needs neither: the tick and the
+dash are present at a *selection*, and the vocabulary holds no `unchecked` glyph to switch to.
+`Record<string, readonly string[]>`, AND-composed across axes, and **an axis the caller does not supply
+reads as ABSENT**. That last clause is not a detail — see the test note below.
+
+**The nested-glyph sizing rule was NARROWED, not carved out.** The old rule refused `size` on any
+`vector`, with the reason *"its rendered size comes from the host that instances it."* That is true of a
+def's ROOT glyph (`icon.glyph` IS its root; a host binds `size.{size}.icon` onto its own slot) and false
+of a vector nested inside its own anatomy, where there is no instancing party. So the rule now applies to
+the root, and the two halves are separate rules with separate messages (`height` on any vector; `size` on
+a root vector) so a def cannot satisfy one by tripping the other.
+
+**Numbers, measured.** `figmaAnatomySet(checkbox)` = **54 members** (3 selections × 3 sizes × 6 states;
+`read-only` sits in `codeOnly` on button's `inactive` precedent). Paint: **63 coords / 231 assignments**
+on the declared grid, **54 members / 198 assignments** on the set — accepted into
+`schema/paint-census.json`, which is authored and stays out of `regen.ts`. `lint-paint.ts` no longer
+prints checkbox as *"no anatomy — cannot be called."* `test.ts`: **2350 passed, 0 failed**, and
+`npm run verify` **42/42 PASS · 0 FAIL · 0 SKIP** in 109s.
+
+**The mutation matrix — nine mutations, each confirmed to fail BY NAME rather than "the suite went red."**
+Recorded because the useful output is *which* check owns *which* defect, and two rows are findings rather
+than confirmations.
+
+| mutation | caught by, by name |
+|---|---|
+| `presentWhen` removed from `mark` | `lint-glyph-geometry` (coordinate arm, quoting why the count arm cannot see it) · `engine-test` (4) · `lint-paint` (census: set 219 vs baseline 198, "paint was added") |
+| an absent axis reads as PRESENT (`present()`) | **`engine-test` alone**, 2 assertions by name |
+| `mark`'s gate widened to `[checked, unchecked]` | `lint-glyph-geometry` · `engine-test` · `lint-paint` |
+| control bound to `icon.size.md` | **nothing, before this PR** — now `engine-test`'s new consumer-half arm |
+| `inset` removed from `focusRing` | `lint-absolute-inset` (2) · `engine-test` |
+| `strokeInset` removed | `lint-absolute-inset` (4) · `engine-test` |
+| `paintSlots` removed from `control` | `lint-paint-placement` (arm E floor) · `lint-paint` (24 reachability) |
+| `notStandalone` added to checkbox | `lint-standalone-floor` · `engine-test` |
+| `FIXED_GLYPH` made stale (both ways) | `lint-glyph-geometry` (3 / 2) |
+
+Two things it taught. **`lint-paint-placement` stays green when `presentWhen` disappears** — expected, and
+the reason the mechanism needed guards of its own rather than inheriting somebody's coverage; three other
+checks fire, so the mechanism is not unguarded. And the absent-axis row is the assertion's own comment
+turned into a measurement: *"returning true here is the mutation every other gate passes"* was written as
+a claim and is now verified, which is why those five assertions live in `test.ts` and not in a gate.
+
+**A gate-independence near-miss, caught before it shipped — recorded here rather than as a `docs/34`
+register row, because every row in that register answers "what passed green" and this did not (the file
+says so at its own lines 957-959).** `lint-glyph-geometry.ts`'s new count arm reads `presentWhen` off the
+def to know how many members should carry the mark — and so does the projector. One derivation on both
+sides of the question *at which coordinate does a tick appear*, which means
+`presentWhen: { selection: ['unchecked'] }` would put a tick in an empty box and print fully green.
+Shape 1, in a gate written with `docs/34` open. Fixed by `FIXED_GLYPH.at`, a second author recording the
+coordinate as well as the glyph, checked in both directions with a stale-entry loop. The distinction is
+stated in the file's header because it is the thing a later cleanup would flatten: **`glyph` is WHAT is
+drawn, `at` is WHERE it is drawn, and both wrong render as a plausible checkbox while moving no
+geometric measurement in the file.**
+
+**One mutation exposed a reachable-but-unasserted branch rather than a gate hole.** `presentWhen`'s
+absent-axis path cannot be reached from any set member, because every member supplies every axis. It
+*is* reachable from a hand-built plan: the partial-coordinate guard throws only when
+`axes.length && missing.length && missing.length < axes.length`, so a structure-only checkbox plan
+(omitting `selection` entirely) is legal and lands in that branch. Five `test.ts` assertions now cover
+it — `checked → mark`, `indeterminate → dash`, `unchecked → neither`, `{state:'rest'} → neither`,
+`{} → neither` — and mutating the rule fails by name with the right diagnosis. *The branch was correct;
+what was missing was anything that would notice if it stopped being.*
+
+**Two findings filed rather than fixed here** (one concern per PR, and prose in a PR body is not filing):
+
+- **#973** — `lint-standalone-floor.ts` arm C is one-directional. Dropping a projecting def from
+  `MUST_PROJECT` leaves it at exit 0. Narrower than it looks and worth stating precisely: arms A and B
+  iterate `componentDefs` directly, so the def is still measured; what is lost is the scope floor itself,
+  which can then go short in silence.
+- **#974** — `lint-rung-names.ts` arm C admits a top-rung repeat even when the tier HAS the higher rung.
+  Its monotonic-not-strict choice is documented and correct for the case it was measured on (`type.label`
+  emits 2 rungs in all four brands, so button's `large→md` is a genuine clamp), but checkbox's new
+  `type.body.*.default` family emits **3** rungs in all four — so mutating `large` to `md` silently
+  downgrades a large checkbox's label and stays green. The strengthening needs no exception list: admit a
+  repeat only when nothing above the repeated rung exists in that family. The reversal case *does* fire
+  by name, verified. Filed with it: the arm's title and the success line both claim "one-to-one", which
+  no arm checks.
+
+**What is still unverified, and it is the reason step 6 exists.** Nobody has built a checkbox and looked
+at it. Two questions the projection cannot answer: whether a **12px** square reads as a checkbox at all
+on aurora's `small`, and — separately — whether a 12px box becomes a 12px **target**. Measured on aurora
+at `small`: a 12px square beside `type.body.sm` (14px on `line-height-role.normal` 1.5, so a 21px line
+box) makes the row hug to **21px**, short of 24, and the square is not what closes that gap. `PartDef`
+has no field for a minimum, so the floor is in `codeOnly` and honestly labelled.
+
+**Does the pattern generalize?** Yes, and this is what the next two PRs inherit: `presentWhen` is what
+radio's dot and switch's thumb use; the non-root vector-`size` relaxation is what any nested mark needs;
+and the two-box split — a hug row that is the target, wrapping a fixed square that carries the
+`paintSlots` — is the shape all three share. Switch differs in one place only, the focus ring sitting on
+the track rather than on the control.
+
+**And a cross-lane note worth one line, because it is #937/#954 working within hours of landing.** This
+branch was green on 42/42 before rebasing onto #954 and failed `lint-us-english` immediately after: two
+words in this def's own COMMENTS — `honour` and `colour` — reached `apps/plugin/dist/main.js` and
+`ui.html`, because esbuild keeps them and the plugin bundles the def files. That is exactly the argument
+CLAUDE.md gives for the `apps/studio/src` carve-out ("which comments esbuild keeps is an implementation
+detail"), arriving from a second surface nobody had listed. Fixed in the def, not by narrowing the scan.
 ## (2026-08-23) — CLAUDE.md's US-English paragraph shrunk, and its false premise corrected (#928, #968)
 
 **Two jobs, and #968 mattered more than the byte count.** #928 asked whether the US-English
@@ -163,6 +304,62 @@ consequence of leaving it red: the gate prints at most 8 hits per file, so while
 sits in `main.js`, a newly introduced spelling is counted but **not displayed** — M1's `main.js`
 plant moved the total and never appeared in the output. A red surface is a surface where the next
 regression is invisible.
+
+---
+
+## (2026-08-23) — overriding a ground now re-derives its dependents' ratios; the values stay, and say so (#964)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.17.0 → 0.18.0. `CONTRACT_VERSION` stands at 5.2.0. Gates stay
+at **42** — no new gate; the existing one gained cases.
+
+**The gate was written FIRST, and red.** The owner's instruction was explicit and it was the right
+call: add the `overrides`-driven cases, confirm they fail, and only then fix. They did — **226
+failures** across the 18 grounds — and that number is the whole evidence the fix was needed. Every
+prior case in `lint-ratio-truth.ts` built through `surfaces`, so arms A–C had never exercised the
+`overrides` route at all. Exactly the blindness that left #962's ground refusal unheld until arm D was
+written for it. *A gate authored after a fix cannot tell you the fix was needed*, and this one is
+committed separately, red, so the failing-before state is bisectable rather than asserted.
+
+**The asymmetry that decided the design, measured rather than assumed.** When a ground's colour moves,
+its dependents' RATIOS move — pure arithmetic over the final colours, and recomputed. Their VALUES do
+not, and cannot be from a post-pass: `interactive.<c>.on-fill` is `onColor(rest.rgb)`, a local inside
+`iFill`, not a lookup. Every dependent of the 18 is an ink or a wash picked by a closure that has
+already returned.
+
+That **ruled out the fix #964 proposed first** — ordering the override into derivation so later reads
+see it — because derivation does not read roles back, it reads locals. So the topological-order
+property the issue asked me to assert never came up: *the property that would have needed asserting
+was not the binding one.* Worth recording, because "verify the assumption" and "check whether the
+assumption is the one that matters" are different steps and only the second one settled this.
+
+**What it costs, measured.** 67 dependents across the 18 grounds are left value-stale, and in the
+worst case **all 67** fall short of their bar — **every one warned, none silent**. The reported numbers
+are now true and the shortfalls are named. That is allow-and-flag doing what it promises rather than
+a partial fix; making the values re-derive needs the derivation rules reachable after the fact, which
+is a larger change and is filed rather than smuggled in.
+
+**Direct dependents only**, which is correct rather than cheap: a dependent's own colour does not
+change, so anything measured against IT is unaffected. The edge set covers `legibleFor` as well as
+`against` — since #963 a wash reports the legibility of a second role it names. That edge is also why
+the count is **18** where #964's own table said 17: `text.on-inverse.primary` only became reachable as
+a ground once #962 repaired the nine `against` strings that had been dangling since #892. Three of my
+own PRs had to land in order before the inventory was even countable.
+
+**One quiet bug found on the way.** `rgbByRole` was never updated when an override applied, so a later
+override reading it for its own `against` saw the pre-override colour — override ORDER was silently
+significant. No corpus brand has two overrides where one is the other's ground, so nothing was wrong
+in practice; it was a trap waiting.
+
+**A power shift in the gate, stated because it is a real cost and nobody would see it from the diff.**
+For the rows this fix touches, the engine now computes the ratio the same way `lint-ratio-truth`'s arm
+A recomputes it, so arm A is by-construction true *there*. It keeps full independence over the other
+~11k ratios, which come from ordinary derivation and not from this pass. Arm B — comply-or-confess —
+is what carries the weight on the re-derived rows, and it is not tautological: the warning it demands
+comes from a different code path. Mutation-verified rather than argued.
+
+**No emitted artifact moves.** No corpus brand uses `overrides`, so the entire change is invisible to
+`out/**`; the only committed diff is the `engineVersion` stamp. A MINOR because a brand that DOES use
+overrides gets different (correct) metadata and new warnings.
 
 ---
 

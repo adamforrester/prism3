@@ -102,7 +102,63 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph'];
+const MUST_COVER = ['icon.glyph', 'checkbox.mark', 'checkbox.dash'];
+
+/**
+ * VECTOR PARTS THAT DRAW ONE FIXED GLYPH, keyed `<def>.<part>` → the name they draw and why.
+ *
+ * Until #910 this gate refused a literal `glyph` outright, and its message said what to do about it:
+ * *"a fixed glyph makes every member of the set draw one shape, which is #864's other extreme, so it
+ * needs a decision recorded here rather than a pass."* This is that record. `icon` is a vocabulary
+ * browser — one part, 39 members, one glyph each — and every arm below was written for it. A checkbox's
+ * mark is the opposite claim: one shape at every coordinate the part appears at, with a SECOND part
+ * carrying the other shape, and which shape belongs to which part is a design fact.
+ *
+ * THE `glyph` NAME IS RECORDED HERE, NOT JUST THE EXEMPTION, and that is the arm rather than bookkeeping.
+ * Swapping `check` and `minus` between `mark` and `dash` in the def is the invisible mutation this class
+ * of def invites: both names resolve, both draw real ink on the right artboard, both fit, both are filled
+ * — an indeterminate checkbox simply renders a tick. Every geometric arm below passes. So the def's claim
+ * about what a part draws is compared against a claim authored in a different file, and a mismatch fails
+ * as a stale record in whichever direction it moved.
+ *
+ * AND `at` RECORDS THE COORDINATE, for the same reason and against a hole the first version of this
+ * table left open. The count arm below reads `presentWhen` off the DEF to decide how many GLYPH nodes a
+ * member should carry, and the projector reads the same field to decide whether to emit one — so the two
+ * halves of that arm are ONE derivation with respect to WHICH coordinate a mark appears at, and
+ * `presentWhen: { selection: ['unchecked'] }` on `mark` would put a tick in the empty box with both sides
+ * of the arm agreeing that it belongs there. `docs/34` shape 1, in the middle of a check written to avoid
+ * it. Recording the coordinate here is the second author: it is compared to the def's own `presentWhen`
+ * by value, so a gate value moving in either file fails.
+ *
+ * The distinction between the two fields is worth keeping straight, because they catch different defects
+ * and one does not imply the other: `glyph` is WHAT is drawn (swap the two and an indeterminate box shows
+ * a tick), `at` is WHERE it is drawn (widen the gate and an unchecked box shows one). Both render as a
+ * plausible checkbox and neither moves any geometric measurement in this file.
+ *
+ * Checked in BOTH directions, same discipline as `DUPLICATE_PATHS`: an entry for a part that is now
+ * axis-templated fails, an entry for a part that no longer exists fails, and an `at` naming a coordinate
+ * the def no longer gates on fails as a stale memory rather than as a silent exemption.
+ */
+const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  'checkbox.mark': {
+    glyph: 'check',
+    at: { selection: ['checked'] },
+    why: "the checked mark. `glyph: '{selection}'` cannot express this set — the vocabulary holds no `unchecked` glyph, because an empty box draws nothing — so the two drawn values are two parts gated by `presentWhen` and the third is the absence of both",
+  },
+  'checkbox.dash': {
+    glyph: 'minus',
+    at: { selection: ['indeterminate'] },
+    why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two differ only in the winding of one rectangle (see `DUPLICATE_PATHS`) and the line form is the one the rest of the corpus draws',
+  },
+};
+
+/** `presentWhen`-shaped gates compared by VALUE, order-insensitively, so a reordered value list is not a
+ *  failure and a changed one is. Both sides are plain data; nothing here calls the projector's own reader. */
+const sameGate = (a: Record<string, readonly string[]>, b: Record<string, readonly string[]>): boolean => {
+  const ka = Object.keys(a).sort(), kb = Object.keys(b).sort();
+  const vals = (v: readonly string[]): string => JSON.stringify([...v].sort());
+  return ka.length === kb.length && ka.every((k, i) => kb[i] === k && vals(a[k]) === vals(b[k] ?? []));
+};
 
 /**
  * NAMES THAT LEGITIMATELY SHARE ONE SHAPE, keyed `<a>|<b>` (sorted) → the reason.
@@ -255,48 +311,90 @@ for (const def of componentDefs as ComponentDef[]) {
   }
 
   for (const [partName, raw] of parts) {
-    const part = raw as { glyph?: string };
-    // The axis the glyph template names, read from the DEF. `'{name}'` → `name`; a literal glyph name
-    // means every member draws the same thing on purpose, which is a different claim and is not this
-    // corpus, so it fails here rather than being silently exempted.
+    const part = raw as { glyph?: string; presentWhen?: Record<string, readonly string[]> };
+    const key = `${def.id}.${partName}`;
+    // The axis the glyph template names, read from the DEF. `'{name}'` → `name`; a literal glyph name is
+    // a DIFFERENT claim (one shape at every coordinate) and must be recorded in `FIXED_GLYPH` with the
+    // name it draws, so a fixed glyph is admitted by decision rather than by the absence of a rule.
     const axis = /^\{([a-z][a-z0-9-]*)\}$/.exec(part.glyph ?? '')?.[1];
-    if (!axis) {
-      failures.push(`${def.id}.${partName}: glyph is '${part.glyph ?? '(none)'}', not an axis template like '{name}' — a fixed glyph makes every member of the set draw one shape, which is #864's other extreme, so it needs a decision recorded here rather than a pass.`);
+    const fixed = FIXED_GLYPH[key];
+    if (!axis && !fixed) {
+      failures.push(`${def.id}.${partName}: glyph is '${part.glyph ?? '(none)'}', not an axis template like '{name}' — a fixed glyph makes every member of the set draw one shape, which is #864's other extreme, so it needs a decision recorded here rather than a pass. Add '${key}' to FIXED_GLYPH in this file with the name it draws and why.`);
       continue;
     }
-    if (!(def.figmaProperties?.variantAxes ?? []).includes(axis)) {
+    if (axis && fixed) {
+      failures.push(`${def.id}.${partName}: FIXED_GLYPH records it as drawing one fixed '${fixed.glyph}', and the def templates it on axis '${axis}'. A stale entry exempts a templated part from the vocabulary arms below — drop it in the same PR that templated the part.`);
+      continue;
+    }
+    if (axis && !(def.figmaProperties?.variantAxes ?? []).includes(axis)) {
       failures.push(`${def.id}.${partName}: the glyph is chosen by axis '${axis}', which is NOT in figmaProperties.variantAxes [${(def.figmaProperties?.variantAxes ?? []).join(', ')}] — the set would carry one member per other coordinate and every one of them would draw the same glyph.`);
       continue;
     }
+    // THE RECORD AGAINST THE DEF, for a fixed part. Authored in two files, so swapping `check` and
+    // `minus` between `mark` and `dash` fails here — every geometric arm below passes that mutation,
+    // because both are real glyphs correctly drawn on the right artboard.
+    if (fixed && part.glyph !== fixed.glyph) {
+      failures.push(`${def.id}.${partName}: the def draws glyph '${part.glyph ?? '(none)'}' and FIXED_GLYPH records '${fixed.glyph}'. One of the two moved. Nothing below can see this — a wrong-but-real glyph draws correct ink on a correct artboard, so an indeterminate checkbox showing a tick passes every measurement in this file.`);
+      continue;
+    }
+    if (fixed && !(ICON_NAMES as readonly string[]).includes(fixed.glyph)) {
+      failures.push(`${def.id}.${partName}: FIXED_GLYPH records glyph '${fixed.glyph}', which the vocabulary does not define — the entry is a memory of a name that no longer exists.`);
+      continue;
+    }
+    // THE COORDINATE, against the def. Ordered BEFORE the count arm and it `continue`s, because that arm
+    // derives its expectation from the very field this one is checking: letting a disagreement through
+    // would produce 54 "expected exactly 0" failures from the wrong side of the comparison and bury the
+    // one sentence that says which file moved. Falling through is half of ordering (#969).
+    if (fixed && !sameGate(fixed.at, (part.presentWhen ?? {}) as Record<string, readonly string[]>)) {
+      failures.push(`${def.id}.${partName}: the def draws its fixed '${fixed.glyph}' at ${JSON.stringify(part.presentWhen ?? {})} and FIXED_GLYPH records ${JSON.stringify(fixed.at)}. One of the two moved. The count arm below cannot see this — it asks the def where the mark belongs and asks the projector where it is, and both read the same field, so widening the gate to '${Object.values(part.presentWhen ?? {}).flat().join('/') || '(nothing)'}' draws a mark at a coordinate that has none with the arm fully green.`);
+      continue;
+    }
 
-    covered.add(`${def.id}.${partName}`);
-    const seenNames = new Map<string, string>();  // axis value → the `d` its document carries
+    covered.add(key);
+    const seenNames = new Map<string, string>();  // axis value (or the fixed name) → the `d` its document carries
+    // A VARIANT-GATED part (#910) is legitimately absent at most coordinates, so the count arm below has
+    // to know WHICH. Read off `presentWhen` in the def, and asserted in BOTH directions: a gated part
+    // missing where its gate is satisfied fails, and one PRESENT where it is not fails too. Without the
+    // second direction, adding `presentWhen` support here would have silently turned "exactly 1 GLYPH
+    // node" into "0 is fine now" for every vector part in the corpus — a weakening of an arm that
+    // already existed, which is what the header's warning about degrading a check is about. This is also
+    // the only place `presentWhen` is measured against a projection rather than merely validated.
+    const gated = (coord: Record<string, string | undefined>): boolean =>
+      Object.entries(part.presentWhen ?? {}).every(([a, vs]) => coord[a] !== undefined && vs.includes(coord[a]!));
+    let appearances = 0;
 
     for (const plan of set) {
-      const member = (plan.coord as Record<string, string | undefined>)[axis];
+      const coord = plan.coord as Record<string, string | undefined>;
+      const member = axis ? coord[axis] : fixed!.glyph;
+      const at = axis ? `${axis}=${member}` : `fixed '${member}'`;
       const nodes = glyphNodes(plan).filter((g) => g.part === partName);
-      if (nodes.length !== 1) {
-        failures.push(`${def.id}.${partName}: ${nodes.length} GLYPH node(s) at ${JSON.stringify(plan.coord)}, expected exactly 1 — the def declares this part as kind 'vector', so a plan carrying none built an empty artboard (#864) and one carrying two draws twice.`);
+      const want = gated(coord) ? 1 : 0;
+      if (nodes.length !== want) {
+        failures.push(`${def.id}.${partName}: ${nodes.length} GLYPH node(s) at ${JSON.stringify(plan.coord)}, expected exactly ${want}${part.presentWhen ? ` (presentWhen ${JSON.stringify(part.presentWhen)} is ${want ? 'satisfied' : 'NOT satisfied'} here)` : ''} — the def declares this part as kind 'vector', so a plan carrying none where one is due built an empty artboard (#864), one carrying two draws twice, and one carrying a node where the gate excludes it draws a mark at a coordinate that has none.`);
         continue;
       }
+      if (!want) continue;
+      appearances++;
       const node = nodes[0].node;
 
       // ---- EXPECTED, from the vocabulary --------------------------------------------------------
       const expectPath = member === undefined ? undefined : (ICON_PATHS as Record<string, string>)[member];
       if (expectPath === undefined) {
-        failures.push(`${def.id}.${partName}: the member's '${axis}' coordinate is '${member ?? '(absent)'}', which the icon vocabulary does not define — the projector filled the template with something ICON_PATHS has no entry for.`);
+        failures.push(axis
+          ? `${def.id}.${partName}: the member's '${axis}' coordinate is '${member ?? '(absent)'}', which the icon vocabulary does not define — the projector filled the template with something ICON_PATHS has no entry for.`
+          : `${def.id}.${partName}: the fixed glyph '${member}' is named in ICON_NAMES but has no ICON_PATHS entry — the vocabulary's two halves disagree, so this part's artboard would import empty.`);
         continue;
       }
 
       // ---- ACTUAL, by reading back the document that will be submitted --------------------------
       const svg = node.glyphSvg;
       if (typeof svg !== 'string' || !svg.length) {
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the plan carries NO glyphSvg. This is #864 verbatim — a member with no geometry builds as an empty artboard, resolves, writes and reports 0 misses.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the plan carries NO glyphSvg. This is #864 verbatim — a member with no geometry builds as an empty artboard, resolves, writes and reports 0 misses.`);
         continue;
       }
       const paths = [...svg.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
       if (paths.length !== 1) {
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the document carries ${paths.length} <path> elements, expected exactly 1 — 0 draws nothing and >1 needs a decision about how the outlines compose.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the document carries ${paths.length} <path> elements, expected exactly 1 — 0 draws nothing and >1 needs a decision about how the outlines compose.`);
         continue;
       }
       const d = /\bd="([^"]*)"/.exec(paths[0])?.[1];
@@ -307,25 +405,25 @@ for (const def of componentDefs as ComponentDef[]) {
 
       // ---- A: it is the MEMBER'S OWN outline ----------------------------------------------------
       if (d !== expectPath) {
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the document draws a path this member does not own. Expected ICON_PATHS['${member}'] (${expectPath.length} chars, starting '${expectPath.slice(0, 24)}'), got ${d === undefined ? 'no d attribute' : `${d.length} chars starting '${d.slice(0, 24)}'`}.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the document draws a path this member does not own. Expected ICON_PATHS['${member}'] (${expectPath.length} chars, starting '${expectPath.slice(0, 24)}'), got ${d === undefined ? 'no d attribute' : `${d.length} chars starting '${d.slice(0, 24)}'`}.`);
         continue;
       }
 
       // ---- B: it is FILLED ----------------------------------------------------------------------
       // Box area cannot see this: `fill="none"` with no stroke has a bounding box and paints nothing.
       if (!fill || fill === 'none' || fill === 'transparent')
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the <path> has fill="${fill ?? 'absent'}" — an unfilled path with no stroke has a perfectly good bounding box and draws NOTHING, which every area check above passes.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the <path> has fill="${fill ?? 'absent'}" — an unfilled path with no stroke has a perfectly good bounding box and draws NOTHING, which every area check above passes.`);
 
       // ---- C: NON-ZERO INK, which is the quantity a human would check ---------------------------
       let ink: Box;
       try {
         ink = inkBox(d);
       } catch (err) {
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the outline could not be measured — ${(err as Error).message}`);
+        failures.push(`${def.id}.${partName} @ ${at}: the outline could not be measured — ${(err as Error).message}`);
         continue;
       }
       if (ink.w <= 0 || ink.h <= 0)
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the outline measures ${ink.w}×${ink.h} — an outline with no area in one dimension is an invisible glyph, and the artboard around it looks exactly like a correct build.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the outline measures ${ink.w}×${ink.h} — an outline with no area in one dimension is an invisible glyph, and the artboard around it looks exactly like a correct build.`);
 
       // ---- D: THE ARTBOARD is square, declared, and contains the ink ----------------------------
       // This is #864's second half. A Figma VectorNode's box IS its ink (only 19 of these 39 glyphs are
@@ -333,25 +431,36 @@ for (const def of componentDefs as ComponentDef[]) {
       // component distorts non-uniformly. The declared width/height are what deny the importer the
       // freedom to size the frame to the outline.
       if (docVb !== ICON_VIEWBOX)
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the document declares viewBox="${docVb ?? 'absent'}", not the set's '${ICON_VIEWBOX}' — a path drawn on one grid inside a document claiming another imports at the wrong scale.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the document declares viewBox="${docVb ?? 'absent'}", not the set's '${ICON_VIEWBOX}' — a path drawn on one grid inside a document claiming another imports at the wrong scale.`);
       if (!(docW > 0) || !(docH > 0))
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the document declares width="${docW || 'absent'}" height="${docH || 'absent'}". Without both, an importer is free to size the frame to the INK — which is how a 14×2 'minus' becomes the main component's own box, and then a bar 7× too thick when a host stretches it into a square slot.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the document declares width="${docW || 'absent'}" height="${docH || 'absent'}". Without both, an importer is free to size the frame to the INK — which is how a 14×2 'minus' becomes the main component's own box, and then a bar 7× too thick when a host stretches it into a square slot.`);
       else if (docW !== vb.w || docH !== vb.h)
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the document is ${docW}×${docH} but its viewBox is ${vb.w}×${vb.h} — the artboard and the coordinate system disagree, so the glyph imports scaled.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the document is ${docW}×${docH} but its viewBox is ${vb.w}×${vb.h} — the artboard and the coordinate system disagree, so the glyph imports scaled.`);
       else if (docW !== docH)
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the artboard is ${docW}×${docH}, not SQUARE. Hosts bind one variable to both axes of the slot they swap a glyph into (button and icon-button both bind size.{size}.icon to width and height), so a non-square member is stretched non-uniformly.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the artboard is ${docW}×${docH}, not SQUARE. Hosts bind one variable to both axes of the slot they swap a glyph into (button and icon-button both bind size.{size}.icon to width and height), so a non-square member is stretched non-uniformly.`);
       // The read-back expectation the executors compare the imported frame against.
       if (JSON.stringify(node.glyphViewBox) !== JSON.stringify([vb.w, vb.h]))
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: glyphViewBox is ${JSON.stringify(node.glyphViewBox)}, expected [${vb.w}, ${vb.h}] — this is the only thing the executors can compare the imported frame's size against, so a wrong value makes their read-back agree with the wrong artboard.`);
+        failures.push(`${def.id}.${partName} @ ${at}: glyphViewBox is ${JSON.stringify(node.glyphViewBox)}, expected [${vb.w}, ${vb.h}] — this is the only thing the executors can compare the imported frame's size against, so a wrong value makes their read-back agree with the wrong artboard.`);
       // The ink must fit the artboard: an outline outside it is clipped or off-canvas.
       if (ink.x < vb.minX || ink.y < vb.minY || ink.x + ink.w > vb.minX + vb.w || ink.y + ink.h > vb.minY + vb.h)
-        failures.push(`${def.id}.${partName} @ ${axis}=${member}: the outline occupies ${ink.x},${ink.y} ${ink.w}×${ink.h}, which leaves the ${vb.w}×${vb.h} artboard at ${vb.minX},${vb.minY} — the part outside imports clipped or off-canvas.`);
+        failures.push(`${def.id}.${partName} @ ${at}: the outline occupies ${ink.x},${ink.y} ${ink.w}×${ink.h}, which leaves the ${vb.w}×${vb.h} artboard at ${vb.minX},${vb.minY} — the part outside imports clipped or off-canvas.`);
 
       const prior = seenNames.get(member);
       if (prior !== undefined && prior !== d)
         failures.push(`${def.id}.${partName}: two members both named '${member}' carry DIFFERENT outlines — the axis does not determine the glyph.`);
       seenNames.set(member, d);
       glyphChecks++;
+    }
+
+    // A FIXED part's completeness arm is a floor, because arms E and F below are about a set that
+    // ENUMERATES the vocabulary and a fixed part enumerates nothing. Without this the whole per-part
+    // block is vacuous the moment `presentWhen` excludes every coordinate — `docs/34` shape 9, reached
+    // by a typo in a gate value rather than by a projector change.
+    if (fixed) {
+      if (!appearances)
+        failures.push(`${def.id}.${partName}: drew its fixed '${fixed.glyph}' at NONE of the set's ${set.length} members. Every arm above ranges over the coordinates it appears at, so a part gated out of all of them reports clean having measured nothing.`);
+      notes.push(`${key}: fixed '${fixed.glyph}' at ${appearances}/${set.length} member(s) on a ${vb.w}×${vb.h} artboard${part.presentWhen ? `, gated ${JSON.stringify(part.presentWhen)}` : ''}`);
+      continue;
     }
 
     // ---- E: EVERY name in the vocabulary, and no others -----------------------------------------
@@ -394,6 +503,21 @@ for (const def of componentDefs as ComponentDef[]) {
 for (const m of MUST_COVER)
   if (!covered.has(m))
     failures.push(`SCOPE NOT REPRESENTED: '${m}' is a known vector part and this run checked no plan carrying one. If it was legitimately removed, drop it from MUST_COVER in this file in the same PR; otherwise a clean run here means nothing.`);
+
+// FIXED_GLYPH's OTHER DIRECTION. The per-part loop above fails a def that templates a part this table
+// records; nothing there can see an entry naming a part that no longer exists at all — the loop simply
+// never reaches it. `MUST_COVER` happens to name both of today's entries, but the two tables answer
+// different questions and a future fixed part need not be a scope floor, so this is not that check
+// arriving twice: the exemption itself has to be perishable, same as `DUPLICATE_PATHS`.
+const vectorParts = new Set(
+  (componentDefs as ComponentDef[]).flatMap((def) =>
+    Object.entries(def.anatomy?.parts ?? {})
+      .filter(([, p]) => (p as { kind?: string }).kind === 'vector')
+      .map(([partName]) => `${def.id}.${partName}`)),
+);
+for (const key of Object.keys(FIXED_GLYPH))
+  if (!vectorParts.has(key))
+    failures.push(`STALE FIXED_GLYPH: '${key}' is recorded as drawing a fixed '${FIXED_GLYPH[key].glyph}', and no def declares a vector part by that name. The per-part loop cannot see this — it only ever reads entries for parts that exist — so the exemption would outlive its subject and silently admit the next part to take that name.`);
 
 console.log(`Glyph geometry — ${glyphChecks} glyph(s) measured across ${covered.size} vector part(s): ${[...covered].join(', ') || 'NONE'}`);
 for (const n of notes) console.log(`    ${n}`);

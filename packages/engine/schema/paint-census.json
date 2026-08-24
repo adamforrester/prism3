@@ -72,6 +72,18 @@
         "assignments": 8,
         "sha256": "5efe93f9d7e883b325c848a6d13b4272940bb326b8f4cf6ae6fb1f1b56089588"
       }
+    },
+    "checkbox": {
+      "set": {
+        "members": 54,
+        "assignments": 198,
+        "sha256": "0418644d34f0141d0cca28fcdabd39a6a9c01295ed6a754ffc96681d95a2c4d0"
+      },
+      "grid": {
+        "members": 63,
+        "assignments": 231,
+        "sha256": "7ba60a24836068522adc2fd5da625ab4d0556b4640e46dbf7d703edbe2a66689"
+      }
     }
   }
 }
