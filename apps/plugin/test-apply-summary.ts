@@ -13,10 +13,17 @@
  * pill's budget — the length bound is the whole reason this field exists, so it is asserted rather
  * than assumed.
  *
- * Since #483 it covers `componentHeadline` too — the component build's verdict, same pill, four states.
- * The one worth gating hardest is "ran and built nothing": `applyComponentPlan` is idempotent, so a
- * re-run skips all 648 members by name, and a verdict that treated those skips as misses would report a
- * working idempotent build as 648 failures.
+ * Since #483 it covers `componentHeadline` too — the component build's verdict, same pill, and since #827
+ * five states rather than four. The one worth gating hardest is "ran and built nothing":
+ * `applyComponentPlan` is idempotent, so a re-run skips all 648 members by name, and a verdict that treated
+ * those skips as misses would report a working idempotent build as 648 failures.
+ *
+ * #827 adds the fifth state and `staleNote` beside it, and the two halves are gated for different reasons.
+ * The count is about PRECEDENCE: `⚠ N stale` has to beat `✓ built N`, because a run that added 100 members
+ * and left 548 built from an older plan reported "built 100" — true, and not the fact the designer needed.
+ * The note is about WORDING: a remedy standing on its own ("delete the set or use a fresh page") reads as
+ * the tool failing, so the reason travels in the same sentence as the outcome, and that is asserted here
+ * rather than left to a reviewer.
  *
  * And since #913, `partialWriteHeadline`/`partialWriteNote` — the verdict for a build that THREW with
  * nodes already in the file. Two properties are gated there that the other two headlines do not have:
@@ -25,7 +32,7 @@
  * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
  * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
 import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
@@ -100,10 +107,55 @@ ok(componentHeadline(1, 0, 0) === '✓ built 1 variant', `singular at one varian
 ok(componentHeadline(2, 0, 0) === '✓ built 2 variants', `plural at two (${componentHeadline(2, 0, 0)})`);
 ok(componentHeadline(0, 1, 1) === '⚠ 1 miss', `singular miss (${componentHeadline(0, 1, 1)})`);
 
+// ---- #827: STALE outranks `built N`, and ranks below a real miss ---------------------------
+// The verdict this exists to stop being reachable is `✓ already built` over a set whose members no longer
+// match what the engine plans. A name match was never evidence of that, so the count that says so has to
+// reach the pill — and it has to WIN over the added count, because "built 100" is the true-but-useless
+// reading of a run that also left 548 members wrong.
+const cStale = componentHeadline(100, 0, 0, 548);
+ok(cStale === '⚠ 548 stale', `a run that added 100 and left 548 stale leads with the STALE count (${cStale})`);
+ok(!cStale.includes('100'), 'and does not lead with what it added, which is the reading that hid this defect');
+ok(componentHeadline(0, 648, 0, 0) === '✓ already built' && componentHeadline(0, 647, 0, 1) !== '✓ already built',
+  `one stale member is enough to withdraw the "already built" claim (${componentHeadline(0, 647, 0, 1)})`);
+// Below a real miss: a miss is something that did not resolve at all, which is more actionable than a
+// member that exists and is out of date.
+ok(componentHeadline(0, 0, 48, 548) === '⚠ 48 misses', `a real miss still outranks staleness (${componentHeadline(0, 0, 48, 548)})`);
+// `nothing built` must not swallow a stale-only run: added 0, skipped 0, and yet the file holds 648
+// members. Reporting that as "nothing built" would be a second way to lose the same fact.
+ok(componentHeadline(0, 0, 0, 648) === '⚠ 648 stale', `a stale-only run is not "nothing built" — the members ARE in the file (${componentHeadline(0, 0, 0, 648)})`);
+ok(componentHeadline(0, 0, 0, 1) === '⚠ 1 stale', `singular (${componentHeadline(0, 0, 0, 1)})`);
+// DEFAULTS TO ZERO, so the three-argument callers above are unchanged rather than silently reading
+// `undefined > 0`. Asserted because the parameter was ADDED to a shipped signature.
+ok(componentHeadline(648, 0, 0) === componentHeadline(648, 0, 0, 0) && componentHeadline(0, 648, 0) === '✓ already built',
+  'the added parameter defaults to zero, so a caller that has no stale count reads exactly as before');
+
+// The note. AUTHORED expectations, per the same rule as `facts()` below — this suite checks the prose, and
+// a substring lifted from the function would only check that the function equals itself.
+ok(staleNote(0, '9.9.9') === null, 'no stale members, no note — the caller appends nothing rather than an empty clause');
+const n1 = staleNote(1, '0.18.0')!;
+const n2 = staleNote(4, '0.18.0')!;
+ok(/\b1 member in this set was built from an earlier plan and was left in place\b/.test(n1), `singular agreement throughout (${n1})`);
+ok(/\b4 members in this set were built from an earlier plan and were left in place\b/.test(n2), `plural agreement throughout (${n2})`);
+ok(!/\bwere\b/.test(n1.split('—')[0]) && !/\bwas\b/.test(n2.split('—')[0]),
+  'neither reading leaks the other\'s verb — the trap in a note with three agreeing clauses');
+// THE WORDING RULE, asserted rather than left to a reviewer: the remedy must not stand alone. The reason
+// appears in the SAME sentence as the outcome, ahead of the sentence that says what to do.
+const [outcome, remedy] = [n2.split('.')[0], n2.slice(n2.indexOf('This build is'))];
+ok(/left in place, because rebuilding them would orphan/.test(outcome),
+  `the outcome sentence carries its own reason (${outcome})`);
+ok(/tracks its main component by id/.test(n2), 'and names the mechanism, which is what makes the reason checkable rather than a claim');
+ok(/delete those members and run again/.test(remedy) && remedy.includes('0.18.0'),
+  `the remedy follows the reason and reports which build this is (${remedy})`);
+ok(!/^\s*(?:Delete|To pick)/.test(n2), 'the note never OPENS on an instruction, which is the reading that makes a protective decline sound like a failure');
+ok(!/\b(simply|just|easy|obviously|sorry|oops)\b/i.test(n2) && !/!/.test(n2),
+  'and it carries none of voice-standard.md §2\'s banned vocabulary (also gated repo-wide by lint-voice.ts, asserted here where the string is authored)');
+
 // The same 24-char pill, so the same range probe — and a wider one, because a component build's counts
-// are an order of magnitude larger than the theme write's (648 members × several bindings each).
+// are an order of magnitude larger than the theme write's (648 members × several bindings each). The
+// `stale` axis is in the probe because it is the newest interpolated count and the longest word (#827).
 const cWorst = [0, 1, 2, 9, 99, 648, 999, 9999].flatMap((a) =>
-  [0, 1, 648, 9999].flatMap((s) => [0, 1, 48, 9999].map((m) => componentHeadline(a, s, m))));
+  [0, 1, 648, 9999].flatMap((s) => [0, 1, 48, 9999].flatMap((m) =>
+    [0, 1, 648, 9999].map((st) => componentHeadline(a, s, m, st)))));
 const cOver = cWorst.filter((h) => h.length > 24);
 ok(cOver.length === 0, `every component headline fits the 24-char pill budget (longest ${Math.max(...cWorst.map((h) => h.length))}: "${cWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
 ok(cWorst.every((h) => h.trim().length > 0), 'no component headline is blank (the UI would replace it with a generic verdict)');
