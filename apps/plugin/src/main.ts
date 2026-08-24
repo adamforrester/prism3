@@ -22,7 +22,7 @@ import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, partialWriteHe
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-figma';
+import { applyWritePlan, applySurfacePlan, applyFloatPlan, applyVarCollectionPlan } from './write-figma';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { preloadFonts } from './preload-fonts';
@@ -32,7 +32,7 @@ import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './b
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '@prism3/engine/theme';
@@ -99,6 +99,10 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     });
     // Colour axis (#108): core-palette + color, per-mode alias-bound.
     const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables);
+    // SURFACE axis (#993): the `default`/`inverse` alias layer over `color`. MUST run after the line
+    // above — every row is a pointer into the `color` collection, resolved by NAME out of the file, so
+    // the targets have to be there already. An unresolved one is reported in `misses`, never thrown.
+    const sf = await applySurfacePlan(buildSurfaceWritePlan(theme), figma.variables);
     // FLOAT axes (#146): core-dimension/space/radius/size/border-width/focus/opacity + layout.
     const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables);
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
@@ -129,8 +133,12 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // the file does not now carry, which is precisely what a miss means here. Deliberately counted as a
     // miss rather than as a soft skip — a skipped TEXT STYLE leaves the token layer intact, while a
     // refused VARIABLE write leaves a hole in it, so this one should flip `ok` and the other should not.
+    // `sf.misses` joins the tally for the same reason `s.misses` does, and it is the one axis where a miss
+    // is INVISIBLE without the report (#993): a surface row whose alias target is absent keeps the literal
+    // fallback pass A wrote, so it renders the right colour today and silently stops tracking the brand.
+    // A pointer that looks fine and points nowhere — the #866 shape. Counted as a miss, so it flips `ok`.
     const misses =
-      r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length + tv.refused.length;
+      r.misses.length + sf.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length + tv.refused.length;
     // Orphan report (#479): variables in a collection the plan owns that the plan does not contain.
     // The write path is create-or-update-by-name, so it cannot see a rename — the new name is created
     // and the old one is never touched again. Reported, never deleted: this cannot distinguish a stale
@@ -140,6 +148,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // every prior run reported success.
     const allOrphans = [
       ...r.orphans,
+      { name: 'surface', names: sf.orphans },
       ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
       ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
     ].filter((o) => o.names.length);
@@ -166,10 +175,11 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
+      `surface ${sf.total} (+${sf.created}, ${sf.bound} aliased), ` +
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
-      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
+      `${r.bound + sf.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
       orphanNote + resolvedNote + skippedNote + fontNote + refusedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
