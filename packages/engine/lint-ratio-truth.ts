@@ -139,13 +139,14 @@ export const groundsOf = (theme: ReturnType<typeof brandTheme>): string[] => {
  * there, and a case that does not move the colour cannot detect a stale dependent no matter how
  * broken the engine is.
  */
-const OVERRIDE_CASES = (): Array<{ label: string; input: BrandInput }> =>
+const OVERRIDE_CASES = (): Array<{ label: string; ground: string; input: BrandInput }> =>
   groundsOf(brandTheme(MINIMAL_BRAND)).flatMap((ground) =>
     (GROUND_INPUT[ground] ? [] : ['500', '100']).map((step) => ({
       // A ground WITH a declarative input is excluded here because the engine refuses it outright —
       // that refusal is arm D's subject, and routing it through this sweep would only re-assert the
       // throw under a second name.
       label: `overrides.light[${ground}]=neutral.${step}`,
+      ground,
       input: { ...MINIMAL_BRAND, overrides: { light: { [ground]: { palette: 'neutral', step } } } } as BrandInput,
     })));
 
@@ -155,7 +156,13 @@ let checked = 0, confessions = 0;
 /** A ground that is a palette STEP (`neutral.050`) rather than a role — a real, intentional form. */
 const isPaletteStep = (s: string): boolean => /^[a-z][a-z0-9-]*\.\d+$/.test(s);
 
-const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
+/**
+ * For an OVERRIDE case: the ground that was overridden, and the roles as they stood WITHOUT it.
+ * Arm B needs both to tell a shortfall that re-derived from one that did not (#979).
+ */
+type OverrideCtx = { ground: string; baseline: Record<string, { hex: string }> };
+
+const sweep = (label: string, theme: ReturnType<typeof brandTheme>, ctx?: OverrideCtx): void => {
   for (const m of resolveAllModes(theme)) {
     const roles = m.roles as Record<string, { hex: string; against?: string; ratio?: number; min?: number; alpha?: number; model: string; legibleFor?: string }>;
     const warned = new Set((m.warnings ?? []).map((w) => w.role));
@@ -225,11 +232,33 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
       if (Math.abs(truth - r.ratio) > EPS)
         failures.push(`${label}/${m.mode}: '${key}' records ratio ${r.ratio.toFixed(2)} ${how}, but the emitted colors measure ${truth.toFixed(2)} — the recorded number describes something the tree no longer contains (#956).`);
 
-      // ARM B — comply, or confess.
+      // ARM B — comply, or confess. And, on an override case, confess for the RIGHT REASON.
+      //
+      // Until #979 this arm accepted any shortfall provided a warning named it, because a dependent
+      // could not re-derive and "warned" was the best available promise. Now that it can, the two
+      // reasons a dependent can sit below its bar have to be told apart, and only one of them is
+      // still legitimate:
+      //
+      //   LEGITIMATE — the derivation followed the ground and the ladder ran out. Either the value
+      //     MOVED from where it sat without the override (proof it followed), or the role is a WASH,
+      //     whose colour is white or black by polarity and has no ladder to move along at all. A wash
+      //     that stays put is not stale; there was never a second option.
+      //   A FAILURE  — the value is unchanged, is not a wash, and its ground moved. That is a
+      //     dependent whose derivation did not follow: #964's defect, which #979 exists to end.
+      //
+      // Measured on the sparsest brand across the 18 input-less grounds: 32 moved, 27 washes, **0**
+      // in the failing class. The arm is calibrated to fire on a class that is currently empty, which
+      // is what makes it a regression guard rather than a description.
       if (truth < r.min) {
         confessions++;
-        if (!warned.has(key))
+        if (!warned.has(key)) {
           failures.push(`${label}/${m.mode}: '${key}' measures ${truth.toFixed(2)} ${how}, below its ${r.min}:1 minimum, and NO warning names it. Generated output must comply or say so — silence is the one outcome ruled out.`);
+        } else if (ctx && (r.against === ctx.ground || r.legibleFor === ctx.ground)) {
+          const isWash = r.model === 'ink-on-composite';
+          const movedWithGround = ctx.baseline[key] !== undefined && ctx.baseline[key].hex !== r.hex;
+          if (!isWash && !movedWithGround)
+            failures.push(`${label}/${m.mode}: '${key}' is below its ${r.min}:1 minimum at ${truth.toFixed(2)} AND its color is unchanged (${r.hex}) even though '${ctx.ground}' moved. It is not a wash, so it had a ladder to move along — the value did not re-derive against the new ground (#979).`);
+        }
       }
     }
   }
@@ -238,13 +267,18 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
 for (const { id, theme } of corpus()) sweep(`corpus:${id}`, theme);
 for (const c of CASES) sweep(c.label, brandTheme(c.input));
 const overrideCases = OVERRIDE_CASES();
+// The unoverridden baseline arm B compares against. Built once — it is the same tree for every case.
+const BASELINE_ROLES = (() => {
+  const light = resolveAllModes(brandTheme(MINIMAL_BRAND)).find((m) => m.mode === 'light');
+  return (light?.roles ?? {}) as Record<string, { hex: string }>;
+})();
 // The override route is the one this sweep did not previously exercise, and it is also the one that
 // can make `brandTheme`/`resolveMode` THROW — the refusal layer rejects a ground with a declarative
 // input (#956), and `OVERRIDE_CASES` filters those out by checking the same `GROUND_INPUT` table. If
 // that filter and the refusal ever come apart, an unwrapped throw here is a stack trace and no
 // summary — a crash names no gate. Caught and reported by case instead, same shape as arm D below.
 for (const c of overrideCases) {
-  try { sweep(c.label, brandTheme(c.input)); }
+  try { sweep(c.label, brandTheme(c.input), { ground: c.ground, baseline: BASELINE_ROLES }); }
   catch (e) { failures.push(`${c.label}: threw instead of resolving — "${(e as Error).message.slice(0, 160)}" — OVERRIDE_CASES' exclusion and the engine's own refusal have come apart.`); }
 }
 

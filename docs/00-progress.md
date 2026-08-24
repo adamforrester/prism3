@@ -7,6 +7,69 @@
 
 ---
 
+## (2026-08-24) — a dependent now follows its ground, and the assumption that allowed one pass (#979)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.19.0 → **0.20.0** (0.19.0 went to radio's `control.size.dot`
+while this was in flight). `CONTRACT_VERSION` stands at 5.3.0. Gates stay at **42**. No emitted
+artifact moves.
+
+**The half #978 could not do.** It recomputed an overridden ground's dependents' RATIOS in a post-pass
+but could not touch their VALUES — a dependent is picked by a closure that has already returned. 134
+dependents across the 18 input-less grounds carried the old ground's answer, **98 of them below their
+bar**.
+
+**The assumption, asserted — and it was not the one the issue named.** #979 proposed two passes and
+warned that an override must not feed back into itself across them. Reading the resolution answers
+something stronger: an override's value is `ramps.get(palette).find(step).rgb`, **a pure function of
+the declared input with nothing derived in it**. It cannot depend on a pass, so it cannot feed back —
+and the second pass would compute an identical tree at twice the cost. So this ships as ONE pass with
+overrides substituted into the grounds derivation reads.
+
+*This is #964's lesson landing for the second time.* "Verify the assumption" and "check whether the
+assumption is the BINDING one" are different steps. There it was ordering; here it was two-pass-ness.
+Both times the named assumption was a real property and the wrong one to build on. `test.ts` (a6)
+asserts both halves rather than this entry claiming them: an overridden role's emitted colour IS its
+palette step, and a second derivation over the same input is identical — the two-pass equivalence
+written as a test.
+
+**Measured, and the residue is fully accounted for.** Below-bar dependents fall **98 → 59**, and all
+59 are legitimate: **32 MOVED** with their ground (the derivation followed; the ladder ran out) and
+**27 are WASHES**, whose colour is white or black by polarity and have no ladder to move along at all.
+**Zero stale.** Reaching that number took three discriminators — the first two were wrong and worth
+recording. Comparing against the neutral ramp overstated what a *chromatic* ink could reach; comparing
+against each role's own palette was better but still a reconstruction of a candidate set the engine
+owns. The one that settled it asks nothing about candidates: **did the value move when the ground
+moved?** Non-circular, and it is what arm B now encodes.
+
+**So `staleDependents` is removed, not kept.** #964 offered "removed, or kept for a case that provably
+remains", and the case does not exist. Arm B gains the distinction that removal depends on: a below-bar
+dependent of an overridden ground is accepted only if it is a wash or its colour moved. Unchanged, not
+a wash, ground moved → a value that did not re-derive, failing by name. **The class is currently
+empty**, which is what makes it a regression guard rather than a description.
+
+**The gate caught my own bug, twice over.** Two substitution sites were wrong on the first pass:
+`field.inverse.fill` and `background.inverse.secondary` share a source candidate but are DIFFERENT
+ROLES, so substituting the shared value moved a dependent whose own ground had not been overridden.
+`lint-ratio-truth` named both. The rule the fix encodes: the substitution takes the ground the
+dependent DECLARES, with that ground's own value as fallback — never a neighbour's. *Two roles that
+happen to compute the same colour are not the same role, and a shared local is where that gets
+forgotten.*
+
+**#986's rule earned its keep a third time.** Removing the 46-line post-pass block was attempted with a
+bad slice boundary and broke the file; `git checkout --` restored it instantly because the working
+state had been committed first. The second attempt asserted both boundaries before writing, and the
+assertion fired on a wrong end-line before any damage. Committing between steps is what made a failed
+edit cost nothing.
+
+**A rebase hazard worth naming.** This branch was authored against a main that moved three commits
+under it, including #987 — which touches the same file and had itself been authored here. The rebase
+conflicted in four places, and resolving `test.ts` by hand **dropped a closing brace**, which surfaced
+as `Unexpected end of file` from the *gate runner*, not from a test. A conflict resolution is an edit
+like any other and deserves the same re-run; `npm run verify` caught it, a green `test.ts` alone would
+not have, because the file did not parse.
+
+---
+
 ## (2026-08-24) — `lint-ratio-truth.ts`'s override sweep can throw uncaught, and never had a guard
 
 **STATUS: shipped.** Found during review of #978 (merged as `bd82e18`), which added the

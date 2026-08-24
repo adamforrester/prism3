@@ -102,6 +102,45 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.20.0: overriding a ground re-derives its dependents' VALUES, not only their ratios (#979).
+ *
+ * 0.18.0 recomputed a dependent's ratio in a post-pass but could not touch its value — a dependent is
+ * picked by a closure that has already returned. 134 dependents across the 18 input-less grounds were
+ * left carrying the old ground's answer, 98 of them below their bar.
+ *
+ * THE ASSUMPTION, ASSERTED RATHER THAN REASONED ABOUT, which #979 made its own condition. It proposed
+ * two passes and warned that an override must not feed back into itself across them. Reading the
+ * resolution answers something stronger: an override's value is `ramps.get(palette).find(step).rgb` —
+ * a pure function of the declared input, with nothing derived in it. It cannot depend on a pass, so it
+ * cannot feed back, and the second pass would compute the identical tree at twice the cost. So this
+ * ships as ONE pass with overrides substituted into the grounds derivation reads, and `test.ts` (a6)
+ * asserts both halves: an overridden role's emitted colour IS its palette step, and a second
+ * derivation over the same input is identical.
+ *
+ * #964's lesson applied twice over — "verify the assumption" and "check whether the assumption is the
+ * BINDING one" are different steps. The binding property was never ordering; it was that an override
+ * is an input, not a result.
+ *
+ * MEASURED, on the sparsest brand across the 18 grounds at two steps each. Below-bar dependents fall
+ * 98 → 59, and the 59 that remain are all legitimate: 32 MOVED with their ground (the derivation
+ * followed; the ladder simply ran out) and 27 are WASHES, whose colour is white or black by polarity
+ * and has no ladder to move along at all. ZERO are stale. That last number is why `staleDependents`
+ * is REMOVED rather than kept — #964 offered either, and the case it would have been kept for does
+ * not exist.
+ *
+ * Arm B of `lint-ratio-truth` gains the distinction that removal depends on: a below-bar dependent of
+ * an overridden ground is accepted only if it is a wash or its colour MOVED. Unchanged, not a wash,
+ * ground moved — that is a value that did not re-derive, and it now fails by name. The class is
+ * currently empty, which is what makes it a regression guard rather than a description.
+ *
+ * TWO SITES WERE INITIALLY WRONG and the gate caught them: `field.inverse.fill` and
+ * `background.inverse.secondary` share a source candidate but are DIFFERENT ROLES, so substituting the
+ * shared value moved a dependent whose own ground had not been overridden. The rule the fix encodes is
+ * that the substitution takes the ground the dependent DECLARES, with that ground's own value as the
+ * fallback — never a neighbour's.
+ *
+ * No emitted artifact moves: no corpus brand uses `overrides`. `CONTRACT_VERSION` stands at 5.3.0. A
+ * minor because a brand that DOES use overrides now resolves different (correct) colours. (#979)
  * 0.19.0: `control.size.*` grows a third field, `dot` — the inner mark of a control whose mark is a
  * filled shape rather than a glyph, at half the box edge (#910, radio's anatomy). Three px per brand:
  * nb/wendys/harbor 8/10/12, aurora 6/8/10, so it shifts a rung with density exactly as `height` does
@@ -316,7 +355,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.19.0';
+export const ENGINE_VERSION = '0.20.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
