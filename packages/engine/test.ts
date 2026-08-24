@@ -10935,6 +10935,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
       const declared = def.variants?.[axis] ?? [];
+      // A GATE NAMING A VALUE THE AXIS DOES NOT DECLARE IS `anatomyErrors`' ERROR, NOT THIS BLOCK'S, and
+      // it has to be handed over rather than projected. `figmaAnatomyPlan` THROWS on an undeclared axis
+      // value, so feeding one to the positive loop below kills the process: the suite prints a stack
+      // trace, reports no summary at all, and `anatomyErrors`' own message — which names the typo and
+      // lists the values that would have been valid — never reaches the reader. Measured with #910's
+      // actual authoring slip, `selection: ['checd']` on this very part. That is the fall-through shape
+      // #986 names, arriving from the other side: not an arm that records and continues, but one that
+      // continues into a throw and silences the assertion written for exactly this input.
+      const undeclared = values.filter((v) => !declared.includes(v));
+      ok(undeclared.length === 0,
+        `#910 ${def.id}.${name} gates presence on ${axis}=[${undeclared.join(', ')}], which that axis does not declare — see the structural-validity failure above for the authored fix. Reported here rather than projected, because projecting an undeclared value throws and takes the whole summary with it`);
+      if (undeclared.length) continue;
       for (const v of values)
         ok(has({ ...rest, [axis]: v }),
           `#910 ${def.id}: '${name}' IS in the tree at ${axis}=${v} — the gate's own positive case, and a part gated into permanent absence is a def with a dead branch`);
