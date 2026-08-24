@@ -78,6 +78,9 @@ import { brandTheme, BrandInput } from './theme';
 import { resolveAllModes, GROUND_INPUT } from './modes';
 import { contrast, hexToRgb, composite } from './color';
 import { corpus, MINIMAL_BRAND } from './token-contract';
+// `groundsOf` lives in `grounds.ts` since #988 — a module other files can import without running
+// this gate. See that file's header for why a gate script cannot also be a library.
+import { groundsOf } from './grounds';
 
 /** A ratio is a float; equality is "the same number", not "close enough to pass". */
 const EPS = 0.02;
@@ -97,26 +100,6 @@ const CASES: Array<{ label: string; input: BrandInput }> = [
   { label: 'surfaces.light.inverseBase=black', input: { ...MINIMAL_BRAND, surfaces: { light: { inverseBase: 'black' } } } as BrandInput },
 ];
 
-/**
- * Every role some other role is measured against or through, read off a default build (#964).
- *
- * A ground is not only what `against` names. Since #963 a translucent wash names a second role in
- * `legibleFor` — the ink whose legibility its `ratio` reports — and moving THAT desynchronises the
- * wash exactly as moving the ground does. Both edges count, and forgetting the second is how the
- * count in #964's own table came out one short: `text.on-inverse.primary` only became reachable as a
- * ground when #962 repaired the nine `against` strings that had been dangling since #892.
- */
-export const groundsOf = (theme: ReturnType<typeof brandTheme>): string[] => {
-  const light = resolveAllModes(theme).find((m) => m.mode === 'light');
-  if (!light) return [];
-  const roles = light.roles as Record<string, { against?: string; legibleFor?: string }>;
-  const g = new Set<string>();
-  for (const r of Object.values(roles)) {
-    for (const ref of [r.against, r.legibleFor])
-      if (ref && ref !== 'self' && ref in roles) g.add(ref);
-  }
-  return [...g].sort();
-};
 
 /**
  * ONE CASE PER GROUND, ROUTED THROUGH `overrides` (#964).
