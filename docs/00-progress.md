@@ -7,6 +7,52 @@
 
 ---
 
+## (2026-08-24) — two mutation-testing rules fixed where they were written down (#986)
+
+**Both rules were right in diagnosis and short by one step in the instruction, and both had already
+let the same defect through once before being fixed.**
+
+**CLAUDE.md: "commit before the first mutation" → "commit before every mutation."** The reasoning was
+correct — every mutation's restore is `git checkout -- <path>`, reaching back to `HEAD` — but the
+instruction it drew stopped one step early. Committing before the *first* mutation does nothing for
+work done *between* later mutations in the same battery: the next restore still reaches back to
+`HEAD`, which never had it. That is exactly how #978's override-sweep guard was destroyed — written
+after the last commit, then erased by P4's restore of `lint-ratio-truth.ts`. Third occurrence of this
+command shape, second inside one mutation battery: `GROUND_INPUT` was eaten the same way during #962,
+noticed, written down, and repeated anyway. Fixed to: commit before every mutation, a `wip:` commit
+between them, `--amend` the real message once green.
+
+**`docs/34`: a fourth corollary, and one new register row.** The standing rule — mutate the subject,
+confirm *your* gate is among the failures, by name — is right and turned out not to be sufficient on
+its own. P5's own named grep (`"REFUSED this override"`) printed nothing, and the mutation was still
+reported caught, because the battery's overall failure count was non-zero — from an unrelated arm.
+**That reporting error would have produced the same false pass with the guard present and working**,
+independent of the other two problems in play (the guard destroyed by a restore, and the mutation
+being structurally unable to reach the guard at all — `OVERRIDE_CASES()` excludes grounds that have an
+input, so the mutation removed the case rather than exercising it). Only the reporting error
+generalizes; added as a fourth corollary under "The test that establishes independence" — check the
+named assertion, not the failure count, and treat the named assertion's absence as the mutation not
+having run — plus a register row (tagged `signal`, since it isn't a case of the subject and its oracle
+sharing a derivation the way the numbered sub-shapes are).
+
+**Scope held deliberately narrow**, per the filing issue: three things explicitly left alone because
+they're handled elsewhere (#980 fixes the guard itself, #984 fixes the tally and carries the fuller
+post-mortem below, #985 holds the actual `groundRoles`/`groundsOf` divergence that fell out of the
+misreading), and one left for its own issue (a mutation harness that refuses to interpret a run whose
+patch didn't apply — already built for the plugin lane in #983 after an indentation miss produced two
+false greens there; worth generalizing, not a two-file prose fix).
+
+CLAUDE.md: 23,153 → 23,326 bytes. `docs/34-gate-independence.md`: 91,535 → 92,791 bytes. Both grew —
+correctly: the file's problem was never length as such, it was unconditional content that belonged
+elsewhere. A rule that fires on every mutation belongs exactly where it already was.
+
+`npm run verify` → 42/42 PASS. Gates checked directly: `lint-shape-index.ts` (register row addition
+doesn't touch a `### N. Title` heading, so the baseline is unchanged — 16 shapes, 16 in baseline, 208
+citations resolving), `lint-doc-gates.ts` (both edits sit outside every pinned region), `lint-advisory-expiry.ts`,
+`lint-progress-order.ts` (this entry's placement).
+
+---
+
 ## (2026-08-24) — how a mutation passed against code that did not contain the thing it tested (#978 review)
 
 **STATUS: shipped** (the tally completeness fix). The crash guard itself is #980's, by an independent
