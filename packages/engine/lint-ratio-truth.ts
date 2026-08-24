@@ -238,7 +238,15 @@ const sweep = (label: string, theme: ReturnType<typeof brandTheme>): void => {
 for (const { id, theme } of corpus()) sweep(`corpus:${id}`, theme);
 for (const c of CASES) sweep(c.label, brandTheme(c.input));
 const overrideCases = OVERRIDE_CASES();
-for (const c of overrideCases) sweep(c.label, brandTheme(c.input));
+// The override route is the one this sweep did not previously exercise, and it is also the one that
+// can make `brandTheme`/`resolveMode` THROW — the refusal layer rejects a ground with a declarative
+// input (#956), and `OVERRIDE_CASES` filters those out by checking the same `GROUND_INPUT` table. If
+// that filter and the refusal ever come apart, an unwrapped throw here is a stack trace and no
+// summary — a crash names no gate. Caught and reported by case instead, same shape as arm D below.
+for (const c of overrideCases) {
+  try { sweep(c.label, brandTheme(c.input)); }
+  catch (e) { failures.push(`${c.label}: threw instead of resolving — "${(e as Error).message.slice(0, 160)}" — OVERRIDE_CASES' exclusion and the engine's own refusal have come apart.`); }
+}
 
 // FLOOR 3 — the override sweep is DISCOVERED, so it is the one arm that can quietly shrink to nothing
 // without any code changing: a rename in `against`/`legibleFor` would empty `groundsOf` and every case

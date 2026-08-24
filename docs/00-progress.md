@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-08-24) — `lint-ratio-truth.ts`'s override sweep can throw uncaught, and never had a guard
+
+**STATUS: shipped.** Found during review of #978 (merged as `bd82e18`), which added the
+`overrides`-driven sweep and whose own commit message ("Report failures by case, and never crash on
+a refused override case") claimed a guard against exactly this — but the diff behind that message
+only added the per-case tally. No `try`/`catch` was ever added around the sweep loop.
+
+**Reproduced directly, twice.** `OVERRIDE_CASES()` excludes any ground already carrying a declarative
+input (`GROUND_INPUT`), because the engine's own override layer refuses those with a thrown error
+(#956). The exclusion and the refusal read the same table, so they cannot disagree by construction
+*today* — but nothing enforces that they never will, and the sweep loop that iterates
+`overrideCases` (`lint-ratio-truth.ts`, immediately after `OVERRIDE_CASES()` is called) had no
+`try`/`catch` anywhere near it — confirmed by grep: the file's only `catch` is arm D's own, unrelated
+to this loop. Forcing a throw for a role the exclusion does not cover (`text.primary`, which carries
+no `GROUND_INPUT` entry) reproduced exactly what the commit message says was fixed: a bare
+`TypeError`-style stack trace, no summary, no failure count — first on the review worktree built from
+the PR's actual branch, and confirmed again here directly against merged `main`.
+
+**The fix mirrors arm D's own pattern**, which already wraps its one throw-producing call in
+`try`/`catch` and reports the outcome as a failure rather than letting it propagate: the override
+sweep's loop now does the same, one case at a time, naming the case in the message. Verified: forcing
+the same synthetic desync now produces `❌ 2 ratio-truth failure(s)` naming `text.primary` by case,
+not a crash; reverting the synthetic mutation returns the gate to its normal **34,128** ratios
+recomputed, clean.
+
+**Why this is worth a fix and not just a corrected commit message:** the guard's whole job is to hold
+the line if `GROUND_INPUT` and the runtime refusal ever come apart — the same posture as arm D itself,
+which exists to catch a *future* regression, not a live one. Landing #978 without it left that
+specific safety net absent while every doc and commit message describing the PR says it is there.
+
+**Provenance note:** this was found and fixed during independent review of #978, in a worktree
+rebased onto post-#977 `main`. Before the fix could be pushed, #978 (and #976) were merged directly
+to `main` by a separate process, so the review branch's rebase — including this fix — was orphaned.
+Landed here as a follow-up per `CLAUDE.md`'s own rule (correction to merged work goes in a new PR, not
+a push to a branch that is gone). Also folded in: `#910`'s progress entry still read `STATUS: in
+review` on `main` after `#977` merged it — a one-line factual correction, unrelated in substance but
+adjacent in the same file.
+
+**Gates:** `npm run verify` → 42/42. `regen.ts --check` → 114/114 unchanged. No `ENGINE_VERSION` or
+`CONTRACT_VERSION` change — this touches only a gate script and a progress-log correction, nothing
+emitted.
+
+---
+
 ## (2026-08-24) — the `surface` collection reaches Figma, and the alias that resolves nowhere is named (#993)
 
 **STATUS: shipped.** `surface` was the only one of 18 emitted collections with no writer. It is now
@@ -382,7 +426,7 @@ exactly. *A claim about an instrument is only as good as the version of the inst
 
 ## (2026-08-23) — A failed component build says what it left behind, and parks it where a designer can find it (#913)
 
-**STATUS: in review.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0** — this is
+**STATUS: shipped.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0** — this is
 plugin-surface only: no emitted token tree, no token name and no token value moves, and `regen.ts`
 produced no changes. Precedent is #960 and #967, both unbumped for the same reason. Gates stay at
 **42**; this needed no new gate file and extended three existing suites.
@@ -464,7 +508,7 @@ that join them are read by a human only.
 
 ## (2026-08-23) — Checkbox projects: a control square that scales with brand density, and the first part-presence keyed on a VARIANT (#910)
 
-**STATUS: in review.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0**. Gates
+**STATUS: shipped.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0**. Gates
 stay at **42** — this needed no new gate, it extended five. **The version decision is deliberate and
 stated rather than left implicit:** this is entirely component-tier, so no emitted token tree, no token
 name and no token value moves — `regen.ts` produced **no changes at all**, which is `lint-paint.ts`'s
