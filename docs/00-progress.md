@@ -7,6 +7,127 @@
 
 ---
 
+## (2026-08-24) — A name match was never proof: stamp the member, and decline to rebuild it (#827)
+
+**STATUS: shipped.** `ENGINE_VERSION` and `CONTRACT_VERSION` **unbumped** — no emitted artifact changes,
+`regen --check` stays at **114**, and the one engine addition (`planStamp`) is a new pure export that no
+emitter calls. Gates stay at **42**; no new gate file, two existing plugin suites extended. 17 mutations,
+17 failing by name.
+
+**The defect.** `applyComponentPlan` found-or-created its set and then skipped every member whose **name**
+was already in it. A name cannot distinguish *"already built, and still what this build plans"* from
+*"built by an earlier engine, and now wrong"* — both read `ALREADY PRESENT`, and `componentHeadline`
+turned an all-skipped run into `✓ already built`. So a designer re-running after the engine moved was told
+the file holds what they asked for, over a set that no longer matched a single current plan.
+
+Each member now carries `<engine version>|<64-bit plan hash>` in shared plugin data, written on the
+component at build time, read on the next run. `stale` is a count of its own, ranked into the pill above
+`built N`.
+
+### The finding that decided the shape, and it is not in the issue
+
+The issue's implied fix is to rebuild the stale member. **A rebuild orphans work a designer has already
+placed.** Building a member is `createComponentFromNode` plus a `combineAsVariants`, so a rebuild
+*replaces the component node*, and an instance tracks its main component **by id** — every instance
+already placed from the old member points at an id that is no longer in the set. That is a worse outcome
+than the stale member it repairs, and it is silent: nothing in the run would report it.
+
+So this build **reports and declines**. The claim is checked by node **identity**, not by a count:
+`(set.children).every((c, i) => c === beforeNodes[i])` after a stale run. And the stale branch is asserted
+**not to re-stamp** what it declined to rebuild — a re-stamp would make the *next* run report the set
+clean while the file still held the old members, which is the original defect, self-inflicted.
+
+### The storage measurement inverted the assumption it was asked to test
+
+The instruction was to measure the budget before committing to per-member, and to fall back to a
+set-level stamp plus a member list if per-member proved too heavy. **The fallback is the option that
+would bust.** Figma's ceiling is documented **per entry** — *"the total size of your entry (`namespace`,
+`key`, `value`) cannot exceed 100 kB"* — with no documented per-node or per-document aggregate. Measured
+over all eight projecting defs, using the real stamp shape:
+
+| | per-member | set-level map (the proposed fallback) |
+|---|---|---|
+| Button (648 members) | **40 B** × 648 nodes = 25.3 KB | **78,210 B in ONE entry** — 78.2% of the ceiling |
+| whole corpus (949 members) | 37.1 KB across 949 separate entries | Button alone is the binding constraint |
+
+The set-level figure grows with **member-name length** (Button's longest is 103 chars), so it tightens
+as defs gain axes — the direction the corpus is moving. Per-member is the cheap side by a factor of ~2000
+per entry, and it is also the side where a partial write degrades correctly: a stamp lives on the node it
+describes, so a build that throws mid-set leaves each *completed* member truthfully stamped instead of
+leaving one aggregate entry describing members that were never built.
+
+Member count moved from 913 to **949** during this work (radio landed in #992). That is the argument for
+the per-entry route stated as a fact rather than a projection.
+
+### Does this close #836? It narrows it. Keep it open.
+
+#836 is *"the plugin cannot report which build is running, and five worktrees can each answer
+differently."* The stamp answers most of it, and it does catch #836's own counterexample: `a68ea65`
+changed `anatomy-figma.ts` by 75 lines and correctly left `ENGINE_VERSION` alone, so a version string
+could not have told those two builds apart and the plan hash can.
+
+What it cannot see is measured, not guessed. Over commits since 2026-07-01, scoping the plan side to
+`packages/engine/anatomy-figma.ts` + `packages/engine/components/` and the executor side to
+`apps/plugin/src/write-components.ts`: **32 plan-side, 14 executor-side, 7 both, 39 in the union — and 7
+executor-only.** Those 7 changed what gets built from an unchanged plan, and a plan hash is blind to
+every one of them. So the stamp is not a build identity; it is a *plan* identity, and #836 still needs
+one. Cross-referenced rather than closed.
+
+**A correction to something I said earlier in this work:** I intended to put `PRISM3_BUILD` in the stamp
+as a third field. It is **not available in the main-thread context** — `build.mjs` defines it only for
+the UI entry that bundles `apps/studio/src`, and `tsconfig.main.json` does not include
+`apps/studio/src/prism3-host.d.ts`. Wiring it is #836's own scope. The third field is documented at
+`memberStamp` as a place to land it, and it would be stored and reported, never compared.
+
+### Stored and reported, never compared — and the arm that keeps it that way
+
+`ENGINE_VERSION` is in the stamp and takes **no part** in the staleness test. It bumps on any behavior
+change *including a pure value change* (`docs/30`), so comparing it would report all 949 members stale
+the day a brand's hue moved four degrees — 949 false alarms whose stated remedy is to delete them. Only
+the plan half decides.
+
+That asymmetry is the kind of thing a comment states and a refactor deletes, so it has an arm: a member
+re-stamped with a **different version and the same plan hash** is asserted to come back `skipped`, not
+`stale`. Mutating `planHalf(got) === planHalf(want)` to `got === want` fails exactly that assertion by
+name and nothing else.
+
+### Gate notes worth carrying forward
+
+- **The namespace is hardcoded in the test, not imported.** `'prism3'` is the storage contract with files
+  written by earlier builds: rename it and every stamp in the wild becomes unreadable, so every existing
+  set silently reports stale. Importing `NS` would make that migration invisible to the gate.
+- **The shim had to gain a real per-node store, not a recorder.** The stamp is written on one run and read
+  on the *next*, so a shim that only counted the write would leave every re-run reporting the whole set
+  stale and the pre-existing idempotence arms could never have gone green. This is the sixth time a shim
+  in this suite has had to stop being permissive.
+- **An unstamped member reads as STALE, and that is deliberate.** It covers every set in every file
+  written before this lands, and the paste-payload route, which builds members without running this
+  executor at all. The build cannot know what plan produced them, and claiming they are current is the
+  one thing it must not do.
+- **A claim I could not gate, stated instead of implied.** The second, reversed hash pass exists for
+  *width*: 32 bits over 648 members is ~209,628 pairs against 2³², about one collision per 20,000 sets,
+  and a collision reports a stale member as **correct** — the false-negative direction. 64 bits puts that
+  near 1 in 8×10¹³. A fixture cannot demonstrate a birthday bound. What is gated is the *construction*:
+  the two 32-bit halves must differ on all 21 fixture plans, which they do not if both passes read the
+  string the same way. Mutation #11 fails that arm and only that arm.
+
+### Limits
+
+- **`main.ts` is gated by source text only** — three regexes asserting `r.stale` reaches
+  `componentHeadline`, that `staleNote(r.stale, ENGINE_VERSION)` is appended to the summary rather than
+  computed into a void, and that both `skipped` and `stale` are subtracted before real misses are
+  reported. It cannot see a change that preserves the text, and it is not a substitute for running the
+  plugin in a real file. Same limit `applySurfacePlan`'s suite states, same reason: `main.ts` calls
+  `figma.showUI` at module scope and cannot be imported.
+- **The plan hash is a function of the plan, so a theme change does not move it** — and that is right:
+  the plan carries token *refs*, and a value change is the theme write's business, not the set's. The
+  limit is the executor-only case above, not this one.
+- **`ok` needed no change.** `main.ts` computes it from `r.misses.length === r.skipped`, the STALE lines
+  are in `misses` and are not counted in `skipped`, so a stale run is already not-`ok`. Asserted as the
+  property rather than trusted, since the two counts move independently.
+
+---
+
 ## (2026-08-24) — a dependent now follows its ground, and the assumption that allowed one pass (#979)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.19.0 → **0.20.0** (0.19.0 went to radio's `control.size.dot`
