@@ -364,6 +364,48 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // re-derive an overridden role's contrast against its `against` role's actual colour.
   const rgbByRole = new Map<string, RGB>();
   const rated = (c: Cand, surf: RGB): Rated => ({ ...c, ratio: contrast(c.rgb, surf) });
+
+  /**
+   * OVERRIDES, RESOLVED BEFORE DERIVATION RUNS (#979).
+   *
+   * #978 recomputed an overridden ground's dependents' RATIOS in a post-pass but could not touch
+   * their VALUES, because a dependent is picked by a closure that has already returned. 134
+   * dependents across the 18 input-less grounds were left carrying the old ground's answer, 98 of
+   * them below their bar.
+   *
+   * ── THE ASSUMPTION, ASSERTED RATHER THAN REASONED ABOUT ─────────────────────────────────────────
+   *
+   * #979 proposed two passes and warned that an override must not feed back into itself across them.
+   * Reading the resolution settles it, and the answer is stronger than the question: an override's
+   * value is `ramps.get(palette).find(step).rgb` — **a pure function of (palette, step) and the
+   * ramps, with no derived input anywhere**. It cannot depend on a pass, so it cannot feed back.
+   *
+   * That collapses two passes into one. The overrides are knowable BEFORE derivation starts, so
+   * substituting them into the grounds derivation reads makes every dependent derive against the
+   * real value the first time. A second pass would compute the identical result at twice the cost —
+   * `test.ts` asserts exactly that equivalence rather than this comment claiming it, and asserts the
+   * purity directly (the resolved rgb equals the palette step's, for every override).
+   *
+   * This is #964's lesson applied twice over: *"verify the assumption"* and *"check whether the
+   * assumption is the binding one"* are different steps. The binding property here was never
+   * ordering — it was that the override value is an INPUT, not a result.
+   */
+  const ovRefs = theme.overrides?.[mode] ?? {};
+  const ovRgb = new Map<string, RGB>();
+  for (const [rolePath, ref] of Object.entries(ovRefs)) {
+    const steps = ramps.get(ref.palette);
+    if (!steps) throw new Error(`overrides[${mode}]: unknown palette '${ref.palette}' (role '${rolePath}')`);
+    const step = steps.find((s) => s.key === ref.step);
+    if (!step) throw new Error(`overrides[${mode}]: unknown step '${ref.step}' in palette '${ref.palette}' (role '${rolePath}')`);
+    ovRgb.set(rolePath, step.rgb);
+  }
+  /**
+   * The colour derivation should treat this role as having, which is the override when there is one.
+   * Wrapped at each site where a GROUND's colour is consumed — the ~8 places a role's value becomes
+   * an input to somebody else's pick. Not inside `put`: by the time `put` sees a role the dependent's
+   * closure has already run, which is precisely why the post-pass could not fix values.
+   */
+  const asGround = (key: string, computed: RGB): RGB => ovRgb.get(key) ?? computed;
   // ratio is the RAW contrast — every gate/pass check compares it against `min` un-rounded
   // (CR-01). Rounding to 2dp happens only where it's serialised (tree.ts / ai-metadata.ts).
   const put = (key: string, r: Rated, description: string, against: string, min: number) =>
@@ -565,7 +607,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the page), so it stays muted-but-legible on it rather than landing at the wrong
   // contrast like `disabled.text`. Feeds the cross-cutting `disabled.on-fill`.
   const onDisabled = (): { r: Rated; against: string; min: number } =>
-    ({ r: pickMinPass(textCands, neutralLow().rgb, disabledTarget), against: 'disabled.fill', min: disabledTarget });
+    ({ r: pickMinPass(textCands, asGround('disabled.fill', neutralLow().rgb), disabledTarget), against: 'disabled.fill', min: disabledTarget });
 
   // -------------------------------------------------------------- backgrounds
   // The canvas: thin, page-level, tonal in both modes. `inverse.*` is the opposite-
@@ -575,6 +617,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   putSurf('background.tertiary', cfg.bg.tertiary, 'Page surface, third tier');
   putSurf('background.inverse.primary', cfg.bgInverse.primary, 'Inverse page surface — a dark band in light mode');
   putSurf('background.inverse.secondary', cfg.bgInverse.secondary, 'Inverse page surface, second tier');
+  // The inverse floor as DERIVATION should see it — the override when there is one (#979). Bound
+  // once so its five consumers below cannot drift apart on whether they honour it.
+  const invFloorRgb = asGround('background.inverse.secondary', cfg.bgInverse.secondary.rgb);
   putSurf('background.inverse.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
   const scrimStep = hc ? (cfg.family === 'light' ? 60 : 70) : (cfg.family === 'light' ? 40 : 60);
@@ -629,7 +674,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // they cannot be the page fills reused: `paletteRole` picks the step that clears the bar on the
   // ground it is given, and the two grounds are at opposite ends of the ramp.
   for (const r of SEMANTICS)
-    put(`foreground.inverse.${r}`, paletteRole(r, cfg.bgInverse.secondary.rgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on the inverse floor`, 'background.inverse.secondary', fillFloorMin);
+    put(`foreground.inverse.${r}`, paletteRole(r, invFloorRgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on the inverse floor`, 'background.inverse.secondary', fillFloorMin);
   const invTintStep = cfg.family === 'light' ? 900 : 100;
   const subtleTintInverse = (r: Role): Cand => pStep(palOf(r2p[r]), invTintStep);
   for (const r of SEMANTICS)
@@ -688,7 +733,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       put(`interactive.${name}.fill.${stKey}`, rated(c, floorRgb),
         `${name} interactive fill — ${stKey}`, cfg.floorName, fillMin);
     }
-    put(`interactive.${name}.on-fill`, onColor(rest.rgb), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
+    put(`interactive.${name}.on-fill`, onColor(asGround(`interactive.${name}.fill.rest`, rest.rgb)), `Ink on the ${name} interactive fill`, `interactive.${name}.fill.rest`, onMin);
   };
   // Neutral fill anchor — a subtle grey by default (neutralEmphasis lever, later).
   // Returns a RatedNum so its states can walk the neutral ramp like any palette.
@@ -860,7 +905,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       put(`interactive.${name}.inverse.fill.${stKey}`, rated(c, invRgb),
         `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
     }
-    put(`interactive.${name}.inverse.on-fill`, onColor(fillRest.rgb),
+    put(`interactive.${name}.inverse.on-fill`, onColor(asGround(`interactive.${name}.inverse.fill.rest`, fillRest.rgb)),
       `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.inverse.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
     // for the same reason the page border does — the intent "the edge matches its label" is no
@@ -919,7 +964,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const overlayPal = cfg.family === 'light' ? 'black-alpha' : 'white-alpha';
     const overlayBase = cfg.family === 'light' ? BLACK : WHITE;
     const OVERLAY_ALPHA: [string, number][] = [['hover', 10], ['pressed', 20], ['selected', 20]];
-    const contentRgb = pickMostExtreme(textCands, baseRgb).rgb;   // text.primary — the strongest content ink
+    const contentRgb = asGround('text.primary', pickMostExtreme(textCands, baseRgb).rgb);   // text.primary — the strongest content ink
     const overlayColors = ['primary', 'neutral', 'destructive', ...theme.interactivePalettes.map((p) => p.name)];
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
@@ -951,7 +996,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // ground they are for.
     const invOverlayPal = cfg.family === 'light' ? 'white-alpha' : 'black-alpha';
     const invOverlayBase = cfg.family === 'light' ? WHITE : BLACK;
-    const invContentRgb = pickMostExtreme(textCands, invRgb).rgb;   // the strongest ink on the band
+    const invContentRgb = asGround('text.on-inverse.primary', pickMostExtreme(textCands, invRgb).rgb);   // the strongest ink on the band
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
         const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
@@ -1065,9 +1110,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the node has siblings the day it is born.
   const neutralLowInverse = (): Cand => pStep(r2p.neutral, cfg.family === 'light' ? 800 : 250);
   putSurf('disabled.inverse.fill', neutralLowInverse(), 'Disabled control fill on an inverse surface — one muted neutral, any intent');
-  put('disabled.inverse.on-fill', pickMinPass(textCands, neutralLowInverse().rgb, disabledTarget),
+  put('disabled.inverse.on-fill', pickMinPass(textCands, asGround('disabled.inverse.fill', neutralLowInverse().rgb), disabledTarget),
     `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'disabled.inverse.fill', disabledTarget);
-  { const r = pickMinPass(textCands, cfg.bgInverse.secondary.rgb, disabledTarget);
+  { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
     put('disabled.inverse.text', r, `Disabled text on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'background.inverse.secondary', disabledTarget);
     put('disabled.inverse.icon', r, `Disabled icon on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'background.inverse.secondary', disabledTarget); }
   put('disabled.inverse.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'background.inverse.primary', 0);
@@ -1107,7 +1152,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // regression in the affordance.
   const fieldRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldRest.path)!.num;
   put('field.border.hover', rated(walk(r2p.neutral, fieldRestNum, 2, dir, guardFrom(contrast(fieldRest.rgb, baseRgb), baseRgb, cfg.nonTextMin)), baseRgb), `Form field hover border — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.primary', cfg.nonTextMin);
-  put('field.placeholder', pickMinPass(textCands, cfg.bg.secondary.rgb, cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the field fill (not a sub-AA placeholder)`, 'field.fill', cfg.secondaryMin);
+  put('field.placeholder', pickMinPass(textCands, asGround('field.fill', cfg.bg.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink — a READABLE hint, ${cfg.secondaryMin}:1 on the field fill (not a sub-AA placeholder)`, 'field.fill', cfg.secondaryMin);
 
   // The same four, for a field sitting on a dark hero / inverse band (#892). GENERATED against the
   // inverse ground and contrast-verified there — NOT a hand-mirrored twin, which is the technique the
@@ -1130,7 +1175,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   put('field.inverse.border.rest', fieldInvRest, `Form field resting border on an inverse surface — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.inverse.primary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
   put('field.inverse.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, invRgb), invRgb, cfg.nonTextMin)), invRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.inverse.primary', cfg.nonTextMin);
-  put('field.inverse.placeholder', pickMinPass(textCands, cfg.bgInverse.secondary.rgb, cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the inverse field fill`, 'field.inverse.fill', cfg.secondaryMin);
+  put('field.inverse.placeholder', pickMinPass(textCands, asGround('field.inverse.fill', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the inverse field fill`, 'field.inverse.fill', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with
@@ -1213,7 +1258,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // inverse pass: it is the NAME of that pass's whole output, not a member of it.
     if (g.page) {
       for (const r of SEMANTICS)
-        T(`on-${r}`, onColor(fills[r]!.rgb), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
+        T(`on-${r}`, onColor(asGround(`foreground.${r}`, fills[r]!.rgb)), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
     }
     // link (interactive text) + states — no disabled.
     //
@@ -1265,7 +1310,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
   const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, dir, tint: subtleTint, mutedStep, page: true };
-  const inverseGround: Ground = { base: invRgb, baseName: 'background.inverse.primary', floor: cfg.bgInverse.secondary.rgb, floorName: 'background.inverse.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
+  const inverseGround: Ground = { base: invRgb, baseName: 'background.inverse.primary', floor: invFloorRgb, floorName: 'background.inverse.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
   for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
   for (const s of buildContent(iconProfile, pageGround)) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
