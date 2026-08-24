@@ -18,7 +18,7 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, partialWriteHeadline, partialWriteNote } from './apply-summary';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
@@ -26,7 +26,7 @@ import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan } from './write-
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { preloadFonts } from './preload-fonts';
-import { applyComponentPlan } from './write-components';
+import { applyComponentPlan, partialWriteOf } from './write-components';
 import type { ComponentProgress } from './write-components';
 import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './build-telemetry';
 import { readFigmaVariables } from './read-figma';
@@ -388,7 +388,22 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // GUARDED, per `verdictPosted` above: once the build has reported itself built, a later throw is a
     // reporting failure and not a build failure, so it goes to the console rather than over the verdict.
     if (verdictPosted) console.error('[prism3 #908] build reported success; the telemetry tail then threw:', e);
-    else postToUi({ type: 'component-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `component build failed: ${(e as Error).message}` });
+    else {
+      // WHAT THE FAILED RUN LEFT IN THE FILE (#913), if anything. `null` means nothing was written — the
+      // `planSetLayout` refusal — and that verdict stays exactly what it was. Non-null means there are
+      // nodes on the canvas, and the count goes in the PILL rather than only in the detail: the two-node
+      // case is the one a designer overlooks and then re-runs on top of.
+      //
+      // The cause LEADS the summary in both cases, unchanged and unwrapped. The executor attaches these
+      // facts to the host's own error rather than throwing a wrapper, so nothing about this line's
+      // reporting of the failure depends on the marking having worked.
+      const partial = partialWriteOf(e);
+      postToUi({
+        type: 'component-result', ok: false,
+        headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
+        summary: `component build failed: ${(e as Error).message}${partial ? partialWriteNote(partial) : ''}`,
+      });
+    }
   }
 };
 

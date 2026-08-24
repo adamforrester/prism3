@@ -70,3 +70,77 @@ export const componentHeadline = (added: number, skipped: number, misses: number
   if (added === 0) return '✓ already built';
   return `✓ built ${added} variant${added === 1 ? '' : 's'}`;
 };
+
+/**
+ * WHAT A FAILED BUILD LEFT IN THE FILE (#913) — the facts the executor collects on its failure path,
+ * declared HERE rather than in `write-components.ts` so the two prose builders below can be pure and the
+ * executor can import the shape it fills. One declaration, two importers; the alternative is two copies
+ * of a five-field record that drift the first time a field is added.
+ *
+ * `loose` and `parked` are separate numbers on purpose, and the difference is the whole reason the
+ * marking is allowed to fail: the nodes exist either way, and only their WHEREABOUTS depend on a write
+ * that a refusing host may refuse a second time. A single `parked` count would make a failed marking
+ * report zero nodes in the file, which is the one thing this must never say.
+ */
+export type PartialWriteFacts = {
+  /** Nodes this run created and left at the top level of the page. Figma parents a created node to the
+   *  current page immediately, so these are visible objects a designer would meet, not local variables. */
+  loose: number;
+  /** How many of those are now inside `frame`. Equal to `loose` when the marking succeeded. */
+  parked: number;
+  /** The marking frame's name, or `null` when the frame could not be made at all. */
+  frame: string | null;
+  /** Members this run appended into a set that was ALREADY in the file. A partial write that is not
+   *  loose — it is in the place the designer expects — so it is named and never moved. */
+  intoExistingSet: number;
+  /** The MARKING's own failure, if it had one. Reported beside the cause and never in place of it. */
+  markError: string | null;
+};
+
+/**
+ * The verdict pill for a build that threw with something already in the file (#913).
+ *
+ * A THIRD FUNCTION rather than a fourth branch of `componentHeadline`, because the counts mean something
+ * else: `added`/`skipped`/`misses` describe a run that finished, and this describes one that did not. The
+ * pill has to carry the number, which is the whole reason this is not `APPLY_FAILED_HEADLINE`: a build
+ * that leaves TWO nodes behind and one that leaves 648 both read `✗ write failed` otherwise, and the
+ * two-node case is the one a designer overlooks and then re-runs on top of.
+ *
+ * ≤24 chars at every count this can reach — asserted over a range in `test-apply-summary.ts`, the same
+ * probe that caught `applyHeadline`'s 27-character reading.
+ */
+export const partialWriteHeadline = (f: PartialWriteFacts): string => {
+  if (f.loose > 0) return `✗ failed, ${f.loose} parked`;
+  if (f.intoExistingSet > 0) return `✗ failed, ${f.intoExistingSet} in set`;
+  return APPLY_FAILED_HEADLINE;
+};
+
+/**
+ * The clause appended to the failure summary — WHERE the partial write is, in a designer's terms.
+ *
+ * Written as one sentence per fact rather than a table, because it lands in a chrome row beside the
+ * host's own error message and is read once. The undo advice carries no keyboard shortcut: the panel runs
+ * on macOS and Windows, and naming one key would be wrong for half the audience.
+ *
+ * ONE UNDO STEP IS THE CLAIM, and it rests on a measured fact rather than on Figma's documentation:
+ * `figma.commitUndo()` is called nowhere in this plugin, so a whole run collapses into a single undo
+ * entry and one undo unwinds the entire partial build. That is also why the executor does not delete
+ * what it wrote — the unwind already exists, on a path that does not need a host that has just started
+ * refusing calls to accept 648 more.
+ */
+export const partialWriteNote = (f: PartialWriteFacts): string => {
+  const parts: string[] = [];
+  if (f.loose > 0)
+    parts.push(
+      f.frame && f.parked === f.loose
+        ? `${f.loose} node${f.loose === 1 ? '' : 's'} had already reached the file; ${f.loose === 1 ? 'it is' : 'they are'} parked in the frame '${f.frame}' on this page`
+        : f.frame
+          ? `${f.loose} node${f.loose === 1 ? '' : 's'} had already reached the file; ${f.parked} of them are parked in the frame '${f.frame}' and ${f.loose - f.parked} are still loose on this page`
+          : `${f.loose} node${f.loose === 1 ? '' : 's'} had already reached the file and could not be gathered into a frame, so ${f.loose === 1 ? 'it is' : 'they are'} loose on this page`,
+    );
+  if (f.intoExistingSet > 0)
+    parts.push(`${f.intoExistingSet} member${f.intoExistingSet === 1 ? '' : 's'} had already been added to the set that was in the file, where ${f.intoExistingSet === 1 ? 'it remains' : 'they remain'}`);
+  if (f.markError) parts.push(`marking the leftovers also failed (${f.markError})`);
+  if (parts.length === 0) return '';
+  return ` — ${parts.join('; ')}. One undo removes the whole build.`;
+};
