@@ -87,6 +87,20 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "dimension/10",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "10px — dimension primitive",
+      "value": 10,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "dimension/12",
       "resolvedType": "FLOAT",
       "scopes": [

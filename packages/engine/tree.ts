@@ -578,11 +578,18 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: ${theme.dims.density}). A SQUARE control reads this on both axes.`);
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.height}px height, the field-convergent track ratio). A square control uses \`height\` on both axes and does not read this.`);
+    // The INNER mark, half the box edge (#910). Read by a control whose mark is a filled shape rather
+    // than a glyph — radio's dot, and a switch's thumb when it lands. A checkbox does not read it: its
+    // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
+    // bleed at `height` and a second dimension would inset it twice.
+    const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\` instead.`);
     const hMods = controlModes(c.name, 'height', c.height, (x) => x.height);
     const wMods = controlModes(c.name, 'width', c.width, (x) => x.width);
+    const dMods = controlModes(c.name, 'dot', c.dot, (x) => x.dot);
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
     if (wMods) widthLeaf.$extensions.prism3.modes = wMods;
-    controlSize[c.name] = { height: heightLeaf, width: widthLeaf };
+    if (dMods) dotLeaf.$extensions.prism3.modes = dMods;
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf };
   }
   const control = { size: controlSize };
 

@@ -195,17 +195,40 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 // whose meaning is not — the #708 shape, where a binding resolves, typechecks, passes every gate
 // and measures the wrong thing.
 //
-// TWO fields, because the third instance is what constrained the answer: a switch's track is NOT
-// SQUARE, so one rung per size satisfies checkbox and radio and does nothing for a switch.
+// THREE fields. The first two arrived with #900, because a switch's track is NOT SQUARE, so one rung
+// per size satisfies checkbox and radio and does nothing for a switch. The third arrived with radio's
+// anatomy (#910), and the paragraph after them is why it is here rather than derived downstream.
 //   · `height` — the box's cross-axis edge. A SQUARE control (checkbox, radio) reads this on BOTH
 //     axes. Nothing else is emitted for it: a square's second dimension is not a second decision.
 //   · `width`  — the TRACK width of a two-position control (a switch). Read only by a control that
 //     travels; a checkbox binding it would render a 20x40 box, which is why the emitted description
 //     names the switch rather than leaving `width` to read as the generic partner of `height`.
+//   · `dot`    — the INNER mark of a control whose mark is a filled shape rather than a glyph. Radio's
+//     dot is the instance; a switch's thumb is the same number one def over.
 //
-// The THUMB is deliberately NOT here. Its diameter is `height` less an inset, and the tier holds the
-// inputs while the layer that knows the geometry does the arithmetic — #801's precedent, where that
-// same split is what let a gate check a GAP rather than a coordinate.
+// THE INNER DIMENSION IS HERE, AND #900 SAID IT WOULD NOT BE. Its entry reads: *"The thumb diameter is
+// deliberately absent — anatomy derives it from `height` plus a declared inset, per #801's split where
+// the tier holds the inputs and a downstream layer does the arithmetic."* That is the better shape and
+// it is not implementable, which is a different thing from being wrong. Both halves of it are refused
+// by the code as it stands, measured on this branch:
+//   · `anatomyErrors` refuses `inset` on any part that is not `kind: 'absolute'`, by its own rule and
+//     with its own reason — an inset on a flow part "reads as though the part were offset from its
+//     cell, which no projection does". A dot is a flow child of the control.
+//   · `sizingMode` in `anatomy-figma.ts` maps `'fill'` to `'AUTO'`, the same answer it gives `'hug'`.
+//     So the alternative spelling — padding on the control, `sizing: fill` on the dot — projects a box
+//     that hugs no children, i.e. a dot of ZERO. (`field-message` carries `x: 'fill'` today and is
+//     silently a hug; #989, since it is not radio's to fix.)
+// Closing either would put `layoutGrow`/`layoutAlign` through the plan type, the projector and both
+// executors. That is strictly more surface than one field on a group authored to take more fields, so
+// the field is here and #900's note is corrected rather than left contradicting the code.
+//
+// AND IT IS A CONSTANT, NOT A LEVER — `CONTROL_TRACK_RATIO`'s footing exactly, one line below, for the
+// same reason and one more. #900 named "one leaf plus a `control.track-ratio` token" as the hedge and
+// did not take it, so the ladder's two ratios stay on one footing rather than the second arriving as a
+// knob the first was refused. The additional reason is specific to this ratio: the brand's control-size
+// knob is `density`, which moves the whole ladder INCLUDING the dot, and a separate dot knob would let
+// a brand author a dot that does not scale with its own disc — the one relationship the ratio exists to
+// hold. A brand wanting Carbon's proportions retunes `density`, not this.
 //
 // DENSITY ACTS HERE, and that is the whole reason this is a windowed ladder rather than a fixed set
 // like `ICON_SIZES`. A control box is chosen WITH the control it belongs to, so a brand running its
@@ -240,6 +263,21 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 //     does converge on — Carbon 24x48, Ant 22x44 and Fluent 20x40 are all exactly 2:1 — and doubling
 //     an on-grid height stays on-grid by construction. It is NOT a brand lever: a `control.track-
 //     ratio` token was the named hedge if #900 had gone the other way, and it did not.
+//   · `dot` is HALF `height`, and the field does NOT converge on that — the honest reading of the
+//     evidence is the reason to state it as a ratio anyway. Three shipping radios: Material 3 at
+//     20/10 is 0.5, Carbon at 20/8 is 0.4, Primer at 16/6 is 0.375. Three points spanning a third of
+//     their own range is not convergence, and 0.5 sits at the TOP of it rather than the middle. What
+//     converges is the same evidence read as a GAP — (height - dot) / 2 is 5, 6 and 5 px — which is
+//     the quantity a designer actually looks at, and #801's lesson one tier up (measure the gap, not
+//     the coordinate). A fixed gap cannot be the tier's answer, though: at the ladder's floor it
+//     inverts, since 12 - 2x5 leaves a 2px dot. A ratio degrades the other way, and 0.5 is the rung
+//     of it that survives three separate checks: every ladder step stays an INTEGER (12/16/20/24/28
+//     halve to 6/8/10/12/14, where 0.4 gives 4.8/6.4/8/9.6/11.2 and 0.375 gives 4.5/6/7.5/9/10.5, so
+//     both would mint fractional literals instead of aliasing the grid); the floor stays legible
+//     (0.375 x 12 is a 4.5px dot on aurora's smallest radio); and the implied gaps run 3/4/5/6/7 px
+//     across the five rungs, bracketing the field's observed 5-6 at the middle ones. That is the
+//     behavior a density-scaling control should have, and it is the ratio doing it rather than being
+//     asserted.
 //   · No `spaceBase` parameter, unlike `componentSizes`. The box is anchored to the TYPE it sits
 //     beside (the brief: "`size` scales the control with the type"), not to the spacing rhythm, and
 //     a spaceBase-relative box would walk off the dimension grid at an odd rhythm.
@@ -247,8 +285,12 @@ const CONTROL_RUNGS = [12, 16, 20, 24, 28];
 const CONTROL_NAMES = ['sm', 'md', 'lg'];
 /** The switch track's aspect ratio — `width` = this x `height`. Field-convergent at 2:1. */
 const CONTROL_TRACK_RATIO = 2;
+/** The inner mark's share of the box — `dot` = this x `height`. NOT field-convergent (see above): it
+ *  is the ratio whose every rung stays an integer, keeps the ladder's floor legible, and puts the
+ *  resulting GAP inside the range the field does agree on. */
+const CONTROL_DOT_RATIO = 0.5;
 
-export type ControlSizeStep = { name: string; height: number; width: number };
+export type ControlSizeStep = { name: string; height: number; width: number; dot: number };
 
 /** Control-box sizes for a density. The SAME window mechanism as `componentSizes` — three names
  *  sliding over five rungs, never a clamped shift — so `control.size.md` moves with the brand's
@@ -258,7 +300,7 @@ export type ControlSizeStep = { name: string; height: number; width: number };
 export const controlSizes = (density: Density): ControlSizeStep[] =>
   CONTROL_NAMES.map((name, i) => {
     const height = CONTROL_RUNGS[DENSITY_START[density] + i];
-    return { name, height, width: height * CONTROL_TRACK_RATIO };
+    return { name, height, width: height * CONTROL_TRACK_RATIO, dot: height * CONTROL_DOT_RATIO };
   });
 
 // Radius base ramp (px at scale=1) — a small bounded, genuinely-semantic set, so

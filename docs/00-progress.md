@@ -7,6 +7,134 @@
 
 ---
 
+## (2026-08-24) — Radio projects, and the mark is where the checkbox pattern stopped generalizing (#910)
+
+**STATUS: shipped.** `ENGINE_VERSION` **0.18.0 → 0.19.0** and `CONTRACT_VERSION` **5.2.0 → 5.3.0**.
+Unlike checkbox — which was entirely component-tier and correctly unbumped — this one reaches the token
+tier: `control.size.*` gains a third field, so four guaranteed paths are added, no removal and no retype,
+which is MINOR. Gates stay at **42**; this needed no new gate file and extended three existing ones.
+`regen --check` stays at **114** artifacts (files changed, none added).
+
+**The answer to the question this PR was opened to ask.** The checkbox pattern did **not** generalize
+cleanly. Four of five anatomy parts copied across unchanged — `row`, `control`, `focusRing`, `label`. The
+**mark** did not, on two independent counts, and switch's PR inherits both.
+
+**Count one: KIND, which is why a NUMBER was needed.** Checkbox's `mark` is a `vector` sized
+`size.{size}.control` — full bleed — and that is right there, because a glyph carries its optical inset
+inside its own artboard: `check` draws 16.97×12 of ink on a 24×24 grid (~71%), `minus` 14×2 (58%). A box
+has no artboard. Full bleed therefore makes the dot **be** the disc, `checked.indicator → on-fill` paints
+it, and the result is a solid circle with no ring, which is not a radio. Nothing downstream could have
+caught it: the size ref resolves, the paint resolves, the geometry is square, and nothing in the repo
+reads a filled shape's proportion. So `control.size.*` grew `dot` — and #900's prospective choice of a
+GROUP over a leaf is what makes that a MINOR instead of a MAJOR, which is the first time that argument
+has been paid rather than made.
+
+**Count two: SLOT, and it was #933 refusing the obvious thing.** `control` already owns `fill`, and
+#933's rule is that two boxes naming one slot both take the *same* variable — `paintOf` dispatches on
+the slot alone and is part-blind. The rule also prescribes the route out ("a def that genuinely needs a
+second painted box needs a second SLOT"), so `indicator` — already in `PAINT_SLOTS`, never in
+`BOX_PAINT_SLOTS` — joined the box list. #864's premise for admitting an ink slot to a box (it must
+**draw** the mark itself, or the fill lands behind the node that does) was prose in that list's comment;
+it is now an `anatomyErrors` arm, which is the only reason the widening is safe rather than a hole.
+
+**The defect the widening then exposed, which no contrast gate could have.** `indicator` also had to join
+`INK` in the projector's `disabled` branch. A dot is a filled box, so it reads structural; but it is the
+mark, it sits on the control's fill, and at `disabled` that fill is `color.disabled.fill` — so its ink
+needs the **on-fill** form for exactly #784's reason. Without it, `disabled.indicator` resolved: a key no
+def binds. The dot kept its checked primary ink on a gray disc. `lint-paint.ts` arm 3 named it in one
+line; the census caught it independently as 3 dropped assignments per projection. **No contrast contract
+could have, because the pairing it violates is one nothing had asked about** — which is arm 3's whole
+purpose and worth recording as the second time it has earned its keep.
+
+**Radio's paint census: grid 42 coords / 147 assignments, set 36 members / 126.** Checkbox is 63/231 and
+54/198. Radio is exactly two thirds of it on every number, which is the `selection` axis losing
+`indeterminate` and nothing else — a cheap cross-check that the two defs project the same shape.
+
+**`dot` is a density signal, and that is now asserted rather than hoped.** aurora **6/8/10** against
+nb/harbor/wendys/minimal **8/10/12**. This is the check that did not exist until #977 added the consumer
+half: #910's tempting binding of the mark to `icon.size.md` — values 16/20/24, **byte-identical in all
+four brands** — resolves, typechecks and passes every one of the 42 gates while measuring the glyph
+artboard ladder. The consumer arm was **checkbox-shaped** (it read `checkbox.tokens` by name), so radio
+would have been covered by nothing; it now ranges over `componentDefs` with the membership pinned by name,
+and mutating radio's three `dot` refs to `icon.size.*` fails it with all three refs named and nb/aurora
+px printed side by side.
+
+**The ratio: `CONTROL_DOT_RATIO = 0.5`, fixed, and NOT claimed as field-convergent.** M3 20/10 = 0.5,
+Carbon 20/8 = 0.4, Primer 16/6 = 0.375. Three points spanning a third, with 0.5 at the top of the range
+rather than the middle — so the earlier draft's word "convergent" was withdrawn as unsupported. 0.5 is
+chosen on three stated properties instead: every rung stays a whole px (a half-px dot cannot be centered on
+the grid), the ladder's floor lands on Primer's 6px (the smallest dot the field ships), and the implied
+**gap** — 3/4/5/6/7 — brackets the 5–6 the field *does* agree on at the middle rungs. Each of those three
+is its own assertion, per density, and each was mutation-confirmed: 0.4 fires the integer and floor arms,
+0.75 keeps every rung integral and fires the gap arm alone. **Not a brand lever**, and that is the
+defensible answer rather than the lazy one: a brand moving it moves the gap off the only thing the field
+agrees about and the floor below 6, with nothing to tell it that it did.
+
+**The grid check was run BEFORE the values were fixed, because it could have changed them.** Every
+`control.size.*` leaf **aliases** a dimension step rather than minting a literal, so `buildDims` feeds
+control px into the grid as extras (#274). All 15 aliases resolve, 0 dangling, and aurora's numbers needed
+no adjustment. But the contract diff came back **4 paths, not the 3 predicted** — `dimension.10` is the
+fourth, because `dot` is half an odd-multiple height and 10px was on neither the base-4 ladder, nor the
+space extras, nor the icon ladder, at the default `baseUnit`, in every corpus brand. Named in the 5.3.0
+changelog rather than absorbed into a count.
+
+**And the mechanism everyone had wrong, including this PR's own first commit message.** #900's two
+comments around the extras feed both say the alias "would dangle" if a px went off-grid. Measured by
+deleting `c.dot` from that line: **it does not.** `controlLeaf` falls back to a **literal** px, so
+nb/harbor/wendys/minimal emit `md: 10px` beside siblings that still alias. Nothing about that is a broken
+reference, so an alias-resolution check stays green — the assertion that actually fires is #296's
+(*primitives are mode-invariant: no NEW literal-valued leaf carries a per-mode variant*), because the dot
+varies by mode and the literal is what makes that visible. Worth writing down because **the wrong
+mechanism suggests the wrong gate to verify the fix against**, and `7e64f5a`'s message repeats the wrong
+one; `theme.ts` now carries the corrected version at the site. A related nicety: 6px needs no rescuing at
+all, the space extras already supply it.
+
+**A second checkbox-shaped check, found while verifying the first.** `presentWhen`'s projection coverage
+named checkbox's `mark` and `dash` directly, and the gate cited beside it as covering the
+satisfied/excluded directions across all 54 members — `lint-glyph-geometry.ts` — ranges over **glyphs**.
+Radio's dot is a box, so it was in neither: the mechanism could have read its gate as always-present or
+never and nothing would have gone red. The three directions are now a **rule** over every def with a
+gated part, membership asserted by name.
+
+**Its limit, measured rather than reasoned, and one trap it walked into first.** EXPECTED is the def's own
+declaration and ACTUAL is the plan, so the rule checks that the mechanism *honors* the gate, not that the
+gate is the right way round: inverting radio's to `selection: ['unchecked']` leaves the suite at 2384/0.
+That is correct scope and not a hole — `lint-paint.ts` fails it twice, as a census drift (147 → 129) and
+as arm 3 naming `checked.indicator` unreachable. **Dropping** the gate is the one mutation nothing else
+catches, since an ungated dot is present at `unchecked` with no `unchecked.indicator` to paint it and so
+adds a node and *zero* assignments; the membership arm is the only failure. And the first version of the
+rule **took the whole summary down** on #910's actual authoring slip, `selection: ['checd']`:
+`figmaAnatomyPlan` throws on an undeclared axis value, so the positive-direction loop crashed the process
+and `anatomyErrors`' own message — which names the typo and lists the valid values — never reached the
+reader. That is #986's fall-through shape arriving from the other side, not an arm that records and
+continues but one that continues into a throw. The undeclared case is now handed to `anatomyErrors` and
+reported here as a named failure instead.
+
+**Switch is still blocked and nothing here was built for it (#990).** Its thumb is present at *both* selection
+values and *moves*, which is a positioning question rather than a presence one, and #900's prescribed
+inner-dimension mechanism (an `inset` on a flow part, or `layoutGrow`) **does not exist** — filed as #990
+rather than noted. `control.size.*.dot` is the right name for a thumb's diameter and will serve it; the offset it
+travels is a separate decision that is the owner's to make.
+
+**Filed, not fixed here (one concern per PR).** (a) **#989** — `sizing: { x: 'fill' }` is a silent no-op:
+`anatomy-figma.ts:510` maps everything that is not `'fixed'` to `AUTO`, so `field-message.ts:133`'s
+declared `fill` is a **hug** today. (b) **#990** — the inner-dimension mechanism above, which is what blocks
+switch. (c) **#991** — `lint-us-english`'s `PATTERN` enumerates the `-ise` arm's inflections and **not the
+`-our` arm's**, so `coloured` / `recoloured` / `favoured` are invisible where `colour` is caught, and
+`centred` is in neither scan nor list. Found because the gate caught two of my spellings in `radio.ts` and
+walked past two beside them that ship in the plugin bundle today. Its own header states the lesson about
+`grey`, and the self-check samples the singular and the plural of `colour` but never `coloured` — *"a
+self-check written from the same mental model as the scan inherits its blind spot"*, third instance. Fixed
+in `radio.ts` only, because it was already being rewritten; the sweep needs to travel with the widening.
+
+**Mutation battery: 16 mutations, each preceded by a commit, each confirmed by the name of the assertion
+written for it.** One is worth repeating as a method note — M7's first attempt matched
+`^const BOX_PAINT_SLOTS` against a line reading `export const`, changed nothing, and reported **2366
+passed, 0 failed**. A mutation that edits no bytes is indistinguishable from a gate that cannot fail, and
+the only thing that separated them was checking `git diff --stat` before believing the run.
+
+---
+
 ## (2026-08-24) — the engine and the gate had forked on what a ground is (#985)
 
 **STATUS: shipped.** `ENGINE_VERSION` **stands at 0.18.0** — no behaviour change; see below. Gates

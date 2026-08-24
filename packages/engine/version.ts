@@ -102,6 +102,17 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.19.0: `control.size.*` grows a third field, `dot` — the inner mark of a control whose mark is a
+ * filled shape rather than a glyph, at half the box edge (#910, radio's anatomy). Three px per brand:
+ * nb/wendys/harbor 8/10/12, aurora 6/8/10, so it shifts a rung with density exactly as `height` does
+ * and is NOT the brand-invariant glyph ladder under a third name. #900 recorded that this dimension
+ * would be "deliberately absent", derived by anatomy from `height` plus a declared inset; both
+ * spellings of that are refused by the code as it stands (`inset` is `absolute`-only, and `sizing:
+ * 'fill'` maps to `AUTO`, so padding-plus-fill projects a dot of zero), and closing either would put
+ * `layoutGrow` through the plan type, the projector and both executors. The tier field is the smaller
+ * change and `scale.ts` carries the correction. Radio also gains its `anatomy` block and
+ * `figmaProperties` in the same PR, which moves no token name. (#910)
+ *
  * 0.18.0: overriding a ground re-derives what was measured against it (#964). #956 gave the two
  * page/band grounds a declarative input and REFUSED them in the override layer; the other 18 had
  * nowhere to be sent, so they were applied and merely warned about, and their dependents kept the
@@ -305,7 +316,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.18.0';
+export const ENGINE_VERSION = '0.19.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -351,6 +362,25 @@ export const ENGINE_VERSION = '0.18.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 5.3.0: 4 added guaranteed paths, no removal and no retype, so MINOR. Three are the intended ones —
+ * `control.size.{sm,md,lg}.dot`, the inner mark of a control that draws one as a filled shape (radio's
+ * dot; a switch's thumb next). (576 → 580)
+ *
+ * THE FOURTH IS `dimension.10`, and it is worth naming rather than absorbing into the count, because it
+ * is the tier change reaching a layer nobody edited. Every `control.size.*` leaf ALIASES a dimension
+ * step rather than minting a literal, so `buildDims` feeds the control px into the grid as extras
+ * (#274). `dot` is half an odd-multiple height, and 10px was on NEITHER the base-4 ladder NOR the space
+ * extras NOR the icon ladder — at the DEFAULT baseUnit, in every corpus brand. So the grid gains a step
+ * and a consumer gains a guaranteed name. Additive either way, but a fourth path in a diff that
+ * predicted three is the kind of surprise a MINOR is supposed to absorb visibly.
+ *
+ * THE GROUP SHAPE PAYING OFF, and worth one sentence because 5.2.0 below argued for it prospectively.
+ * That entry chose a group over a leaf on the reasoning that a switch's track would force a second
+ * field inside the same release, and 5.0.0 is what promoting a leaf costs. The third field arrived from
+ * a def nobody had projected yet, and it is additive at MINOR — where the leaf shape would have made
+ * the same addition a MAJOR with two `DEPRECATIONS` entries. The argument was for one anticipated
+ * field; the return came from an unanticipated one, which is the stronger case for the rule. (#910)
  *
  * 5.2.0: 6 added guaranteed paths, no removal and no retype, so MINOR — `control.size.{sm,md,lg}.
  * {height,width}`, a small control's own box (checkbox square, radio circle, switch track). (570 → 576)
@@ -435,7 +465,7 @@ export const ENGINE_VERSION = '0.18.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '5.2.0';
+export const CONTRACT_VERSION = '5.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

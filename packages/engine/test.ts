@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -509,17 +509,18 @@ for (const b of brands) {
 // `CONTROL_RUNGS` and `DENSITY_START` are the subject; a table derived from either could not fail when
 // they move. This is the whole ladder, all three densities, as px:
 {
-  const EXPECTED_CONTROL: Record<string, Record<string, { height: number; width: number }>> = {
-    compact:     { sm: { height: 12, width: 24 }, md: { height: 16, width: 32 }, lg: { height: 20, width: 40 } },
-    comfortable: { sm: { height: 16, width: 32 }, md: { height: 20, width: 40 }, lg: { height: 24, width: 48 } },
-    spacious:    { sm: { height: 20, width: 40 }, md: { height: 24, width: 48 }, lg: { height: 28, width: 56 } },
+  const EXPECTED_CONTROL: Record<string, Record<string, { height: number; width: number; dot: number }>> = {
+    compact:     { sm: { height: 12, width: 24, dot: 6 },  md: { height: 16, width: 32, dot: 8 },  lg: { height: 20, width: 40, dot: 10 } },
+    comfortable: { sm: { height: 16, width: 32, dot: 8 },  md: { height: 20, width: 40, dot: 10 }, lg: { height: 24, width: 48, dot: 12 } },
+    spacious:    { sm: { height: 20, width: 40, dot: 10 }, md: { height: 24, width: 48, dot: 12 }, lg: { height: 28, width: 56, dot: 14 } },
   };
   const CONTROL_RUNG_NAMES = ['sm', 'md', 'lg'];
+  const CONTROL_FIELDS = ['height', 'width', 'dot'] as const;
   // Read a rung's resolved px DEFENSIVELY. Not politeness: with the tier authored as a leaf instead of
   // a group — the mutation this block's shape check exists for — a direct `grp[n].height.$extensions`
   // read throws, and a suite that CRASHES reports no failure by name at all. The shape assertion below
   // is the one that must speak, so nothing downstream of it may take the process down first.
-  const px = (grp: any, rung: string, field: 'height' | 'width'): number | undefined =>
+  const px = (grp: any, rung: string, field: (typeof CONTROL_FIELDS)[number]): number | undefined =>
     grp?.[rung]?.[field]?.$extensions?.prism3?.px;
   const controlBrand = (density: string, extra: Record<string, unknown> = {}) => brandTheme({
     id: `c-${density}`, root: 'prism', density, modes: ['light', 'dark'],
@@ -536,15 +537,20 @@ for (const b of brands) {
     const grp = (buildTree(controlBrand('comfortable')).tree as any).prism.control?.size;
     ok(!!grp, '#900 control.size.* exists (no token expressed a control\'s own box before)');
     const notGroups = CONTROL_RUNG_NAMES.filter((n) => !grp?.[n] || grp[n].$value !== undefined
-      || typeof grp[n].height?.$value !== 'string' || typeof grp[n].width?.$value !== 'string');
-    ok(notGroups.length === 0, '#900 every rung is a GROUP carrying `height` + `width` leaves, not a single rung (#892: a leaf promoted to a group costs a MAJOR bump)'
+      || CONTROL_FIELDS.some((f) => typeof grp[n][f]?.$value !== 'string'));
+    ok(notGroups.length === 0, '#900 every rung is a GROUP carrying `height` + `width` + `dot` leaves, not a single rung (#892: a leaf promoted to a group costs a MAJOR bump)'
       + (notGroups.length ? ` — NOT A GROUP: ${notGroups.join(', ')}` : ''));
-    // The THUMB is deliberately absent — its diameter is `height` less an inset, and #801's precedent
-    // is that the tier holds the inputs while the layer that knows the geometry does the arithmetic.
-    // Pinned in both directions so a third field is a decision someone takes, not one that drifts in.
+    // Pinned in BOTH directions, so a fourth field is a decision someone takes rather than one that
+    // drifts in. `dot` is the third, added by #910 for radio, and it is worth recording that #900 wrote
+    // this assertion to say the opposite — "the thumb is NOT in the tier, #801's split: the tier holds
+    // the inputs and a downstream layer does the arithmetic". That split still holds for the SWITCH
+    // thumb, whose question is where it sits at two selection values. It does not hold for a radio dot,
+    // because the arithmetic #900 assumed would happen downstream has nowhere to happen: `inset` is
+    // refused on any non-`absolute` part, and `sizing: 'fill'` maps to Figma `AUTO`, so padding-plus-fill
+    // projects a dot of ZERO. The group shape is what made correcting that a MINOR instead of a MAJOR.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'height+width'),
-      `#900 each rung carries exactly \`height\` + \`width\` — the thumb is NOT in the tier (#801's split: the tier holds the inputs) (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+width'),
+      `#910 each rung carries exactly \`height\` + \`width\` + \`dot\` — no fourth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -559,7 +565,7 @@ for (const b of brands) {
     const grp = (built.tree as any).prism.control.size;
     const wrong: string[] = [];
     for (const rung of CONTROL_RUNG_NAMES)
-      for (const field of ['height', 'width'] as const) {
+      for (const field of CONTROL_FIELDS) {
         const want = EXPECTED_CONTROL[density][rung][field];
         const got = px(grp, rung, field);
         if (got !== want) wrong.push(`${rung}.${field} ${got} ≠ ${want}`);
@@ -575,11 +581,30 @@ for (const b of brands) {
     ok(offRatio.length === 0, `#900 ${density}: every track \`width\` is exactly 2× its \`height\` — the one ratio the field converges on (Carbon 24×48, Ant 22×44, Fluent 20×40)`
       + (offRatio.length ? ` — OFF: ${offRatio.join(', ')}` : ''));
 
+    // `dot` is HALF the height, read off the two resolved px for the same reason. Deliberately NOT
+    // described as field-convergent, because it is not and the reviewer was right to say so: M3 is
+    // 20/10 = 0.5, Carbon 20/8 = 0.4, Primer 16/6 = 0.375 — a third of spread with ours at the top of
+    // the range, not the middle. What those three DO agree on is the resulting GAP: 5, 6, 5 px. A fixed
+    // gap cannot be the tier's answer (12 − 2×5 leaves a 2px dot at the compact floor), so 0.5 stands
+    // on the three properties asserted around here instead — an integer at every rung, a floor that is
+    // still legible, and implied gaps of 3/4/5/6/7 that bracket the field's 5–6 at the middle rungs.
+    const offDot = CONTROL_RUNG_NAMES.filter((n) => px(grp, n, 'dot') !== (px(grp, n, 'height') ?? NaN) / 2);
+    ok(offDot.length === 0, `#910 ${density}: every \`dot\` is exactly half its \`height\``
+      + (offDot.length ? ` — OFF: ${offDot.join(', ')}` : ''));
+    // The two properties that carry the ratio choice, since convergence cannot. An integer rung matters
+    // because a half-px dot is not centreable on the grid; a 6px floor because that is Primer's smallest
+    // shipped dot, i.e. the smallest the field considers legible.
+    const dots = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'dot') ?? NaN);
+    ok(dots.every((d) => Number.isInteger(d)), `#910 ${density}: every \`dot\` rung is a whole px — a half-px dot cannot be centered on the grid (${dots.join('/')})`);
+    ok(Math.min(...dots) >= 6, `#910 ${density}: the smallest \`dot\` is >= 6px — Primer's 6px is the smallest dot the field ships, so this is the legibility floor the ratio has to clear (${dots.join('/')})`);
+    const gaps = CONTROL_RUNG_NAMES.map((n) => ((px(grp, n, 'height') ?? NaN) - (px(grp, n, 'dot') ?? NaN)) / 2);
+    ok(gaps.every((g) => g >= 3), `#910 ${density}: the gap from dot to box edge is >= 3px at every rung — the ratio's third property, and what the field actually converges on (M3 5, Carbon 6, Primer 5) (${gaps.join('/')})`);
+
     // THE tier property, same as #324's: an alias into the dimension grid that RESOLVES, not a
     // literal. `buildDims` feeds these px into the grid extras precisely so this holds at any base.
     const bad: string[] = [];
     for (const rung of CONTROL_RUNG_NAMES)
-      for (const field of ['height', 'width'] as const) {
+      for (const field of CONTROL_FIELDS) {
         const v = String(grp[rung]?.[field]?.$value);
         const m = v.match(/^\{(.+\.dimension\..+)\}$/);
         if (!m) bad.push(`${rung}.${field}=${v} (literal)`);
@@ -611,6 +636,24 @@ for (const b of brands) {
       + (absent.length ? ` — OFF-GRID: ${absent.join(', ')}` : ''));
     ok(!new Set(dimensionGrid(6, 128, spaceScale(8).map((s) => s.px))).has(28),
       '#900 …and the negative control: 28 is NOT on the base-6 ladder nor among the space extras, so the assertion above is about the control feed and nothing else');
+
+    // AND THE FEED IS NOW REACHABLE AT THE DEFAULT INPUT — the more useful half of adding `dot` (#910),
+    // and the reason to keep both arms rather than replace the one above. Everything before this needed a
+    // baseUnit no public builder can produce, which is `docs/34` shape 14: a guard whose only failing
+    // input is unreachable. `dot` is HALF an odd-multiple height, so `md`'s 10px is on neither the base-4
+    // ladder nor the space extras nor the icon ladder, at the DEFAULT baseUnit, in every corpus brand.
+    //
+    // Measured, not reasoned: deleting `c.dot` from the extras feed emits `md: 10px` as a LITERAL in
+    // nb/harbor/wendys/minimal and `lg: 10px` in aurora. Note the mechanism is NOT the one #900's two
+    // neighbouring comments predict — the alias does not DANGLE, `controlLeaf` falls back to a literal —
+    // so the arm above catches it as an off-grid px and the alias arm in the density loop catches it as
+    // `(literal)`, while an alias-resolution check alone would stay green.
+    const dflt = buildDims(4, 8, 'comfortable', 1, 4);
+    ok(new Set(dflt.grid).has(10),
+      '#910 at the DEFAULT baseUnit (4) + comfortable density, `dot`\'s 10px is on the dimension grid — the extras feed is load-bearing at an input every brand reaches');
+    ok(!new Set(dimensionGrid(4, 128, [...spaceScale(8).map((s) => s.px), ...ICON_SIZES.map((i) => i.px),
+      ...controlSizes('comfortable').flatMap((c) => [c.height, c.width])])).has(10),
+      '#910 …negative control: 10 is absent from the base-4 ladder, the space extras, the icon ladder AND the two older control fields, so the assertion above is about the `dot` feed and nothing else');
   }
 
   // ---- BRAND VARIANCE: the check that this is not the glyph ladder renamed ----------------------
@@ -638,6 +681,19 @@ for (const b of brands) {
     ok(iconLadder(nbTheme()) === iconLadder(aurora),
       '#900 …while `icon.size.*` IS equal across those same two brands — the two tiers are opposites by design, not by oversight');
 
+    // The SAME check for `dot`, stated separately rather than folded into the ladder above, because a
+    // third field inheriting its parent's brand-variance is exactly the assumption that has to be paid
+    // for. `dot` is derived from `height`, so it cannot help but vary here — which is the point: the
+    // assertion is what makes a later refactor that pins `dot` to a fixed ladder fail. That refactor is
+    // not hypothetical. It is what `icon.size.*` IS, and #910 measured that binding a control box to it
+    // left all 42 gates green.
+    const dotLadder = (t: any) => CONTROL_RUNG_NAMES
+      .map((n) => (buildTree(t).tree as any)[Object.keys(buildTree(t).tree)[0]].control?.size?.[n]?.dot?.$extensions?.prism3?.px ?? 'x')
+      .join('/');
+    const dotLadders = { nb: dotLadder(nbTheme()), aurora: dotLadder(aurora), harbor: dotLadder(harbor), wendys: dotLadder(wendys) };
+    ok(dotLadders.aurora === '6/8/10' && dotLadders.nb === '8/10/12' && dotLadders.harbor === dotLadders.nb && dotLadders.wendys === dotLadders.nb,
+      `#910 \`control.size.*.dot\` is a DENSITY signal, not a glyph artboard — aurora (compact) 6/8/10 sits a full rung below nb/harbor/wendys 8/10/12 (${Object.entries(dotLadders).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+
     // ---- AND THE CONSUMER HALF (#910): a def must READ the varying family, not the invariant one ----
     // Everything above is about the token TIER — that `control.size.*` moves with brand density and that
     // `icon.size.*` does not. Neither says which of the two a control actually BINDS, and measured,
@@ -654,21 +710,52 @@ for (const b of brands) {
       const tr = buildTree(t).tree as any;
       return ref.split('.').reduce((n: any, k) => n?.[k], tr[Object.keys(tr)[0]])?.$extensions?.prism3?.px;
     };
-    const controlRefs = Object.entries(checkbox.tokens ?? {}).filter(([k]) => /^size\.[^.]+\.control$/.test(k));
+    // OVER EVERY DEF, never over `checkbox` alone. #910 authored this arm against the one def that had a
+    // control box, and radio — the second, arriving one PR later — would have been covered by nothing at
+    // all: the filter read `checkbox.tokens` BY NAME, so a radio bound to `icon.size.md` reproduces #910's
+    // own defect verbatim while this arm reports a clean run. The trap is that it LOOKS general — it
+    // resolves through the def's own ref rather than grepping for a spelling — and is general in every
+    // respect except the set it runs over. `docs/34` shape 15 one tier up: not a scope that counts instead
+    // of naming, but a scope pinned to its first member.
+    //
+    // Discovered from `componentDefs` and then pinned by NAME, so a third control def is covered the day it
+    // lands, and a discovery that silently returns nothing fails instead of passing over an empty set.
+    const CONTROL_DEFS = ['checkbox', 'radio'];
+    const withControl = componentDefs.filter((d) =>
+      Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot)$/.test(k)));
+    ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
+      `#910 the defs binding a control box are exactly the authored set {${CONTROL_DEFS.join(', ')}} — a new one must join this list, and a def losing its binding fails HERE rather than dropping out of the arms below (found: ${withControl.map((d) => d.id).join(', ') || 'none'})`);
+
     // Represented, never counted, and precise about what it covers: DELETING a binding is caught earlier
     // and louder by the projector ("anatomy names binding key 'size.medium.control', which tokens does not
-    // bind" — measured), so this arm is not that. What it is for is the pattern below going STALE: rename
-    // the key family and the filter matches nothing, `invariant` is empty, and the assertion after it
-    // passes over zero refs while reporting a clean run (`docs/34` shape 15). The oracle is the def's own
-    // size enum, which cannot agree with the regex by construction.
-    ok(controlRefs.length === (checkbox.variants?.size ?? []).length,
-      `#910 checkbox binds a control box at every size it declares — ${controlRefs.length} of ${(checkbox.variants?.size ?? []).length} (${controlRefs.map(([k]) => k).join(', ') || 'none'})`);
-    const invariant = controlRefs
-      .map(([k, ref]) => ({ k, ref: ref as string, nb: pxOf(nbTheme(), ref as string), au: pxOf(aurora, ref as string) }))
-      .filter((r) => r.nb === undefined || r.au === undefined || r.nb === r.au);
+    // bind" — measured), so this arm is not that. What it is for is the pattern going STALE: rename the key
+    // family and the filter matches nothing, `invariant` is empty, and the assertion passes over zero refs
+    // while reporting a clean run (`docs/34` shape 15). The oracle is each def's own size enum, which
+    // cannot agree with the regex by construction.
+    const invariant: string[] = [];
+    const shortfall: string[] = [];
+    for (const def of withControl) {
+      const sizes = (def.variants?.size ?? []).length;
+      // Per FIELD, because a def that pins its box per size but its dot only once has a dot that stops
+      // tracking its own box. `continue` rather than fail on an absent field: a def need not draw an inner
+      // mark as a filled shape at all — checkbox's is a glyph, sized at `control` full-bleed.
+      for (const field of ['control', 'dot'] as const) {
+        const refs = Object.entries(def.tokens ?? {}).filter(([k]) => new RegExp(`^size\\.[^.]+\\.${field}$`).test(k));
+        if (refs.length === 0) continue;
+        if (refs.length !== sizes) shortfall.push(`${def.id}.${field} ${refs.length} of ${sizes} (${refs.map(([k]) => k).join(', ')})`);
+        for (const [k, ref] of refs) {
+          const nbPx = pxOf(nbTheme(), ref as string);
+          const auPx = pxOf(aurora, ref as string);
+          if (nbPx === undefined || auPx === undefined || nbPx === auPx)
+            invariant.push(`${def.id}.${k} → ${ref} (nb ${nbPx}, aurora ${auPx})`);
+        }
+      }
+    }
+    ok(shortfall.length === 0, '#910 every def binds each control field it uses at EVERY size it declares — a dot bound once does not track the box it sits in'
+      + (shortfall.length ? ` — SHORT: ${shortfall.join('; ')}` : ''));
     ok(invariant.length === 0,
-      '#910 every checkbox `size.*.control` ref resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on aurora, and nothing downstream can see it'
-      + (invariant.length ? ` — INVARIANT: ${invariant.map((r) => `${r.k} → ${r.ref} (nb ${r.nb}, aurora ${r.au})`).join('; ')}` : ''));
+      '#910 every `size.*.control` and `size.*.dot` ref, in every def that binds one, resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on aurora, and nothing downstream can see it'
+      + (invariant.length ? ` — INVARIANT: ${invariant.join('; ')}` : ''));
   }
 
   // ---- PER-MODE: the same seam `size.*` has, for the same reason ---------------------------------
@@ -681,7 +768,7 @@ for (const b of brands) {
     const missing: string[] = [];
     const wrong: string[] = [];
     for (const rung of CONTROL_RUNG_NAMES)
-      for (const field of ['height', 'width'] as const) {
+      for (const field of CONTROL_FIELDS) {
         const mods = grp[rung]?.[field]?.$extensions?.prism3?.modes;
         if (!mods?.dark) { missing.push(`${rung}.${field}`); continue; }
         // The WRAPPED shape (`{ $value, px, note }`) is the one the overlay projector reads — #708 was
@@ -696,7 +783,7 @@ for (const b of brands) {
     // …and the other direction: a mode whose density MATCHES the brand's must add no override at all,
     // or every mode-agnostic consumer gets a diff that says nothing.
     const same = (buildTree(controlBrand('comfortable', { modeLevers: { dark: { density: 'comfortable' } } })).tree as any).prism.control.size;
-    const spurious = CONTROL_RUNG_NAMES.filter((n) => same[n]?.height?.$extensions?.prism3?.modes || same[n]?.width?.$extensions?.prism3?.modes);
+    const spurious = CONTROL_RUNG_NAMES.filter((n) => CONTROL_FIELDS.some((f) => same[n]?.[f]?.$extensions?.prism3?.modes));
     ok(spurious.length === 0, '#900 a mode at the SAME density carries no override — an override that restates the base value is a diff that says nothing'
       + (spurious.length ? ` — SPURIOUS: ${spurious.join(', ')}` : ''));
   }
@@ -10811,6 +10898,75 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `checkbox: with NO selection supplied it carries neither — an unsupplied axis reads as ABSENT, the same answer 'absolute' gives when 'state' is undefined, and the conservative one. Returning true here is the mutation every other gate passes (got '${cbGlyphs({ state: 'rest' })}')`);
   ok(cbGlyphs({}) === 'neither',
     `checkbox: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
+
+  // ---- the same three directions as a RULE over every gated part, because the block above is
+  // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
+  // The arms above name `mark` and `dash`. `lint-glyph-geometry.ts`, cited above as covering the
+  // satisfied/excluded directions across all 54 members, ranges over GLYPHS — and radio's dot is a
+  // `box`, so it appears in neither. Radio's gated part therefore had no projection coverage at all: the
+  // whole mechanism could read it as always-present, or never, and the only thing that would move is a
+  // census count nobody could attribute. (#910's own authoring slip was `selection: ['checd']`, which
+  // `anatomyErrors` refuses — but that is the *typo* case, not the *mechanism* case.)
+  //
+  // Ranges over `componentDefs` and asserts the membership BY NAME, so a third def gaining a
+  // `presentWhen` is covered the day it lands rather than the day someone remembers this block.
+  //
+  // ITS LIMIT, MEASURED RATHER THAN REASONED. EXPECTED is the def's own declaration and ACTUAL is the
+  // plan, so this checks that the MECHANISM honors the gate — not that the gate is the right way round.
+  // Inverting radio's to `selection: ['unchecked']` leaves all of these green (2384/0), which is correct
+  // scope and not a hole: `lint-paint.ts` fails it twice over, once as a census drift (147 → 129 grid
+  // assignments) and once as arm 3 naming `checked.indicator` unreachable. Worth stating because the two
+  // failures a reader would expect to catch it are in a different file. DROPPING the gate is the mutation
+  // nothing ELSE catches — the membership arm below is the only failure, because an ungated dot is
+  // present at `unchecked` with no `unchecked.indicator` to paint it, so it adds a node and zero paint
+  // assignments and the census cannot see it either.
+  const gatedDefs = componentDefs.filter((d) =>
+    d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
+  const GATED_EXPECTED = ['checkbox', 'radio'];
+  ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
+    `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
+  for (const def of gatedDefs) {
+    const sizes = def.variants?.size ?? [];
+    const size = sizes[Math.min(1, sizes.length - 1)];
+    for (const [name, part] of Object.entries(def.anatomy!.parts)) {
+      if (!part.presentWhen) continue;
+      const axes = Object.entries(part.presentWhen);
+      // A part gated on TWO axes is AND-composed, so "supply the axis and expect presence" stops being
+      // the right question — it needs every gate satisfied at once. None exists today; fail rather than
+      // skip, so the arms below cannot go quietly vacuous over one.
+      ok(axes.length === 1,
+        `#910 ${def.id}.${name} gates presence on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the projection arms below supply ONE axis and would report an AND-composed part as spuriously absent. Handle the composition here rather than letting it read as covered`);
+      if (axes.length !== 1) continue;
+      const [axis, values] = axes[0];
+      // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
+      // directions is the gated one.
+      const rest: Record<string, string> = { state: 'rest' };
+      for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
+      const has = (coord: Record<string, string>): boolean =>
+        planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
+      const declared = def.variants?.[axis] ?? [];
+      // A GATE NAMING A VALUE THE AXIS DOES NOT DECLARE IS `anatomyErrors`' ERROR, NOT THIS BLOCK'S, and
+      // it has to be handed over rather than projected. `figmaAnatomyPlan` THROWS on an undeclared axis
+      // value, so feeding one to the positive loop below kills the process: the suite prints a stack
+      // trace, reports no summary at all, and `anatomyErrors`' own message — which names the typo and
+      // lists the values that would have been valid — never reaches the reader. Measured with #910's
+      // actual authoring slip, `selection: ['checd']` on this very part. That is the fall-through shape
+      // #986 names, arriving from the other side: not an arm that records and continues, but one that
+      // continues into a throw and silences the assertion written for exactly this input.
+      const undeclared = values.filter((v) => !declared.includes(v));
+      ok(undeclared.length === 0,
+        `#910 ${def.id}.${name} gates presence on ${axis}=[${undeclared.join(', ')}], which that axis does not declare — see the structural-validity failure above for the authored fix. Reported here rather than projected, because projecting an undeclared value throws and takes the whole summary with it`);
+      if (undeclared.length) continue;
+      for (const v of values)
+        ok(has({ ...rest, [axis]: v }),
+          `#910 ${def.id}: '${name}' IS in the tree at ${axis}=${v} — the gate's own positive case, and a part gated into permanent absence is a def with a dead branch`);
+      for (const v of declared.filter((x) => !values.includes(x)))
+        ok(!has({ ...rest, [axis]: v }),
+          `#910 ${def.id}: '${name}' is NOT in the tree at ${axis}=${v} — the values the gate excludes, which is the direction that makes it a gate rather than a comment`);
+      ok(!has(rest),
+        `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach`);
+    }
+  }
 
   // ---- the cohort key: engine and PAYLOAD must agree byte for byte on a SIZELESS def (#795) ----
   // `planSetLayout` builds the footprint-cohort key from `plan.size`; the payload's `cellOf` rebuilds it

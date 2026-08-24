@@ -511,6 +511,21 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
   // at each density, the space extras above already supply every one except SPACIOUS `lg`'s 28px height,
   // at base 4, 6 and 8 alike. So this line rescues exactly `spacious` + a coarse baseUnit; `test.ts`
   // pins that case through the export above, since no theme builder can reach it.
+  //
+  // `dot` CHANGES THAT, and it is the more useful half of adding it (#910). The dot px are 6/8/10/12/14,
+  // and 10 and 14 are on NEITHER the base-4 grid NOR the space extras (2/4/6/8/12/16/20/24/…) — measured
+  // at base 4, 6 and 8 alike. So this line now rescues two px at the DEFAULT baseUnit, reachable through
+  // `brandTheme` like any other brand, where before it rescued one px at an input no public builder could
+  // produce. The guard stopped being unfalsifiable by gaining a field rather than by gaining a test.
+  //
+  // AND THE CONSEQUENCE IS NOT THE ONE THE TWO COMMENTS AROUND THIS ONE NAME. Both say the alias "would
+  // dangle"; measured by deleting `c.dot` from this line, it does not — `controlLeaf` falls back to a
+  // LITERAL px, so nb/harbor/wendys emit `md: 10px` and aurora `lg: 10px` beside siblings that still
+  // alias. Nothing about that is a broken reference, which is why the assertion that catches it is #296's
+  // (`primitives are mode-invariant: no NEW literal-valued leaf carries a per-mode variant`) and not an
+  // alias-resolution one: the dot varies by mode, so the literal is what makes it visible. Worth writing
+  // down because the wrong mechanism suggests the wrong gate to check the fix against, and 6 needs no
+  // rescuing at all — the space extras already supply it.
   const controls = controlSizes(density);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
@@ -518,7 +533,7 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
     // would dangle. Feeding them in makes every icon alias resolve by construction. At baseUnit 4
     // they are already grid members, so committed out/* is unaffected.
     grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px),
-      ...controls.flatMap((c) => [c.height, c.width])]),
+      ...controls.flatMap((c) => [c.height, c.width, c.dot])]),
     space,
     radius: radiusScale(rScale, baseMd, 128),
     sizes: componentSizes(density, spaceBase),
