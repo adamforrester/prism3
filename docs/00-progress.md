@@ -5,8 +5,87 @@
 > it up without re-deriving anything. Update this when state or direction
 > changes. Most recent entry first.
 
+---
 
+## (2026-08-23) — A failed component build says what it left behind, and parks it where a designer can find it (#913)
 
+**STATUS: in review.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0** — this is
+plugin-surface only: no emitted token tree, no token name and no token value moves, and `regen.ts`
+produced no changes. Precedent is #960 and #967, both unbumped for the same reason. Gates stay at
+**42**; this needed no new gate file and extended three existing suites.
+
+**The diagnosis, and why it made the fix small.** `figma.commitUndo()` is called nowhere in the plugin, so
+the entire build — 1,972 nodes for Button's 648 members — is **one undo entry**. That single fact decided
+the whole design: the leftovers of a failed build are already recoverable in one keystroke, so the job is
+not to delete them (a second write on a host that has just refused one) but to make them *findable* and
+say so. Hence **mark, not roll back**: one labeled frame, and a verdict that names it.
+
+**What was actually broken, measured before anything was written.** In Figma, `createFrame()`,
+`createText()`, `createNodeFromSvg()` and `createInstance()` append the new node to the current page
+immediately. A throwaway host model (`measure-913.ts`, attached to #981) that reproduces only that one
+behavior, driving the real `applyComponentPlan` over the real 648-member plan set, found **six of eight
+reachable throw sites leave nodes in the designer's file**: 2 when the brand typeface is not installed
+(the ordinary client failure), 42 / 97 / 148 / 101 for refusals mid-binding, mid-paint, mid-append and
+mid-component, and **648** when `combineAsVariants` is refused after every member has been built. Before
+this, all six reported `✗ component build failed` and nothing else.
+
+**Both size regimes, asserted separately.** The requirement is not that the 648 case is dramatic — it is
+that the **count reaches the pill at 2**, because two loose components are easy to overlook and then
+re-create on the next run. So `test-apply-summary.ts` asserts the prose at 2 and 648, and
+`test-build-verdict.mjs` drives the panel at both and reads the count off *both* surfaces (the page pill
+and the chrome bar).
+
+**Two properties the marking has to hold, both of them about the failure path.** It costs a write on a
+host that has just rejected a call, so (a) the marking **must not throw** — `createFrame` in its own
+`try`, and each `appendChild` in its own, so one refusal does not abandon the remaining nodes — and (b)
+it **must not mask the original error**: `markPartialWrite` runs and then the *original* error object is
+rethrown, unchanged. The verdict reports the marking's own failure beside the cause rather than instead of
+it, and when marking fails the nodes are still reported as **loose**, never as zero. That last one is the
+single assertion this feature would be worthless without: a designer told the file is clean while 648
+components sit on the page is worse off than before.
+
+**A state the measurement found that a plausible reading gets wrong.** Case E — a host refusing
+`appendChild` — refuses it for the marking too, so the frame is created and *named with a count* and then
+takes none of the nodes. The note has to state both halves ("0 of them are parked in the frame '…' and 148
+are still loose"), or the frame's own label stands as the answer and reads as containment. Pinned.
+
+### Traps for whoever re-verifies this
+
+**Two mutations read as false greens before the harness was fixed.** Three of nine perl patches silently
+missed on indentation, and a no-op mutation is indistinguishable from a blind spot — both print a green
+suite. The harness now guards every patch with `git diff --quiet` and refuses to interpret a run whose
+patch did not apply. If you re-run the mutation table, check that guard fires before trusting a green.
+
+**One real blind spot, and it is `docs/34` shape 15.** Removing the executor's `if (nodes.length === 0)
+return facts;` short-circuit left the whole suite green. The check was right; the *set* it ran over
+excluded the failing case, because the only nothing-written host in the suite also refused `createFrame`
+and so could never have produced a frame to count. Closed by adding a duplicate-coordinate plan pair on a
+host that accepts everything. Nine mutations now fail **by name**.
+
+**An arm was added, measured, and removed.** "Is the count clipped out of the pill" is the obvious check to
+carry over from #483, and it cannot fire: the pill computes to `overflow: visible` / `max-width: none` /
+`white-space: nowrap` — it grows rather than clipping — and the panel opens at 1280×900 (`DEFAULT_SIZE`),
+where a deliberately over-budget 78-character headline renders at 455px inside an 833px row. The arm
+stayed green under a headline three times the budget. It is gone, with the measurement recorded in its
+place; the ≤24-char budget is asserted where it can still move, against the function over a range of
+counts. **A check that runs and cannot fail reports itself as a pass** — the reason to write the negative
+control was #969, and it earned its keep here.
+
+**The honest limit.** `main.ts`'s wiring — `partialWriteOf` → `partialWriteHeadline`/`partialWriteNote` —
+is covered by **no gate**. The verdict suite injects messages into the UI and, per its own header, cannot
+see the main thread; `main.ts` calls `figma.showUI` at module scope and cannot be imported. So the three
+functions are gated, the executor's fact-collection is gated against real host state, and the six lines
+that join them are read by a human only.
+
+### Filed, not fixed
+
+- **#981** — the committed shim's `mkNode` never appends to the page, which is why no existing gate could
+  see a partial write. `measure-913.ts` is attached in full; it is a measurement, not a gate, and stays
+  uncommitted.
+- **#982** — 5 of 24 host invocations in the writer recover from a refusal; the other 19 abort the build.
+  `setTextStyleIdAsync` is the one that looks like an oversight rather than a decision, since
+  `loadFontAsync` immediately above it *is* guarded and the apply is the call that actually throws when a
+  typeface is missing. #680 already pins one instance of the class.
 
 
 

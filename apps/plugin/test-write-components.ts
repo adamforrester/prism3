@@ -49,7 +49,8 @@ import { button } from '@prism3/engine/components/button';
 import { fieldLabel } from '@prism3/engine/components/field-label';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
-import { applyComponentPlan, CHUNK } from './src/write-components';
+import { applyComponentPlan, CHUNK, partialWriteOf } from './src/write-components';
+import { partialWriteHeadline, partialWriteNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
@@ -181,6 +182,25 @@ type ShimOpts = {
    * Opt-in per run, so only the block that asserts on it pays the increment.
    */
   hostSearches?: { n: number };
+  /**
+   * HOST CALLS THAT REFUSE (#913) — the two throws that leave nodes in the file, and the failure path's
+   * own failure.
+   *
+   * `combine` reaches the large regime: every member has been created, named, and appended to the page,
+   * and then the one call that would gather them refuses.
+   *
+   * `createFrame` has TWO settings because it is reached twice, and the difference is what each arm needs.
+   * `'on-failure-path'` is latched to a refusal that already happened, and reaches the case the whole
+   * design turns on — the marking runs on a host that has just rejected a call, so it has to be able to
+   * reject the next one too, and the verdict must still name the nodes rather than report a clean file.
+   * `'always'` refuses the BUILD's first frame instead, so nothing is ever written: that is the third
+   * state, where a throw leaves the file untouched and the verdict must not invent a count for it. The two
+   * are not interchangeable, which is measured rather than assumed — `'always'` on the marking arm strands
+   * nothing at all, so all three of its assertions passed on an empty set.
+   *
+   * Opt-in per run: every other case in this file drives a host that accepts everything.
+   */
+  refuse?: { combine?: boolean; createFrame?: 'always' | 'on-failure-path' };
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -199,6 +219,9 @@ const makeShim = (opts: ShimOpts = {}) => {
    * `catch` that reports it is a check that runs and cannot fire.
    */
   const loadedFonts = new Set<string>();
+  /** THE HOST HAS ALREADY REFUSED SOMETHING (#913) — latched, never reset. What `frameOnFailurePath`
+   *  hangs off, so the marking meets a host in the state it is actually written for. */
+  let hostRefusing = false;
   const unavailable = new Set((opts.unavailableFonts ?? []).map(fontKey));
   const textStyles = (opts.styles ?? []).map((name) => ({ id: `S:${name}`, name, fontName: opts.styleFont ?? STYLE_FONT }));
   const fontOfStyle = (id: string): FontName | undefined => textStyles.find((s) => s.id === id)?.fontName;
@@ -459,7 +482,13 @@ const makeShim = (opts: ShimOpts = {}) => {
       ],
     },
     createText: () => mkNode('TEXT'),
-    createFrame: () => mkNode('FRAME'),
+    createFrame: () => {
+      // #913: either the BUILD's first frame or the MARKING's, depending on the setting. Figma's message
+      // for a file the plugin may not write to.
+      if (opts.refuse?.createFrame === 'always' || (opts.refuse?.createFrame === 'on-failure-path' && hostRefusing))
+        throw new Error('in createFrame: The document is not editable');
+      return mkNode('FRAME');
+    },
     // THE SVG IMPORTER (#864) — a FRAME on the document's artboard, wrapping the outline it drew.
     // Mirrors the engine stub's, deliberately and for the reason stated on that one: the parity gate
     // drives both executors against one host model, so two different models would turn its comparison
@@ -484,6 +513,9 @@ const makeShim = (opts: ShimOpts = {}) => {
       // excludes. Charged here rather than in `resize` or `addComponentProperty` because this is the
       // single most expensive of the set-level calls live.
       if (opts.burn?.combine) burnMs(opts.burn.combine);
+      // #913: refuses AFTER every member is built, named and on the page — the large regime, and the one
+      // call in the run whose failure strands the most. Figma's own message for the case it rejects.
+      if (opts.refuse?.combine) { hostRefusing = true; throw new Error('in combineAsVariants: The nodes must all have the same parent'); }
       const set = mkNode('COMPONENT_SET');
       set.id = 'SET:1';
       set.children = members;
@@ -1716,6 +1748,164 @@ ok(labelInstr.progress.length > 0 && labelInstr.yieldCalls > 0,
   `#804 a set no larger than one chunk still yields and still reports (${labelInstr.yieldCalls} yields, ${labelInstr.progress.length} reports)`);
 ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.some((p) => p.done === p.total),
   `#804 ...and the fractions are bounded and end at the total (${labelInstr.yields.join(', ')})`);
+
+// =============================================================================================
+// #913 — A PARTIAL WRITE IS MARKED, AND THE MARKING CANNOT MAKE THINGS WORSE
+// =============================================================================================
+// A throw mid-build leaves what it already wrote in the designer's file: Figma parents a created node to
+// the current page the moment it exists, so the leftovers are objects on a canvas, not local variables.
+// #913's decision is to MARK them — gather them under one visibly labelled frame and name them in the
+// verdict — rather than delete them, because `figma.commitUndo()` is called nowhere in this plugin, so the
+// whole run is a single undo entry and the unwind already exists.
+//
+// WHAT IS READ HERE, AND WHY IT IS NOT THE TRAIL. The executor keeps bookkeeping (`WriteTrail.loose`) and
+// reports it in `PartialWriteFacts`. Asserting that against itself would be docs/34 shape 1, so every
+// assertion below reads the HOST instead: the frame the shim actually holds, its actual children, and the
+// `parent` each parked node actually ended up with. The two derivations are then asserted to AGREE — a
+// marking that reported 648 parked while parenting 3 is the failure this arrangement exists to catch.
+//
+// AND WHAT THIS HARNESS CANNOT SEE, stated because it is the reason no existing gate caught the litter in
+// the first place: `mkNode` never appends to `page`, so a node created here is not on the shim's page the
+// way it is on Figma's. The page-parenting premise is measured in the standalone instrument
+// (`measure-913.ts`, attached to the filed issue), not here. The consequence shows up below — after a
+// refused `combineAsVariants` the shim's page array still lists the members it re-parented — so the
+// re-parenting is read off `node.parent`, which the shim does model, rather than off the page.
+
+// ---- REGIME 1: the small one, and the ORDINARY client failure -------------------------------
+// A brand whose typeface is not installed (#680, pinned above as unfixed). The throw lands inside the
+// FIRST member's build, before anything reaches the page at all — which is exactly why the count is small
+// and why it is the one that gets overlooked and then re-run on top of. Two nodes is not a dramatic
+// number; it is the number a designer meets most often.
+const smallPage: Page = { children: [] };
+let smallErr: unknown = null;
+try {
+  await run(grid, { ...full(), page: smallPage, styleFont: missingFont, unavailableFonts: [missingFont] });
+} catch (e) { smallErr = e; }
+const smallFacts = partialWriteOf(smallErr);
+ok(smallErr !== null && (smallErr as Error).message.indexOf('unloaded font') >= 0,
+  `#913 the HOST'S OWN ERROR still escapes, unwrapped and unreplaced — the throw is what the designer needs to see (${(smallErr as Error)?.message?.slice(0, 52)}…)`);
+ok(smallFacts !== null, '#913 ...and it carries the facts about what was left behind, attached rather than substituted');
+// The FRAME, read off the page — the independent half. `findOne` is the shim's, so this is the same
+// question a designer's eye asks: is there one labelled thing on this page?
+const smallFrames = smallPage.children.filter((c) => c.type === 'FRAME' && String(c.name).startsWith('⚠ Prism3 partial build'));
+ok(smallFrames.length === 1, `#913 exactly one marking frame reached the page (${smallFrames.length})`);
+const smallFrame = smallFrames[0];
+ok(smallFacts!.loose > 0,
+  `#913 reachable: the build really did leave nodes behind before it threw (${smallFacts!.loose}) — a zero here would make every assertion in this block vacuous`);
+ok(smallFrame !== undefined && (smallFrame.children as Node[]).length === smallFacts!.loose,
+  `#913 the frame HOLDS what the verdict claims: ${(smallFrame?.children as Node[])?.length} children against ${smallFacts!.loose} reported`);
+ok(smallFacts!.parked === smallFacts!.loose && smallFacts!.markError === null,
+  `#913 ...and the marking is reported as complete, with no failure of its own (parked ${smallFacts!.parked}/${smallFacts!.loose})`);
+// RE-PARENTED, not merely listed. `appendChild` sets `parent`, and a frame whose `children` array holds
+// nodes still parented elsewhere would be a frame a designer could not use to find them.
+ok((smallFrame.children as Node[]).every((c) => c.parent === smallFrame),
+  '#913 every parked node is really parented to the frame, not just listed in its children array');
+// The COUNT IS IN THE NAME, and the name is built from the bookkeeping while the children are host state —
+// so a marking that lied about how many it gathered fails here rather than reading plausibly.
+ok(String(smallFrame.name).indexOf(`(${smallFacts!.loose} node`) >= 0,
+  `#913 the frame's own label states the count it holds, so the litter is findable by reading it (${smallFrame.name})`);
+ok(String(smallFrame.name).indexOf('button') >= 0 && String(smallFrame.name).indexOf('undo') >= 0,
+  '#913 ...and names the component it was building and the way out');
+// THE PROSE THE DESIGNER ACTUALLY READS, in both halves. The pill has to carry the number: two nodes and
+// 648 both reading `✗ write failed` is the defect this closes, and the small case is the one it matters for.
+ok(partialWriteHeadline(smallFacts!).indexOf(String(smallFacts!.loose)) >= 0,
+  `#913 the verdict pill carries the count in the SMALL regime (${partialWriteHeadline(smallFacts!)})`);
+ok(partialWriteNote(smallFacts!).indexOf(String(smallFrame.name)) >= 0,
+  '#913 ...and the note names the frame, which is the only pointer the panel can give');
+
+// ---- REGIME 2: the large one --------------------------------------------------------------
+// Every member built, named and on the page, and then the single call that would gather them refuses. The
+// count here is the whole set: 648 for the full Button grid live, 21 for the grid this harness drives.
+const bigPage: Page = { children: [] };
+let bigErr: unknown = null;
+try {
+  await run(grid, { ...full(), page: bigPage, refuse: { combine: true } });
+} catch (e) { bigErr = e; }
+const bigFacts = partialWriteOf(bigErr);
+ok((bigErr as Error)?.message?.indexOf('combineAsVariants') >= 0,
+  `#913 the refusal itself still reaches the user (${(bigErr as Error)?.message?.slice(0, 52)}…)`);
+// EXPECTED from the PLANS, not from the executor's count: `grid.length` is what was asked for, and every
+// member is loose once the combine refuses. This is the arm that would catch the trail losing members.
+ok(bigFacts !== null && bigFacts.loose === grid.length,
+  `#913 the large regime strands the whole set — one loose node per member asked for (${bigFacts?.loose} of ${grid.length})`);
+const bigFrame = bigPage.children.find((c) => c.type === 'FRAME' && String(c.name).startsWith('⚠ Prism3 partial build'));
+ok(bigFrame !== undefined && (bigFrame.children as Node[]).length === grid.length,
+  `#913 ...and all of them are gathered under one frame (${(bigFrame?.children as Node[])?.length})`);
+ok((bigFrame!.children as Node[]).every((c) => c.parent === bigFrame), '#913 ...each really re-parented to it');
+// THE PARKED NODES ARE THE MEMBERS, checked by NAME against what the plans asked for. This is the arm that
+// catches the trail holding the wrong objects — a pre-conversion root, a part, a stale duplicate — which a
+// count alone cannot see. (The frame-vs-component distinction is NOT observable here: this shim's
+// `createComponentFromNode` is the identity, deliberately, so the two are one object. Only the live host
+// can tell them apart, which is why the executor's own delete-then-add ordering is written for both.)
+const bigNames = new Set((bigFrame!.children as Node[]).map((c) => String(c.name)));
+const wantNames = new Set(grid.map(planComponentName));
+ok(bigNames.size === wantNames.size && [...wantNames].every((n) => bigNames.has(n)),
+  `#913 ...and they are the members the plans named, not some other nodes that happen to number ${grid.length}`);
+ok(partialWriteHeadline(bigFacts!).indexOf(String(grid.length)) >= 0,
+  `#913 the verdict pill carries the count in the LARGE regime too — same shape, one number (${partialWriteHeadline(bigFacts!)})`);
+// The two regimes must produce the same SHAPE of verdict. Tuning the reporting for the dramatic case is
+// how the two-node case ends up invisible, so the pills are compared by form rather than by content.
+ok(/^✗ failed, \d+ parked$/.test(partialWriteHeadline(smallFacts!)) && /^✗ failed, \d+ parked$/.test(partialWriteHeadline(bigFacts!)),
+  '#913 both regimes render the same verdict shape, so neither is the special case');
+
+// ---- THE MARKING'S OWN FAILURE -------------------------------------------------------------
+// The premise of the whole design: this runs on a host that has just refused a call, so it must be able to
+// refuse the next one. Two things are then required, and the second is the load-bearing one — the nodes
+// are still in the file, so the verdict must still say so. A marking that reported a clean file here would
+// be worse than no marking at all.
+const cannotMarkPage: Page = { children: [] };
+let cannotMarkErr: unknown = null;
+try {
+  await run(grid, { ...full(), page: cannotMarkPage, refuse: { combine: true, createFrame: 'on-failure-path' } });
+} catch (e) { cannotMarkErr = e; }
+const cmFacts = partialWriteOf(cannotMarkErr);
+ok((cannotMarkErr as Error)?.message?.indexOf('combineAsVariants') >= 0,
+  `#913 a marking that fails does NOT mask the original cause — the refusal is still the message (${(cannotMarkErr as Error)?.message?.slice(0, 52)}…)`);
+ok(cmFacts !== null && cmFacts.loose === grid.length && cmFacts.parked === 0 && cmFacts.frame === null,
+  `#913 ...and the nodes are still reported as present, unparked (loose ${cmFacts?.loose}, parked ${cmFacts?.parked}, frame ${String(cmFacts?.frame)})`);
+ok(cmFacts!.markError !== null && cmFacts!.markError!.indexOf('not editable') >= 0,
+  `#913 ...with the marking's own failure named beside the cause rather than swallowed (${cmFacts?.markError})`);
+ok(!cannotMarkPage.children.some((c) => String(c.name).startsWith('⚠ Prism3 partial build')),
+  '#913 reachable: no frame was made, so the assertions above are about the unparked path');
+ok(partialWriteNote(cmFacts!).indexOf('loose on this page') >= 0 && partialWriteNote(cmFacts!).indexOf(String(grid.length)) >= 0,
+  '#913 the note tells the designer the nodes are loose and how many — the one thing it must never get wrong');
+
+// ---- AND NOTHING IS MARKED WHEN NOTHING FAILED ---------------------------------------------
+// The cost of this feature is a write on the failure path. It must be exactly zero on the success path:
+// a marking frame appearing on a clean build would be litter created by the litter-detector.
+const cleanPage: Page = { children: [] };
+const cleanRun = await run(grid, { ...full(), page: cleanPage });
+ok(cleanRun.variants === grid.length && !cleanPage.children.some((c) => String(c.name).startsWith('⚠')),
+  `#913 a clean build creates no marking frame at all (${cleanPage.children.length} page child/children, ${cleanRun.variants} members)`);
+// A run that fails WITHOUT writing keeps its old verdict, which is the third state. Two hosts, because one
+// of them cannot see the defect and it took a mutation to notice:
+//
+//  · `planSetLayout` refuses an incoherent plan set (two components at one coordinate) on a host that
+//    ACCEPTS EVERYTHING. This is the case that matters, and the one the first version of this block
+//    missed: nothing was written, so nothing may be marked, and a frame reading "(0 nodes; undo to
+//    remove)" would be litter produced by the litter-collector. Measured — deleting the executor's
+//    `nodes.length === 0` short-circuit left this whole block green, because the only host it drove was
+//    one that refuses `createFrame` and therefore could not have produced a frame either way. A right
+//    comparison over a set that excludes the failing case (docs/34 shape 15).
+//  · the host refusing the build's very first node, which is the same terminal state reached a different
+//    way and is kept because it is the one a client meets.
+const refusedPage: Page = { children: [] };
+let refusedErr: unknown = null;
+try { await run([grid[0], { ...grid[0] }], { ...full(), page: refusedPage }); } catch (e) { refusedErr = e; }
+ok(refusedErr !== null && (refusedErr as Error).message.indexOf('share a component name') >= 0,
+  '#913 reachable: an incoherent plan set is refused before the first create, on a host that accepts everything');
+ok(partialWriteOf(refusedErr) === null,
+  '#913 a throw before the first write attaches no partial-write facts, so its verdict is unchanged');
+ok(refusedPage.children.length === 0,
+  `#913 ...and NO marking frame is created for a file nothing reached, on a host that would have accepted one (${refusedPage.children.length} page children)`);
+
+const nothingPage: Page = { children: [] };
+let earlyErr: unknown = null;
+try { await run(grid, { ...full(), page: nothingPage, refuse: { createFrame: 'always' } }); } catch (e) { earlyErr = e; }
+const earlyFacts = partialWriteOf(earlyErr);
+ok(earlyErr !== null && (earlyFacts === null || earlyFacts.loose === 0),
+  `#913 the same holds when it is the HOST that refused the first node (${earlyFacts === null ? 'no facts' : earlyFacts.loose + ' loose'})`);
+ok(nothingPage.children.length === 0, `#913 ...and nothing was put on that page either (${nothingPage.children.length})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

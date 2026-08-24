@@ -17,8 +17,16 @@
  * The one worth gating hardest is "ran and built nothing": `applyComponentPlan` is idempotent, so a
  * re-run skips all 648 members by name, and a verdict that treated those skips as misses would report a
  * working idempotent build as 648 failures.
+ *
+ * And since #913, `partialWriteHeadline`/`partialWriteNote` — the verdict for a build that THREW with
+ * nodes already in the file. Two properties are gated there that the other two headlines do not have:
+ * the count reaches the pill in **both** size regimes (2 nodes and 648 were both measured, and the small
+ * one is the one that gets overlooked and re-run on top of), and a marking that ITSELF failed still
+ * reports the nodes as present. The facts here are authored fixtures — the executor's own collection of
+ * them is gated against real host state in `test-write-components.ts`.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline } from './src/apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import type { PartialWriteFacts } from './src/apply-summary';
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -99,6 +107,96 @@ const cWorst = [0, 1, 2, 9, 99, 648, 999, 9999].flatMap((a) =>
 const cOver = cWorst.filter((h) => h.length > 24);
 ok(cOver.length === 0, `every component headline fits the 24-char pill budget (longest ${Math.max(...cWorst.map((h) => h.length))}: "${cWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
 ok(cWorst.every((h) => h.trim().length > 0), 'no component headline is blank (the UI would replace it with a generic verdict)');
+
+console.log('\npartial-write verdict — what a failed build left in the file (#913)\n');
+
+// A local builder, so each case below names only the fields it is about. Deliberately NOT the executor's
+// `markPartialWrite` return value: that function lives in `write-components.ts` behind a `figma`-typed
+// API and is gated in `test-write-components.ts` against the HOST's state. Here the facts are AUTHORED,
+// which is what makes this suite a check on the prose rather than a second reading of the executor.
+const facts = (f: Partial<PartialWriteFacts>): PartialWriteFacts =>
+  ({ loose: 0, parked: 0, frame: null, intoExistingSet: 0, markError: null, ...f });
+const parked = (n: number): PartialWriteFacts =>
+  facts({ loose: n, parked: n, frame: `⚠ Prism3 partial build — button (${n} node${n === 1 ? '' : 's'}; undo to remove)` });
+
+// BOTH SIZE REGIMES, at the prose layer. The two measured cases are 2 loose nodes (the typeface case —
+// a font the file does not have, which is the ORDINARY client failure) and 648 (a refused
+// `combineAsVariants`). The small one is the one a designer overlooks and then re-runs on top of, so the
+// requirement is that the COUNT reaches the pill in both — not that the big one is dramatic.
+const small = partialWriteHeadline(parked(2));
+const large = partialWriteHeadline(parked(648));
+ok(small.includes('2') && large.includes('648'),
+  `the parked count reaches the pill in both size regimes (${small} | ${large})`);
+ok(small !== APPLY_FAILED_HEADLINE && large !== APPLY_FAILED_HEADLINE,
+  'neither regime falls back to the bare throw verdict, which would hide the leftovers');
+ok(small === '✗ failed, 2 parked', `the two-node case reads exactly (${small})`);
+
+// Nothing written is the third state, and it must keep the OLD verdict: `planSetLayout` refusing before
+// anything reaches the file is a clean failure, and inventing a count for it would be a false claim
+// about the designer's file.
+ok(partialWriteHeadline(facts({})) === APPLY_FAILED_HEADLINE,
+  'a throw that wrote nothing keeps the plain failure verdict');
+ok(partialWriteNote(facts({})) === '', 'and appends no note at all, so the summary is unchanged');
+
+// Precedence: loose nodes outrank members added to a set that was already there. Loose nodes are litter
+// at the top level of the page; the set members are in the place the designer expects them.
+const bothKinds = partialWriteHeadline(facts({ loose: 3, parked: 3, frame: 'f', intoExistingSet: 9 }));
+ok(bothKinds.includes('3') && !bothKinds.includes('9'),
+  `loose nodes lead over members appended to an existing set (${bothKinds})`);
+ok(partialWriteHeadline(facts({ intoExistingSet: 5 })) === '✗ failed, 5 in set',
+  `a write that only touched the existing set says so (${partialWriteHeadline(facts({ intoExistingSet: 5 }))})`);
+
+// THE ONE THAT MATTERS. When the marking itself fails there is no frame, and the nodes are still in the
+// file — so the note must still name them. A single `parked` count would report zero nodes here, which
+// is the one thing this must never say: the designer would be told the file is clean while 648 loose
+// components sit on the page.
+const unmarked = partialWriteNote(facts({ loose: 648, parked: 0, frame: null, markError: 'in createFrame: read-only' }));
+ok(unmarked.includes('648') && /loose/.test(unmarked),
+  'a FAILED marking still reports the nodes as loose, never as zero');
+ok(unmarked.includes('read-only'), 'and reports its own failure beside the cause, so both are visible');
+const halfMarked = partialWriteNote(facts({ loose: 648, parked: 640, frame: 'F', markError: 'in appendChild: locked' }));
+ok(halfMarked.includes('640') && halfMarked.includes('8'),
+  `a partial marking accounts for both halves (${halfMarked.slice(0, 96)}…)`);
+
+// The frame EXISTS and is EMPTY — measured, and the one state a plausible reading of the facts gets wrong.
+// A host that refuses `appendChild` refuses it for the marking too, so the frame is created and named (its
+// name carries the count) and then takes none of the nodes. The frame is real and on the page, so the note
+// may not pretend it is absent; the nodes are all still loose, so it may not let the frame's name stand as
+// the answer either. Both halves, or a designer reads the label and believes the litter is contained.
+const emptyFrame = partialWriteNote(facts({ loose: 148, parked: 0, frame: '⚠ Prism3 partial build — button (148 nodes; undo to remove)', markError: 'HOST REJECTED appendChild' }));
+ok(emptyFrame.includes('0 of them are parked') && emptyFrame.includes('148 are still loose'),
+  `a frame that took none of the nodes says so on both counts (${emptyFrame.slice(0, 120)}…)`);
+
+// The frame's NAME is in the note, because that is how a designer finds it: the panel cannot select or
+// scroll to a node, so the prose has to be the pointer.
+ok(partialWriteNote(parked(2)).includes('⚠ Prism3 partial build'),
+  'the marking frame is named in the note, since the panel cannot select it for the designer');
+
+// The note is a SUFFIX. `main.ts` appends it to the host's own error message, and the cause has to lead:
+// the throw is what the designer needs to see, and this is where it happened to land.
+ok(partialWriteNote(parked(2)).startsWith(' — '),
+  'the note appends to the cause rather than replacing it');
+ok(/One undo removes the whole build\.$/.test(partialWriteNote(parked(2))),
+  'the note ends with the recovery, which is one undo because `commitUndo()` is never called');
+// No keyboard shortcut, on purpose: the panel runs on macOS and Windows, and naming one key is wrong for
+// half the audience. Asserted rather than remembered, since the obvious edit is to "help" by adding it.
+ok(!/⌘|Ctrl|Cmd/.test(partialWriteNote(parked(2))), 'and names no keyboard shortcut, which would be wrong on one platform');
+
+// Plurals again, in a third place — and the singular is reachable: one member created before the throw.
+const one = partialWriteNote(parked(1));
+ok(one.includes('1 node ') && /it is parked/.test(one), `singular reads naturally at one node (${one.slice(0, 64)}…)`);
+ok(partialWriteNote(parked(2)).includes('2 nodes '), 'plural at two');
+ok(partialWriteNote(facts({ intoExistingSet: 1 })).includes('1 member ') , 'singular member of an existing set');
+ok(partialWriteNote(facts({ intoExistingSet: 2 })).includes('2 members '), 'plural members');
+
+// The same 24-char pill, probed across the range for the same reason: the count is interpolated, and a
+// plan larger than button's 648 is reachable the moment a def declares a fourth axis.
+const pWorst = [1, 2, 9, 99, 648, 9999, 99999].flatMap((n) =>
+  [0, 1, 648].map((s) => partialWriteHeadline(facts({ loose: n, parked: n, frame: 'f', intoExistingSet: s }))))
+  .concat([1, 2, 648, 99999].map((s) => partialWriteHeadline(facts({ intoExistingSet: s }))));
+const pOver = pWorst.filter((h) => h.length > 24);
+ok(pOver.length === 0, `every partial-write headline fits the 24-char pill budget (longest ${Math.max(...pWorst.map((h) => h.length))}: "${pWorst.reduce((a, b) => (b.length > a.length ? b : a))}")`);
+ok(pWorst.every((h) => h.trim().length > 0), 'no partial-write headline is blank (the UI would replace it with a generic verdict)');
 
 console.log(`\nplugin apply-result headline: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

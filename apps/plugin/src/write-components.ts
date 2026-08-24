@@ -56,6 +56,7 @@
  */
 import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
+import type { PartialWriteFacts } from './apply-summary';
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
  *  consumer-resolver the one unbindable geometry value goes through (`absoluteInset` — `x`/`y` accept
@@ -425,6 +426,114 @@ const boundPaint = (arr: unknown): boolean => {
   return !!(first && first.boundVariables && first.boundVariables.color);
 };
 
+// ── A PARTIAL WRITE, MARKED (#913) ─────────────────────────────────────────────────────────────
+//
+// A mid-run throw is reachable and it is not exotic: the ORDINARY client case reaches it. A brand whose
+// typeface is not installed on the machine running the build throws inside `setTextStyleIdAsync` — the
+// `loadFontAsync` above it is guarded and that one is not (#680) — after Figma has already created the
+// member's frame and its label. Measured against this executor over the real 648-member Button set:
+//
+//   • the typeface case leaves 3 nodes created and 2 parented to the page, on the FIRST member;
+//   • a refused `combineAsVariants` leaves 1,971 created and 648 loose COMPONENTS on the page.
+//
+// Both numbers matter and the small one matters more. 648 loose components are alarming enough that
+// nobody mistakes them for their own work; TWO are easy to miss entirely, and the next thing a designer
+// does is press the button again — on top of them.
+//
+// WHY MARK RATHER THAN DELETE, since deleting is the obvious repair. `figma.commitUndo()` is called
+// nowhere in this plugin (see the header), so the whole run is ONE undo entry and a single undo already
+// unwinds a partial write completely. A cleanup pass would therefore duplicate an unwind that exists,
+// spend hundreds of host calls on the least reliable code path available — a host that has just refused a
+// call — and destroy the evidence a designer or an agent needs to diagnose the failure. So the nodes stay
+// and become findable instead: one named frame, and a verdict that says the number out loud.
+//
+// TWO PROPERTIES THIS PATH MUST HAVE, both of them consequences of running after a refusal:
+//
+//   1. THE MARKING MUST NOT THROW, and must not mask the cause if it does. It is a write on the failure
+//      path; a host that refused the last call may refuse this one. So every call here is guarded, the
+//      original error is what gets rethrown (never a wrapper around it), and the marking's own failure
+//      travels beside the cause rather than replacing it — `markError`, reported after it.
+//   2. THE COUNT MUST REACH THE VERDICT IN BOTH SIZE REGIMES. `partialWriteHeadline` puts the number in
+//      the pill for exactly the two-node case; see `apply-summary.ts`.
+
+/** What this run has put in the file, so the failure path can say so. `loose` holds the OUTERMOST nodes
+ *  only — a child is removed the moment it is appended to its parent, and a member the moment it joins a
+ *  set — because parking a node that already has a parent would rip it out of the tree it belongs to.
+ *
+ *  Bookkeeping, deliberately, rather than a question asked of the host: there is no `parent` in the
+ *  `CompNode` port and adding one would put a second host call on the failure path to learn something
+ *  this side already knows. The gate for it is in `test-write-components.ts` and reads the FRAME rather
+ *  than this set — see that block's note on why. */
+type WriteTrail = {
+  loose: Set<CompNode>;
+  /** Members appended into a set that was already in the file, which is a partial write that is not
+   *  loose. Counted so the verdict can name it; never marked, because it is where it belongs. */
+  intoExistingSet: number;
+  /** The set's name, learned from `planSetLayout` — so the frame can say WHICH build failed. */
+  component: string;
+};
+
+/** The frame a designer will meet in the layers panel. Says what it is, how much is in it, and what to
+ *  do about it — with no keyboard shortcut, because the panel runs on macOS and Windows and naming one
+ *  key would be wrong for half the audience. */
+const parkFrameName = (component: string, n: number): string =>
+  `⚠ Prism3 partial build — ${component} (${n} node${n === 1 ? '' : 's'}; undo to remove)`;
+
+/** Gather what is loose under one named frame. NEVER THROWS — the whole function is the failure path.
+ *
+ *  NO AUTO-LAYOUT and no resize on the frame, which is a choice about evidence rather than about looks: an
+ *  auto-layout parent rewrites its children's sizing, and the geometry of a half-built member is the thing
+ *  a diagnosis reads. `clipsContent = false` so the contents are visible outside the frame's own box —
+ *  the members were never positioned (the layout pass runs after the combine), so they all sit at the
+ *  origin and a clipping 100×100 frame would hide 647 of them.
+ *
+ *  The frame is named for the number of nodes it was ASKED to hold, before the appends run. A name written
+ *  after the loop would be absent from a frame whose naming threw, and an unnamed frame is the litter this
+ *  exists to prevent; the verdict carries the authoritative count either way. */
+const markPartialWrite = (api: ComponentsApi, trail: WriteTrail): PartialWriteFacts => {
+  const nodes = [...trail.loose];
+  const facts: PartialWriteFacts = {
+    loose: nodes.length, parked: 0, frame: null, intoExistingSet: trail.intoExistingSet, markError: null,
+  };
+  // NOTHING WRITTEN, NOTHING MARKED. A frame created here would be the only thing this run put in the
+  // file — litter produced by the litter-collector, on the path where the verdict is already complete.
+  if (nodes.length === 0) return facts;
+  const name = parkFrameName(trail.component || 'component set', nodes.length);
+  try {
+    const frame = api.createFrame();
+    frame.name = name;
+    frame.clipsContent = false;
+    api.currentPage.appendChild(frame);
+    facts.frame = name;
+    // PER NODE, so one refusal does not abandon the rest — 647 gathered and one loose is a far better
+    // outcome than 648 loose, and the count the verdict reports is the number that actually moved.
+    for (const n of nodes) {
+      try { frame.appendChild?.(n); facts.parked++; }
+      catch (err) { facts.markError ??= (err as Error)?.message ?? String(err); }
+    }
+  } catch (err) {
+    facts.markError = (err as Error)?.message ?? String(err);
+  }
+  return facts;
+};
+
+/** The property key the facts ride on. Attached to the error the HOST threw rather than wrapped in a new
+ *  one, and that is the "must not mask" property in code: a wrapper replaces the stack, which is what a
+ *  live diagnosis reads in the plugin console, and forces every caller to unwrap to reach the message the
+ *  designer needs. Attaching is additive — the error rethrown is the same object, with the same message
+ *  and the same stack.
+ *
+ *  A non-object throw (a bare string) carries no property, so the verdict falls back to naming no partial
+ *  write. The durable half survives that: the frame is IN the document, under a name that explains
+ *  itself. */
+const PARTIAL_WRITE = '__prism3PartialWrite';
+
+/** Read the facts back off a thrown error, or `null` if this throw left nothing in the file. */
+export const partialWriteOf = (e: unknown): PartialWriteFacts | null => {
+  const f = (e as Record<string, unknown> | null | undefined)?.[PARTIAL_WRITE];
+  return f ? (f as PartialWriteFacts) : null;
+};
+
 /**
  * Materialise a plan set into a live Figma COMPONENT_SET.
  *
@@ -449,11 +558,37 @@ const boundPaint = (arr: unknown): boolean => {
  *    The emphasis is load-bearing: the same 2,592 searches cost ~0.07ms each on a warm re-run (185ms total,
  *    live), so the price is reconciliation, not search. Only the cold build — the one case that matters —
  *    pays it.
+ *
+ * A THROW FROM ANYWHERE INSIDE IS MARKED RATHER THAN SWALLOWED (#913). This is the entry point;
+ * `writeComponentSet` below is the whole of the write, unmoved. The split buys two things: ONE guard
+ * around the write instead of one per host call, and a trail that is created outside the code that fills
+ * it, so the marking reads a record the failing code cannot have skipped writing.
  */
 export const applyComponentPlan = async (
   plans: AnatomyPlan[],
   api: ComponentsApi,
   opts: ComponentApplyOptions = {},
+): Promise<ComponentApplyResult> => {
+  const trail: WriteTrail = { loose: new Set(), intoExistingSet: 0, component: '' };
+  try {
+    return await writeComponentSet(plans, api, opts, trail);
+  } catch (err) {
+    // MARK, THEN RETHROW THE ORIGINAL — in that order, and with the original object. Attached only when
+    // something actually reached the file, so `partialWriteOf` answering non-null means "there is a
+    // partial write" rather than "a build failed"; the throw-before-anything-is-written case (
+    // `planSetLayout` refusing an incoherent set) keeps the verdict it has always had.
+    const facts = markPartialWrite(api, trail);
+    if ((facts.loose > 0 || facts.intoExistingSet > 0) && typeof err === 'object' && err !== null)
+      (err as Record<string, unknown>)[PARTIAL_WRITE] = facts;
+    throw err;
+  }
+};
+
+const writeComponentSet = async (
+  plans: AnatomyPlan[],
+  api: ComponentsApi,
+  opts: ComponentApplyOptions,
+  trail: WriteTrail,
 ): Promise<ComponentApplyResult> => {
   const yieldTo = opts.yieldTo ?? realYield;
   const chunkSize = Math.max(1, opts.chunk ?? CHUNK);
@@ -486,6 +621,8 @@ export const applyComponentPlan = async (
   // THROWS on a set that could not be assembled coherently, which is the right moment to fail — before
   // anything reaches the file.
   const { cells, props, refs, axes, rows, cols, component } = planSetLayout(plans, 'applyComponentPlan');
+  // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
+  trail.component = component;
   const misses: string[] = [];
 
   // Four namespaces, four name→object maps. Unfiltered variable fetch, the #146 lesson: a
@@ -613,6 +750,10 @@ export const applyComponentPlan = async (
       node = wr(api.createFrame());
       node.clipsContent = false;
     }
+    // LOOSE FROM THE MOMENT IT EXISTS (#913), one line for all six creation branches above. Figma parents
+    // a created node to the current page immediately, so a node that exists is a node a designer can see —
+    // and every line below this one can throw.
+    trail.loose.add(node);
     node.name = n.name;
     // Before ANY dimension binding — see the header note. Unconditional, unlike the
     // `constrainProportions` form this replaced: that needed an `in` guard because it lives on
@@ -729,6 +870,8 @@ export const applyComponentPlan = async (
       const kid = await build(c, parts);
       if (!kid) continue;   // a missing shared component — one precise miss, the rest still builds
       node.appendChild?.(kid);
+      // NO LONGER LOOSE (#913): it has a parent, and its ancestor is what the marking would gather.
+      trail.loose.delete(kid);
       // REGISTERED HERE AND NOWHERE ELSE (#701) — on the child, after it built, inside the parent's loop.
       // That placement is the whole correctness argument, because it makes this map's membership match
       // `findOne`'s reach EXACTLY, and the two must agree or the fast path is a behaviour change:
@@ -881,6 +1024,11 @@ export const applyComponentPlan = async (
       if (root) {
         api.currentPage.appendChild(root);
         const comp = wr(api.createComponentFromNode(root));
+        // THE COMPONENT TAKES THE FRAME'S PLACE on the page, so it takes its place in the trail (#913).
+        // Ordered delete-then-add rather than the reverse: the two are the same object on a host that
+        // converts in place, and adding first would then remove the node this run is holding.
+        trail.loose.delete(root);
+        trail.loose.add(comp);
         comp.name = spec.name;
         fresh.push(comp);
         // AFTER the component exists and is named, under the name the wire loop will look it up by.
@@ -903,8 +1051,19 @@ export const applyComponentPlan = async (
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
     set = api.combineAsVariants(fresh, api.currentPage);
+    // THE SET IS NOW THE LOOSE THING (#913) — 648 members become one object on the page, and a throw from
+    // any of the set-level calls below leaves that one object to gather rather than its members.
+    for (const c of fresh) trail.loose.delete(c);
+    trail.loose.add(set);
     wr(set).name = component;
-  } else for (const c of fresh) set.appendChild?.(c);
+  } else for (const c of fresh) {
+    set.appendChild?.(c);
+    // INTO A SET THE FILE ALREADY HAD (#913). Not loose — it is exactly where a designer expects it — so
+    // it is counted for the verdict and never moved. Marking these would tear this run's members out of
+    // the designer's own set to make a point about a failure they can undo in one step.
+    trail.loose.delete(c);
+    trail.intoExistingSet++;
+  }
   const members = [...(set.children ?? [])];
 
   // LAY OUT. Column pitch is MEASURED, not computed: a hug-width button is as wide as its label and

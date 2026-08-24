@@ -54,12 +54,16 @@
  * `misses === skipped` rule, plus the idempotent re-run where every member is skipped). Counted here so
  * adding one means editing that number on purpose.
  *
- * **AND IT WORKED, ONCE, WHICH IS WHY THE NUMBER IS WORTH THE FRICTION.** The list shipped at five and is
- * at six: #869 added a real early return to `buildComponents` — a def whose projection cannot render
- * standalone is refused rather than half-built — and the asserted count is what forced this file open
- * rather than letting the new terminal path ship uncovered. That is the failure this suite exists for,
- * arriving from a *different* PR: a terminal message with no verdict on screen leaves the panel stuck on
- * "Building…", so a fix that adds a terminal path silently reintroduces #870 wherever nothing looks.
+ * **AND IT HAS WORKED TWICE, WHICH IS WHY THE NUMBER IS WORTH THE FRICTION.** The list shipped at five and
+ * is at seven. #869 added a real early return to `buildComponents` — a def whose projection cannot render
+ * standalone is refused rather than half-built. #913 split the catch arm in two: a throw that left nodes in
+ * the designer's file now posts a different verdict from one that left it untouched, because the marked
+ * leftovers are the fact a designer has to be told. Both times the asserted count is what forced this file
+ * open rather than letting the new terminal path ship uncovered. That is the failure this suite exists for,
+ * arriving from a *different* PR each time: a terminal message with no verdict on screen leaves the panel
+ * stuck on "Building…", so a fix that adds a terminal path silently reintroduces #870 wherever nothing
+ * looks. Note what the count does NOT catch — a new terminal path whose message is shaped like an existing
+ * one needs a row here for its WORDS, and only a human reading `buildComponents` will notice that.
  *
  * ── the second defect this suite exists to hold, which the ticket did not name ───────────────────
  *
@@ -220,8 +224,14 @@ const CONDITIONS = [
     verdictOpens: true,
   },
   {
+    // ONE OF TWO THROW CONDITIONS SINCE #913, and this is the one that wrote NOTHING: the throw lands
+    // before the first `create*` call, so the file is untouched and the verdict has no count to carry.
+    // Its partner is 'errored build, partial write' below — same catch arm, different message, because
+    // whether anything reached the file is the fact a designer needs and the two are not one case.
+    // (The `why` said "and #869's live example" until #913; #869 has had its own entry since, so the
+    // sentence was pointing at a case this row no longer stands for.)
     name: 'errored build',
-    why: "the catch arm — planSetLayout throws before anything reaches the file (and #869's live example)",
+    why: 'the catch arm, with the file untouched — planSetLayout throws before anything is created',
     msg: { type: 'component-result', ok: false, headline: '✗ apply failed', summary: 'component build failed: planSetLayout: no coherent set' },
     verdictOpens: true,
   },
@@ -256,15 +266,35 @@ const CONDITIONS = [
     },
     verdictOpens: true,
   },
+  {
+    // #913 ADDED A TERMINATING CONDITION — the same catch arm as 'errored build', with a DIFFERENT message,
+    // and that is why it is a seventh row rather than a variant of the third. A throw that left nodes in
+    // the file and a throw that left it untouched are two different things to tell a designer, and the
+    // panel has to render both: the marking gathers the leftovers under a labelled frame, and this verdict
+    // is the only thing that says so. Nobody looks for a frame they were not told about.
+    //
+    // Authored verbatim, in the shape `main.ts` posts, NOT built by calling `partialWriteHeadline` — this
+    // file asserts what the panel renders, and generating the expected string from the module that
+    // generates the real one would make it agree with itself (docs/34 shape 1). The strings below were
+    // copied from a measured run of the executor against a host whose typeface is missing.
+    name: 'errored build, partial write',
+    why: "#913's marked leftovers — the catch arm with nodes already in the file, which needs its own words",
+    msg: {
+      type: 'component-result', ok: false, headline: '✗ failed, 2 parked',
+      summary: "component build failed: in setTextStyleIdAsync: unloaded font \"Clash Display Semi Bold\" — 2 nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (2 nodes; undo to remove)' on this page. One undo removes the whole build.",
+    },
+    verdictOpens: true,
+  },
 ];
 
 // #870 requires the list to be STATED rather than the observed case fixed. Asserted so that dropping one
 // is an edit to this number instead of a quiet narrowing of what a green run means.
 //
-// SIX SINCE #869, not five. The number moving is the assertion working as designed: #869 added a real
-// early return to `buildComponents`, and the count is what forced this file to be opened rather than the
-// new path shipping uncovered.
-ok(CONDITIONS.length === 6, `the condition list covers all 6 terminating conditions (found ${CONDITIONS.length})`);
+// SEVEN SINCE #913, six since #869, five before that. The number moving each time is the assertion working
+// as designed, and it has now done its job TWICE from two different PRs: #869 added a real early return to
+// `buildComponents`, and #913 split the catch arm into "wrote nothing" and "left nodes in the file". Both
+// times the count is what forced this file open rather than letting the new terminal path ship uncovered.
+ok(CONDITIONS.length === 7, `the condition list covers all 7 terminating conditions (found ${CONDITIONS.length})`);
 
 console.log(`\nComponent-build verdict suite (#870) — ${CONDITIONS.length} terminating conditions\n`);
 
@@ -349,6 +379,59 @@ for (const c of CONDITIONS) {
   }
 
   ok(errors.length === 0, `${c.name}: no console errors (${errors.slice(0, 2).join(' · ')})`);
+  await page.close();
+}
+
+// ── #913: the marked leftovers reach the designer in BOTH SIZE REGIMES ────────────────────────
+//
+// Measured, on the real executor: a brand whose typeface is not installed leaves TWO nodes in the file, and
+// a refused `combineAsVariants` leaves 648. The first is the ordinary client failure and the second is the
+// spectacular one, and the reporting must not be tuned for the spectacular one — two loose components are
+// easy to miss and then re-create on the next run, which is the outcome this whole feature exists to
+// prevent. So both are driven here rather than one being padded into `CONDITIONS`: what is asserted is that
+// the two verdicts differ ONLY in their number.
+//
+// WHAT IS *NOT* ASSERTED HERE, AND WHY — because the obvious extra check turned out to be one that runs
+// and cannot fire. #483's finding was a verdict computed correctly and then discarded by
+// `text-overflow: ellipsis` at 220px, so "is the count clipped out of the pill" looks like the right
+// question to ask of the rendered DOM. It is not answerable any more: measured on the built bundle, the
+// pill computes to `overflow: visible`, `max-width: none`, `white-space: nowrap` — it GROWS with its text
+// instead of clipping — and the panel opens at 1280×900 (`DEFAULT_SIZE` in `main.ts`), where a
+// deliberately over-budget 78-character headline still renders at 455px inside an 833px row. So
+// `scrollWidth <= clientWidth` is true for every possible headline: added as an arm here, it stayed green
+// under a headline three times the budget, which is a check that cannot fail reporting itself as a pass.
+// The ≤24-char budget is asserted where it can still move — against the function, over a range of counts,
+// in `test-apply-summary.ts`. Left as a note rather than deleted silently: the next person to reach for
+// this measurement should know it was taken.
+for (const [n, label] of [[2, 'the small regime — the ordinary client failure'], [648, 'the large regime']]) {
+  const { page, errors } = await openPanel();
+  await startBuild(page, undefined, label);
+  const headline = `✗ failed, ${n} parked`;
+  await post(page, {
+    type: 'component-result', ok: false, headline,
+    summary: `component build failed: in combineAsVariants: The nodes must all have the same parent — ${n} nodes had already reached the file; they are parked in the frame '⚠ Prism3 partial build — button (${n} nodes; undo to remove)' on this page. One undo removes the whole build.`,
+  });
+  await page.waitForFunction(() => document.querySelector('.cw-row button.barbtn')?.textContent === '⊞ Build set', null, { timeout: 5000 }).catch(() => {});
+  const after = await readSurfaces(page);
+
+  // THE COUNT, on both surfaces. Asserted as the NUMBER rather than as the whole headline, because the
+  // number is the part a verdict tuned for the dramatic case would drop.
+  ok(after.pageVerdict.some((t) => (t ?? '').includes(String(n))),
+    `${label}: the page's pill states how many nodes were left — read ${JSON.stringify(after.pageVerdict)}`);
+  ok(after.barVerdict.some((t) => (t ?? '').includes(String(n))),
+    `${label}: the chrome bar states it too, so it survives navigating away — read ${JSON.stringify(after.barVerdict)}`);
+
+  // The WHERE is in the detail, and the detail is open without a click: a designer who has to expand a row
+  // to learn that 648 components are sitting on their canvas will not learn it.
+  ok(after.detail !== null && (after.detail ?? '').includes('parked in the frame'),
+    `${label}: the open detail says where the leftovers are`);
+  ok((after.detail ?? '').includes('⚠ Prism3 partial build'),
+    `${label}: ...and names the frame, which is the only pointer the panel can give`);
+  ok((after.detail ?? '').includes('One undo'),
+    `${label}: ...and names the way out, which is one undo because the run is one undo entry`);
+  ok((after.detail ?? '').includes('combineAsVariants'),
+    `${label}: ...with the host's own error still leading, since the cause is what the designer needs`);
+  ok(errors.length === 0, `${label}: no console errors (${errors.slice(0, 2).join(' · ')})`);
   await page.close();
 }
 
