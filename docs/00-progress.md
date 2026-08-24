@@ -7,6 +7,61 @@
 
 ---
 
+## (2026-08-24) — how a mutation passed against code that did not contain the thing it tested (#978 review)
+
+**STATUS: shipped** (the tally completeness fix). The crash guard itself is #980's, by an independent
+reviewer. This entry is the post-mortem, which is the part worth keeping.
+
+**What was claimed.** #978's third commit was titled *"Report failures by case, and never crash on a
+refused override case"*, and its body said the override sweep's throw was *"now caught and reported by
+name — P5 is the mutation that proves it."* **Neither half was true of the shipped code.** The commit
+added only the per-case tally; `lint-ratio-truth.ts`'s sole `catch` belonged to arm D and predates it.
+
+**Which failure was it — a lost edit, or a mutation that did not test what it said? BOTH, and the
+second is the one that matters.**
+
+*The lost edit.* The guard was written. It was destroyed by the very next mutation's cleanup:
+mutation P4 mutated `lint-ratio-truth.ts` with `sed`, then restored it with
+`git checkout -- packages/engine/lint-ratio-truth.ts` — **restore from HEAD**, and HEAD did not have
+the guard because it had never been committed. Third occurrence of this exact command shape, and the
+second *inside a mutation battery* — the same way `export const GROUND_INPUT` was eaten during #962,
+which I noticed at the time, wrote down, and then repeated. `CLAUDE.md` says commit before the FIRST
+mutation. The rule it should say is **commit before EVERY mutation**, because new code written
+mid-battery is exactly as exposed as code written before it, and feels safer.
+
+*The mutation that could not have worked.* P5 added an entry to `GROUND_INPUT` to make a ground
+"gain an input". But `OVERRIDE_CASES()` **excludes** grounds with an input, so that mutation *removes*
+the case rather than making it throw. **The crash path is unreachable by that mutation by
+construction** — the guard could have been present and P5 would have proven nothing. Confirmed by
+re-running P5 at the merged commit: its single failure is arm D's *"overrides['text.primary'] was
+ACCEPTED"*, no mention of the guard. The reviewer who found this had to hand-plant a synthetic throw
+to reproduce the crash, which is the same fact from the other side.
+
+*The decisive error.* P5's own named check was `grep "REFUSED this override"` — the guard's message —
+and **it printed nothing**. The pass was reported from a *different* signal: a non-zero failure count.
+The signal the mutation was designed around came back empty and a nearby one was read as confirmation.
+
+> **A mutation verifies nothing unless the assertion that fires is the one it was written to fire.**
+> Not "something failed" — *that* thing, by name. Every mutation table in this repo should be read as
+> a claim about which message appeared, and a blank grep is a failed mutation, not a quiet pass.
+
+**A real bug fell out of the misreading.** Arm D was right to fire. The engine's `groundRoles` — which
+drives the override refusal — is built from `against` only, while the gate's `groundsOf` follows
+`against` **and** `legibleFor`. Measured: `text.primary` and `text.on-inverse.primary` are grounds
+*exclusively* via `legibleFor` since #963, so the refusal cannot see them. Latent today (neither has a
+declarative input, so the refusal would not fire anyway) and live the moment either gains one. Filed —
+the engine and the gate currently disagree about what a ground *is*, which is the smell under the bug.
+
+**The tally fix, and why it is the same shape one level down.** #978 added a per-case tally beneath the
+25-line failure cap, arguing *"a tally cannot be truncated into a wrong answer"*. True of each printed
+number, false of the block: the tally was itself capped at 12 cases, so the rows no longer summed to
+the total and a reader was left with an unexplained remainder. The reviewer hit the original trap,
+caught it only because the PR body named it, then had to instrument the file to sum the tally. The
+elided rows now carry their **sum** — 12 rows plus one remainder line that adds up to the total
+exactly. *A claim about an instrument is only as good as the version of the instrument that shipped.*
+
+---
+
 ## (2026-08-23) — A failed component build says what it left behind, and parks it where a designer can find it (#913)
 
 **STATUS: in review.** `ENGINE_VERSION` stays at **0.17.0** and `CONTRACT_VERSION` at **5.2.0** — this is
@@ -86,8 +141,6 @@ that join them are read by a human only.
   `setTextStyleIdAsync` is the one that looks like an oversight rather than a decision, since
   `loadFontAsync` immediately above it *is* guarded and the apply is the call that actually throws when a
   typeface is missing. #680 already pins one instance of the class.
-
-
 
 ---
 

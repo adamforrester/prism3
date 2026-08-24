@@ -293,17 +293,30 @@ if (failures.length) {
     // finding for several minutes.
     //
     // Same class #954 recorded for `lint-us-english` (a planted regression invisible behind a
-    // backlog). The cap stays — a 200-line dump helps nobody — but a per-case tally cannot be
-    // truncated into a wrong answer, so it goes below the elision rather than above it.
+    // backlog). The cap stays — a 200-line dump helps nobody — but the tally below it is written so
+    // its rows always ADD UP to the total, which the failure list cannot.
     const byCase = new Map<string, number>();
     for (const f of failures) {
       const label = f.split(':')[0] ?? '?';
       byCase.set(label, (byCase.get(label) ?? 0) + 1);
     }
     console.error(`\n    failures by case (${byCase.size} affected):`);
-    for (const [label, n] of [...byCase].sort((a, b) => b[1] - a[1]).slice(0, 12))
-      console.error(`      ${String(n).padStart(4)}  ${label}`);
-    if (byCase.size > 12) console.error(`      … and ${byCase.size - 12} more case(s)`);
+    const ranked = [...byCase].sort((a, b) => b[1] - a[1]);
+    for (const [label, n] of ranked.slice(0, 12)) console.error(`      ${String(n).padStart(4)}  ${label}`);
+    // The elided rows carry their SUM, not merely their count, so the printed numbers always add up
+    // to the total. Capping the tally at 12 had reintroduced a weaker form of the very thing the
+    // tally was added to fix: a reader reconciling the rows against the total was left with an
+    // unexplained remainder and no way to tell whether it sat in one large case or forty small ones.
+    //
+    // Caught reviewing #978, whose body claimed "a tally cannot be truncated into a wrong answer".
+    // True of every printed number and false of the block as a whole — the #968 shape, a
+    // true-sounding claim in a document people trust. The reviewer had to instrument this file to sum
+    // the tally by hand; that is the work these lines remove.
+    if (ranked.length > 12) {
+      const rest = ranked.slice(12);
+      const restFailures = rest.reduce((sum, [, n]) => sum + n, 0);
+      console.error(`      ${String(restFailures).padStart(4)}  … across ${rest.length} more case(s), largest ${rest[0][1]}`);
+    }
   }
   process.exit(1);
 }
