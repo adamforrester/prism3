@@ -98,7 +98,7 @@ gated part, membership asserted by name.
 
 **Its limit, measured rather than reasoned, and one trap it walked into first.** EXPECTED is the def's own
 declaration and ACTUAL is the plan, so the rule checks that the mechanism *honours* the gate, not that the
-gate is the right way round: inverting radio's to `selection: ['unchecked']` leaves the suite at 2381/0.
+gate is the right way round: inverting radio's to `selection: ['unchecked']` leaves the suite at 2384/0.
 That is correct scope and not a hole — `lint-paint.ts` fails it twice, as a census drift (147 → 129) and
 as arm 3 naming `checked.indicator` unreachable. **Dropping** the gate is the one mutation nothing else
 catches, since an ungated dot is present at `unchecked` with no `unchecked.indicator` to paint it and so
@@ -110,15 +110,15 @@ reader. That is #986's fall-through shape arriving from the other side, not an a
 continues but one that continues into a throw. The undeclared case is now handed to `anatomyErrors` and
 reported here as a named failure instead.
 
-**Switch is still blocked and nothing here was built for it.** Its thumb is present at *both* selection
+**Switch is still blocked and nothing here was built for it (#990).** Its thumb is present at *both* selection
 values and *moves*, which is a positioning question rather than a presence one, and #900's prescribed
-inner-dimension mechanism (an `inset` on a flow part, or `layoutGrow`) **does not exist** — filed rather
-than noted. `control.size.*.dot` is the right name for a thumb's diameter and will serve it; the offset it
+inner-dimension mechanism (an `inset` on a flow part, or `layoutGrow`) **does not exist** — filed as #990
+rather than noted. `control.size.*.dot` is the right name for a thumb's diameter and will serve it; the offset it
 travels is a separate decision that is the owner's to make.
 
-**Filed, not fixed here (one concern per PR).** (a) `sizing: { x: 'fill' }` is a silent no-op —
+**Filed, not fixed here (one concern per PR).** (a) **#989** — `sizing: { x: 'fill' }` is a silent no-op:
 `anatomy-figma.ts:510` maps everything that is not `'fixed'` to `AUTO`, so `field-message.ts:133`'s
-declared `fill` is a **hug** today. (b) The inner-dimension mechanism above.
+declared `fill` is a **hug** today. (b) **#990** — the inner-dimension mechanism above, which is what blocks switch.
 
 **Mutation battery: 16 mutations, each preceded by a commit, each confirmed by the name of the assertion
 written for it.** One is worth repeating as a method note — M7's first attempt matched

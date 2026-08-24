@@ -217,7 +217,7 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 //   · `sizingMode` in `anatomy-figma.ts` maps `'fill'` to `'AUTO'`, the same answer it gives `'hug'`.
 //     So the alternative spelling — padding on the control, `sizing: fill` on the dot — projects a box
 //     that hugs no children, i.e. a dot of ZERO. (`field-message` carries `x: 'fill'` today and is
-//     silently a hug; filed separately, since it is not radio's to fix.)
+//     silently a hug; #989, since it is not radio's to fix.)
 // Closing either would put `layoutGrow`/`layoutAlign` through the plan type, the projector and both
 // executors. That is strictly more surface than one field on a group authored to take more fields, so
 // the field is here and #900's note is corrected rather than left contradicting the code.

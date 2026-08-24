@@ -10913,7 +10913,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // ITS LIMIT, MEASURED RATHER THAN REASONED. EXPECTED is the def's own declaration and ACTUAL is the
   // plan, so this checks that the MECHANISM honours the gate — not that the gate is the right way round.
-  // Inverting radio's to `selection: ['unchecked']` leaves all of these green (2381/0), which is correct
+  // Inverting radio's to `selection: ['unchecked']` leaves all of these green (2384/0), which is correct
   // scope and not a hole: `lint-paint.ts` fails it twice over, once as a census drift (147 → 129 grid
   // assignments) and once as arm 3 naming `checked.indicator` unreachable. Worth stating because the two
   // failures a reader would expect to catch it are in a different file. DROPPING the gate is the mutation
