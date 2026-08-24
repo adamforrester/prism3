@@ -595,7 +595,7 @@ for (const b of brands) {
     // because a half-px dot is not centreable on the grid; a 6px floor because that is Primer's smallest
     // shipped dot, i.e. the smallest the field considers legible.
     const dots = CONTROL_RUNG_NAMES.map((n) => px(grp, n, 'dot') ?? NaN);
-    ok(dots.every((d) => Number.isInteger(d)), `#910 ${density}: every \`dot\` rung is a whole px — a half-px dot cannot be centred on the grid (${dots.join('/')})`);
+    ok(dots.every((d) => Number.isInteger(d)), `#910 ${density}: every \`dot\` rung is a whole px — a half-px dot cannot be centered on the grid (${dots.join('/')})`);
     ok(Math.min(...dots) >= 6, `#910 ${density}: the smallest \`dot\` is >= 6px — Primer's 6px is the smallest dot the field ships, so this is the legibility floor the ratio has to clear (${dots.join('/')})`);
     const gaps = CONTROL_RUNG_NAMES.map((n) => ((px(grp, n, 'height') ?? NaN) - (px(grp, n, 'dot') ?? NaN)) / 2);
     ok(gaps.every((g) => g >= 3), `#910 ${density}: the gap from dot to box edge is >= 3px at every rung — the ratio's third property, and what the field actually converges on (M3 5, Carbon 6, Primer 5) (${gaps.join('/')})`);
@@ -10912,7 +10912,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // `presentWhen` is covered the day it lands rather than the day someone remembers this block.
   //
   // ITS LIMIT, MEASURED RATHER THAN REASONED. EXPECTED is the def's own declaration and ACTUAL is the
-  // plan, so this checks that the MECHANISM honours the gate — not that the gate is the right way round.
+  // plan, so this checks that the MECHANISM honors the gate — not that the gate is the right way round.
   // Inverting radio's to `selection: ['unchecked']` leaves all of these green (2384/0), which is correct
   // scope and not a hole: `lint-paint.ts` fails it twice over, once as a census drift (147 → 129 grid
   // assignments) and once as arm 3 naming `checked.indicator` unreachable. Worth stating because the two

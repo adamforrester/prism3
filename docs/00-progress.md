@@ -62,7 +62,7 @@ px printed side by side.
 **The ratio: `CONTROL_DOT_RATIO = 0.5`, fixed, and NOT claimed as field-convergent.** M3 20/10 = 0.5,
 Carbon 20/8 = 0.4, Primer 16/6 = 0.375. Three points spanning a third, with 0.5 at the top of the range
 rather than the middle — so the earlier draft's word "convergent" was withdrawn as unsupported. 0.5 is
-chosen on three stated properties instead: every rung stays a whole px (a half-px dot cannot be centred on
+chosen on three stated properties instead: every rung stays a whole px (a half-px dot cannot be centered on
 the grid), the ladder's floor lands on Primer's 6px (the smallest dot the field ships), and the implied
 **gap** — 3/4/5/6/7 — brackets the 5–6 the field *does* agree on at the middle rungs. Each of those three
 is its own assertion, per density, and each was mutation-confirmed: 0.4 fires the integer and floor arms,
@@ -97,7 +97,7 @@ never and nothing would have gone red. The three directions are now a **rule** o
 gated part, membership asserted by name.
 
 **Its limit, measured rather than reasoned, and one trap it walked into first.** EXPECTED is the def's own
-declaration and ACTUAL is the plan, so the rule checks that the mechanism *honours* the gate, not that the
+declaration and ACTUAL is the plan, so the rule checks that the mechanism *honors* the gate, not that the
 gate is the right way round: inverting radio's to `selection: ['unchecked']` leaves the suite at 2384/0.
 That is correct scope and not a hole — `lint-paint.ts` fails it twice, as a census drift (147 → 129) and
 as arm 3 naming `checked.indicator` unreachable. **Dropping** the gate is the one mutation nothing else
@@ -118,7 +118,14 @@ travels is a separate decision that is the owner's to make.
 
 **Filed, not fixed here (one concern per PR).** (a) **#989** — `sizing: { x: 'fill' }` is a silent no-op:
 `anatomy-figma.ts:510` maps everything that is not `'fixed'` to `AUTO`, so `field-message.ts:133`'s
-declared `fill` is a **hug** today. (b) **#990** — the inner-dimension mechanism above, which is what blocks switch.
+declared `fill` is a **hug** today. (b) **#990** — the inner-dimension mechanism above, which is what blocks
+switch. (c) **#991** — `lint-us-english`'s `PATTERN` enumerates the `-ise` arm's inflections and **not the
+`-our` arm's**, so `coloured` / `recoloured` / `favoured` are invisible where `colour` is caught, and
+`centred` is in neither scan nor list. Found because the gate caught two of my spellings in `radio.ts` and
+walked past two beside them that ship in the plugin bundle today. Its own header states the lesson about
+`grey`, and the self-check samples the singular and the plural of `colour` but never `coloured` — *"a
+self-check written from the same mental model as the scan inherits its blind spot"*, third instance. Fixed
+in `radio.ts` only, because it was already being rewritten; the sweep needs to travel with the widening.
 
 **Mutation battery: 16 mutations, each preceded by a commit, each confirmed by the name of the assertion
 written for it.** One is worth repeating as a method note — M7's first attempt matched

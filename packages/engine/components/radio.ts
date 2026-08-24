@@ -176,7 +176,7 @@ export const radio: ComponentDef = {
   //
   // `error` is declared and its binding is the option's own boundary, but the brief is emphatic that
   // radio error is GROUP-level only, never per-option. Both are true: the state exists because a
-  // standalone-rendered option can be recoloured, and a correct implementation inside a group never
+  // standalone-rendered option can be recolored, and a correct implementation inside a group never
   // reaches that coordinate. `read-only` binds nothing, as on checkbox.
   states: ['rest', 'hover', 'pressed', 'focus-visible', 'disabled', 'read-only', 'error'],
 
@@ -200,7 +200,7 @@ export const radio: ComponentDef = {
     'unchecked.border.error': 'color.border.danger',
 
     // ── THE CHECKED DISC — a FILLED disc with an on-fill dot, which is checkbox's treatment with a
-    // round radius. The alternative (Material's outlined ring with a brand-coloured dot on the field
+    // round radius. The alternative (Material's outlined ring with a brand-colored dot on the field
     // fill) is a real fork and is in `notes.contested`; filled wins here on two grounds, and neither
     // is taste. It keeps the two selection controls one visual family, and — the load-bearing half —
     // `on-fill` is a contract the token tier actually GATES, against the fill the ink sits on. An
@@ -215,10 +215,10 @@ export const radio: ComponentDef = {
     'checked.border.error': 'color.border.danger',
     // The inner dot, in the `indicator` slot — NOT `icon`, and that is the second consequence of the
     // dot being a box rather than a glyph. `icon` is ink for a node that DRAWS something, and a box
-    // claiming it paints a rectangle behind the glyph it meant to colour (#864, measured). The dot has
+    // claiming it paints a rectangle behind the glyph it meant to color (#864, measured). The dot has
     // no glyph behind it because it IS the drawn shape, so it needs a slot of its own — which #933's
     // one-box-per-slot rule demands anyway, since `control` already owns `fill`. `indicator` was already
-    // in `PAINT_SLOTS` for `field-label`'s de-emphasised suffix and joined `BOX_PAINT_SLOTS` here.
+    // in `PAINT_SLOTS` for `field-label`'s de-emphasized suffix and joined `BOX_PAINT_SLOTS` here.
     // The ink role is unchanged from checkbox's check: `on-fill`, gated against the fill it sits on.
     'checked.indicator': 'color.interactive.primary.on-fill',
 
@@ -309,7 +309,7 @@ export const radio: ComponentDef = {
       row: {
         kind: 'box',
         role: 'target',
-        // START, not center — `docs.dont` states it: a control centred against a multi-line label floats
+        // START, not center — `docs.dont` states it: a control centered against a multi-line label floats
         // mid-paragraph. Option labels wrap by design here, since the guidance is to wrap rather than
         // truncate and to keep per-option detail in `description`.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
@@ -470,7 +470,7 @@ export const radio: ComponentDef = {
 
   notes: {
     contested: [
-      'THE CHECKED DISC IS FILLED, with an on-fill dot — checkbox\'s treatment at a round radius. The NAMED ALTERNATIVE is Material\'s outlined model: the fill stays `color.field.fill`, the ring recolors, and a brand-coloured dot sits inside it. It is a real fork and several systems ship it, and the brief takes no position — §8 describes "a spring/scale-up of the inner dot with a border-color crossfade", which both models satisfy. Filled was chosen on two grounds, neither of them taste: it keeps the two selection controls one visual family, and `on-fill` is a pairing the token tier actually gates, whereas an outlined dot would take an ink role gated against the PAGE while sitting on the field fill — a different pairing than the one that was checked. Revisit if a brand wants the outlined skin; it is a rebind of three keys, not a restructure.',
+      'THE CHECKED DISC IS FILLED, with an on-fill dot — checkbox\'s treatment at a round radius. The NAMED ALTERNATIVE is Material\'s outlined model: the fill stays `color.field.fill`, the ring recolors, and a brand-colored dot sits inside it. It is a real fork and several systems ship it, and the brief takes no position — §8 describes "a spring/scale-up of the inner dot with a border-color crossfade", which both models satisfy. Filled was chosen on two grounds, neither of them taste: it keeps the two selection controls one visual family, and `on-fill` is a pairing the token tier actually gates, whereas an outlined dot would take an ink role gated against the PAGE while sitting on the field fill — a different pairing than the one that was checked. Revisit if a brand wants the outlined skin; it is a rebind of three keys, not a restructure.',
       'THE PAINT GRAMMAR IS AXIS-LED, inherited from `checkbox` rather than re-decided, and the exemption that makes it legal is declared once per AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than once per def. Recorded here only so this def is not read as a second independent vote: the two share one grammar and one exemption. What is genuinely open is not the grammar but its cost — arm 1 does not check a non-family axis at all, and neither does anything else, which is #916.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not axes here, because they are `RadioGroup`\'s. Unlike checkbox, where that was a tidy boundary, here it means the def is missing an axis its unit of use genuinely has — see #901.',
       'Carbon\'s "AI presence" variant, which sets an AI-explainability label beside a recommended option, is named in brief §4 as a frontier signal and explicitly "a watch item, not a default". Not declared. It is also a dual-action row needing careful focus management so assistive tech does not conflate the explainer control with the radio, which makes it an anatomy question rather than an axis one.',
