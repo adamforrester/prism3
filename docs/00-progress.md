@@ -7,6 +7,92 @@
 
 ---
 
+## (2026-08-24) — the `surface` collection reaches Figma, and the alias that resolves nowhere is named (#993)
+
+**STATUS: shipped.** `surface` was the only one of 18 emitted collections with no writer. It is now
+written after `color`, its 244 per-mode values are aliases into `color`, and an alias target that does
+not resolve is counted and named rather than skipped or thrown.
+
+**The gap, measured before building.** At `250cb61`, over `packages/engine/out/figma/`: 3 brands with a
+Figma emission, 27 emitted files per brand collapsing to 18 collections, **17 with a writer, 1 without**.
+Verified in both directions — no claimed writer covered a collection that is not emitted. Every one of
+the 28 occurrences of the string `surface` in `apps/plugin/src/` was the English word ("API surface",
+"surfaced to the UI"); both greps returned content, so the zero is a measurement and not a failed grep
+(#986). A designer applying a theme got the 17 collections and not the one that does anything at bind
+time: `surface` is what makes switching a mode on a frame flip a subtree to its inverse-context colours.
+
+**Two premise corrections, both of which made the work smaller and moved where the risk is.**
+
+1. *Alias writing is not a new executor shape.* It already exists three times — `applyWritePlan` pass 3,
+   `applyFloatPlan` pass B, `applyVarCollectionPlan` pass B all do `createVariableAlias` →
+   `setValueForMode` with an unresolved target pushed to `misses`.
+2. *The `surface` collection does not carry only pointers.* Every row carries a resolved literal `value`
+   **as well as** its `alias` — 122/122 rows, both modes, all three brands — so it fits the existing
+   two-pass shape exactly: pass A literals, pass B per-mode aliases.
+
+**What is genuinely new is cross-*call* resolution.** Every existing alias pass resolves against a name
+map built *inside the same executor call*. `surface`'s targets live in the `color` collection written by a
+**different** call, so `applySurfacePlan` reads that collection back out of the file. That is the whole
+ordering dependency, and it is why the gap spanned three layers rather than `write-figma.ts` alone:
+`write-plan.ts` had no surface plan at all, and `main.ts` had to sequence the two calls.
+
+The target map is scoped to the `color` collection **alone**, deliberately. A global by-name map — the
+shape `applyWritePlan` uses, legitimately, because it owns both collections — would let a colliding name
+resolve to a `surface/*` variable: an alias pointing into the collection it lives in, which resolves and
+tracks nothing. And the absent collection is diagnosed by `findCollection`, never repaired by
+`upsertCollection`: creating an empty `color` to resolve against turns one legible miss into 244.
+
+**Pass A's literal fallback is exactly what makes an unresolved target invisible.** The row renders
+correctly the day it is written and then silently stops tracking the brand. Same shape as #866's four
+DISCARDED text refs — text rendering from defaults while the property sat unwired. So the named MISS is
+the only signal a human gets, and the healthy path **cannot exercise it**: 0 of 244 targets fail to
+resolve on every brand today. It has three deliberate hosts in the suite (no `color` collection at all;
+`color` present minus one target; and the posture assertion that neither threw), because a branch nothing
+reaches reports itself as a pass (#969).
+
+**The gate that matters is pointer-vs-duplicate**, asserted three ways, since a duplicate passes every
+visual check: STRUCTURAL (all 244 stored values are `VARIABLE_ALIAS`, none a literal), REFERENTIAL
+(EXPECTED is the plan's target *name* looked up in the shim's `color` variables by the test's own map,
+ACTUAL is the id inside the alias the executor wrote — never the executor's lookup, which would agree
+with itself), and BEHAVIOURAL (repaint `color/background/primary` after the write and the surface row
+follows it, while the other mode does not move).
+
+**Three findings from the mutation battery worth more than the 11 mutations.**
+
+*An assertion satisfied by `undefined`.* Deleting pass A entirely came back **green**. The arm asserting
+the stranded rows still render was phrased `strandedValues.every(v => !isAlias(v))`, and an unwritten
+mode reads back `undefined`, which is not an alias — so it passed 244 times over. Replaced with
+`every(isRgba)`, which states the quantity actually meant. This is #969 in a single expression: the
+obvious negative phrasing was unfalsifiable, and only mutation found it.
+
+*An anchor that was not unique.* Two mutations reported `ANCHOR NOT UNIQUE (2 occurrences)` instead of
+patching. The two-line anchor is byte-identical in `applyWritePlan` and `applySurfacePlan`, so without
+the guard they would have mutated the wrong function and printed a green suite — a no-op mutation and a
+blind spot are indistinguishable from the output. The uniqueness assertion is the harness, not
+ceremony; the anchors now begin at `const tv = col.byName.get(target)`, which only `applySurfacePlan` has.
+
+*A throw crashes the harness rather than failing by name.* Mutation #6 made an unresolved target throw,
+which took the whole suite down with a stack trace before its own assertion ran. Fixed by wrapping that
+one call and stating MISS(c) **before** the arms that read its result, so the posture claim fires as a
+named failure. All 11 mutations now fail this suite by name.
+
+**Two limits, stated rather than left to be discovered.** `main.ts` is gated by **source order** —
+`indexOf('await applyWritePlan(') < indexOf('await applySurfacePlan(')` plus a regex that `sf.misses`
+reaches the tally. It cannot see a reordering that preserves textual order, and it is not a substitute
+for running the plugin. And 12 of the 112 counterpart-backed rows resolve to the same colour in both
+modes, which is correct: 4 `border/*` are identical in all four modes, and
+`interactive/neutral/on-fill` sits on a same-polarity inverse fill (`#e8e9ea` against a base `#ccced1`),
+so constant near-black ink is right. That was checked against the full `interactive.neutral.*` role
+table before being registered rather than assumed, and **no issue was filed for it** — it is not a
+contrast defect. The 12 live in an authored register with a reason per row, checked in both directions
+so a stale exemption fails, and paired with a distinct-target-ids check so equal values cannot hide a
+mode collapse.
+
+**Next:** #827 — a rebuild silently skips every member that already exists by name, so fixing something,
+rebuilding, and seeing no change reads as the fix having failed. That one makes QA itself unreliable.
+
+---
+
 ## (2026-08-24) — Radio projects, and the mark is where the checkbox pattern stopped generalizing (#910)
 
 **STATUS: shipped.** `ENGINE_VERSION` **0.18.0 → 0.19.0** and `CONTRACT_VERSION` **5.2.0 → 5.3.0**.

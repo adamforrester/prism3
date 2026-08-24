@@ -25,6 +25,7 @@
  */
 import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-color';
 import type { Theme } from './theme';
+import { buildFigmaSurface } from './emit-figma-surface';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
 import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
@@ -112,6 +113,60 @@ export const buildWritePlan = (
   }));
 
   return { palette: paletteRows, color: { modes, create, aliases } };
+};
+
+// ---------------------------------------------------------------------------
+// THE SURFACE AXIS (#993 — #893's unbuilt half). The `surface` collection: two modes (`default`,
+// `inverse`) whose every row is an alias into the `color` collection, so switching the mode on a
+// frame flips a whole subtree to its inverse-context values.
+//
+// It reuses `ColorCreateRow`/`ColorAliasRow` verbatim rather than declaring its own pair, because it
+// IS a colour collection in the plan's terms — COLOR-typed, literal-per-mode then aliased-per-mode.
+// The one thing that makes it different is invisible in the plan and lives entirely in the executor:
+// its alias targets are in ANOTHER collection written by ANOTHER call, so the targets cannot be
+// resolved against anything this plan describes. See `applySurfacePlan`.
+// ---------------------------------------------------------------------------
+
+/** The `surface` collection's materialisation plan. Same two-pass shape as `plan.color`, named like a
+ *  `FloatCollectionPlan` so the executor's collection handling reads the same. */
+export type SurfacePlan = {
+  name: string;
+  modes: string[];
+  create: ColorCreateRow[];
+  aliases: ColorAliasRow[];
+};
+
+/**
+ * Reshape `buildFigmaSurface(theme)`'s two mode files into the host-neutral surface plan.
+ *
+ * Mirrors the colour reshape exactly — walk the first mode's variables, read each mode's value and
+ * alias at the same index. The two files share one variable order by construction (`buildFigmaSurface`
+ * maps the same `surfaceRows(theme)` array for both modes), which is the same invariant the colour and
+ * FLOAT reshapes rely on.
+ *
+ * Every row carries BOTH a literal `valuesByMode` entry and an alias target — 122/122 in both modes on
+ * every brand in the corpus. The literal is the emitter's stated fallback contract, not redundancy: it
+ * is what a row keeps when its alias target is not in the file, which is the one case where this
+ * collection can go wrong. **That fallback is also what makes an unresolved target invisible to the
+ * eye** — the row still renders the right colour on the day it is written, and simply stops tracking
+ * the brand afterwards. Hence `applySurfacePlan` reports a missing target as a named MISS: nothing else
+ * distinguishes a live pointer from a dead one.
+ */
+export const buildSurfaceWritePlan = (theme: Theme): SurfacePlan => {
+  const files = buildFigmaSurface(theme);
+  const modes = files.map((f) => f.$mode);
+  const base = files[0]?.variables ?? [];
+  const create: ColorCreateRow[] = base.map((v, i) => ({
+    name: v.name,
+    scopes: v.scopes,
+    description: v.description,
+    valuesByMode: files.map((f) => rgba(f.variables[i].value as FigmaColor)),
+  }));
+  const aliases: ColorAliasRow[] = base.map((v, i) => ({
+    name: v.name,
+    targetsByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
+  }));
+  return { name: 'surface', modes, create, aliases };
 };
 
 // ---------------------------------------------------------------------------

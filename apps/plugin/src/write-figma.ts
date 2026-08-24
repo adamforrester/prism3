@@ -26,7 +26,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
-import type { WritePlan, Rgba, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
+import type { WritePlan, Rgba, SurfacePlan, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -200,6 +200,131 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi): Promi
       { name: 'color', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
     ],
   };
+};
+
+/** What the SURFACE executor did (#993). `bound` counts alias bindings actually written; `total × modes`
+ *  is what a fully-resolved run binds, so `bound < total * 2` always has a matching entry in `misses`. */
+export type SurfaceApplyResult = {
+  total: number;
+  created: number;
+  bound: number;
+  /** Unresolved alias targets, named. See `applySurfacePlan` for why this can never be a silent skip. */
+  misses: string[];
+  orphans: string[];
+};
+
+/**
+ * Read a collection's variables WITHOUT creating it — `upsertCollection`'s read-only twin.
+ *
+ * The surface executor needs this rather than `upsertCollection` for a specific reason: an absent `color`
+ * collection is the ORDERING FAILURE this whole executor is sequenced to avoid, and creating an empty one
+ * would convert that into a silent success — the collection would exist, every target lookup would still
+ * miss, and the next `applyWritePlan` would quietly adopt the empty shell. So the absence is diagnosed,
+ * not repaired.
+ */
+const findCollection = async (
+  vars: VariablesApi,
+  name: string,
+): Promise<{ collection: VarCollection; byName: Map<string, Variable> } | null> => {
+  const collection = (await vars.getLocalVariableCollectionsAsync()).find((c) => c.name === name);
+  if (!collection) return null;
+  const byName = new Map(
+    (await vars.getLocalVariablesAsync())
+      .filter((v) => v.variableCollectionId === collection.id)
+      .map((v) => [v.name, v] as const),
+  );
+  return { collection, byName };
+};
+
+/**
+ * Materialise the `surface` collection into `figma.variables` (#993 — #893's unbuilt half).
+ *
+ * Two modes, `default` and `inverse`, whose every row is an ALIAS into the `color` collection. This is
+ * the axis that makes surface context work at all: bind a layer to `surface/text/primary`, switch the
+ * mode on an ancestor frame, and the whole subtree resolves to its inverse-context values.
+ *
+ * ── THE ORDERING DEPENDENCY, WHICH IS THE WHOLE REASON THIS IS ITS OWN EXECUTOR ──────────────────
+ *
+ * Every other alias pass here resolves its targets against a name map built INSIDE THE SAME CALL —
+ * `applyWritePlan` maps the palette + colour vars it created moments earlier; `applyFloatPlan` and
+ * `applyVarCollectionPlan` fold each collection into one `byNameGlobal` as they go. This executor
+ * cannot: its targets are `color/*` variables written by a DIFFERENT call. So it reads the `color`
+ * collection back out of the file, which means **it must run after `applyWritePlan`** — and `main.ts`
+ * sequences it that way.
+ *
+ * The target map is scoped to the `color` collection ALONE, deliberately, and not merged with this
+ * collection's own vars. A global map would let a target name that happened to collide resolve to a
+ * `surface/*` variable — an alias pointing into the collection it lives in, which would resolve but
+ * track nothing. Scoping removes that class rather than defending against it.
+ *
+ * ── AN UNRESOLVED TARGET IS A REPORTED MISS — NEVER SILENT, NEVER THROWN ─────────────────────────
+ *
+ * Pass A writes each row's literal fallback colour before any alias binds, exactly as the other three
+ * executors do. For this collection that fallback has a sharp edge: a row whose target is missing keeps
+ * a literal that is CORRECT ON THE DAY IT IS WRITTEN and then silently stops tracking the brand. It
+ * renders right, it passes every visual check, and it is indistinguishable from a working pointer by
+ * eye — the #866 shape, where field-label's discarded text refs rendered from defaults while the
+ * property sat unwired and nothing said so.
+ *
+ * So the miss is the only signal that exists, and it is named: `misses` joins `main.ts`'s tally, which
+ * flips `ok`. Not thrown — one missing target must not cost the other 121 rows — and not skipped, since
+ * a skipped row and a written one are the same thing from outside.
+ *
+ * The corpus measures 0 unresolved targets out of 244 per brand, which means the healthy path CANNOT
+ * exercise the miss branch. `test-write.mjs` drives it deliberately, both ways: a file with no `color`
+ * collection at all, and a file whose `color` collection is missing one target.
+ */
+export const applySurfacePlan = async (
+  plan: SurfacePlan,
+  vars: VariablesApi,
+): Promise<SurfaceApplyResult> => {
+  const misses: string[] = [];
+  // Nothing to write (a theme with no `light` mode — `buildFigmaSurface` returns no files). Return
+  // before upserting, so an empty `surface` collection is never created as a side effect.
+  if (plan.create.length === 0) return { total: 0, created: 0, bound: 0, misses, orphans: [] };
+
+  // ---- pass A: create/update every row with its literal per-mode fallback colour ----
+  const surf = await upsertCollection(vars, plan.name);
+  const preExisting = [...surf.byName.keys()];   // snapshot before creates
+  surf.collection.renameMode(surf.collection.modes[0].modeId, plan.modes[0]);
+  const modeIds: Record<string, string> = { [plan.modes[0]]: surf.collection.modes[0].modeId };
+  for (let i = 1; i < plan.modes.length; i++) {
+    const existing = surf.collection.modes.find((m) => m.name === plan.modes[i]);
+    modeIds[plan.modes[i]] = existing ? existing.modeId : surf.collection.addMode(plan.modes[i]);
+  }
+  let created = 0;
+  for (const row of plan.create) {
+    let v = surf.byName.get(row.name);
+    if (!v) { v = vars.createVariable(row.name, surf.collection, 'COLOR'); surf.byName.set(row.name, v); created++; }
+    v.scopes = row.scopes;
+    v.description = row.description;
+    plan.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
+  }
+
+  // ---- pass B: bind each mode to its OWN target in the `color` collection ----
+  const col = await findCollection(vars, 'color');
+  if (!col) {
+    // ONE named miss, not one per target. With no collection present every target fails for the same
+    // single reason, and 244 restatements of it would read in the summary as 244 independent problems.
+    // `bound: 0` against `total` says the rest.
+    misses.push(`collection:color absent — surface aliases cannot resolve (written before the color axis?)`);
+    return { total: plan.create.length, created, bound: 0, misses, orphans: orphansOf(preExisting, plan.create.map((r) => r.name)) };
+  }
+  let bound = 0;
+  for (const row of plan.aliases) {
+    const v = surf.byName.get(row.name);
+    if (!v) { misses.push(`var:${row.name}`); continue; }
+    plan.modes.forEach((m, i) => {
+      const target = row.targetsByMode[i];
+      if (!target) return; // literal-only for this mode — leave the pass-A value
+      const tv = col.byName.get(target);
+      if (!tv) { misses.push(`${row.name} @${m} -> ${target}`); return; }
+      v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
+      bound++;
+    });
+  }
+
+  return { total: plan.create.length, created, bound, misses, orphans: orphansOf(preExisting, plan.create.map((r) => r.name)) };
 };
 
 /** What the FLOAT executor did — surfaced to the UI + asserted by the harness (#146). */
