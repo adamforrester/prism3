@@ -298,6 +298,43 @@ export const GROUND_INPUT: Record<string, string> = {
   'background.inverse.primary': 'inverseBase',
 };
 
+/**
+ * THE ENGINE'S DEFINITION OF A GROUND (#985) — every role whose colour some other role's `ratio`
+ * depends on. Named and exported so the one definition the override refusal reads has a place to be
+ * checked against, rather than living inline where a second reader could quietly diverge from it.
+ *
+ * TWO EDGES, and the second is the whole reason this exists. `against` is the surface a role sits on.
+ * `legibleFor` (#963) is the ink a translucent wash reports the legibility of — move that ink and the
+ * wash's ratio is just as stale as if the ground beneath it had moved. This followed `against` only,
+ * so `text.primary` and `text.on-inverse.primary`, which since #963 are grounds EXCLUSIVELY through
+ * `legibleFor`, were invisible to the refusal: nine overlay roles depend on each, and the one check
+ * that exists to stop a ground being overridden could not see either of them.
+ *
+ * Latent rather than live — the refusal is `groundRoles.has(r) && GROUND_INPUT[r]`, and neither has a
+ * `GROUND_INPUT` entry — but it goes live the moment either gains one, which is precisely the change
+ * #956's design invites. Found because #978's mutation P5 simulated exactly that and the gate said
+ * `overrides['text.primary'] was ACCEPTED`; the mutation was reported as testing something else, and
+ * the real finding sat unread in its output.
+ *
+ * Palette-step refs (`neutral.050`) come back in this set too — it collects what roles NAME, and some
+ * name a primitive. Callers that need role-valued grounds intersect with the role keys; `test.ts`
+ * does exactly that when it holds this against the gate's own derivation.
+ */
+export const engineGrounds = (roles: Record<string, ResolvedRole>): Set<string> => {
+  const g = new Set<string>();
+  for (const r of Object.values(roles)) {
+    for (const ref of [r.against, r.legibleFor])
+      if (ref && ref !== 'self') g.add(ref);
+  }
+  return g;
+};
+
+/** The roles whose ratio depends on `g`, by either edge. Kept beside `engineGrounds` so the two
+ *  cannot answer different questions — a dependent count that ignored `legibleFor` would understate
+ *  the blast radius in the very message that has to justify a refusal. */
+export const groundDependentsOf = (roles: Record<string, ResolvedRole>, g: string): string[] =>
+  Object.keys(roles).filter((k) => roles[k].against === g || roles[k].legibleFor === g).sort();
+
 const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<string, Step[]>): ModeResult => {
   const ns = theme.namespace;
   const r2p = theme.roleToPalette;
@@ -1301,12 +1338,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // applies + emits, recorded as a warning. A role absent in this mode is skipped (roles vary by
   // mode). A malformed ref (unknown palette / step) is a hard error, and so is a GROUND — see below.
   //
-  // The ground set, read off the tree that was just built. A role is a ground exactly when some other
-  // role names it as the surface it was measured `against` — no list to keep in step with reality.
-  const groundRoles = new Set<string>();
-  const groundDependents = (g: string): number =>
-    Object.values(roles).filter((r) => r.against === g).length;
-  for (const r of Object.values(roles)) if (r.against && r.against !== 'self') groundRoles.add(r.against);
+  // The ground set, read off the tree that was just built — see `engineGrounds`.
+  const groundRoles = engineGrounds(roles);
+  const groundDependents = (g: string): number => groundDependentsOf(roles, g).length;
   const warnings: OverrideWarning[] = [];
   // Which roles an override actually moved, and which had their ratio recomputed because of one.
   // Tracked rather than re-derived from `theme.overrides` because a ref naming a role absent in this

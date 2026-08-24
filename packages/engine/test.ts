@@ -17,7 +17,8 @@ import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPA
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT } from './modes';
+import { groundsOf } from './lint-ratio-truth';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
 import { surfaceRows, SURFACE_MODES } from './emit-figma-surface';
@@ -1322,6 +1323,61 @@ for (const b of brands) {
     // decision was ever good — the same standard `LEAF_OK` and `ZERO_OK` hold.
     const thin = INVERSE_GAPS.filter((g) => g.reason.trim().length < 120).map((g) => g.paths[0]);
     ok(thin.length === 0, `inverse: every INVERSE_GAPS entry states WHY, not merely that${thin.length ? ` — thin: ${thin.join(', ')}` : ''}`);
+
+    // (a5) THE TWO GROUND DEFINITIONS AGREE (#985).
+    //
+    // "Is this role a ground" is answered in two places, for two different jobs: `engineGrounds`
+    // decides what the override layer REFUSES, and `lint-ratio-truth`'s `groundsOf` decides what that
+    // gate SWEEPS. They forked — #963 added `legibleFor` as a second ground-edge and only the gate
+    // learned about it, so `text.primary` and `text.on-inverse.primary` (nine overlay dependents
+    // each) were invisible to the refusal for two releases.
+    //
+    // HOLDING the invariant rather than collapsing it, deliberately. Making one call the other would
+    // end the divergence by ending the second opinion — `docs/34` shape 1 arriving through a
+    // refactor rather than through a bad gate. Two peers that must agree keeps both.
+    //
+    // What this is NOT: an independent re-derivation. Neither side is EXPECTED; they are two
+    // consumers of one concept and the assertion is that they match. That is weaker than arm A's
+    // independence and worth saying plainly, because the value here is catching a FORK, not catching
+    // a wrong answer — if both are wrong in the same way this says nothing, and no wording should
+    // suggest otherwise.
+    //
+    // Compared on ROLE-VALUED grounds only. `engineGrounds` also returns palette-step refs
+    // (`neutral.050`) because some roles are measured against a primitive; `groundsOf` filters those
+    // out. Comparing the raw sets would fail on a difference that is not a fork, which is the shape
+    // of a gate nobody trusts.
+    {
+      const theme = nbTheme();
+      const light = resolveAllModes(theme).find((m) => m.mode === 'light')!;
+      const roleKeys = new Set(Object.keys(light.roles));
+      const fromEngine = [...engineGrounds(light.roles)].filter((g) => roleKeys.has(g)).sort();
+      const fromGate = groundsOf(theme);
+      const onlyEngine = fromEngine.filter((g) => !fromGate.includes(g));
+      const onlyGate = fromGate.filter((g) => !fromEngine.includes(g));
+      ok(onlyEngine.length === 0 && onlyGate.length === 0,
+        `grounds: the engine's refusal and the gate's sweep agree on what a ground is (${fromEngine.length} role-valued)`
+        + (onlyEngine.length ? ` — ENGINE ONLY: ${onlyEngine.join(', ')}` : '')
+        + (onlyGate.length ? ` — GATE ONLY: ${onlyGate.join(', ')}` : ''));
+
+      // The edge that forked, asserted by name rather than only through the set comparison above. A
+      // set equality passes the day BOTH sides drop `legibleFor`; this does not, and the whole defect
+      // was one side dropping it.
+      const legibleOnly = [...new Set(Object.values(light.roles).map((r) => r.legibleFor).filter(Boolean) as string[])]
+        .filter((g) => !Object.values(light.roles).some((r) => r.against === g));
+      ok(legibleOnly.length > 0 && legibleOnly.every((g) => engineGrounds(light.roles).has(g)),
+        `grounds: a role that is a ground ONLY via legibleFor is still one to the engine (${legibleOnly.length}: ${legibleOnly.join(', ')})`);
+
+      // And the dependent count that justifies a refusal follows both edges too — understating the
+      // blast radius in the message that has to argue for a refusal is its own small dishonesty.
+      const viaLegible = legibleOnly[0];
+      ok(!viaLegible || groundDependentsOf(light.roles, viaLegible).length > 0,
+        `grounds: groundDependentsOf counts legibleFor dependents (${viaLegible} → ${viaLegible ? groundDependentsOf(light.roles, viaLegible).length : 0})`);
+
+      // GROUND_INPUT must name real grounds. It is the other half of the refusal, and an entry for a
+      // role nothing is measured against would make the refusal fire on a role that cannot desync.
+      const bogus = Object.keys(GROUND_INPUT).filter((g) => !fromEngine.includes(g));
+      ok(bogus.length === 0, `grounds: every GROUND_INPUT key is a real ground${bogus.length ? ` — not grounds: ${bogus.join(', ')}` : ''}`);
+    }
 
     // (a4) THE SURFACE COLLECTION (#893). Read out of the COMMITTED emission, not re-derived from
     // `buildFigmaSurface` — a re-derivation would be the emitter checked against a copy of itself.
