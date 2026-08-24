@@ -17,7 +17,7 @@ import { radiusScale, ICON_SIZES, componentSizes, dimensionGrid, spaceScale, SPA
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT } from './modes';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
 import { surfaceRows, SURFACE_MODES } from './emit-figma-surface';
@@ -1322,6 +1322,72 @@ for (const b of brands) {
     // decision was ever good — the same standard `LEAF_OK` and `ZERO_OK` hold.
     const thin = INVERSE_GAPS.filter((g) => g.reason.trim().length < 120).map((g) => g.paths[0]);
     ok(thin.length === 0, `inverse: every INVERSE_GAPS entry states WHY, not merely that${thin.length ? ` — thin: ${thin.join(', ')}` : ''}`);
+
+    // (a5) THE ENGINE'S GROUND DEFINITION COVERS EVERY EDGE (#985).
+    //
+    // "Is this role a ground" is answered in two places, for two jobs: `engineGrounds` decides what
+    // the override layer REFUSES, and `lint-ratio-truth`'s `groundsOf` decides what that gate SWEEPS.
+    // They forked — #963 added `legibleFor` as a second ground-edge and only the gate learned about
+    // it, so `text.primary` and `text.on-inverse.primary` (nine overlay dependents each) were
+    // invisible to the refusal for two releases.
+    //
+    // HELD rather than collapsed, deliberately: making one call the other would end the divergence by
+    // ending the second opinion, which is `docs/34` shape 1 arriving through a refactor rather than
+    // through a bad gate.
+    //
+    // ── WHAT THIS COVERS, AND WHAT IT DOES NOT ─────────────────────────────────────────────────
+    //
+    // These arms re-derive the ground set HERE, from the tree, and hold `engineGrounds` to it. That
+    // catches the ENGINE dropping an edge, which is the defect that happened. It does NOT compare the
+    // two definitions directly, so it cannot catch the GATE dropping one.
+    //
+    // The direct comparison was written first and REVERTED, because importing `groundsOf` from
+    // `lint-ratio-truth.ts` **runs the entire gate**: it is a script with top-level side effects,
+    // including `process.exit(1)`. A failing ratio-truth run would then kill `test.ts` before any of
+    // its own assertions reported — a crash that names no gate, which is precisely the failure #984's
+    // post-mortem is about, reintroduced by the fix for it. Measured before reverting: the import
+    // added a full 34,128-ratio sweep to every `test.ts` run.
+    //
+    // Closing that gap needs `groundsOf` extracted into a side-effect-free module, which is a change
+    // to a file with two PRs open against it. Filed rather than raced.
+    {
+      const light = resolveAllModes(nbTheme()).find((m) => m.mode === 'light')!;
+      const roles = light.roles;
+
+      // Re-derived here rather than read from the engine — the point is that a second derivation
+      // exists to disagree with the first.
+      const expected = new Set<string>();
+      for (const r of Object.values(roles)) {
+        for (const ref of [r.against, r.legibleFor]) if (ref && ref !== 'self') expected.add(ref);
+      }
+      const actual = engineGrounds(roles);
+      const missing = [...expected].filter((g) => !actual.has(g)).sort();
+      const extra = [...actual].filter((g) => !expected.has(g)).sort();
+      ok(missing.length === 0 && extra.length === 0,
+        `grounds: engineGrounds covers every ground edge (${expected.size})`
+        + (missing.length ? ` — MISSING: ${missing.slice(0, 4).join(', ')}` : '')
+        + (extra.length ? ` — EXTRA: ${extra.slice(0, 4).join(', ')}` : ''));
+
+      // The edge that forked, asserted BY NAME and not only through the set above. A set equality
+      // passes the day both derivations drop `legibleFor` together; this does not, and one side
+      // dropping it is the entire defect. It also fails if the corpus stops carrying such a role,
+      // which would mean this arm is guarding nothing (`docs/34` shape 9).
+      const legibleOnly = [...new Set(Object.values(roles).map((r) => r.legibleFor).filter(Boolean) as string[])]
+        .filter((g) => !Object.values(roles).some((r) => r.against === g));
+      ok(legibleOnly.length > 0 && legibleOnly.every((g) => actual.has(g)),
+        `grounds: a role that is a ground ONLY via legibleFor is still one to the engine (${legibleOnly.length}: ${legibleOnly.join(', ') || 'NONE FOUND — this arm is guarding nothing'})`);
+
+      // The dependent count that justifies a refusal follows both edges too. Understating the blast
+      // radius in the message that has to argue FOR a refusal is its own small dishonesty.
+      const viaLegible = legibleOnly[0];
+      ok(!viaLegible || groundDependentsOf(roles, viaLegible).length > 0,
+        `grounds: groundDependentsOf counts legibleFor dependents (${viaLegible} → ${viaLegible ? groundDependentsOf(roles, viaLegible).length : 0})`);
+
+      // `GROUND_INPUT` is the other half of the refusal. An entry for a role nothing is measured
+      // against would arm the refusal on something that cannot desync.
+      const bogus = Object.keys(GROUND_INPUT).filter((g) => !actual.has(g));
+      ok(bogus.length === 0, `grounds: every GROUND_INPUT key is a real ground${bogus.length ? ` — not grounds: ${bogus.join(', ')}` : ''}`);
+    }
 
     // (a4) THE SURFACE COLLECTION (#893). Read out of the COMMITTED emission, not re-derived from
     // `buildFigmaSurface` — a re-derivation would be the emitter checked against a copy of itself.

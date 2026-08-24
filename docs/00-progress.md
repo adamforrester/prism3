@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-08-24) — the engine and the gate had forked on what a ground is (#985)
+
+**STATUS: shipped.** `ENGINE_VERSION` **stands at 0.18.0** — no behaviour change; see below. Gates
+stay at **42**; this adds four `test.ts` arms, not a gate.
+
+**The fork.** `engineGrounds` (which drives the override REFUSAL) followed `against` only.
+`lint-ratio-truth`'s `groundsOf` (which drives the gate's SWEEP) follows `against` **and**
+`legibleFor`. #963 added the second edge and only the gate learned about it, so `text.primary` and
+`text.on-inverse.primary` — grounds *exclusively* via `legibleFor`, nine overlay dependents each —
+were invisible to the refusal for two releases.
+
+**Latent, not live, and worth being exact about which.** The refusal is
+`groundRoles.has(r) && GROUND_INPUT[r]`; neither role has a `GROUND_INPUT` entry, so no accepted input
+behaves differently today. It goes live the moment either gains one — which is exactly the change
+#956's design invites, and exactly what #978's mutation P5 simulated.
+
+**No version bump, stated rather than skipped.** `ENGINE_VERSION` bumps on behaviour change. Measured:
+no emitted artifact moves, and no input the engine accepts today produces a different outcome. Same
+call #967 made for a projection change with no artifact movement. A bump nobody can point at a
+consequence for is noise in a log that is read for consequences.
+
+**HELD, not collapsed — the harder option and the right one.** Making one definition call the other
+would end the divergence by ending the second opinion: `docs/34` shape 1 arriving through a refactor
+rather than through a bad gate. So `engineGrounds` and `groundDependentsOf` become named exports and
+`test.ts` (a5) re-derives the ground set independently and holds the engine to it.
+
+**What that covers and what it does not, because the first attempt overreached.** The arms catch the
+ENGINE dropping an edge. They do **not** compare the two definitions directly, so they cannot catch
+the GATE dropping one. The direct comparison was written, worked, and was **reverted**: importing
+`groundsOf` from `lint-ratio-truth.ts` *runs the entire gate* — it is a script with top-level side
+effects including `process.exit(1)`, so a failing ratio-truth run would kill `test.ts` before any of
+its own assertions reported. **A crash that names no gate, reintroduced by the fix for #984's
+post-mortem about crashes that name no gate.** Caught by a mutation whose output was the gate's
+banner where `test.ts`'s summary should have been. Measured cost before reverting: a full
+34,128-ratio sweep added to every `test.ts` run.
+
+*A gate script and a library are different things, and a file can only be one of them.* Extraction
+filed rather than raced — `lint-ratio-truth.ts` has two PRs open against it.
+
+**Four arms, because a set equality alone is not enough.** It passes the day *both* derivations drop
+`legibleFor` together, and one side dropping it is the whole defect. So the edge is also asserted by
+name, the dependent count is asserted to follow both edges (understating the blast radius in the
+message that argues FOR a refusal is its own small dishonesty), and every `GROUND_INPUT` key is
+asserted to be a real ground. Each fires by name under mutation.
+
+**The rule from #986 applied, and it earned its keep.** Committed before the first mutation *and*
+between every mutation — the restructure above was written mid-battery, which is exactly the position
+the crash guard was in when a restore ate it. It survived because it was committed before the next
+`git checkout`.
+
+**And the other half of that lesson.** Mutation Q4 printed nothing on its first run. Under the old
+habit that reads as a pass; under the rule it is a *failed mutation*, so I checked — the `sed` anchor
+had silently not matched. Re-run with a verified anchor, it fires by name. **A blank named grep is a
+failed mutation, not a quiet pass**, and this is the first time that rule caught something rather than
+explaining something.
+
+---
+
 ## (2026-08-24) — two mutation-testing rules fixed where they were written down (#986)
 
 **Both rules were right in diagnosis and short by one step in the instruction, and both had already
