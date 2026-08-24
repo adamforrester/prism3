@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-08-24) — a gate script cannot also be a library, and the rule that already knew it (#988)
+
+**STATUS: shipped.** No version change — a gate script, a new pure module, and test arms; nothing
+emitted moves. Gates stay at **42**.
+
+**The trap.** `lint-ratio-truth.ts` runs a 34,128-ratio sweep at module scope and calls
+`process.exit(1)`. Importing `groundsOf` from it therefore ran the sweep, and — the part that
+mattered — a failing sweep exited the process **during the import**, so the importer died before
+running any of its own assertions and the output was the gate's banner where the test's should have
+been. `groundsOf` moves to `grounds.ts`; the gate imports it and stays runnable.
+
+**What that unblocks.** `test.ts` (a5) now compares the two ground definitions **directly**, both
+directions. #987 could only hold the engine side, so the fork was half-held: it caught the engine
+dropping an edge and could not catch the gate dropping one. Both mutations now fail by name —
+breaking `groundsOf` reports `ENGINE ONLY`, breaking `engineGrounds` reports `GATE ONLY`. Intersected
+with the role keys first, because `engineGrounds` also returns palette-step refs (`neutral.050`) and
+comparing raw sets would fail on a difference that is not a fork.
+
+**The definitions stay separate**, and that is the point rather than an oversight: making one call the
+other would end the divergence by ending the second opinion — `docs/34` shape 1 arriving through a
+refactor rather than through a bad gate.
+
+**THE AUDIT, and it is the finding.** This was not a new class. The repo had diagnosed it twice and
+fixed it twice — `regen.ts` (#349, where an unguarded CLI dispatch meant `import { SCHEMA_ARTIFACTS }`
+silently regenerated every committed artifact) and `materialise-to-figma.ts` before it. `test.ts` even
+carried an assertion for it.
+
+**That assertion named `regen.ts` by filename.** Which is exactly why it could not see the third
+instance. *A rule with a known remedy, a written diagnosis, and a check pinned to one file is a rule
+that holds only where somebody remembered to hold it.* Generalised now: no module may import a script
+that does its work at module scope unless that script carries the entry-point guard. Six scripts of
+that shape exist; **zero are imported** after this change, and the arm carries a shape-9 floor so the
+scan collapsing to nothing fails rather than reads clean.
+
+**Two remedies, and which applies depends on where the side effect lives** — worth writing down
+because the wrong one silently does nothing. A CLI **dispatch** at the bottom can be guarded
+(`regen.ts`). A module **body** doing the work cannot: a guard around the whole file is just a worse
+extraction. `lint-ratio-truth` was the second kind, which is why #988 asked for extraction rather than
+a guard.
+
+**My own rule caught my own mutation.** R5 — reproduce the pre-#988 import — printed nothing on its
+first run. Under the old habit that reads as a pass; under #986's second rule it is a *failed
+mutation*, so I looked: the gate no longer exports `groundsOf`, so the import could not resolve and
+the run died before any assertion. Reconstructed properly (re-export, then import), it shows both
+halves at once — the gate's banner inside `test.ts`'s output, and the new arm naming the offender.
+Second time that rule has caught something rather than explained something.
+
+**And a scripting hazard worth naming, because it cost this file.** `open(p, 'w').write(expr)` in
+Python **truncates the file before evaluating `expr`** — so a failing expression leaves an empty file,
+not an unchanged one. A mis-escaped regex in a heredoc returned `None`, the `.start()` threw, and
+`docs/00-progress.md` was already zero bytes by then. `git checkout --` restored it instantly because
+the working state was committed first. *A "read, transform, write" one-liner is not atomic, and the
+window where it has destroyed the input but not produced the output is exactly where an exception
+lands.* Compute first, write last.
+
+---
+
 ## (2026-08-24) — A part can say WHERE it sits, and the "broader" option could not have said it (#990)
 
 **STATUS: in review.** `ENGINE_VERSION` **0.20.0 → 0.21.0** (renumbered on rebase — #979/#996 landed
