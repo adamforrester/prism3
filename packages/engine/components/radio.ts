@@ -117,7 +117,7 @@
  * sized `size.{size}.control` — FULL BLEED — and that is correct there because a glyph carries its
  * optical inset inside its own artboard: `check` draws 16.97×12 of ink on a 24×24 grid (~71%),
  * `minus` draws 14×2 (58%). A radio's dot is a `box`, and a box has no artboard. Full-bleed makes
- * the dot BE the disc, `checked.icon → on-fill` paints it, and the result is a solid circle with no
+ * the dot BE the disc, `checked.indicator → on-fill` paints it, and the result is a solid circle with no
  * ring — which is not a radio at all. Nothing downstream could have caught that: the size ref
  * resolves, the paint resolves, the geometry is square, and nothing in the repo reads a filled
  * shape's proportion.
@@ -347,7 +347,7 @@ export const radio: ComponentDef = {
         radius: 'radius',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         presentWhen: { selection: ['checked'] },
-        note: 'The inner dot, present only at `checked` — an unchecked radio draws no mark, so this is a gated part rather than a recolored one. Its ink is `checked.icon` (`color.interactive.primary.on-fill`), gated by the token tier against the fill it sits on. Its select micro-motion — a spring scale-up, and a sibling\'s dot animating OUT — has no expression in this schema (see `notes.unverified`).',
+        note: 'The inner dot, present only at `checked` — an unchecked radio draws no mark, so this is a gated part rather than a recolored one. Its ink is `checked.indicator`, and at `disabled` the on-fill form `disabled.indicator.on-fill`, because the dot sits on the control\'s fill and the token tier gates that pairing rather than the page one. Its select micro-motion — a spring scale-up, and a sibling\'s dot animating OUT — has no expression in this schema (see `notes.unverified`).',
       },
       // Checkbox's ring, verbatim, on the CONTROL rather than the row: `accessibility.focus` says the ring
       // is on the control, and `focus.ring.offset` (2) is the control offset rather than the field's flush
