@@ -63,6 +63,7 @@ import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMe
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
+import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
@@ -10860,6 +10861,84 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // made the suite crash here with "icon: 'md' is not a declared size".
     ok(planPaintVars(figmaAnatomyPlan(icon, undefined, { name: 'check', tone: 'danger' } as never).root).join(',') === 'color/icon/danger',
       'icon: the SAME def paints correctly at a coordinate that carries a tone — the ceiling is the set, not the grammar (#784)');
+  }
+
+  // ---- glyph-shape: RENDER EQUIVALENCE, proved on constructed inputs first (#917) ----
+  // `lint-glyph-geometry.ts` reports this module's verdict as a fact about the corpus ("N names → M
+  // distinct rendered shapes"), so the module is tested against paths whose answer is known BY HAND
+  // rather than only against the corpus it was written to explain. Every positive is a transform the
+  // header claims is invisible; every negative is a pair a rasterizer would tell apart, and a normalizer
+  // that over-merged would be a gate reporting real distinctness as a declared duplicate.
+  {
+    const eq = (a: string, b: string) => canonicalShape(a) === canonicalShape(b);
+    const SQUARE = 'M0 0H2V2H0Z';
+
+    // POSITIVES — different spellings, one picture.
+    // The real #917 case, and the correction it forced: these differ by START VERTEX, not by winding.
+    // Both rings run (5,11) → (5,13) → (19,13) → (19,11); `subtract-fill` simply begins at (19,11).
+    ok(eq('M5 11V13H19V11H5Z', 'M19 11H5V13H19V11Z'),
+      'glyph-shape: a closed ring beginning at a different vertex is the same picture — this is subtract-line vs subtract-fill, which #917, icon-set.ts and lint-glyph-geometry.ts all recorded as a WINDING difference; it is a rotation, and fill-rule does not enter into it');
+    ok(eq('M0 0L10 0L10 10Z', 'M0 0L10 10L10 0Z'),
+      'glyph-shape: reversing a ring\'s traversal is the same picture — one ring fills identically under nonzero drawn either way');
+    ok(eq('M0 0H2V2H0Z M5 5H7V7H5Z', 'M5 5H7V7H5Z M0 0H2V2H0Z'),
+      'glyph-shape: subpath ORDER does not reach the raster — fill is a set operation over the subpaths');
+    ok(eq(SQUARE, 'M0 0L2 0L2 2L0 2Z'),
+      'glyph-shape: H/V and the L they abbreviate are one picture — 20 of the corpus\'s 39 glyphs mix the spellings');
+    ok(eq(SQUARE, 'M0 0H2V2H0V0Z'),
+      'glyph-shape: an explicit closing segment and the one Z implies are one picture');
+    ok(eq(SQUARE, 'M0 0H2H2V2H0Z'),
+      'glyph-shape: a zero-length segment draws nothing, so it does not change the picture');
+    ok(eq(SQUARE, 'M0 0H1H2V2H0Z'),
+      'glyph-shape: a vertex that merely splits a straight edge in two draws nothing new — the split an author adds by hand is invisible');
+    ok(eq('M0 0C1 0 2 1 2 2Z', 'M2 2C2 1 1 0 0 0Z'),
+      'glyph-shape: reversing a CUBIC swaps which control point comes first — get that wrong and the corpus\'s 20 curved glyphs stop merging with their own reversals');
+
+    // NEGATIVES — the normalizer must not merge these, or the gate above reports real shapes as duplicates.
+    ok(!eq(SQUARE, 'M0 0H2V3H0Z'),
+      'glyph-shape: a one-unit coordinate change is a different picture');
+    ok(!eq(ICON_PATHS['arrow-up'], ICON_PATHS['arrow-down']),
+      'glyph-shape: a REFLECTION is not a rotation — arrow-up and arrow-down stay distinct, which is the merge that would silently excuse a mirrored glyph');
+    ok(!eq('M0 0C1 0 2 1 2 2Z', 'M0 0C2 1 1 0 2 2Z'),
+      'glyph-shape: swapping a cubic\'s two control points IN PLACE is a different curve — only a reversal swaps them legitimately, and conflating the two would merge two real shapes');
+    // THE MULTI-RING CASE, and why reversal is decided once for the whole shape rather than per subpath.
+    // Two rings wound the SAME way fill solid under nonzero; wound oppositely the inner one is a hole.
+    // A per-subpath direction canonicalization merges those two pictures — a ring with a hole and a ring
+    // with a second filled island on top of it read as one shape.
+    ok(!eq('M0 0H10V10H0Z M2 2H8V8H2Z', 'M0 0H10V10H0Z M2 2V8H8V2H2Z'),
+      'glyph-shape: reversing ONE subpath of a two-ring shape opens or fills a hole, so it is a different picture — this is what makes the direction choice global rather than per-subpath');
+    ok(eq('M0 0H10V10H0Z M2 2H8V8H2Z', 'M0 0V10H10V0H0Z M2 2V8H8V2H2Z'),
+      'glyph-shape: reversing BOTH subpaths together leaves relative winding intact, so it IS the same picture — the other half of the same claim, without which the check above could be satisfied by refusing every reversal');
+
+    // MALFORMED INPUT IS AN ERROR, NOT A WEAKER COMPARISON (docs/34 shape 9). A parser that skipped what
+    // it did not implement would return a partial shape, and two partial shapes compare cleanly against
+    // each other — the gate would report a merge it never measured. This already bit once: a mis-read `V`
+    // argument produced coordinates of `NaN`, whose canonical form compared equal to other NaN forms.
+    const refuses = (d: string) => {
+      try { canonicalShape(d); return false; } catch (e) { return e instanceof GlyphPathError; }
+    };
+    for (const [d, what] of [
+      ['m5 11v13h19v11h5z', 'a RELATIVE command — the same rectangle, spelled lowercase'],
+      ['M0 0A5 5 0 0 1 10 10Z', 'an ARC'],
+      ['M0 0Q1 1 2 2Z', 'a QUADRATIC'],
+      ['M0 0C1 0 2 1 2 2S3 3 4 4Z', 'a SMOOTH cubic, which references the previous control point'],
+      ['5 11V13Z', 'path data beginning with a number rather than a command'],
+      ['M0 0C1 0 2 1 2Z', 'a cubic short of its six arguments'],
+      ['', 'empty path data, which yields no subpath to compare'],
+    ] as [string, string][])
+      ok(refuses(d), `glyph-shape: refuses ${what} with a GlyphPathError rather than returning a partial shape`);
+
+    // THE CORPUS, measured through the tested module. The three groups are named individually, not
+    // counted: "3 collisions" is also satisfied by three collisions somewhere else entirely.
+    const byShape = new Map<string, string[]>();
+    for (const n of ICON_NAMES) {
+      const c = canonicalShape(ICON_PATHS[n]);
+      byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
+    }
+    ok(byShape.size === 36,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 36 distinct RENDERED shapes (got ${byShape.size}) — 37 distinct path STRINGS, so string comparison is off by one`);
+    const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
+    ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
+      `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);
   }
 
   // ---- focus-ring: the bindings that moved from the FILE into the engine ----

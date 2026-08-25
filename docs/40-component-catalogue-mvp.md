@@ -197,6 +197,21 @@ Stated in advance because these are expensive to correct after a set is drawn:
 - **One path per glyph where possible**, and no groups or transforms. Both complicate the Figma
   import and the code projection, for no gain.
 - **kebab-case names** matching the vocabulary above.
+- **Every `-filled` name must draw a distinct, heavier shape than its unsuffixed sibling.** This is the
+  one constraint on the list that our own placeholder set violates, which is why it is stated rather
+  than assumed. Remix ships `add-fill.svg` byte-identical to `add-line.svg`, likewise `close`, and
+  `subtract-fill.svg` is the same rectangle started at a different vertex — so 6 of 39 names are 3
+  shapes (#917). The set is not at fault: a plus, an X and a dash are bare strokes with no interior, and
+  it correctly declined to invent one. **A commissioned set has the option the vendored one did not, so
+  the ask is explicit** — either draw a genuinely solid form, or tell us the concept has no filled form
+  and we will drop the name before `icon.name` ships rather than after, when removing it is a MAJOR
+  contract break.
+
+  The bar is measurable, so it can be checked on delivery rather than argued: over the seven pairs our
+  placeholder set does draw distinctly, the filled member carries **1.38× to 2.30×** the inked area of
+  its sibling (rasterized at 4× over the 24×24 box, nonzero winding). The three defects measure exactly
+  **1.00×**. `lint-glyph-geometry.ts` enforces the weaker, offline-checkable half of this today —
+  distinctness of rendered shape, via `glyph-shape.ts` — and the ink-ratio half is #917's follow-up.
 
 None of these is unusual for an icon set; they are stated because a mismatch is discovered at paste
 time, per file, and by then the set exists.

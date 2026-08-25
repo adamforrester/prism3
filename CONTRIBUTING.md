@@ -523,13 +523,20 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # test.ts at 2274 passed / 0 failed (its sample
                                                     # member IS check), and fill="none" everywhere
                                                     # leaves every area and count check green.
-                                                    # MUST_COVER and DUPLICATE_PATHS are AUTHORED, both
+                                                    # MUST_COVER and DUPLICATE_SHAPES are AUTHORED, both
                                                     # directions, same argument as ZERO_OK: three
                                                     # -fill files draw their -line sibling (a pure
                                                     # stroke has no filled form), so 39 names are 37
-                                                    # distinct path STRINGS and 36 distinct SHAPES —
-                                                    # and that gap is the gate's own stated blind spot,
-                                                    # since the arm compares strings. Two defects found
+                                                    # distinct path STRINGS and 36 distinct SHAPES.
+                                                    # That gap WAS the gate's own stated blind spot,
+                                                    # since the arm compared strings; #917 closed it by
+                                                    # keying the arm on glyph-shape.ts's canonical
+                                                    # rendered shape, which collapses start vertex,
+                                                    # whole-shape direction, subpath order and H/V.
+                                                    # It proves sameness and cannot prove difference,
+                                                    # so it is an under-approximation of render
+                                                    # equivalence, not a rasterizer — the new limit is
+                                                    # stated in both headers. Two defects found
                                                     # in the gate itself, both worth knowing before
                                                     # copying it: the exemption list was wrong on first
                                                     # run and the gate said so, and the no-vector-part
