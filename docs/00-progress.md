@@ -10,7 +10,8 @@
 ## (2026-08-25) — the axis-VALUES census, and the assumption the issue named was not the binding one (#934)
 
 **STATUS: shipped.** No version change — a new gate, its register, and the three doc regions that gate
-requires. Nothing emitted moves. Gates go **42 → 43**.
+requires. Nothing emitted moves. Gates go **43 → 44** (renumbered on rebase — #865/#1017 landed first
+and took 43).
 
 **The gap.** `VARIANT_AXES` closes the axis **NAME** vocabulary — 11 names, checked. Nothing closed, or
 even *observed*, axis **VALUES**. #756 had already found what that costs one level up: *"`selection` /
