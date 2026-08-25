@@ -78,6 +78,20 @@ still in `HEAD`. And it does not treat a dirty `out/` as a pass — `--check` re
 reason, because with uncommitted artifacts that gate is a statement about your working tree rather
 than about `HEAD`.
 
+**One more thing it does before any of the above, and it is not a gate (#935).** A fresh container can
+fail both browser suites (`smoke`, `plugin-verdict`) for reasons that have nothing to do with a diff —
+`playwright` missing entirely (a container provisioned before #775/#883 simply never installed it), or
+the pre-baked browser cache holding the wrong revision for the pinned playwright version. Three PRs in
+a row hit this, each correctly declined to fix an environment problem inside an unrelated change, and
+each then had to argue in its own PR body that a red run was fine. The runner now checks both — once,
+before anything runs, and only when `smoke` or `plugin-verdict` is actually selected — and reports
+`ENVIRONMENT NOT READY` in a message shape that cannot be read as a PASS or a FAIL, because it never
+enters the per-gate table at all: nothing has been checked yet, so nothing has a verdict. The remedy is
+always one of two commands, named in the message itself: `npm ci`, or `npx playwright install chromium
+chromium-headless-shell` — the one-off browser download CLAUDE.md's worktree paragraph already
+sanctions, since it writes outside `node_modules`. On a healthy environment this prints nothing at all;
+a check that always has something to say is one nobody reads.
+
 Its `GATES` array is the **fifth** authored statement of what the gates are, beside this section,
 `CLAUDE.md` §4, the PR template and `ci.yml` — and `lint-doc-gates.ts` compares it against `ci.yml` in
 **both** directions, joined on each step's `- name:` verbatim. That is what makes `ci.yml` checkable
