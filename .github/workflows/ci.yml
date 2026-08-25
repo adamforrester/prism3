@@ -530,6 +530,31 @@ jobs:
       - name: A glyph draws its own filled outline on a square artboard
         run: npx --yes tsx@4 packages/engine/lint-glyph-geometry.ts
 
+      # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
+      # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
+      # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default
+      # wearing our name. `createFrame()` returns an opaque white box, `combineAsVariants()` returns a set
+      # with a 5px radius and a purple dashed border, and a text node starts top-left. Measured on the
+      # corpus before the fix: 523 of 973 member root frames carried the unclaimed white fill, and it was
+      # found BY EYE on four separate components before anyone looked for the class.
+      #
+      # A read-back cannot see this, structurally: an unset property has no write to verify. So this asks
+      # the converse question — does every visually-significant property a built node carries trace to a
+      # decision? ACTUAL is recorded, not read: the real `applyComponentPlan` runs against a Proxy host
+      # whose `set` trap records property names, so a mechanism that merely LOOKS like it supplies a
+      # property cannot be credited with it (three drafts of the expected table were wrong in exactly that
+      # way — `setTextStyleIdAsync()` carries no alignment field on either axis). EXPECTED is authored in
+      # the gate from `@figma/plugin-typings`, and `claimDefaults` carries a comment forbidding an import
+      # of its table: a gate reading the subject's own list asserts `table === table` (docs/34 shape 2).
+      #
+      # Every arm reports its own name, and the three exemptions are ASSERTED rather than assumed — an
+      # INSTANCE is exempt only if some plan node nominated the component it came from (A6), auto-layout
+      # properties only where a `layoutMode` exists (A4), imported glyph ink only below Figma's importer
+      # (A5) — plus corpus reach (A0), node-type representation (A2) and row exercise (A3), because a
+      # sweep that builds no VECTOR reports its VECTOR rows as passing.
+      - name: Every visually-significant property on a built node traces to a decision
+        run: npx --yes tsx@4 apps/plugin/lint-unclaimed-defaults.ts
+
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning

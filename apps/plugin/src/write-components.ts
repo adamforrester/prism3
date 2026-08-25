@@ -133,6 +133,36 @@ export interface CompNode {
   layoutPositioning?: unknown;
   constraints?: unknown;
   componentPropertyReferences?: unknown;
+  /** THE #865 SURFACE — properties this executor writes only to state Figma's default EXPLICITLY, so
+   *  that nothing a built node carries is a default nobody decided. None of these existed on the port
+   *  before, and their absence is why the defect was invisible from inside the type: a port that cannot
+   *  name `cornerRadius` cannot be reviewed for whether it sets one.
+   *
+   *  `layoutSizingHorizontal` / `layoutSizingVertical` are deliberately NOT here. Figma documents them
+   *  as "a shorthand for setting layoutGrow, layoutAlign, primaryAxisSizingMode, and
+   *  counterAxisSizingMode", and: "`HUG` is only valid on auto-layout frames and text nodes. `FILL` is
+   *  only valid on auto-layout children. Setting these values when they don't apply will throw." The
+   *  four primitives carry the same state and throw on nothing, so the shorthand is a strictly worse
+   *  way to say the same thing here. */
+  cornerRadius?: unknown;
+  dashPattern?: unknown;
+  itemSpacing?: unknown;
+  paddingLeft?: unknown;
+  paddingRight?: unknown;
+  paddingTop?: unknown;
+  paddingBottom?: unknown;
+  layoutAlign?: unknown;
+  layoutGrow?: unknown;
+  blendMode?: unknown;
+  effects?: unknown;
+  visible?: boolean;
+  rotation?: number;
+  textAlignVertical?: unknown;
+  textAlignHorizontal?: unknown;
+  textAutoResize?: unknown;
+  textTruncation?: unknown;
+  paragraphSpacing?: unknown;
+  leadingTrim?: unknown;
   resize?(width: number, height: number): void;
   appendChild?(child: CompNode): void;
   findAll?(predicate?: (node: CompNode) => boolean): unknown[];
@@ -485,6 +515,146 @@ const wr = (node: CompNode): Wr => node as Wr;
 const boundPaint = (arr: unknown): boolean => {
   const first = (arr as { boundVariables?: { color?: unknown } }[] | null | undefined)?.[0];
   return !!(first && first.boundVariables && first.boundVariables.color);
+};
+
+// ── CLAIM THE DEFAULTS (#865) ──────────────────────────────────────────────────────────────────
+//
+// Every write above this point sets what a plan DECLARES. Nothing set what a plan is silent about, and a
+// Figma node is never silent: `createFrame()` hands back an opaque white box, `combineAsVariants()` hands
+// back a set with a 5px radius and a purple dashed border, and a text node starts top-left aligned. So
+// every property no def mentioned survived as a Figma default wearing our name — and no read-back could
+// see it, because a read-back verifies that a write was retained and there was no write.
+//
+// MEASURED before it was fixed, on `checkbox` (54 members, 244 nodes) and `switch` (24 members, 101),
+// by recording every property the executor actually assigns and diffing against Figma's own defaults:
+// 11 unclaimed properties on the COMPONENT_SET, 9 on every FRAME plus 10 more on some, 15 on every TEXT,
+// 6 on every VECTOR. Corpus-wide, 523 of 973 member root frames carried the white fill. The issue
+// predicted "probably longer than two entries" and the list is nineteen at its longest.
+//
+// WHY THE WIDE LIST RATHER THAN THE VISIBLE ONE. A list of "the properties that show up in today's
+// corpus" is chosen by a judgment that expires the first time a def carries a shadow, and it expires
+// SILENTLY — the same silence this function exists to end. `blendMode` and `rotation` are invisible on
+// every component that exists right now; they are on the list because the cost of including them is one
+// line each and the cost of omitting them is another round of QA finding it by eye.
+//
+// THE VALUES ARE FIGMA'S OWN DEFAULTS, not our preferences — with two exceptions, both deliberate:
+// `fills`/`strokes` neutralize to `[]` (Figma's default frame fill is white, and "nobody asked for a
+// fill" means no fill, not a white one), and `clipsContent` to `false` (already the generic branch's
+// choice; stated here for the branches that never made it). Writing a default EXPLICITLY is not a no-op
+// even where the value matches: it moves the property from "whatever Figma happened to do" to a decision
+// recorded in one place, which is what makes #1009's `textAlignVertical: 'TOP'` a named hole that can be
+// argued with rather than a silence nobody can find.
+//
+// DO NOT ROUTE THE GATE THROUGH THIS TABLE. `apps/plugin/lint-unclaimed-defaults.ts` authors its own
+// list of visually-significant properties, from the Figma typings, and that duplication IS the gate
+// (docs/34): a gate importing this table would assert `table === table` and pass on any hole the table
+// itself has. This comment exists because the duplication looks exactly like something to tidy up.
+type ClaimMode = 'created' | 'imported';
+
+/** Write Figma's default EXPLICITLY for every visually-significant property this node's plan did not
+ *  claim. Runs LAST, after every plan-driven write, so a declared value is never clobbered — and the
+ *  plan is what decides "claimed", never the live node, because a node cannot tell a value we chose
+ *  from a value Figma chose, which is the entire defect.
+ *
+ *  `n` is null for the COMPONENT_SET, which has no plan node — every visual property on a set is
+ *  unclaimed by construction, which is why it carried all eleven.
+ *
+ *  Each write is guarded and reports a miss rather than throwing. Not defensive padding: the text
+ *  properties genuinely require the node's font to be loaded, and a TEXT plan with no `textStyle` never
+ *  loaded one. A throw here would lose a member that had otherwise built correctly, to fix its
+ *  alignment. */
+const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode: ClaimMode): void => {
+  const where = n?.name ?? 'set';
+  const set = (prop: keyof CompNode, value: unknown): void => {
+    try { (node as Record<string, unknown>)[prop as string] = value; }
+    catch (err) { misses.push(`${where}.${String(prop)} -> UNCLAIMED and could not be neutralized (${(err as Error).message}); it keeps Figma's default — #865`); }
+  };
+
+  // AN INSTANCE IS CLAIMED BY ITS NOMINATION, and nothing here may touch one. Its appearance comes from
+  // the main component `swapTarget`/`nestTarget` named — itself built by this executor, or authored by a
+  // designer — so `fills = []` on an instance is not a neutral value, it is a LOCAL OVERRIDE that erases
+  // the component's design. On a `nest-fixed` focus ring that means deleting the ring. Same for a
+  // COMPONENT, whose properties came from the frame `createComponentFromNode` consumed — already
+  // neutralized here, one call earlier, as that frame.
+  const t = node.type;
+  if (t === 'INSTANCE' || t === 'COMPONENT') return;
+
+  // Universal — every node type Figma lets us create carries all five, on SceneNodeMixin, BlendMixin
+  // and LayoutMixin.
+  set('visible', true);
+  // `zeroOpacity` is applied by the PARENT after this returns, so writing 1 here would be overwritten
+  // anyway. Skipped rather than relied on: a claim the plan makes should not depend on write order.
+  if (!n?.zeroOpacity) set('opacity', 1);
+  set('blendMode', 'PASS_THROUGH');
+  if (!n?.effectStyle) set('effects', []);
+  set('rotation', 0);
+  // Child-side layout properties. Settable on any node — outside an auto-layout parent Figma ignores
+  // them rather than throwing, which is why these two need no applicability test while the parent-side
+  // ones below do.
+  set('layoutAlign', 'INHERIT');
+  set('layoutGrow', 0);
+  // Claimed by the PARENT for an absolute or centered part (`STRETCH` / `CENTER`), and by the glyph
+  // branch for a drawn outline (`SCALE`) — all of which run after this, except the glyph one, which is
+  // why an imported subtree skips it.
+  if (mode === 'created') set('constraints', { horizontal: 'MIN', vertical: 'MIN' });
+
+  // INK. An imported glyph's fills and strokes are declared by `glyphSvg` — a plan field, so they are
+  // claimed, and blanking them would erase the outline the SVG drew. The artboard the importer returns
+  // is NOT an imported node in this sense: it is a wrapper, it carries the white, and it arrives here
+  // as the `created` node of its GLYPH plan.
+  if (mode === 'created') {
+    if (t === 'TEXT') {
+      // NO NEUTRAL VALUE EXISTS for a text fill: `[]` is invisible text, which is a worse defect than
+      // an unclaimed one and would be found by eye just as late. So an unpainted label is REPORTED.
+      if (!n?.paints?.fills) misses.push(`${where}.fills -> UNCLAIMED on a TEXT node (a label with no paint is invisible, so this is reported rather than neutralized — the def must declare a text paint) — #865`);
+    } else if (!n?.paints?.fills) set('fills', []);
+    if (!n?.paints?.strokes) {
+      set('strokes', []);
+      // Both are set by the paints branch when it strokes; neutralized together with `strokes` so the
+      // three never disagree. Figma's own defaults, and invisible without a stroke to draw.
+      set('strokeWeight', 1);
+      set('strokeAlign', 'INSIDE');
+    }
+    set('dashPattern', []);
+  }
+
+  // FRAME-SHAPED — a COMPONENT_SET included, and that inclusion is half the fix. `ComponentSetNode
+  // extends BaseFrameMixin`, which carries GeometryMixin, CornerMixin, BlendMixin and AutoLayoutMixin,
+  // so a set has every one of these and `combineAsVariants` sets three of them to values nobody chose.
+  if (t === 'FRAME' || t === 'COMPONENT_SET') {
+    // The four corners individually rather than `cornerRadius`, because that is what the plan binds and
+    // the two must be compared on the same footing: a def binding `topLeftRadius` has claimed the
+    // corner, and neutralizing the shorthand would undo it.
+    const bound = n?.bound ?? {};
+    for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const)
+      if (!(corner in bound)) set(corner as keyof CompNode, 0);
+    set('clipsContent', false);
+    set('strokesIncludedInLayout', false);
+    // PARENT-SIDE auto-layout properties, and these DO need the applicability test: Figma documents them
+    // as "applicable only on auto-layout frames". Gated on the plan's `layoutMode` rather than a live
+    // read for the reason in the header — and when there is no auto-layout there is no gap and no
+    // padding to see, so this is an inapplicable property rather than an unclaimed one.
+    if (n?.layoutMode) {
+      if (!('itemSpacing' in bound)) set('itemSpacing', 0);
+      for (const pad of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'] as const)
+        if (!(pad in bound)) set(pad as keyof CompNode, 0);
+      // The alignment and sizing four are written unconditionally by the `layoutMode` branch above, so
+      // they are claimed whenever they apply and there is nothing to neutralize.
+    }
+  }
+
+  // TEXT-ONLY. Every one of these requires the node's font to be loaded — the guard above is what makes
+  // a TEXT plan with no `textStyle` report instead of losing the member. `textAlignVertical` is #1009's
+  // half 2: `'TOP'` is Figma's default and also the value `components/checkbox.ts` argues for, so this
+  // line changes no pixel today. It exists so the value has an address.
+  if (t === 'TEXT') {
+    set('textAlignVertical', 'TOP');
+    set('textAlignHorizontal', 'LEFT');
+    set('textAutoResize', 'WIDTH_AND_HEIGHT');
+    set('textTruncation', 'DISABLED');
+    set('paragraphSpacing', 0);
+    set('leadingTrim', 'NONE');
+  }
 };
 
 // ── A PARTIAL WRITE, MARKED (#913) ─────────────────────────────────────────────────────────────
@@ -1034,6 +1204,18 @@ const writeComponentSet = async (
       if (kid.layoutPositioning !== 'ABSOLUTE')
         misses.push(`${c.name}.layoutPositioning -> DISCARDED (set ABSOLUTE, reads ${kid.layoutPositioning}; the ring would take a cell in the row)`);
     }
+    // #865, AND IT HAS TO BE LAST. Every write above declares something; this one declares that nothing
+    // else was declared. Placed after the child loop rather than beside `createFrame()` so that a value
+    // the plan set is never overwritten by a default — the ordering is the whole correctness argument,
+    // and putting it at creation time would have neutralized the plan instead of Figma.
+    claimDefaults(node, n, misses, 'created');
+    // THE IMPORTED SUBTREE (#865, second sub-cause). `createNodeFromSvg` bypasses `createFrame()`
+    // entirely, so none of the frame configuration this executor does ever reached the nodes inside a
+    // glyph — measured at 36 of `checkbox`'s 90 white frames, which is why a fix touching only the
+    // `createFrame` path would have left a third of them in place. `imported` mode skips fills, strokes
+    // and constraints: those three are claimed here by `glyphSvg` and by the `SCALE` write above.
+    if (n.type === 'GLYPH')
+      for (const d of node.findAll?.(() => true) ?? []) claimDefaults(wr(d as CompNode), n, misses, 'imported');
     return node;
   };
 
@@ -1154,6 +1336,15 @@ const writeComponentSet = async (
     for (const c of fresh) trail.loose.delete(c);
     trail.loose.add(set);
     wr(set).name = component;
+    // #865 ON THE SET, which is the half a per-node fix cannot reach. `combineAsVariants` does not return
+    // a neutral container: it returns one with a 5px corner radius, a purple dashed border and an opaque
+    // white fill, none of which any def mentions and all of which a designer sees framing the grid. There
+    // is no plan node for a set, so `null` — every visual property on it is unclaimed by construction.
+    //
+    // ONLY THE FRESH SET. The `else` branch below appends into a set the FILE already had, and that one
+    // is the designer's: its fill and its radius are their decisions, and neutralizing them would be this
+    // executor reaching outside what it built to normalize someone else's work.
+    claimDefaults(wr(set), null, misses, 'created');
   } else for (const c of fresh) {
     set.appendChild?.(c);
     // INTO A SET THE FILE ALREADY HAD (#913). Not loose — it is exactly where a designer expects it — so

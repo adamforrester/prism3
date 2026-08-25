@@ -7,6 +7,74 @@
 
 ---
 
+## (2026-08-25) — the properties nobody wrote, and the direction no read-back can see (#865)
+
+**STATUS: shipped.** No version change — the executor writes Figma's own defaults explicitly, so no
+emitted value moves and no token name changes. Gates go **42 → 43**.
+
+**Measured before fixed, because the hypothesis was two entries long and the answer was twenty-eight.**
+#865 arrived as two symptoms (a white halo behind a glyph, a caption sitting low in its row) and a
+guess at the cause. Rather than fix the guess, a throwaway harness ran the real `applyComponentPlan`
+against a recording Proxy host and dumped the **full** property set of every node the corpus builds,
+against the set the plan actually writes. The gap was not two properties. It was twenty-eight —
+`rotation`, `blendMode`, `dashPattern`, `strokeAlign`, `leadingTrim`, `strokesIncludedInLayout`,
+`layoutGrow`, the four corners individually, the four paddings — on **2,023** nodes across nine defs.
+
+**Three sub-causes, and only the first was the one in the issue.** (1) Nodes from `createFrame()` keep
+whatever Figma chose for anything the plan omits. (2) A **COMPONENT_SET** has no plan node at all, so
+every visual property on it is unclaimed by construction — `ComponentSetNode extends BaseFrameMixin`,
+and `combineAsVariants` sets three of them to values nobody chose. (3) `createNodeFromSvg` bypasses
+`createFrame()` entirely, which is what accounts for 36 of checkbox's 90 white frames. Fixing only (1)
+would have closed the reported symptom and left two thirds of the class standing.
+
+**The scope was chosen wide on purpose.** The narrow list is the one visible in today's corpus — a
+judgment that goes stale the first time a def carries a shadow, and goes stale *silently*. So
+`layoutGrow` is claimed even though nothing binds it today; the mutation battery's M8 row exists to
+prove that a rung nobody can see yet is still live.
+
+**The gate is the half that makes the fix recoverable, and it is the deliverable.** The executors'
+read-backs verify **what was written**. Nothing verified **what was not** — an unset property has no
+write to read back against, which is why this class shipped on four components and was found by eye
+each time. `apps/plugin/lint-unclaimed-defaults.ts` asks the converse over the whole corpus: does
+every visually-significant property a built node carries trace to a decision? ACTUAL is *recorded*,
+not read. EXPECTED is authored in the gate from `@figma/plugin-typings`, and **the duplication is the
+gate** — importing `claimDefaults`'s own table would assert `table === table`, `docs/34` shape 2. That
+table now carries a comment forbidding it, naming the gate.
+
+**Three carve-outs, each asserted rather than assumed**, because a blanket skip is how an exemption
+eats the check around it: an INSTANCE is exempt only where a plan node nominated the component it came
+from; auto-layout properties only where a `layoutMode` exists; imported glyph ink only below Figma's
+SVG importer. Every arm must be shown to have both fired and not fired — otherwise a mutation deleting
+the `layoutMode` write would silence the padding rows too.
+
+**A mutation found a shape-2 hole inside the gate written to enforce shape 2.** Emptying `nominated()`
+made every arm pass with a clean exit: the expected set and the harness's component list are ONE
+derivation, so with no names the harness seeds nothing, the swap path falls back to `createFrame()`,
+zero instances are built, and A6 has nothing to disagree about. Stated as a limit at the arm rather
+than argued away, plus a non-vacuity count (zero instances swept is itself a failure) and a second
+mutation that makes an instance arrive from a name nobody nominated — which is what proves the
+comparison can disagree at all. **15/15 mutations now fail by the gate's own named assertion**, tree
+clean after.
+
+**And one measurement trap worth more than the number it produced.** The first harness aggregated
+per node *type*, so `fills` read as claimed because one frame in 144 carried a paint. That is #919's
+scope-predicate family — a predicate wide enough to be satisfied by a single member — arriving inside
+a *measurement* rather than a gate, where nothing was watching for it. The gate reports per node, and
+its own coverage arms assert each promised type is **represented**, never counted.
+
+**A hole in `verify.ts`'s orphan arm, found while wiring.** That arm is the only thing that can see a
+gate file nothing points at, and it scoped `apps/` to `.mjs` — because `apps/studio/lint-contrast.mjs`
+was the only instance. The first `.ts` gate under `apps/` would therefore have been invisible to it.
+Widened, with the negative self-check **moved rather than dropped**: an extension outside the
+convention and a nested path are still excluded, since an arm reduced to one condition after a
+widening is how a scope grows past its own header.
+
+**Follow-up filed, not buried in prose.** #1009 (the caption's vertical alignment) is on hold, so the
+finding was posted there and stopped — `textAlignVertical: 'TOP'` is claimed here because the value
+needs an address, and it changes no pixel today.
+
+---
+
 ## (2026-08-24) — a gate script cannot also be a library, and the rule that already knew it (#988)
 
 **STATUS: shipped.** No version change — a gate script, a new pure module, and test arms; nothing

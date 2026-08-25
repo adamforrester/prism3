@@ -488,6 +488,14 @@ export const GATES: Gate[] = [
     cmd: engine('lint-glyph-geometry.ts'),
   },
   {
+    // The FIRST gate outside `packages/engine/`, which is why `gateFilePattern` below now admits
+    // `apps/*/lint-*.ts` as well as `.mjs`. It lives in `apps/plugin/` because it imports the plugin's
+    // own executor; an engine-side copy would make the engine depend on a surface.
+    id: 'lint-unclaimed-defaults',
+    ciStep: 'Every visually-significant property on a built node traces to a decision',
+    cmd: [...TSX, 'apps/plugin/lint-unclaimed-defaults.ts'],
+  },
+  {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
     // row's own `ciStep` string among them — and that firing is what produced the flip below. It
     // now guards windows nobody has opened yet.
@@ -517,18 +525,24 @@ export const GATES: Gate[] = [
  * makes the filesystem lie, the measurement `lint-layout-claims.ts` records) against `ci.yml`'s raw
  * text. Two readers, neither derived from the other.
  *
- * SCOPE, declared: `packages/engine/lint-*.ts` and `apps/<workspace>/lint-*.mjs`. That is the `lint-` naming
- * convention this repo actually uses for standalone assertion scripts, and it is a NAME-based scope
+ * SCOPE, declared: `packages/engine/lint-*.ts` and `apps/<workspace>/lint-*.{mjs,ts}`. That is the `lint-`
+ * naming convention this repo actually uses for standalone assertion scripts, and it is a NAME-based scope
  * with the limit that implies — a gate named `check-consumability.mjs` or `typecheck-components.ts`
  * is outside it. Those are in `ci.yml` today and covered by the bidirectional comparison above; what
  * this arm adds is the case where nothing points at the file at all. Stated as a limit rather than
  * widened to every `.ts` in the repo, which would make the scope unmaintainable and the gate the
  * first thing narrowed.
  *
+ * THE `apps/` HALF WAS `.mjs`-ONLY UNTIL #865, and that was a hole rather than a decision: the
+ * extension came from `apps/studio/lint-contrast.mjs` being the only instance, so the first
+ * `.ts` gate under `apps/` — `apps/plugin/lint-unclaimed-defaults.ts` — would have been invisible to the
+ * one arm that exists to see a file nothing points at. Widening it adds exactly that file today
+ * (checked: `git ls-files` matches two `apps/` gates under the wider pattern and one under the narrower).
+ *
  * Exported and driven by `lint-doc-gates.ts`, so it runs in CI rather than only when someone types
  * `verify`. A gate that only runs locally is the thing this whole file is about.
  */
-export const gateFilePattern = /(?:^packages\/engine\/lint-[^/]+\.ts|^apps\/[^/]+\/lint-[^/]+\.mjs)$/;
+export const gateFilePattern = /(?:^packages\/engine\/lint-[^/]+\.ts|^apps\/[^/]+\/lint-[^/]+\.(?:mjs|ts))$/;
 
 export const trackedGateFiles = (): string[] => {
   const r = spawnSync('git', ['ls-files'], { cwd: repoRoot, encoding: 'utf8', shell: false, maxBuffer: 32 * 1024 * 1024 });
@@ -630,11 +644,17 @@ if (orphanGateFiles(FAKE_CI, ['packages/engine/lint-named.ts']).length) {
 if (!orphanGateFiles(FAKE_CI, ['packages/engine/lint-invisible.ts']).includes('packages/engine/lint-invisible.ts')) {
   selfFails.push('orphanGateFiles misses a gate file named nowhere in ci.yml — the orphan case, which is the whole point of this arm');
 }
-if (!gateFilePattern.test('apps/studio/lint-classes.mjs') || !gateFilePattern.test('packages/engine/lint-voice.ts')) {
+if (!gateFilePattern.test('apps/studio/lint-classes.mjs') || !gateFilePattern.test('packages/engine/lint-voice.ts')
+  || !gateFilePattern.test('apps/plugin/lint-unclaimed-defaults.ts')) {
   selfFails.push('gateFilePattern no longer matches the repo\'s real gate files — this arm\'s scope has gone empty');
 }
-if (gateFilePattern.test('packages/engine/lint-voice.mjs') || gateFilePattern.test('apps/studio/lint-classes.ts')) {
-  selfFails.push('gateFilePattern matches the wrong extension for a location — the scope is broader than declared');
+// The engine half stays `.ts`-only and the `apps/` half accepts `.mjs` or `.ts` (#865), so the negative
+// arm moved rather than went away: an extension OUTSIDE the convention, and a nested path, are still out.
+// It has to keep asserting something — an arm reduced to one condition after a widening is how a scope
+// grows past what its own header declares.
+if (gateFilePattern.test('packages/engine/lint-voice.mjs') || gateFilePattern.test('apps/studio/lint-classes.js')
+  || gateFilePattern.test('apps/plugin/src/lint-nested.ts')) {
+  selfFails.push('gateFilePattern matches the wrong extension or depth for a location — the scope is broader than declared');
 }
 
 // The derived gates: each must be able to FAIL, since a `derive` that always returns PASS is a table
