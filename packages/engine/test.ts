@@ -45,7 +45,7 @@ import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPa
 import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -11012,12 +11012,44 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // So the paint count is asserted, not just the plan count. `field-message` is the def where those two
   // come apart: a set of four members with zero paints is structurally perfect and entirely grey, and
-  // "4 plans" alone reads as success. 8 = four tones × (caption ink + glyph ink).
+  // "4 plans" alone reads as success.
+  //
+  // SEVEN, NOT EIGHT, SINCE #1010, and the shape of the seven is asserted PER MEMBER rather than as a
+  // total — the correction matters more than the number. This read `=== 8` (four tones × caption ink +
+  // glyph ink) while the default tone still projected a glyph; it no longer does, because the Prism2
+  // reference row our grey default matches is `standard` (no icon). So the default member carries ONE
+  // paint and each validation member TWO. A total of 7 is reachable several wrong ways — 3+2+1+1 among
+  // them — so the total alone would pass a set that had lost the warning glyph and gained a stray paint
+  // somewhere else. `default.icon` is the eighth binding and is deliberately unreachable in Figma;
+  // `lint-paint.ts`'s `UNREACHED_EXPLAINED` is where that is registered, and it fails if it becomes
+  // reachable, so the two files cover the two directions between them.
   const fmSet = figmaAnatomySet(fieldMessage, { swapTarget: 'FPO' });
   ok(fmSet.length === 4 && fmSet.map(planComponentName).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
     `field-message: projects FOUR members, one per tone, named for the only axis it declares (got '${fmSet.map(planComponentName).join(' | ')}')`);
-  ok(fmSet.reduce((n, p) => n + planPaintVars(p.root).length, 0) === 8,
-    `field-message: all EIGHT colour bindings reach a node — four tones × (caption ink + glyph ink). The plan count alone would pass for a set of four grey members (got ${fmSet.reduce((n, p) => n + planPaintVars(p.root).length, 0)})`);
+  const fmPaints = fmSet.map((p) => planPaintVars(p.root).length).join(',');
+  ok(fmPaints === '1,2,2,2',
+    `field-message: the default member paints ONE colour (its caption) and each validation member TWO (caption + glyph) — 7 bindings reaching nodes, in that distribution. A total alone would pass a set that lost one glyph and gained a paint elsewhere (got ${fmPaints})`);
+  // THE 16 IN "16x16" (#1010), measured per brand and resolved through the def's OWN ref. The plugin
+  // harness reads the glyph's size BINDING off the built node, which is as far as it can go — its shim
+  // gives every variable a synthetic value, so the number 16 is not checkable there. It is checkable
+  // here, and it has to be, because the def's whole argument for `icon.size.xs` is that it is 16 in
+  // EVERY brand: it aliases `dimension.16` on the fixed grid rather than riding a density-scaled ladder,
+  // which `control.size.*` does (aurora resolves 12/16/20 against nb's 16/20/24 — see #900 above). A def
+  // repointed at `icon.size.sm` would then silently be 20, and 20 in aurora too, so a brand-invariance
+  // check alone would not catch it. Read via `tokens['glyph-size']` rather than the literal string, so
+  // the assertion follows the def if the ref moves instead of grepping for a name that still matches.
+  {
+    const ref = (fieldMessage.tokens as Record<string, string>)['glyph-size'];
+    const px = corpus().map(({ id, theme }) => {
+      const tree = buildTree(theme).tree as Record<string, unknown>;
+      const root = tree[Object.keys(tree)[0]] as Record<string, unknown>;
+      const leaf = ref.split('.').reduce<Record<string, unknown> | undefined>((o, k) => o?.[k] as Record<string, unknown> | undefined, root);
+      const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
+      return { brand: id.split(' ')[0], px: ext };
+    });
+    ok(px.length === 5 && px.every((b) => b.px === 16),
+      `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
+  }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
     'field-message: no plan carries a size and no member name carries `size=` — a caption has ONE scale, and #795 is what lets the def say so instead of fabricating `size: [md, lg]`');
   // THE HEADER'S CORRECTION IS ITSELF PINNED, because the false claim is the deliverable of this ticket
@@ -11090,6 +11122,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // Ranges over `componentDefs` and asserts the membership BY NAME, so a third def gaining a
   // `presentWhen` is covered the day it lands rather than the day someone remembers this block.
+  // That is not a hope any more: `field-message` is the third def, and the way it entered this list was
+  // this arm going red on the commit that gave it four gated glyphs (#1010) — nobody went looking for
+  // the block. Both directions matter and both have now fired: gaining a gated part fails the length
+  // check, and the earlier presence of a def that no longer gates one would fail the `every`.
   //
   // ITS LIMIT, MEASURED RATHER THAN REASONED. EXPECTED is the def's own declaration and ACTUAL is the
   // plan, so this checks that the MECHANISM honors the gate — not that the gate is the right way round.
@@ -11102,7 +11138,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // assignments and the census cannot see it either.
   const gatedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
-  const GATED_EXPECTED = ['checkbox', 'radio'];
+  const GATED_EXPECTED = ['field-message', 'checkbox', 'radio'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -11120,7 +11156,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const [axis, values] = axes[0];
       // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
       // directions is the gated one.
-      const rest: Record<string, string> = { state: 'rest' };
+      //
+      // `state: 'rest'` ONLY IF THE DEF DECLARES IT (#1010). This read `{ state: 'rest' }` unconditionally,
+      // which held while every def with a gated part was an interactive control. `field-message` is the
+      // first PRESENTATIONAL def to gate one — `states: []`, four `presentWhen` glyphs on `tone` — and
+      // `figmaAnatomyPlan` throws on a state the def does not declare, so the unconditional form killed the
+      // process before a single assertion in this block ran. That is exactly the fall-through the comment
+      // below warns about, reached through the coordinate this block supplies ITSELF rather than one a def
+      // authored: the hazard was understood, and only the instance that had already happened was guarded.
+      const rest: Record<string, string> = {};
+      if (statesOf(def).includes('rest')) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
@@ -11246,7 +11291,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(parent !== undefined,
         `#990 ${def.id}.${name} is positioned but is nobody's child — the position projects onto a parent's distribution, so with no parent these arms have nothing to read`);
       if (!parent) continue;
-      const rest: Record<string, string> = { state: 'rest' };
+      // Same conditional as the #910 block above, and for the same reason (#1010) — carried here although
+      // NOTHING reaches it today: every def with a `positionWhen` part declares states, so this arm has no
+      // presentational def to trip over yet. Fixed anyway because the two blocks are the same sweep over a
+      // different field, and leaving one of a matched pair correct is how the next author concludes the
+      // unconditional form is the intended one.
+      const rest: Record<string, string> = {};
+      if (statesOf(def).includes('rest')) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       const declared = def.variants?.[axis] ?? [];
       const undeclared = Object.keys(byValue).filter((v) => !declared.includes(v));
@@ -11314,20 +11365,48 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // before a single ❌ printed. A harness crash is not this assertion failing; it is this assertion never
   // being reached, and the next reader has no line number for the thing that actually broke. So the guard
   // is checked while it can still be reported, and the compile is what happens once it holds.
-  const ringJs = planSetChunks(ringSet)[0].js;
-  const cellOfSrc = ringJs.slice(ringJs.indexOf('const cellOf='), ringJs.indexOf('const cells=members.map'));
-  const cellOfExtracted = cellOfSrc.includes('group:') && cellOfSrc.length > 200;
-  ok(cellOfExtracted,
-    `focus-ring: the payload's own cellOf was extracted before being run — an empty slice would make every comparison below vacuously true (got ${cellOfSrc.length} chars)`);
-  const payloadCellOf = cellOfExtracted
-    ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${cellOfSrc}return cellOf;`)(
-      ringLayout.rowKeys, ringLayout.rowLabels, ringLayout.colKey, ringLayout.colVals,
-    ) as (name: string) => { row: number; col: number; group: string })
-    : null;
-  ok(payloadCellOf !== null && ringLayout.cells.every((c) => payloadCellOf(c.name).group === c.group),
+  //
+  // `FOOTPRINT_VARIES` IS TAKEN OUT OF THE PAYLOAD RATHER THAN PASSED IN (#1010), and the distinction is
+  // the same one this block already turns on. The list is a const the chunk DECLARES; injecting it as a
+  // `new Function` parameter would supply what the payload is supposed to ship, so a chunk that never
+  // declared it would satisfy every arm here and throw `ReferenceError` on the first paste into Figma.
+  // Extracted with the same guard-before-compile ordering, for the reason stated above.
+  const payloadCellOfFor = (js: string, layout: { rowKeys: string[]; rowLabels: string[]; colKey: string; colVals: string[] }) => {
+    const at = js.indexOf('const FOOTPRINT_VARIES=');
+    const decl = at < 0 ? '' : js.slice(at, js.indexOf('\n', at) + 1);
+    const src = js.slice(js.indexOf('const cellOf='), js.indexOf('const cells=members.map'));
+    const extracted = src.includes('group:') && src.length > 200 && decl.includes('FOOTPRINT_VARIES=[');
+    return {
+      extracted, chars: src.length, decl: decl.trim(),
+      fn: extracted
+        ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${decl}${src}return cellOf;`)(
+          layout.rowKeys, layout.rowLabels, layout.colKey, layout.colVals,
+        ) as (name: string) => { row: number; col: number; group: string })
+        : null,
+    };
+  };
+  const ringPayload = payloadCellOfFor(planSetChunks(ringSet)[0].js, ringLayout);
+  ok(ringPayload.extracted,
+    `focus-ring: the payload's own cellOf and its FOOTPRINT_VARIES declaration were both extracted before being run — an empty slice would make every comparison below vacuously true (got ${ringPayload.chars} chars, '${ringPayload.decl}')`);
+  ok(ringPayload.fn !== null && ringLayout.cells.every((c) => ringPayload.fn!(c.name).group === c.group),
     'focus-ring: the PAYLOAD reaches the byte-identical cohort key from the member name alone — two independent derivations of "absent means omit", which is the only thing keeping them in step');
-  ok(payloadCellOf !== null && ringLayout.cells.every((c) => { const p = payloadCellOf(c.name); return p.row === c.row && p.col === c.col; }),
+  ok(ringPayload.fn !== null && ringLayout.cells.every((c) => { const p = ringPayload.fn!(c.name); return p.row === c.row && p.col === c.col; }),
     'focus-ring: and the same row/col, so a sizeless set lays out rather than piling every member into cell (-1, 0)');
+
+  // THE SEGMENT THE THREE ARMS ABOVE CANNOT SEE (#1010). `focus-ring` declares no `footprintVaries`, so
+  // both sides append nothing and the parity holds byte-identically whether the payload honors the list,
+  // ignores it, or spells it wrong — the two derivations agree about a segment neither one emits. So the
+  // one def in the corpus that DOES declare an exemption is asserted here, and it is not coverage for its
+  // own sake: it is the only place the new segment exists to disagree about.
+  const fmLayout = planSetLayout(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }), 'test');
+  const fmGroups = fmLayout.cells.map((c) => c.group).join(' | ');
+  ok(fmGroups === 'tone=default | tone=error | tone=warning | tone=success',
+    `field-message: the declared exemption reaches the engine's cohort key — every tone is its own cohort, which is what "this def's box moves on tone" means and is exactly what it costs (got '${fmGroups}')`);
+  const fmPayload = payloadCellOfFor(planSetChunks(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }))[0].js, fmLayout);
+  ok(fmPayload.extracted && fmPayload.decl === 'const FOOTPRINT_VARIES=["tone"];',
+    `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
+  ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
+    'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');
 }
 
 // (24) RENAME MAP (#1013) — the variable map is DERIVED from `DEPRECATIONS`, so this is where the

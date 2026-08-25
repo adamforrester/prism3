@@ -433,6 +433,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-ratio-truth.ts'),
   },
   {
+    id: 'lint-axis-values',
+    ciStep: 'Every axis value set is declared, and stands in the relation it declares',
+    cmd: engine('lint-axis-values.ts'),
+  },
+  {
     id: 'lint-progress-order',
     ciStep: 'docs/00-progress.md stays newest-entry-first',
     cmd: engine('lint-progress-order.ts'),

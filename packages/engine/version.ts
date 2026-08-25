@@ -102,6 +102,50 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.23.0: a validation tone draws its own glyph, and a def can declare that its box legitimately moves
+ * (#1010, field-message). Three `presentWhen`-gated `vector` parts replace one `kind: 'slot'` part whose
+ * INSTANCE_SWAP property nominated a placeholder — the 39-glyph set had landed in #920 and this def bound
+ * none of it. `FigmaProperties.footprintVaries` is the second half and the reusable one.
+ *
+ * WHY THE SECOND HALF WAS NEEDED, because a value change would not normally reach the grammar. The
+ * footprint cohort (`planSetLayout`) exempts `size` and slot fill from "swapping a variant must not resize
+ * the member", which describes Button: the two axes that legitimately change its box. `presentWhen` (#910)
+ * then added a third way for a variant to change what nodes exist, and nothing revisited the key — because
+ * `checkbox` and `radio` gate a mark INSIDE a size-bound control, so their box holds still and the rule was
+ * right to compare them. This def is the first where a gated part is a flow child of the row: three tones
+ * carry a 16px glyph, the default carries none, and the executor reported three footprint misses on a
+ * correct build. Declared per def rather than derived from `presentWhen`, which would have exempted
+ * `checkbox` on `selection` and deleted the one comparison that def most needs.
+ *
+ * No token name moved and no value changed. The glyph's artboard binds `icon.size.xs`, in the contract
+ * since before this branch; the def's own `glyph-size` key is def-local. So `CONTRACT_VERSION` stands and
+ * `token-contract.ts --check` confirms it rather than this comment. MINOR rather than PATCH because the
+ * grammar gained a field and every field-message member gained or lost a node.
+ *
+ * 0.22.0 IS TAKEN BY #1016, which is open and not merged at the time of writing — hence 0.23.0 rather than
+ * a second 0.22.0 entry that the later merge would have to reconcile. If #1016 is abandoned this log skips
+ * a MINOR, which costs nothing: the numbers are ordered, not dense.
+ * 0.22.0: a selection control's box stops drawing a border in the same family as its own fill (#1011).
+ * Seven paint keys are REMOVED from `checkbox`, four from `radio` and three from `switch`, and nothing
+ * is added — the fix is a deletion, because the paint grammar already said this: an unbound slot returns
+ * `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` is the binding "this coordinate has
+ * no fill". What changes on screen: an unselected box is transparent over the page instead of painting
+ * `field.fill` (measured 1.00-1.22:1 against the page — a fill that was never visible as a fill), and a
+ * selected box paints its fill with no border instead of `fill.selected` beside `border.rest`, which had
+ * been two bindings disagreeing about one boundary.
+ *
+ * The premise the three defs shared was wrong rather than carelessly applied, which is why all three had
+ * it: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` are byte-identical at every rung
+ * they SHARE across 5 brands x 4 modes, so a fill/border pair reads as two shades of one idea — but the
+ * border ladder has no `selected` rung at all, so `fill.selected` had no border to agree with and fell
+ * through to `border.rest`. `lint-paint.ts` gains a fourth arm that measures whether a fill bounds itself
+ * against the page (>= 3:1, SC 1.4.11) and fails a same-family border beside one; it named all three defs
+ * in a single run before any was fixed. Switch's OFF track keeps its rim, measured: no brand's neutral
+ * fill clears 3:1 (1.21-1.58:1 at rest), so that rim is the track's only edge.
+ *
+ * No token NAME or `$type` moves — this removes REFERENCES to tokens, not tokens — so `CONTRACT_VERSION`
+ * stands at 5.3.0, and `token-contract.ts --check` confirms it rather than this comment asserting it.
+ *
  * 0.21.0: a part can say WHERE it sits per variant value, and a box that is deliberately not square can
  * bind its main axis (#990, switch's anatomy). `PartDef.positionWhen` is keyed on one variant axis and
  * projects onto the PARENT frame's `primaryAxisAlignItems`; `PartDef.width` binds the main-axis edge that
@@ -385,7 +429,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.21.0';
+export const ENGINE_VERSION = '0.23.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -1,5 +1,5 @@
 /**
- * PAINT GATE (#758, #784) — three independent checks over the component tier's colour bindings.
+ * PAINT GATE (#758, #784, #1011) — four independent checks over the component tier's colour bindings.
  *
  *   npx tsx packages/engine/lint-paint.ts            # check
  *   npx tsx packages/engine/lint-paint.ts --accept    # rewrite the census baseline
@@ -166,6 +166,65 @@
  * counted as passing. `UNREACHED_EXPLAINED` names the individual bindings that are legitimately
  * unreached, each with a reason, checked in both directions like arm 1's exceptions: an entry that
  * becomes reachable, or names a binding that no longer exists, is a stale memory and fails.
+ *
+ * ── ARM 4: THE REDUNDANT EDGE (a rule about a RELATIONSHIP — #1011) ─────────────────────────────
+ *
+ * The three arms above each read ONE binding, and #1011's third finding is a defect none of them can
+ * see, because no single binding is wrong. Checkbox's selected box bound
+ * `interactive.primary.fill.selected` on its fill and `interactive.primary.border.rest` on its border.
+ * Both resolve; both satisfy provenance; both are reachable; the census recorded the pair as the
+ * projection's ordinary output. What shipped was a lighter blue rim around a darker blue box, found by
+ * a person looking at a Figma member.
+ *
+ * WHAT MADE IT A RULE RATHER THAN THREE FIXES. `interactive.<intent>.fill.*` and
+ * `interactive.<intent>.border.*` are BYTE-IDENTICAL at every rung they SHARE, in all 5 corpus brands
+ * × 4 modes — the token tier already expresses *fill and border agree*, per family, per rung. The
+ * three defs broke it by naming a rung on the fill (`fill.selected`) that the border ladder does not
+ * have, so the border fell back through the templates to `border.rest` and the pair disagreed at
+ * exactly one coordinate. So the relationship #1011 says nothing expresses IS expressed, by the token
+ * tier; a def keeps it by naming the same rung on both slots, or by not binding the second slot at
+ * all. `paintOf` returning `undefined` for an unbound slot is how a def says "this coordinate does not
+ * paint that slot", and that is the whole expression this needed.
+ *
+ * THE RULE, and it is about the FILL alone: **a box that paints a fill and a border from the same
+ * token FAMILY, where the fill clears 3:1 against the page ground in every brand and every mode, is
+ * painting a second edge it does not need.** A fill at 3:1 IS the box's boundary — that is SC 1.4.11's
+ * own floor for a non-text boundary — so a same-family border beside it can only agree invisibly or,
+ * as here, disagree visibly. The fix is to drop the border on that coordinate, not to add a token.
+ *
+ * WHY 3:1, AND NOT A THRESHOLD READ OFF THE CORPUS. It is the repo's non-text contrast floor, chosen
+ * before the corpus was measured rather than tuned until the split landed where it was wanted. The
+ * corpus then splits at it with room on both sides and needs no exception list: the three flagged
+ * fills sit at 4.05–14.17:1, and every same-family pair this arm leaves alone sits at 1.00–2.09:1
+ * (`field.fill`, `disabled.fill`, `interactive.neutral.fill.*`). That gap is the arm's claim to being
+ * a rule; a threshold inside it would have been a snapshot wearing a rule's clothes.
+ *
+ * AND WHY IT IS NOT `contrast(border, fill) >= 3`. Measured: that form flags switch's OFF track, where
+ * a neutral fill at 1.21–1.58:1 against the page genuinely NEEDS its rim to have an edge at all —
+ * dropping it would break 1.4.11 rather than tidy it. Two further framings were tried and both are
+ * false against this corpus: *selection controls never paint both* (false for switch) and *same
+ * family, never both* (false for `field.fill`+`field.border.*` and `disabled.fill`+`disabled.border`,
+ * two pale fills whose borders are the only edge they have). The surviving form asks only whether the
+ * FILL is already a boundary, which is the actual reason a border is or is not doing work.
+ *
+ * INDEPENDENCE (`docs/34`). The subject is a PAIR of bindings in a def. ACTUAL is two variable names
+ * read off the emitted plan tree; EXPECTED is a contrast ratio computed from the resolved token VALUES
+ * over `corpus()` × `resolveAllModes()` — a tier the def does not touch and the projector never reads.
+ * No part of the comparison is derived from the def's own expression of the pairing, which is exactly
+ * what the two-value form of this check gets wrong: `fill == X && border == Y` passes on precisely the
+ * configuration that shipped, and goes red the day someone fixes it.
+ *
+ * ITS LIMITS, STATED. **Overlays are excluded**, counted and printed: an overlay is a tint over
+ * whatever is beneath it, so "is this fill its own boundary" is not a well-formed question about one —
+ * and its alpha would be silently mis-measured by a rule that read it as opaque (this arm never gets
+ * the chance to). **Cross-family borders are out of scope** — `border.danger` on a primary fill is
+ * SIGNALLING, not bounding. **The ground is `background.primary`**, which is the right ground only for
+ * a box no painted ancestor sits under, so the arm CHECKS that rather than assuming it and skips, with
+ * a printed reason, any node whose ancestor paints a fill. A fill that clears 3:1 in some modes and not
+ * others is **not** flagged — a border earning its keep in dark mode cannot be dropped for light — and
+ * is printed too, because that count being zero is a fact about today's corpus, not a property of the
+ * rule. Finally, the arm FAILS if it measured no pair at all: a rule whose scope has gone empty
+ * reports a pass, and this one has to be able to say it stopped asking.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -173,6 +232,12 @@ import { join } from 'node:path';
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, figmaAnatomyPlan, planComponentName, type FigmaNodePlan } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
+// Arm 4 only — the resolved token VALUES, which is the tier the def does not touch. Both are library
+// modules by #988's rule; importing a gate SCRIPT here would run its sweep (and possibly its exit)
+// during this file's import.
+import { corpus } from './token-contract';
+import { resolveAllModes } from './modes';
+import { contrast, hexToRgb } from './color';
 
 const repo = join(import.meta.dirname, '../..');
 const CENSUS_PATH = join(repo, 'packages/engine/schema/paint-census.json');
@@ -413,6 +478,24 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
  * Listed by exact key and checked in BOTH directions, same discipline as `PROVENANCE_EXCEPTIONS`: a
  * binding that becomes reachable, or that no longer exists, fails — a stale exemption is this repo's
  * most-repeated defect wearing a helpful face.
+ *
+ * TWO CATEGORIES LIVE HERE AS OF #1010, and the reason each entry states its own is that membership no
+ * longer implies the reason. For the first five it did — five `<def>|focus-ring` keys, one shape, one
+ * open issue — and a reader could infer "this is a ring nomination" from the key alone. They cannot now:
+ *
+ *   (a) A NOMINATION — the key names a colour for a node this def does not own. All five `focus-ring`
+ *       entries. Unreachable because `PartDef` has no stroke field (#740); the ring is a nested def.
+ *       Every node this def builds is asked, and none of them is the one that draws the ring.
+ *   (b) A CODE-ONLY PAINT — the key names a colour for a node that exists in code and has no Figma
+ *       member. `field-message|default.icon`. Unreachable because the projector enumerates MEMBERS and
+ *       the node is optional per instance, not per member; there is nothing to fix in `anatomy-figma.ts`
+ *       and no issue to close.
+ *
+ * The categories fail differently, which is why the distinction is worth keeping rather than collapsing
+ * to "unreachable": (a) becomes reachable when the ENGINE gains a field, and #740 landing should turn
+ * five entries red at once. (b) becomes reachable when a DEF changes what it projects, and the day
+ * `field-message` gives its default tone a glyph this entry must go. A reader who cannot tell them apart
+ * would read the wrong signal out of either failure.
  */
 const UNREACHED_EXPLAINED: Record<string, string> = {
   'button|focus-ring':
@@ -425,6 +508,8 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the fourth instance, identical to `checkbox|focus-ring` — a nomination for the ring nested inside the control box, not a paint on any node radio owns. Four entries with one reason is now worth reading as a shape rather than four exemptions: every def that NESTS `focus-ring` will land here until `PartDef` gains a stroke field (#740).',
   'switch|focus-ring':
     'the fifth instance, and it arrived exactly as the fourth predicted: a nomination for the ring nested inside the TRACK, not a paint on any node switch owns. The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
+  'field-message|default.icon':
+    'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT tone, and that tone deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation tones carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default tone gains a glyph, which is a def decision. The three validation-tone glyph inks are reached normally and are not listed.',
 };
 
 /**
@@ -492,6 +577,119 @@ const reachability = (): { covered: { id: string; reached: number; total: number
       fails.push(`reachability: ${id} is explained as unreachable but IS now reached — remove the entry so the rule covers it`);
   }
   return { covered, uncovered, fails };
+};
+
+/**
+ * SC 1.4.11's floor for a non-text boundary. Named rather than inlined because the whole force of arm
+ * 4 is that this number came from the standard and not from the corpus — see the header.
+ */
+const SELF_BOUNDING = 3;
+
+/**
+ * A role key split into the token FAMILY and the slot it paints:
+ * `interactive.primary.fill.selected` → `{ family: 'interactive.primary', slot: 'fill' }`.
+ *
+ * The dot boundaries are required on both sides of the slot segment, so `primary-subtle.fill` is its
+ * own family rather than a substring of `primary`'s — arm 1's #563 finding, in a second place. A role
+ * with no family segment at all (`border.danger`) yields the empty family, which compares equal to no
+ * other family and is therefore never treated as same-family with anything.
+ */
+const familySlot = (role: string): { family: string; slot: string } | null => {
+  const m = role.match(/^(?:(.*)\.)?(fill|border|overlay)(?:\.(.*))?$/);
+  return m ? { family: m[1] ?? '', slot: m[2] } : null;
+};
+
+/** A projected Figma variable name (`color/field/border/rest`) back to its role key (`field.border.rest`). */
+const roleOf = (v: string): string | null => {
+  const p = v.replace(/\//g, '.');
+  return p.startsWith('color.') ? p.slice('color.'.length) : null;
+};
+
+/**
+ * Arm 4. Every (def, node, fill, border) tuple the projector produces, against the resolved value of
+ * the fill across the whole corpus.
+ *
+ * The tuple is the unit, not the coordinate: the same pair appears at up to 40 coordinates of one def
+ * and that is one finding, so they are collapsed and the coordinate count is reported with it.
+ */
+const redundantEdges = (): { fails: string[]; notes: string[]; checked: number; pairs: number } => {
+  // Resolve the corpus ONCE. 5 brands × 4 modes of role values — EXPECTED lives here, and nothing in
+  // it was produced by the projector whose output ACTUAL is read from.
+  const modes: { brand: string; mode: string; roles: Record<string, { hex: string }> }[] = [];
+  for (const { id, theme } of corpus())
+    for (const m of resolveAllModes(theme))
+      modes.push({ brand: id, mode: m.mode, roles: m.roles as unknown as Record<string, { hex: string }> });
+
+  type Pair = { def: string; node: string; fill: string; border: string; coords: number; underPaint: boolean };
+  const pairs = new Map<string, Pair>();
+  for (const def of censusable()) {
+    const walk = (n: FigmaNodePlan, path: string, underPaint: boolean): void => {
+      const here = `${path}/${n.name}`;
+      if (n.paints?.fills && n.paints?.strokes) {
+        const k = `${def.id}|${here}|${n.paints.fills}|${n.paints.strokes}`;
+        const p = pairs.get(k)
+          ?? { def: def.id, node: here, fill: n.paints.fills, border: n.paints.strokes, coords: 0, underPaint: false };
+        p.coords++;
+        // ANY coordinate at which an ancestor paints is enough to disqualify the page as this pair's
+        // ground — the pair is one finding, so the weakest coordinate decides whether it is measurable.
+        p.underPaint ||= underPaint;
+        pairs.set(k, p);
+      }
+      for (const c of n.children) walk(c, here, underPaint || !!n.paints?.fills);
+    };
+    const sizes = (def.variants?.size ?? []).length ? def.variants!.size! : [undefined];
+    const axes = Object.entries(def.variants ?? {}).filter(([a]) => a !== 'size');
+    let combos: Record<string, string>[] = [{}];
+    for (const [a, vs] of axes) combos = combos.flatMap((c) => vs.map((v) => ({ ...c, [a]: v })));
+    const states: (string | undefined)[] = [undefined, ...(def.states ?? [])];
+    for (const size of sizes) for (const c of combos) for (const st of states)
+      for (const leading of [false, true]) for (const trailing of [false, true])
+        walk(figmaAnatomyPlan(def, size, { ...c, ...(st ? { state: st } : {}), leading, trailing, swapTarget: 'FPO-default-icon' } as never).root, '', false);
+  }
+
+  const fails: string[] = [];
+  const notes: string[] = [];
+  let checked = 0;
+  for (const p of [...pairs.values()].sort((a, b) => `${a.def}${a.node}${a.fill}`.localeCompare(`${b.def}${b.node}${b.fill}`))) {
+    const at = `${p.def}${p.node}`;
+    const f = roleOf(p.fill);
+    const b = roleOf(p.border);
+    if (!f || !b) { notes.push(`${at}: '${p.fill}' / '${p.border}' — not both colour variables, not measured`); continue; }
+    const fs = familySlot(f);
+    const bs = familySlot(b);
+    if (!fs || !bs) { notes.push(`${at}: '${f}' / '${b}' — no fill/border/overlay segment, not measured`); continue; }
+    if (fs.slot === 'overlay' || bs.slot === 'overlay') { notes.push(`${at}: OVERLAY excluded ('${f}' over '${b}') — a tint over whatever is beneath it is not its own boundary, and its alpha would be mis-measured as opaque`); continue; }
+    if (fs.family === '' || fs.family !== bs.family) { notes.push(`${at}: cross-family, out of scope — fill '${fs.family || '(none)'}' vs border '${bs.family || '(none)'}' ('${b}' beside '${f}' is signalling, not bounding)`); continue; }
+    if (p.underPaint) { notes.push(`${at}: an ancestor paints a fill, so \`background.primary\` is not this box's ground — not measured`); continue; }
+
+    const ratios: number[] = [];
+    let missing = '';
+    for (const m of modes) {
+      const role = m.roles[f];
+      const ground = m.roles['background.primary'];
+      if (!role || !ground) { missing = `${m.brand}/${m.mode} has no ${role ? 'background.primary' : `role '${f}'`}`; break; }
+      ratios.push(contrast(hexToRgb(role.hex), hexToRgb(ground.hex)));
+    }
+    if (missing) { notes.push(`${at}: fill '${f}' not resolvable in every mode (${missing}) — not measured`); continue; }
+
+    checked++;
+    const lo = Math.min(...ratios);
+    const hi = Math.max(...ratios);
+    if (lo >= SELF_BOUNDING)
+      fails.push(
+        `redundant edge: ${at} paints fill '${f}' AND border '${b}' — same family '${fs.family}', at ${p.coords} coordinate(s). `
+        + `The fill is ${lo.toFixed(2)}–${hi.toFixed(2)}:1 against the page across all ${ratios.length} brand/mode combinations, so it clears ${SELF_BOUNDING}:1 everywhere and IS this box's boundary. `
+        + `A same-family border beside it can only agree invisibly or disagree visibly — drop the border binding at this coordinate.`,
+      );
+    else if (hi >= SELF_BOUNDING)
+      notes.push(`${at}: fill '${f}' is ${lo.toFixed(2)}–${hi.toFixed(2)}:1 — self-bounding in some brand/modes and not others, so its border cannot be dropped for all of them; NOT flagged`);
+  }
+
+  // A rule whose scope has emptied reports a pass. This arm has to be able to say it stopped asking.
+  if (checked === 0)
+    fails.push('redundant edge: the arm measured ZERO same-family fill+border pairs — its scope has gone empty, and a pass over nothing is not a pass');
+
+  return { fails, notes, checked, pairs: pairs.size };
 };
 
 const main = (): void => {
@@ -579,12 +777,21 @@ const main = (): void => {
   // repo hunts, so what is NOT covered is named on every run.
   for (const u of reach.uncovered) console.log(`  reach/          not covered: ${u}`);
 
+  // ── ARM 4 ─────────────────────────────────────────────────────────────────────────────────────
+  const edges = redundantEdges();
+  fails.push(...edges.fails);
+  console.log(`  redundant edge … ${edges.checked} same-family fill+border pair(s) measured of ${edges.pairs} that paint both slots, against ${SELF_BOUNDING}:1 over the whole corpus`);
+  // Same posture as arm 1's and arm 3's: what the rule does NOT reach is printed on every run, because
+  // a scope that quietly stops asking is indistinguishable from a corpus that is quietly clean.
+  for (const n of edges.notes) console.log(`  redundant edge/ not measured: ${n}`);
+
   if (fails.length) {
     console.error(`\n✗ ${fails.length} failure(s):`);
     for (const f of fails) console.error(`  · ${f}`);
     console.error('\n  A provenance failure is a WRONG binding — fix the def.');
     console.error('  A reachability failure is an UNREACHABLE binding — fix the KEY (see PAINT_SLOTS), not the list.');
     console.error('  A census failure is a CHANGED projection — read the diff, then: npx tsx packages/engine/lint-paint.ts --accept');
+    console.error('  A redundant-edge failure is a PAIR of bindings that disagree about the box\'s boundary — remove the BORDER at that coordinate, not the fill, and never by adding a token.');
     process.exit(1);
   }
   console.log('\n✓ paint is where the defs say it is');

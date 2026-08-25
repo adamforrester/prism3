@@ -127,6 +127,367 @@ rather than a comment.
 
 ---
 
+## (2026-08-25) — a placeholder that outlived its dependency, and the footprint rule that was authored for one def (#1010)
+
+**STATUS: shipped.** `ENGINE_VERSION` **0.21.0 → 0.23.0** (0.22.0 is taken by the open #1016, and a
+second 0.22.0 entry would be the later merge's problem, not mine). `CONTRACT_VERSION` stays **5.3.0** —
+no token name and no `$type` moved. Gates stay at **42**.
+
+**The defect.** `field-message` built an `FPO` circle where its status icon belongs: one `kind: 'slot'`
+part nominating an `INSTANCE_SWAP` placeholder, wrong size, no per-status glyph. The 39-glyph set had
+landed in **#920** and this def bound none of it. Three `presentWhen`-gated `vector` parts replace the
+slot — `error → warning-triangle`, `warning → error-circle`, `success → check-circle`, each at
+`icon.size.xs` (16px in every corpus brand) inking `color.icon.{danger,warning,success}`.
+
+**Why nothing caught it, and it is the interesting half.** *A placeholder is a structurally valid
+child.* Every plan-level check passed, because every value resolved — the slot resolved, the size
+resolved, the paint resolved. There was no wrong value anywhere; there was a right value pointing at
+scaffolding whose reason had expired eight months earlier. Nothing in the repo relates "this def
+declares a placeholder" to "the thing it stands in for now exists", and no gate can, because a
+dependency landing elsewhere is not a change to this file.
+
+**The default tone projects NO glyph** (decided by the owner, over reserving a 16px void). That is the
+whole reason `presentWhen` is doing the work here, and it is what surfaced the second finding.
+
+**FINDING 2 — the footprint cohort was authored for Button and never revisited for `presentWhen`.**
+The plugin harness reported three `footprint ->` misses: `tone=error measures 126x24 but tone=default
+measures 102x0`. `planSetLayout` keys each member's cohort on `size=` + `leading=` + `trailing=` — the
+axes that legitimately change *Button's* box — and the executor reports a miss when a member's box
+differs from the first in its cohort. `checkbox` and `radio` gate a mark **inside** a size-bound
+`control`, so their box holds still and they never met this. `field-message` is the first def where a
+gated part is a flow child of the row, so its box genuinely moves.
+
+`FigmaProperties.footprintVaries?: string[]` is the fix and the reusable half: a per-def declaration
+of the axes on which the box legitimately moves, validated as (a) an axis this def actually projects
+and (b) an axis some part's `presentWhen` gates. **Declared, not derived from `presentWhen`** —
+deriving it would exempt `checkbox` along `selection`, deleting a cross-variant comparison that is
+currently doing real work. The exemption is not free and the def says so: `tone` is `field-message`'s
+only axis, so each member becomes its own cohort and the footprint rule checks nothing there; two
+named harness arms cover the box instead.
+
+**M2 is the `docs/34` demonstration for the new test arm.** The cohort key is derived twice — once by
+the engine (`planSetLayout.group`) and once by a JS `cellOf` shipped **inside** the chunked payload —
+and they must reach the byte-identical string. Making the payload ignore the shipped list failed
+**only** the new field-message parity arm; the pre-existing focus-ring parity arm stayed **green**,
+which is the proof that arm was blind to the new segment rather than redundant with it. The parity
+test extracts `const FOOTPRINT_VARIES=` out of the payload and prepends it to the compiled body rather
+than injecting it as a parameter — deliberately, so a chunk that stops declaring the const goes red
+instead of passing.
+
+**The bounding-box fingerprint was BOTH a false positive and blind, in one line.** My first
+"three tones draw three different glyphs" arm compared the ink **box**, and it failed on correct code:
+`20.3x19.5, 20.0x20.0, 20.0x20.0`. Measuring the artwork explains it — `error-circle` is a 20px ring
+2→22 with a bar and dot, `check-circle` is the **same** 20px ring with a check, so their boxes are
+identical, live as well as in the shim. So the box could not distinguish two glyphs that differ, and
+equally could not have caught a mutation where two tones share one glyph. Replaced by modelling
+`vectorPaths` in the harness shim and comparing subpath **data** pairwise; the mutation now reports
+`4,4,4 subpaths, 2 distinct`.
+
+**The mapping was checked against the artwork, not the name.** `error → warning-triangle` and
+`warning → error-circle` reads transposed and is not: `warning-triangle` is an exclamation in a
+**triangle** (triangle + bar y9–14 + dot y16–18) and `error-circle` is an exclamation in a **circle**
+(ring 2→22 + bar y7–13 + dot y15–17). The glyph names describe the enclosing shape, not the status,
+which is exactly the confusion that makes reading the name insufficient.
+
+**And `lint-glyph-geometry.ts` already had the right home for that, which I found by running the whole
+list rather than by thinking of it.** Every arm I wrote passed and `test.ts` was green at 2453, because
+I had run the engine tests and the plugin harness — the two things the issue named. The full
+`npm run verify` failed this gate: a *fixed* (non-templated) `glyph` must be registered in `FIXED_GLYPH`
+with the name it draws, the coordinate it draws at, and why, or the gate refuses to pass over it. That
+is not paperwork. The table is a **second author** of the pairing, in a different file, so the single
+most likely future edit to this def — somebody "correcting" the mapping to agree with the names — now
+fails as a stale record. Mutation-tested both directions: transposing the def reports *"the def draws
+glyph 'error-circle' and FIXED_GLYPH records 'warning-triangle'… Nothing below can see this"*, and moving
+the recorded coordinate reports the `at` mismatch with the same explanation. A wrong-but-real glyph draws
+correct ink on a correct artboard at a valid coordinate, so **every geometric arm in that file passes it**
+— the same reason `checkbox.dash` is in the table, and the reason an indeterminate box showing a tick
+would otherwise be invisible.
+
+Worth naming as the process finding: the two gates that failed on the first full run
+(`lint-glyph-geometry`, plus `lint-us-english` on `grey` in a def comment that ships through
+`apps/plugin/dist`) are both gates a diff-scoped reading of "this only touches the engine" would skip,
+and `CLAUDE.md` says exactly that in advance. It cost one run to learn nothing new and would have cost a
+red CI to learn it the other way.
+
+**`UNREACHED_EXPLAINED` now holds two categories, and that is a precedent.** `field-message|default.icon`
+is its sixth entry and the first that is not a `<def>|focus-ring` nomination, so membership no longer
+implies the category — the entry's reason had to say *why this one* is unreachable: the paint is
+CODE-ONLY because the projector enumerates members while the node is optional per instance. The five
+above it are unreachable for an unrelated reason (no stroke field, #740). Ungating `iconError` fires it
+by name: `field-message|default.icon is explained as unreachable but IS now reached`.
+
+**THE SWEEP the issue asked for, and its result.** `FPO` is greppable in a way most of this class is
+not. Zero occurrences in `packages/engine/out/` and `packages/engine/schema/`. All twelve remaining
+source hits are one thing: the caller-supplied `swapTarget: 'FPO-default-icon'` argument (in five gates,
+one tool, `apps/studio/src/main.ts`, `apps/plugin/src/main.ts`, and the harness) or a comment about it,
+plus one comment in `field-message.ts` recording the removed defect. **Those are correct and stay.**
+A slot means *the consumer supplies the content* — `button.leadingVisual` genuinely does not know what
+goes there, so a named placeholder to swap against is the right thing for a projection to build.
+
+So the string sweep is clean, but the string was never the property. The structural sweep is
+`kind: 'slot'`: **four** slot parts existed repo-wide (`button` ×2, `icon-button`, `field-message`) and
+three remain. `field-message`'s was the only one whose slot content was **determined by the def's own
+axis** — the only one where the def knew exactly what belonged there and declined to draw it. That is
+the discriminator, it is one grep plus one question, and it is the sweep that would have found #1010.
+
+**Verified at the NODE, not the plan** — the issue was explicit that a plan-level check sees nothing,
+"which is how it shipped". `apps/plugin/test-write-components.ts` now runs the real component set
+through the shim and reads back: member names, per-tone artboard counts `0,1,1,1`, one non-zero VECTOR
+per icon tone, three distinct subpath sets, both size axes bound to `icon/size/xs`, ink per tone, zero
+`INSTANCE` nodes and no `INSTANCE_SWAP` property surviving. Eight mutations, each confirmed to fail by
+name.
+
+**"COPY NEEDS UPDATING" has two readings, and only one of them is copy.** The WORDS — the def's
+`description`, `props.icon`, the `codeOnly` entries and the notes — are rewritten here, because four of
+them made claims that #920 had already falsified. What is NOT done is the reference's **bolded**
+message, and the reason is worth stating precisely because my first reading of it was wrong.
+
+I recorded that there was nothing in-repo to weigh the weight against. There is. Prism2 carries
+`nbds.typography.detail.<sm|md|lg>.{regular,thick}`, where `thick` is `font.weight.semibold` — so the
+reference's "bolded" means semibold, and Prism3's own scale already emits the counterpart,
+`type.caption.md.strong` (`font.weight-role.strong`), in every corpus brand. Per-tone type is
+expressible too: `text.type` is a binding key like any other, so `'{tone}.type'` templates the same way
+`'{tone}.{slot}'` already does for ink.
+
+So it is a one-line change with a reference behind it, and it still does not belong in this PR. Two
+reasons. It is a **type-treatment** change to the caption, a different concern from binding the glyph
+set. And the reference is genuinely ambiguous about scope: "a stroked outline glyph … left of a bolded
+message" sits in the sentence describing the icon-bearing rows, while `standard` is described separately
+as "no icon, grey text" and says nothing about weight. Whether the default tone bolds too is a value
+decision, and guessing it would put a wrong weight on the one tone that carries most of this def's
+real-world traffic. **Filed as #1020, not noted** — prose in this file is not discoverable as work.
+
+**Also filed: #1018** — `figmaProperties.texts` carries one default per prop with no per-member
+coordinate (`anatomy-figma.ts:875–878`), so all four members necessarily render `'Use 8+ characters'`
+and the error member of a validation component ships helper copy. **#1019** — `packages/engine/package.json`
+pins `"version": "0.5.0"` under its own note claiming it tracks `ENGINE_VERSION`, 18 minors behind, with
+nothing checking it; `CONTRACT_VERSION` cannot drift this way and `ENGINE_VERSION` has no equivalent,
+which is the part worth deciding rather than patching. The def's `notes.unverified` carries the two questions
+that are genuinely unresolved rather than deferred: the 16px glyph beside 11px caption type wants an
+optical check, and the #1009 first-line-alignment case wants the multi-line render looked at.
+
+**Out of scope and deliberately untouched:** #1009 (vertical centring — cross-cutting, and its
+checkbox half is being rewritten toward first-line alignment; the multi-line case is noted in
+`notes.unverified`), #865 (the white frame fill, executor-side), #901 (composition).
+
+---
+
+## (2026-08-25) — The border a fill did not need: deleting seven keys, and the gate that found all three defs (#1011)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.21.0 → **0.22.0** (behaviour change: what the plugin builds for
+three components moves). `CONTRACT_VERSION` stands at **5.3.0** — this removes *references to* tokens,
+not tokens, so no guaranteed name or `$type` moves, and `token-contract.ts --check` confirms that rather
+than this entry asserting it.
+
+Three defects came out of a live Figma QA session on checkbox. Two were small. The third was the reason
+the other two were worth a PR.
+
+### The diagnosis that made the fix a deletion
+
+A selected checkbox bound `checked.fill` → `interactive.primary.fill.selected` **and** `checked.border` →
+`interactive.primary.border.rest`. Both resolved. Both named tokens the def had deliberately chosen. Every
+gate was green, and the box shipped with a visible seam where the border met its own fill.
+
+The issue framed this as an *expressiveness* gap — `paintOf` resolves each slot independently, so a def
+can bind border and fill separately and merely hope they agree — and asked whether it needs a new
+expression or is per-def care. **It is neither, and that was the whole finding.** The grammar already says
+it: an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` *is* the
+binding "this coordinate has no fill". Nothing needed adding. The fix is **fourteen deleted keys** — seven
+on checkbox, four on radio, three on switch — and no new field, no new token, no schema change.
+
+Why all three defs had it, which is the part worth carrying: the shared premise was **wrong, not sloppy**.
+`interactive.<intent>.fill.*` and `interactive.<intent>.border.*` are byte-identical at every rung they
+SHARE, across 5 brands × 4 modes — so a fill/border pair genuinely reads as two shades of one idea, and
+binding both is the natural thing to do. But the border ladder **has no `selected` rung at all**. So
+`fill.selected` had nothing to agree with and fell through to `border.rest`: a fill that moved beside a
+border that could not follow. Radio and switch then copied checkbox's block verbatim and inherited the
+defect verbatim.
+
+### Three framings rejected on measured grounds
+
+1. **"Border and fill must agree at each coordinate."** Rejected: it flags switch's OFF track, which is
+   correctly built. No brand's `interactive.neutral.fill.rest` clears 3:1 against the page (1.21–1.58:1;
+   1.39–1.81 hover, 1.64–2.09 pressed), so that rim is the track's only edge and removing it breaks SC
+   1.4.11 on all five brands. The rule had to be about the **fill's own** contrast, not about the pair.
+2. **`contrast(border, fill) >= 3`** — i.e. "if you draw both, make them distinguishable." Rejected for the
+   same reason: it demands switch's off track make its rim *contrast with its own fill*, which inverts what
+   that rim is for.
+3. **Per-def care, recorded in `notes.contested`.** Rejected because it is precisely what already failed —
+   care was exercised, correctly, three times, over one bad premise. The contested notes were written
+   anyway (the issue asked for them), but as a *record of a decision*, not as the mechanism.
+
+What was missing was neither vocabulary nor diligence but **enforcement**.
+
+### The gate, and why 3:1 is not from the corpus
+
+`lint-paint.ts` gains **arm 4 (redundant edge)**: for every node that paints both `fill` and `border` from
+the same token family, resolve the fill in all 20 brand/modes and fail if it already bounds itself against
+the page at ≥ 3:1. Measured split, with real margin: `interactive.primary.fill.selected` 4.94–14.17,
+`.hover` 4.05–12.08 — against `interactive.neutral.fill.rest` 1.21–1.58 and `field.fill` 1.00–1.22. The
+threshold sits in a gap between 4.05 and 2.09, so it is not tuned to the corpus; **3:1 is SC 1.4.11's
+non-text bar**, and the corpus happens to fall cleanly either side of it. That is the direction that makes
+it a rule rather than a snapshot.
+
+Independence (`docs/34`): ACTUAL is the plan's **variable names**, walked out of `figmaAnatomyPlan`;
+EXPECTED is the **resolved token values** from `corpus()` + `resolveAllModes()` — a tier the def never
+touches. Neither side is derived from the other.
+
+Run against the unfixed defs it printed **exactly nine tuples and nothing else** — three defs ×
+(`fill.selected`+`border.rest`, `fill.hover`+`border.hover`, `fill.pressed`+`border.pressed`) — with zero
+exceptions needed. It found all three defs in one run, including the two nobody had reported.
+
+### Traps for whoever re-verifies this
+
+- **Switch's OFF track keeps its rim, and that asymmetry looks like an oversight.** `off` paints fill+border,
+  `on` paints fill only. Removing `off.border` "for consistency" breaks 1.4.11 on every brand. It is now
+  the load-bearing entry in switch's `notes.contested`.
+- **After this fix, switch/off is the ONLY def contributing same-family fill+border pairs** — 4 measured of
+  20 that paint both slots. So arm 4's live scope rests entirely on that one track. It has a **zero-scope
+  guard** for exactly this: mutation-tested, stripping `off.border` makes it report `0 pairs measured of 16`
+  and **fail**, rather than pass over nothing.
+- **`restKey`/`STRUCTURAL` moves the disabled coordinate too, silently.** At `state: 'disabled'` a
+  STRUCTURAL slot applies only if the appearance has that structure at rest, so deleting `unchecked.fill`
+  also removed `disabled.fill` from the unchecked coordinate, and deleting `checked.border` removed
+  `disabled.border` from the checked one. Both correct, neither visible in the diff. Verified per
+  coordinate.
+- **The one border deliberately kept is mostly invisible.** `checked.border.error` → `border.danger` stays,
+  on the argument that a danger rim *signals* rather than *bounds* (arm 4 excludes it as cross-family). That
+  argument holds for why it may exist; it does not establish that anyone can see it. Measured against its
+  own selected fill: **1.17–3.09:1, below 3:1 in 17 of 20 brand/modes.** Filed as **#1014** — not fixed
+  here, because every candidate treatment is new anatomy or new token surface.
+
+### Verification: the plan cannot see any of this
+
+Every defect was a value that *resolves*, so a plan-level check sees nothing wrong. Two independent checks,
+and they are deliberately not restatements of each other:
+
+- **Arm 4** holds the generalizable rule, over the corpus, from resolved values.
+- **`apps/plugin/test-write-components.ts`** holds the hand-authored expectation from the Prism2 reference,
+  read off **built nodes** — the one harness that drives the real `applyComponentPlan`. It asserts: every
+  unselected box binds **no** fill and still binds a stroke (36 rows); every selected box binds a fill
+  (66 rows); none binds both outside `error`; the same-family co-occurrence set is non-empty and is
+  switch/off **only**, checked in both directions; and checkbox binds `radius/sm` on all four corners while
+  radio binds `radius/round`.
+
+Mutation-tested, three mutations, each preceded by a commit (#986). Restoring `checked.border` → arm 4 named
+3 checkbox tuples and the harness failed 2 assertions by name with concrete members. Stripping switch's
+`off.border` → the harness's two switch-exception arms failed by name *and* arm 4's zero-scope guard fired.
+Raising `SELF_BOUNDING` to 100 with the defect restored → **0** failures, proving the contrast measurement
+is what catches this rather than the family pairing alone.
+
+One near-miss worth recording: the read-back initially returned **0 rows**, because I filtered
+`n.type === 'COMPONENT'` while the shim's `createComponentFromNode: (n) => n` returns the frame unchanged.
+Eight assertions passed vacuously and only the file's own reachability pins went red. **The pins are the
+reason that was caught** — they are the discipline that harness's header argues for, and this is the second
+time they have earned it.
+
+### Filed, not fixed
+
+- **#1014** — the `error` rim is invisible against its own selected fill (1.17–3.09:1, 17/20 below 3:1).
+- **#1015** — no control-scale radius rung: the box shares the *card* radius ramp, so aurora's
+  `radiusScale: 2` puts a 4px corner on its 12px `small` square (a third of the edge) where every other
+  brand gets 2px on 16px. This was already prose in `checkbox.ts` `notes.contested`; live QA hitting it
+  independently is what made it a work item. **Finding 1 of #1011 needed no def change** — `radius.sm` is
+  correct, resolves to 2px on four of five brands, and now has a read-back pin proving it reaches the node.
+- Untouched by design: **#1009** (vertical centring — cross-cutting, and where the rule lives is undecided),
+  **#865** (the white frame fill — executor-side, Plugin lane), **#901** (CheckboxGroup / Checkbox.Control —
+  composition, not styling).
+
+### Census drift
+
+Expected and accepted: checkbox set 198→150 / grid 231→174, radio 126→93 / 147→108, switch 96→86 /
+128→114. Arm 1's `selection`-axis exemption count drops to 34 bindings, which it prints every run — that
+number falling without a deletion in the diff is the tell.
+
+---
+
+## (2026-08-25) — the axis-VALUES census, and the assumption the issue named was not the binding one (#934)
+
+**STATUS: shipped.** No version change — a new gate, its register, and the three doc regions that gate
+requires. Nothing emitted moves. Gates go **43 → 44** (renumbered on rebase — #865/#1017 landed first
+and took 43).
+
+**The gap.** `VARIANT_AXES` closes the axis **NAME** vocabulary — 11 names, checked. Nothing closed, or
+even *observed*, axis **VALUES**. #756 had already found what that costs one level up: *"`selection` /
+`selected` / `state` / `on` are four spellings of one axis, every one individually defensible, and the
+census that would catch them runs after all three have shipped."* That produced `VARIANT_AXES`. The
+identical argument applies to values, and one level down there was no census at all.
+
+**Not a uniformity rule, and that decision comes before the gate.** `switch` spells its `selection` axis
+`[off, on]` against checkbox's `[unchecked, checked, indeterminate]`, argued at length in #930 and
+correct: `role="switch"` exists precisely because it is *announced* on/off. A gate asserting sameness
+would be wrong and would be discovered to be wrong by whoever authors `select`. So the shape is the
+register: every set declared with a stated reason, checked **both directions** — an undeclared set
+fails, a declared set no def uses fails as stale, and an entry naming a def that does not use it fails
+too. Divergence becomes *weighable* rather than uniform.
+
+**THE ASSUMPTION #934 NAMED WAS NOT THE BINDING ONE, and the census is what says so.** #1000's rule,
+applied to the issue that cites it. Measured over 11 defs and 24 (def, axis) pairs:
+
+1. **`selection` carries THREE sets, not two.** #934's table records `radio` as *"inherits checkbox's"*.
+   It does not — `radio` is `[unchecked, checked]`, checkbox's vocabulary minus `indeterminate`, argued
+   in its own header (a mutually-exclusive choice has no partial state). Correct, and a third set.
+2. **The divergence is not confined to `selection`.** Three of the eleven axes carry more than one set:
+   `selection` (3), `size` (2), `tone` (2). A gate scoped to `selection` — which is what the issue title
+   asks for — would have gone green over the other two.
+
+**The binding property is COMPARABILITY, not spelling count**, and the three relations are not equally
+dangerous. `subset` (radio ⊂ checkbox; `[small, medium]` ⊂ the three-rung ladder) is cheapest — a shared
+value means the same thing in both. `disjoint` (switch) is loud: a consumer lining the sets up sees at
+once that they do not. **`overlapping` is the expensive one**, because partial agreement reads as
+alignment, so the one place the sets disagree looks like a distinction rather than a synonym. Arm C
+therefore *computes* the relation by set algebra and compares it against the one the author declared —
+the cheap label cannot be filed for the expensive case.
+
+**And the overlapping case was already in the corpus, in an axis nobody was watching.** `tone` has
+`field-message`'s `[default, error, warning, success]` against `icon`'s nine-value ink vocabulary. They
+agree on `success` and `warning`, and then one spells the failure ink `error` where the other spells it
+`danger`. The proof they are one concept is the binding itself: `'error.label': 'color.text.danger'` —
+the def spells the value `error` and resolves it to `danger` on the very next token. Both spellings are
+individually defensible, which is #756's signature: `error` is a member of the closed `STATES`
+vocabulary, which a validation outcome should mirror; `danger` is the ink vocabulary the binding
+resolves to. **Declared rather than fixed, deliberately** — unifying them is a component-API change
+belonging to whoever owns the axis, not to the census that found it, and #934's own bar is that the gate
+must not prejudge a decision two spellings might legitimately survive.
+
+**The trap, and where EXPECTED comes from.** A census that reads the defs to decide what to expect can
+only confirm the defs agree with themselves (`docs/34` shape 1) and would report that as a pass. So the
+register is authored (EXPECTED), the defs' `variants` are ACTUAL, and **`git ls-files` over
+`components/` is the oracle** for which defs must be represented — never `components/index.ts`, which
+would put a second list in the oracle position. Mutation M6 is the proof this is not decorative: a
+tracked def file the registry has never heard of is still censused, and the run reports 12 defs / 25
+pairs rather than 11 / 24. The register is **authored and never generated**, same reason as
+`token-contract.json` (principle 5): regenerated from a scan it would classify each new spelling itself.
+It lives in the gate file as a `const` rather than as a JSON artifact, and not only for the prose — a
+JSON baseline in the repo is a standing invitation to add it to `regen.ts`, and a `const` in a script
+cannot be regenerated by anything.
+
+**Nine mutations, each failing by name, both directions.** M1 a fourth `selection` spelling (the
+motivating defect — arms A *and* B); M2 an axis removed from a def; M3 `overlapping` declared as
+`subset`; M4a an entry naming a def that does not use it; M4b a def using a declared set the entry does
+not name; M5 a def's values *reordered* (order is meaningful — the first value is the rest coordinate a
+paint key falls through to); M6 the git-oracle case above; M7 the census collapsed to nothing, caught by
+the shape-9 floors rather than passing vacuously; M9 the registry exclusion matching nothing after a
+rename. M8 typos an axis name in the register itself.
+
+**A defect of my own, found by the mutation runs rather than by a gate.** Every `grep` against the new
+file answered `binary file matches` instead of the line. The `key()` helper joined `(axis, values)` with
+a literal **NUL** and **SOH** — control characters chosen because they cannot collide with an author's
+value, and a NUL makes the file binary to `grep` and `file(1)` while staying **invisible in every diff**
+and valid UTF-8. Git diffed it as text, so nothing in review would have shown it. *A source file that
+text tooling silently skips is worse than the collision the control characters were avoiding* —
+`JSON.stringify` is collision-free and text-safe, and is what ships. A repo-wide scan of all 627 tracked
+files found one more instance of the same pattern, `apps/studio/src/main.ts:7365-7366` using `\x02` as a
+join delimiter; it does **not** trigger the binary heuristic the way NUL does, so it is recorded here
+rather than changed — the trap is the pattern, not that file.
+
+**Stated limit**, the same one `lint-context-nodes.ts` states about itself: this proves every set is
+declared, that the declaration is not stale, and that a stated relation is the relation the values
+actually stand in. It does not prove the values are the right values. `MIN_REASON` (80) is a floor
+against a label standing in for a justification, not a judge of content.
+
+---
+
 ## (2026-08-25) — the properties nobody wrote, and the direction no read-back can see (#865)
 
 **STATUS: shipped.** No version change — the executor writes Figma's own defaults explicitly, so no

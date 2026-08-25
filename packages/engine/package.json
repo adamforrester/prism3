@@ -11,6 +11,7 @@
     "./component-schema": "./component-schema.ts",
     "./components/button": "./components/button.ts",
     "./components/field-label": "./components/field-label.ts",
+    "./components/field-message": "./components/field-message.ts",
     "./components/index": "./components/index.ts",
     "./design-md": "./design-md.ts",
     "./emit-brandinput": "./emit-brandinput.ts",

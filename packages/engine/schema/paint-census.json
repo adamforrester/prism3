@@ -64,49 +64,49 @@
     "field-message": {
       "set": {
         "members": 4,
-        "assignments": 8,
-        "sha256": "ee5ab1d4a19d7254cd9c53f3b8c25166d14fafd02b7aba259811b8d71920556b"
+        "assignments": 7,
+        "sha256": "204a4d00558ce5856044646d88773c408c2b94c7d53cb72ca259d3e249ecff20"
       },
       "grid": {
         "members": 4,
-        "assignments": 8,
-        "sha256": "5efe93f9d7e883b325c848a6d13b4272940bb326b8f4cf6ae6fb1f1b56089588"
+        "assignments": 7,
+        "sha256": "2994122cc2c2f9db043ec15ad75a9dd74cf58b5b49148dfa49cddee77aa1f592"
       }
     },
     "checkbox": {
       "set": {
         "members": 54,
-        "assignments": 198,
-        "sha256": "0418644d34f0141d0cca28fcdabd39a6a9c01295ed6a754ffc96681d95a2c4d0"
+        "assignments": 150,
+        "sha256": "d414e1d08167fd03170ba84b07dd9c5359c25cb01d3a1f258536b44182f37f3b"
       },
       "grid": {
         "members": 63,
-        "assignments": 231,
-        "sha256": "7ba60a24836068522adc2fd5da625ab4d0556b4640e46dbf7d703edbe2a66689"
+        "assignments": 174,
+        "sha256": "61796aa0f68f1c7b9fe7663ecafffce02fa065742ab519529f8929f843ee96a4"
       }
     },
     "radio": {
       "set": {
         "members": 36,
-        "assignments": 126,
-        "sha256": "d120bcea522659187e28772298c367c581a0b1846c3e4d798f2a494e124fd3fc"
+        "assignments": 93,
+        "sha256": "0962a4dbd7bcb4d0433780b84f8545f8164db0d0ed5e8e751e75ddb8932ed176"
       },
       "grid": {
         "members": 42,
-        "assignments": 147,
-        "sha256": "029579a313633fa6ee61d480c2892ec435277ef920ff0ac3a911f3f25ab935b0"
+        "assignments": 108,
+        "sha256": "ad2dd093c6870e0462a3bfce1258507562030091325fce91f142a3e4ddfb62ba"
       }
     },
     "switch": {
       "set": {
         "members": 24,
-        "assignments": 96,
-        "sha256": "a7658cf2b7177f4b5b4c799063b870c8d3d283a6945346551f78c08c8d2f9530"
+        "assignments": 86,
+        "sha256": "14a1cb44809b6aaef1657a06b29448e67cd375f034eddb3c0ea867638747f417"
       },
       "grid": {
         "members": 32,
-        "assignments": 128,
-        "sha256": "d5e322e95c6fb2da4cd5b7f3441e7e9e96a43a708c3b7a105cebb63c98d33f78"
+        "assignments": 114,
+        "sha256": "ee13b93de67aa854670b4ef2d0d0f0e80d815fafecb8e4faa22106da8b45398a"
       }
     }
   }
