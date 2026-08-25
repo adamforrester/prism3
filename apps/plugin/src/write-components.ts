@@ -125,10 +125,6 @@ export interface CompNode {
   strokes?: unknown;
   strokeWeight?: unknown;
   strokeAlign?: unknown;
-  /** A `TextNode` property, not a frame one (#1009) — typed here as its own field rather than folded in
-   *  with the layout ones below for the reason `characters` is separate: writing it to a frame throws in
-   *  Figma, so the port keeps the two node vocabularies apart. */
-  textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
   layoutMode?: unknown;
   primaryAxisAlignItems?: unknown;
   counterAxisAlignItems?: unknown;
@@ -161,7 +157,9 @@ export interface CompNode {
   effects?: unknown;
   visible?: boolean;
   rotation?: number;
-  textAlignVertical?: unknown;
+  /** TYPED, not `unknown`, unlike its neighbours here: #1009 gives it a plan field, so the executor both
+   *  writes it and READS IT BACK, and a read-back cannot compare `unknown` to a string. */
+  textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
   textAlignHorizontal?: unknown;
   textAutoResize?: unknown;
   textTruncation?: unknown;
@@ -648,11 +646,22 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
   }
 
   // TEXT-ONLY. Every one of these requires the node's font to be loaded — the guard above is what makes
-  // a TEXT plan with no `textStyle` report instead of losing the member. `textAlignVertical` is #1009's
-  // half 2: `'TOP'` is Figma's default and also the value `components/checkbox.ts` argues for, so this
-  // line changes no pixel today. It exists so the value has an address.
+  // a TEXT plan with no `textStyle` report instead of losing the member.
+  //
+  // `textAlignVertical` WAS the example this block used for "a default with an address, changing no pixel
+  // today", and #1009 has since made both halves of that sentence wrong. The plan now claims it — at
+  // `CENTER` — so the line moves a pixel wherever a text node has a height, and it is a NEUTRALIZATION
+  // only where the plan stays silent. The other half was a conflation worth naming, because it is the one
+  // #1009's own correction untangled: `components/checkbox.ts` argues for TOP on its ROW, which is the
+  // parent frame's `counterAxisAlignItems` and a different property on a different node. It never argued
+  // anything about the text node's own box.
   if (t === 'TEXT') {
-    set('textAlignVertical', 'TOP');
+    // GUARDED, like `effects` and `opacity` above and unlike its five neighbours below (#1009). This
+    // function's own contract is that "a declared value is never clobbered", and this is the first
+    // property to which the plan can say anything — so the guard is what keeps that sentence true. Left
+    // unguarded it wrote `'TOP'` over every claim, AFTER the plan-driven write, and the parity gate is
+    // what caught it: the paste path had no neutralizer and still read CENTER.
+    if (!n?.textAlignVertical) set('textAlignVertical', 'TOP');
     set('textAlignHorizontal', 'LEFT');
     set('textAutoResize', 'WIDTH_AND_HEIGHT');
     set('textTruncation', 'DISABLED');
