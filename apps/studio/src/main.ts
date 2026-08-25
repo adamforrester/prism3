@@ -38,7 +38,7 @@ import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
 import { persistInput, restoreInput } from './persist-local';
 import {
-  provenanceOf, noOrigin, needsOverwriteConfirm, isUnrecoverable, joinSeed, withRecovered,
+  provenanceOf, noOrigin, needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
   type Origin, type Provenance, type SeedOutcome,
 } from './provenance';
 import {
@@ -1128,7 +1128,19 @@ const renderPrimitives = (host: PageHost): void => {
       'primary', 'palette.primary', action === 'primary', 'primary', null, null);
     brandSec.append(b.row); refreshers.push(b.refresh);
   }
-  const list = brandState.brandColors ?? (brandState.brandColors = []);
+  // READ-ONLY here, and that is a prerequisite for #1033 rather than a tidy-up. This line used to
+  // materialize the array — `brandState.brandColors ?? (brandState.brandColors = [])` — from a RENDER,
+  // so every brand whose input omits `brandColors` (harbor, `NEW_BRAND()`, any `design.md` without one,
+  // any brand restored from a Figma file) gained a `brandColors: []` the instant its palettes page drew.
+  // `loadBrand` takes the baseline BEFORE that render, so `isDirty` then reported an untouched brand as
+  // edited from boot onward — measured: a `restore-input`-seeded panel read dirty with no interaction.
+  // That is not cosmetic once a confirm depends on it: #1033's prompt would fire on every Examples click
+  // in a themed file with nothing to lose, which is the "fires every time, gets clicked through" failure
+  // `provenance.ts`'s header says the dirty check exists to prevent, and it also kept #1034's
+  // already-a-new-brand marker permanently off. The four sibling materializations (`modeLevers`,
+  // `interactivePalettes`, `modeAnchors`, `overrides`) all sit inside edit handlers and are correct;
+  // this was the only one on a render path. Materialization moved to the add handler below.
+  const list = brandState.brandColors ?? [];
   list.forEach((bc, i) => {
     const nameEl = el('input', 'pname-input mono') as HTMLInputElement;
     nameEl.type = 'text'; nameEl.value = bc.name; nameEl.spellcheck = false;
@@ -1148,10 +1160,13 @@ const renderPrimitives = (host: PageHost): void => {
     brandSec.append(b.row); refreshers.push(b.refresh);
   });
   brandSec.append(addButton('+ Add brand color', () => {
-    const names = new Set(list.map((b) => b.name));
-    let n = list.length + 1, nm = `accent${n}`;
+    // Materialize on the EDIT (see the note on `list` above) — adding a palette IS an edit, so it is
+    // allowed to move `brandState`, and after this `list` and `arr` are the same array either way.
+    const arr = brandState.brandColors ?? (brandState.brandColors = []);
+    const names = new Set(arr.map((b) => b.name));
+    let n = arr.length + 1, nm = `accent${n}`;
     while (names.has(nm)) nm = `accent${++n}`;
-    list.push({ name: nm, oklch: { l: 0.55, c: 0.15, h: 235 } });
+    arr.push({ name: nm, oklch: { l: 0.55, c: 0.15, h: 235 } });
     applyFull();
   }, 'padd'));
   host.append(brandSec);
@@ -7528,7 +7543,16 @@ const exportSource: ExportSource = 'generated';
 let importOpen = false;
 let importErr: string | null = null;
 let importText = '';            // M-17: survives re-renders so a failed paste isn't wiped
-let importPending: BrandInput | null = null;   // #160: validated import awaiting confirm-overwrite
+/** A load waiting on confirm-overwrite (#160 for import; #1033 extends it to the other two writers).
+ *
+ *  IT CARRIES ITS ORIGIN, and that is the whole reason this is not still `importPending: BrandInput`.
+ *  `loadBrand` requires an origin (#722, and requiring it is the enforcement), so a pending load that
+ *  stored only the input had to have its origin re-authored at the confirm button — which is fine while
+ *  exactly one writer stages, and is a silent trap the moment a second one does: the second writer's
+ *  confirm would load its brand under the first writer's origin, and every later dirty check and reset
+ *  would measure against the wrong baseline. Storing the pair means the origin travels with the input
+ *  it belongs to and the confirm button re-authors nothing. */
+let pendingLoad: { input: BrandInput; origin: Origin } | null = null;
 let outsideBound = false;
 
 /** Replace the working brand wholesale (switch / new / import / host restore) and re-render.
@@ -7546,7 +7570,7 @@ const loadBrand = (input: BrandInput, origin: Origin): void => {
   // Set from the SAME value assigned above, before any edit can land — the baseline is what was
   // loaded, not what the state happens to hold when someone next asks.
   provenance = provenanceOf(origin, brandState);
-  brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; importPending = null;
+  brandMenuOpen = false; importOpen = false; importErr = null; importText = ''; pendingLoad = null;
   page = 'palettes';
   rebuild();
   currentMode = rp.modes[0];
@@ -7671,15 +7695,28 @@ const readDesignMdFile = (file: File): Promise<{ text: string } | { error: strin
 const stageImport = (text: string): void => {
   importText = text;              // M-17: keep the paste so an error re-render doesn't wipe it
   const res = validateDesignMd(text);
-  if ('error' in res) { importErr = res.error; importPending = null; renderBar(); return; }
+  if ('error' in res) { importErr = res.error; pendingLoad = null; renderBar(); return; }
   importErr = null;
-  if (!needsOverwriteConfirm(brandState, provenance)) {
-    // Nothing to lose — load it. Note this reads `brandState`, the LIVE state, not `lastGoodInput`:
-    // an edit that currently fails to resolve is still an edit the user would be upset to lose.
-    loadBrand(res.input, { kind: 'import', label: String(res.input.id ?? 'design.md') });
-    return;
-  }
-  importPending = res.input; renderBar();
+  stageLoad(res.input, { kind: 'import', label: String(res.input.id ?? 'design.md') });
+};
+
+/**
+ * THE GUARD, for every writer that replaces the working brand from the brand menu (#1033).
+ *
+ * `needsOverwriteConfirm` was already generic — `origin.kind !== 'none' && isDirty(...)`, with an
+ * `{ kind: 'example', id }` case sitting unused in `Origin` — and the import path was the only call
+ * site. So selecting an example, or "+ New brand" in the plugin, called `loadBrand` directly and
+ * replaced an hour of edits with no prompt (#1033; #1034 asks for the same treatment on its own
+ * button). Nothing here is new mechanism: this is the four lines `stageImport` already had, with the
+ * origin passed in instead of written on the spot, so there is ONE place that decides whether a
+ * replacement needs confirming rather than one per writer.
+ *
+ * Reads `brandState`, the LIVE state, not `lastGoodInput` — an edit that currently fails to resolve is
+ * still an edit the user would be upset to lose.
+ */
+const stageLoad = (input: BrandInput, origin: Origin): void => {
+  if (!needsOverwriteConfirm(brandState, provenance)) { loadBrand(input, origin); return; }
+  pendingLoad = { input, origin }; renderBar();
 };
 
 /** Name the origin for user-facing copy (#722).
@@ -7688,15 +7725,42 @@ const stageImport = (text: string): void => {
  *  belong in the code, not the UI (voice-standard §4: recognizable terms in labels, and this is
  *  label-register text). `none` is never reached from the one call site (the confirm only appears
  *  when the origin is not `none`) but is answered rather than asserted away, so a later caller
- *  cannot get `undefined` in a sentence. */
+ *  cannot get `undefined` in a sentence.
+ *
+ *  ONE FUNCTION, TWO GRAMMATICAL POSITIONS (#1033). The confirm now names the origin on both sides of
+ *  its sentence — what is arriving ("Replace the current brand with …") and what is at risk ("Your
+ *  edits to … are not saved"). Every case reads in both, which is why `new` says "a new brand" rather
+ *  than #722's "this new brand": the incoming brand is not a "this" yet. A second near-identical
+ *  switch for the other position is the alternative, and two label functions differing in one case is
+ *  a drift waiting to happen. */
 const originLabel = (o: Origin): string => {
   switch (o.kind) {
     case 'none': return 'this brand';
     case 'example': return `the ${o.id} example`;
-    case 'new': return 'this new brand';
+    case 'new': return 'a new brand';
     case 'import': return `“${o.label}”`;
     case 'file': return 'this file’s brand';
   }
+};
+
+/** The confirm-overwrite control (#160/#722, generalized by #1033).
+ *
+ *  Extracted from `renderImportBox` for the reason that function's own header gives for existing: the
+ *  condition and its prompt are the thing that stops edits being lost silently, and a second copy is a
+ *  second place to get it wrong. Three writers now stage a load; all three render THIS. */
+const renderOverwriteConfirm = (pending: { input: BrandInput; origin: Origin }): HTMLElement => {
+  const box = el('div', 'bm-import');
+  // Reaching here MEANS there are edits to lose (`stageLoad` loads straight through when there are
+  // not), so the sentence can name what they are edits *to* instead of asserting they exist (#722).
+  box.append(el('p', 'bm-confirm', `Replace the current brand with ${originLabel(pending.origin)}? Your edits to ${originLabel(provenance.origin)} are not saved anywhere else.`));
+  const row = el('div', 'bm-confirm-row');
+  const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
+  rep.onclick = () => { pendingLoad = null; loadBrand(pending.input, pending.origin); };
+  const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
+  can.onclick = () => { pendingLoad = null; renderBar(); };
+  row.append(rep, can);
+  box.append(row);
+  return box;
 };
 
 const renderBrandMenu = (): HTMLElement => {
@@ -7742,29 +7806,50 @@ const renderBrandMenu = (): HTMLElement => {
     const b = el('button', 'bm-item' + (name === brandState.id ? ' cur' : '')) as HTMLButtonElement;
     const d = el('span', 'bm-dot'); d.style.background = hex(oklchToRgb(BRANDS[name].primary));
     b.append(d, el('span', undefined, name));
-    b.onclick = () => loadBrand(BRANDS[name], { kind: 'example', id: name });
+    // #1033: through the guard, not straight to `loadBrand`. Examples STAY here and stay one click from
+    // an untouched brand (the decision the issue left open) — the confirm is what makes that safe, and
+    // it fires only when there are edits to lose, so browsing the examples is unchanged.
+    b.onclick = () => stageLoad(BRANDS[name], { kind: 'example', id: name });
     menu.append(b);
   }
+  // Beneath the list it belongs to, so the sentence sits where the click was.
+  if (pendingLoad?.origin.kind === 'example') menu.append(renderOverwriteConfirm(pendingLoad));
 
   menu.append(el('div', 'bm-div'));
-  const nb = el('button', 'bm-item', '+ New brand') as HTMLButtonElement;
+  // #1034: MARKED AS CURRENT when the working brand already IS an untouched new brand, in the same
+  // `.cur` idiom the Examples list above uses for the loaded example. That is the reported bug: in the
+  // plugin this item loads `NEW_BRAND()` in place, so in a file whose stored brand is a never-renamed
+  // new brand — restored at boot by `restore-input`, which is why the reporter saw it only in a file
+  // that already has tokens — the click is a pixel-for-pixel no-op. Measured, not inferred: same brand
+  // chip, same ramps, identical `document.body.innerHTML` length, nothing on the console. The button
+  // was never dead; it was already satisfied, and nothing said so. Web is excluded because its branch
+  // returns to the start moment, which is visible feedback whatever the values are.
+  const alreadyNew = PRISM3_HOST === 'figma' && !isDirty(brandState, provenanceOf({ kind: 'new' }, NEW_BRAND()));
+  const nb = el('button', 'bm-item' + (alreadyNew ? ' cur' : ''), '+ New brand') as HTMLButtonElement;
   // Web: return to the start moment (the same three paths) rather than silently loading the default.
   // Plugin: keep the direct neutral-default load — this handler is SHARED UI (not host-DCE'd), and the
   // plugin start moment is a deferred cross-lane follow-up, so it must not surface the web start screen.
   nb.onclick = () => {
-    brandMenuOpen = false;
     if (PRISM3_HOST !== 'figma') {
+      brandMenuOpen = false;
       // #722: returning to the start moment is now an ORIGIN CHANGE — clear the origin and the start
       // screen follows, because `firstRun()` reads it. Previously this set a flag that `loadBrand`
       // knew nothing about, which is why re-entry looked like it needed its own path. The working
       // brand is deliberately left in place: it is what the app renders behind the start screen.
       provenance = noOrigin(brandState);
       build();
-    } else loadBrand(NEW_BRAND(), { kind: 'new' });
+      return;
+    }
+    // #1034's own fold-in ("it should get the same confirm-before-replace treatment"): the plugin
+    // branch REPLACES the working brand, so it needs #1033's guard for the same reason the Examples do.
+    // `brandMenuOpen` is no longer cleared up front — a confirm has to be read in the menu it was
+    // raised in, and `loadBrand` closes the menu itself on the path that goes through.
+    stageLoad(NEW_BRAND(), { kind: 'new' });
   };
   menu.append(nb);
+  if (pendingLoad?.origin.kind === 'new') menu.append(renderOverwriteConfirm(pendingLoad));
   const imp = el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement;
-  imp.onclick = () => { importOpen = !importOpen; importErr = null; importPending = null; renderBar(); };
+  imp.onclick = () => { importOpen = !importOpen; importErr = null; pendingLoad = null; renderBar(); };
   menu.append(imp);
 
   if (importOpen) menu.append(renderImportBox());
@@ -7783,24 +7868,11 @@ const renderBrandMenu = (): HTMLElement => {
  *  mode is silently overwriting someone's edits. All state stays in the module-level `import*`
  *  variables, so an in-progress paste survives being reached from either surface. */
 const renderImportBox = (): HTMLElement => {
+  // An import awaiting confirm replaces this control with the prompt, as it did at #160 — the confirm
+  // itself now lives in `renderOverwriteConfirm`, shared with the two brand-menu writers (#1033). Keyed
+  // on the pending load's ORIGIN, so a staged example does not blank the paste box.
+  if (pendingLoad?.origin.kind === 'import') return renderOverwriteConfirm(pendingLoad);
   const box = el('div', 'bm-import');
-  if (importPending) {
-    // Validated already — confirm before overwriting the working brand (#160). Reaching here now
-    // MEANS there are edits to lose (`stageImport` loads straight through when there are not), so
-    // the sentence can name what they are edits *to* instead of asserting they exist (#722).
-    box.append(el('p', 'bm-confirm', `Replace the current brand with “${importPending.id}”? Your edits to ${originLabel(provenance.origin)} are not saved anywhere else.`));
-    const row = el('div', 'bm-confirm-row');
-    const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
-    rep.onclick = () => {
-      const inp = importPending!; importPending = null;
-      loadBrand(inp, { kind: 'import', label: String(inp.id ?? 'design.md') });
-    };
-    const can = el('button', 'bm-cancel', 'Cancel') as HTMLButtonElement;
-    can.onclick = () => { importPending = null; renderBar(); };
-    row.append(rep, can);
-    box.append(row);
-    return box;
-  }
   const ta = el('textarea', 'bm-ta') as HTMLTextAreaElement;
   ta.placeholder = 'Paste a design.md — --- YAML frontmatter --- then prose…';
   ta.spellcheck = false;
@@ -7815,7 +7887,7 @@ const renderImportBox = (): HTMLElement => {
   fi.onchange = async () => {
     const f = fi.files?.[0]; if (!f) return;
     const read = await readDesignMdFile(f);
-    if ('error' in read) { importErr = read.error; importPending = null; renderBar(); return; }
+    if ('error' in read) { importErr = read.error; pendingLoad = null; renderBar(); return; }
     stageImport(read.text);
   };
   up.append(el('span', undefined, '↑ Upload .md'), fi);
@@ -7980,7 +8052,7 @@ const renderExportDialog = (): HTMLElement => {
     imp.append(el('div', 'exdlg-cap', 'Import'));
     for (const slot of slots) {
       const b = el('button', 'bm-item', `↑ ${slot.label}…`) as HTMLButtonElement;
-      b.onclick = () => { importOpen = !importOpen; importErr = null; importPending = null; renderBar(); };
+      b.onclick = () => { importOpen = !importOpen; importErr = null; pendingLoad = null; renderBar(); };
       imp.append(b);
       imp.append(el('p', 'exdlg-sdesc', slot.desc));
     }
@@ -8160,7 +8232,10 @@ function renderBar(): void {
   const sel = el('button', 'brandsel' + (brandMenuOpen ? ' open' : '')) as HTMLButtonElement;
   const dot = el('span', 'dot'); dot.style.background = hex(oklchToRgb(brandState.primary));
   sel.append(dot, el('span', 'bs-name', brandState.id), el('span', 'caret', '▾'));
-  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; addModeOpen = false; addModeName = ''; } renderBar(); };
+  // Closing the menu discards a staged load with it (#1033) — an unanswered "Replace the current brand?"
+  // must not be waiting behind a reopened menu, where the next click on Replace would answer a question
+  // asked about a state that has since moved on.
+  sel.onclick = (e) => { e.stopPropagation(); brandMenuOpen = !brandMenuOpen; exportMenuOpen = false; if (!brandMenuOpen) { importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; } renderBar(); };
   bWrap.append(sel);
   if (brandMenuOpen) bWrap.append(renderBrandMenu());
   actions.append(bWrap);
@@ -8270,7 +8345,7 @@ function renderBar(): void {
       // scrim decides what "outside" means for it. Left here, this handler would close the dialog on the
       // first click that landed on a setting — every control in it is outside `.barmenu-wrap`.
       if ((brandMenuOpen || navMenuOpen) && !(e.target as HTMLElement).closest('.barmenu-wrap')) {
-        brandMenuOpen = false; navMenuOpen = false; importOpen = false; addModeOpen = false; addModeName = ''; renderBar();
+        brandMenuOpen = false; navMenuOpen = false; importOpen = false; pendingLoad = null; addModeOpen = false; addModeName = ''; renderBar();
       }
     });
     // Escape closes the dialog. Bound once, alongside the click dismissal, for the same reason: the bar

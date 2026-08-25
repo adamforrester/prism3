@@ -80,10 +80,11 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const ORIGIN = `http://127.0.0.1:${server.address().port}`;
 
-// ---- the rendered-contrast probe -------------------------------------------------------------
+// ---- the rendered-legibility probe -----------------------------------------------------------
 /**
  * Every text node's ink against the ground it is ACTUALLY drawn on — the opacity chain applied and
- * every translucent layer composited down to the first opaque ancestor.
+ * every translucent layer composited down to the first opaque ancestor — AND, separately, every
+ * form control's ink against its own field ground.
  *
  * This is the class of defect `lint:contrast` structurally cannot see. That gate holds the chrome's
  * TOKEN VALUES to 4.5:1 and is right to; #555 then found `.mo-playnote` rendering at 3.12:1 because
@@ -91,10 +92,24 @@ const ORIGIN = `http://127.0.0.1:${server.address().port}`;
  * inked with a mode-resolved color (1.00–1.61:1 — invisible). The token was legal in every case. The
  * pairing was not, and only a render can tell you that.
  *
+ * WHY THE SECOND COLLECTION EXISTS (#1031). The text walk requires an element to own a text node,
+ * and A FIELD'S VALUE IS NOT A TEXT NODE — `<input value="my-brand">` has no child nodes at all. So
+ * every editable control in the studio was outside this probe's reach, not merely unvisited: had the
+ * sweep opened the brand menu, the walk would still have measured its captions and skipped its two
+ * inputs. #1031 was near-white ink in exactly those two inputs. A field is also the one place the UA
+ * supplies the ink when the author sets only a background, which is the mechanism that produced it.
+ * The caret is measured with the ink for the same reason at one keystroke's remove.
+ *
+ * `rootSel` scopes the walk. Called with nothing it measures the document, which is what the sweep
+ * wants; called with a selector it measures inside that node, which is how the overlay section can
+ * assert that the brand menu's OWN nodes were seen rather than that the page as a whole was clean —
+ * a total over the document would stay green with the popover contributing nothing (docs/34 shape 9,
+ * which is how #1031 shipped past a suite whose stated purpose was invisible text).
+ *
  * Runs in the page rather than over a screenshot: a pixel diff would answer "did this change", and
  * the question here is "can this be read".
  */
-const CONTRAST_PROBE = () => {
+const LEGIBILITY_PROBE = (rootSel) => {
   const parse = (s) => {
     const m = /rgba?\(([^)]+)\)/.exec(s);
     if (!m) return null;
@@ -128,29 +143,64 @@ const CONTRAST_PROBE = () => {
     const white = { r: 255, g: 255, b: 255, a: 1 };
     return acc ? over(acc, white) : white;
   };
-  const out = [];
-  for (const el of document.querySelectorAll('*')) {
+  const root = rootSel ? document.querySelector(rootSel) : document;
+  if (!root) return { text: [], fields: [], rootFound: false };
+  const round = (n) => Math.round(n * 100) / 100;
+  const name = (el) => `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().replace(/\s+/g, '.') || '-'}`;
+  /** Drawn at all? Shared by both walks so they agree on what "rendered" means. */
+  const drawn = (el, cs) => {
+    if (cs.visibility === 'hidden' || cs.display === 'none') return 0;
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return 0;
+    let op = 1;
+    for (let n = el; n; n = n.parentElement) op *= Number(getComputedStyle(n).opacity);
+    // Effectively invisible by intent (a collapsed panel mid-transition) — not a legibility finding.
+    return op < 0.02 ? 0 : op;
+  };
+
+  const text = [];
+  for (const el of root.querySelectorAll('*')) {
     // OWN text only. Measuring an ancestor's `textContent` would attribute a child's ink to the
     // parent's color and report pairings that are drawn nowhere.
     if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
     const cs = getComputedStyle(el);
-    if (cs.visibility === 'hidden' || cs.display === 'none') continue;
-    const r = el.getBoundingClientRect();
-    if (r.width < 1 || r.height < 1) continue;
-    let op = 1;
-    for (let n = el; n; n = n.parentElement) op *= Number(getComputedStyle(n).opacity);
-    // Effectively invisible by intent (a collapsed panel mid-transition) — not a legibility finding.
-    if (op < 0.02) continue;
+    const op = drawn(el, cs);
+    if (!op) continue;
     const col = parse(cs.color);
     if (!col) continue;
     const ground = groundOf(el);
-    out.push({
-      ratio: Math.round(ratio(over({ ...col, a: col.a * op }, ground), ground) * 100) / 100,
-      cls: `${el.tagName.toLowerCase()}.${(typeof el.className === 'string' ? el.className : '').trim().replace(/\s+/g, '.') || '-'}`,
+    text.push({
+      ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
+      cls: name(el),
       text: [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 44),
     });
   }
-  return out;
+
+  // FORM-CONTROL INK. `groundOf` starts at the control itself, so the ground is the FIELD's own
+  // background where it has one — the pairing a typist actually reads, not the panel behind it.
+  const fields = [];
+  // Controls with no author-inked text of their own: their rendering is entirely the UA's, and a
+  // `color` on them measures nothing that is drawn. Included would be noise, not coverage.
+  const CHROMELESS = new Set(['checkbox', 'radio', 'range', 'color', 'file', 'image', 'hidden', 'submit', 'reset', 'button']);
+  for (const el of root.querySelectorAll('input, textarea, select')) {
+    if (el.tagName === 'INPUT' && CHROMELESS.has(el.type)) continue;
+    const cs = getComputedStyle(el);
+    const op = drawn(el, cs);
+    if (!op) continue;
+    const col = parse(cs.color);
+    if (!col) continue;
+    const ground = groundOf(el);
+    // `caretColor: auto` computes to a concrete rgb, so this reads the used value rather than the
+    // keyword. Only for text entry — a `<select>` has no caret to lose.
+    const caret = el.tagName === 'SELECT' ? null : parse(cs.caretColor);
+    fields.push({
+      ratio: round(ratio(over({ ...col, a: col.a * op }, ground), ground)),
+      caretRatio: caret && caret.a > 0 ? round(ratio(over({ ...caret, a: caret.a * op }, ground), ground)) : null,
+      cls: name(el),
+      text: `[${el.tagName === 'INPUT' ? el.type : el.tagName.toLowerCase()}] "${String(el.value ?? '').slice(0, 20)}"`,
+    });
+  }
+  return { text, fields, rootFound: true };
 };
 
 /**
@@ -210,6 +260,19 @@ const CONTRAST_FLOOR = 2.0;
 const STATE_NODE_FLOOR = 20;
 const SWEEP_NODE_FLOOR = 8000;
 const SWEEP_STATE_FLOOR = 32;
+/** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
+ *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
+ *  derived mode. Measured on this branch: **506** controls across the 72 states, so ~half. The
+ *  per-state range is 0 (Typography and Layout in a derived mode — the read-only note replaces every
+ *  editor) to 24, which is why the total is the only place this can be asserted. */
+const SWEEP_FIELD_FLOOR = 250;
+/** The brand menu's own minimum, asserted per open (#1031). The popover carries Name and Namespace
+ *  unconditionally, plus `.bm-ta` once the import box is open — three controls is what the surface
+ *  promises, and this is the count that turns "the sweep was clean" into "the sweep looked here".
+ *  Text rows are floored separately at a deliberately loose 6: the menu renders four captions, two
+ *  labels, a hint and the example rows, and a floor near the real number would fail on wording. */
+const BRANDMENU_FIELD_FLOOR = 3;
+const BRANDMENU_TEXT_FLOOR = 6;
 
 // ---- browser plumbing ------------------------------------------------------------------------
 const browser = await chromium.launch();
@@ -240,9 +303,13 @@ const selectMode = async (page, label) => {
   await page.evaluate(() => document.fonts.ready);
 };
 
-/** Open the app on `brand`, from the first-run start screen, in its own storage context. */
-const openBrand = async (brand) => {
-  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 }, acceptDownloads: true });
+/** Open the app on `brand`, from the first-run start screen, in its own storage context.
+ *
+ *  `scheme` emulates the OS light/dark preference (#1031). Defaults to Playwright's own default so
+ *  every existing caller is unchanged; only section 4 passes it, and what it is there to measure is
+ *  that the answer does NOT depend on it. */
+const openBrand = async (brand, scheme) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 }, acceptDownloads: true, ...(scheme ? { colorScheme: scheme } : {}) });
   const page = await ctx.newPage();
   const drain = watchErrors(page);
   await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
@@ -272,6 +339,7 @@ console.log(`\nSweep — every page × mode × brand\n${'='.repeat(78)}`);
 let worstRatio = Infinity;
 let worstWhere = '';
 let nodesMeasured = 0;
+let fieldsMeasured = 0;
 let statesVisited = 0;
 
 for (const brand of BRANDS) {
@@ -376,8 +444,10 @@ for (const brand of BRANDS) {
       }
 
       // --- rendered contrast -------------------------------------------------------------------
-      const rows = await page.evaluate(CONTRAST_PROBE);
+      const probe = await page.evaluate(LEGIBILITY_PROBE);
+      const rows = probe.text;
       nodesMeasured += rows.length;
+      fieldsMeasured += probe.fields.length;
       // The non-empty floor, asserted BEFORE the ratios and separately from them, so an empty state
       // fails naming itself rather than passing as "every one of 0 text nodes clears 2:1".
       ok(rows.length >= STATE_NODE_FLOOR,
@@ -389,6 +459,16 @@ for (const brand of BRANDS) {
       for (const r of rows) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} "${r.text}"`; }
       ok(under.length === 0, `${where}: every one of ${rows.length} text nodes clears ${CONTRAST_FLOOR}:1${
         under.length ? ` — ${under.slice(0, 3).map((u) => `${u.cls} "${u.text}" at ${u.ratio}:1`).join(' | ')}` : ''}`);
+
+      // --- rendered contrast, form controls (#1031) ---------------------------------------------
+      // NO PER-STATE FLOOR HERE, deliberately: a derived mode replaces the whole editor with the
+      // read-only note, so zero fields is a legitimate state and a floor would fail on the app being
+      // right. "Did it look?" is asserted once over the sweep total below, and named per-surface in
+      // the overlay section — where a count IS the coverage claim.
+      const fieldsUnder = probe.fields.filter((f) => f.ratio < CONTRAST_FLOOR || (f.caretRatio !== null && f.caretRatio < CONTRAST_FLOOR));
+      for (const f of probe.fields) if (f.ratio < worstRatio) { worstRatio = f.ratio; worstWhere = `${where} — ${f.cls} ${f.text}`; }
+      ok(fieldsUnder.length === 0, `${where}: every one of ${probe.fields.length} form control(s) inks its value and caret over ${CONTRAST_FLOOR}:1${
+        fieldsUnder.length ? ` — ${fieldsUnder.slice(0, 3).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1 (caret ${u.caretRatio}:1)`).join(' | ')}` : ''}`);
     }
   }
   console.log(`  ${brand}: ${pages.length} pages × ${modes.length} modes swept (${pages.join(', ')})`);
@@ -402,9 +482,11 @@ for (const brand of BRANDS) {
 ok(statesVisited >= SWEEP_STATE_FLOOR,
   `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
-  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR}, ~half the 15,638 baseline)`);
+  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR}, ~half the 15,638 baseline — 15,646 on this branch)`);
+ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
+  `the sweep measured ${fieldsMeasured} form controls in total (floor ${SWEEP_FIELD_FLOOR})`);
 
-console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes measured.`);
+console.log(`\n  ${statesVisited} page × mode states, ${nodesMeasured} text nodes, ${fieldsMeasured} form controls measured.`);
 console.log(`  Lowest rendered contrast anywhere: ${worstRatio}:1 (floor ${CONTRAST_FLOOR.toFixed(1)}:1)`);
 console.log(`    ${worstWhere}`);
 
@@ -723,6 +805,92 @@ for (const brand of BRANDS) {
 ok(rampChecks >= 2 * 3 * 6, `${rampChecks} displayed durations compared against the resolved theme`);
 
 // =============================================================================================
+// 4. Overlay surfaces — the brand-menu popover (#1031)
+// =============================================================================================
+// WHY THIS SECTION EXISTS. #1031 shipped near-white ink in the brand menu's Name and Namespace
+// inputs, and this suite — whose stated counterfactual for gating was "three broken cards ship and
+// surface in a client Figma session as 'the style guide has invisible labels'" — was green. Two
+// independent reasons, and both had to be fixed to make the report mean anything:
+//
+//   1. CORPUS. The sweep drives the rail and the mode bar. It never opens the brand menu, so no node
+//      inside the popover was ever measured. A clean report over a corpus that excludes the defect is
+//      docs/34 shape 9, and the suite could not have failed however bad the popover was.
+//   2. INSTRUMENT. Even with the popover open, the text walk skips `<input>` — a field's value is not
+//      a child text node. That is the second half, fixed in `LEGIBILITY_PROBE` above; this section is
+//      what makes it non-vacuous by asserting the popover's own control count.
+//
+// BOTH SCHEMES, plus a direct assertion on the shell — and the split between those two is the honest
+// part, established by mutation rather than by reasoning.
+//
+// #1031's mechanism has TWO necessary halves: the document opts into `color-scheme: light dark`, AND
+// a control leaves its `color` to the UA while the author paints its background from a light token.
+// Only then does the UA supply near-white ink over a light field. `apps/studio/index.html` declares
+// no `color-scheme` at all, so the first half is false here and the studio is structurally immune.
+//
+// MEASURED: adding `color-scheme: light dark` to the studio's shell and re-running this section
+// passes — 942/942 — because the fix for #1031 also gave every studio control an author `color`, so
+// the second half is now false too. A ratio assertion under an emulated dark scheme therefore
+// catches this class only in combination with a NEW control that omits `color`, which is a real but
+// compound tripwire and not the one the comment above it originally claimed. So the first half gets
+// its own assertion, on the resolved `color-scheme` of the shell — one line, fails the moment the
+// opt-in appears, and independent of how well the stylesheet happens to be inked that week. The
+// emulated-dark pass stays for the compound case: a control added later without a `color` fails here
+// and nowhere else.
+//
+// What none of this can cover is the artifact where the defect actually lived: `apps/plugin/dist/ui.html`,
+// built by another workspace and rendered by no gate at all. Its shell is the one that WAS opted in, and
+// #1031 turned that off — but nothing stops it coming back, and nothing here would see it. Filed as #1041,
+// not papered over.
+console.log(`\nBrand-menu popover (#1031)\n${'='.repeat(78)}`);
+
+let menuFields = 0;
+for (const brand of BRANDS) {
+  for (const scheme of ['light', 'dark']) {
+    const { ctx, page, drain } = await openBrand(brand, scheme);
+    // The popover, then the import box inside it — `.bm-ta` is the third control the surface promises
+    // and it only exists once the box is open.
+    await page.locator('.brandsel').click();
+    await page.waitForSelector('.brandmenu .bm-in');
+    await page.locator('.brandmenu .bm-item').filter({ hasText: 'Import design.md' }).click();
+    await page.waitForSelector('.brandmenu .bm-ta');
+    // TYPE INTO IT. An empty field renders no glyphs, so measuring a pristine input asserts a
+    // computed pairing over ink that is not on screen; a value makes the row describe something drawn.
+    await page.fill('.brandmenu .bm-in', 'smoke-brand');
+
+    const where = `${brand} / brand menu / ${scheme} scheme`;
+    // #1031's FIRST HALF, asserted directly. `normal` is what the studio's shell resolves to (it
+    // declares nothing); `light` would also be fine. Anything naming `dark` hands the UA the field
+    // ink, the caret, autofill and native option lists from a dark palette over surfaces this
+    // stylesheet paints from light tokens unconditionally — and the option list is not something any
+    // in-page probe can measure, which is why the opt-in itself is the thing to hold.
+    const resolved = await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme);
+    ok(resolved === 'normal' || resolved === 'light',
+      `${where}: the shell resolves a light-only color-scheme (resolved "${resolved}") — the studio paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
+    const probe = await page.evaluate(LEGIBILITY_PROBE, '.brandmenu');
+    ok(probe.rootFound, `${where}: the popover is mounted and was measured`);
+    ok(probe.fields.length >= BRANDMENU_FIELD_FLOOR,
+      `${where}: measured ${probe.fields.length} form control(s) inside the popover (floor ${BRANDMENU_FIELD_FLOOR} — Name, Namespace, the import textarea)`);
+    ok(probe.text.length >= BRANDMENU_TEXT_FLOOR,
+      `${where}: measured ${probe.text.length} text node(s) inside the popover (floor ${BRANDMENU_TEXT_FLOOR})`);
+    menuFields += probe.fields.length;
+
+    const bad = [...probe.fields, ...probe.text].filter((r) => r.ratio < CONTRAST_FLOOR || (r.caretRatio != null && r.caretRatio < CONTRAST_FLOOR));
+    for (const r of [...probe.fields, ...probe.text]) if (r.ratio < worstRatio) { worstRatio = r.ratio; worstWhere = `${where} — ${r.cls} ${r.text}`; }
+    ok(bad.length === 0, `${where}: every one of ${probe.fields.length} control(s) and ${probe.text.length} text node(s) clears ${CONTRAST_FLOOR}:1${
+      bad.length ? ` — ${bad.slice(0, 4).map((u) => `${u.cls} ${u.text} at ${u.ratio}:1${u.caretRatio != null ? ` (caret ${u.caretRatio}:1)` : ''}`).join(' | ')}` : ''}`);
+    // The Name field must show what was typed — a legible field that lost the value is the same
+    // report ("I cannot read what I typed") from the other direction.
+    ok(await page.inputValue('.brandmenu .bm-in') === 'smoke-brand', `${where}: the Name field holds what was typed`);
+    const errs = drain();
+    ok(errs.length === 0, `${where}: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+    await ctx.close();
+  }
+}
+ok(menuFields >= BRANDS.length * 2 * BRANDMENU_FIELD_FLOOR,
+  `${menuFields} popover controls measured across ${BRANDS.length} brands × 2 color schemes`);
+console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover controls measured.`);
+
+// =============================================================================================
 await browser.close();
 server.close();
 
@@ -761,7 +929,7 @@ if (failed) {
 const SUMMARY_ROWS = 25;
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 if (summaryPath) {
-  const stats = `${statesVisited} page × mode × brand states · ${nodesMeasured} text nodes · `
+  const stats = `${statesVisited} page × mode × brand states · ${nodesMeasured} text nodes · ${fieldsMeasured} form controls · `
     + `lowest rendered contrast ${worstRatio}:1 against a ${CONTRAST_FLOOR.toFixed(1)}:1 floor`;
   const md = failed
     ? [
