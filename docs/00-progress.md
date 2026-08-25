@@ -120,8 +120,8 @@ nothing.
 
 **Not in scope, deliberately:** the prune lane (a separate open decision, genuinely destructive where
 this is not), and the CLI paste path — `materialise-to-figma.ts` does not adopt the map, so it keeps
-today's orphan-and-recreate behaviour. That degrades safely rather than silently, and it is filed as its
-own issue rather than left in this paragraph. Also noted while measuring: there is **no parity gate**
+today's orphan-and-recreate behaviour. That degrades safely rather than silently, and it is filed as
+**#1024** rather than left in this paragraph. Also noted while measuring: there is **no parity gate**
 between `materialise-to-figma.ts` and `write-figma.ts`, which is why the divergence is worth an issue
 rather than a comment.
 
