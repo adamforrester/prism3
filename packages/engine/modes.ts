@@ -199,6 +199,16 @@ export const outlineFillRole = (method: Theme['outlineInteraction'], color: stri
   return family ? `interactive.${color}.${family}.${state}` : null;
 };
 
+/**
+ * The media veil's rungs, named by the CONTRACT each one buys rather than by its magnitude (#1030).
+ *
+ * Exported because `ai-metadata.ts` describes these roles and must not carry a second copy of the
+ * floors. `test.ts` deliberately does NOT import this — it states the three WCAG floors itself and
+ * checks this table against them, which is the independent opinion the derivation is held to
+ * (`docs/34`: a gate reading its subject's own numbers cannot disagree with them).
+ */
+export const VEIL_RUNGS = [['large', 3], ['body', 4.5], ['enhanced', 7]] as const;
+
 const cand = (path: string, rgb: RGB): Cand => ({ path, rgb });
 
 // B — the appearance modes as DATA. A mode's identity (name + kind + family + contrast mins) lives in
@@ -636,6 +646,77 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `black-alpha.<step>`, and the alpha is on the primitive), so no artifact ever drifted; the bug
   // could only surface where a UI rendered the RESOLVED role, and until now nothing rendered scrim.
   roles['scrim.default'].alpha = scrimStep / 100;
+
+  /**
+   * MEDIA VEIL (#1030) — the wash a designer puts over a photograph so text on top stays legible.
+   *
+   * ── IT IS NOT THE SCRIM ABOVE, AND THAT IS THE THING TO READ TWICE ──────────────────────────────
+   *
+   * The two look alike and behave oppositely, so unifying them is the most likely future edit here and
+   * the one to refuse:
+   *
+   *   `scrim.default`        ONE role, dark only, MODE-VARYING (40/60/60/70). Not designer-selectable
+   *                          — a modal opening picks it, and which modal it is does not change it.
+   *   `veil.<polarity>.<rung>`  SIX roles, both polarities, APPEARANCE-INVARIANT. The designer picks
+   *                          one per image, because what decides it is the photograph.
+   *
+   * They are also deliberately NOT siblings under one group. Side by side in a picker,
+   * `scrim.default` and `scrim.dark.body` would differ in mode behaviour and in whether a designer may
+   * touch them, with nothing but folklore saying which is which — membership-by-location, the defect
+   * `payload-manifest.json` exists to remove one tier down.
+   *
+   * ── INVARIANT AS A CONSEQUENCE, NOT AN ASSERTION ────────────────────────────────────────────────
+   *
+   * Every other colour family here varies by mode, so this one is the unusual case and worth stating
+   * why: the derivation's ground is the WORST PIXEL of an unknown image — sRGB white under a dark veil,
+   * sRGB black under a light one. That is a constant, not a theme surface. No theme input reaches the
+   * derivation, so no mode can move the result. `lint-overlay-completeness.ts` arm B holds it: a veil
+   * leaf reaching any mode's overlay means something gave it variance it must not have.
+   *
+   * BOTH POLARITIES ARE LIVE IN EVERY MODE for the same reason. A photograph has no polarity the theme
+   * can read, so a dark image needs a light veil in dark mode exactly as often as in light mode.
+   *
+   * ── DERIVED, NOT INHERITED ──────────────────────────────────────────────────────────────────────
+   *
+   * Prism2 ships 40/60/80 per polarity. Measured against the worst pixel, its weakest dark step buys
+   * 2.85:1 — below even the 3:1 large-text floor — so inheriting that ladder would ship a token whose
+   * whole purpose is buying contrast for text and which buys none for any text. Each rung is instead
+   * the LEAST emitted alpha step clearing its floor, which is also why the same rung is a different
+   * alpha per polarity: sRGB gamma lets a white wash lift a black pixel faster than a black wash drops
+   * a white one (light 40/50/60 against dark 50/60/70).
+   *
+   * The rungs name the CONTRACT rather than the magnitude, so that asymmetry reads as the point instead
+   * of as an inconsistency: `body` is whatever alpha clears 4.5:1, on either side.
+   *
+   * ── WHY THESE ROLES RECORD NO RATIO ─────────────────────────────────────────────────────────────
+   *
+   * `against: 'self'`, `min: 0` — the `putSurf` posture, and the scrim's. The ground is a photograph,
+   * and the role vocabulary has no name for that, so a `ratio` here would be a number measured against
+   * `self`, which describes nothing. The contract lives in the `$description`, and `test.ts` re-derives
+   * every one of these six alphas from the WCAG floors to hold it.
+   */
+  // The emitted alpha ramp (`palette.{black,white}-alpha.*`, built in `tree.ts`). Restated rather than
+  // imported because importing it would be a cycle; a step that drifts out of the ramp is caught as a
+  // dangling alias by the per-brand Figma emission arm in `test.ts`, by name.
+  const VEIL_STEPS = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+  for (const [polarity, wash] of [['dark', BLACK], ['light', WHITE]] as const) {
+    // The worst pixel and the ink are the SAME extreme, and not coincidentally: the pixel that hurts
+    // is the one pulling the composite toward the ink. A dark veil's worst case is white on white.
+    const extreme = polarity === 'dark' ? WHITE : BLACK;
+    const base = polarity === 'dark' ? 'black' : 'white';
+    for (const [rung, floor] of VEIL_RUNGS) {
+      const step = VEIL_STEPS.find((s) => contrast(extreme, composite(extreme, wash, s / 100)) >= floor);
+      if (step === undefined)
+        throw new Error(`veil.${polarity}.${rung}: no emitted alpha step clears ${floor}:1 over the worst-case pixel`);
+      put(`veil.${polarity}.${rung}`,
+        { path: `${ns}.${base}-alpha.${step}`, rgb: wash, ratio: 1 },
+        `Media veil, ${polarity} — ${step}% ${base} over an image; ${base === 'black' ? 'white' : 'black'} `
+        + `text clears ${floor}:1 at the image's worst pixel. Identical in every mode; the mode-varying `
+        + `modal backdrop is scrim.default`,
+        'self', 0);
+      roles[`veil.${polarity}.${rung}`].alpha = step / 100;
+    }
+  }
 
   // -------------------------------------------------------------- foregrounds
   // Surfaces & fills placed on the canvas. Neutral tonal ladder + inverse + bold

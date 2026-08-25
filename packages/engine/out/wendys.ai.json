@@ -151,6 +151,102 @@
         "foreground.inverse.primary"
       ]
     },
+    "veil.dark.large": {
+      "$description": "Media veil (dark) — 3:1 for large text.",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "A wash over a photograph or video so light text on top clears 3:1 at the image's worst pixel. Pick the polarity from the image (dark veil under light text), then the rung from the text.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.black-alpha.50}",
+        "dark": "{prism.palette.black-alpha.50}",
+        "hc-light": "{prism.palette.black-alpha.50}",
+        "hc-dark": "{prism.palette.black-alpha.50}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ]
+    },
+    "veil.dark.body": {
+      "$description": "Media veil (dark) — 4.5:1 for body text.",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "A wash over a photograph or video so light text on top clears 4.5:1 at the image's worst pixel. Pick the polarity from the image (dark veil under light text), then the rung from the text.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.black-alpha.60}",
+        "dark": "{prism.palette.black-alpha.60}",
+        "hc-light": "{prism.palette.black-alpha.60}",
+        "hc-dark": "{prism.palette.black-alpha.60}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ]
+    },
+    "veil.dark.enhanced": {
+      "$description": "Media veil (dark) — 7:1 for enhanced contrast.",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "A wash over a photograph or video so light text on top clears 7:1 at the image's worst pixel. Pick the polarity from the image (dark veil under light text), then the rung from the text.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.black-alpha.70}",
+        "dark": "{prism.palette.black-alpha.70}",
+        "hc-light": "{prism.palette.black-alpha.70}",
+        "hc-dark": "{prism.palette.black-alpha.70}"
+      },
+      "paired_with": [
+        "text.on-inverse.primary"
+      ]
+    },
+    "veil.light.large": {
+      "$description": "Media veil (light) — 3:1 for large text.",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "A wash over a photograph or video so dark text on top clears 3:1 at the image's worst pixel. Pick the polarity from the image (light veil under dark text), then the rung from the text.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.white-alpha.40}",
+        "dark": "{prism.palette.white-alpha.40}",
+        "hc-light": "{prism.palette.white-alpha.40}",
+        "hc-dark": "{prism.palette.white-alpha.40}"
+      },
+      "paired_with": [
+        "text.primary"
+      ]
+    },
+    "veil.light.body": {
+      "$description": "Media veil (light) — 4.5:1 for body text.",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "A wash over a photograph or video so dark text on top clears 4.5:1 at the image's worst pixel. Pick the polarity from the image (light veil under dark text), then the rung from the text.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.white-alpha.50}",
+        "dark": "{prism.palette.white-alpha.50}",
+        "hc-light": "{prism.palette.white-alpha.50}",
+        "hc-dark": "{prism.palette.white-alpha.50}"
+      },
+      "paired_with": [
+        "text.primary"
+      ]
+    },
+    "veil.light.enhanced": {
+      "$description": "Media veil (light) — 7:1 for enhanced contrast.",
+      "meaning": "Text legibility over a photograph",
+      "when_to_use": "A wash over a photograph or video so dark text on top clears 7:1 at the image's worst pixel. Pick the polarity from the image (light veil under dark text), then the rung from the text.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "avoid_when_level": "SHOULD",
+      "mode_overrides": {
+        "light": "{prism.palette.white-alpha.60}",
+        "dark": "{prism.palette.white-alpha.60}",
+        "hc-light": "{prism.palette.white-alpha.60}",
+        "hc-dark": "{prism.palette.white-alpha.60}"
+      },
+      "paired_with": [
+        "text.primary"
+      ]
+    },
     "foreground.primary": {
       "$description": "Surface placed on the canvas (tier 1).",
       "meaning": "Surface / fill on the canvas",
@@ -7855,7 +7951,10 @@
       "meaning": "Black at 50% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.veil.dark.large"
+      ]
     },
     "palette.black-alpha.60": {
       "$description": "Black alpha 60% — alpha, composites over any surface",
@@ -7864,7 +7963,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.scrim.default"
+        "color.scrim.default",
+        "color.veil.dark.body"
       ]
     },
     "palette.black-alpha.70": {
@@ -7874,7 +7974,8 @@
       "tier": "primitive",
       "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
       "aliased_by": [
-        "color.scrim.default"
+        "color.scrim.default",
+        "color.veil.dark.enhanced"
       ]
     },
     "palette.black-alpha.80": {
@@ -7946,21 +8047,30 @@
       "meaning": "White at 40% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.veil.light.large"
+      ]
     },
     "palette.white-alpha.50": {
       "$description": "White alpha 50% — alpha, composites over any surface",
       "meaning": "White at 50% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.veil.light.body"
+      ]
     },
     "palette.white-alpha.60": {
       "$description": "White alpha 60% — alpha, composites over any surface",
       "meaning": "White at 60% alpha (composites over any surface)",
       "intent": "Overlay / scrim / shadow compositing (alpha — composites over any surface)",
       "tier": "primitive",
-      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step."
+      "consume": "Private primitive — reference a `color.*` semantic token that aliases this, not the raw step.",
+      "aliased_by": [
+        "color.veil.light.enhanced"
+      ]
     },
     "palette.white-alpha.70": {
       "$description": "White alpha 70% — alpha, composites over any surface",

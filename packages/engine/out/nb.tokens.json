@@ -2569,6 +2569,252 @@
           }
         }
       },
+      "veil": {
+        "dark": {
+          "large": {
+            "$type": "color",
+            "$value": "{nbds.palette.black-alpha.50}",
+            "$description": "Media veil, dark — 50% black over an image; white text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.black-alpha.50",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{nbds.palette.black-alpha.50}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{nbds.palette.black-alpha.50}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{nbds.palette.black-alpha.50}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "body": {
+            "$type": "color",
+            "$value": "{nbds.palette.black-alpha.60}",
+            "$description": "Media veil, dark — 60% black over an image; white text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.black-alpha.60",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{nbds.palette.black-alpha.60}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{nbds.palette.black-alpha.60}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{nbds.palette.black-alpha.60}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "enhanced": {
+            "$type": "color",
+            "$value": "{nbds.palette.black-alpha.70}",
+            "$description": "Media veil, dark — 70% black over an image; white text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.black-alpha.70",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{nbds.palette.black-alpha.70}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{nbds.palette.black-alpha.70}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{nbds.palette.black-alpha.70}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          }
+        },
+        "light": {
+          "large": {
+            "$type": "color",
+            "$value": "{nbds.palette.white-alpha.40}",
+            "$description": "Media veil, light — 40% white over an image; black text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.white-alpha.40",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{nbds.palette.white-alpha.40}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{nbds.palette.white-alpha.40}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{nbds.palette.white-alpha.40}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "body": {
+            "$type": "color",
+            "$value": "{nbds.palette.white-alpha.50}",
+            "$description": "Media veil, light — 50% white over an image; black text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.white-alpha.50",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{nbds.palette.white-alpha.50}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{nbds.palette.white-alpha.50}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{nbds.palette.white-alpha.50}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          },
+          "enhanced": {
+            "$type": "color",
+            "$value": "{nbds.palette.white-alpha.60}",
+            "$description": "Media veil, light — 60% white over an image; black text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "nbds.palette.white-alpha.60",
+                "contrast": 1,
+                "against": "self",
+                "modes": {
+                  "dark": {
+                    "$value": "{nbds.palette.white-alpha.60}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-light": {
+                    "$value": "{nbds.palette.white-alpha.60}",
+                    "contrast": 1,
+                    "against": "self"
+                  },
+                  "hc-dark": {
+                    "$value": "{nbds.palette.white-alpha.60}",
+                    "contrast": 1,
+                    "against": "self"
+                  }
+                },
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                }
+              }
+            }
+          }
+        }
+      },
       "foreground": {
         "primary": {
           "$type": "color",
@@ -18344,7 +18590,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.24.0",
+      "version": "0.25.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
