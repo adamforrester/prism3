@@ -150,6 +150,40 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     at: { selection: ['indeterminate'] },
     why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two differ only in the winding of one rectangle (see `DUPLICATE_PATHS`) and the line form is the one the rest of the corpus draws',
   },
+
+  // FIELD-MESSAGE'S THREE STATUS GLYPHS (#1010), and this table is the RIGHT place for them rather than a
+  // formality to be satisfied. The mapping reads TRANSPOSED — `error` draws `warning-triangle` and
+  // `warning` draws `error-circle` — because a name in `icon-glyphs.ts` describes the ENCLOSURE it draws,
+  // not the tone that uses it. Measured, because reading the names gives the wrong answer:
+  //
+  //     warning-triangle   triangle outline + bar y9-14 + dot y16-18   an exclamation, in a TRIANGLE
+  //     error-circle       ring 2-22/4-20   + bar y7-13 + dot y15-17   an exclamation, in a CIRCLE
+  //
+  // One mark in two enclosures, and the Prism2 reference assigns the enclosure per tone. So the single
+  // most likely future edit to this def is somebody "fixing" the mapping to agree with the names, and
+  // that edit draws correct ink on a correct artboard at a correct coordinate — every geometric arm in
+  // this file passes it, exactly as an indeterminate checkbox showing a tick would. Recording the pairing
+  // here makes it fail as a stale record instead, in whichever file moved.
+  //
+  // `error-circle` and `check-circle` share one 20px ring, differing only in what sits inside it, so
+  // their BOUNDING BOXES are identical — measured while writing #1010's read-back, where a box-based
+  // fingerprint both failed on correct code and could not have caught two tones sharing one glyph. That
+  // is a second reason the name belongs in a table: the geometry cannot tell these two apart.
+  'field-message.iconError': {
+    glyph: 'warning-triangle',
+    at: { tone: ['error'] },
+    why: "the error mark: an exclamation in a TRIANGLE, per the Prism2 reference, and the only one of the three whose enclosure is not a circle. `glyph: '{tone}'` cannot express this set for `checkbox`'s reason one level up — the vocabulary holds no glyph named `error`/`warning`/`success`, and `default` draws nothing at all — so the three drawn tones are three `presentWhen`-gated parts and the fourth is the absence of all three. Shape is the channel that survives when a user cannot tell `error`'s ink from `warning`'s, which is the SC 1.4.1 contract this def exists for",
+  },
+  'field-message.iconWarning': {
+    glyph: 'error-circle',
+    at: { tone: ['warning'] },
+    why: 'the warning mark: the SAME exclamation as `error`\'s in a CIRCLE rather than a triangle. The name is the enclosure, not the tone — do not "correct" this to `warning-triangle`, which would give error and warning one identical shape and leave ink as the only difference between them',
+  },
+  'field-message.iconSuccess': {
+    glyph: 'check-circle',
+    at: { tone: ['success'] },
+    why: 'the success mark: a circled check, on the same 20px ring `error-circle` draws. Deliberately the outline form and not `check-circle-filled` — the reference asks for "a stroked outline glyph at the same optical weight as the text", and every glyph in this set is a filled path, so outline here means a ring with a hole rather than a stroke',
+  },
 };
 
 /** `presentWhen`-shaped gates compared by VALUE, order-insensitively, so a reordered value list is not a

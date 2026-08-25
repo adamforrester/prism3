@@ -7,6 +7,151 @@
 
 ---
 
+## (2026-08-25) — a placeholder that outlived its dependency, and the footprint rule that was authored for one def (#1010)
+
+**STATUS: shipped.** `ENGINE_VERSION` **0.21.0 → 0.23.0** (0.22.0 is taken by the open #1016, and a
+second 0.22.0 entry would be the later merge's problem, not mine). `CONTRACT_VERSION` stays **5.3.0** —
+no token name and no `$type` moved. Gates stay at **42**.
+
+**The defect.** `field-message` built an `FPO` circle where its status icon belongs: one `kind: 'slot'`
+part nominating an `INSTANCE_SWAP` placeholder, wrong size, no per-status glyph. The 39-glyph set had
+landed in **#920** and this def bound none of it. Three `presentWhen`-gated `vector` parts replace the
+slot — `error → warning-triangle`, `warning → error-circle`, `success → check-circle`, each at
+`icon.size.xs` (16px in every corpus brand) inking `color.icon.{danger,warning,success}`.
+
+**Why nothing caught it, and it is the interesting half.** *A placeholder is a structurally valid
+child.* Every plan-level check passed, because every value resolved — the slot resolved, the size
+resolved, the paint resolved. There was no wrong value anywhere; there was a right value pointing at
+scaffolding whose reason had expired eight months earlier. Nothing in the repo relates "this def
+declares a placeholder" to "the thing it stands in for now exists", and no gate can, because a
+dependency landing elsewhere is not a change to this file.
+
+**The default tone projects NO glyph** (decided by the owner, over reserving a 16px void). That is the
+whole reason `presentWhen` is doing the work here, and it is what surfaced the second finding.
+
+**FINDING 2 — the footprint cohort was authored for Button and never revisited for `presentWhen`.**
+The plugin harness reported three `footprint ->` misses: `tone=error measures 126x24 but tone=default
+measures 102x0`. `planSetLayout` keys each member's cohort on `size=` + `leading=` + `trailing=` — the
+axes that legitimately change *Button's* box — and the executor reports a miss when a member's box
+differs from the first in its cohort. `checkbox` and `radio` gate a mark **inside** a size-bound
+`control`, so their box holds still and they never met this. `field-message` is the first def where a
+gated part is a flow child of the row, so its box genuinely moves.
+
+`FigmaProperties.footprintVaries?: string[]` is the fix and the reusable half: a per-def declaration
+of the axes on which the box legitimately moves, validated as (a) an axis this def actually projects
+and (b) an axis some part's `presentWhen` gates. **Declared, not derived from `presentWhen`** —
+deriving it would exempt `checkbox` along `selection`, deleting a cross-variant comparison that is
+currently doing real work. The exemption is not free and the def says so: `tone` is `field-message`'s
+only axis, so each member becomes its own cohort and the footprint rule checks nothing there; two
+named harness arms cover the box instead.
+
+**M2 is the `docs/34` demonstration for the new test arm.** The cohort key is derived twice — once by
+the engine (`planSetLayout.group`) and once by a JS `cellOf` shipped **inside** the chunked payload —
+and they must reach the byte-identical string. Making the payload ignore the shipped list failed
+**only** the new field-message parity arm; the pre-existing focus-ring parity arm stayed **green**,
+which is the proof that arm was blind to the new segment rather than redundant with it. The parity
+test extracts `const FOOTPRINT_VARIES=` out of the payload and prepends it to the compiled body rather
+than injecting it as a parameter — deliberately, so a chunk that stops declaring the const goes red
+instead of passing.
+
+**The bounding-box fingerprint was BOTH a false positive and blind, in one line.** My first
+"three tones draw three different glyphs" arm compared the ink **box**, and it failed on correct code:
+`20.3x19.5, 20.0x20.0, 20.0x20.0`. Measuring the artwork explains it — `error-circle` is a 20px ring
+2→22 with a bar and dot, `check-circle` is the **same** 20px ring with a check, so their boxes are
+identical, live as well as in the shim. So the box could not distinguish two glyphs that differ, and
+equally could not have caught a mutation where two tones share one glyph. Replaced by modelling
+`vectorPaths` in the harness shim and comparing subpath **data** pairwise; the mutation now reports
+`4,4,4 subpaths, 2 distinct`.
+
+**The mapping was checked against the artwork, not the name.** `error → warning-triangle` and
+`warning → error-circle` reads transposed and is not: `warning-triangle` is an exclamation in a
+**triangle** (triangle + bar y9–14 + dot y16–18) and `error-circle` is an exclamation in a **circle**
+(ring 2→22 + bar y7–13 + dot y15–17). The glyph names describe the enclosing shape, not the status,
+which is exactly the confusion that makes reading the name insufficient.
+
+**And `lint-glyph-geometry.ts` already had the right home for that, which I found by running the whole
+list rather than by thinking of it.** Every arm I wrote passed and `test.ts` was green at 2453, because
+I had run the engine tests and the plugin harness — the two things the issue named. The full
+`npm run verify` failed this gate: a *fixed* (non-templated) `glyph` must be registered in `FIXED_GLYPH`
+with the name it draws, the coordinate it draws at, and why, or the gate refuses to pass over it. That
+is not paperwork. The table is a **second author** of the pairing, in a different file, so the single
+most likely future edit to this def — somebody "correcting" the mapping to agree with the names — now
+fails as a stale record. Mutation-tested both directions: transposing the def reports *"the def draws
+glyph 'error-circle' and FIXED_GLYPH records 'warning-triangle'… Nothing below can see this"*, and moving
+the recorded coordinate reports the `at` mismatch with the same explanation. A wrong-but-real glyph draws
+correct ink on a correct artboard at a valid coordinate, so **every geometric arm in that file passes it**
+— the same reason `checkbox.dash` is in the table, and the reason an indeterminate box showing a tick
+would otherwise be invisible.
+
+Worth naming as the process finding: the two gates that failed on the first full run
+(`lint-glyph-geometry`, plus `lint-us-english` on `grey` in a def comment that ships through
+`apps/plugin/dist`) are both gates a diff-scoped reading of "this only touches the engine" would skip,
+and `CLAUDE.md` says exactly that in advance. It cost one run to learn nothing new and would have cost a
+red CI to learn it the other way.
+
+**`UNREACHED_EXPLAINED` now holds two categories, and that is a precedent.** `field-message|default.icon`
+is its sixth entry and the first that is not a `<def>|focus-ring` nomination, so membership no longer
+implies the category — the entry's reason had to say *why this one* is unreachable: the paint is
+CODE-ONLY because the projector enumerates members while the node is optional per instance. The five
+above it are unreachable for an unrelated reason (no stroke field, #740). Ungating `iconError` fires it
+by name: `field-message|default.icon is explained as unreachable but IS now reached`.
+
+**THE SWEEP the issue asked for, and its result.** `FPO` is greppable in a way most of this class is
+not. Zero occurrences in `packages/engine/out/` and `packages/engine/schema/`. All twelve remaining
+source hits are one thing: the caller-supplied `swapTarget: 'FPO-default-icon'` argument (in five gates,
+one tool, `apps/studio/src/main.ts`, `apps/plugin/src/main.ts`, and the harness) or a comment about it,
+plus one comment in `field-message.ts` recording the removed defect. **Those are correct and stay.**
+A slot means *the consumer supplies the content* — `button.leadingVisual` genuinely does not know what
+goes there, so a named placeholder to swap against is the right thing for a projection to build.
+
+So the string sweep is clean, but the string was never the property. The structural sweep is
+`kind: 'slot'`: **four** slot parts existed repo-wide (`button` ×2, `icon-button`, `field-message`) and
+three remain. `field-message`'s was the only one whose slot content was **determined by the def's own
+axis** — the only one where the def knew exactly what belonged there and declined to draw it. That is
+the discriminator, it is one grep plus one question, and it is the sweep that would have found #1010.
+
+**Verified at the NODE, not the plan** — the issue was explicit that a plan-level check sees nothing,
+"which is how it shipped". `apps/plugin/test-write-components.ts` now runs the real component set
+through the shim and reads back: member names, per-tone artboard counts `0,1,1,1`, one non-zero VECTOR
+per icon tone, three distinct subpath sets, both size axes bound to `icon/size/xs`, ink per tone, zero
+`INSTANCE` nodes and no `INSTANCE_SWAP` property surviving. Eight mutations, each confirmed to fail by
+name.
+
+**"COPY NEEDS UPDATING" has two readings, and only one of them is copy.** The WORDS — the def's
+`description`, `props.icon`, the `codeOnly` entries and the notes — are rewritten here, because four of
+them made claims that #920 had already falsified. What is NOT done is the reference's **bolded**
+message, and the reason is worth stating precisely because my first reading of it was wrong.
+
+I recorded that there was nothing in-repo to weigh the weight against. There is. Prism2 carries
+`nbds.typography.detail.<sm|md|lg>.{regular,thick}`, where `thick` is `font.weight.semibold` — so the
+reference's "bolded" means semibold, and Prism3's own scale already emits the counterpart,
+`type.caption.md.strong` (`font.weight-role.strong`), in every corpus brand. Per-tone type is
+expressible too: `text.type` is a binding key like any other, so `'{tone}.type'` templates the same way
+`'{tone}.{slot}'` already does for ink.
+
+So it is a one-line change with a reference behind it, and it still does not belong in this PR. Two
+reasons. It is a **type-treatment** change to the caption, a different concern from binding the glyph
+set. And the reference is genuinely ambiguous about scope: "a stroked outline glyph … left of a bolded
+message" sits in the sentence describing the icon-bearing rows, while `standard` is described separately
+as "no icon, grey text" and says nothing about weight. Whether the default tone bolds too is a value
+decision, and guessing it would put a wrong weight on the one tone that carries most of this def's
+real-world traffic. **Filed as #1020, not noted** — prose in this file is not discoverable as work.
+
+**Also filed: #1018** — `figmaProperties.texts` carries one default per prop with no per-member
+coordinate (`anatomy-figma.ts:875–878`), so all four members necessarily render `'Use 8+ characters'`
+and the error member of a validation component ships helper copy. **#1019** — `packages/engine/package.json`
+pins `"version": "0.5.0"` under its own note claiming it tracks `ENGINE_VERSION`, 18 minors behind, with
+nothing checking it; `CONTRACT_VERSION` cannot drift this way and `ENGINE_VERSION` has no equivalent,
+which is the part worth deciding rather than patching. The def's `notes.unverified` carries the two questions
+that are genuinely unresolved rather than deferred: the 16px glyph beside 11px caption type wants an
+optical check, and the #1009 first-line-alignment case wants the multi-line render looked at.
+
+**Out of scope and deliberately untouched:** #1009 (vertical centring — cross-cutting, and its
+checkbox half is being rewritten toward first-line alignment; the multi-line case is noted in
+`notes.unverified`), #865 (the white frame fill, executor-side), #901 (composition).
+
+---
+
 ## (2026-08-25) — The border a fill did not need: deleting seven keys, and the gate that found all three defs (#1011)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.21.0 → **0.22.0** (behaviour change: what the plugin builds for
