@@ -58,6 +58,9 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { readFileSync } from 'node:fs';
 import { button } from '@prism3/engine/components/button';
 import { fieldLabel } from '@prism3/engine/components/field-label';
+// The three selection controls read back for #1011 are resolved through `componentDefs` rather than
+// imported by path — the engine's `exports` map names only `button` and `field-label`, and #804's own
+// reasoning says an id-based lookup is the one the main thread does.
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { applyComponentPlan, CHUNK, partialWriteOf } from './src/write-components';
@@ -2073,6 +2076,133 @@ const earlyFacts = partialWriteOf(earlyErr);
 ok(earlyErr !== null && (earlyFacts === null || earlyFacts.loose === 0),
   `#913 the same holds when it is the HOST that refused the first node (${earlyFacts === null ? 'no facts' : earlyFacts.loose + ' loose'})`);
 ok(nothingPage.children.length === 0, `#913 ...and nothing was put on that page either (${nothingPage.children.length})`);
+
+// =============================================================================================
+// #1011 — THE SELECTION CONTROL'S BOX, READ OFF THE NODE THE EXECUTOR BUILT
+// =============================================================================================
+//
+// WHY THESE ASSERTIONS ARE HERE AND NOT IN A PLAN-LEVEL TEST. Every one of #1011's three findings is a
+// value that RESOLVES. The def named real tokens, the projector returned them, the census recorded them
+// and the whole suite was green; what was wrong was only visible to a person looking at a Figma member.
+// A plan-level check reads the same expectation the projector wrote, so the last place a wrong pairing
+// can still be caught is the node — which is what this harness has and nothing else in the repo does.
+//
+// AND WHY THEY ARE NOT A RESTATEMENT OF `lint-paint.ts` ARM 4. That arm holds the generalizable RULE
+// (a fill clearing 3:1 against the page is the box's own boundary, so a same-family border beside it is
+// redundant) over every def in the corpus, computed from resolved token VALUES. These assertions hold
+// the hand-authored EXPECTATION for the three defs the issue names, taken from the reference
+// implementation quoted in it — unselected is transparent with a 1px border, selected is a solid fill
+// with no separate border — and read off built nodes. Two different oracles for two different subjects;
+// neither is derived from the other, and neither is derived from the def.
+//
+// `fills`/`strokes` EMPTY MEANS "the executor bound no paint here", which is the subject. Whether Figma
+// then shows its own default white frame fill is a separate, executor-side concern (#865) that this shim
+// deliberately does not model — a shim that seeded a default fill would make the no-fill claim below
+// unfalsifiable rather than more realistic.
+const paintVar = (n: Node, prop: 'fills' | 'strokes'): string | null => {
+  const arr = (n[prop] as { boundVariables?: { color?: { id: string } } }[] | undefined) ?? [];
+  const id = arr[0]?.boundVariables?.color?.id;
+  return id ? id.replace(/^V:/, '') : null;
+};
+/** `color/interactive/primary/fill/selected` → `interactive/primary`; `color/border/danger` → null. */
+const famOf = (v: string): string | null => {
+  const m = v.match(/^color\/(.+)\/(?:fill|border|overlay)(?:\/.+)?$/);
+  return m ? m[1] : null;
+};
+type BoxRow = { def: string; member: string; selection: string; state: string; fill: string | null; stroke: string | null; radii: string[] };
+const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: BoxRow[]; misses: string[]; members: number }> => {
+  const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+  const page: Page = { children: [] };
+  const r = await run(plans, { ...fullFor(plans), page });
+  // The SET'S CHILDREN, not every node on the page: `createComponentFromNode` returns the frame it was
+  // handed (in the shim and in Figma both, as far as `type` goes here), so a `type === 'COMPONENT'`
+  // filter finds nothing — which the reachability pin below caught rather than passing vacuously.
+  const set = page.children.find((n) => n.type === 'COMPONENT_SET');
+  const members = (set?.children as Node[] | undefined) ?? [];
+  const rows: BoxRow[] = [];
+  for (const p of plans) {
+    const member = members.find((n) => n.name === planComponentName(p));
+    const box = member && allNodes(member).find((n) => n.name === boxName);
+    if (!box) continue;
+    const coord = (p as unknown as { coord: Record<string, string> }).coord;
+    const bv = (box.boundVariables as Record<string, { id?: string }>) ?? {};
+    rows.push({
+      def: def.id,
+      member: member!.name as string,
+      selection: coord.selection,
+      state: coord.state ?? 'rest',
+      fill: paintVar(box, 'fills'),
+      stroke: paintVar(box, 'strokes'),
+      radii: ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']
+        .map((c) => (bv[c]?.id ?? '—').replace(/^V:/, '')),
+    });
+  }
+  return { rows, misses: r.misses, members: r.variants };
+};
+
+ok(!!byId('checkbox') && !!byId('radio') && !!byId('switch'),
+  '#1011 reachable: all three selection controls resolve from their ids');
+const cb = await readBoxes(byId('checkbox')!, 'control');
+const rb = await readBoxes(byId('radio')!, 'control');
+const sw = await readBoxes(byId('switch')!, 'track');
+// PIN THE INPUT, same discipline as the Button block: every claim below is vacuously true over zero rows.
+ok(cb.rows.length === 54 && rb.rows.length === 36 && sw.rows.length === 24,
+  `#1011 reachable: the built boxes were found on every member (checkbox ${cb.rows.length}/54, radio ${rb.rows.length}/36, switch ${sw.rows.length}/24)`);
+ok(cb.misses.length === 0 && rb.misses.length === 0 && sw.misses.length === 0,
+  `#1011 ...and all three sets built with no misses (${[...cb.misses, ...rb.misses, ...sw.misses].join('; ') || 'none'})`);
+
+// ---- FINDING 2: the unselected box has NO fill ------------------------------------------------
+// `color.field.fill` is an opaque near-white — 1.00–1.22:1 against the page across the corpus — so
+// binding it painted a box invisible against its own ground that nonetheless occluded whatever the
+// control sits on. The reference ships this transparent.
+const empty = [...cb.rows, ...rb.rows].filter((r) => r.selection === 'unchecked');
+// 18 + 18: each def has 3 sizes × 6 states at its one unselected coordinate.
+ok(empty.length === 18 + 18, `#1011 reachable: there are unselected members to inspect (${empty.length})`);
+ok(empty.every((r) => r.fill === null),
+  `#1011 the unselected box binds NO fill on any member (${empty.filter((r) => r.fill !== null).map((r) => `${r.def} ${r.member} -> ${r.fill}`).join('; ') || 'none does'})`);
+ok(empty.every((r) => r.stroke !== null),
+  '#1011 ...and every one still binds a stroke — an outline box with neither would have no edge at all, which is the way this fix could have gone wrong');
+
+// ---- FINDING 3: the filled box has NO second edge, and the relationship is what is asserted ----
+// The two-value form of this check — `fill === X && border === Y` — passes on exactly the configuration
+// that shipped, so it is the CO-OCCURRENCE that is asserted here, not either value.
+const filled = [...cb.rows, ...rb.rows, ...sw.rows].filter((r) => !['unchecked', 'off'].includes(r.selection));
+// 36 (checkbox: `checked` + `indeterminate`, 3 sizes × 6 states) + 18 (radio) + 12 (switch `on`, which
+// has a two-rung size ladder rather than three).
+ok(filled.length === 36 + 18 + 12, `#1011 reachable: there are selected members to inspect (${filled.length})`);
+ok(filled.every((r) => r.fill !== null), '#1011 every selected box binds a fill');
+const strokedNotError = filled.filter((r) => r.state !== 'error' && r.stroke !== null);
+ok(strokedNotError.length === 0,
+  `#1011 no selected box binds BOTH a fill and a stroke outside \`error\` (${strokedNotError.map((r) => `${r.def} ${r.member} -> ${r.fill} + ${r.stroke}`).slice(0, 3).join('; ') || 'none does'})`);
+// The error rim SURVIVES, and it has to be asserted in the same breath: the fix removes a border and the
+// cheapest way to overshoot it is to remove this one too, which would drop a validation signal.
+const errored = filled.filter((r) => r.state === 'error');
+ok(errored.length > 0 && errored.every((r) => r.stroke === 'color/border/danger' && r.fill !== null),
+  `#1011 ...and every selected box at \`error\` still binds the danger rim over its fill (${errored.length} member(s))`);
+
+// THE ONE PLACE A SAME-FAMILY FILL AND BORDER LEGITIMATELY CO-OCCUR, asserted in BOTH directions so the
+// exception is exercised rather than merely tolerated. Switch's OFF track keeps its rim because no
+// neutral fill clears 3:1 against the page at any brand — that rim is the only edge the track has, and a
+// "consistency" pass that stripped it would break 1.4.11. Naming it here means such a pass fails.
+const sameFamily = [...cb.rows, ...rb.rows, ...sw.rows]
+  .filter((r) => r.fill && r.stroke && famOf(r.fill) !== null && famOf(r.fill) === famOf(r.stroke));
+ok(sameFamily.length > 0, `#1011 reachable: some built box does bind a same-family fill and stroke (${sameFamily.length})`);
+ok(sameFamily.every((r) => r.def === 'switch' && r.selection === 'off'),
+  `#1011 ...and switch's OFF track is the ONLY one (${[...new Set(sameFamily.map((r) => `${r.def}/${r.selection}`))].join(', ')})`);
+ok(sw.rows.filter((r) => r.selection === 'off' && r.state !== 'error').every((r) => r.fill !== null && r.stroke !== null),
+  '#1011 ...and it binds both on every non-error member, so the exception above is a fact about this build and not a hole');
+
+// ---- FINDING 1: the radius, which is NOT a def defect ----------------------------------------
+// The issue asks for 2px. `radius.sm` is what the def binds and what the built node carries on all four
+// corners; it resolves to 2 on nb, wendys and harbor and to 4 on aurora, whose whole radius ladder is
+// 0/4/8/12/128. So the observed 4px is aurora's own scale reaching a 12px box, not a wrong binding — the
+// only in-def alternative is `radius.none`, which is wrong on all four brands. Filed separately as a
+// control-radius rung (see `notes.contested`). What IS assertable here is that the binding reaches the
+// node on every corner of every member: a radius bound on three corners is a defect nothing else sees.
+ok(cb.rows.every((r) => r.radii.every((v) => v === 'radius/sm')),
+  `#1011 checkbox's box binds \`radius.sm\` on all four corners of every member (${[...new Set(cb.rows.flatMap((r) => r.radii))].join(', ')})`);
+ok(rb.rows.every((r) => r.radii.every((v) => v === 'radius/round')),
+  `#1011 ...and radio's binds \`radius.round\`, so the two controls are distinguished by shape at the node (${[...new Set(rb.rows.flatMap((r) => r.radii))].join(', ')})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

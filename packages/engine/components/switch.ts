@@ -330,12 +330,25 @@ export const switchDef: ComponentDef = {
     // `on-fill` is contract-checked against the fill the ink sits on, which is what makes a filled
     // track the safe treatment here for the reason radio's filled disc was chosen over an outlined
     // ring. 8.20–8.29:1 against the page on three brands, 6.85:1 on aurora.
+    //
+    // NO STRUCTURAL BORDER, and this def is where #1011's third finding is most worth reading, because
+    // its two halves go OPPOSITE ways on one node. The finding was filed on checkbox; radio and switch
+    // inherited the pairing, and the fix is NOT the same fix three times. The off track KEEPS its border
+    // — the comment above already says why, and said so before the rule existed: no neutral fill clears
+    // 3:1 against the page at any brand, so that rim is the only edge the track has and dropping it
+    // would break 1.4.11 rather than tidy it. The ON track loses its border, because the number above is
+    // the whole argument: a fill at 6.85–8.29:1 IS the boundary, so a same-family border beside it can
+    // only agree invisibly or — as shipped, `fill.SELECTED` beside `border.REST`, a rung the border
+    // ladder does not have — disagree visibly.
+    //
+    // That asymmetry is the reason arm 4's rule asks about the FILL and not about the two bindings. The
+    // framings that would have been simpler are all false HERE first: "a selection control never paints
+    // both slots" and "same family, never both" each delete this def's off-track rim, and
+    // `contrast(border, fill) >= 3` flags it as a failure. Only "is the fill already a boundary"
+    // separates the two coordinates of one node correctly.
     'on.fill': 'color.interactive.primary.fill.selected',
     'on.fill.hover': 'color.interactive.primary.fill.hover',
     'on.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'on.border': 'color.interactive.primary.border.rest',
-    'on.border.hover': 'color.interactive.primary.border.hover',
-    'on.border.pressed': 'color.interactive.primary.border.pressed',
     'on.border.error': 'color.border.danger',
     // The ON thumb — light on a dark track, 6.85–9.96:1. `indicator` for the reason above.
     'on.indicator': 'color.interactive.primary.on-fill',
@@ -610,6 +623,7 @@ export const switchDef: ComponentDef = {
 
   notes: {
     contested: [
+      'THE TRACK IS DELIBERATELY ASYMMETRIC ABOUT ITS RIM: `off` paints a fill AND a border, `on` paints a fill only. It looks like an oversight and it is the opposite — it is the one place in the selection family where the border survived #1011, and the reason is measured. A rim is redundant when the fill it sits inside already bounds the box against the page; `interactive.primary.fill.selected` does (4.94-14.17:1 across 5 brands x 4 modes), so the ON track drops its border like checkbox and radio did. `interactive.neutral.fill.rest` does NOT (1.21-1.58:1, and 1.39-1.81 at hover, 1.64-2.09 pressed) — nowhere near SC 1.4.11\'s 3:1 on any brand — so the OFF track\'s rim is the only edge it has, and deleting it would leave an unbounded gray slab on a light page. THIS IS THE TRAP: `off.border` reads as the leftover of a pattern the other two defs abandoned, and removing it "for consistency" breaks 1.4.11 on all five brands at once. It is also load-bearing for the GATE — `lint-paint.ts` arm 4 measures the same-family fill+border pairs in the corpus, and after #1011 this track is the ONLY def that still contributes any, so stripping it empties arm 4\'s scope entirely (verified by mutation: the arm reports "0 pairs measured of 16" and fails on its zero-scope guard rather than passing over nothing). The asymmetry is also WHY arm 4\'s rule is phrased about the fill\'s own contrast rather than comparing the two bindings to each other: a rule of the form "fill and border must agree" would flag this track, correctly-built, on every brand. Full reasoning and the byte-identical-ladder measurement: `checkbox.ts` `notes.contested`.',
       'THE `selection` VALUES ARE `[off, on]`, DIVERGING FROM checkbox\'s AND radio\'s `[unchecked, checked]`. #910 settled the axis NAME for the family and left the values open with an ARIA recommendation (`aria-checked` covers all three controls), so this is a decision taken against that recommendation rather than a default. Three grounds, argued in the header: paint-key values describe what is on SCREEN and appear in no ARIA tree; `role="switch"` is announced "on"/"off", so ARIA\'s own OUTPUT is on/off even though its PROPERTY is aria-checked; and `checked` is the word that carries this component\'s most common misuse, since a def spelled `[unchecked, checked]` reads as a checkbox with a different skin. The cost is real and unchecked by anything: the family now spells one axis two ways, there is no cross-def values census in the engine and none is possible from `VARIANT_AXES` (which closes names only), so this divergence is held by prose alone. If the family should have one vocabulary, this is the entry to delete.',
       'THE OFF TRACK TAKES THE INTERACTIVE-NEUTRAL FAMILY where checkbox and radio take the form-field family for their empty box. Forced by the thumb rather than chosen: measured across all four brands, a white thumb is 1.14-1.22:1 on `color.field.fill` and 1.57-1.58:1 on `interactive.neutral.fill.rest`, so the off thumb must take the dark ink, and `interactive.neutral.on-fill` (12.33-12.36:1) exists only in the interactive family. The NAMED ALTERNATIVE is to match the siblings on `color.field.fill` and accept an off thumb with no boundary, which several shipped systems do by relying on a thumb shadow — an effect the token tier does emit but which this def has no field to bind, and which would put a 1.2:1 boundary behind a decorative token.',
       'THE THUMB IS SELECTION-KEYED (`off.indicator` dark, `on.indicator` light), which no sibling\'s glyph is — checkbox and radio each have ONE icon ink. Measured: no single ink in the tier clears 3:1 against both tracks, and the closest candidate (`interactive.primary.border.pressed`) is 4.36:1 off and 1.00:1 on, because the two tracks sit on opposite sides of the luminance range. So this is structural to a two-position control rather than a styling choice, and the two keys cannot be collapsed into one.',
