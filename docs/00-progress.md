@@ -7,6 +7,109 @@
 
 ---
 
+## (2026-08-25) — The one binding the alias layer cannot carry, and the axis it turns out to be (#871)
+
+**STATUS: shipped.** No version change — nothing emitted moves, no token name moves, no contract
+change (`regen --check`: 114 artifacts byte-match). What ships is a register, a both-directions check
+in `test.ts` (a4), and the decision recorded where the binding lives. **No gate is added**; the count
+stands at 44.
+
+**The framing's numbers all hold, and the decisive one was not in the framing.** Measured over
+`componentDefs`: **57 distinct `color.*` bindings, 56 with a row in the alias layer, one without** —
+`color.border.inverse.focus`, bound only by `focus-ring:border.inverse`. So the collection rename is
+free for 56 of 57 with no def change, exactly as claimed. What decides the remaining one is a row that
+already exists: `surface.border.focus` reads `default → border.focus`, `inverse →
+border.inverse.focus`.
+
+**The check asked "do they agree?" and the answer is no — which turns out to be the argument FOR
+option 1, not against it.** `border.focus` and `border.inverse.focus` differ in **12 of 20**
+brand×mode combinations (harbor light `#006666` vs `#297272`; nb hc-light `#8a0018` vs `#d53d44`), so
+the inverse variant carries a genuinely different value and is not redundant *as a token*. But the
+alias layer delivers **precisely that difference**: a ring binding the plain path gets
+`border.inverse.focus` on an inverse ground, from the frame mode instead of a variant coordinate. Same
+tokens, same values, one mechanism. The binary the check implied ("agree → free, differ → keep it")
+has a third branch, and this is it.
+
+**Decision: option 1 — the cascade — and it was already decided and already applied elsewhere.**
+#871's own decision comment (2026-08-20) reads *"cascade to publish context; surface as its own Figma
+collection; **no per-component surface axis**"*, and `focus-ring` is the only def still carrying one.
+`button.ts:349` records that #784 **removed** button's three `on-inverse` bindings for this exact
+reason, and names *"the same answer `focus-ring`'s `color=inverse` gets from this def"* as the last
+instance of the pattern it was leaving. So this is not a new call; it is the one def that never got
+#784's treatment.
+
+Options 2 and 3 both fail on their own terms rather than on taste. **Option 2** (the alias layer gains
+a `border.inverse.focus` row) is refused by construction: `isInverseRole` excludes inverse roles from
+being rows because inverse-ness is what the *modes* express, and such a row would have to say what its
+own inverse mode is. **Option 3** (deliberately bind the value layer) needs a reason that survives
+"why is exactly one binding different", and the ring is the worst possible candidate for one — its
+entire job is to contrast with whatever surface it is on, which is the definition of
+surface-dependent.
+
+**Two premises I had to correct mid-measurement, and the second changed the answer.**
+
+1. `PartDef` has no stroke field (wall 1, #740), which I first read as "the two projected members are
+   visually identical strokeless boxes, so dropping the axis is free in the kit today." **Wrong.**
+   `figmaProperties`' own measurement records each member as
+   `{name:'ring', type:'FRAME', strokes:'color/border/focus', …}` — the stroke **colour** is bound and
+   painted; wall 1 costs the **weight** (a 1px executor fallback instead of `focus.ring.width`). So the
+   two members do differ visually, and dropping the axis removes a real capability from the kit rather
+   than a nominal one. It is relocated, not lost — but "free" was the wrong word and would have made
+   the write-up sound cheaper than the change is.
+2. **The framing said "one binding", and it is one binding and one axis and a schema rule.** `color` is
+   `focus-ring`'s ONLY variant axis, and `figmaPropertyErrors` rejects `variantAxes: []` outright —
+   measured against the real validator, not read off the source: `[]` → *"must be a non-empty array"*;
+   swapping to `offset` → rejected because `color` would then need a `codeOnly` entry; omitting
+   `figmaProperties` entirely → accepted, but that un-projects the def, regressing #795 and breaking
+   the five hosts (`button`, `checkbox`, `icon-button`, `radio`, `switch`) that resolve
+   `nests: 'focus-ring'` by NAME against the pasted set.
+
+**So the decision is executable and the removal is not — not in this PR and not with the rename
+either, since the rename does not touch the schema.** Letting a def project a single component rather
+than a set is its own decision, filed as **#1028**. Per the standing rule that a prerequisite gets
+said before it is built rather than after: this is that, and it is a *schema* prerequisite where the
+brief anticipated a possible *token-tier* one. There is no token-tier addition —
+`color.border.inverse.focus` stays emitted and stays contract-guaranteed; only the def would stop
+naming it.
+
+**What ships instead, and why it is worth more than the deletion would have been.**
+`UNALIASED_DEF_BINDINGS` in `emit-figma-surface.ts` — the layer that owns "what does and does not
+resolve here", checked before building a third place (`inverse-coverage.ts` owns *roles lacking
+counterparts*, a different subject). `test.ts` (a4) checks it both directions on `INVERSE_GAPS`'
+standard: an unregistered binding outside the layer fails **by path and binding site**; an entry whose
+path gained a row, or that no def binds any more, fails **as stale**. The second direction is the one
+that matters — **the register self-destructs the day #1028 lands and the binding goes**, so it cannot
+outlive its own reason.
+
+Independence is structural rather than asserted: bindings come from `componentDefs`, rows from
+`surfaceRows`, neither derived from the other. The row set is taken as the **intersection across all
+five corpus brands**, which re-derives #871's load-bearing brand-independence claim instead of trusting
+it — if the row sets ever diverge, an arm names the brand.
+
+**Nine mutations, each failing by name.** Delete the entry → arm 1 names
+`color.border.inverse.focus (focus-ring:border.inverse)`. Register a path that IS aliased → stale.
+Wrong `boundBy` → misattributed, with the real site printed. Thin `why` → the reason arm. **Remove
+`focus-ring`'s binding (simulating #1028 landing) → `STALE: … (no def binds it any more)`** — the
+self-destruct, proven rather than intended. Bind a NEW def to an omitted role (`button:scrim` →
+`color.scrim.default`) → arm 1 names it, which is the arm working for a def that does not exist yet.
+Collapse the layer → the row floor. Collapse the binding scan → the vocabulary floor (0 paths across
+11 defs). Diverge one brand's rows → the divergence arm, by brand. The two floors are `docs/34`
+shape 9 in both directions: without them a scan that found nothing would report clean.
+
+**The sibling deferral, answered separately because it has a different answer.**
+`icon.tone: 'inherit'` **stays exactly as it is, and is not the same question.** It is about the
+**state** cascade (`currentColor` — hover/disabled/error), not surface context, and `tone.inherit`
+binds no token at all, so it is not among the 57 and cannot block the rename. Its semantic tones
+(`color.icon.danger` and siblings) are all inside the 56 and become surface-responsive for free like
+everything else. It is already the mechanism #871 endorsed, so there is nothing to decide — which is
+worth writing down precisely because "the sibling deferral" invites the assumption that it needs the
+same treatment.
+
+**Not done, deliberately:** the collection rename (another lane, and its own prerequisite #1024 —
+the paste path not adopting the rename map).
+
+---
+
 ## (2026-08-25) — Three icons are not wrong, and the gate that could not tell was (#917)
 
 **STATUS: shipped.** No version change — nothing emitted moves (`regen --check`: 114 artifacts

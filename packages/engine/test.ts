@@ -21,7 +21,7 @@ import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, gro
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
-import { surfaceRows, SURFACE_MODES } from './emit-figma-surface';
+import { surfaceRows, SURFACE_MODES, UNALIASED_DEF_BINDINGS, UNALIASED_PATHS } from './emit-figma-surface';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
@@ -1419,6 +1419,79 @@ for (const b of brands) {
     // decision was ever good — the same standard `LEAF_OK` and `ZERO_OK` hold.
     const thin = INVERSE_GAPS.filter((g) => g.reason.trim().length < 120).map((g) => g.paths[0]);
     ok(thin.length === 0, `inverse: every INVERSE_GAPS entry states WHY, not merely that${thin.length ? ` — thin: ${thin.join(', ')}` : ''}`);
+
+    // (a4) EVERY DEF-BOUND `color.*` PATH RESOLVES IN THE ALIAS LAYER, OR IS REGISTERED (#871).
+    //
+    // The planned collection swap makes the alias layer take the name `color`. Every def that binds
+    // `color.<role>` then becomes surface-responsive for free — the name it ALREADY binds starts
+    // resolving in a layer whose modes are `default`/`inverse`. For a binding the layer has no row
+    // for, that is silently false: the def goes on resolving against a real token and simply stops
+    // tracking the surface, with no error at either end. **A wrong value that resolves — #575's
+    // shape**, and the reason this is a register and not a comment.
+    //
+    // The two sides are independent authors, which is what makes the comparison worth anything: the
+    // bindings come from `componentDefs`, the rows from `surfaceRows`, and neither is derived from
+    // the other. Same both-directions standard as (a3) above — arm 1 fails a binding that drifts out
+    // of the layer, arm 2 fails an entry that has outlived the thing it described.
+    {
+      const bound = new Map<string, string[]>(); // contract path -> ['<def>:<slot>', …]
+      for (const def of componentDefs) {
+        for (const [slot, tok] of Object.entries((def as { tokens?: Record<string, string> }).tokens ?? {}))
+          if (typeof tok === 'string' && tok.startsWith('color.'))
+            bound.set(tok, [...(bound.get(tok) ?? []), `${def.id}:${slot}`].sort());
+      }
+      // A binding set that collapses to nothing would make every arm below agree over an empty
+      // vocabulary and report clean — "I could not look" spelled as "I looked and found nothing"
+      // (`docs/34` shape 9). The floor is named against the registry rather than a literal count, so
+      // a def gaining or losing a colour binding does not have to be remembered here.
+      ok(bound.size >= 40 && bound.size >= componentDefs.length,
+        `surface: the def corpus offers a real colour-binding vocabulary to check (${bound.size} distinct color.* paths across ${componentDefs.length} defs) — a floor, because every arm below would pass over an empty map`);
+
+      // Over the WHOLE corpus, and a path counts as aliased only if EVERY brand carries a row for it.
+      // The rename has to be free for every brand, so the intersection is the honest denominator — and
+      // taking it this way re-derives #871's load-bearing claim (all brands ship the identical inverse
+      // name set) instead of trusting it: if the row sets ever diverge, the next arm names the brand.
+      const perBrand = corpus().map(({ id, theme: t }) => ({ id, paths: new Set(surfaceRows(t).map((r) => `color.${r.role}`)) }));
+      ok(perBrand.length > 1, `surface: the corpus offers ${perBrand.length} brands to intersect — one brand would make the intersection a restatement of that brand`);
+      const rowPaths = new Set([...perBrand[0].paths].filter((p) => perBrand.every((b) => b.paths.has(p))));
+      ok(rowPaths.size > 0, `surface: surfaceRows() yielded ${rowPaths.size} rows shared by every brand — an empty layer would make every def binding read as unaliased`);
+      const diverged = perBrand.filter((b) => b.paths.size !== rowPaths.size).map((b) => `${b.id} (${b.paths.size} rows vs ${rowPaths.size} shared)`);
+      ok(diverged.length === 0,
+        `surface: every brand's alias layer carries the same rows, which is what lets one register cover the corpus${diverged.length ? ` — DIVERGED: ${diverged.join('; ')}` : ''}`);
+
+      const outside = [...bound.keys()].filter((p) => !rowPaths.has(p)).sort();
+      const unregistered = outside.filter((p) => !UNALIASED_PATHS.has(p));
+      ok(unregistered.length === 0,
+        `surface: every def-bound color.* path either resolves in the alias layer or is registered in UNALIASED_DEF_BINDINGS (${bound.size} bound, ${bound.size - outside.length} aliased, ${outside.length} outside, ${UNALIASED_PATHS.size} registered)` +
+        (unregistered.length
+          ? ` — UNREGISTERED, and each one silently loses surface-responsiveness at the collection rename: ${unregistered.map((p) => `${p} (${bound.get(p)!.join(', ')})`).join('; ')}`
+          : ''));
+
+      // Arm 2, and it has to check BOTH halves of an entry. A path that gained a row is stale; so is
+      // a path no def binds any more, which is exactly what happens when the prerequisite lands and
+      // the binding is removed — the entry must then fail rather than sit here describing a binding
+      // that no longer exists.
+      const outsideSet = new Set(outside);
+      const stale = UNALIASED_DEF_BINDINGS.filter((b) => !outsideSet.has(b.path) || !bound.has(b.path))
+        .map((b) => `${b.path} (${!bound.has(b.path) ? 'no def binds it any more' : 'the alias layer now carries a row for it'})`).sort();
+      ok(stale.length === 0,
+        'surface: no UNALIASED_DEF_BINDINGS entry has outlived what it described' +
+        (stale.length ? ` — STALE: ${stale.join('; ')}` : ''));
+
+      // The entry must also still name its real binding site. `boundBy` is what a reader follows to
+      // find the code, and a register whose pointers rot is worse than none: it reads authoritative.
+      const misattributed = UNALIASED_DEF_BINDINGS
+        .filter((b) => bound.has(b.path) && !bound.get(b.path)!.includes(b.boundBy))
+        .map((b) => `${b.path}: entry says '${b.boundBy}', actually ${bound.get(b.path)!.join(', ')}`);
+      ok(misattributed.length === 0,
+        `surface: every UNALIASED_DEF_BINDINGS entry names the def and slot that actually binds it${misattributed.length ? ` — ${misattributed.join('; ')}` : ''}`);
+
+      // Same standard as INVERSE_GAPS' `thin` arm: the reason IS the entry. This one has a higher bar
+      // because it must carry the prerequisite as well as the cause — a reader who cannot tell from
+      // the entry why the binding is still here will re-derive the whole measurement.
+      const thinB = UNALIASED_DEF_BINDINGS.filter((b) => b.why.trim().length < 300).map((b) => b.path);
+      ok(thinB.length === 0, `surface: every UNALIASED_DEF_BINDINGS entry states WHY it is outside the layer and what would move it in${thinB.length ? ` — thin: ${thinB.join(', ')}` : ''}`);
+    }
 
     // (a5) THE ENGINE'S GROUND DEFINITION COVERS EVERY EDGE (#985).
     //
