@@ -181,24 +181,36 @@ const realRenames = deriveVariableRenames().filter((r) => r.collection === 'colo
 ok(realRenames.length >= 40,
   `#1013 the shipped map reaches ${realRenames.length} live \`color\` entries (floor 40) — a derivation that produced none would satisfy every arm below vacuously`);
 
-// A file carrying every pre-rename name the map knows about, as a file written before those renames would.
-const seed = (): VariablesShim => {
+// FAN-IN IS IN THE SHIPPED MAP, and the two files below exist because of it. Two historical paths really
+// do point at one live path (a 3.0.0 entry and a 4.0.0 entry both landing on
+// `color/interactive/<palette>/inverse/border/rest`), so "seed every source" and "seed a realistic file"
+// are DIFFERENT files with different correct answers. Driven from the real map rather than a synthetic
+// one, because the whole question is whether the map the engine actually ships is migratable.
+const byTarget = new Map<string, typeof realRenames>();
+for (const r of realRenames) byTarget.set(r.to, [...(byTarget.get(r.to) ?? []), r]);
+const fanIn = [...byTarget.values()].filter((g) => g.length > 1);
+ok(fanIn.length >= 3,
+  `#1013 the shipped map contains ${fanIn.length} fan-in groups (floor 3) — the ambiguity below is measured, not invented${fanIn.length ? `: ${fanIn[0][0].to} ←${fanIn[0].length}` : ''}`);
+
+// A file as a real designer's would be: ONE pre-rename name per target. Every group's first source only.
+const seedSolo = (): VariablesShim => {
   const s = new VariablesShim();
   const c = s.createVariableCollection('color');
-  for (const r of realRenames) s.createVariable(r.from, c);
+  for (const g of byTarget.values()) s.createVariable(g[0].from, c);
   return s;
 };
+const soloCount = byTarget.size;
 
 // (i) THE CONTROL — no Migration passed: today's behaviour, and the baseline the arms below must beat.
-const ctrlShim = seed();
+const ctrlShim = seedSolo();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const ctrl = await applyWritePlan(plan, ctrlShim as any);
 const ctrlOrphans = ctrl.orphans.find((o) => o.name === 'color')!.names.length;
-ok(ctrlOrphans === realRenames.length && ctrl.colorCreated === plan.color.create.length,
+ok(ctrlOrphans === soloCount && ctrl.colorCreated === plan.color.create.length,
   `#1013 CONTROL (no migration): all ${ctrlOrphans} pre-rename names are orphans and all ${ctrl.colorCreated} planned names are created fresh — orphan-and-recreate, which is what the map exists to replace`);
 
 // (ii) THE SAME FILE, MIGRATED.
-const migShim = seed();
+const migShim = seedSolo();
 const idBefore = new Map(migShim.vars.map((v) => [v.name, v.id]));
 const varsBefore = migShim.vars.length;
 const pass = beginMigration();
@@ -208,23 +220,22 @@ ok(pass.refusals.length === 0,
 const migRes = await applyWritePlan(plan, migShim as any, pass);
 
 const migrated = pass.outcomes.filter((o) => o.status === 'migrated');
-ok(migrated.length === realRenames.length,
-  `#1013 every live entry migrated (${migrated.length}/${realRenames.length})`);
+ok(migrated.length === soloCount,
+  `#1013 every live entry migrated (${migrated.length}/${soloCount})`);
 // THE MECHANISM: same variable, new name. A rename that recreated the variable would pass a name check
 // and lose every binding — the id is the only thing that distinguishes the two.
-const idKept = realRenames.filter((r) => {
-  const v = migShim.vars.find((x) => x.name === r.to);
-  return v && v.id === idBefore.get(r.from);
+const idKept = [...byTarget.values()].filter((g) => {
+  const v = migShim.vars.find((x) => x.name === g[0].to);
+  return v && v.id === idBefore.get(g[0].from);
 });
-ok(idKept.length === realRenames.length,
-  `#1013 every migration KEPT THE VARIABLE ID (${idKept.length}/${realRenames.length}) — the binding stores the id, so this is the difference between migrating a token and replacing it`);
+ok(idKept.length === soloCount,
+  `#1013 every migration KEPT THE VARIABLE ID (${idKept.length}/${soloCount}) — the binding stores the id, so this is the difference between migrating a token and replacing it`);
 // The create loop must ADOPT the migrated variable rather than create a second one beside it. This is the
 // arm that fails if the rename lands after `byName` is read, and it cannot be satisfied by a no-op.
-ok(migRes.colorCreated === ctrl.colorCreated - realRenames.length,
-  `#1013 each migration saved a create (${migRes.colorCreated} vs the control's ${ctrl.colorCreated}, ${realRenames.length} migrated) — the executor updates the renamed variable instead of creating its new name alongside it`);
-ok(migShim.vars.filter((v) => v.variableCollectionId === migShim.collections.find((c) => c.name === 'color')!.id).length
-    === ctrlShim.vars.filter((v) => v.variableCollectionId === ctrlShim.collections.find((c) => c.name === 'color')!.id).length - realRenames.length,
-  '#1013 and the file is SMALLER than the control by exactly the migrated count — no duplicate carrying the old name');
+ok(migRes.colorCreated === ctrl.colorCreated - soloCount,
+  `#1013 each migration saved a create (${migRes.colorCreated} vs the control's ${ctrl.colorCreated}, ${soloCount} migrated) — the executor updates the renamed variable instead of creating its new name alongside it`);
+ok(migShim.vars.length === ctrlShim.vars.length - soloCount,
+  `#1013 and the file is SMALLER than the control by exactly the migrated count (${migShim.vars.length} vs ${ctrlShim.vars.length}) — no duplicate carrying the old name`);
 ok(migShim.vars.length >= varsBefore,
   `#1013 nothing was deleted (${varsBefore} seeded → ${migShim.vars.length} present) — migration is the non-destructive half of #479, and must stay that way`);
 // The orphan report and the rename report are disjoint by construction: the snapshot is taken after the
@@ -232,8 +243,29 @@ ok(migShim.vars.length >= varsBefore,
 // tell a designer both that a token moved and that it went missing.
 ok(migRes.orphans.find((o) => o.name === 'color')!.names.length === 0,
   '#1013 a migrated variable is NOT also reported as an orphan — the two reports partition the drift, they do not overlap');
-ok(pass.outcomes.some((o) => o.status === 'source-absent'),
-  '#1013 the untouched entries are reported as `source-absent` rather than omitted — a caller can tell "checked, none" from "never checked"');
+// The fan-in groups' SECOND sources are absent from this file, and are reported as such rather than
+// omitted — a caller can tell "checked, none" from "never checked".
+ok(pass.outcomes.filter((o) => o.status === 'source-absent').length === realRenames.length - soloCount,
+  `#1013 the ${realRenames.length - soloCount} entries with no source in this file are reported as \`source-absent\`, not omitted`);
+
+// (ii-b) THE FAN-IN FILE — both historical names present. Neither may move: the bindings on each point at
+// a different variable, and promoting one would silently discard the other. The FILE is the disambiguator,
+// so with one source live (above) it migrates and with two it refuses — no authored preference either way.
+const fanShim = seedSolo();
+const fanCol = fanShim.collections.find((c) => c.name === 'color')!;
+for (const g of fanIn) for (const r of g.slice(1)) fanShim.createVariable(r.from, fanCol);
+const fanPass = beginMigration();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const fanRes = await applyWritePlan(plan, fanShim as any, fanPass);
+const ambiguous = fanPass.outcomes.filter((o) => o.status === 'ambiguous-source');
+ok(ambiguous.length === fanIn.flat().length,
+  `#1013 fan-in with BOTH sources live → ambiguous-source for every entry in the group (${ambiguous.length}/${fanIn.flat().length}), migrating neither`);
+ok(fanIn.every((g) => g.every((r) => fanShim.vars.some((v) => v.name === r.from))),
+  '#1013 and both sources are LEFT ALONE — a refused migration writes nothing, so the designer keeps whichever bindings they have');
+ok(fanPass.outcomes.filter((o) => o.status === 'migrated').length === soloCount - fanIn.length,
+  `#1013 the ${soloCount - fanIn.length} unambiguous entries migrate anyway — a refusal is per-group, not per-pass`);
+ok(fanRes.orphans.find((o) => o.name === 'color')!.names.length === fanIn.flat().length,
+  '#1013 and the refused sources fall through to the ORPHAN report, so nothing goes unmentioned in either direction');
 
 // (iii) THE COLLECTION RENAME — one write, every child id intact. Authored (`COLLECTION_RENAMES` ships
 // empty), so it is driven with a synthetic entry: the mechanism has to be exercised before #1013 Q4 is
@@ -256,23 +288,24 @@ ok(crRes.misses.length === 0, '#1013 collection rename: the write itself is unaf
 const badPass = beginMigration({ collections: [], variables: [{ collection: 'color', from: 'color/x', to: 'color/x', since: '9.9.9' }] });
 ok(badPass.refusals.length > 0 && badPass.map.variables.length === 0,
   `#1013 a statically-invalid map is REFUSED and emptied before any write${badPass.refusals.length ? ` — ${badPass.refusals[0]}` : ' — NOTHING was refused'}`);
-const badShim = seed();
+const badShim = seedSolo();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const badRes = await applyWritePlan(plan, badShim as any, badPass);
-ok(badRes.misses.length === 0 && badRes.orphans.find((o) => o.name === 'color')!.names.length === realRenames.length,
+ok(badRes.misses.length === 0 && badRes.orphans.find((o) => o.name === 'color')!.names.length === soloCount,
   '#1013 an invalid map abandons the RENAME PASS ONLY — the write completes and degrades to orphan-and-recreate, which is a known state rather than a new one');
 
 // `target-occupied`: both names present. Migrating would merge two variables and silently drop one side.
-const occShim = seed();
+const occShim = seedSolo();
 const occCol = occShim.collections.find((c) => c.name === 'color')!;
-occShim.createVariable(realRenames[0].to, occCol);
+const occFirst = [...byTarget.values()][0][0];
+occShim.createVariable(occFirst.to, occCol);
 const occPass = beginMigration();
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 await applyWritePlan(plan, occShim as any, occPass);
-const occ = occPass.outcomes.find((o) => o.from === realRenames[0].from)!;
-ok(occ.status === 'target-occupied' && occShim.vars.some((v) => v.name === realRenames[0].from),
+const occ = occPass.outcomes.find((o) => o.from === occFirst.from)!;
+ok(occ.status === 'target-occupied' && occShim.vars.some((v) => v.name === occFirst.from),
   `#1013 both names present → target-occupied, and the source is LEFT ALONE (got ${occ.status}) — a merge would lose the bindings on one of them, and there is no answer to which`);
-ok(occPass.outcomes.filter((o) => o.status === 'migrated').length === realRenames.length - 1,
+ok(occPass.outcomes.filter((o) => o.status === 'migrated').length === soloCount - 1,
   '#1013 and one refusal does not abort the other migrations — a per-entry outcome, not a per-pass one');
 
 // `target-not-planned`: the precondition that makes a fat-fingered entry harmless. A live variable must
