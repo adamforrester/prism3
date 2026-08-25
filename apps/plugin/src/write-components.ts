@@ -532,7 +532,7 @@ const boundPaint = (arr: unknown): boolean => {
 // predicted "probably longer than two entries" and the list is nineteen at its longest.
 //
 // WHY THE WIDE LIST RATHER THAN THE VISIBLE ONE. A list of "the properties that show up in today's
-// corpus" is chosen by a judgement that expires the first time a def carries a shadow, and it expires
+// corpus" is chosen by a judgment that expires the first time a def carries a shadow, and it expires
 // SILENTLY — the same silence this function exists to end. `blendMode` and `rotation` are invisible on
 // every component that exists right now; they are on the list because the cost of including them is one
 // line each and the cost of omitting them is another round of QA finding it by eye.

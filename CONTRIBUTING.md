@@ -631,6 +631,46 @@ npm run test:verdict -w @prism3/plugin   # every terminating condition of a comp
                                           # the panel renders a verdict for every terminal MESSAGE, not
                                           # that the main thread sends one.
                                           # Needs a browser, same one-off install as test:smoke above
+npx tsx apps/plugin/lint-unclaimed-defaults.ts
+                                          # THE SECOND DIRECTION (#865). Every write the component
+                                          # executor makes is verified by a READ-BACK; nothing verified
+                                          # what it did NOT write, and an unset property has no write to
+                                          # read back. A Figma node is never silent, so a property no def
+                                          # mentioned kept Figma's own default wearing our name:
+                                          # createFrame() returns an opaque white box, combineAsVariants()
+                                          # a set with a 5px radius and a purple dashed border, a text node
+                                          # top-left. 523 of 973 member root frames carried the white fill,
+                                          # and it was found BY EYE on four components before anyone looked
+                                          # for the class. So this asks the converse: does every
+                                          # visually-significant property a built node carries trace to a
+                                          # decision — from a plan entry, or written explicitly AS Figma's
+                                          # default so the value has an address?
+                                          # ACTUAL is RECORDED, not read: the real applyComponentPlan runs
+                                          # against a Proxy host whose `set` trap records property names,
+                                          # so a mechanism that merely LOOKS like it supplies a property
+                                          # cannot be credited with one. Three drafts of the expected table
+                                          # were wrong in exactly that way — setTextStyleIdAsync() carries
+                                          # no alignment field on either axis, and write-text-styles.ts
+                                          # sets neither leadingTrim nor paragraphSpacing.
+                                          # EXPECTED is authored IN THE GATE from @figma/plugin-typings,
+                                          # and claimDefaults carries a comment forbidding an import of its
+                                          # table: a gate reading the subject's own list asserts
+                                          # `table === table` (docs/34 shape 2). The duplication IS the gate.
+                                          # The three exemptions are ASSERTED, not assumed — an INSTANCE is
+                                          # exempt only where some plan node nominated the component it came
+                                          # from (A6); auto-layout properties only where a layoutMode exists
+                                          # (A4); imported glyph ink only below Figma's SVG importer (A5) —
+                                          # and each arm must be shown to have both fired and not fired,
+                                          # since a blanket skip lets a mutation deleting the layoutMode
+                                          # write silence the padding checks too. Plus corpus reach (A0),
+                                          # node-type representation (A2) and row exercise (A3): a sweep
+                                          # that builds no VECTOR reports its VECTOR rows as passing.
+                                          # LIMITS, stated: values are not compared (fills: [] and
+                                          # fills: [white] are both "decided"), and the shim's
+                                          # createNodeFromSvg returns one vector under one artboard, which
+                                          # is glyphDocument's shape — a deeper subtree from Figma's real
+                                          # importer is not seen. First gate outside packages/engine/, which
+                                          # is why verify.ts's orphan scope now admits apps/*/lint-*.ts
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly
