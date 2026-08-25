@@ -78,6 +78,21 @@ jobs:
       - name: Committed artifacts have not drifted
         run: npx --yes tsx@4 packages/engine/regen.ts --check
 
+      # The FORCING FUNCTION for a materialization rename — one the contract cannot see, because the
+      # Figma collection a variable sits in and the namespace folder its name sits under are not
+      # guaranteed paths and never touch `DEPRECATIONS` (#1039, `docs/44` §5). A rule proposes the
+      # PAIRING a diff cannot supply; the diff supplies the COMPULSION a rule cannot.
+      #
+      # Runs after `regen --check` because it reads the emission regen writes, and because the two
+      # guarantees compose: regen proves the committed emission matches the emitter that produced it,
+      # so the merge-base tree is a faithful witness rather than a stale copy.
+      #
+      # THE ONLY GATE IN THIS FILE THAT NEEDS GIT HISTORY — see `fetch-depth: 0` on the checkout above.
+      # It FAILS rather than skips when it cannot find a base ref: a check that downgrades "cannot run"
+      # into "nothing to compare, clean" reports green over the whole corpus it could not see.
+      - name: A materialization rename is recorded as a rule, and the accounting over it is total
+        run: npx --yes tsx@4 packages/engine/lint-materialization-renames.ts
+
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the
       # baseline to agree with the deletion and both gates would go green. The baseline is only
