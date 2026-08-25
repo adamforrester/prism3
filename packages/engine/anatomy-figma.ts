@@ -417,6 +417,11 @@ export type AnatomyPlan = {
    *  and a layout decision the def made has to travel with the artifact it describes. Absent when the
    *  def declares no preference, which `planSetLayout` resolves by cardinality. */
   gridAxis?: string;
+  /** Axes on which this def's box legitimately moves (#1010) — `figmaProperties.footprintVaries`, on the
+   *  plan for `gridAxis`'s reason and read by `planSetLayout` when it builds the footprint cohort key.
+   *  Always an array, empty for the defs that make no such claim, because the cohort key concatenates it
+   *  and an `undefined` there would read as a segment rather than as none. */
+  footprintVaries: string[];
 };
 
 /** Root-relative token ref → the emitted Figma variable name. The emitters slash-path the same
@@ -1164,6 +1169,7 @@ export const figmaAnatomyPlan = (
     codeOnly: [...a.codeOnly],
     derived: { ...(a.derived ?? {}) },
     ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
+    footprintVaries: [...(def.figmaProperties?.footprintVaries ?? [])],
   };
 };
 
@@ -2312,10 +2318,19 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     // footprint comparison still compares the right things. That is the whole hazard: a mismatch that
     // costs nothing until the day one side changes, and the sizeless case is that day. Gated in `test.ts`
     // against the payload's own extracted `cellOf`, run rather than grepped.
+    //
+    // AND THE DECLARED EXEMPTIONS LAST (#1010), which is the same rule reaching a case the two hardcoded
+    // ones were never asked about: `presentWhen` gives a variant a third way to change what nodes a member
+    // has, and a gated part in the FLOW moves the box exactly as a filled slot does. Appended rather than
+    // sorted in, because the payload's `cellOf` must reach the byte-identical string and "last" is the one
+    // ordering both sides can state without shipping a comparator. Read from the PLAN for the same reason
+    // `slotAxes` is: this function never receives the def. See `FigmaProperties.footprintVaries` for why
+    // the list is declared instead of derived from `presentWhen`.
     group: [
       ...(p.size === undefined ? [] : [`size=${p.size}`]),
       ...(p.slotAxes.includes('leading') ? [`leading=${p.slots.leading}`] : []),
       ...(p.slotAxes.includes('trailing') ? [`trailing=${p.slots.trailing}`] : []),
+      ...p.footprintVaries.flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
     ].join(', '),
   }));
 
@@ -2334,7 +2349,10 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // the one thing that does not fit: 756 entries of name+group is ~121KB shipped into a 45KB payload.
   // The name is already the coordinate (that is why `planComponentName` exists), so the ordering is the
   // only thing a chunk genuinely cannot derive — and that is four short arrays.
-  return { cells, props, refs: [...refs.values()], axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols };
+  // `footprintVaries` rides out for the CHUNKED path only — the single-shot payload reads the `group`
+  // this function already computed off each cell, while a chunk re-derives it from the member name and so
+  // needs the def's list. Off `plans[0]` for `gridAxis`'s reason: every plan in a set comes from one def.
+  return { cells, props, refs: [...refs.values()], axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries };
 };
 
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
@@ -2416,7 +2434,7 @@ return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height]
  * The body of a CHUNK payload: find-or-create the set, append this chunk's members, re-lay-out and
  * re-size the whole set, then read back everything a chunk can see. Expects the emitted `PLANS`,
  * `PROPS_ALL`, `REFS_ALL`, `SET_NAME`, `LAST`, `FIRST`, `EXPECTED_AXES`, `ROW_KEYS`, `ROW_LABELS`,
- * `COL_KEY`, `COL_VALS` and the two shared payload halves.
+ * `COL_KEY`, `COL_VALS`, `FOOTPRINT_VARIES` and the two shared payload halves.
  *
  * WHY IT RE-LAYS-OUT MEMBERS IT DID NOT BUILD. The column pitch is measured, not computed — a
  * hug-width button is as wide as its label, and only Figma knows that. A chunk measures its own
@@ -2483,7 +2501,10 @@ const cellOf=(name)=>{
   // the two disagreed for every def but Button. Must produce the byte-identical string that side does or
   // the cohorts do not line up, and a per-member cohort compares nothing and reports nothing.
   const seg=(k)=>v[k]===undefined?[]:[k+'='+v[k]];
-  return {row,col,group:seg('size').concat(seg('leading'),seg('trailing')).join(', ')};
+  // \`FOOTPRINT_VARIES\` LAST, matching that side's append (#1010). Shipped as a list rather than folded
+  // into the three literal segments because it is the one part of this key that is per-DEF: the def
+  // declares which axes move its box, and a payload that hardcoded them would answer for Button only.
+  return {row,col,group:seg('size').concat(seg('leading'),seg('trailing'),...FOOTPRINT_VARIES.map(seg)).join(', ')};
 };
 const cells=members.map(c=>cellOf(c.name));
 const colW=[],rowH=[];
@@ -2645,7 +2666,7 @@ export const planSetChunks = (
   // `setLayout` per slice instead would compute `rowLabels`/`colVals` from a fifth of the members, so a
   // later chunk's `col` indices would restart at 0 and it would land on top of the first — #510's
   // stacking bug, reintroduced one chunk at a time.
-  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals } = planSetLayout(plans, 'planSetChunks');
+  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals, footprintVaries } = planSetLayout(plans, 'planSetChunks');
 
   // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
   // the payload's bytes are the budget this whole function exists to respect.
@@ -2666,6 +2687,7 @@ const ROW_KEYS=${JSON.stringify(rowKeys)};
 const ROW_LABELS=${JSON.stringify(rowLabels)};
 const COL_KEY=${JSON.stringify(colKey)};
 const COL_VALS=${JSON.stringify(colVals)};
+const FOOTPRINT_VARIES=${JSON.stringify(footprintVaries)};
 // Empty until the FINAL chunk: \`combineAsVariants\` rewrites property ids, so anything declared before
 // the last member joins holds ids the combine has already invalidated.
 const PROPS_ALL=${JSON.stringify(last ? props : [])};

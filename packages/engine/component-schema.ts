@@ -592,6 +592,37 @@ export type FigmaProperties = {
    *  available rather than whichever axis sorts last. Validated against the def's own axis names, so
    *  a `gridAxis` naming an axis this def does not project is an error rather than a silent fallback. */
   gridAxis?: string;
+  /** Axes on which this def's member BOX legitimately moves — the footprint cohort's exemption list
+   *  (#1010), and the only way a def can opt out of "swapping a variant must not resize the member".
+   *
+   *  THE RULE IT EXEMPTS FROM, first, because the rule is the valuable part. `planSetLayout` groups
+   *  members into footprint COHORTS and the executor reports any member measuring differently from the
+   *  first in its cohort. An outline button two pixels wider than its filled sibling breaks a row of
+   *  buttons, both variants are individually correct, and nothing else notices — so the cohort key omits
+   *  `state` and `appearance`, meaning those are COMPARED, and includes `size` and slot fill, meaning
+   *  those are exempt. Anything named here joins `size` and slot fill.
+   *
+   *  WHY IT HAD TO BECOME DECLARABLE. That key was authored for Button and its two exemptions describe
+   *  Button: a bigger size is a bigger box, a filled slot adds an icon. `presentWhen` (#910) then added a
+   *  second way for a variant to change what nodes exist, and nothing revisited the key — because the two
+   *  defs that used it first, `checkbox` and `radio`, gate a mark INSIDE a size-bound control, so their
+   *  box does not move and the rule was right to compare them. `field-message` is the first def where a
+   *  gated part is a flow child of the row itself: three tones carry a 16px glyph and the default carries
+   *  none, so the members measure 102 and 126 wide and the executor reported three footprint misses on a
+   *  correct build. A build that reports an intended difference as a defect teaches people to skip the
+   *  report, which costs more than the check is worth.
+   *
+   *  WHY NOT DERIVED FROM `presentWhen`, which is one line and would fix `field-message` today: it would
+   *  also exempt `checkbox` on `selection`, deleting the one comparison that def most needs — that a
+   *  checked box is the same size as an unchecked one. Whether a gated part moves the box depends on where
+   *  it sits, not on the fact of the gating, and the structural proxy for "where it sits" (a flow child
+   *  whose ancestors hug) would change `checkbox`'s cohort silently the day someone unbound the control's
+   *  size. Declared, so it is reviewable and so the reason lives with the def that claims it.
+   *
+   *  Validated as a projected axis AND as one some part's `presentWhen` gates — an exemption over an axis
+   *  where nothing structurally varies is a blanket, and the second def to need this for a different
+   *  reason should have to change the check rather than inherit a hole. */
+  footprintVaries?: string[];
   /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
    *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
    *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
@@ -1132,6 +1163,21 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     const names = figmaAxisNames(def);
     if (!names.includes(fp.gridAxis))
       e.push(`figmaProperties.gridAxis: '${fp.gridAxis}' is not an axis this def projects [${names.join(', ')}] — the grid's column axis must be one Figma will carry`);
+  }
+
+  // ---- the footprint exemption ----
+  // TWO conditions, and the second is what keeps the field from becoming a way to switch the footprint
+  // rule off. PROJECTED, for `gridAxis`'s reason: an axis Figma does not carry writes no segment into the
+  // member name, so the payload cannot parse it back out and the two cohort derivations would disagree.
+  // And GATED BY `presentWhen`, because that is the only mechanism by which a variant changes which nodes
+  // a member has — a def whose box moves for some other reason should have to extend this check and say
+  // what the reason is, rather than reach an exemption that was written for a different one.
+  for (const axis of fp.footprintVaries ?? []) {
+    const names = figmaAxisNames(def);
+    if (!names.includes(axis))
+      e.push(`figmaProperties.footprintVaries: '${axis}' is not an axis this def projects [${names.join(', ')}] — an exempted axis Figma does not carry cannot be recovered from the member name`);
+    else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {})))
+      e.push(`figmaProperties.footprintVaries: '${axis}' gates no part (\`presentWhen\`) — nothing structurally varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
   }
 
   // ---- the part-targeting maps ----

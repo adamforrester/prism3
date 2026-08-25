@@ -478,6 +478,24 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
  * Listed by exact key and checked in BOTH directions, same discipline as `PROVENANCE_EXCEPTIONS`: a
  * binding that becomes reachable, or that no longer exists, fails — a stale exemption is this repo's
  * most-repeated defect wearing a helpful face.
+ *
+ * TWO CATEGORIES LIVE HERE AS OF #1010, and the reason each entry states its own is that membership no
+ * longer implies the reason. For the first five it did — five `<def>|focus-ring` keys, one shape, one
+ * open issue — and a reader could infer "this is a ring nomination" from the key alone. They cannot now:
+ *
+ *   (a) A NOMINATION — the key names a colour for a node this def does not own. All five `focus-ring`
+ *       entries. Unreachable because `PartDef` has no stroke field (#740); the ring is a nested def.
+ *       Every node this def builds is asked, and none of them is the one that draws the ring.
+ *   (b) A CODE-ONLY PAINT — the key names a colour for a node that exists in code and has no Figma
+ *       member. `field-message|default.icon`. Unreachable because the projector enumerates MEMBERS and
+ *       the node is optional per instance, not per member; there is nothing to fix in `anatomy-figma.ts`
+ *       and no issue to close.
+ *
+ * The categories fail differently, which is why the distinction is worth keeping rather than collapsing
+ * to "unreachable": (a) becomes reachable when the ENGINE gains a field, and #740 landing should turn
+ * five entries red at once. (b) becomes reachable when a DEF changes what it projects, and the day
+ * `field-message` gives its default tone a glyph this entry must go. A reader who cannot tell them apart
+ * would read the wrong signal out of either failure.
  */
 const UNREACHED_EXPLAINED: Record<string, string> = {
   'button|focus-ring':
@@ -490,6 +508,8 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'the fourth instance, identical to `checkbox|focus-ring` — a nomination for the ring nested inside the control box, not a paint on any node radio owns. Four entries with one reason is now worth reading as a shape rather than four exemptions: every def that NESTS `focus-ring` will land here until `PartDef` gains a stroke field (#740).',
   'switch|focus-ring':
     'the fifth instance, and it arrived exactly as the fourth predicted: a nomination for the ring nested inside the TRACK, not a paint on any node switch owns. The shape is now confirmed rather than suspected — five defs, one reason, one open issue (#740). The reason this stays a per-def entry rather than becoming a rule keyed off `nests`: the rule would then be derived from the same field the projection reads, so a def that nested a ring and legitimately DID paint one would be exempted by the mechanism instead of caught by it.',
+  'field-message|default.icon':
+    'CATEGORY (b), and the first entry here that is not a ring nomination — see the header for why the two are kept apart. This key paints the status glyph on the DEFAULT tone, and that tone deliberately projects no glyph: the Prism2 reference row its grey ink matches is `standard` (no icon), so the three validation tones carry gated `vector` parts and the default member is caption-only (#1010). Unreachable for a reason the five above do not share: nothing is missing from the projector. Every node the default member has IS asked for its paint, and the node this colour is for does not exist there — `props.icon` may supply one in code, per instance, which is a distinction Figma has no member for (see the def\'s `anatomy.codeOnly`). So there is no engine field to add and no issue to close, and the fix if this entry ever goes red is to DELETE it, not to widen anything: it goes red exactly when the default tone gains a glyph, which is a def decision. The three validation-tone glyph inks are reached normally and are not listed.',
 };
 
 /**

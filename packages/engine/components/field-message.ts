@@ -66,7 +66,7 @@ export const fieldMessage: ComponentDef = {
   props: [
     { name: 'tone', type: "enum: 'default' | 'error' | 'warning' | 'success'", values: ['default', 'error', 'warning', 'success'], default: 'default', required: false, description: 'default = helper guidance (neutral); error / warning / success = a validation result. The tone re-points both the caption ink and the icon at the matching semantic role.' },
     { name: 'children', type: 'string | node', required: true, description: 'The message text. For error tone, say what is wrong AND how to fix it (SC 3.3.3) — "Enter a valid email, e.g. name@example.com", not "Invalid input".' },
-    { name: 'icon', type: 'slot', required: false, description: 'The leading status glyph, aria-hidden (the text carries the meaning). Present by default on validation tones; optional on the default tone.' },
+    { name: 'icon', type: 'slot', required: false, description: 'Overrides the leading status glyph, aria-hidden (the text carries the meaning). Rarely needed: each validation tone already picks its own mark — an exclamation in a triangle for error, in a circle for warning, a circled check for success — so this is for a host with a domain-specific status mark, not for supplying the one the tone implies. On the default tone there is no glyph unless one is supplied here, which is what makes it the only tone where this prop adds a node rather than replacing one.' },
     { name: 'id', type: 'string', required: false, description: 'Set by the host so it can reference this node from the field\'s aria-describedby chain. Auto-generated with useId when composed inside TextField.' },
   ],
 
@@ -102,7 +102,25 @@ export const fieldMessage: ComponentDef = {
   tokens: {
     'type': 'type.caption.md.default',
     'gap': 'space.075',
+    // THE GLYPH ARTBOARD, and the rung is chosen rather than defaulted (#1010). `icon.size.xs` is the
+    // only rung that is 16px, and it is 16 in EVERY brand — it aliases `dimension.16` on the fixed grid,
+    // not a density-scaled step — so a caption-sized status glyph does not move with brand density the
+    // way a control does. That is the right behavior here and the opposite of `checkbox`'s square, which
+    // deliberately reads `control.size.*` so it DOES move: a status glyph sits beside `type.caption.md`,
+    // one fixed scale, so a ladder it could ride does not exist. The next rung up, `icon.size.sm`, is 20.
+    // Worth knowing what 16 is relative to: `type.caption.md` is 11px in every brand (all four resolve the
+    // same `font.size.11` primitive), so the ARTBOARD is larger than the caption's own type size. That is
+    // expected rather than wrong — an icon artboard is ink plus its surrounding air, and the set's ink
+    // fills roughly 58-71% of it (measured in `checkbox`'s mark note) — but it does mean the glyph should
+    // be checked optically beside the caption, which `notes.unverified` now records.
+    'glyph-size': 'icon.size.xs',
     'default.label': 'color.text.secondary',
+    // KEPT, AND UNREACHABLE IN FIGMA BY DESIGN (#1010). The default tone projects no glyph — see the
+    // anatomy — so no node of this def ever asks for this ink, and `lint-paint.ts` arm 3 would report it
+    // as bound-and-painting-nothing. It is named in that gate's `UNREACHED_EXPLAINED` register rather
+    // than deleted, because the CODE side still needs it: `props.icon` may supply a domain-specific
+    // status mark on the default tone, and that glyph's ink is this key. Deleting it would leave the one
+    // reachable code path with no token to paint with.
     'default.icon': 'color.icon.secondary',
     'error.label': 'color.text.danger',
     'error.icon': 'color.icon.danger',
@@ -132,18 +150,78 @@ export const fieldMessage: ComponentDef = {
         // engines. `start` is the reading that survives wrapping.
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'gap',
-        children: ['icon', 'text'],
+        children: ['iconError', 'iconWarning', 'iconSuccess', 'text'],
       },
-      icon: {
-        kind: 'slot',
-        // NOT `optional: true`, for the projector reason recorded on `field-label`'s indicator:
-        // `present()` returns `!p.optional` for every part but the two slot names it hardcodes, so an
-        // optional part named `icon` would be built at no coordinate. The prop is optional on the
-        // default tone (see `props.icon`) and required in practice on the validation tones, which is
-        // where §7's never-color-only contract lives — so always-present is also the safer default of
-        // the two: a message that ships its glyph is never the color-only failure.
-        nesting: { kind: 'swap' },
-        note: 'The leading status glyph, aria-hidden — the caption carries the meaning. Its ink is the tone\'s `icon` role, so the pairing icon+text that satisfies SC 1.4.1 is one token decision rather than two.',
+      // ── THE STATUS GLYPH: THREE VECTOR PARTS, ONE PER VALIDATION TONE (#1010) ─────────────────────
+      //
+      // This was ONE `kind: 'slot'` part with `nesting: { kind: 'swap' }` and no glyph, so the projection
+      // built a placeholder frame — whatever FPO component the file supplies — in the tone's ink. It
+      // resolved, it painted, and every gate was green over it, because a placeholder is a structurally
+      // valid child. That is deliberate scaffolding that outlived its reason: the glyph set did not exist
+      // when this def was authored, #920 landed 39 glyphs that draw correctly, and NOTHING connected the
+      // two. The old `codeOnly` entry stating the def "cannot bind WHICH glyph each tone shows" was true
+      // when written and false by the time it was read.
+      //
+      // WHY THREE PARTS AND NOT ONE TEMPLATED `glyph: '{tone}'`. `PartDef.glyph` IS templatable on a
+      // variant axis, and that was the first thing tried — but `resolveGlyph` substitutes the axis VALUE
+      // verbatim, so `{tone}` asks the vocabulary for glyphs named `default`/`error`/`warning`/`success`
+      // and throws (correctly) with a nearest-name list. There is no value→glyph MAP in the grammar, and
+      // adding one is engine surface a def should not author unilaterally. `presentWhen`-gated vector
+      // parts is `checkbox`'s own shape — its `mark` and `dash` are two parts for exactly this reason,
+      // differing only in glyph and in the axis value that admits them — so this follows an established
+      // pattern rather than inventing a second one. Filed as a note, not a workaround: `notes.contested`
+      // carries what a map would buy and what it would cost.
+      //
+      // WHY THREE AND NOT FOUR — the `default` tone projects NO GLYPH, which is a value decision read off
+      // the Prism2 reference rather than an omission. That reference has five rows for this def's four
+      // tones, and the row our `default` matches is `standard` (no icon, gray text), not `info` (a circled
+      // information mark, blue): this tone paints `text.secondary` / `icon.secondary`, so it is gray, and
+      // matching it to `info` would be matching by position in a list rather than by what it paints. It
+      // also agrees with the def's own prose, which predates #1010 — `props.icon` was already documented
+      // "optional on the default tone", and a Figma member that always shipped a glyph contradicted it.
+      // The consequence for `default.icon` is recorded at that token and in `lint-paint.ts`.
+      //
+      // WHY THESE GLYPHS, AND WHY THE NAMES READ TRANSPOSED. The reference puts the exclamation-in-a-
+      // TRIANGLE on `error` and the exclamation-in-a-CIRCLE on `warning`; the glyph names are the other
+      // way round, because a name in `icon-glyphs.ts` describes the DRAWING and not the tone that uses it.
+      // Confirmed by measuring the artwork rather than by reading the names, which is the whole trap here:
+      //
+      //     warning-triangle   triangle outline + bar y9-14  + dot y16-18   exclamation, in a triangle
+      //     error-circle       ring 2-22/4-20  + bar y7-13   + dot y15-17   exclamation, in a circle
+      //     info-circle        ring 2-22/4-20  + dot y7-9    + bar y11-17   the same ring, bar and dot
+      //                                                                     SWAPPED — an information mark
+      //     close              one subpath, 5.6-18.4 square                 the circled X is not this set
+      //
+      // So `error-circle` is not a circled X and `warning-triangle` is not a second warning mark: they are
+      // one exclamation in two enclosures, and the enclosure is what the reference assigns per tone. Do not
+      // "fix" this mapping to agree with the names.
+      //
+      // OUTLINE, NOT FILLED, on all three — the reference says "a stroked outline glyph at the same optical
+      // weight as the text". Every glyph in the set is a filled PATH (`fill="currentColor"`); outline here
+      // is the drawing, achieved by a ring with a hole rather than by a stroke, which is why `check-circle`
+      // and `check-circle-filled` are two entries. The three tones still differ in SHAPE — triangle,
+      // circled exclamation, circled check — so the SC 1.4.1 contract this def exists for holds on a
+      // non-color channel, where before all three members drew one identical placeholder.
+      iconError: {
+        kind: 'vector',
+        glyph: 'warning-triangle',
+        size: 'glyph-size',
+        presentWhen: { tone: ['error'] },
+        note: 'The error glyph, aria-hidden — the caption carries the meaning. An exclamation in a TRIANGLE, per the Prism2 reference, and the only tone whose enclosure is not a circle: shape is the channel that survives when the ink cannot be told from `warning`\'s. Its ink is `error.icon`, applied as `descendantFills` (never a fill on the artboard — #864), so the icon+text pairing that satisfies SC 1.4.1 is one token decision rather than two.',
+      },
+      iconWarning: {
+        kind: 'vector',
+        glyph: 'error-circle',
+        size: 'glyph-size',
+        presentWhen: { tone: ['warning'] },
+        note: 'The warning glyph, aria-hidden. An exclamation in a CIRCLE — the same mark as `error`\'s in a different enclosure, which is what the reference asks for. Its ink is `warning.icon`.',
+      },
+      iconSuccess: {
+        kind: 'vector',
+        glyph: 'check-circle',
+        size: 'glyph-size',
+        presentWhen: { tone: ['success'] },
+        note: 'The success glyph, aria-hidden — a circled check. Its ink is `success.icon`.',
       },
       text: {
         kind: 'text',
@@ -157,8 +235,8 @@ export const fieldMessage: ComponentDef = {
     codeOnly: [
       'aria-describedby wiring — the message\'s entire relationship to its field is a DOM one the HOST owns (§6): the field references this node\'s id in its describedby chain and sets aria-invalid on error. Figma has no accessibility tree and no node-to-node reference, so the projection is a glyph and a caption that sit below a field and are associated with it by proximity alone. This is the same ceiling `field-label`\'s htmlFor hits, and it is the reason both defs are presentational in Figma and load-bearing in code.',
       'the live region — a message that appears or changes after render must be announced without stealing focus, which the host does by wrapping it in a polite live region. That is a runtime announcement behavior with no visual expression at all: the Figma member for `tone=error` looks identical whether the message was there on load or arrived on blur, and the difference is the whole of whether a screen-reader user learns about it.',
-      'tone-to-icon pairing — the def binds the icon\'s INK per tone and cannot bind WHICH glyph each tone shows (an exclamation for error, a check for success). `PartKind` has no vector kind by `icon`\'s own reasoning — glyph geometry is the set\'s content, not a declared part — so the projection carries one placeholder glyph in the tone\'s color, and a designer swaps it. A Figma member showing a check mark in danger ink is reachable and would read as a component defect rather than an unswapped placeholder.',
-      'the default tone\'s optional icon — `props.icon` is optional on the default tone and expected on the validation tones, and the anatomy declares the part always-present because `present()` builds no optional part outside the two slot names it hardcodes. So the helper-guidance case renders with a glyph in Figma where the code projection may omit it. Recorded rather than modelled: the alternative (an optional part) projects at NO coordinate, which is worse than a member a designer deletes a node from.',
+      'the icon SLOT in code, where Figma now has none — the one asymmetry #1010 introduced, recorded because it is a real difference and not an oversight. The three validation members each carry a FIXED glyph chosen by tone, so there is no INSTANCE_SWAP property on the Figma side at all: an error member cannot be made to show a check mark, which is the reachable-wrong-state the old entry here worried about. `props.icon` survives as a code-side override for a host with a domain-specific status glyph, and nothing in Figma corresponds to it. The previous entry claimed this def "cannot bind WHICH glyph each tone shows" because "`PartKind` has no vector kind" — true when written, falsified by #920 (39 glyphs) and #864 (`kind: \'vector\'` + `glyph`), and it is retired rather than edited because its premise, not its wording, was the thing that expired.',
+      'the default tone\'s OPTIONAL icon, which is now the only half of this that Figma cannot express. Since #1010 the two sides agree on the common case — no glyph on the default tone, three fixed glyphs on the validation tones — so what is left is narrower than the entry it replaces: in code a host MAY pass `props.icon` on the default tone and get a glyph painted `default.icon`, and there is no Figma member for that. A member either has the node or does not, so "optional in the same sense the prop is" has no projection, and adding a boolean property for it would offer a designer a toggle whose ON state has no glyph to show. **The reason the previous entry gave had expired and the entry had not**, which is why this one is worth reading carefully: it said the part is always-present because `present()` builds no optional part outside the two slot names it hardcodes — accurate for a `kind: \'slot\'` part, and false the moment these became `presentWhen`-gated `vector` parts, since `presentWhen` IS a mechanism for variant-scoped absence (#910). The gating is what let the default tone lose its glyph at all.',
     ],
   },
 
@@ -182,8 +260,24 @@ export const fieldMessage: ComponentDef = {
   // than one describing the slot. An empty default is what #510 shipped and what the schema now rejects.
   figmaProperties: {
     variantAxes: ['tone'],
+    // THE BOX MOVES ON `tone`, AND THAT IS INTENDED (#1010). Three tones carry a 16px glyph in the row's
+    // flow and the default carries none, so the members measure 102 and 126 wide — the footprint cohort
+    // compares members within one `size`/slot coordinate and reported that as three misses on a build that
+    // is right. This def is the first to need the exemption: `checkbox` and `radio` gate a mark inside a
+    // size-bound control, so their box holds still and the comparison is one they should keep. What the
+    // exemption costs is stated rather than assumed — `tone` is this def's ONLY axis, so exempting it
+    // leaves each member in its own cohort and the footprint rule checks nothing here at all. The box is
+    // covered instead by the two arms that measure it directly: the glyph's artboard is bound to
+    // `icon.size.xs` on both axes (`apps/plugin/test-write-components.ts`) and that ref resolves to 16px in
+    // all five corpus brands (`test.ts`). See `FigmaProperties.footprintVaries`.
+    footprintVaries: ['tone'],
     texts: { children: { part: 'text', default: 'Use 8+ characters' } },
-    swaps: { icon: 'icon' },
+    // NO `swaps`, as of #1010, and the absence is the fix rather than a gap. This read
+    // `swaps: { icon: 'icon' }` against a slot part with no glyph, which is what made the projection
+    // build a placeholder frame. The glyph is now chosen by `tone` in the anatomy, so there is no slot
+    // for an INSTANCE_SWAP property to point at — and a designer cannot put a check mark on the error
+    // member. `props.icon` keeps its code-side meaning; see `anatomy.codeOnly`.
+    swaps: {},
     booleans: {},
   },
 
@@ -233,6 +327,11 @@ export const fieldMessage: ComponentDef = {
   notes: {
     contested: [
       'Whether warning is a distinct tone — many systems fold it into helper/error; kept here as an optional soft caution (brief §4).',
+      'THREE PARTS WHERE ONE TEMPLATE WOULD DO, and whether the grammar should gain a value→glyph map (#1010). `PartDef.glyph` is templatable on a variant axis today, but `resolveGlyph` substitutes the axis VALUE verbatim — so `glyph: \'{tone}\'` asks for glyphs literally named `error` / `warning` / `success` and throws. A map (`glyphByValue: { tone: { error: \'warning-triangle\', … } }`) would collapse these three near-identical parts to one and would generalize: any def whose axis selects a glyph hits this, and `checkbox`\'s `mark`/`dash` pair is the same shape from before the glyph set existed. What it would COST is the reason it is contested rather than proposed: the map is a second place a glyph name can be written, so `lint-glyph-geometry.ts` (which ranges over parts) and the nearest-name error (which fires at resolve time) would both need to learn it, and a def could then name a glyph for an axis value that no longer exists with nothing failing. Three explicit parts are verbose and each one is independently checkable by the gates that already exist. Revisit when a THIRD def needs it — two is not yet a pattern.',
+    ],
+    unverified: [
+      'The 16px glyph beside an 11px caption, optically. `icon.size.xs` is the only 16px rung and is 16 in every brand (it aliases `dimension.16` on the fixed grid), while `type.caption.md` resolves `font.size.11` — so the ARTBOARD is 45% larger than the caption\'s type size. That is expected rather than wrong (an icon artboard is ink plus its surrounding air, and this set\'s ink fills roughly 58-71% of it), and the reference asks for a glyph "at the same optical weight as the text", which is a judgement no gate here makes. Check it in Figma against a real caption before treating the size as settled.',
+      'The WRAPPING case, which is where this def meets #1009 and is deliberately not fixed here. The row is `align: \'start\'`, so the glyph aligns to the top of the caption box; #1009\'s reference for the sibling control shows the mark aligning to the FIRST LINE of a wrapping label, which is neither top nor block-centre and is not the same rule as `start` once the caption\'s line-height exceeds the glyph. A single-line message cannot tell the two apart, and every member this def projects is single-line. Measure a two-line message before assuming `start` is the rule #1009 lands on.',
     ],
   },
 };
