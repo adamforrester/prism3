@@ -39,7 +39,7 @@
  *
  * **This is the first gate in the repo that needs git HISTORY.** Every other git-reading gate uses
  * `git ls-files`, which reads the index and needs none, so `actions/checkout@v4`'s depth-1 default has
- * never mattered before. `ci.yml` gains `fetch-depth: 2` in the same change — without it this gate
+ * never mattered before. `ci.yml` gains `fetch-depth: 0` in the same change — without it this gate
  * would pass locally, where history exists, and be unable to run in CI, which is the failure mode where
  * the author sees green for a reason CI does not share.
  *
@@ -91,15 +91,24 @@ const brandsOnDisk = (): string[] => {
   catch { return []; }
 };
 
-const afterKeys = new Set<VarKey>();
+// PER BRAND, and the accounting runs once per brand rather than once over a merged set.
+//
+// The three brands emit the SAME collection and name for most variables, so a merged key space needs a
+// brand prefix — and then a rule's image key, built from `(collection, mappedName)`, carries no brand
+// and matches nothing. That is not hypothetical: it was this file's first implementation, and the
+// over-claiming mutation reported 2076 contradicted claims where the derivation says 1368, the extra
+// 708 being every `color` key failing its own image lookup. Per-brand keeps the key space identical to
+// the rules' own `(collection, name)` domain, which is the space `docs/44` defines them over.
+const afterByBrand = new Map<string, Set<VarKey>>();
 for (const brand of brandsOnDisk()) {
   const dir = resolve(repo, FIGMA_DIR, brand);
-  for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
-    const where = `${FIGMA_DIR}/${brand}/${f}`;
-    for (const k of keysFromEmittedFile(JSON.parse(readFileSync(resolve(dir, f), 'utf8')), where))
-      afterKeys.add(varKey(brand, k));
-  }
+  const keys = new Set<VarKey>();
+  for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort())
+    for (const k of keysFromEmittedFile(JSON.parse(readFileSync(resolve(dir, f), 'utf8')), `${FIGMA_DIR}/${brand}/${f}`))
+      keys.add(k);
+  afterByBrand.set(brand, keys);
 }
+const afterKeys = new Set<VarKey>([...afterByBrand].flatMap(([b, ks]) => [...ks].map((k) => varKey(b, k))));
 
 // ---- the BEFORE side: the committed emission at the merge base ------------------------------------
 //
@@ -131,7 +140,7 @@ if (!baseRef)
     '  `docs/34` shape 9. So it fails instead.',
     '',
     '  In CI: `actions/checkout@v4` defaults to a DEPTH-1 shallow clone with no history and no remote',
-    '  branches. `ci.yml` sets `fetch-depth: 2` for this gate; if you are seeing this in CI, that setting',
+    '  branches. `ci.yml` sets `fetch-depth: 0` for this gate; if you are seeing this in CI, that setting',
     '  is missing or was reverted.',
     '  Locally: `git fetch origin main`.',
   ]);
@@ -145,7 +154,7 @@ if (!mb.ok || !mb.out.trim())
     `    ${mb.err || '(git printed nothing)'}`,
     '',
     '  A shallow clone is the usual cause: the histories are disconnected, so git cannot find a common',
-    '  ancestor. `fetch-depth: 2` in CI, `git fetch --unshallow` locally.',
+    '  ancestor. `fetch-depth: 0` in CI, `git fetch --unshallow` locally.',
   ]);
 const base = mb.out.trim();
 
@@ -156,15 +165,17 @@ if (!tree.ok)
   die([`could not list ${FIGMA_DIR} at ${base.slice(0, 8)} — this check CANNOT RUN.`, `    ${tree.err}`]);
 
 const beforeFiles = tree.out.split('\n').map((l) => l.trim()).filter((l) => l.endsWith('.json'));
-const beforeKeys = new Set<VarKey>();
+const beforeByBrand = new Map<string, Set<VarKey>>();
 for (const path of beforeFiles) {
   const blob = git('show', `${base}:${path}`);
   if (!blob.ok)
     die([`could not read ${path} at ${base.slice(0, 8)} — this check CANNOT RUN.`, `    ${blob.err}`]);
   const brand = path.slice(`${FIGMA_DIR}/`.length).split('/')[0];
+  if (!beforeByBrand.has(brand)) beforeByBrand.set(brand, new Set());
   for (const k of keysFromEmittedFile(JSON.parse(blob.out), `${base.slice(0, 8)}:${path}`))
-    beforeKeys.add(varKey(brand, k));
+    beforeByBrand.get(brand)!.add(k);
 }
+const beforeKeys = new Set<VarKey>([...beforeByBrand].flatMap(([b, ks]) => [...ks].map((k) => varKey(b, k))));
 
 // ---- the floors, before any "every …" claim is made ----------------------------------------------
 
@@ -187,12 +198,25 @@ if (afterKeys.size < FLOOR_KEYS)
 // as accounted for by another brand's survival. `parseVarKey` splits on the FIRST separator, so the
 // collection-and-name remainder reaches the rules exactly as `materialization-renames.ts` defines it.
 
-const parse = (key: VarKey): { collection: string; name: string } => {
-  const { name: rest } = parseVarKey(key);      // strip the brand
-  return parseVarKey(rest);                      // → { collection, name }
+const brands = [...new Set([...beforeByBrand.keys(), ...afterByBrand.keys()])].sort();
+const empty = new Set<VarKey>();
+const per = brands.map((brand) => ({
+  brand,
+  a: accountFor(beforeByBrand.get(brand) ?? empty, afterByBrand.get(brand) ?? empty, MATERIALIZATION_RENAMES, parseVarKey),
+}));
+/** Report lines carry the brand; the KEYS the accounting works in do not. */
+const tag = (brand: string, xs: readonly string[]): string[] => xs.map((x) => `${brand} · ${x}`);
+const acct = {
+  beforeCount: beforeKeys.size,
+  afterCount: afterKeys.size,
+  removed: per.flatMap((p) => tag(p.brand, p.a.removed)),
+  added: per.flatMap((p) => tag(p.brand, p.a.added)),
+  claims: per.flatMap((p) => p.a.claims),
+  unaccountedRemovals: per.flatMap((p) => tag(p.brand, p.a.unaccountedRemovals)),
+  unaccountedAdditions: per.flatMap((p) => tag(p.brand, p.a.unaccountedAdditions)),
+  contradictedClaims: per.flatMap((p) => p.a.contradictedClaims.map((c) => ({ ...c, from: `${p.brand} · ${c.from}` }))),
+  multiplyClaimed: per.flatMap((p) => p.a.multiplyClaimed.map((m) => ({ ...m, key: `${p.brand} · ${m.key}` }))),
 };
-
-const acct = accountFor(beforeKeys, afterKeys, MATERIALIZATION_RENAMES, parse);
 
 const PRINT = 25;
 const listing = (label: string, xs: readonly string[]): string[] =>
