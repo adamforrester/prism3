@@ -86,6 +86,10 @@
  * Figma present, in the same split as `write-plan.ts` vs `write-figma.ts`.
  */
 import { DEPRECATIONS, type Deprecation } from './version';
+// The dotted-path → slash-path mapping is stated ONCE, in `anatomy-figma`, precisely so a second copy
+// cannot drift from the emitters. Re-deriving it here would be a duplicate that this module's own gate
+// could not distinguish from the original.
+import { figmaVarName } from './anatomy-figma';
 
 /** A variable to migrate, scoped to the collection it lives in. */
 export type VarRename = {
@@ -125,9 +129,6 @@ export type RenameOutcome = {
 export const isRefusal = (s: RenameStatus): boolean =>
   s === 'target-occupied' || s === 'target-not-planned' || s === 'ambiguous-source';
 
-/** DTCG contract path → Figma variable name. Dots become slashes; nothing else changes. */
-export const figmaVarName = (contractPath: string): string => contractPath.split('.').join('/');
-
 /**
  * The `color` collection's aliases are mirrored into a second collection, `surface`, under a subset
  * of the same suffixes (measured: 122 of 236 `color` suffixes are also `surface` suffixes, and every
@@ -139,13 +140,36 @@ export const figmaVarName = (contractPath: string): string => contractPath.split
  */
 export const MIRRORED_COLLECTIONS: Record<string, readonly string[]> = { color: ['color', 'surface'] };
 
+/**
+ * Contract roots that are ALSO the name of an emitted Figma variable collection — measured, 9 of the 18
+ * guaranteed roots. Only these project: a deprecation on any other root has no variable to migrate, and
+ * emitting an entry for it would produce a map row that can never fire and can never be reported. An
+ * entry nothing will ever look at is worse than no entry, because it inflates the map's own count.
+ *
+ * The other 9 are excluded for three different reasons, and none of them is "we forgot": `palette`,
+ * `font`, `dimension` and `type` live in collections named `core-palette` / `core-font` /
+ * `core-dimension` / `type-sets`, so projecting them would need a prefix rule that is a guess about a
+ * naming convention rather than a fact about the emission; `shadow` materialises as Figma STYLES, where
+ * a rename is a different operation on a different API; `motion`, `breakpoint`, `container` and `grid`
+ * have no variable counterpart at all (Figma has no easing variable, and the rest are consumed as
+ * values, not bound). A deprecation landing on any of them fails the `test.ts` arm that pins the
+ * unprojected set by NAME — so it forces the decision rather than skipping it quietly.
+ *
+ * `test.ts` asserts every root here is genuinely an emitted collection name, against the corpus. That
+ * check is the reason this can be an authored list at all: the claim is verified against the emission
+ * rather than trusted.
+ */
+export const PROJECTED_ROOTS: readonly string[] = [
+  'border-width', 'color', 'control', 'focus', 'icon', 'opacity', 'radius', 'size', 'space',
+];
+
 /** Re-root a Figma variable name into a mirror collection: `color/a/b` → `surface/a/b`. */
 const reRoot = (figmaName: string, collection: string): string =>
   [collection, ...figmaName.split('/').slice(1)].join('/');
 
 /**
- * Every candidate Figma projection of one deprecation. The first path segment names the candidate
- * collection (the emitted collections are named after the contract roots), plus any mirror.
+ * Every candidate Figma projection of one deprecation: the first path segment names the collection,
+ * plus any mirror of it. Empty for a root that materialises no variable collection.
  *
  * Candidates are *not* filtered against the live emission here — this module is pure and has no disk.
  * Filtering happens twice downstream, and both are stronger than a static list would be: at apply
@@ -155,6 +179,7 @@ export const projectionsOf = (d: Deprecation): VarRename[] => {
   const root = d.path.split('.')[0];
   const from = figmaVarName(d.path);
   const to = figmaVarName(d.replacedBy);
+  if (!PROJECTED_ROOTS.includes(root)) return [];
   // A rename that moves between roots would change which collection the variable lives in — that is
   // a move, not a rename, and Figma has no such operation. Refuse to project it at all.
   if (d.replacedBy.split('.')[0] !== root) return [];
