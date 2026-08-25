@@ -270,6 +270,21 @@ const makeShim = (opts: ShimOpts = {}) => {
       // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
       // border-box has to override.
       ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+      // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
+      // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
+      // having defaulted helpfully — and every other node type THROWS on the write, which is what Figma
+      // does. Without the throw this port would accept the property on a frame, the executor's
+      // try/catch would never fire, and a plan claiming it on the wrong node type would pass the one
+      // test written to catch that. Same argument as `_aspectLocked` above: a shim that cannot refuse
+      // cannot witness a refusal.
+      ...(type === 'TEXT'
+        ? { textAlignVertical: 'TOP' as string }
+        : {
+            get textAlignVertical(): string | undefined { return undefined; },
+            set textAlignVertical(_v: string | undefined) {
+              throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+            },
+          }),
       characters: '',
       opacity: 1,
       componentPropertyReferences: null as Record<string, string> | null,
@@ -1922,6 +1937,29 @@ ok((labelSeed.vars ?? []).length >= 4 && (labelSeed.styles ?? []).length >= 2,
 // exists, is painted, is the right size, and holds no characters.
 ok(labelRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 2,
   `#798/#804 both text parts are declared as TEXT properties on the set, so neither projects blank (${labelRun.properties.join('/')})`);
+
+// ---- #1009: the vertical claim reaches the CANVAS, read off the built nodes ------------------------
+//
+// The plan declaring `textAlignVertical` and the executor writing it look identical from inside the
+// engine — #802's class, and the reason this is asserted here and not only in `test.ts`. `field-label` is
+// the fixture because it has TWO text parts, which is also the case that settles where the rule lives.
+{
+  const labelPage: Page = { children: [] };
+  const vaRun = await run(labelPlans, { ...fullFor(labelPlans), page: labelPage });
+  ok(vaRun.misses.length === 0, `#1009 the run is clean, so the reads below are about writes rather than skips (${vaRun.misses.join('; ') || 'none'})`);
+  const vaSet = labelPage.children[0];
+  const built = [vaSet, ...((vaSet.findAll as () => Node[])())] as Node[];
+  const texts = built.filter((n) => n.type === 'TEXT');
+  // FLOOR FIRST: "every text node reads CENTER" is vacuously true of no text nodes, and this fixture
+  // having none is exactly how the arm would rot silently.
+  ok(texts.length >= 2, `#1009 the built set holds text nodes to read back (${texts.length})`);
+  const centred = texts.filter((n) => n.textAlignVertical === 'CENTER');
+  ok(centred.length === texts.length,
+    `#1009 EVERY built text node reads back CENTER — the shim starts them at Figma's 'TOP', so this is the executor's write and not a helpful default (${centred.length}/${texts.length})`);
+  const nonText = built.filter((n) => n.type !== 'TEXT');
+  ok(nonText.length > 0 && nonText.every((n) => n.textAlignVertical === undefined),
+    `#1009 ...and no frame carries it, on a shim that THROWS if one is written — so this is a refusal witnessed, not a property nobody set (${nonText.length} non-text nodes)`);
+}
 // A SET NO LARGER THAN ONE CHUNK still yields and still ends at its total — the edge Button's 648 never
 // exercised, since every count in this file is a multiple of 21 and `CHUNK` is 4. Through `instrumented`
 // so the YIELD is witnessed separately from the REPORT: at this size the two could not be told apart by

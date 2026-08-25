@@ -102,6 +102,30 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.24.0: every projected TEXT node now CLAIMS its vertical alignment (#1009 half 2). A new
+ * `FigmaNodePlan.textAlignVertical`, defaulted to `CENTER` by the projector and overridable per part via
+ * `PartDef.verticalAlign`; both executors write it, and `anatomyErrors` refuses it on any kind but
+ * `text` because Figma throws on that write.
+ *
+ * **It moves nothing anyone can see, and that is why it is safe to introduce as a default rather than a
+ * required field.** Measured over every projected member: **774 TEXT nodes, ZERO with a bound height**,
+ * and a hugging text node's box IS its content — so `TOP` and `CENTER` land the glyphs in identical
+ * pixels. The value of the change is that the property stops being a SILENCE. #865's operation is
+ * *neutralise what we did not claim*, and its neutral value here is `TOP`, already Figma's default, so
+ * clearing would have been a no-op; #1009 wanted the opposite operation, a claim, and the two are not
+ * interchangeable. A minor rather than a patch because the emitted plan gains a field.
+ *
+ * A note for whoever reads this next expecting the QA symptom to be gone: it is not. #1009 arrived as one
+ * observation and is TWO properties on two different nodes. Half 1 — a control top-aligning against its
+ * label — lives on the PARENT frame and is not fixed here. It is measured (a `medium` checkbox binds a
+ * 16px control against a 24px line box, so the box centre sits 4px high) and it is GUARDED, because the
+ * obvious repair is wrong: blanket-centring the row floats the control mid-paragraph on a label that
+ * wraps, and the Prism2 reference is explicit that the box tracks the FIRST LINE. The exact repair wants
+ * a control frame the height of the line box, and line-height is a RATIO token against a rem font size —
+ * Figma variables do not multiply, so no px line-height variable exists to bind one to.
+ *
+ * 0.23.0 IS TAKEN BY #1021 (field-message glyphs), merged first — hence 0.24.0 rather than a second
+ * 0.23.0 entry the later merge would have to reconcile. (#1009)
  * 0.23.0: a validation tone draws its own glyph, and a def can declare that its box legitimately moves
  * (#1010, field-message). Three `presentWhen`-gated `vector` parts replace one `kind: 'slot'` part whose
  * INSTANCE_SWAP property nominated a placeholder — the 39-glyph set had landed in #920 and this def bound
@@ -429,7 +453,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.23.0';
+export const ENGINE_VERSION = '0.24.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
