@@ -171,6 +171,8 @@ const account = (
 ): Accounting => {
   const removed = [...before].filter((k) => !after.has(k)).sort();
   const added = [...after].filter((k) => !before.has(k)).sort();
+  /** Did the emission move at all in this comparison? See the contradiction branch below. */
+  const moved = removed.length > 0 || added.length > 0;
 
   const claims: Claim[] = [];
   const contradicted: Array<Claim & { contradiction: string }> = [];
@@ -190,8 +192,20 @@ const account = (
 
       // A rule that claims a key which is STILL EMITTED is contradicted by the emission. This branch is
       // unreachable from a `removed`-driven loop, and it is the over-claiming row of the doc's table.
+      //
+      // GATED ON THE EMISSION HAVING MOVED, and the gate is about ATTRIBUTION rather than strictness.
+      // Ungated, this arm also fires on a rule that is simply STALE — one pointing at a name that never
+      // moved — because "stale" and "over-claiming" are the same predicate evaluated at different times.
+      // Measured: mutation M3 installed a stale rule and tripped BOTH checks. That is not extra safety,
+      // it is a worse report — check 1 is the forcing function, it needs git and a base ref, and a PR
+      // that renames nothing would fail a git-dependent gate for a reason having nothing to do with git.
+      // Staleness is check 2's arm: no git, every run, and it catches this case unconditionally.
+      //
+      // The over-claiming ROW of the doc's table is unaffected, because there the emission DID move: the
+      // `color`-only rename leaves 236 removals per brand, so `moved` is true and every non-`color`
+      // claim is still contradicted by name (1368 across three brands). Re-verified after this gate.
       if (after.has(key)) {
-        contradicted.push({ ...claim, contradiction: `still emitted — the rule says it moved and it did not` });
+        if (moved) contradicted.push({ ...claim, contradiction: `still emitted — the rule says it moved and it did not` });
         continue;
       }
       // It did leave, but not to where the rule said. A different failure from "nobody claimed it": the
