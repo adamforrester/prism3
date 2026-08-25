@@ -40,20 +40,49 @@
  *
  *   · `add-line.svg` and `add-fill.svg` are **byte-identical** (sha256 `e3af16eef67d`, 177 bytes).
  *   · `close-line.svg` and `close-fill.svg` are **byte-identical** (sha256 `2d004b029720`, 345 bytes).
- *   · `subtract-line.svg` and `subtract-fill.svg` differ by exactly the winding of one rectangle —
- *     `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`. Same 14×2 ink box, same pixels.
+ *   · `subtract-line.svg` and `subtract-fill.svg` are the SAME RECTANGLE STARTED AT A DIFFERENT
+ *     VERTEX — `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`. Same 14×2 ink box, same pixels.
  *
  * So `plus-filled` and `plus` render the same glyph, as do `close-filled`/`close` and
  * `minus-filled`/`minus`: **6 of the 39 names are 3 distinct shapes**, and the vocabulary holds 37
  * distinct paths rather than 39. That is not a mapping error — each name resolves to the file it
  * claims — so `emit-icons.ts`, which compares both directions of *filenames*, structurally cannot
- * see it. It is a provenance defect in the source set, filed as #917.
+ * see it. Filed as #917.
  *
- * We keep the names rather than deleting three of them, because dropping a name from `icon.name` is a
- * MAJOR contract break to fix a cosmetic duplication, and because a branded set swapped in later may
- * well draw all six distinctly. What is corrected here is the *claim*: they are duplicates, not bolder
- * variants. Anyone reasoning about `-filled` as a weight axis would be reasoning from a shape that is
- * not there.
+ * **#917 corrected the third line above, and the correction matters more than it looks.** This file
+ * said the subtract pair "differ by exactly the winding of one rectangle", and #917's own body repeated
+ * it. Measured: both rings run (5,11) → (5,13) → (19,13) → (19,11), in the SAME direction; `-fill`
+ * merely begins at (19,11). Rotation alone merges them and reversal alone does not, so `fill-rule`
+ * never enters into it — a reader who believed the winding story would reach for the wrong fix.
+ *
+ * ── AND WHY THERE IS NO SOURCE FIX, MEASURED IN #917 RATHER THAN ASSUMED ─────────────────────────
+ *
+ * `-filled` in this set means the SOLID, ENCLOSED form, and that is measurable rather than a matter of
+ * taste. Rasterizing each pair at 4× over the 24×24 viewBox with nonzero winding and taking the ratio
+ * of inked area, `fill` ÷ `line`:
+ *
+ *     add-circle 1.86×   alert 1.61×   checkbox-circle 2.01×   error-warning 2.30×
+ *     eye 1.57×          eye-off 1.38×   information 2.30×
+ *     ────────────────────────────────────────────────────────────────
+ *     add 1.00×          close 1.00×     subtract 1.00×
+ *
+ * Every one of the seven genuine pairs lands between 1.38× and 2.30×. The three defects land at exactly
+ * 1.00×, and they are exactly the glyphs with no interior: a plus, an X and a dash are bare strokes,
+ * with nothing enclosed for a fill to fill. **The source set is not wrong here — it declined to invent
+ * a shape, which is the correct call.** So the two available "fixes" are both worse than the wart:
+ * inventing a heavier-weight variant is precisely the reading #864 measured false as the meaning of
+ * `-fill`, and borrowing the circled forms collides with names that already exist (`plus-circle-filled`
+ * → `add-circle-fill`) while adding an enclosure the name does not mention.
+ *
+ * We therefore keep all 39 names. Dropping one is a MAJOR contract break to fix a cosmetic duplication,
+ * and a branded set swapped in later may well draw all six distinctly — `docs/40` §5.3 now states that
+ * as a delivery constraint, which is the durable fix. What is corrected here is the *claim*: they are
+ * duplicates, not bolder variants. Anyone reasoning about `-filled` as a weight axis would be reasoning
+ * from a shape that is not there.
+ *
+ * The duplication is now CHECKED rather than only described: `lint-glyph-geometry.ts` compares rendered
+ * shape via `glyph-shape.ts` and fails on any collision not declared in its `DUPLICATE_SHAPES`, in both
+ * directions. A fourth pair appearing, or one of these three starting to differ, fails by name.
  *
  * ── ADDING OR REMOVING A GLYPH ──────────────────────────────────────────────────────────────────
  *

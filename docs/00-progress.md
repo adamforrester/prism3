@@ -7,6 +7,109 @@
 
 ---
 
+## (2026-08-25) — Three icons are not wrong, and the gate that could not tell was (#917)
+
+**STATUS: shipped.** No version change — nothing emitted moves (`regen --check`: 114 artifacts
+byte-match), no token name changes, and no gate is added. What changed is one arm of an existing gate,
+plus a new pure module it leans on. **The issue asked for three SVGs to be replaced; that is the one
+thing this PR does not do, and the reason is measured rather than argued.**
+
+**The premise was wrong in two places, and both were mine.** #917 said three `-fill` sources "draw
+their `-line` sibling" and asked for the sources fixed. They do draw their sibling's shape — but they
+are not *wrong*, and the second error is more useful: #917's body, `icon-set.ts` and
+`lint-glyph-geometry.ts`'s own header all recorded that `subtract-line.svg` and `subtract-fill.svg`
+"differ only in the **winding** of one rectangle". Measured, both rings run
+(5,11) → (5,13) → (19,13) → (19,11) in the **same direction**; `-fill` simply begins at (19,11).
+Rotation alone merges them, reversal alone does not, and `fill-rule` never enters into it. A reader who
+believed the winding story would reach for the wrong fix. Corrected at all four sites.
+
+**Why there is no source fix, and this is the refusal the issue invited.** `-filled` in this set means
+the *solid, enclosed* form, and that is measurable. Rasterizing each pair at 4× over the 24×24 viewBox
+with nonzero winding, `fill` ÷ `line` inked area: add-circle 1.86×, alert 1.61×, checkbox-circle 2.01×,
+error-warning 2.30×, eye 1.57×, eye-off 1.38×, information 2.30× — **and add, close, subtract at exactly
+1.00×.** All seven genuine pairs land in 1.38–2.30×; the three "defects" are precisely the glyphs with
+no interior. A plus, an X and a dash are bare strokes: there is nothing enclosed for a fill to fill, and
+**Remix correctly declined to invent a shape.** The two available fixes are both worse than the wart —
+inventing a heavier weight is exactly the reading #864 already measured false as the meaning of `-fill`,
+and borrowing the circled forms collides with names that already exist (`plus-circle-filled` →
+`add-circle-fill`) while adding an enclosure the name does not mention. Hand-authoring three SVGs into a
+vendored directory governed by `LICENSE`/`NOTICE.md` also mixes provenance, and would be discarded the
+day a branded set lands.
+
+**The subtract pair is positive evidence this is upstream intent, not a vendoring slip.** A copy-paste
+cannot change a path's start vertex. Two files that differ in bytes and agree in pixels are two
+genuinely different upstream files that happen to draw the same thing.
+
+**So the assertable subset is distinctness, and it was already half-built.** `lint-glyph-geometry.ts`'s
+header had named this as its own blind spot — the arm compared path **strings**, so `minus`/
+`minus-filled` passed while rendering identically, and closing it "needs shape comparison rather than
+string comparison, which is a different instrument". That instrument is now `glyph-shape.ts`, and arm F
+keys on its canonical form. The gate's own note moved from *37 distinct outlines* to **36 distinct
+rendered shapes (37 distinct path strings)**, and the third pair is declared rather than silently
+admitted. `DUPLICATE_PATHS` is renamed `DUPLICATE_SHAPES`: under string comparison it was structurally
+unable to hold the `minus` pair, so its old name described a weaker check than the one it now serves.
+
+**No third place.** The task flagged `FIXED_GLYPH` as a possible home. It is not one — it records *which
+glyph* a fixed vector part draws and *where*, one entry per part. This is a claim about *pairs of names
+in the vocabulary*, which is what `DUPLICATE_SHAPES` already was.
+
+**The ceiling, stated in both headers because it is the kind of thing a green gate hides.**
+`canonicalShape` proves **sameness** and cannot prove **difference**: equal canonical forms guarantee one
+picture; unequal ones mean only that no transform in its enumerated list relates the two. Covered are
+start-vertex rotation, whole-shape reversal, subpath reordering, `H`/`V` vs `L`, implicit vs explicit
+close, zero-length segments and collinear vertex splits. Outside it are a cubic that is exactly a line,
+one region decomposed into a different number of subpaths, and coincident overlapping subpaths. So the
+arm is an under-approximation of render equivalence, strictly stronger than string equality and not a
+rasterizer. **Reversal is decided once per shape, not per subpath** — under nonzero winding a hole is an
+inner ring wound *opposite* its outer one, so canonicalizing each subpath's direction independently
+would merge a ring-with-a-hole and a ring-with-an-island. Two tests pin both halves of that.
+
+**A module, not a function in the gate — #988's precedent for its reason, not by analogy.** A gate script
+works at module scope and exits, so a normalizer living inside it could not be unit-tested without
+running the gate. That matters more here than usual: the gate *reports the normalizer's verdict as a
+fact about the corpus*, so an unproven normalizer is worse than none. 22 assertions in `test.ts` cover
+it on constructed inputs whose answer is known by hand, before the corpus is mentioned.
+
+**Mutations — 13, every one failing by name.** M1 drop the `minus` declaration → the new arm names the
+pair. M2 declare a false collision (`home|search`) → STALE by name. **M3 revert arm F to string
+comparison → the `minus` declaration goes STALE**, which is the mutation that proves the upgrade is
+load-bearing rather than decorative. M4 normalizer returns a constant → everything merges, undeclared
+collisions flood. M5 normalizer returns its input → silent revert to string comparison, caught as STALE.
+M6 tokenizer skips unknown commands → `test.ts` by name. M7 reintroduce the real `V`-argument bug → gate
+names the non-finite coordinate. M8 drop the global flip → the multi-ring test by name. M9 corpus floor
+36 → 37 → `test.ts` by name, which is also what proved the new block is *reached*. M10 drop `simplify` →
+both invisibility tests by name. M11–M13 below.
+
+**Two things the mutations found that reading would not have.**
+
+1. **M11 exposed a hole and the fix is a population floor.** Deleting the `failures.push` in arm F's
+   catch *did* still fail the gate — but only incidentally: the names that dropped out happened to
+   include two declared pairs, so the stale-declaration arm caught it. An unparsable path on any of the
+   other 33 names would have shrunk the compared set in silence, with every arm agreeing over the
+   remainder. Arm F now checks the count of names **compared** against the count **seen**, two numbers
+   derived on opposite sides of the try/catch. **M12 needed two attempts and the first failure is the
+   lesson**: an *arc* is rejected by the pre-existing ink walker before arm F ever sees it, so it proves
+   nothing about the floor. The isolating case is a command `inkBox` models and `glyph-shape` refuses —
+   a **quadratic** — and there the floor fires by name (`38 of 39 … 1 dropped out`). The two walkers
+   have different alphabets, which is exactly why the catch and the floor are both needed.
+2. **Of the seven "refuses malformed input" assertions, only the quadratic is a clean detector.** With a
+   skipping tokenizer, `Q`'s four arguments form two valid coordinate pairs and parse silently; the
+   relative, arc and smooth-cubic cases throw *incidentally*, on leftover arity. All seven are true
+   statements and worth keeping, but only one of them tests the thing its name claims.
+
+**The durable fix is a delivery constraint, not a file.** The set is an explicit placeholder
+(`icons/NOTICE.md`), so what stops a *commissioned* set repeating this is `docs/40` §5.3, which now
+requires every `-filled` name to draw a distinct, heavier shape than its sibling — with the 1.38–2.30×
+vs 1.00× numbers, so it can be checked on delivery rather than argued. It also states the alternative
+explicitly: tell us a concept has no filled form and we drop the name *before* `icon.name` ships, when
+it is not yet a MAJOR break.
+
+**Filed, not fixed here:** ink monotonicity — a `-filled` glyph must carry meaningfully more ink than its
+sibling. It catches what distinctness cannot (a `-filled` that differs but is *lighter*), and it needs a
+rasterizer and a tuned threshold, so it is its own concern.
+
+---
+
 ## (2026-08-25) — The border a fill did not need: deleting seven keys, and the gate that found all three defs (#1011)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.21.0 → **0.22.0** (behaviour change: what the plugin builds for

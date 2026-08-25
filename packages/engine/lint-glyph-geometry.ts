@@ -76,24 +76,34 @@
  *
  * The corpus's own duplication is admitted rather than hidden. Three of the source set's `-fill` files
  * draw their `-line` sibling's shape, because a pure stroke has no filled form: `plus`/`plus-filled`
- * and `close`/`close-filled` are byte-identical, and `minus`/`minus-filled` differ only in the winding
- * of one rectangle. So 39 names are 36 distinct **shapes** and 37 distinct **path strings**.
- * `DUPLICATE_PATHS` records the two string collisions by name with the reason, and it is checked in
- * BOTH directions — an entry that stops colliding fails as stale, a new collision fails as undeclared.
- * Without it, "every member draws its own outline" would either be false or would have to be weakened
- * to a claim no wrong template could break.
+ * and `close`/`close-filled` are byte-identical, and `minus`/`minus-filled` are the SAME RECTANGLE
+ * STARTED AT A DIFFERENT VERTEX. So 39 names are 36 distinct **shapes** and 37 distinct **path
+ * strings**. `DUPLICATE_SHAPES` records all three collisions by name with the reason, and it is checked
+ * in BOTH directions — an entry that stops colliding fails as stale, a new collision fails as
+ * undeclared. Without it, "every member draws its own outline" would either be false or would have to
+ * be weakened to a claim no wrong template could break.
  *
- * **The limit that gap exposes, and it is this file's own blind spot:** the arm compares path STRINGS,
- * so `minus`/`minus-filled` pass it while rendering identically. Two paths that draw one shape by
- * different routes are invisible here. Closing that needs shape comparison rather than string
- * comparison, which is a different instrument; what this arm actually catches is a template filled
- * from the wrong thing, where the collision is literal. Stated rather than implied, because a reader
- * who takes "37 distinct outlines" as "37 distinct pictures" is off by one.
+ * **Until #917 that arm compared path STRINGS, and this header named the consequence as its own blind
+ * spot:** `minus`/`minus-filled` passed it while rendering identically, because two paths that draw one
+ * shape by different routes are invisible to string equality. It said closing that needed shape
+ * comparison, "which is a different instrument". `glyph-shape.ts` is that instrument, and arm F now
+ * keys on its canonical form rather than on the raw `d`. The corpus count in this file's own output
+ * therefore moved from 37 to 36, and the third pair is declared rather than silently admitted.
+ *
+ * **The new limit, one level out, because the instrument is not a rasterizer.** `canonicalShape` proves
+ * sameness and cannot prove difference: equal canonical forms guarantee one picture, unequal ones only
+ * mean that no transform in its enumerated list relates the two. So this arm is still an
+ * under-approximation of render equivalence — a duplicate related by some transform outside that list
+ * (a cubic drawn as a line, one region decomposed into a different number of subpaths) still passes.
+ * That list, and what is deliberately outside it, lives in `glyph-shape.ts`'s header. Stated rather
+ * than implied, for the same reason the old paragraph was: a reader who takes "36 distinct rendered
+ * shapes" as a proof that 36 pictures exist has the direction of the guarantee backwards.
  */
 
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, type AnatomyPlan, type FigmaNodePlan } from './anatomy-figma';
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
+import { canonicalShape, GlyphPathError } from './glyph-shape';
 import type { ComponentDef } from './component-schema';
 
 /**
@@ -135,7 +145,7 @@ const MUST_COVER = ['icon.glyph', 'checkbox.mark', 'checkbox.dash'];
  * a tick), `at` is WHERE it is drawn (widen the gate and an unchecked box shows one). Both render as a
  * plausible checkbox and neither moves any geometric measurement in this file.
  *
- * Checked in BOTH directions, same discipline as `DUPLICATE_PATHS`: an entry for a part that is now
+ * Checked in BOTH directions, same discipline as `DUPLICATE_SHAPES`: an entry for a part that is now
  * axis-templated fails, an entry for a part that no longer exists fails, and an `at` naming a coordinate
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
@@ -148,7 +158,7 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
   'checkbox.dash': {
     glyph: 'minus',
     at: { selection: ['indeterminate'] },
-    why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two differ only in the winding of one rectangle (see `DUPLICATE_PATHS`) and the line form is the one the rest of the corpus draws',
+    why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two draw ONE rectangle from a different start vertex (see `DUPLICATE_SHAPES`; this reason said "differ only in the winding" until #917 measured it and found a rotation, not a reversal) and the line form is the one the rest of the corpus draws',
   },
 };
 
@@ -166,11 +176,28 @@ const sameGate = (a: Record<string, readonly string[]>, b: Record<string, readon
  * These are a defect in the SOURCE set, not in the mapping: each name resolves to the file it claims,
  * and the two files draw the same thing. Recorded here because the "every member draws its own
  * outline" arm below is what makes a mis-templated `glyph` fail, and an unexplained collision would
- * otherwise force that arm to be weakened into uselessness. Filed upstream as #917.
+ * otherwise force that arm to be weakened into uselessness.
+ *
+ * **Named `DUPLICATE_SHAPES` since #917, and the rename is the point rather than tidying.** It was
+ * `DUPLICATE_PATHS` while the arm compared path strings, and under that comparison it could only ever
+ * hold two of the three real duplicates — `minus`/`minus-filled` draw one rectangle from two different
+ * start vertices, so they were a duplicate the register was structurally unable to name. A register whose
+ * name describes a weaker comparison than the one it now serves misdirects the next reader about what an
+ * absence in it means.
+ *
+ * **Why all three stay rather than three names being deleted, decided in #917 and not deferred.**
+ * `-filled` in this set means the SOLID form, and that is measurable: over the seven genuine `-line`/
+ * `-fill` pairs the filled member carries 1.38× to 2.30× the ink of its sibling (rasterized at 4× over
+ * the 24×24 box, nonzero winding). All three entries below measure exactly 1.00×. A plus, an X and a
+ * dash are bare strokes with no interior and no enclosure, so there is nothing for a fill to fill —
+ * the source set is not wrong, it has correctly declined to invent a shape. Dropping the three names
+ * would be a MAJOR contract break (`icon.name` is versioned surface) to fix a cosmetic duplication,
+ * and a branded set swapped in later may well draw all six distinctly. See `icon-set.ts`.
  */
-const DUPLICATE_PATHS: Record<string, string> = {
+const DUPLICATE_SHAPES: Record<string, string> = {
   'close|close-filled': "Remix's close-line.svg and close-fill.svg are byte-identical (sha256 2d004b029720) — an X has no filled form, so the source set has nothing to put under -fill",
   'plus|plus-filled': 'add-line.svg and add-fill.svg are byte-identical (sha256 e3af16eef67d) — same reason as close',
+  'minus|minus-filled': 'subtract-line.svg and subtract-fill.svg are two DIFFERENT strings drawing one rectangle — `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`, the same four vertices in the same direction from a different start vertex. Invisible to string comparison, which is why this entry could not exist before #917',
 };
 
 /** The placeholder swap target, passed unconditionally exactly as `apps/plugin/src/main.ts` does — it
@@ -472,22 +499,50 @@ for (const def of componentDefs as ComponentDef[]) {
     if (extra.length)
       failures.push(`${def.id}.${partName}: ${extra.length} member(s) name a glyph the vocabulary does not define — [${extra.slice(0, 6).join(', ')}].`);
 
-    // ---- F: EVERY MEMBER DRAWS ITS OWN OUTLINE, duplicates admitted by name ---------------------
+    // ---- F: EVERY MEMBER DRAWS ITS OWN SHAPE, duplicates admitted by name -----------------------
     // The arm that fails when `glyph: '{name}'` is templated wrong. A collision must be DECLARED, in
     // both directions, or "39 members carrying one path" reads as a pass.
-    const byPath = new Map<string, string[]>();
-    for (const [name, path] of seenNames) byPath.set(path, [...(byPath.get(path) ?? []), name].sort());
-    const collisions = [...byPath.values()].filter((ns) => ns.length > 1);
+    //
+    // KEYED ON THE RENDERED SHAPE SINCE #917, not on the `d` string. `canonicalShape` collapses the
+    // spellings that do not reach the raster — start vertex, whole-shape direction, subpath order, H/V,
+    // a redundant vertex — so two files drawing one picture by different routes now collide here. That
+    // is what makes the third pair visible; see this file's header for the limit that remains.
+    const byShape = new Map<string, string[]>();
+    for (const [name, path] of seenNames) {
+      let shape: string;
+      try {
+        shape = canonicalShape(path);
+      } catch (e) {
+        // A path this comparison cannot parse EXACTLY is a failure, never a name excused from the arm.
+        // Skipping it would shrink the population silently and the note below would still read clean —
+        // `docs/34` shape 9, and the reason `glyph-shape.ts` throws rather than returning a partial shape.
+        failures.push(`${def.id}.${partName}: the outline for '${name}' cannot be compared by shape — ${(e instanceof GlyphPathError ? e.message : String(e)).replace(/\.$/, '')}. Until it parses, this name is outside the "every member draws its own shape" arm, so the arm fails rather than measuring 38 of 39.`);
+        continue;
+      }
+      byShape.set(shape, [...(byShape.get(shape) ?? []), name].sort());
+    }
+    // THE POPULATION FLOOR, and it is here because a mutation showed the arm above is not enough on its
+    // own. Deleting the `failures.push` in that catch DID still fail this gate — but only incidentally:
+    // the names that dropped out happened to include two declared pairs, so the stale-declaration arm
+    // below caught it. An unparsable path on any of the 33 names that are NOT in a declared pair would
+    // have shrunk the compared set in silence, and every arm here would have agreed over the remainder.
+    // So the count of names actually COMPARED is checked against the count of names SEEN — two numbers
+    // derived on different sides of the try/catch, which is what makes this independent of which name
+    // broke rather than a second reading of the same fact.
+    const compared = [...byShape.values()].reduce((n, ns) => n + ns.length, 0);
+    if (compared !== seenNames.size)
+      failures.push(`${def.id}.${partName}: ${compared} of ${seenNames.size} member outlines were compared by shape — ${seenNames.size - compared} dropped out. Every arm below then agrees over the remainder and reports clean, which is "I could not look" spelled as "I looked and found nothing" (\`docs/34\` shape 9).`);
+    const collisions = [...byShape.values()].filter((ns) => ns.length > 1);
     for (const ns of collisions) {
       const key = ns.join('|');
-      if (!DUPLICATE_PATHS[key])
-        failures.push(`${def.id}.${partName}: [${ns.join(', ')}] all draw ONE outline and that collision is not declared. If the vocabulary genuinely holds one shape under several names, add '${key}' to DUPLICATE_PATHS in this file with the reason; otherwise the glyph template is filled from the wrong thing and every member of this set draws the same glyph.`);
+      if (!DUPLICATE_SHAPES[key])
+        failures.push(`${def.id}.${partName}: [${ns.join(', ')}] all draw ONE shape and that collision is not declared. If the vocabulary genuinely holds one picture under several names, add '${key}' to DUPLICATE_SHAPES in this file with the reason; otherwise the glyph template is filled from the wrong thing and every member of this set draws the same glyph.`);
     }
     const live = new Set(collisions.map((ns) => ns.join('|')));
-    for (const key of Object.keys(DUPLICATE_PATHS))
+    for (const key of Object.keys(DUPLICATE_SHAPES))
       if (!live.has(key))
-        failures.push(`${def.id}.${partName}: DUPLICATE_PATHS declares '${key}' as one shape under two names, and this run found them DISTINCT. A stale exemption is a hole in the "every member draws its own outline" arm — drop the entry in the same PR that made them differ.`);
-    notes.push(`${def.id}.${partName}: ${seenNames.size} name(s) → ${byPath.size} distinct outline(s) on a ${vb.w}×${vb.h} artboard, ${collisions.length} declared collision(s)`);
+        failures.push(`${def.id}.${partName}: DUPLICATE_SHAPES declares '${key}' as one picture under two names, and this run found them DISTINCT. A stale exemption is a hole in the "every member draws its own shape" arm — drop the entry in the same PR that made them differ.`);
+    notes.push(`${def.id}.${partName}: ${seenNames.size} name(s) → ${byShape.size} distinct rendered shape(s) (${new Set(seenNames.values()).size} distinct path string(s)) on a ${vb.w}×${vb.h} artboard, ${collisions.length} declared collision(s)`);
   }
 
   // ---- G: geometry must not appear on a node that is not a glyph -------------------------------
@@ -508,7 +563,7 @@ for (const m of MUST_COVER)
 // records; nothing there can see an entry naming a part that no longer exists at all — the loop simply
 // never reaches it. `MUST_COVER` happens to name both of today's entries, but the two tables answer
 // different questions and a future fixed part need not be a scope floor, so this is not that check
-// arriving twice: the exemption itself has to be perishable, same as `DUPLICATE_PATHS`.
+// arriving twice: the exemption itself has to be perishable, same as `DUPLICATE_SHAPES`.
 const vectorParts = new Set(
   (componentDefs as ComponentDef[]).flatMap((def) =>
     Object.entries(def.anatomy?.parts ?? {})
