@@ -404,7 +404,11 @@ for (const d of defs)
 
 const failures: string[] = [];
 const detail: string[] = [];
-const key = (axis: string, values: readonly string[]) => `${axis} ${values.join('')}`;
+/** Identity of a (axis, values) pair. `JSON.stringify` rather than a delimiter join: the values are
+ *  author-typed strings, so any separator character is a collision waiting to be typed, and the two
+ *  control characters that could not collide turned this source file BINARY to `grep` and `file`
+ *  — invisible in every diff, and a file text tooling silently skips is worse than a collision. */
+const key = (axis: string, values: readonly string[]) => `${axis} ${JSON.stringify(values)}`;
 
 if (dupes.length) {
   failures.push(`${dupes.length} def id(s) exported from more than one file`);
