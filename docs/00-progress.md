@@ -110,6 +110,384 @@ rasterizer and a tuned threshold, so it is its own concern.
 
 ---
 
+## (2026-08-25) — migrate the variable, keep the binding: the rename map (#1013)
+
+**STATUS: shipped.** No version change (nothing emitted moves; no token name changes) and **no gate
+count change — still 43**: the check lives in `packages/engine/test.ts` (2470 arms), not a new file, for
+a reason stated below.
+
+**The cost curve, not a defect.** `write-figma.ts` is create-or-update **by name**, which is idempotent
+for adds and edits and structurally blind to a rename: the new name is created, the old one is never
+touched, and every binding a designer made against the old name keeps pointing at a variable the engine
+has stopped writing. `orphansOf` (#479) makes that visible; nothing migrated it. With #1013 Q4 on the
+table — whether the alias layer and the value layer swap names — that rename is cheapest today and
+grows more expensive every week a themed file exists. Landing the mechanism first is what makes the
+decision safe to take slowly.
+
+**The mechanism is one line, and it was checked rather than assumed.** `Variable.name` and
+`VariableCollection.name` are writable in `@figma/plugin-typings/plugin-api.d.ts`; `.id` is `readonly`
+on both. A binding stores the **id**, so `v.name = to` carries every existing binding across. That is
+why this lane is worth more than the prune lane it is deliberately not: it is the non-destructive half
+of the same problem.
+
+**Decision 1 — the map is DERIVED from `DEPRECATIONS`, not hand-authored.** The deciding property is a
+forcing function, not brevity. `token-contract.ts --accept` refuses a MAJOR bump without the
+`CONTRACT_VERSION` increment and prints "If a removal is a RENAME, add a DEPRECATIONS entry"; `classify`
+refuses a `replacedBy` absent from the live guaranteed set. So a rename is recorded **by a gate, at the
+moment it happens**. A second, Figma-side, hand-authored list has no forcing function at all — it is a
+rule performed by memory, and its failure is silent: the rename ships, the list does not gain an entry,
+nothing notices. One authored record, two consumers. Measured today: **43 deprecations → 80 projections
+(40 `color` + 40 `surface`), 40 of which have a live Figma target**; the 3 that project to nothing are
+exactly `motion.easing.*`, and that is asserted **by name** rather than tolerated as a count.
+
+**Decision 2 — a COLLECTION rename and a VARIABLE rename are different operations.** A collection
+rename is ONE write that preserves every child id and every child name; 200 variable renames are 200.
+It is also **invisible to `DEPRECATIONS`** — the collection name is a materialisation choice, not a
+contract path — so `COLLECTION_RENAMES` is *authored*, and **ships empty**, asserted empty, because
+pre-authoring the entry would take #1013 Q4 by shipping it into designers' files. The sharp difference
+is **ordering**: the collection rename must run *above* the find-by-name it exists to fix, or
+`upsertCollection` creates a fresh empty collection beside the old one and orphans ~236 variables at
+once — strictly worse than doing nothing. So it lives inside `upsertCollection`, which is the only
+place a caller cannot get the order wrong. A **swap** refuses statically: Figma permits duplicate
+collection names, so `color`→`surface` alongside `surface`→`color` passes through a state where
+find-by-name is arbitrary, and that needs a two-phase temp name this deliberately does not do.
+
+**Decision 3 — a wrong map is inert, and the split between static and apply-time is load-bearing.**
+Static (`validateRenameMap`, before any write): self-entries, chains, fan-**out**, duplicate collection
+sources/targets, cycles — a non-empty result empties the map and the write degrades to today's
+orphan-and-recreate, a known state rather than a new one. Apply-time (`planVariableRenames`, per entry):
+`source-absent` (the *normal* case), `target-occupied` (merging would drop one side's bindings),
+`ambiguous-source`. Refusing chains **statically** is what makes the apply pass order-independent. And
+the precondition that makes a wrong entry inert instead of destructive is `target-not-planned`: a
+migration only applies when `to` is a name the current plan is about to write, so a stale entry can
+never rename a live variable to a name the engine has stopped emitting — the one way this operation
+could manufacture an orphan out of a healthy variable.
+
+**Fan-in is real, and it is not a static refusal.** Three groups today: a 3.0.0 entry and a 4.0.0 entry
+both landing on `color/interactive/<palette>/inverse/border/rest`. That is a correct contract record and
+an ambiguous migration, so the **file** is the disambiguator rather than an authored preference — one
+source live migrates, two live refuses the group and moves neither, and the refused sources fall through
+to the orphan report so nothing goes unmentioned in either direction.
+
+**The surface mirror is the hole a color-only map would have left silently.** `surface/*` carries a
+122-of-236 subset of `color/*`'s suffixes, so one renamed contract path can exist **twice** in a file
+under two Figma names — 3 of the 40 live entries need the surface migration too. The mirror
+over-projects on purpose, and that is safe *only* because an absent source is a reported no-op rather
+than an error; both halves are asserted.
+
+**Reversible or reportable, per the restraint `orphansOf` set.** A migration is `name = to` on a
+preserved id, so its inverse is `name = from`, and every applied migration is reported with both names.
+Refusals (`isRefusal`: occupied / not-planned / ambiguous) appear in the summary but deliberately do
+**not** flip `ok` — a designer's file having drifted is not a failure of the write. There is no undo
+command: that would be a second write path into a file the engine did not author.
+
+**Why no new gate, and why that is not laziness.** The check needs exactly two things — the authored
+record and the emitted corpus for all three brands — and `test.ts` already reads both (the `surface`
+block does it for the same reason). A `lint-rename-map.ts` would add five files of wiring and not one
+unit of independence. The direction this *cannot* hold — "every rename that ever happened has a
+DEPRECATIONS entry" — is unknowable from today's emission and is held by construction at the other end
+by `token-contract.ts --accept`. Two checks, one property each.
+
+**The oracle is the emitted corpus, because the characteristic failure here is silence.** Get the
+DTCG→Figma transform wrong and every `from` is a name no file contains: the pass migrates nothing,
+reports a clean run, and is indistinguishable from a healthy file. Nothing inside the module can catch
+that — `deriveVariableRenames` agrees with itself by construction (`docs/34` shape 2). So every arm
+compares the derivation to `out/figma/**`, written by the emitters and knowing nothing about
+`DEPRECATIONS`, in **both** directions (every `to` resolves; no `from` is still emitted), with floors so
+a collapsed derivation fails instead of reading clean (shape 9). `figmaVarName` is **imported** from
+`anatomy-figma.ts` rather than re-derived, for the same reason its own comment gives.
+
+**Two holes the harness found on its first run, neither of them predicted.** (1) `motion.easing.*` was
+projecting into a `motion` collection no write plan produces — entries that can never fire and can never
+be reported, which is worse than no entry because they inflate the map's own count. Fixed by measuring
+the real domain: `PROJECTED_ROOTS` is 9 of the 18 guaranteed roots, and the other 9 are excluded for
+three *different* reasons (prefixed collection names, Figma STYLES, no variable counterpart at all) —
+named individually so a future deprecation landing there forces the decision instead of skipping
+quietly. (2) The plugin harness read 34/40 migrations, which was not a defect in the executor but in the
+seed's realism: seeding *every* source makes all 3 fan-in groups ambiguous. The fix was to make that a
+**named arm driven by the real map** — one file with one source per target, a second with both — rather
+than an accident. The unit of report is the *target*, not the map row, and the two counts differ on
+purpose (40 entries → 37 targets); that is now its own arm.
+
+**19/19 mutations fail by the gate's own named assertion**, tree clean after each. The battery covers
+both halves: recreate-instead-of-rename (id arm), `byName` not updated (the create-saved arm — this is
+the one that fails if the rename lands after `byName` is read), collection rename moved *below*
+find-by-name, the orphan snapshot taken *before* the migration, the invalid map not emptied, each of the
+five statuses individually, the transform broken, the mirror collapsed, a root added to and removed from
+`PROJECTED_ROOTS`, each static refusal, and `COLLECTION_RENAMES` pre-authored. The last one is the
+finding worth carrying: the cross-root guard (a `replacedBy` under a different root is a *move*, not a
+rename) could be **deleted with no effect anywhere**, because nothing in today's data is cross-root. A
+guard with no live case is a guard with no arm, and only the battery says so. It is now armed on a
+constructed pair, negative *and* positive, so the arm cannot be satisfied by a derivation that projects
+nothing.
+
+**Not in scope, deliberately:** the prune lane (a separate open decision, genuinely destructive where
+this is not), and the CLI paste path — `materialise-to-figma.ts` does not adopt the map, so it keeps
+today's orphan-and-recreate behaviour. That degrades safely rather than silently, and it is filed as
+**#1024** rather than left in this paragraph. Also noted while measuring: there is **no parity gate**
+between `materialise-to-figma.ts` and `write-figma.ts`, which is why the divergence is worth an issue
+rather than a comment.
+
+---
+
+## (2026-08-25) — the vertical rule: one QA observation, two properties, one of them buildable (#1009)
+
+**STATUS: shipped, half 2 of two.** `ENGINE_VERSION` 0.21.0 → **0.24.0** (0.22.0 taken by #1016, 0.23.0
+taken by #1021, both merged first — the emitted plan gains a field); `CONTRACT_VERSION` stands at 5.3.0 —
+this is the Figma projection, not the token tree, and `token-contract.ts --check` says so rather than this
+sentence asserting it. Gates stay at **42**.
+
+**What shipped.** `FigmaNodePlan.textAlignVertical`, claimed on every projected TEXT node and on nothing
+else, defaulted to `CENTER` by the projector and overridable per part via `PartDef.verticalAlign`. Both
+executors write it — the plugin adapter and the generated paste payload — and `anatomyErrors` refuses the
+field on any kind but `text`, because `textAlignVertical` is a `TextNode` property and Figma throws on
+that write.
+
+**Where the rule lives, which is the question #1009 held open, and the measurement is what decided it.**
+Over every projected member: **774 TEXT nodes, ZERO with a bound height.** A hugging text node's box IS
+its content, so `TOP` and `CENTER` land the glyphs in identical pixels — the property is a no-op on every
+node that exists today. That turns the stated risk of a projector default (*"a def that wants top
+alignment now has to opt out of something it never opted into"*) into a small one: there is no node the
+default can get wrong, because there is no node it can move. So it is introduced at the one moment it
+costs nothing, and every text node that later gains a height inherits a decided rule instead of Figma's
+`TOP`. A **required schema field** was rejected on the same measurement — eleven defs stating a value none
+of them can exercise is eleven claims no gate can check. **Per-def only** was rejected by #1009's own
+observation, three for three wrong.
+
+The override ships in the same change as the default rather than when someone first needs it, and that is
+deliberate: *an opt-out that arrives after the default is an opt-out nobody could have used.* It is
+exercised on a synthesised part, since `textarea` — the def everyone can already name for wanting `top` —
+has no anatomy yet.
+
+**Say plainly what this does not do.** It does not move a pixel today, and it is not the fix for the QA
+symptom that opened the issue. #1009 arrived as one observation and is **two properties on two different
+nodes**. Anyone reading the issue title and expecting the checkbox to look right afterwards will be
+disappointed, which is why the version note says so too.
+
+**Half 1, measured and then NOT built.** A `medium` checkbox binds a 16px control against a `body.md`
+label whose line box is 16 × 1.5 = **24px**, so top-aligned the control's centre sits **4px above** the
+first line's centre. Real — the QA is right that something is off. The three candidate mechanisms:
+
+- **blanket `counterAxisAlignItems: 'CENTER'`** — wrong, and wrong in the way the issue's first draft
+  asked for. On a wrapping label it centres the control on the *paragraph*.
+- **`MIN` (what ships)** — tracks the first line correctly and is simply 4px high.
+- **the exact repair** — a control frame the height of the LINE BOX, top-aligned, centring the control
+  inside itself. This is the CSS `height: 1lh` idiom and it is *not currently expressible*: line-height is
+  a **ratio** token (1.5) against a **rem** font size, Figma variables cannot multiply, and no px
+  line-height variable is emitted. Building one is a new derived token surface with contract
+  consequences — a different change, filed rather than folded in here.
+
+`leadingTrim: 'CAP_HEIGHT'` narrows the error (4px → ~2.2px at `medium`) and does not close it: exactness
+needs the control's height to equal the cap height, which is no more true than it equalling the line box.
+
+**So half 1 is GUARDED instead of fixed**, which is the part worth carrying forward. A row pairing a sized
+non-text control with a text label must not be `align: 'center'` unless `CENTRE_OK` states why its label
+cannot wrap. `checkbox.ts:432` had been protecting exactly this since before the issue existed, in a
+comment; it is now a test that fails by name.
+
+**The first run of that guard flagged `button.container`, where centring is RIGHT** — a button's label is
+a short action phrase, so the first line IS the block and the hazard cannot arise. The tempting move was
+to narrow the rule until button fell out of it (keying on counter-axis sizing would have done it). That
+would have been *a derived discriminator standing in for a design fact*, and the design fact is what makes
+the exemption true. It is a reasoned entry in a register instead, with a stale-direction arm so the
+exemption cannot outlive the row it describes.
+
+**Both shims were taught to refuse.** The plugin shim and the engine stub now start a TEXT node at Figma's
+default `TOP` and **throw** on the write for every other node type, which is what Figma does. Both halves
+matter: starting at `TOP` is what makes a node reading `CENTER` evidence of a *write* rather than of a
+helpful default, and the throw is what lets the "no frame carries it" arm witness a refusal rather than
+observe an absence. Mutation S10 confirms it — with the shim made permissive *and* the projector made
+wrong, the arm still fails.
+
+**Ten mutations, each failing by name.** S1 projector stops claiming it; S2 default flipped to `top`; S3
+claimed on every node rather than text; S4 the plugin executor stops writing it (plan right, canvas wrong
+— #802's class); S5 the **paste** path stops writing it, where the parity arm is the only witness because
+that write lives inside a generated string no typechecker reads; S6 the wrong-kind refusal removed; S7
+someone "fixes" the QA by blanket-centring checkbox's row; S8 the `CENTRE_OK` exemption goes stale; S9 the
+per-part override stops reaching the plan; S10 above.
+
+**THE REBASE FOUND A COLLISION, AND IT IS THE MOST USEFUL THING IN THIS ENTRY.** #865 landed as #1017
+while this branch was open — the sibling issue, the same defect from the other side. Rebasing onto it
+turned three gates red, and one of the two causes was substantive rather than mechanical.
+
+#1017 adds `claimDefaults`, a pass that writes Figma's own default for every visually-significant property
+the plan did not claim. Its doc says, correctly, that it *"runs LAST, after every plan-driven write, so a
+declared value is never clobbered"*. Its `textAlignVertical` line was **unconditional**:
+
+    if (t === 'TEXT') {
+      set('textAlignVertical', 'TOP');
+
+So it wrote `TOP` over every claim this change makes, after the claim. Guarded now, exactly like `effects`
+and `opacity` beside it — and the guard is what keeps that sentence true, because **this is the first
+property `claimDefaults` neutralises that the plan can also speak about.** Every other entry in the TEXT
+block is still genuinely unclaimed, which is why five of the six need no guard and one does.
+
+**The PARITY arm is what caught it**, and by a route nothing else could have taken: the paste path has no
+neutraliser, so it still read `CENTER` while the plugin path read `TOP`. A single-executor test would have
+seen `TOP` on both sides of its own comparison and reported agreement. *Two executors are two opinions;
+one is a mirror.* Mutation S11 restores the collision and both suites name it.
+
+**And #1017's comment made two claims about this property that were true when written and are now false**,
+both corrected here. It said the line *"changes no pixel today"* — it does, wherever a text node has a
+height, because the plan now claims `CENTER`. And it cited `components/checkbox.ts` as arguing for `TOP`.
+That is the exact conflation this issue's own correction untangled: checkbox argues for TOP on its **ROW**,
+which is `counterAxisAlignItems` on the parent frame — a different property on a different node. Two lanes
+reading one QA observation both reached for the same def to justify opposite-tier decisions, which is what
+made the observation worth splitting in the first place.
+
+**A verification limit, stated rather than implied.** Nothing here renders. The shims record property
+assignments; they do not lay out, so the 4px figure above is arithmetic over the emitted tokens and not a
+measurement of a built frame. What would close that is a live Figma check on a two-line label — the same
+check the owner used against the Prism2 reference, and the reason the correction to this issue exists at
+all.
+
+---
+
+## (2026-08-25) — a placeholder that outlived its dependency, and the footprint rule that was authored for one def (#1010)
+
+**STATUS: shipped.** `ENGINE_VERSION` **0.21.0 → 0.23.0** (0.22.0 is taken by the open #1016, and a
+second 0.22.0 entry would be the later merge's problem, not mine). `CONTRACT_VERSION` stays **5.3.0** —
+no token name and no `$type` moved. Gates stay at **42**.
+
+**The defect.** `field-message` built an `FPO` circle where its status icon belongs: one `kind: 'slot'`
+part nominating an `INSTANCE_SWAP` placeholder, wrong size, no per-status glyph. The 39-glyph set had
+landed in **#920** and this def bound none of it. Three `presentWhen`-gated `vector` parts replace the
+slot — `error → warning-triangle`, `warning → error-circle`, `success → check-circle`, each at
+`icon.size.xs` (16px in every corpus brand) inking `color.icon.{danger,warning,success}`.
+
+**Why nothing caught it, and it is the interesting half.** *A placeholder is a structurally valid
+child.* Every plan-level check passed, because every value resolved — the slot resolved, the size
+resolved, the paint resolved. There was no wrong value anywhere; there was a right value pointing at
+scaffolding whose reason had expired eight months earlier. Nothing in the repo relates "this def
+declares a placeholder" to "the thing it stands in for now exists", and no gate can, because a
+dependency landing elsewhere is not a change to this file.
+
+**The default tone projects NO glyph** (decided by the owner, over reserving a 16px void). That is the
+whole reason `presentWhen` is doing the work here, and it is what surfaced the second finding.
+
+**FINDING 2 — the footprint cohort was authored for Button and never revisited for `presentWhen`.**
+The plugin harness reported three `footprint ->` misses: `tone=error measures 126x24 but tone=default
+measures 102x0`. `planSetLayout` keys each member's cohort on `size=` + `leading=` + `trailing=` — the
+axes that legitimately change *Button's* box — and the executor reports a miss when a member's box
+differs from the first in its cohort. `checkbox` and `radio` gate a mark **inside** a size-bound
+`control`, so their box holds still and they never met this. `field-message` is the first def where a
+gated part is a flow child of the row, so its box genuinely moves.
+
+`FigmaProperties.footprintVaries?: string[]` is the fix and the reusable half: a per-def declaration
+of the axes on which the box legitimately moves, validated as (a) an axis this def actually projects
+and (b) an axis some part's `presentWhen` gates. **Declared, not derived from `presentWhen`** —
+deriving it would exempt `checkbox` along `selection`, deleting a cross-variant comparison that is
+currently doing real work. The exemption is not free and the def says so: `tone` is `field-message`'s
+only axis, so each member becomes its own cohort and the footprint rule checks nothing there; two
+named harness arms cover the box instead.
+
+**M2 is the `docs/34` demonstration for the new test arm.** The cohort key is derived twice — once by
+the engine (`planSetLayout.group`) and once by a JS `cellOf` shipped **inside** the chunked payload —
+and they must reach the byte-identical string. Making the payload ignore the shipped list failed
+**only** the new field-message parity arm; the pre-existing focus-ring parity arm stayed **green**,
+which is the proof that arm was blind to the new segment rather than redundant with it. The parity
+test extracts `const FOOTPRINT_VARIES=` out of the payload and prepends it to the compiled body rather
+than injecting it as a parameter — deliberately, so a chunk that stops declaring the const goes red
+instead of passing.
+
+**The bounding-box fingerprint was BOTH a false positive and blind, in one line.** My first
+"three tones draw three different glyphs" arm compared the ink **box**, and it failed on correct code:
+`20.3x19.5, 20.0x20.0, 20.0x20.0`. Measuring the artwork explains it — `error-circle` is a 20px ring
+2→22 with a bar and dot, `check-circle` is the **same** 20px ring with a check, so their boxes are
+identical, live as well as in the shim. So the box could not distinguish two glyphs that differ, and
+equally could not have caught a mutation where two tones share one glyph. Replaced by modelling
+`vectorPaths` in the harness shim and comparing subpath **data** pairwise; the mutation now reports
+`4,4,4 subpaths, 2 distinct`.
+
+**The mapping was checked against the artwork, not the name.** `error → warning-triangle` and
+`warning → error-circle` reads transposed and is not: `warning-triangle` is an exclamation in a
+**triangle** (triangle + bar y9–14 + dot y16–18) and `error-circle` is an exclamation in a **circle**
+(ring 2→22 + bar y7–13 + dot y15–17). The glyph names describe the enclosing shape, not the status,
+which is exactly the confusion that makes reading the name insufficient.
+
+**And `lint-glyph-geometry.ts` already had the right home for that, which I found by running the whole
+list rather than by thinking of it.** Every arm I wrote passed and `test.ts` was green at 2453, because
+I had run the engine tests and the plugin harness — the two things the issue named. The full
+`npm run verify` failed this gate: a *fixed* (non-templated) `glyph` must be registered in `FIXED_GLYPH`
+with the name it draws, the coordinate it draws at, and why, or the gate refuses to pass over it. That
+is not paperwork. The table is a **second author** of the pairing, in a different file, so the single
+most likely future edit to this def — somebody "correcting" the mapping to agree with the names — now
+fails as a stale record. Mutation-tested both directions: transposing the def reports *"the def draws
+glyph 'error-circle' and FIXED_GLYPH records 'warning-triangle'… Nothing below can see this"*, and moving
+the recorded coordinate reports the `at` mismatch with the same explanation. A wrong-but-real glyph draws
+correct ink on a correct artboard at a valid coordinate, so **every geometric arm in that file passes it**
+— the same reason `checkbox.dash` is in the table, and the reason an indeterminate box showing a tick
+would otherwise be invisible.
+
+Worth naming as the process finding: the two gates that failed on the first full run
+(`lint-glyph-geometry`, plus `lint-us-english` on `grey` in a def comment that ships through
+`apps/plugin/dist`) are both gates a diff-scoped reading of "this only touches the engine" would skip,
+and `CLAUDE.md` says exactly that in advance. It cost one run to learn nothing new and would have cost a
+red CI to learn it the other way.
+
+**`UNREACHED_EXPLAINED` now holds two categories, and that is a precedent.** `field-message|default.icon`
+is its sixth entry and the first that is not a `<def>|focus-ring` nomination, so membership no longer
+implies the category — the entry's reason had to say *why this one* is unreachable: the paint is
+CODE-ONLY because the projector enumerates members while the node is optional per instance. The five
+above it are unreachable for an unrelated reason (no stroke field, #740). Ungating `iconError` fires it
+by name: `field-message|default.icon is explained as unreachable but IS now reached`.
+
+**THE SWEEP the issue asked for, and its result.** `FPO` is greppable in a way most of this class is
+not. Zero occurrences in `packages/engine/out/` and `packages/engine/schema/`. All twelve remaining
+source hits are one thing: the caller-supplied `swapTarget: 'FPO-default-icon'` argument (in five gates,
+one tool, `apps/studio/src/main.ts`, `apps/plugin/src/main.ts`, and the harness) or a comment about it,
+plus one comment in `field-message.ts` recording the removed defect. **Those are correct and stay.**
+A slot means *the consumer supplies the content* — `button.leadingVisual` genuinely does not know what
+goes there, so a named placeholder to swap against is the right thing for a projection to build.
+
+So the string sweep is clean, but the string was never the property. The structural sweep is
+`kind: 'slot'`: **four** slot parts existed repo-wide (`button` ×2, `icon-button`, `field-message`) and
+three remain. `field-message`'s was the only one whose slot content was **determined by the def's own
+axis** — the only one where the def knew exactly what belonged there and declined to draw it. That is
+the discriminator, it is one grep plus one question, and it is the sweep that would have found #1010.
+
+**Verified at the NODE, not the plan** — the issue was explicit that a plan-level check sees nothing,
+"which is how it shipped". `apps/plugin/test-write-components.ts` now runs the real component set
+through the shim and reads back: member names, per-tone artboard counts `0,1,1,1`, one non-zero VECTOR
+per icon tone, three distinct subpath sets, both size axes bound to `icon/size/xs`, ink per tone, zero
+`INSTANCE` nodes and no `INSTANCE_SWAP` property surviving. Eight mutations, each confirmed to fail by
+name.
+
+**"COPY NEEDS UPDATING" has two readings, and only one of them is copy.** The WORDS — the def's
+`description`, `props.icon`, the `codeOnly` entries and the notes — are rewritten here, because four of
+them made claims that #920 had already falsified. What is NOT done is the reference's **bolded**
+message, and the reason is worth stating precisely because my first reading of it was wrong.
+
+I recorded that there was nothing in-repo to weigh the weight against. There is. Prism2 carries
+`nbds.typography.detail.<sm|md|lg>.{regular,thick}`, where `thick` is `font.weight.semibold` — so the
+reference's "bolded" means semibold, and Prism3's own scale already emits the counterpart,
+`type.caption.md.strong` (`font.weight-role.strong`), in every corpus brand. Per-tone type is
+expressible too: `text.type` is a binding key like any other, so `'{tone}.type'` templates the same way
+`'{tone}.{slot}'` already does for ink.
+
+So it is a one-line change with a reference behind it, and it still does not belong in this PR. Two
+reasons. It is a **type-treatment** change to the caption, a different concern from binding the glyph
+set. And the reference is genuinely ambiguous about scope: "a stroked outline glyph … left of a bolded
+message" sits in the sentence describing the icon-bearing rows, while `standard` is described separately
+as "no icon, grey text" and says nothing about weight. Whether the default tone bolds too is a value
+decision, and guessing it would put a wrong weight on the one tone that carries most of this def's
+real-world traffic. **Filed as #1020, not noted** — prose in this file is not discoverable as work.
+
+**Also filed: #1018** — `figmaProperties.texts` carries one default per prop with no per-member
+coordinate (`anatomy-figma.ts:875–878`), so all four members necessarily render `'Use 8+ characters'`
+and the error member of a validation component ships helper copy. **#1019** — `packages/engine/package.json`
+pins `"version": "0.5.0"` under its own note claiming it tracks `ENGINE_VERSION`, 18 minors behind, with
+nothing checking it; `CONTRACT_VERSION` cannot drift this way and `ENGINE_VERSION` has no equivalent,
+which is the part worth deciding rather than patching. The def's `notes.unverified` carries the two questions
+that are genuinely unresolved rather than deferred: the 16px glyph beside 11px caption type wants an
+optical check, and the #1009 first-line-alignment case wants the multi-line render looked at.
+
+**Out of scope and deliberately untouched:** #1009 (vertical centring — cross-cutting, and its
+checkbox half is being rewritten toward first-line alignment; the multi-line case is noted in
+`notes.unverified`), #865 (the white frame fill, executor-side), #901 (composition).
+
+---
+
 ## (2026-08-25) — The border a fill did not need: deleting seven keys, and the gate that found all three defs (#1011)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.21.0 → **0.22.0** (behaviour change: what the plugin builds for

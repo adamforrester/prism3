@@ -225,6 +225,26 @@ export type PartDef = {
    *  distinct ink ROLE, not a distinct part. `indicator` qualifies (a name and its de-emphasised
    *  suffix are two roles); "this part happens to need its own colour" does not. */
   paintSlot?: string;
+  /** For `text` parts: WHERE the glyphs sit inside the text node's OWN box (#1009). Absent means the
+   *  projector's default, `center` — see `FigmaNodePlan.textAlignVertical` for that decision.
+   *
+   *  THE DEFAULT IS THE PROJECTOR'S AND THE OVERRIDE IS THE PART'S, which is the `paintSlot` shape one
+   *  field up and is chosen for the same reason: two text nodes in ONE component is the case that
+   *  settles it, so a def-level answer would have to become per-part anyway. `field-label` already has
+   *  two.
+   *
+   *  WHAT IT IS FOR, stated plainly because it is NOT what today's corpus exercises. Measured over every
+   *  projected member on `d9c5b2d`: **774 TEXT nodes, ZERO with a bound height.** A hugging text node's
+   *  box IS its content, so `top` and `center` put the glyphs in the same pixels and this field changes
+   *  nothing anyone can see today. It is a CLAIM in #1009's sense — the property stops being a silence,
+   *  and the first text node given a height inherits a stated rule rather than Figma's default.
+   *  `textarea`'s anatomy is the one anybody can already name: a multi-line field's text starts at the
+   *  TOP, and that def will say `verticalAlign: 'top'` here instead of discovering it was centred.
+   *
+   *  IT IS NOT THE FIX FOR A ROW THAT TOP-ALIGNS ITS CONTROL. That is #1009's half 1, it lives on the
+   *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
+   *  were filed as one observation and are two properties on two different nodes. */
+  verticalAlign?: 'top' | 'center' | 'bottom';
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -572,6 +592,37 @@ export type FigmaProperties = {
    *  available rather than whichever axis sorts last. Validated against the def's own axis names, so
    *  a `gridAxis` naming an axis this def does not project is an error rather than a silent fallback. */
   gridAxis?: string;
+  /** Axes on which this def's member BOX legitimately moves — the footprint cohort's exemption list
+   *  (#1010), and the only way a def can opt out of "swapping a variant must not resize the member".
+   *
+   *  THE RULE IT EXEMPTS FROM, first, because the rule is the valuable part. `planSetLayout` groups
+   *  members into footprint COHORTS and the executor reports any member measuring differently from the
+   *  first in its cohort. An outline button two pixels wider than its filled sibling breaks a row of
+   *  buttons, both variants are individually correct, and nothing else notices — so the cohort key omits
+   *  `state` and `appearance`, meaning those are COMPARED, and includes `size` and slot fill, meaning
+   *  those are exempt. Anything named here joins `size` and slot fill.
+   *
+   *  WHY IT HAD TO BECOME DECLARABLE. That key was authored for Button and its two exemptions describe
+   *  Button: a bigger size is a bigger box, a filled slot adds an icon. `presentWhen` (#910) then added a
+   *  second way for a variant to change what nodes exist, and nothing revisited the key — because the two
+   *  defs that used it first, `checkbox` and `radio`, gate a mark INSIDE a size-bound control, so their
+   *  box does not move and the rule was right to compare them. `field-message` is the first def where a
+   *  gated part is a flow child of the row itself: three tones carry a 16px glyph and the default carries
+   *  none, so the members measure 102 and 126 wide and the executor reported three footprint misses on a
+   *  correct build. A build that reports an intended difference as a defect teaches people to skip the
+   *  report, which costs more than the check is worth.
+   *
+   *  WHY NOT DERIVED FROM `presentWhen`, which is one line and would fix `field-message` today: it would
+   *  also exempt `checkbox` on `selection`, deleting the one comparison that def most needs — that a
+   *  checked box is the same size as an unchecked one. Whether a gated part moves the box depends on where
+   *  it sits, not on the fact of the gating, and the structural proxy for "where it sits" (a flow child
+   *  whose ancestors hug) would change `checkbox`'s cohort silently the day someone unbound the control's
+   *  size. Declared, so it is reviewable and so the reason lives with the def that claims it.
+   *
+   *  Validated as a projected axis AND as one some part's `presentWhen` gates — an exemption over an axis
+   *  where nothing structurally varies is a blanket, and the second def to need this for a different
+   *  reason should have to change the check rather than inherit a hole. */
+  footprintVaries?: string[];
   /** prop name → part name. BOOLEAN property; drives that one part's `visible`. An empty object is
    *  a meaningful statement — "considered, and none survive" — and is preferred to omitting the
    *  field: a schema that lists booleans it cannot honor is worse than one that admits there are none. */
@@ -1112,6 +1163,21 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     const names = figmaAxisNames(def);
     if (!names.includes(fp.gridAxis))
       e.push(`figmaProperties.gridAxis: '${fp.gridAxis}' is not an axis this def projects [${names.join(', ')}] — the grid's column axis must be one Figma will carry`);
+  }
+
+  // ---- the footprint exemption ----
+  // TWO conditions, and the second is what keeps the field from becoming a way to switch the footprint
+  // rule off. PROJECTED, for `gridAxis`'s reason: an axis Figma does not carry writes no segment into the
+  // member name, so the payload cannot parse it back out and the two cohort derivations would disagree.
+  // And GATED BY `presentWhen`, because that is the only mechanism by which a variant changes which nodes
+  // a member has — a def whose box moves for some other reason should have to extend this check and say
+  // what the reason is, rather than reach an exemption that was written for a different one.
+  for (const axis of fp.footprintVaries ?? []) {
+    const names = figmaAxisNames(def);
+    if (!names.includes(axis))
+      e.push(`figmaProperties.footprintVaries: '${axis}' is not an axis this def projects [${names.join(', ')}] — an exempted axis Figma does not carry cannot be recovered from the member name`);
+    else if (!Object.values(parts).some((p) => axis in (p.presentWhen ?? {})))
+      e.push(`figmaProperties.footprintVaries: '${axis}' gates no part (\`presentWhen\`) — nothing structurally varies along it, so exempting it from the footprint comparison would exempt the whole def for no stated reason`);
   }
 
   // ---- the part-targeting maps ----
@@ -2296,6 +2362,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (p.kind === 'box' && !p.layout && (p.children ?? []).length > 0)
       e.push(`anatomy part '${n}' is a box with children but no layout — a materializer has no direction to apply`);
     if (p.kind === 'text' && !p.type) e.push(`anatomy part '${n}' is text but binds no type style`);
+    // `verticalAlign` is the TEXT kind's field (#1009) — the same wrong-kind rule as `paintSlot` below,
+    // and it matters MORE here than there, because Figma throws on the write. `textAlignVertical` lives
+    // on `TextNode`; assigning it to a FRAME is a runtime error at paste time, so a `box` carrying this
+    // field would validate clean, project a plan the executor cannot execute, and fail in the live file
+    // rather than in any gate — the exact class `characters` already carries a note about.
+    if (p.kind !== 'text' && p.verticalAlign !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignVertical' is a TextNode property and writing it to a frame throws at paste time; a row that wants its children aligned says so in its own 'layout.align'`);
+    if (p.kind === 'text' && p.verticalAlign !== undefined && !(['top', 'center', 'bottom'] as readonly string[]).includes(p.verticalAlign))
+      e.push(`anatomy part '${n}': verticalAlign '${p.verticalAlign}' is not one of [top, center, bottom] — those are the three values Figma's 'textAlignVertical' has, and a fourth word would project a value the executor writes and Figma discards`);
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
     // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
     // author reasonably believes took effect.

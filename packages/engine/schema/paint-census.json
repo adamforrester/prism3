@@ -64,13 +64,13 @@
     "field-message": {
       "set": {
         "members": 4,
-        "assignments": 8,
-        "sha256": "ee5ab1d4a19d7254cd9c53f3b8c25166d14fafd02b7aba259811b8d71920556b"
+        "assignments": 7,
+        "sha256": "204a4d00558ce5856044646d88773c408c2b94c7d53cb72ca259d3e249ecff20"
       },
       "grid": {
         "members": 4,
-        "assignments": 8,
-        "sha256": "5efe93f9d7e883b325c848a6d13b4272940bb326b8f4cf6ae6fb1f1b56089588"
+        "assignments": 7,
+        "sha256": "2994122cc2c2f9db043ec15ad75a9dd74cf58b5b49148dfa49cddee77aa1f592"
       }
     },
     "checkbox": {

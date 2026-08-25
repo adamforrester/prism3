@@ -36,15 +36,16 @@ import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
-import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './version';
+import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
+import { renameMap, validateRenameMap, planVariableRenames, planCollectionRename, projectionsOf, PROJECTED_ROOTS, isRefusal, type RenameMap } from './rename-map';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
-import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
+import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -7344,6 +7345,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // no matter what the payload does. `strokeWeight` starts at 0 so the payload's
           // `if(!node.strokeWeight)` default fires, as it does live.
           ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+          // #1009: a `TextNode` property. Mirrors the plugin shim exactly, which is the whole point of the
+          // parity gate — TEXT starts at Figma's default `'TOP'`, and every other type THROWS on the write
+          // as Figma does. A stub that accepted it on a frame would let the two executors diverge on the
+          // one property this change adds, while parity still reported clean.
+          ...(type === 'TEXT'
+            ? { textAlignVertical: 'TOP' as string }
+            : {
+                get textAlignVertical(): string | undefined { return undefined; },
+                set textAlignVertical(_v: string | undefined) {
+                  throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+                },
+              }),
           // FIXED-OR-HUG, plus the border-box term — Figma's actual two sizing modes rather than a
           // constant. This was `return stroked ? 2 * strokeWeight : 0` until the absolute part arrived
           // (#536 item 3), and the constant is what made the ring ungatable: a ring is sized as
@@ -8606,6 +8619,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         };
         ok(posMap(plugPage) === posMap(pastePage),
           'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
+
+        // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
+        // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would
+        // be unverified while the plugin half looked complete. Read off the two PAGES, not off the plans.
+        const vAlign = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown>;
+          const all: Record<string, unknown>[] = [];
+          const dive = (n: Record<string, unknown>): void => {
+            all.push(n);
+            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+          };
+          dive(set);
+          return all.filter((n) => n.type === 'TEXT').map((n) => `${String(n.name)}=${String(n.textAlignVertical)}`).sort();
+        };
+        const plugAlign = vAlign(plugPage);
+        const pasteAlign = vAlign(pastePage);
+        // FLOOR: "both agree" is vacuously true of two empty lists, and an empty list is exactly what a
+        // broken tree walk returns.
+        ok(plugAlign.length > 0, `#1009 parity: the built sets hold text nodes to compare (${plugAlign.length})`);
+        ok(plugAlign.every((s) => s.endsWith('=CENTER')),
+          `#1009 parity: the plugin path leaves every text node CENTER, up from the stub's Figma default TOP (${plugAlign.slice(0, 3).join(', ')})`);
+        ok(JSON.stringify(plugAlign) === JSON.stringify(pasteAlign),
+          `#1009 parity: and the PASTE path — a write that lives inside a generated string — agrees node for node. plugin ${JSON.stringify(plugAlign.slice(0, 2))} vs paste ${JSON.stringify(pasteAlign.slice(0, 2))}`);
 
         // THE MISSES, AS SETS, on a file with no variables — the degraded case where `misses[]` is the
         // only channel either path has. Equality here is the claim the byte-identical strings buy:
@@ -11090,12 +11126,44 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // So the paint count is asserted, not just the plan count. `field-message` is the def where those two
   // come apart: a set of four members with zero paints is structurally perfect and entirely grey, and
-  // "4 plans" alone reads as success. 8 = four tones × (caption ink + glyph ink).
+  // "4 plans" alone reads as success.
+  //
+  // SEVEN, NOT EIGHT, SINCE #1010, and the shape of the seven is asserted PER MEMBER rather than as a
+  // total — the correction matters more than the number. This read `=== 8` (four tones × caption ink +
+  // glyph ink) while the default tone still projected a glyph; it no longer does, because the Prism2
+  // reference row our grey default matches is `standard` (no icon). So the default member carries ONE
+  // paint and each validation member TWO. A total of 7 is reachable several wrong ways — 3+2+1+1 among
+  // them — so the total alone would pass a set that had lost the warning glyph and gained a stray paint
+  // somewhere else. `default.icon` is the eighth binding and is deliberately unreachable in Figma;
+  // `lint-paint.ts`'s `UNREACHED_EXPLAINED` is where that is registered, and it fails if it becomes
+  // reachable, so the two files cover the two directions between them.
   const fmSet = figmaAnatomySet(fieldMessage, { swapTarget: 'FPO' });
   ok(fmSet.length === 4 && fmSet.map(planComponentName).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
     `field-message: projects FOUR members, one per tone, named for the only axis it declares (got '${fmSet.map(planComponentName).join(' | ')}')`);
-  ok(fmSet.reduce((n, p) => n + planPaintVars(p.root).length, 0) === 8,
-    `field-message: all EIGHT colour bindings reach a node — four tones × (caption ink + glyph ink). The plan count alone would pass for a set of four grey members (got ${fmSet.reduce((n, p) => n + planPaintVars(p.root).length, 0)})`);
+  const fmPaints = fmSet.map((p) => planPaintVars(p.root).length).join(',');
+  ok(fmPaints === '1,2,2,2',
+    `field-message: the default member paints ONE colour (its caption) and each validation member TWO (caption + glyph) — 7 bindings reaching nodes, in that distribution. A total alone would pass a set that lost one glyph and gained a paint elsewhere (got ${fmPaints})`);
+  // THE 16 IN "16x16" (#1010), measured per brand and resolved through the def's OWN ref. The plugin
+  // harness reads the glyph's size BINDING off the built node, which is as far as it can go — its shim
+  // gives every variable a synthetic value, so the number 16 is not checkable there. It is checkable
+  // here, and it has to be, because the def's whole argument for `icon.size.xs` is that it is 16 in
+  // EVERY brand: it aliases `dimension.16` on the fixed grid rather than riding a density-scaled ladder,
+  // which `control.size.*` does (aurora resolves 12/16/20 against nb's 16/20/24 — see #900 above). A def
+  // repointed at `icon.size.sm` would then silently be 20, and 20 in aurora too, so a brand-invariance
+  // check alone would not catch it. Read via `tokens['glyph-size']` rather than the literal string, so
+  // the assertion follows the def if the ref moves instead of grepping for a name that still matches.
+  {
+    const ref = (fieldMessage.tokens as Record<string, string>)['glyph-size'];
+    const px = corpus().map(({ id, theme }) => {
+      const tree = buildTree(theme).tree as Record<string, unknown>;
+      const root = tree[Object.keys(tree)[0]] as Record<string, unknown>;
+      const leaf = ref.split('.').reduce<Record<string, unknown> | undefined>((o, k) => o?.[k] as Record<string, unknown> | undefined, root);
+      const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
+      return { brand: id.split(' ')[0], px: ext };
+    });
+    ok(px.length === 5 && px.every((b) => b.px === 16),
+      `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
+  }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
     'field-message: no plan carries a size and no member name carries `size=` — a caption has ONE scale, and #795 is what lets the def say so instead of fabricating `size: [md, lg]`');
   // THE HEADER'S CORRECTION IS ITSELF PINNED, because the false claim is the deliverable of this ticket
@@ -11168,6 +11236,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // Ranges over `componentDefs` and asserts the membership BY NAME, so a third def gaining a
   // `presentWhen` is covered the day it lands rather than the day someone remembers this block.
+  // That is not a hope any more: `field-message` is the third def, and the way it entered this list was
+  // this arm going red on the commit that gave it four gated glyphs (#1010) — nobody went looking for
+  // the block. Both directions matter and both have now fired: gaining a gated part fails the length
+  // check, and the earlier presence of a def that no longer gates one would fail the `every`.
   //
   // ITS LIMIT, MEASURED RATHER THAN REASONED. EXPECTED is the def's own declaration and ACTUAL is the
   // plan, so this checks that the MECHANISM honors the gate — not that the gate is the right way round.
@@ -11180,7 +11252,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // assignments and the census cannot see it either.
   const gatedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
-  const GATED_EXPECTED = ['checkbox', 'radio'];
+  const GATED_EXPECTED = ['field-message', 'checkbox', 'radio'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -11198,7 +11270,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const [axis, values] = axes[0];
       // Every OTHER variant axis pinned at its first value, so the only thing varying across the three
       // directions is the gated one.
-      const rest: Record<string, string> = { state: 'rest' };
+      //
+      // `state: 'rest'` ONLY IF THE DEF DECLARES IT (#1010). This read `{ state: 'rest' }` unconditionally,
+      // which held while every def with a gated part was an interactive control. `field-message` is the
+      // first PRESENTATIONAL def to gate one — `states: []`, four `presentWhen` glyphs on `tone` — and
+      // `figmaAnatomyPlan` throws on a state the def does not declare, so the unconditional form killed the
+      // process before a single assertion in this block ran. That is exactly the fall-through the comment
+      // below warns about, reached through the coordinate this block supplies ITSELF rather than one a def
+      // authored: the hazard was understood, and only the instance that had already happened was guarded.
+      const rest: Record<string, string> = {};
+      if (statesOf(def).includes('rest')) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       const has = (coord: Record<string, string>): boolean =>
         planPartNames(figmaAnatomyPlan(def, size, coord as never).root).includes(name);
@@ -11324,7 +11405,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(parent !== undefined,
         `#990 ${def.id}.${name} is positioned but is nobody's child — the position projects onto a parent's distribution, so with no parent these arms have nothing to read`);
       if (!parent) continue;
-      const rest: Record<string, string> = { state: 'rest' };
+      // Same conditional as the #910 block above, and for the same reason (#1010) — carried here although
+      // NOTHING reaches it today: every def with a `positionWhen` part declares states, so this arm has no
+      // presentational def to trip over yet. Fixed anyway because the two blocks are the same sweep over a
+      // different field, and leaving one of a matched pair correct is how the next author concludes the
+      // unconditional form is the intended one.
+      const rest: Record<string, string> = {};
+      if (statesOf(def).includes('rest')) rest.state = 'rest';
       for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
       const declared = def.variants?.[axis] ?? [];
       const undeclared = Object.keys(byValue).filter((v) => !declared.includes(v));
@@ -11392,20 +11479,347 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // before a single ❌ printed. A harness crash is not this assertion failing; it is this assertion never
   // being reached, and the next reader has no line number for the thing that actually broke. So the guard
   // is checked while it can still be reported, and the compile is what happens once it holds.
-  const ringJs = planSetChunks(ringSet)[0].js;
-  const cellOfSrc = ringJs.slice(ringJs.indexOf('const cellOf='), ringJs.indexOf('const cells=members.map'));
-  const cellOfExtracted = cellOfSrc.includes('group:') && cellOfSrc.length > 200;
-  ok(cellOfExtracted,
-    `focus-ring: the payload's own cellOf was extracted before being run — an empty slice would make every comparison below vacuously true (got ${cellOfSrc.length} chars)`);
-  const payloadCellOf = cellOfExtracted
-    ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${cellOfSrc}return cellOf;`)(
-      ringLayout.rowKeys, ringLayout.rowLabels, ringLayout.colKey, ringLayout.colVals,
-    ) as (name: string) => { row: number; col: number; group: string })
-    : null;
-  ok(payloadCellOf !== null && ringLayout.cells.every((c) => payloadCellOf(c.name).group === c.group),
+  //
+  // `FOOTPRINT_VARIES` IS TAKEN OUT OF THE PAYLOAD RATHER THAN PASSED IN (#1010), and the distinction is
+  // the same one this block already turns on. The list is a const the chunk DECLARES; injecting it as a
+  // `new Function` parameter would supply what the payload is supposed to ship, so a chunk that never
+  // declared it would satisfy every arm here and throw `ReferenceError` on the first paste into Figma.
+  // Extracted with the same guard-before-compile ordering, for the reason stated above.
+  const payloadCellOfFor = (js: string, layout: { rowKeys: string[]; rowLabels: string[]; colKey: string; colVals: string[] }) => {
+    const at = js.indexOf('const FOOTPRINT_VARIES=');
+    const decl = at < 0 ? '' : js.slice(at, js.indexOf('\n', at) + 1);
+    const src = js.slice(js.indexOf('const cellOf='), js.indexOf('const cells=members.map'));
+    const extracted = src.includes('group:') && src.length > 200 && decl.includes('FOOTPRINT_VARIES=[');
+    return {
+      extracted, chars: src.length, decl: decl.trim(),
+      fn: extracted
+        ? (new Function('ROW_KEYS', 'ROW_LABELS', 'COL_KEY', 'COL_VALS', `${decl}${src}return cellOf;`)(
+          layout.rowKeys, layout.rowLabels, layout.colKey, layout.colVals,
+        ) as (name: string) => { row: number; col: number; group: string })
+        : null,
+    };
+  };
+  const ringPayload = payloadCellOfFor(planSetChunks(ringSet)[0].js, ringLayout);
+  ok(ringPayload.extracted,
+    `focus-ring: the payload's own cellOf and its FOOTPRINT_VARIES declaration were both extracted before being run — an empty slice would make every comparison below vacuously true (got ${ringPayload.chars} chars, '${ringPayload.decl}')`);
+  ok(ringPayload.fn !== null && ringLayout.cells.every((c) => ringPayload.fn!(c.name).group === c.group),
     'focus-ring: the PAYLOAD reaches the byte-identical cohort key from the member name alone — two independent derivations of "absent means omit", which is the only thing keeping them in step');
-  ok(payloadCellOf !== null && ringLayout.cells.every((c) => { const p = payloadCellOf(c.name); return p.row === c.row && p.col === c.col; }),
+  ok(ringPayload.fn !== null && ringLayout.cells.every((c) => { const p = ringPayload.fn!(c.name); return p.row === c.row && p.col === c.col; }),
     'focus-ring: and the same row/col, so a sizeless set lays out rather than piling every member into cell (-1, 0)');
+
+  // THE SEGMENT THE THREE ARMS ABOVE CANNOT SEE (#1010). `focus-ring` declares no `footprintVaries`, so
+  // both sides append nothing and the parity holds byte-identically whether the payload honors the list,
+  // ignores it, or spells it wrong — the two derivations agree about a segment neither one emits. So the
+  // one def in the corpus that DOES declare an exemption is asserted here, and it is not coverage for its
+  // own sake: it is the only place the new segment exists to disagree about.
+  const fmLayout = planSetLayout(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }), 'test');
+  const fmGroups = fmLayout.cells.map((c) => c.group).join(' | ');
+  ok(fmGroups === 'tone=default | tone=error | tone=warning | tone=success',
+    `field-message: the declared exemption reaches the engine's cohort key — every tone is its own cohort, which is what "this def's box moves on tone" means and is exactly what it costs (got '${fmGroups}')`);
+  const fmPayload = payloadCellOfFor(planSetChunks(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }))[0].js, fmLayout);
+  ok(fmPayload.extracted && fmPayload.decl === 'const FOOTPRINT_VARIES=["tone"];',
+    `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
+  ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
+    'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');
+}
+
+// (24) RENAME MAP (#1013) — the variable map is DERIVED from `DEPRECATIONS`, so this is where the
+// derivation is checked against something that is not itself.
+//
+// WHY THE ORACLE IS THE EMITTED CORPUS. A rename map's characteristic failure is not a crash, it is
+// silence: get the DTCG→Figma transform wrong and every `from` is a name no file contains, so the pass
+// migrates nothing, reports a clean run, and is indistinguishable from a healthy file. Nothing inside
+// the module can catch that — `deriveVariableRenames` agrees with itself by construction. So every arm
+// below compares the derivation to `out/figma/**`, which is written by the emitters and knows nothing
+// about `DEPRECATIONS`.
+//
+// WHY THIS IS NOT A NEW GATE. The check needs exactly two things: the authored record and the emitted
+// corpus for every brand. This suite already has both (see the surface block at (a4), which reads the
+// same files for the same reason), so a `lint-rename-map.ts` would add five files of gate wiring and
+// not one unit of independence. The direction this CANNOT hold — "every rename that ever happened has
+// a DEPRECATIONS entry" — is unknowable from today's emission, and is held elsewhere by construction:
+// `token-contract.ts --accept` refuses a removal without a recorded replacement, so the entry is forced
+// at the moment of the rename rather than checked afterwards. Two gates, one property each.
+{
+  const map = renameMap();
+  const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+  ok(figmaBrands.length >= 3,
+    `rename-map: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+
+  // name → the collection it is emitted into, per brand, read out of the artifacts.
+  const indexFor = (brand: string): Map<string, string> => {
+    const dir = resolve(HERE, `./out/figma/${brand}`);
+    const idx = new Map<string, string>();
+    for (const f of readdirSync(dir)) {
+      const j = JSON.parse(readFileSync(resolve(dir, f), 'utf8'));
+      if (!j.$collection || !Array.isArray(j.variables)) continue;
+      for (const v of j.variables) if (!idx.has(v.name)) idx.set(v.name, j.$collection);
+    }
+    return idx;
+  };
+  const indexes = new Map(figmaBrands.map((b) => [b, indexFor(b)] as const));
+  const nbIdx = indexes.get('nb')!;
+  ok(nbIdx.size > 500, `rename-map: the corpus index is populated (${nbIdx.size} nb variables) — an empty index would satisfy every arm below`);
+
+  // ---- (a) the derivation against the corpus ----
+  const colorRows = map.variables.filter((r) => r.collection === 'color');
+  ok(map.variables.length >= 80 && colorRows.length >= 40,
+    `rename-map: the derivation materialises ${map.variables.length} entries, ${colorRows.length} of them in \`color\` (floors 80/40) — zero derived entries is the silent failure this whole block exists for`);
+
+  for (const [brand, idx] of indexes) {
+    // Direction 1: the map points at something real. A `to` that resolves nowhere is a migration that
+    // would rename a live variable to a name the engine has stopped writing — manufacturing an orphan
+    // out of a healthy variable, the one way this operation is worse than doing nothing.
+    const unresolved = colorRows.filter((r) => !idx.has(r.to));
+    ok(unresolved.length === 0,
+      `rename-map(${brand}): every derived \`color\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => r.to).join(', ')}` : ` (${colorRows.length} entries)`}`);
+
+    // Direction 2: the map does not point at something LIVE. A `from` still emitted means the entry is
+    // stale — the rename never happened, or reverted — and applying it would move a variable the plan
+    // is about to write, under the name the plan is writing it under.
+    const stale = map.variables.filter((r) => idx.has(r.from));
+    ok(stale.length === 0,
+      `rename-map(${brand}): no derived SOURCE is still emitted — a live \`from\` is an entry that would migrate a variable the plan still owns${stale.length ? ` — STALE: ${stale.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
+
+    // And the entry's claimed collection is where the target actually lives. An entry filed under the
+    // wrong collection never fires (the executor filters by collection name) and reports nothing —
+    // exactly the shape of a silently inert map.
+    const misfiled = colorRows.filter((r) => idx.get(r.to) !== r.collection);
+    ok(misfiled.length === 0,
+      `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
+  }
+
+  // A cross-root `replacedBy` is a MOVE, not a rename: the variable would have to change collection, and
+  // Figma has no such operation — `projectionsOf` refuses to project it at all. Nothing in today's
+  // `DEPRECATIONS` is cross-root, so this is asserted on a CONSTRUCTED pair rather than on the corpus. A
+  // guard with no live case is a guard with no arm, and this one was found exactly that way: deleting the
+  // guard changed no result anywhere until this arm existed.
+  ok(projectionsOf({ path: 'color.a.b', replacedBy: 'space.a.b', since: '9.9.9' }).length === 0
+      && projectionsOf({ path: 'color.a.b', replacedBy: 'color.a.c', since: '9.9.9' }).length === 2,
+    'rename-map: a cross-root replacement projects NOTHING (that is a move, not a rename) while a same-root one projects both mirrors — the paired negative is what stops the guard from being satisfied by a derivation that projects nothing at all');
+
+  // The authored projection domain, checked against the emission rather than trusted. `PROJECTED_ROOTS`
+  // is the one hand-written thing the variable map depends on, and its failure mode is silence in both
+  // directions: a root that is not really a collection name yields entries nothing ever reads, and a
+  // missing root yields no entries at all. The first direction is what the domain arm below catches; this
+  // is the second, and it is why the list can be authored at all.
+  const emittedCollections = new Set(nbIdx.values());
+  const notCollections = PROJECTED_ROOTS.filter((r) => !emittedCollections.has(r));
+  ok(PROJECTED_ROOTS.length >= 9 && notCollections.length === 0,
+    `rename-map: every projected root is genuinely an emitted collection name (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
+
+  // ---- (b) the entries with NO Figma counterpart are a stated set, not a silent skip ----
+  // 3 of the 43 deprecations project to nothing: `motion.easing.*` has no Figma variable at all (easing
+  // is not a variable type Figma has). Named rather than counted, so a future deprecation quietly
+  // joining the unprojected set fails here instead of being absorbed into a tolerance.
+  const unprojected = DEPRECATIONS.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(p.to)));
+  ok(unprojected.length === 3 && unprojected.every((d) => d.path.startsWith('motion.easing.')),
+    `rename-map: exactly the 3 \`motion.easing.*\` deprecations project to nothing — Figma has no easing variable, so there is nothing to migrate (got ${unprojected.length}: ${unprojected.map((d) => d.path).join(', ')})`);
+
+  // ---- (c) the SURFACE mirror — one contract path, two Figma names ----
+  // `surface/*` carries a subset of `color/*`'s suffixes, so a renamed contract path can exist twice in
+  // the file. A color-only map leaves the surface twin behind and says nothing about it, which is the
+  // hole this arm pins: 3 live entries today, and the floor is what makes a collapsed mirror fail.
+  const surfRows = map.variables.filter((r) => r.collection === 'surface');
+  const surfLive = surfRows.filter((r) => nbIdx.has(r.to));
+  ok(surfLive.length >= 3,
+    `rename-map: the \`surface\` mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every surface twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => r.to).join(', ')})` : ''}`);
+  ok(surfLive.every((r) => nbIdx.get(r.to) === 'surface'),
+    'rename-map: every live mirror target is emitted into `surface`, not read back out of `color` under a re-rooted name');
+  // The mirror over-projects on purpose — most `color` entries have no surface twin — and that is safe
+  // ONLY because an absent source is a reported no-op rather than an error. Asserted, because if it
+  // ever became an error, over-projection would turn every apply into a wall of false refusals.
+  const surfDead = surfRows.filter((r) => !nbIdx.has(r.to));
+  ok(surfDead.length > 0 && planVariableRenames([], surfDead.map((r) => r.to), surfDead).every((o) => o.status === 'source-absent'),
+    `rename-map: the ${surfDead.length} mirror entries with no live twin resolve to \`source-absent\`, not a refusal — over-projecting is self-correcting, under-projecting is not`);
+
+  // ---- (d) the DOMAIN: every collection named in the map is one the engine writes ----
+  // The oracle is the plans themselves, built here and knowing nothing about the map. A typo'd
+  // collection name is the inert-map failure again: the executor filters by collection, so an entry
+  // filed under `colour` is never looked at and never reported.
+  const domainTheme = nbTheme();
+  const written = new Set<string>([
+    'core-palette', 'color',
+    buildSurfaceWritePlan(domainTheme).name,
+    ...buildFloatWritePlan(domainTheme).map((p) => p.name),
+    ...buildFontVarPlan(domainTheme).map((p) => p.name),
+  ]);
+  ok(written.size >= 10, `rename-map: the plan-derived collection domain is populated (${written.size} collections) — an empty domain would fail every entry rather than checking it`);
+  const outsideDomain = [...new Set(map.variables.map((r) => r.collection)), ...map.collections.map((c) => c.to)]
+    .filter((n) => !written.has(n));
+  ok(outsideDomain.length === 0,
+    `rename-map: every collection the map names is one the write plans actually produce${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+  // `COLLECTION_RENAMES` ships EMPTY, and that is the honest state: #1013 Q4 (whether the alias layer
+  // and the value layer swap names) is an open decision, and pre-authoring the entry would take it by
+  // shipping it into designers' files. Asserted rather than left to be noticed, so the day an entry is
+  // added, the arms below are already the thing that has to pass.
+  ok(map.collections.length === 0,
+    `rename-map: COLLECTION_RENAMES is empty — the mechanism ships before the decision, so taking #1013 Q4 later costs nothing (got ${map.collections.length})`);
+
+  // ---- (e) STATIC refusals: constructed hazards, each by its own name ----
+  ok(validateRenameMap(map).length === 0,
+    `rename-map: the real map validates clean${validateRenameMap(map).length ? ` — ${validateRenameMap(map)[0]}` : ''}`);
+  const v = (from: string, to: string, collection = 'color'): { collection: string; from: string; to: string; since: string } =>
+    ({ collection, from, to, since: '9.9.9' });
+  const c = (from: string, to: string): { from: string; to: string; since: string } => ({ from, to, since: '9.9.9' });
+  const refuses = (m: RenameMap, needle: string, why: string): void => {
+    const got = validateRenameMap(m);
+    ok(got.some((x) => x.includes(needle)),
+      `rename-map: ${why} — refused as '${needle}'${got.length ? ` (got: ${got[0]})` : ' (got NOTHING — the validator is silent on a hazard it claims to catch)'}`);
+  };
+  refuses({ collections: [], variables: [v('color/a', 'color/a')] }, 'self-rename', 'a variable renamed to itself is a no-op the report would count as a migration');
+  refuses({ collections: [], variables: [v('color/a', 'color/b'), v('color/b', 'color/c')] }, 'chain', 'a chain makes the outcome depend on iteration order, which is why chains are refused before the pass runs and not during it');
+  refuses({ collections: [], variables: [v('color/a', 'color/b'), v('color/a', 'color/c')] }, 'fan-out', 'one source claiming two targets is unresolvable — there is no answer to which binding wins');
+  refuses({ collections: [c('color', 'color')], variables: [] }, 'collection self-rename', 'a collection renamed to itself');
+  refuses({ collections: [c('color', 'surface'), c('surface', 'color')], variables: [] }, 'cycle', 'a SWAP passes through a state where find-by-name is arbitrary (Figma permits duplicate collection names), so it needs a two-phase temp name this deliberately does not do');
+  refuses({ collections: [c('color', 'a'), c('color', 'b')], variables: [] }, 'duplicate collection source', 'one collection claiming two new names');
+  refuses({ collections: [c('a', 'color'), c('b', 'color')], variables: [] }, 'duplicate collection target', 'two collections claiming one name');
+  // Fan-IN is NOT a static refusal, and this is the arm that keeps it that way. Two historical paths
+  // really do point at one live path in today's data (a 3.0.0 entry and a 4.0.0 entry both landing on
+  // `color/interactive/<palette>/inverse/border/rest`) — a correct contract record and an ambiguous
+  // migration, so it is resolved against the FILE at apply time, not against an authored preference.
+  ok(validateRenameMap({ collections: [], variables: [v('color/a', 'color/c'), v('color/b', 'color/c')] }).length === 0,
+    'rename-map: fan-IN validates clean — it is legitimate history, and refusing it statically would reject the map the engine actually has');
+  const realFanIn = [...colorRows.reduce((m2, r) => m2.set(r.to, (m2.get(r.to) ?? 0) + 1), new Map<string, number>())]
+    .filter(([, n]) => n > 1);
+  ok(realFanIn.length >= 3,
+    `rename-map: the derived map really does contain fan-in (${realFanIn.length} groups, floor 3) — the hazard above is measured, not imagined${realFanIn.length ? `: ${realFanIn.slice(0, 2).map(([t, n]) => `${t} ←${n}`).join(', ')}` : ''}`);
+
+  // ---- (f) APPLY-TIME outcomes: every status reachable, and the no-ops reported ----
+  const statuses = (existing: string[], planned: string[], rows: ReturnType<typeof v>[]): string =>
+    planVariableRenames(existing, planned, rows).map((o) => `${o.from}→${o.to}:${o.status}`).sort().join(' | ');
+  ok(statuses(['color/a'], ['color/b'], [v('color/a', 'color/b')]) === 'color/a→color/b:migrated',
+    'rename-map: source present, target planned and free → migrated (the whole point: one write, id kept, bindings kept)');
+  ok(statuses([], ['color/b'], [v('color/a', 'color/b')]) === 'color/a→color/b:source-absent',
+    'rename-map: source absent → source-absent, REPORTED not omitted — a fresh file and an already-migrated one both land here, and "checked, none" must not read like "never checked"');
+  ok(statuses(['color/a', 'color/b'], ['color/b'], [v('color/a', 'color/b')]) === 'color/a→color/b:target-occupied',
+    'rename-map: target already held by another variable → target-occupied, because merging two variables would silently drop the bindings on one of them');
+  ok(statuses(['color/a'], ['color/zzz'], [v('color/a', 'color/b')]) === 'color/a→color/b:target-not-planned',
+    'rename-map: target absent from the plan → target-not-planned — the precondition that makes a WRONG map inert instead of destructive');
+  ok(statuses(['color/a', 'color/b'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')])
+      === 'color/a→color/c:ambiguous-source | color/b→color/c:ambiguous-source',
+    'rename-map: fan-in with BOTH sources live → ambiguous-source for both, migrating neither — the file is the disambiguator, and picking one would silently discard the bindings on the other');
+  ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
+    'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
+
+  // The collection planner, same shape. Its plan-membership precondition is implicit and stronger: the
+  // name it is asked about is one the write is about to use, so an unplanned target is never looked up.
+  ok(planCollectionRename(['old'], 'new', [c('old', 'new')])?.status === 'migrated',
+    'rename-map: a collection whose source exists and whose target does not → migrated in ONE write, keeping every child id and every binding under it');
+  ok(planCollectionRename(['old', 'new'], 'new', [c('old', 'new')])?.status === 'target-occupied',
+    'rename-map: a collection rename onto an existing name → target-occupied — both would answer find-by-name, and which one wins is not defined');
+  ok(planCollectionRename([], 'new', [c('old', 'new')])?.status === 'source-absent',
+    'rename-map: nothing to migrate → source-absent, so the ordinary fresh-file case is a reported no-op');
+  ok(planCollectionRename(['old'], 'unrelated', [c('old', 'new')]) === null,
+    'rename-map: no entry targets this collection → null, so 14 of the 15 collections do no work and cost nothing');
+  ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
+      && !isRefusal('migrated') && !isRefusal('source-absent'),
+    'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
+}
+
+// ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
+//
+// Half 2 CLAIMS `textAlignVertical`. Half 1 (a control top-aligned against its label) is a different
+// property on a different node and is deliberately NOT changed here; the last two arms guard the
+// multi-line case against the repair the QA observation invites.
+{
+  const walkPlan = (n: FigmaNodePlan, f: (n: FigmaNodePlan) => void): void => { f(n); n.children.forEach((c) => walkPlan(c, f)); };
+  let textNodes = 0, claimed = 0, onNonText = 0;
+  const values = new Set<string>();
+  for (const def of componentDefs) {
+    if (!def.figmaProperties) continue;
+    for (const m of figmaAnatomySet(def, { swapTarget: 'FPO' })) walkPlan(m.root, (n) => {
+      if (n.type === 'TEXT') { textNodes++; if (n.textAlignVertical) { claimed++; values.add(n.textAlignVertical); } }
+      else if (n.textAlignVertical) onNonText++;
+    });
+  }
+  // A FLOOR FIRST (`docs/34` shape 9): every claim below is "all TEXT nodes …", vacuously true of none.
+  ok(textNodes > 500, `#1009: the corpus still projects TEXT nodes to make a claim about (got ${textNodes})`);
+  ok(claimed === textNodes,
+    `#1009: EVERY text node carries textAlignVertical, not only the overriding ones — a field absent whenever it agrees with the default is one #865's second-direction gate cannot tell from a silence (${claimed}/${textNodes})`);
+  ok(onNonText === 0,
+    `#1009: and NOTHING else carries it — textAlignVertical is a TextNode property, so a frame carrying it is a plan the executor cannot execute and Figma throws on (got ${onNonText})`);
+  ok(values.size === 1 && values.has('CENTER'),
+    `#1009: the projector's default is CENTER at every text node, since no def overrides it yet (got [${[...values].join(', ')}])`);
+
+  // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
+  // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
+  // be exercised in the change that introduces the default.
+  const parts = checkbox.anatomy!.parts;
+  const withPart = (name: string, patch: Record<string, unknown>): ComponentDef => ({
+    ...checkbox,
+    anatomy: { ...checkbox.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
+  } as ComponentDef);
+
+  let sawTop = 0, sawCenter = 0;
+  for (const m of figmaAnatomySet(withPart('label', { verticalAlign: 'top' }), { swapTarget: 'FPO' }))
+    walkPlan(m.root, (n) => { if (n.textAlignVertical === 'TOP') sawTop++; if (n.textAlignVertical === 'CENTER') sawCenter++; });
+  ok(sawTop > 0 && sawCenter === 0,
+    `#1009: a part declaring verticalAlign:'top' projects TOP — the per-part override reaches the plan (TOP ${sawTop}, CENTER ${sawCenter})`);
+
+  // BOTH WRONG-DECLARATION DIRECTIONS. Figma throws on the write, so nothing but this refusal stands
+  // between the mistake and a failure in the live file.
+  ok(validateComponentDef(withPart('control', { verticalAlign: 'center' })).errors.some((e) => /verticalAlign/.test(e) && /kind 'box'/.test(e)),
+    '#1009: a NON-text part declaring verticalAlign is refused BY NAME — otherwise it validates clean, projects a write Figma rejects, and fails at paste time rather than in any gate');
+  ok(validateComponentDef(withPart('label', { verticalAlign: 'middle' })).errors.some((e) => /verticalAlign/.test(e) && /middle/.test(e)),
+    "#1009: and a fourth word is refused — Figma has three values, so 'middle' would be written and silently discarded");
+
+  // ---- HALF 1, NOT FIXED HERE, GUARDED SO IT IS NOT FIXED WRONGLY --------------------------------
+  //
+  // The QA that opened #1009 asked for the control to centre with its label. Blanket-centring the ROW is
+  // the obvious reading and it is WRONG: on a label that wraps, `CENTER` floats the control against the
+  // middle of the paragraph. The Prism2 reference is explicit that the box tracks the FIRST LINE, and
+  // `checkbox.ts`'s row comment has said so since before the issue existed.
+  //
+  // MEASURED, so this is not a restatement of that comment (`d9c5b2d`, aurora): a `medium` checkbox binds
+  // a 16px control against a `body.md` label whose line box is 16 × 1.5 = 24px, so top-aligned the box
+  // centre sits 4px above the first line's centre. Real, and why the QA is right that something is off.
+  // But the exact repair is a control frame the height of the LINE BOX, and line-height is a RATIO token
+  // against a rem font size — Figma variables cannot multiply, so no px line-height variable exists to
+  // bind such a frame to. That is why half 1 is filed rather than built.
+  //
+  // What is guarded is the WRONG repair. Population floor first, for the usual reason: a row that stopped
+  // pairing a control with a label would stop being checked, and only the floor notices.
+  //
+  // CENTRING IS ADMITTED WHERE THE LABEL CANNOT WRAP, and the exemption carries its reason rather than
+  // being a name on a list — the standard `LEAF_OK` and `PROVENANCE_EXCEPTIONS` already hold. Written as
+  // a register because the first run of this arm flagged `button.container`, where centring is RIGHT: a
+  // button's label is a short action phrase on one line, so "the first line" and "the block" are the same
+  // thing and the hazard this rule exists for cannot arise. Narrowing the rule to dodge that — keying on
+  // sizing, say — would have been a derived discriminator standing in for a design fact, and the design
+  // fact is what makes the exemption true.
+  const CENTRE_OK: Record<string, string> = {
+    'button.container':
+      "a button's label is a short action phrase, not prose — it does not wrap, so the first line IS the "
+      + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
+      + 'the mechanical half of the same fact: the row has no room to grow into a second line.',
+  };
+  let pairedRows = 0;
+  const centred: string[] = [];
+  for (const def of componentDefs) {
+    const ps = def.anatomy?.parts;
+    if (!ps) continue;
+    for (const [n, p] of Object.entries(ps)) {
+      if (!p.layout || p.layout.direction !== 'row') continue;
+      const kids = (p.children ?? []).map((c) => ps[c]).filter(Boolean);
+      if (!kids.some((k) => k.kind === 'text')) continue;
+      if (!kids.some((k) => k.kind !== 'text' && (k.size !== undefined || k.height !== undefined))) continue;
+      pairedRows++;
+      if (p.layout.align === 'center' && !CENTRE_OK[`${def.id}.${n}`]) centred.push(`${def.id}.${n}`);
+    }
+  }
+  ok(pairedRows >= 3,
+    `#1009 half 1: the corpus still has rows pairing a sized control with a text label, or this rule checks nothing (got ${pairedRows})`);
+  ok(centred.length === 0,
+    `#1009 half 1: no such row is align:'center' without a stated reason — block-centring floats the control mid-paragraph on a wrapping label, which is the repair the QA observation invites and the Prism2 reference rules out. Offenders: [${centred.join(', ')}]`);
+  // The converse, so the register cannot rot into a list of rows nobody re-examined.
+  const staleExempt = Object.keys(CENTRE_OK).filter((k) => {
+    const [id, part] = k.split('.');
+    const p = componentDefs.find((d) => d.id === id)?.anatomy?.parts?.[part];
+    return !p || p.layout?.align !== 'center';
+  });
+  ok(staleExempt.length === 0,
+    `#1009 half 1: every admitted row is still centred and still exists — an exemption whose row has moved on is a decision nobody re-argued. Stale: [${staleExempt.join(', ')}]`);
 }
 
 // ------------------------------------------------------------------- report

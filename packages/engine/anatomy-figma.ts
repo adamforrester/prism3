@@ -58,6 +58,43 @@ export type FigmaNodePlan = {
    *  and a different namespace. Carried as its own field rather than squeezed into `bound`, so the
    *  plan can't imply a binding call that would fail at paste time. */
   textStyle?: string;
+  /** For a `TEXT` node: where the glyphs sit inside the node's own box (#1009). Present on EVERY text
+   *  node and on nothing else — the projector's default is `CENTER` and a part overrides it with
+   *  `PartDef.verticalAlign`.
+   *
+   *  ── WHERE THE RULE LIVES, WHICH IS THE QUESTION #1009 HELD OPEN ────────────────────────────────
+   *
+   *  Three candidates, and the measurement decides between them rather than taste. **774 TEXT nodes in
+   *  the corpus, ZERO with a bound height**, so this property is a no-op on every node that exists
+   *  today: a hugging text node's box IS its content and all three values land the glyphs in the same
+   *  pixels.
+   *
+   *    - **Projector default + per-part override — CHOSEN.** The stated risk was "a def that wants top
+   *      alignment now has to opt out of something it never opted into", and the measurement is what
+   *      makes that risk small: there is no node the default can get wrong, because there is no node it
+   *      can move. So it is introduced at the one moment it costs nothing, and every text node that
+   *      later gains a height inherits a decided rule instead of Figma's `TOP`. The override ships in
+   *      the same change rather than being added when someone needs it — an opt-out that arrives after
+   *      the default is an opt-out nobody could have used.
+   *    - **A required schema field — rejected.** It would make eleven defs state a value none of them
+   *      can exercise. Eleven unfalsifiable declarations is not explicitness; it is eleven claims no
+   *      gate can check, which is the shape `lint-context-nodes.ts`'s header calls a snapshot rather
+   *      than a rule.
+   *    - **Per-def bindings only — rejected by #1009's own observation**, three defs for three wrong,
+   *      and by this field's whole reason for existing: a silence is not a decision.
+   *
+   *  ── WHAT THIS DOES NOT DO ─────────────────────────────────────────────────────────────────────
+   *
+   *  It does not centre a control against its label. That is #1009's half 1, it lives on the PARENT
+   *  frame's `counterAxisAlignItems`, and no value here reaches it. The two arrived as one QA
+   *  observation and are two properties on two different nodes — see the issue, and see `docs/00` for
+   *  why half 1 is not in this change.
+   *
+   *  ALWAYS PRESENT rather than emitted only when a def overrides, and that is the point of it being a
+   *  claim: #865's second-direction gate asks that every visually-significant property a built node
+   *  carries trace to a plan entry, and a field absent from the plan whenever it agrees with the
+   *  default is a field that gate cannot distinguish from a silence. */
+  textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
   /** Elevation is a Figma EFFECT STYLE (`setEffectStyleIdAsync`), a THIRD namespace — not a
    *  variable and not a text style. It gets its own field for exactly the reason `textStyle` does:
    *  `setBoundVariable('effects', …)` is not an API, so an effect squeezed into `bound` would
@@ -380,6 +417,11 @@ export type AnatomyPlan = {
    *  and a layout decision the def made has to travel with the artifact it describes. Absent when the
    *  def declares no preference, which `planSetLayout` resolves by cardinality. */
   gridAxis?: string;
+  /** Axes on which this def's box legitimately moves (#1010) — `figmaProperties.footprintVaries`, on the
+   *  plan for `gridAxis`'s reason and read by `planSetLayout` when it builds the footprint cohort key.
+   *  Always an array, empty for the defs that make no such claim, because the cohort key concatenates it
+   *  and an `undefined` there would read as a segment rather than as none. */
+  footprintVaries: string[];
 };
 
 /** Root-relative token ref → the emitted Figma variable name. The emitters slash-path the same
@@ -505,6 +547,13 @@ const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
 };
 const JUSTIFY: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', 'space-between': 'SPACE_BETWEEN',
+};
+/** A part's word → Figma's (#1009). Deliberately NOT the same vocabulary as `ALIGN` above, which is a
+ *  FRAME's cross-axis rule and takes `baseline`; this is a TEXT node's own rule and Figma gives it three
+ *  values. Sharing one map would let `align: 'baseline'` be copied onto a text node, where Figma has no
+ *  such value and discards the write in silence. */
+const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
+  top: 'TOP', center: 'CENTER', bottom: 'BOTTOM',
 };
 // `hug` and `fill` both mean "don't pin a number" on the axis; only `fixed` is FIXED.
 const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED' : 'AUTO');
@@ -1081,6 +1130,9 @@ export const figmaAnatomyPlan = (
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(propertyRef ? { propertyRef } : {}),
       ...(textStyle ? { textStyle } : {}),
+      // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
+      // here and nowhere else, so this line IS the rule #1009 asked to be located.
+      ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
       ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(descendantFills ? { descendantFills } : {}),
@@ -1117,6 +1169,7 @@ export const figmaAnatomyPlan = (
     codeOnly: [...a.codeOnly],
     derived: { ...(a.derived ?? {}) },
     ...(def.figmaProperties?.gridAxis ? { gridAxis: def.figmaProperties.gridAxis } : {}),
+    footprintVaries: [...(def.figmaProperties?.footprintVaries ?? [])],
   };
 };
 
@@ -1850,6 +1903,10 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // the empty-label set this step exists to stop shipping.
     if(node.characters!==n.characters)misses.push(n.name+'.characters -> DISCARDED (set '+JSON.stringify(n.characters)+', reads '+JSON.stringify(node.characters)+')');
   }
+  // AFTER the text style, because a text style does not carry it and could not overwrite it — \`TextStyle\`
+  // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
+  // here anyway so the sequence reads the same as every other text write in this function.
+  if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);
@@ -2261,10 +2318,19 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     // footprint comparison still compares the right things. That is the whole hazard: a mismatch that
     // costs nothing until the day one side changes, and the sizeless case is that day. Gated in `test.ts`
     // against the payload's own extracted `cellOf`, run rather than grepped.
+    //
+    // AND THE DECLARED EXEMPTIONS LAST (#1010), which is the same rule reaching a case the two hardcoded
+    // ones were never asked about: `presentWhen` gives a variant a third way to change what nodes a member
+    // has, and a gated part in the FLOW moves the box exactly as a filled slot does. Appended rather than
+    // sorted in, because the payload's `cellOf` must reach the byte-identical string and "last" is the one
+    // ordering both sides can state without shipping a comparator. Read from the PLAN for the same reason
+    // `slotAxes` is: this function never receives the def. See `FigmaProperties.footprintVaries` for why
+    // the list is declared instead of derived from `presentWhen`.
     group: [
       ...(p.size === undefined ? [] : [`size=${p.size}`]),
       ...(p.slotAxes.includes('leading') ? [`leading=${p.slots.leading}`] : []),
       ...(p.slotAxes.includes('trailing') ? [`trailing=${p.slots.trailing}`] : []),
+      ...p.footprintVaries.flatMap((k) => (vals[i][k] === undefined ? [] : [`${k}=${vals[i][k]}`])),
     ].join(', '),
   }));
 
@@ -2283,7 +2349,10 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // the one thing that does not fit: 756 entries of name+group is ~121KB shipped into a 45KB payload.
   // The name is already the coordinate (that is why `planComponentName` exists), so the ordering is the
   // only thing a chunk genuinely cannot derive — and that is four short arrays.
-  return { cells, props, refs: [...refs.values()], axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols };
+  // `footprintVaries` rides out for the CHUNKED path only — the single-shot payload reads the `group`
+  // this function already computed off each cell, while a chunk re-derives it from the member name and so
+  // needs the def's list. Off `plans[0]` for `gridAxis`'s reason: every plan in a set comes from one def.
+  return { cells, props, refs: [...refs.values()], axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries };
 };
 
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
@@ -2365,7 +2434,7 @@ return {set:set.name,id:set.id,variants:built.length,size:[set.width,set.height]
  * The body of a CHUNK payload: find-or-create the set, append this chunk's members, re-lay-out and
  * re-size the whole set, then read back everything a chunk can see. Expects the emitted `PLANS`,
  * `PROPS_ALL`, `REFS_ALL`, `SET_NAME`, `LAST`, `FIRST`, `EXPECTED_AXES`, `ROW_KEYS`, `ROW_LABELS`,
- * `COL_KEY`, `COL_VALS` and the two shared payload halves.
+ * `COL_KEY`, `COL_VALS`, `FOOTPRINT_VARIES` and the two shared payload halves.
  *
  * WHY IT RE-LAYS-OUT MEMBERS IT DID NOT BUILD. The column pitch is measured, not computed — a
  * hug-width button is as wide as its label, and only Figma knows that. A chunk measures its own
@@ -2432,7 +2501,10 @@ const cellOf=(name)=>{
   // the two disagreed for every def but Button. Must produce the byte-identical string that side does or
   // the cohorts do not line up, and a per-member cohort compares nothing and reports nothing.
   const seg=(k)=>v[k]===undefined?[]:[k+'='+v[k]];
-  return {row,col,group:seg('size').concat(seg('leading'),seg('trailing')).join(', ')};
+  // \`FOOTPRINT_VARIES\` LAST, matching that side's append (#1010). Shipped as a list rather than folded
+  // into the three literal segments because it is the one part of this key that is per-DEF: the def
+  // declares which axes move its box, and a payload that hardcoded them would answer for Button only.
+  return {row,col,group:seg('size').concat(seg('leading'),seg('trailing'),...FOOTPRINT_VARIES.map(seg)).join(', ')};
 };
 const cells=members.map(c=>cellOf(c.name));
 const colW=[],rowH=[];
@@ -2594,7 +2666,7 @@ export const planSetChunks = (
   // `setLayout` per slice instead would compute `rowLabels`/`colVals` from a fifth of the members, so a
   // later chunk's `col` indices would restart at 0 and it would land on top of the first — #510's
   // stacking bug, reintroduced one chunk at a time.
-  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals } = planSetLayout(plans, 'planSetChunks');
+  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals, footprintVaries } = planSetLayout(plans, 'planSetChunks');
 
   // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
   // the payload's bytes are the budget this whole function exists to respect.
@@ -2615,6 +2687,7 @@ const ROW_KEYS=${JSON.stringify(rowKeys)};
 const ROW_LABELS=${JSON.stringify(rowLabels)};
 const COL_KEY=${JSON.stringify(colKey)};
 const COL_VALS=${JSON.stringify(colVals)};
+const FOOTPRINT_VARIES=${JSON.stringify(footprintVaries)};
 // Empty until the FINAL chunk: \`combineAsVariants\` rewrites property ids, so anything declared before
 // the last member joins holds ids the combine has already invalidated.
 const PROPS_ALL=${JSON.stringify(last ? props : [])};

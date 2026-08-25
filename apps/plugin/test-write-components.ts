@@ -61,6 +61,7 @@ import { fieldLabel } from '@prism3/engine/components/field-label';
 // The three selection controls read back for #1011 are resolved through `componentDefs` rather than
 // imported by path — the engine's `exports` map names only `button` and `field-label`, and #804's own
 // reasoning says an id-based lookup is the one the main thread does.
+import { fieldMessage } from '@prism3/engine/components/field-message';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { applyComponentPlan, CHUNK, partialWriteOf } from './src/write-components';
@@ -269,6 +270,21 @@ const makeShim = (opts: ShimOpts = {}) => {
       // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
       // border-box has to override.
       ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+      // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
+      // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
+      // having defaulted helpfully — and every other node type THROWS on the write, which is what Figma
+      // does. Without the throw this port would accept the property on a frame, the executor's
+      // try/catch would never fire, and a plan claiming it on the wrong node type would pass the one
+      // test written to catch that. Same argument as `_aspectLocked` above: a shim that cannot refuse
+      // cannot witness a refusal.
+      ...(type === 'TEXT'
+        ? { textAlignVertical: 'TOP' as string }
+        : {
+            get textAlignVertical(): string | undefined { return undefined; },
+            set textAlignVertical(_v: string | undefined) {
+              throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+            },
+          }),
       characters: '',
       opacity: 1,
       componentPropertyReferences: null as Record<string, string> | null,
@@ -537,6 +553,18 @@ const makeShim = (opts: ShimOpts = {}) => {
       const span = (v: number[]) => (v.length ? Math.max(...v) - Math.min(...v) : 0);
       const vec = mkNode('VECTOR');
       (vec.resize as (w: number, h: number) => void)(span(nums.filter((_, i) => i % 2 === 0)), span(nums.filter((_, i) => i % 2 === 1)));
+      // `vectorPaths`, THE SIXTH TIME A SHIM HERE HAS STOPPED MEASURING SOMETHING IT COULD NOT DISTINGUISH
+      // (#1010) — and the first where the missing property is one a real VectorNode carries. The box above
+      // is not a fingerprint of the DRAWING: `error-circle` and `check-circle` are the same 20px ring with
+      // different marks inside it, so both measure 20x20 here AND in Figma. Any assertion that two tones
+      // draw different glyphs, written against the box, passes on a set where all three tones share one
+      // outline — which is #1010's shipped defect exactly, in a different costume.
+      //
+      // Split on the move commands, which is what Figma's own `vectorPaths` gives you: one entry per
+      // subpath, `data` being that subpath's path data. Modelled because the assertion needs it, and
+      // faithful in shape rather than in the network Figma actually builds — see the header's standing
+      // limit on this importer having no live SVG parser behind it.
+      vec.vectorPaths = (d.match(/[Mm][^Mm]*/g) ?? []).map((sub) => ({ windingRule: 'NONZERO', data: sub.trim() }));
       (frame.appendChild as (c: Node) => void)(vec);
       return frame;
     },
@@ -1909,6 +1937,29 @@ ok((labelSeed.vars ?? []).length >= 4 && (labelSeed.styles ?? []).length >= 2,
 // exists, is painted, is the right size, and holds no characters.
 ok(labelRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 2,
   `#798/#804 both text parts are declared as TEXT properties on the set, so neither projects blank (${labelRun.properties.join('/')})`);
+
+// ---- #1009: the vertical claim reaches the CANVAS, read off the built nodes ------------------------
+//
+// The plan declaring `textAlignVertical` and the executor writing it look identical from inside the
+// engine — #802's class, and the reason this is asserted here and not only in `test.ts`. `field-label` is
+// the fixture because it has TWO text parts, which is also the case that settles where the rule lives.
+{
+  const labelPage: Page = { children: [] };
+  const vaRun = await run(labelPlans, { ...fullFor(labelPlans), page: labelPage });
+  ok(vaRun.misses.length === 0, `#1009 the run is clean, so the reads below are about writes rather than skips (${vaRun.misses.join('; ') || 'none'})`);
+  const vaSet = labelPage.children[0];
+  const built = [vaSet, ...((vaSet.findAll as () => Node[])())] as Node[];
+  const texts = built.filter((n) => n.type === 'TEXT');
+  // FLOOR FIRST: "every text node reads CENTER" is vacuously true of no text nodes, and this fixture
+  // having none is exactly how the arm would rot silently.
+  ok(texts.length >= 2, `#1009 the built set holds text nodes to read back (${texts.length})`);
+  const centred = texts.filter((n) => n.textAlignVertical === 'CENTER');
+  ok(centred.length === texts.length,
+    `#1009 EVERY built text node reads back CENTER — the shim starts them at Figma's 'TOP', so this is the executor's write and not a helpful default (${centred.length}/${texts.length})`);
+  const nonText = built.filter((n) => n.type !== 'TEXT');
+  ok(nonText.length > 0 && nonText.every((n) => n.textAlignVertical === undefined),
+    `#1009 ...and no frame carries it, on a shim that THROWS if one is written — so this is a refusal witnessed, not a property nobody set (${nonText.length} non-text nodes)`);
+}
 // A SET NO LARGER THAN ONE CHUNK still yields and still ends at its total — the edge Button's 648 never
 // exercised, since every count in this file is a multiple of 21 and `CHUNK` is 4. Through `instrumented`
 // so the YIELD is witnessed separately from the REPORT: at this size the two could not be told apart by
@@ -1918,6 +1969,108 @@ ok(labelInstr.progress.length > 0 && labelInstr.yieldCalls > 0,
   `#804 a set no larger than one chunk still yields and still reports (${labelInstr.yieldCalls} yields, ${labelInstr.progress.length} reports)`);
 ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.some((p) => p.done === p.total),
   `#804 ...and the fractions are bounded and end at the total (${labelInstr.yields.join(', ')})`);
+
+// =============================================================================================
+// #1010 — THE STATUS GLYPH, READ OFF THE NODE THE EXECUTOR BUILT
+// =============================================================================================
+// WHY THIS IS HERE AND NOT IN `test.ts`. Every defect #1010 reports is a value that RESOLVES. The def
+// used to declare one `kind: 'slot'` part with an INSTANCE_SWAP property, so the projection nominated
+// whatever placeholder component the file supplied — an "FPO" circle — painted it in the tone's ink, and
+// reported zero misses. A plan-level check sees a structurally perfect tree: a child exists, it is
+// painted, its binding resolves. So does a paint census, so does the reachability arm. The only question
+// that separates a glyph from a placeholder is what got DRAWN, and this file is the only harness that
+// drives the real `applyComponentPlan` against a host model and can be asked.
+//
+// WHAT THIS HARNESS CAN AND CANNOT SEE, stated first because half of #1010's "16×16" is not checkable
+// here. The shim gives every variable a synthetic value (`varValue`), so a glyph bound to `icon/size/xs`
+// measures 8-32px depending on the name's character sum, not 16. What is checkable here is the BINDING —
+// which variable both axes point at — and `test.ts` carries the other half, resolving that ref to 16px in
+// all five corpus brands. Neither claim is worth much alone: a binding to the right variable proves
+// nothing if the variable is 20, and a 16px token proves nothing if the node binds a different one.
+const fmPlans = figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' });
+const fmPage: Page = { children: [] };
+const fmRun = await run(fmPlans, { ...fullFor(fmPlans), page: fmPage });
+ok(fmRun.set === 'field-message' && fmRun.variants === 4 && fmRun.added === 4,
+  `#1010 the four tone members assemble under one set (set=${fmRun.set}, variants=${fmRun.variants}, added=${fmRun.added})`);
+ok(fmRun.misses.length === 0, `#1010 ...with no misses (${fmRun.misses.join('; ') || 'none'})`);
+
+const fmMembers = fmPage.children[0].children as Node[];
+const fmKids = (m: Node): Node[] => (m.children as Node[]) ?? [];
+/** The glyph ARTBOARD: `createNodeFromSvg` returns a FRAME wrapping the outline, and it is the only
+ *  FRAME a member of this def has — the member itself is the row, the caption is a TEXT. */
+const fmArt = (m: Node): Node[] => fmKids(m).filter((c) => c.type === 'FRAME');
+const fmVecs = (n: Node): Node[] => (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR');
+/** The variable a paint points at, by NAME — the shim ids variables `V:<name>`. */
+const fmInk = (n: Node): string =>
+  String((n.fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id ?? 'none').replace(/^V:/, '');
+
+ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
+  `#1010 the members are named for the tone axis, in order (${fmMembers.map((m) => m.name).join(' | ')})`);
+
+// (1) THE DEFAULT MEMBER HAS NO GLYPH, and the three validation members have exactly one each. Read as a
+// COUNT PER MEMBER rather than a total: 3 artboards across 4 members is also what "two on error, one on
+// success, none on warning" looks like, and that tree would satisfy every other arm below.
+const fmArtCounts = fmMembers.map((m) => fmArt(m).length).join(',');
+ok(fmArtCounts === '0,1,1,1',
+  `#1010 the default member is caption-only and each validation member carries exactly one glyph artboard (${fmArtCounts})`);
+
+// (2) SOMETHING WAS DRAWN. #864's own finding is that this is the question a valid-looking tree cannot
+// answer: a named frame with no outline inside is indistinguishable from a glyph that rendered, and "the
+// node has children" passes on an empty group. So: a VECTOR, with a non-zero box, per member.
+const fmDrawn = fmMembers.slice(1).map((m) => fmVecs(fmArt(m)[0]).filter((v) => (v.width as number) > 0 && (v.height as number) > 0));
+ok(fmDrawn.every((vs) => vs.length === 1),
+  `#1010 each validation member's artboard holds exactly one VECTOR with a non-zero box — ink, not an empty artboard (${fmDrawn.map((vs) => vs.length).join(',')})`);
+
+// (3) AND IT IS A DIFFERENT DRAWING PER TONE, which is the assertion the placeholder failed. Three
+// identical FPO circles in three inks satisfied everything above this line; what they could not do is
+// differ in geometry. Asserted as a RELATIONSHIP — three distinct outlines — rather than against three
+// expected shapes, because the expected shapes would have to be derived from `ICON_PATHS` the same way the
+// glyph itself is, and an oracle computed from the subject cannot fail (docs/34 §2).
+//
+// ON `vectorPaths` RATHER THAN THE BOX, which is the first thing this arm was written against and was
+// wrong: `error-circle` and `check-circle` are one 20px ring with different marks inside, so they measure
+// IDENTICALLY — 20.0x20.0 both, live as well as here. Two of the three tones would have compared equal and
+// the arm would have failed for the right reason with the wrong diagnosis. The subpath data is the level at
+// which "a different drawing" is a fact about the node rather than about its extent.
+const fmPaths = fmDrawn.map((vs) => JSON.stringify(vs[0].vectorPaths));
+ok(fmDrawn.every((vs) => (vs[0].vectorPaths as unknown[]).length >= 2) && new Set(fmPaths).size === 3,
+  `#1010 the three tones draw three DIFFERENT outlines — pairwise distinct subpaths, so one placeholder in three colors fails here (${fmDrawn.map((vs) => (vs[0].vectorPaths as unknown[]).length).join(',')} subpaths, ${new Set(fmPaths).size} distinct)`);
+
+// (4) BOTH AXES BOUND, to the same variable. Two facts in one arm, and the second is not decoration: a
+// node still holding Figma's aspect-ratio lock silently EVICTS the first dimension binding when the
+// second is set (#682), so "both axes bound" is only reachable through the `unlockAspectRatio()` call.
+const fmSizes = fmMembers.slice(1).map((m) => {
+  const bv = fmArt(m)[0].boundVariables as Record<string, { id?: string }>;
+  return `${String(bv.width?.id).replace(/^V:/, '')}+${String(bv.height?.id).replace(/^V:/, '')}`;
+});
+ok(fmSizes.every((s) => s === 'icon/size/xs+icon/size/xs'),
+  `#1010 every glyph binds BOTH axes to the caption-scale artboard rung (${fmSizes.join(', ')})`);
+
+// (5) THE INK IS ON THE OUTLINE AND NOT ON THE ARTBOARD (#864) — a fill on the wrapper is a painted
+// square behind the glyph, which is what an instance-swapped placeholder looked like.
+const fmVecInk = fmDrawn.map((vs) => fmInk(vs[0])).join(' | ');
+ok(fmVecInk === 'color/icon/danger | color/icon/warning | color/icon/success',
+  `#1010 each outline carries its tone's semantic ink (${fmVecInk})`);
+ok(fmMembers.slice(1).every((m) => (fmArt(m)[0].fills as unknown[]).length === 0),
+  `#1010 ...and the artboard itself is unpainted, so the glyph is ink rather than a coloured square (${fmMembers.slice(1).map((m) => (fmArt(m)[0].fills as unknown[]).length).join(',')})`);
+
+// (6) THE OUTLINE SCALES WITH ITS FRAME. The artboard is 24px of viewBox bound to a 16px variable, and a
+// child left at Figma's MIN/MIN default keeps the 24 — so the member would show the glyph's top-left
+// corner. Every other arm here passes on that tree.
+ok(fmDrawn.every((vs) => JSON.stringify(vs[0].constraints) === JSON.stringify({ horizontal: 'SCALE', vertical: 'SCALE' })),
+  `#1010 the outline is set to SCALE on both axes, so a 24px drawing fits the 16px artboard (${JSON.stringify(fmDrawn[0][0].constraints)})`);
+
+// (7) NO PLACEHOLDER SURVIVES, stated on the two things the old projection left in the file: an INSTANCE
+// node (the nominated FPO component) and an INSTANCE_SWAP property on the set. Both are absent now, and
+// absent for the same reason — `figmaProperties.swaps` is empty and no part nests. The swap target is
+// still PASSED to `figmaAnatomySet` above, so this is not passing by omission: the def ignores it.
+const fmAllNodes = fmMembers.flatMap((m) => [m, ...(m.findAll as () => Node[])()]);
+ok(!fmAllNodes.some((n) => n.type === 'INSTANCE'),
+  `#1010 no INSTANCE anywhere in the built set — the placeholder was a nominated component, and nothing nominates one now (${fmAllNodes.filter((n) => n.type === 'INSTANCE').length})`);
+ok(!fmRun.properties.some((p) => p.indexOf('INSTANCE_SWAP') >= 0),
+  `#1010 ...and the set declares no INSTANCE_SWAP property, so a designer cannot put a check mark on the error member (${fmRun.properties.join('/')})`);
+ok(fmRun.properties.filter((p) => p.indexOf('TEXT') >= 0).length === 1,
+  `#1010 the caption is still a TEXT property, so removing the swap did not take the text wiring with it (${fmRun.properties.join('/')})`);
 
 // =============================================================================================
 // #913 — A PARTIAL WRITE IS MARKED, AND THE MARKING CANNOT MAKE THINGS WORSE
