@@ -127,3 +127,45 @@ export const buildFigmaSurface = (theme: Theme): FigmaCollectionFile[] => {
 /** Roles deliberately absent from the collection, for the emitter's summary line. */
 export const surfaceOmitted = (): string[] =>
   [...INVERSE_GAP_PATHS].filter((p) => gapDisposition(p) === 'omit').sort();
+
+/**
+ * ── DEF BINDINGS THIS LAYER DOES NOT CARRY (#871's parked follow-on) ────────────────────────────
+ *
+ * The planned collection swap gives this layer the name `color` and renames the value layer to
+ * `color.appearance`. The consequence is the whole point of the swap: **a component def that binds
+ * `color.<role>` becomes surface-responsive with no def change at all**, because the name it already
+ * binds starts resolving here, and the mode on an ancestor frame picks `default` or `inverse`.
+ *
+ * That is true for a binding this layer carries a row for, and silently false for one it does not —
+ * the def keeps resolving against a real token, it just stops tracking the surface. **No error
+ * anywhere**, which is why it is registered rather than remembered. Measured across `componentDefs`:
+ * 57 distinct `color.*` bindings, 56 with a row here, one without.
+ *
+ * `test.ts` checks this BOTH directions. An unregistered binding outside the layer fails by path; an
+ * entry whose path has since gained a row — or which no def binds any more — fails as stale. Neither
+ * direction alone is enough, and it is the same standard `INVERSE_GAPS` is held to above: the first
+ * arm stops a binding drifting out of the layer unnoticed, the second stops an entry going on
+ * asserting a decision after the thing it described stopped being true.
+ */
+export type UnaliasedBinding = {
+  /** The contract path the def binds, exactly as `ComponentDef.tokens` spells it. */
+  path: string;
+  /** `<def id>:<token slot>` — the binding site, so the staleness arm can find it. */
+  boundBy: string;
+  /** Why it sits outside the layer, and what would move it in. */
+  why: string;
+};
+
+export const UNALIASED_DEF_BINDINGS: UnaliasedBinding[] = [
+  {
+    path: 'color.border.inverse.focus',
+    boundBy: 'focus-ring:border.inverse',
+    why:
+      'The only inverse path any def binds, and the only def-bound path this layer cannot carry — by construction, not by omission: `isInverseRole` excludes an inverse role from being a row, because inverse-ness is what the MODES express. A `border.inverse.focus` row would have to answer what its own inverse mode is, and there is no such thing as a double inverse. ' +
+      'So it is not a defect in either place. `focus-ring` declares `color: default | inverse` and binds the two ends explicitly, which was the right shape before this layer existed and is redundant after it: the row for `border.focus` already reads `default -> border.focus, inverse -> border.inverse.focus`, so a ring binding the plain path gets the SAME two values from the frame mode that the variant gets from a coordinate. ' +
+      'Removing the binding therefore costs no value and no token — `color.border.inverse.focus` stays emitted and stays contract-guaranteed; only this def stops naming it. What it costs is the axis: `color` is the ring\'s ONLY variant axis, and `figmaProperties.variantAxes` must be non-empty (measured against `figmaPropertyErrors`, which rejects `[]` outright), so dropping it un-projects the def — regressing #795 and breaking the five hosts that resolve `nests: \'focus-ring\'` by name. That prerequisite is a schema decision, not a binding edit — filed as #1028 — which is why this entry exists instead of the removal, and why the staleness arm matters more than the coverage arm: this entry is meant to die.',
+  },
+];
+
+/** Every path registered as sitting outside this layer. */
+export const UNALIASED_PATHS: ReadonlySet<string> = new Set(UNALIASED_DEF_BINDINGS.map((b) => b.path));

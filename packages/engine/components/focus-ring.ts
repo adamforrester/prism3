@@ -125,6 +125,32 @@ export const focusRing: ComponentDef = {
   // for them. #795 took walls 2 and 3 down, so both keys now resolve at real coordinates (`border` at
   // `color=default`, `border.inverse` at `color=inverse`). Wall 1 is why that is a bound color on a
   // node with no stroke to wear it.
+  //
+  // ── AND `border.inverse` IS NOW KNOWN-REDUNDANT, WITH A PREREQUISITE BEFORE IT CAN GO (#871) ────
+  //
+  // #871 decided the surface axis is a CASCADE — context published by the container, no per-component
+  // surface axis — and this def is the only one still carrying one. Measured over `componentDefs`:
+  // 57 distinct `color.*` bindings, and `color.border.inverse.focus` is the ONE the alias layer has no
+  // row for. Not an omission at either end: `emit-figma-surface.ts`'s `isInverseRole` excludes inverse
+  // roles from being rows because inverse-ness is what the MODES express, and a `border.inverse.focus`
+  // row would have to say what its own inverse mode is.
+  //
+  // The redundancy is exact rather than approximate, which is what makes it a decision instead of a
+  // preference: the alias row for `border.focus` already reads `default → border.focus`,
+  // `inverse → border.inverse.focus`, so a ring binding the PLAIN path gets the same two values from
+  // the frame mode that these two keys get from a coordinate. Same tokens, same values, one mechanism
+  // instead of two — and the mode reaches the host's label and fill at the same time, where the
+  // variant reaches only the ring. #784 already applied this to `button`, which removed its own
+  // `on-inverse` bindings for exactly this reason and named this def's `color=inverse` as the last
+  // instance of the pattern it was leaving.
+  //
+  // WHAT STOPS IT BEING A ONE-LINE DELETION: `color` is this def's ONLY variant axis, and
+  // `figmaPropertyErrors` rejects `variantAxes: []` outright (measured, not assumed). So removing the
+  // binding un-projects the def — regressing #795 and breaking the five hosts that resolve
+  // `nests: 'focus-ring'` by NAME against the pasted set. Letting a def project a single component
+  // rather than a set is a schema decision, filed as #1028, so the binding is REGISTERED in
+  // `UNALIASED_DEF_BINDINGS` rather than removed, and `test.ts` (a4) fails the entry as stale the day
+  // the binding goes. Nothing is lost meanwhile: the token stays emitted and contract-guaranteed.
   paintKeys: ['{slot}.{color}', '{slot}'],
 
   tokens: {
