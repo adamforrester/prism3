@@ -127,6 +127,119 @@ rather than a comment.
 
 ---
 
+## (2026-08-25) — the vertical rule: one QA observation, two properties, one of them buildable (#1009)
+
+**STATUS: shipped, half 2 of two.** `ENGINE_VERSION` 0.21.0 → **0.24.0** (0.22.0 taken by #1016, 0.23.0
+taken by #1021, both merged first — the emitted plan gains a field); `CONTRACT_VERSION` stands at 5.3.0 —
+this is the Figma projection, not the token tree, and `token-contract.ts --check` says so rather than this
+sentence asserting it. Gates stay at **42**.
+
+**What shipped.** `FigmaNodePlan.textAlignVertical`, claimed on every projected TEXT node and on nothing
+else, defaulted to `CENTER` by the projector and overridable per part via `PartDef.verticalAlign`. Both
+executors write it — the plugin adapter and the generated paste payload — and `anatomyErrors` refuses the
+field on any kind but `text`, because `textAlignVertical` is a `TextNode` property and Figma throws on
+that write.
+
+**Where the rule lives, which is the question #1009 held open, and the measurement is what decided it.**
+Over every projected member: **774 TEXT nodes, ZERO with a bound height.** A hugging text node's box IS
+its content, so `TOP` and `CENTER` land the glyphs in identical pixels — the property is a no-op on every
+node that exists today. That turns the stated risk of a projector default (*"a def that wants top
+alignment now has to opt out of something it never opted into"*) into a small one: there is no node the
+default can get wrong, because there is no node it can move. So it is introduced at the one moment it
+costs nothing, and every text node that later gains a height inherits a decided rule instead of Figma's
+`TOP`. A **required schema field** was rejected on the same measurement — eleven defs stating a value none
+of them can exercise is eleven claims no gate can check. **Per-def only** was rejected by #1009's own
+observation, three for three wrong.
+
+The override ships in the same change as the default rather than when someone first needs it, and that is
+deliberate: *an opt-out that arrives after the default is an opt-out nobody could have used.* It is
+exercised on a synthesised part, since `textarea` — the def everyone can already name for wanting `top` —
+has no anatomy yet.
+
+**Say plainly what this does not do.** It does not move a pixel today, and it is not the fix for the QA
+symptom that opened the issue. #1009 arrived as one observation and is **two properties on two different
+nodes**. Anyone reading the issue title and expecting the checkbox to look right afterwards will be
+disappointed, which is why the version note says so too.
+
+**Half 1, measured and then NOT built.** A `medium` checkbox binds a 16px control against a `body.md`
+label whose line box is 16 × 1.5 = **24px**, so top-aligned the control's centre sits **4px above** the
+first line's centre. Real — the QA is right that something is off. The three candidate mechanisms:
+
+- **blanket `counterAxisAlignItems: 'CENTER'`** — wrong, and wrong in the way the issue's first draft
+  asked for. On a wrapping label it centres the control on the *paragraph*.
+- **`MIN` (what ships)** — tracks the first line correctly and is simply 4px high.
+- **the exact repair** — a control frame the height of the LINE BOX, top-aligned, centring the control
+  inside itself. This is the CSS `height: 1lh` idiom and it is *not currently expressible*: line-height is
+  a **ratio** token (1.5) against a **rem** font size, Figma variables cannot multiply, and no px
+  line-height variable is emitted. Building one is a new derived token surface with contract
+  consequences — a different change, filed rather than folded in here.
+
+`leadingTrim: 'CAP_HEIGHT'` narrows the error (4px → ~2.2px at `medium`) and does not close it: exactness
+needs the control's height to equal the cap height, which is no more true than it equalling the line box.
+
+**So half 1 is GUARDED instead of fixed**, which is the part worth carrying forward. A row pairing a sized
+non-text control with a text label must not be `align: 'center'` unless `CENTRE_OK` states why its label
+cannot wrap. `checkbox.ts:432` had been protecting exactly this since before the issue existed, in a
+comment; it is now a test that fails by name.
+
+**The first run of that guard flagged `button.container`, where centring is RIGHT** — a button's label is
+a short action phrase, so the first line IS the block and the hazard cannot arise. The tempting move was
+to narrow the rule until button fell out of it (keying on counter-axis sizing would have done it). That
+would have been *a derived discriminator standing in for a design fact*, and the design fact is what makes
+the exemption true. It is a reasoned entry in a register instead, with a stale-direction arm so the
+exemption cannot outlive the row it describes.
+
+**Both shims were taught to refuse.** The plugin shim and the engine stub now start a TEXT node at Figma's
+default `TOP` and **throw** on the write for every other node type, which is what Figma does. Both halves
+matter: starting at `TOP` is what makes a node reading `CENTER` evidence of a *write* rather than of a
+helpful default, and the throw is what lets the "no frame carries it" arm witness a refusal rather than
+observe an absence. Mutation S10 confirms it — with the shim made permissive *and* the projector made
+wrong, the arm still fails.
+
+**Ten mutations, each failing by name.** S1 projector stops claiming it; S2 default flipped to `top`; S3
+claimed on every node rather than text; S4 the plugin executor stops writing it (plan right, canvas wrong
+— #802's class); S5 the **paste** path stops writing it, where the parity arm is the only witness because
+that write lives inside a generated string no typechecker reads; S6 the wrong-kind refusal removed; S7
+someone "fixes" the QA by blanket-centring checkbox's row; S8 the `CENTRE_OK` exemption goes stale; S9 the
+per-part override stops reaching the plan; S10 above.
+
+**THE REBASE FOUND A COLLISION, AND IT IS THE MOST USEFUL THING IN THIS ENTRY.** #865 landed as #1017
+while this branch was open — the sibling issue, the same defect from the other side. Rebasing onto it
+turned three gates red, and one of the two causes was substantive rather than mechanical.
+
+#1017 adds `claimDefaults`, a pass that writes Figma's own default for every visually-significant property
+the plan did not claim. Its doc says, correctly, that it *"runs LAST, after every plan-driven write, so a
+declared value is never clobbered"*. Its `textAlignVertical` line was **unconditional**:
+
+    if (t === 'TEXT') {
+      set('textAlignVertical', 'TOP');
+
+So it wrote `TOP` over every claim this change makes, after the claim. Guarded now, exactly like `effects`
+and `opacity` beside it — and the guard is what keeps that sentence true, because **this is the first
+property `claimDefaults` neutralises that the plan can also speak about.** Every other entry in the TEXT
+block is still genuinely unclaimed, which is why five of the six need no guard and one does.
+
+**The PARITY arm is what caught it**, and by a route nothing else could have taken: the paste path has no
+neutraliser, so it still read `CENTER` while the plugin path read `TOP`. A single-executor test would have
+seen `TOP` on both sides of its own comparison and reported agreement. *Two executors are two opinions;
+one is a mirror.* Mutation S11 restores the collision and both suites name it.
+
+**And #1017's comment made two claims about this property that were true when written and are now false**,
+both corrected here. It said the line *"changes no pixel today"* — it does, wherever a text node has a
+height, because the plan now claims `CENTER`. And it cited `components/checkbox.ts` as arguing for `TOP`.
+That is the exact conflation this issue's own correction untangled: checkbox argues for TOP on its **ROW**,
+which is `counterAxisAlignItems` on the parent frame — a different property on a different node. Two lanes
+reading one QA observation both reached for the same def to justify opposite-tier decisions, which is what
+made the observation worth splitting in the first place.
+
+**A verification limit, stated rather than implied.** Nothing here renders. The shims record property
+assignments; they do not lay out, so the 4px figure above is arithmetic over the emitted tokens and not a
+measurement of a built frame. What would close that is a live Figma check on a two-line label — the same
+check the owner used against the Prism2 reference, and the reason the correction to this issue exists at
+all.
+
+---
+
 ## (2026-08-25) — a placeholder that outlived its dependency, and the footprint rule that was authored for one def (#1010)
 
 **STATUS: shipped.** `ENGINE_VERSION` **0.21.0 → 0.23.0** (0.22.0 is taken by the open #1016, and a

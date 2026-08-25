@@ -7344,6 +7344,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // no matter what the payload does. `strokeWeight` starts at 0 so the payload's
           // `if(!node.strokeWeight)` default fires, as it does live.
           ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+          // #1009: a `TextNode` property. Mirrors the plugin shim exactly, which is the whole point of the
+          // parity gate — TEXT starts at Figma's default `'TOP'`, and every other type THROWS on the write
+          // as Figma does. A stub that accepted it on a frame would let the two executors diverge on the
+          // one property this change adds, while parity still reported clean.
+          ...(type === 'TEXT'
+            ? { textAlignVertical: 'TOP' as string }
+            : {
+                get textAlignVertical(): string | undefined { return undefined; },
+                set textAlignVertical(_v: string | undefined) {
+                  throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+                },
+              }),
           // FIXED-OR-HUG, plus the border-box term — Figma's actual two sizing modes rather than a
           // constant. This was `return stroked ? 2 * strokeWeight : 0` until the absolute part arrived
           // (#536 item 3), and the constant is what made the ring ungatable: a ring is sized as
@@ -8606,6 +8618,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         };
         ok(posMap(plugPage) === posMap(pastePage),
           'parity: every member lands at the same coordinate and measures the same box on both paths — the pitch is measured, so this is the layout claim `size` cannot make');
+
+        // #1009 ACROSS BOTH PATHS. The paste path's write is one line in a generated string, which no
+        // typechecker reads and no plugin test reaches — so without this the codegen half of half 2 would
+        // be unverified while the plugin half looked complete. Read off the two PAGES, not off the plans.
+        const vAlign = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET') as Record<string, unknown>;
+          const all: Record<string, unknown>[] = [];
+          const dive = (n: Record<string, unknown>): void => {
+            all.push(n);
+            for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+          };
+          dive(set);
+          return all.filter((n) => n.type === 'TEXT').map((n) => `${String(n.name)}=${String(n.textAlignVertical)}`).sort();
+        };
+        const plugAlign = vAlign(plugPage);
+        const pasteAlign = vAlign(pastePage);
+        // FLOOR: "both agree" is vacuously true of two empty lists, and an empty list is exactly what a
+        // broken tree walk returns.
+        ok(plugAlign.length > 0, `#1009 parity: the built sets hold text nodes to compare (${plugAlign.length})`);
+        ok(plugAlign.every((s) => s.endsWith('=CENTER')),
+          `#1009 parity: the plugin path leaves every text node CENTER, up from the stub's Figma default TOP (${plugAlign.slice(0, 3).join(', ')})`);
+        ok(JSON.stringify(plugAlign) === JSON.stringify(pasteAlign),
+          `#1009 parity: and the PASTE path — a write that lives inside a generated string — agrees node for node. plugin ${JSON.stringify(plugAlign.slice(0, 2))} vs paste ${JSON.stringify(pasteAlign.slice(0, 2))}`);
 
         // THE MISSES, AS SETS, on a file with no variables — the degraded case where `misses[]` is the
         // only channel either path has. Equality here is the claim the byte-identical strings buy:
@@ -11601,6 +11636,111 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
       && !isRefusal('migrated') && !isRefusal('source-absent'),
     'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
+}
+
+// ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
+//
+// Half 2 CLAIMS `textAlignVertical`. Half 1 (a control top-aligned against its label) is a different
+// property on a different node and is deliberately NOT changed here; the last two arms guard the
+// multi-line case against the repair the QA observation invites.
+{
+  const walkPlan = (n: FigmaNodePlan, f: (n: FigmaNodePlan) => void): void => { f(n); n.children.forEach((c) => walkPlan(c, f)); };
+  let textNodes = 0, claimed = 0, onNonText = 0;
+  const values = new Set<string>();
+  for (const def of componentDefs) {
+    if (!def.figmaProperties) continue;
+    for (const m of figmaAnatomySet(def, { swapTarget: 'FPO' })) walkPlan(m.root, (n) => {
+      if (n.type === 'TEXT') { textNodes++; if (n.textAlignVertical) { claimed++; values.add(n.textAlignVertical); } }
+      else if (n.textAlignVertical) onNonText++;
+    });
+  }
+  // A FLOOR FIRST (`docs/34` shape 9): every claim below is "all TEXT nodes …", vacuously true of none.
+  ok(textNodes > 500, `#1009: the corpus still projects TEXT nodes to make a claim about (got ${textNodes})`);
+  ok(claimed === textNodes,
+    `#1009: EVERY text node carries textAlignVertical, not only the overriding ones — a field absent whenever it agrees with the default is one #865's second-direction gate cannot tell from a silence (${claimed}/${textNodes})`);
+  ok(onNonText === 0,
+    `#1009: and NOTHING else carries it — textAlignVertical is a TextNode property, so a frame carrying it is a plan the executor cannot execute and Figma throws on (got ${onNonText})`);
+  ok(values.size === 1 && values.has('CENTER'),
+    `#1009: the projector's default is CENTER at every text node, since no def overrides it yet (got [${[...values].join(', ')}])`);
+
+  // THE OVERRIDE EXISTS AND WORKS, exercised on a synthesised part rather than waiting for `textarea`'s
+  // anatomy. An opt-out that ships after the default is an opt-out nobody could have used, so it has to
+  // be exercised in the change that introduces the default.
+  const parts = checkbox.anatomy!.parts;
+  const withPart = (name: string, patch: Record<string, unknown>): ComponentDef => ({
+    ...checkbox,
+    anatomy: { ...checkbox.anatomy!, parts: { ...parts, [name]: { ...parts[name], ...patch } } },
+  } as ComponentDef);
+
+  let sawTop = 0, sawCenter = 0;
+  for (const m of figmaAnatomySet(withPart('label', { verticalAlign: 'top' }), { swapTarget: 'FPO' }))
+    walkPlan(m.root, (n) => { if (n.textAlignVertical === 'TOP') sawTop++; if (n.textAlignVertical === 'CENTER') sawCenter++; });
+  ok(sawTop > 0 && sawCenter === 0,
+    `#1009: a part declaring verticalAlign:'top' projects TOP — the per-part override reaches the plan (TOP ${sawTop}, CENTER ${sawCenter})`);
+
+  // BOTH WRONG-DECLARATION DIRECTIONS. Figma throws on the write, so nothing but this refusal stands
+  // between the mistake and a failure in the live file.
+  ok(validateComponentDef(withPart('control', { verticalAlign: 'center' })).errors.some((e) => /verticalAlign/.test(e) && /kind 'box'/.test(e)),
+    '#1009: a NON-text part declaring verticalAlign is refused BY NAME — otherwise it validates clean, projects a write Figma rejects, and fails at paste time rather than in any gate');
+  ok(validateComponentDef(withPart('label', { verticalAlign: 'middle' })).errors.some((e) => /verticalAlign/.test(e) && /middle/.test(e)),
+    "#1009: and a fourth word is refused — Figma has three values, so 'middle' would be written and silently discarded");
+
+  // ---- HALF 1, NOT FIXED HERE, GUARDED SO IT IS NOT FIXED WRONGLY --------------------------------
+  //
+  // The QA that opened #1009 asked for the control to centre with its label. Blanket-centring the ROW is
+  // the obvious reading and it is WRONG: on a label that wraps, `CENTER` floats the control against the
+  // middle of the paragraph. The Prism2 reference is explicit that the box tracks the FIRST LINE, and
+  // `checkbox.ts`'s row comment has said so since before the issue existed.
+  //
+  // MEASURED, so this is not a restatement of that comment (`d9c5b2d`, aurora): a `medium` checkbox binds
+  // a 16px control against a `body.md` label whose line box is 16 × 1.5 = 24px, so top-aligned the box
+  // centre sits 4px above the first line's centre. Real, and why the QA is right that something is off.
+  // But the exact repair is a control frame the height of the LINE BOX, and line-height is a RATIO token
+  // against a rem font size — Figma variables cannot multiply, so no px line-height variable exists to
+  // bind such a frame to. That is why half 1 is filed rather than built.
+  //
+  // What is guarded is the WRONG repair. Population floor first, for the usual reason: a row that stopped
+  // pairing a control with a label would stop being checked, and only the floor notices.
+  //
+  // CENTRING IS ADMITTED WHERE THE LABEL CANNOT WRAP, and the exemption carries its reason rather than
+  // being a name on a list — the standard `LEAF_OK` and `PROVENANCE_EXCEPTIONS` already hold. Written as
+  // a register because the first run of this arm flagged `button.container`, where centring is RIGHT: a
+  // button's label is a short action phrase on one line, so "the first line" and "the block" are the same
+  // thing and the hazard this rule exists for cannot arise. Narrowing the rule to dodge that — keying on
+  // sizing, say — would have been a derived discriminator standing in for a design fact, and the design
+  // fact is what makes the exemption true.
+  const CENTRE_OK: Record<string, string> = {
+    'button.container':
+      "a button's label is a short action phrase, not prose — it does not wrap, so the first line IS the "
+      + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
+      + 'the mechanical half of the same fact: the row has no room to grow into a second line.',
+  };
+  let pairedRows = 0;
+  const centred: string[] = [];
+  for (const def of componentDefs) {
+    const ps = def.anatomy?.parts;
+    if (!ps) continue;
+    for (const [n, p] of Object.entries(ps)) {
+      if (!p.layout || p.layout.direction !== 'row') continue;
+      const kids = (p.children ?? []).map((c) => ps[c]).filter(Boolean);
+      if (!kids.some((k) => k.kind === 'text')) continue;
+      if (!kids.some((k) => k.kind !== 'text' && (k.size !== undefined || k.height !== undefined))) continue;
+      pairedRows++;
+      if (p.layout.align === 'center' && !CENTRE_OK[`${def.id}.${n}`]) centred.push(`${def.id}.${n}`);
+    }
+  }
+  ok(pairedRows >= 3,
+    `#1009 half 1: the corpus still has rows pairing a sized control with a text label, or this rule checks nothing (got ${pairedRows})`);
+  ok(centred.length === 0,
+    `#1009 half 1: no such row is align:'center' without a stated reason — block-centring floats the control mid-paragraph on a wrapping label, which is the repair the QA observation invites and the Prism2 reference rules out. Offenders: [${centred.join(', ')}]`);
+  // The converse, so the register cannot rot into a list of rows nobody re-examined.
+  const staleExempt = Object.keys(CENTRE_OK).filter((k) => {
+    const [id, part] = k.split('.');
+    const p = componentDefs.find((d) => d.id === id)?.anatomy?.parts?.[part];
+    return !p || p.layout?.align !== 'center';
+  });
+  ok(staleExempt.length === 0,
+    `#1009 half 1: every admitted row is still centred and still exists — an exemption whose row has moved on is a decision nobody re-argued. Stale: [${staleExempt.join(', ')}]`);
 }
 
 // ------------------------------------------------------------------- report

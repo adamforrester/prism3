@@ -58,6 +58,43 @@ export type FigmaNodePlan = {
    *  and a different namespace. Carried as its own field rather than squeezed into `bound`, so the
    *  plan can't imply a binding call that would fail at paste time. */
   textStyle?: string;
+  /** For a `TEXT` node: where the glyphs sit inside the node's own box (#1009). Present on EVERY text
+   *  node and on nothing else — the projector's default is `CENTER` and a part overrides it with
+   *  `PartDef.verticalAlign`.
+   *
+   *  ── WHERE THE RULE LIVES, WHICH IS THE QUESTION #1009 HELD OPEN ────────────────────────────────
+   *
+   *  Three candidates, and the measurement decides between them rather than taste. **774 TEXT nodes in
+   *  the corpus, ZERO with a bound height**, so this property is a no-op on every node that exists
+   *  today: a hugging text node's box IS its content and all three values land the glyphs in the same
+   *  pixels.
+   *
+   *    - **Projector default + per-part override — CHOSEN.** The stated risk was "a def that wants top
+   *      alignment now has to opt out of something it never opted into", and the measurement is what
+   *      makes that risk small: there is no node the default can get wrong, because there is no node it
+   *      can move. So it is introduced at the one moment it costs nothing, and every text node that
+   *      later gains a height inherits a decided rule instead of Figma's `TOP`. The override ships in
+   *      the same change rather than being added when someone needs it — an opt-out that arrives after
+   *      the default is an opt-out nobody could have used.
+   *    - **A required schema field — rejected.** It would make eleven defs state a value none of them
+   *      can exercise. Eleven unfalsifiable declarations is not explicitness; it is eleven claims no
+   *      gate can check, which is the shape `lint-context-nodes.ts`'s header calls a snapshot rather
+   *      than a rule.
+   *    - **Per-def bindings only — rejected by #1009's own observation**, three defs for three wrong,
+   *      and by this field's whole reason for existing: a silence is not a decision.
+   *
+   *  ── WHAT THIS DOES NOT DO ─────────────────────────────────────────────────────────────────────
+   *
+   *  It does not centre a control against its label. That is #1009's half 1, it lives on the PARENT
+   *  frame's `counterAxisAlignItems`, and no value here reaches it. The two arrived as one QA
+   *  observation and are two properties on two different nodes — see the issue, and see `docs/00` for
+   *  why half 1 is not in this change.
+   *
+   *  ALWAYS PRESENT rather than emitted only when a def overrides, and that is the point of it being a
+   *  claim: #865's second-direction gate asks that every visually-significant property a built node
+   *  carries trace to a plan entry, and a field absent from the plan whenever it agrees with the
+   *  default is a field that gate cannot distinguish from a silence. */
+  textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
   /** Elevation is a Figma EFFECT STYLE (`setEffectStyleIdAsync`), a THIRD namespace — not a
    *  variable and not a text style. It gets its own field for exactly the reason `textStyle` does:
    *  `setBoundVariable('effects', …)` is not an API, so an effect squeezed into `bound` would
@@ -510,6 +547,13 @@ const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
 };
 const JUSTIFY: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'SPACE_BETWEEN'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', 'space-between': 'SPACE_BETWEEN',
+};
+/** A part's word → Figma's (#1009). Deliberately NOT the same vocabulary as `ALIGN` above, which is a
+ *  FRAME's cross-axis rule and takes `baseline`; this is a TEXT node's own rule and Figma gives it three
+ *  values. Sharing one map would let `align: 'baseline'` be copied onto a text node, where Figma has no
+ *  such value and discards the write in silence. */
+const VERTICAL_ALIGN: Record<string, 'TOP' | 'CENTER' | 'BOTTOM'> = {
+  top: 'TOP', center: 'CENTER', bottom: 'BOTTOM',
 };
 // `hug` and `fill` both mean "don't pin a number" on the axis; only `fixed` is FIXED.
 const sizingMode = (m: SizingMode): 'AUTO' | 'FIXED' => (m === 'fixed' ? 'FIXED' : 'AUTO');
@@ -1086,6 +1130,9 @@ export const figmaAnatomyPlan = (
       ...(chars !== undefined ? { characters: chars } : {}),
       ...(propertyRef ? { propertyRef } : {}),
       ...(textStyle ? { textStyle } : {}),
+      // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
+      // here and nowhere else, so this line IS the rule #1009 asked to be located.
+      ...(p.kind === 'text' ? { textAlignVertical: VERTICAL_ALIGN[p.verticalAlign ?? 'center'] } : {}),
       ...((p.kind === 'slot' || p.kind === 'overlay') && slots.swapTarget ? { swapTarget: slots.swapTarget } : {}),
       ...(Object.keys(paints).length ? { paints } : {}),
       ...(descendantFills ? { descendantFills } : {}),
@@ -1856,6 +1903,10 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // the empty-label set this step exists to stop shipping.
     if(node.characters!==n.characters)misses.push(n.name+'.characters -> DISCARDED (set '+JSON.stringify(n.characters)+', reads '+JSON.stringify(node.characters)+')');
   }
+  // AFTER the text style, because a text style does not carry it and could not overwrite it — \`TextStyle\`
+  // has no alignment field on either axis (#1009, measured against \`@figma/plugin-typings\`). Ordered
+  // here anyway so the sequence reads the same as every other text write in this function.
+  if(n.textAlignVertical)node.textAlignVertical=n.textAlignVertical;
   if(n.effectStyle){
     const ef=effectByName.get(n.effectStyle);
     if(!ef)misses.push(n.name+'.effectStyle -> '+n.effectStyle);

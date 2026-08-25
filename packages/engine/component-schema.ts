@@ -225,6 +225,26 @@ export type PartDef = {
    *  distinct ink ROLE, not a distinct part. `indicator` qualifies (a name and its de-emphasised
    *  suffix are two roles); "this part happens to need its own colour" does not. */
   paintSlot?: string;
+  /** For `text` parts: WHERE the glyphs sit inside the text node's OWN box (#1009). Absent means the
+   *  projector's default, `center` — see `FigmaNodePlan.textAlignVertical` for that decision.
+   *
+   *  THE DEFAULT IS THE PROJECTOR'S AND THE OVERRIDE IS THE PART'S, which is the `paintSlot` shape one
+   *  field up and is chosen for the same reason: two text nodes in ONE component is the case that
+   *  settles it, so a def-level answer would have to become per-part anyway. `field-label` already has
+   *  two.
+   *
+   *  WHAT IT IS FOR, stated plainly because it is NOT what today's corpus exercises. Measured over every
+   *  projected member on `d9c5b2d`: **774 TEXT nodes, ZERO with a bound height.** A hugging text node's
+   *  box IS its content, so `top` and `center` put the glyphs in the same pixels and this field changes
+   *  nothing anyone can see today. It is a CLAIM in #1009's sense — the property stops being a silence,
+   *  and the first text node given a height inherits a stated rule rather than Figma's default.
+   *  `textarea`'s anatomy is the one anybody can already name: a multi-line field's text starts at the
+   *  TOP, and that def will say `verticalAlign: 'top'` here instead of discovering it was centred.
+   *
+   *  IT IS NOT THE FIX FOR A ROW THAT TOP-ALIGNS ITS CONTROL. That is #1009's half 1, it lives on the
+   *  PARENT's `layout.align`, and no value of this field reaches it — see `checkbox.ts`'s `row`. The two
+   *  were filed as one observation and are two properties on two different nodes. */
+  verticalAlign?: 'top' | 'center' | 'bottom';
   /** For `box` parts: WHICH paint slots this box takes, in precedence order (#933). Absent means the
    *  box paints nothing — it is structure, and `field-label`'s and `field-message`'s boxes are exactly
    *  that. The words must come from `BOX_PAINT_SLOTS`.
@@ -2342,6 +2362,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (p.kind === 'box' && !p.layout && (p.children ?? []).length > 0)
       e.push(`anatomy part '${n}' is a box with children but no layout — a materializer has no direction to apply`);
     if (p.kind === 'text' && !p.type) e.push(`anatomy part '${n}' is text but binds no type style`);
+    // `verticalAlign` is the TEXT kind's field (#1009) — the same wrong-kind rule as `paintSlot` below,
+    // and it matters MORE here than there, because Figma throws on the write. `textAlignVertical` lives
+    // on `TextNode`; assigning it to a FRAME is a runtime error at paste time, so a `box` carrying this
+    // field would validate clean, project a plan the executor cannot execute, and fail in the live file
+    // rather than in any gate — the exact class `characters` already carries a note about.
+    if (p.kind !== 'text' && p.verticalAlign !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'verticalAlign' — only a 'text' part positions glyphs inside its own box. Figma's 'textAlignVertical' is a TextNode property and writing it to a frame throws at paste time; a row that wants its children aligned says so in its own 'layout.align'`);
+    if (p.kind === 'text' && p.verticalAlign !== undefined && !(['top', 'center', 'bottom'] as readonly string[]).includes(p.verticalAlign))
+      e.push(`anatomy part '${n}': verticalAlign '${p.verticalAlign}' is not one of [top, center, bottom] — those are the three values Figma's 'textAlignVertical' has, and a fourth word would project a value the executor writes and Figma discards`);
     // `paintSlot` is the TEXT kind's field (#796) — the only branch that reads it. On any other kind it
     // would validate clean and be silently ignored, which is this whole pass's defect class: a field an
     // author reasonably believes took effect.
