@@ -13454,3 +13454,19 @@
     "generator": {
       "name": "Prism3 engine",
       "version": "0.23.0",
+      "method": "OKLCH color + grid-derived dimension generation"
+    },
+    "prism3": {
+      "theme": "nb",
+      "root": "nbds",
+      "colorFormat": "rgb",
+      "decisions": [
+        "NB regression: measured anchors; brand red also serves as danger (NB brand hue is its danger hue).",
+        "dimension axis: 4px grid, 8px space rhythm (Prism2 numbered scale), comfortable density, radius scale 1 (baseMd 4px).",
+        "typography: curated rem size ladder (22 steps, 10–160px) reproducing the Prism2 reference scale; weight roles subtle/default/emphasis/strong/max → 300/400/600/700/900.",
+        "shadow: 6-step ramp + inset, 2-layer, pure-black (NB dialect); mode-aware lift-primary (reduced in dark, NOT NB's heavier inverse — the field-correct choice).",
+        "layout: 5 breakpoints (engine default) + 12-col grid (4/8/12 ladder) + container max 1920 / narrow 720 (NB caps); gutter/margin alias the spacing scale."
+      ]
+    }
+  }
+}
