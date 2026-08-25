@@ -7,6 +7,135 @@
 
 ---
 
+## (2026-08-25) — The border a fill did not need: deleting seven keys, and the gate that found all three defs (#1011)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.21.0 → **0.22.0** (behaviour change: what the plugin builds for
+three components moves). `CONTRACT_VERSION` stands at **5.3.0** — this removes *references to* tokens,
+not tokens, so no guaranteed name or `$type` moves, and `token-contract.ts --check` confirms that rather
+than this entry asserting it.
+
+Three defects came out of a live Figma QA session on checkbox. Two were small. The third was the reason
+the other two were worth a PR.
+
+### The diagnosis that made the fix a deletion
+
+A selected checkbox bound `checked.fill` → `interactive.primary.fill.selected` **and** `checked.border` →
+`interactive.primary.border.rest`. Both resolved. Both named tokens the def had deliberately chosen. Every
+gate was green, and the box shipped with a visible seam where the border met its own fill.
+
+The issue framed this as an *expressiveness* gap — `paintOf` resolves each slot independently, so a def
+can bind border and fill separately and merely hope they agree — and asked whether it needs a new
+expression or is per-def care. **It is neither, and that was the whole finding.** The grammar already says
+it: an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` *is* the
+binding "this coordinate has no fill". Nothing needed adding. The fix is **fourteen deleted keys** — seven
+on checkbox, four on radio, three on switch — and no new field, no new token, no schema change.
+
+Why all three defs had it, which is the part worth carrying: the shared premise was **wrong, not sloppy**.
+`interactive.<intent>.fill.*` and `interactive.<intent>.border.*` are byte-identical at every rung they
+SHARE, across 5 brands × 4 modes — so a fill/border pair genuinely reads as two shades of one idea, and
+binding both is the natural thing to do. But the border ladder **has no `selected` rung at all**. So
+`fill.selected` had nothing to agree with and fell through to `border.rest`: a fill that moved beside a
+border that could not follow. Radio and switch then copied checkbox's block verbatim and inherited the
+defect verbatim.
+
+### Three framings rejected on measured grounds
+
+1. **"Border and fill must agree at each coordinate."** Rejected: it flags switch's OFF track, which is
+   correctly built. No brand's `interactive.neutral.fill.rest` clears 3:1 against the page (1.21–1.58:1;
+   1.39–1.81 hover, 1.64–2.09 pressed), so that rim is the track's only edge and removing it breaks SC
+   1.4.11 on all five brands. The rule had to be about the **fill's own** contrast, not about the pair.
+2. **`contrast(border, fill) >= 3`** — i.e. "if you draw both, make them distinguishable." Rejected for the
+   same reason: it demands switch's off track make its rim *contrast with its own fill*, which inverts what
+   that rim is for.
+3. **Per-def care, recorded in `notes.contested`.** Rejected because it is precisely what already failed —
+   care was exercised, correctly, three times, over one bad premise. The contested notes were written
+   anyway (the issue asked for them), but as a *record of a decision*, not as the mechanism.
+
+What was missing was neither vocabulary nor diligence but **enforcement**.
+
+### The gate, and why 3:1 is not from the corpus
+
+`lint-paint.ts` gains **arm 4 (redundant edge)**: for every node that paints both `fill` and `border` from
+the same token family, resolve the fill in all 20 brand/modes and fail if it already bounds itself against
+the page at ≥ 3:1. Measured split, with real margin: `interactive.primary.fill.selected` 4.94–14.17,
+`.hover` 4.05–12.08 — against `interactive.neutral.fill.rest` 1.21–1.58 and `field.fill` 1.00–1.22. The
+threshold sits in a gap between 4.05 and 2.09, so it is not tuned to the corpus; **3:1 is SC 1.4.11's
+non-text bar**, and the corpus happens to fall cleanly either side of it. That is the direction that makes
+it a rule rather than a snapshot.
+
+Independence (`docs/34`): ACTUAL is the plan's **variable names**, walked out of `figmaAnatomyPlan`;
+EXPECTED is the **resolved token values** from `corpus()` + `resolveAllModes()` — a tier the def never
+touches. Neither side is derived from the other.
+
+Run against the unfixed defs it printed **exactly nine tuples and nothing else** — three defs ×
+(`fill.selected`+`border.rest`, `fill.hover`+`border.hover`, `fill.pressed`+`border.pressed`) — with zero
+exceptions needed. It found all three defs in one run, including the two nobody had reported.
+
+### Traps for whoever re-verifies this
+
+- **Switch's OFF track keeps its rim, and that asymmetry looks like an oversight.** `off` paints fill+border,
+  `on` paints fill only. Removing `off.border` "for consistency" breaks 1.4.11 on every brand. It is now
+  the load-bearing entry in switch's `notes.contested`.
+- **After this fix, switch/off is the ONLY def contributing same-family fill+border pairs** — 4 measured of
+  20 that paint both slots. So arm 4's live scope rests entirely on that one track. It has a **zero-scope
+  guard** for exactly this: mutation-tested, stripping `off.border` makes it report `0 pairs measured of 16`
+  and **fail**, rather than pass over nothing.
+- **`restKey`/`STRUCTURAL` moves the disabled coordinate too, silently.** At `state: 'disabled'` a
+  STRUCTURAL slot applies only if the appearance has that structure at rest, so deleting `unchecked.fill`
+  also removed `disabled.fill` from the unchecked coordinate, and deleting `checked.border` removed
+  `disabled.border` from the checked one. Both correct, neither visible in the diff. Verified per
+  coordinate.
+- **The one border deliberately kept is mostly invisible.** `checked.border.error` → `border.danger` stays,
+  on the argument that a danger rim *signals* rather than *bounds* (arm 4 excludes it as cross-family). That
+  argument holds for why it may exist; it does not establish that anyone can see it. Measured against its
+  own selected fill: **1.17–3.09:1, below 3:1 in 17 of 20 brand/modes.** Filed as **#1014** — not fixed
+  here, because every candidate treatment is new anatomy or new token surface.
+
+### Verification: the plan cannot see any of this
+
+Every defect was a value that *resolves*, so a plan-level check sees nothing wrong. Two independent checks,
+and they are deliberately not restatements of each other:
+
+- **Arm 4** holds the generalizable rule, over the corpus, from resolved values.
+- **`apps/plugin/test-write-components.ts`** holds the hand-authored expectation from the Prism2 reference,
+  read off **built nodes** — the one harness that drives the real `applyComponentPlan`. It asserts: every
+  unselected box binds **no** fill and still binds a stroke (36 rows); every selected box binds a fill
+  (66 rows); none binds both outside `error`; the same-family co-occurrence set is non-empty and is
+  switch/off **only**, checked in both directions; and checkbox binds `radius/sm` on all four corners while
+  radio binds `radius/round`.
+
+Mutation-tested, three mutations, each preceded by a commit (#986). Restoring `checked.border` → arm 4 named
+3 checkbox tuples and the harness failed 2 assertions by name with concrete members. Stripping switch's
+`off.border` → the harness's two switch-exception arms failed by name *and* arm 4's zero-scope guard fired.
+Raising `SELF_BOUNDING` to 100 with the defect restored → **0** failures, proving the contrast measurement
+is what catches this rather than the family pairing alone.
+
+One near-miss worth recording: the read-back initially returned **0 rows**, because I filtered
+`n.type === 'COMPONENT'` while the shim's `createComponentFromNode: (n) => n` returns the frame unchanged.
+Eight assertions passed vacuously and only the file's own reachability pins went red. **The pins are the
+reason that was caught** — they are the discipline that harness's header argues for, and this is the second
+time they have earned it.
+
+### Filed, not fixed
+
+- **#1014** — the `error` rim is invisible against its own selected fill (1.17–3.09:1, 17/20 below 3:1).
+- **#1015** — no control-scale radius rung: the box shares the *card* radius ramp, so aurora's
+  `radiusScale: 2` puts a 4px corner on its 12px `small` square (a third of the edge) where every other
+  brand gets 2px on 16px. This was already prose in `checkbox.ts` `notes.contested`; live QA hitting it
+  independently is what made it a work item. **Finding 1 of #1011 needed no def change** — `radius.sm` is
+  correct, resolves to 2px on four of five brands, and now has a read-back pin proving it reaches the node.
+- Untouched by design: **#1009** (vertical centring — cross-cutting, and where the rule lives is undecided),
+  **#865** (the white frame fill — executor-side, Plugin lane), **#901** (CheckboxGroup / Checkbox.Control —
+  composition, not styling).
+
+### Census drift
+
+Expected and accepted: checkbox set 198→150 / grid 231→174, radio 126→93 / 147→108, switch 96→86 /
+128→114. Arm 1's `selection`-axis exemption count drops to 34 bindings, which it prints every run — that
+number falling without a deletion in the diff is the tell.
+
+---
+
 ## (2026-08-25) — the axis-VALUES census, and the assumption the issue named was not the binding one (#934)
 
 **STATUS: shipped.** No version change — a new gate, its register, and the three doc regions that gate

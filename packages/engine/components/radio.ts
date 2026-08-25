@@ -194,7 +194,11 @@ export const radio: ComponentDef = {
     // ── THE UNCHECKED DISC — the form-field substrate's chrome, identical to checkbox's empty box.
     // `pressed` is unbound here for checkbox's reason: `color.field.border.*` emits `rest` and `hover`
     // only, and reaching into another family for one coordinate would put two ladders on one axis.
-    'unchecked.fill': 'color.field.fill',
+    //
+    // NO FILL, identical to checkbox's empty box and inherited from it for the same measured reason
+    // (#1011): `color.field.fill` is an opaque near-white at 1.00–1.22:1 against the page across the
+    // corpus, so it painted a disc invisible against its own ground while occluding whatever the radio
+    // sits on. An empty radio is a ring on the page.
     'unchecked.border': 'color.field.border.rest',
     'unchecked.border.hover': 'color.field.border.hover',
     'unchecked.border.error': 'color.border.danger',
@@ -206,12 +210,22 @@ export const radio: ComponentDef = {
     // `on-fill` is a contract the token tier actually GATES, against the fill the ink sits on. An
     // outlined ring would paint its dot from an ink role gated against the PAGE while it in fact sits
     // on `color.field.fill`, which is a different pairing than the one that was checked.
+    //
+    // AND NO STRUCTURAL BORDER, which is #1011's third finding arriving here by inheritance rather than
+    // by a second mistake: this def copied checkbox's pairing verbatim, so it shipped checkbox's defect
+    // verbatim — `fill.SELECTED` beside `border.REST`, a rung the border ladder does not have, and a
+    // visibly lighter rim around a darker disc. The filled disc is 4.94–14.17:1 against the page corpus-
+    // wide, so it clears 1.4.11's 3:1 non-text floor everywhere and IS its own boundary; the same-family
+    // border could only agree invisibly (contrast 1.00 at `hover` and `pressed`, where both slots did
+    // name the same rung) or disagree visibly. `lint-paint.ts` arm 4 is the rule that now catches it,
+    // and it named all three defs in one run — which is the argument for checking a sibling against a
+    // finding rather than fixing the def the finding was filed on.
+    //
+    // `checked.border.error` stays: `border.danger` is a different family, and a cross-family border on
+    // a filled box is signalling rather than bounding.
     'checked.fill': 'color.interactive.primary.fill.selected',
     'checked.fill.hover': 'color.interactive.primary.fill.hover',
     'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'checked.border': 'color.interactive.primary.border.rest',
-    'checked.border.hover': 'color.interactive.primary.border.hover',
-    'checked.border.pressed': 'color.interactive.primary.border.pressed',
     'checked.border.error': 'color.border.danger',
     // The inner dot, in the `indicator` slot — NOT `icon`, and that is the second consequence of the
     // dot being a box rather than a glyph. `icon` is ink for a node that DRAWS something, and a box
@@ -470,6 +484,7 @@ export const radio: ComponentDef = {
 
   notes: {
     contested: [
+      'THE CHECKED DISC PAINTS A FILL AND NO BORDER, and this def is the reason #1011 is a family defect rather than a checkbox one. It had `checked.border` -> `interactive.primary.border.rest` beside `checked.fill` -> `interactive.primary.fill.selected` — two bindings disagreeing about one boundary — not because anyone decided it here, but because this def copied checkbox\'s paint block verbatim and so shipped checkbox\'s defect verbatim. That is the argument against answering this class with per-def care: care was exercised, correctly, three times, over one wrong premise inherited from the first def to get it wrong. The reasoning, the byte-identical-ladder measurement it rests on and the rejected alternatives live in ONE place — `checkbox.ts` `notes.contested` — and the rule is enforced in ONE place, `lint-paint.ts` arm 4, which named all three defs in a single run. Do not re-argue it here; if the premise moves, move it there.',
       'THE CHECKED DISC IS FILLED, with an on-fill dot — checkbox\'s treatment at a round radius. The NAMED ALTERNATIVE is Material\'s outlined model: the fill stays `color.field.fill`, the ring recolors, and a brand-colored dot sits inside it. It is a real fork and several systems ship it, and the brief takes no position — §8 describes "a spring/scale-up of the inner dot with a border-color crossfade", which both models satisfy. Filled was chosen on two grounds, neither of them taste: it keeps the two selection controls one visual family, and `on-fill` is a pairing the token tier actually gates, whereas an outlined dot would take an ink role gated against the PAGE while sitting on the field fill — a different pairing than the one that was checked. Revisit if a brand wants the outlined skin; it is a rebind of three keys, not a restructure.',
       'THE PAINT GRAMMAR IS AXIS-LED, inherited from `checkbox` rather than re-decided, and the exemption that makes it legal is declared once per AXIS in `lint-paint.ts` (`NON_FAMILY_AXES`) rather than once per def. Recorded here only so this def is not read as a second independent vote: the two share one grammar and one exemption. What is genuinely open is not the grammar but its cost — arm 1 does not check a non-family axis at all, and neither does anything else, which is #916.',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not axes here, because they are `RadioGroup`\'s. Unlike checkbox, where that was a tidy boundary, here it means the def is missing an axis its unit of use genuinely has — see #901.',

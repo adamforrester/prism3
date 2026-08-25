@@ -155,34 +155,56 @@ export const checkbox: ComponentDef = {
     // empty field. `pressed` is unbound here on purpose: `color.field.border.*` emits `rest` and
     // `hover` only, and reaching into `interactive.neutral.*` for one state would mix two families in
     // one ladder. It falls through to the rest border (`notes.unverified`).
-    'unchecked.fill': 'color.field.fill',
+    //
+    // NO FILL, and the absence is the binding (#1011). An empty checkbox is a BORDER on the page, not a
+    // filled square: `color.field.fill` is an OPAQUE near-white at 1.00–1.22:1 against the page in all
+    // 5 brands × 4 modes, so binding it painted a box that is invisible against its own ground and
+    // occludes whatever the checkbox actually sits on. Every reference implementation ships this
+    // transparent, Prism2 included. `paintOf` returning `undefined` for an unbound slot is how a def
+    // says "this coordinate does not paint that slot" — there is nothing else to write here.
     'unchecked.border': 'color.field.border.rest',
     'unchecked.border.hover': 'color.field.border.hover',
     'unchecked.border.error': 'color.border.danger',
 
     // ── THE CHECKED BOX — a filled control, so it paints from the primary interactive family. This is
-    // the half that `checked`-as-a-state could not express: `fill.checked.hover` and
-    // `border.checked.hover` are the coordinates a hovered checked box actually sits at.
+    // the half that `checked`-as-a-state could not express: `fill.checked.hover` is the coordinate a
+    // hovered checked box actually sits at.
+    //
+    // NO STRUCTURAL BORDER, and this is #1011's third finding rather than a tidy-up. The def used to
+    // bind `checked.border` → `interactive.primary.border.rest` beside `checked.fill` →
+    // `interactive.primary.fill.SELECTED`, and both bindings resolved, satisfied provenance, were
+    // reachable and were recorded by the census. What shipped was a lighter blue rim around a darker
+    // blue box. The measurement that explains it: `interactive.<intent>.fill.*` and
+    // `interactive.<intent>.border.*` are BYTE-IDENTICAL at every rung they SHARE (5 brands × 4 modes),
+    // and the border ladder has no `selected` rung at all — so naming `fill.selected` on one slot and
+    // letting the other fall through to `border.rest` was the only way to make the pair disagree, and
+    // the def found it. At `hover` and `pressed`, where both slots DID name the same rung, the border
+    // was a second edge in the fill's own color: contrast 1.00, invisible, and paid for at 24
+    // coordinates each.
+    //
+    // So the border comes off the filled coordinates entirely. A primary fill is 4.94–14.17:1 against
+    // the page across the whole corpus — it clears SC 1.4.11's 3:1 non-text floor everywhere, which
+    // means the fill IS this box's boundary and a same-family border can only agree with it invisibly
+    // or disagree with it visibly. `lint-paint.ts` arm 4 is the rule; it fails on the configuration
+    // that shipped, naming this coordinate.
+    //
+    // `checked.border.error` STAYS. `border.danger` is a different family — a cross-family border on a
+    // filled box is SIGNALLING, not bounding, and the arm holds it out of scope for that reason.
     'checked.fill': 'color.interactive.primary.fill.selected',
     'checked.fill.hover': 'color.interactive.primary.fill.hover',
     'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'checked.border': 'color.interactive.primary.border.rest',
-    'checked.border.hover': 'color.interactive.primary.border.hover',
-    'checked.border.pressed': 'color.interactive.primary.border.pressed',
     'checked.border.error': 'color.border.danger',
     'checked.icon': 'color.interactive.primary.on-fill',
 
     // ── THE INDETERMINATE BOX — identical to checked at every coordinate, because only the GLYPH shape
     // differs (dash, not check). Bound explicitly rather than folded into a fallback: with nothing
     // here, an indeterminate coordinate would fall through to the bare `{slot}` — unbound for `fill`
-    // and `border` — and a dash would be drawn on the unchecked white box. Verbose and visible beats
-    // terse and wrong.
+    // and `border` — and a dash in `on-fill` ink would be drawn on a box with no fill under it at all.
+    // Verbose and visible beats terse and wrong. It loses its structural border for the same reason
+    // `checked` does, and keeps `border.error` for the same reason too.
     'indeterminate.fill': 'color.interactive.primary.fill.selected',
     'indeterminate.fill.hover': 'color.interactive.primary.fill.hover',
     'indeterminate.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'indeterminate.border': 'color.interactive.primary.border.rest',
-    'indeterminate.border.hover': 'color.interactive.primary.border.hover',
-    'indeterminate.border.pressed': 'color.interactive.primary.border.pressed',
     'indeterminate.border.error': 'color.border.danger',
     'indeterminate.icon': 'color.interactive.primary.on-fill',
 
@@ -201,6 +223,13 @@ export const checkbox: ComponentDef = {
 
     // ── DISABLED SKIN (contrast-exempt), the shared cross-cutting family. The glyph takes the on-fill
     // ink because a disabled CHECKED box still has a fill under it; the row label takes page ink.
+    //
+    // Which of these two REACHES a given coordinate is decided by `restKey` in the projector, and #1011
+    // moved both halves without touching a line here — worth stating because the keys look unchanged.
+    // A disabled UNCHECKED box now takes only `disabled.border` (it has no fill at rest, so it gets no
+    // disabled fill either, and stays the empty outline it is when enabled); a disabled CHECKED box now
+    // takes only `disabled.fill` (it has no border at rest). Each disabled coordinate paints exactly the
+    // structure its rest coordinate has, which is what `restKey` is for.
     'disabled.fill': 'color.disabled.fill',
     'disabled.border': 'color.disabled.border',
     'disabled.icon.on-fill': 'color.disabled.on-fill',
@@ -431,7 +460,8 @@ export const checkbox: ComponentDef = {
       '`checked`/`indeterminate` as a variant AXIS rather than as two `STATES` entries. The alternative is real and cheaper: both would be admissible on the letter of that list\'s bar, since six of its ten members are already not interactions. It was rejected because `{state}` holds one value per coordinate, so `checked` x `hover` would not fail — it would fall back and paint the unchecked hover border. The trigger named here was a projection, and the projection has now happened: the set is 3 selections x 3 sizes x 6 states = 54 members, and `selection` earns its axis in the shape a flat state property could not — the mark and the dash are two PARTS gated on it (`presentWhen`), not two paint treatments, so collapsing it into `state` would put a tick and a dash at one coordinate. Read as settled by evidence rather than still pending.',
       '`alignment` (top/baseline vs center) is in brief §15\'s variants block and is NOT an axis here. The brief calls top/baseline "the non-negotiable default, not center", and a non-negotiable default with one admissible value is not an axis — it has no dimension. It is a layout rule for the anatomy block to encode. The alternative is to declare it and accept an axis of one, which `modifiers` already demonstrates the cost of (#845).',
       'The group\'s `orientation` and `density` are in brief §15\'s variants block and are not here because they are `CheckboxGroup`\'s axes, not this component\'s. The alternative is folding the group into this def, which is the monolithic decomposition the brief evaluates and rejects (§2).',
-      '`radius.sm` for the box, and the anatomy block now BINDS it, so the open question has a shipped answer rather than none. The brief takes no position on the checkbox corner, and the field radius is the substrate\'s answer rather than a considered one. It is also load-bearing beyond the corner: it is the only thing distinguishing this control\'s square from radio\'s circle, which will bind `radius.round` at the same part. Worth knowing what it is on each brand — 2 on nb, wendys and harbor, 4 on aurora — because a 4px radius on aurora\'s 12px `small` square is a third of its edge. The alternative is `radius.none` (a square box, which several systems ship) or a dedicated control-radius rung; both are engine surface a def should not author unilaterally.',
+      '`radius.sm` for the box, and the anatomy block now BINDS it, so the open question has a shipped answer rather than none. The brief takes no position on the checkbox corner, and the field radius is the substrate\'s answer rather than a considered one. It is also load-bearing beyond the corner: it is the only thing distinguishing this control\'s square from radio\'s circle, which will bind `radius.round` at the same part. Worth knowing what it is on each brand — 2 on nb, wendys and harbor, 4 on aurora — because a 4px radius on aurora\'s 12px `small` square is a third of its edge. The alternative is `radius.none` (a square box, which several systems ship) or a dedicated control-radius rung; both are engine surface a def should not author unilaterally. NOW FILED AS #1015, because live QA hit it independently (#1011 finding 1, "radius should be 2px") and a note inside a def is not a work item. Two things that review established and this entry did not say: the binding is CORRECT and needs no def change — 2px is what four of five brands resolve, and aurora\'s 4px is its own `radiusScale: 2` lever working — and the binding now reaches the built NODE, pinned by a read-back assertion in `apps/plugin/test-write-components.ts` (`radius/sm` on all four corners of every member; `radius/round` for radio), which is a stronger claim than "the key resolves".',
+      'BORDER AND FILL AT ONE COORDINATE — #1011\'s third finding, and the answer is NEITHER of the two the issue offered. The defect: a selected box named `fill.selected` for its fill and let its border fall through to `border.rest`, so two bindings that must AGREE about the box\'s boundary disagreed. Both resolved, both named tokens this def chose, and the box shipped with a visible seam — #802\'s class again, and the second on this component after #967\'s `role: \'target\'` conflation. The issue asked whether this needs a new EXPRESSION or is PER-DEF CARE. It is a third thing. It needs no new expression: the grammar already says it, because an unbound slot returns `undefined` and paints nothing, so the ABSENCE of `unchecked.fill` IS the binding "this coordinate has no fill" — the fix was deleting seven keys, not adding a field. And per-def care is exactly what had already failed: `radio` and `switch` carried the identical pairing because they copied this def verbatim, which is per-def care performed correctly three times over one wrong premise. What was missing was neither vocabulary nor diligence but ENFORCEMENT, so the answer is a gate — `lint-paint.ts` arm 4, which measures whether a fill is self-bounding against the page (>= 3:1, SC 1.4.11) and fails a same-family border drawn beside one. It named all three defs in a single run before any of them was fixed. The measured fact underneath, which is why the rule generalizes rather than describing these three: `interactive.<intent>.fill.*` and `interactive.<intent>.border.*` are byte-identical at every rung they SHARE across 5 brands x 4 modes, and the border ladder has NO `selected` rung at all — so `fill.selected` beside `border.rest` was never two shades of one idea, it was a fill that moved and a border that could not follow. The asymmetry to keep in view: switch\'s OFF track KEEPS its rim, because no brand\'s neutral fill clears 3:1 (1.21-1.58:1 at rest) and the rim is that track\'s only edge — which is precisely why arm 4 asks about the FILL\'s contrast rather than comparing the two bindings to each other.',
     ],
     unverified: [
       'THE CONTROL SQUARE IS NOW BOUND (#951 emitted `control.size.<rung>`, closing #900), and what is unverified moved with it rather than away. The square reads `control.size.<rung>.height` on both axes: 16/20/24 on nb, wendys and harbor, which lands in the brief\'s stated 16-18px range at `md`, and 12/16/20 on AURORA, whose `sm` square is 12px. Nobody has built one and looked at it, which is what this def existing at all is for. Two things to check when someone does: whether a 12px box reads as a checkbox at all, and — separately, because it is a different failure — that a 12px box does not become a 12px TARGET. SC 2.5.8 wants 24x24, and the row is what has to supply it; the square\'s own edge was never the target. The old form of this note read "the box\'s edge is unexpressible today" and the ladder it warned against is worth keeping: `icon.size.*` resolves, typechecks and passes every gate here, and is 16/20/24 in ALL FOUR brands, so binding to it would hold the control rigid against exactly the brand density `control.size.*` exists to move.',
