@@ -79,6 +79,13 @@
       "title": "a materialization rename is recorded as a RULE, and the emission diff is what forces the rule to exist",
       "doc": "docs/44-materialization-renames.md",
       "section": null
+    },
+    {
+      "date": "2026-08-25",
+      "issue": 1030,
+      "title": "the media veil is its own family, `color.veil.*`, and it is appearance-invariant",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "8.1"
     }
   ]
 }
