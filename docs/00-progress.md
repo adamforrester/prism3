@@ -82,6 +82,35 @@ that write lives inside a generated string no typechecker reads; S6 the wrong-ki
 someone "fixes" the QA by blanket-centring checkbox's row; S8 the `CENTRE_OK` exemption goes stale; S9 the
 per-part override stops reaching the plan; S10 above.
 
+**THE REBASE FOUND A COLLISION, AND IT IS THE MOST USEFUL THING IN THIS ENTRY.** #865 landed as #1017
+while this branch was open — the sibling issue, the same defect from the other side. Rebasing onto it
+turned three gates red, and one of the two causes was substantive rather than mechanical.
+
+#1017 adds `claimDefaults`, a pass that writes Figma's own default for every visually-significant property
+the plan did not claim. Its doc says, correctly, that it *"runs LAST, after every plan-driven write, so a
+declared value is never clobbered"*. Its `textAlignVertical` line was **unconditional**:
+
+    if (t === 'TEXT') {
+      set('textAlignVertical', 'TOP');
+
+So it wrote `TOP` over every claim this change makes, after the claim. Guarded now, exactly like `effects`
+and `opacity` beside it — and the guard is what keeps that sentence true, because **this is the first
+property `claimDefaults` neutralises that the plan can also speak about.** Every other entry in the TEXT
+block is still genuinely unclaimed, which is why five of the six need no guard and one does.
+
+**The PARITY arm is what caught it**, and by a route nothing else could have taken: the paste path has no
+neutraliser, so it still read `CENTER` while the plugin path read `TOP`. A single-executor test would have
+seen `TOP` on both sides of its own comparison and reported agreement. *Two executors are two opinions;
+one is a mirror.* Mutation S11 restores the collision and both suites name it.
+
+**And #1017's comment made two claims about this property that were true when written and are now false**,
+both corrected here. It said the line *"changes no pixel today"* — it does, wherever a text node has a
+height, because the plan now claims `CENTER`. And it cited `components/checkbox.ts` as arguing for `TOP`.
+That is the exact conflation this issue's own correction untangled: checkbox argues for TOP on its **ROW**,
+which is `counterAxisAlignItems` on the parent frame — a different property on a different node. Two lanes
+reading one QA observation both reached for the same def to justify opposite-tier decisions, which is what
+made the observation worth splitting in the first place.
+
 **A verification limit, stated rather than implied.** Nothing here renders. The shims record property
 assignments; they do not lay out, so the 4px figure above is arithmetic over the emitted tokens and not a
 measurement of a built frame. What would close that is a live Figma check on a two-line label — the same
