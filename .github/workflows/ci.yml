@@ -316,6 +316,19 @@ jobs:
       - name: Every reported contrast ratio matches the color it was measured against
         run: npx --yes tsx@4 packages/engine/lint-ratio-truth.ts
 
+      # `VARIANT_AXES` closed the axis NAME vocabulary after #756 found four spellings of one axis,
+      # each individually defensible, caught by a census that ran after all three had shipped. The
+      # identical argument applies one level down to axis VALUES, and one level down there was no
+      # census at all (#934). Not a uniformity rule — `switch`'s `[off, on]` diverges from checkbox's
+      # `[unchecked, checked, indeterminate]` and is correct (#930) — but a register: every set
+      # declared with a reason, both directions, plus the RELATION each set stands in to its axis's
+      # canonical one, computed by set algebra and compared against what the author declared. The
+      # census found the issue's own premise wrong twice: `selection` carries three sets rather than
+      # two, and two OTHER axes diverge as well. The expensive case is not `switch`'s disjoint set but
+      # `tone`'s overlap, where `error` and `danger` are one concept spelled two ways.
+      - name: Every axis value set is declared, and stands in the relation it declares
+        run: npx --yes tsx@4 packages/engine/lint-axis-values.ts
+
       # docs/00-progress.md is newest-entry-first, and a rebase routinely lands the incoming entry
       # SECOND with no textual conflict and nothing to report it (#931 — three hand-fixes in 24
       # hours across two lanes). The file is exempt from every other gate that touches it

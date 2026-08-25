@@ -7,6 +7,93 @@
 
 ---
 
+## (2026-08-25) — the axis-VALUES census, and the assumption the issue named was not the binding one (#934)
+
+**STATUS: shipped.** No version change — a new gate, its register, and the three doc regions that gate
+requires. Nothing emitted moves. Gates go **43 → 44** (renumbered on rebase — #865/#1017 landed first
+and took 43).
+
+**The gap.** `VARIANT_AXES` closes the axis **NAME** vocabulary — 11 names, checked. Nothing closed, or
+even *observed*, axis **VALUES**. #756 had already found what that costs one level up: *"`selection` /
+`selected` / `state` / `on` are four spellings of one axis, every one individually defensible, and the
+census that would catch them runs after all three have shipped."* That produced `VARIANT_AXES`. The
+identical argument applies to values, and one level down there was no census at all.
+
+**Not a uniformity rule, and that decision comes before the gate.** `switch` spells its `selection` axis
+`[off, on]` against checkbox's `[unchecked, checked, indeterminate]`, argued at length in #930 and
+correct: `role="switch"` exists precisely because it is *announced* on/off. A gate asserting sameness
+would be wrong and would be discovered to be wrong by whoever authors `select`. So the shape is the
+register: every set declared with a stated reason, checked **both directions** — an undeclared set
+fails, a declared set no def uses fails as stale, and an entry naming a def that does not use it fails
+too. Divergence becomes *weighable* rather than uniform.
+
+**THE ASSUMPTION #934 NAMED WAS NOT THE BINDING ONE, and the census is what says so.** #1000's rule,
+applied to the issue that cites it. Measured over 11 defs and 24 (def, axis) pairs:
+
+1. **`selection` carries THREE sets, not two.** #934's table records `radio` as *"inherits checkbox's"*.
+   It does not — `radio` is `[unchecked, checked]`, checkbox's vocabulary minus `indeterminate`, argued
+   in its own header (a mutually-exclusive choice has no partial state). Correct, and a third set.
+2. **The divergence is not confined to `selection`.** Three of the eleven axes carry more than one set:
+   `selection` (3), `size` (2), `tone` (2). A gate scoped to `selection` — which is what the issue title
+   asks for — would have gone green over the other two.
+
+**The binding property is COMPARABILITY, not spelling count**, and the three relations are not equally
+dangerous. `subset` (radio ⊂ checkbox; `[small, medium]` ⊂ the three-rung ladder) is cheapest — a shared
+value means the same thing in both. `disjoint` (switch) is loud: a consumer lining the sets up sees at
+once that they do not. **`overlapping` is the expensive one**, because partial agreement reads as
+alignment, so the one place the sets disagree looks like a distinction rather than a synonym. Arm C
+therefore *computes* the relation by set algebra and compares it against the one the author declared —
+the cheap label cannot be filed for the expensive case.
+
+**And the overlapping case was already in the corpus, in an axis nobody was watching.** `tone` has
+`field-message`'s `[default, error, warning, success]` against `icon`'s nine-value ink vocabulary. They
+agree on `success` and `warning`, and then one spells the failure ink `error` where the other spells it
+`danger`. The proof they are one concept is the binding itself: `'error.label': 'color.text.danger'` —
+the def spells the value `error` and resolves it to `danger` on the very next token. Both spellings are
+individually defensible, which is #756's signature: `error` is a member of the closed `STATES`
+vocabulary, which a validation outcome should mirror; `danger` is the ink vocabulary the binding
+resolves to. **Declared rather than fixed, deliberately** — unifying them is a component-API change
+belonging to whoever owns the axis, not to the census that found it, and #934's own bar is that the gate
+must not prejudge a decision two spellings might legitimately survive.
+
+**The trap, and where EXPECTED comes from.** A census that reads the defs to decide what to expect can
+only confirm the defs agree with themselves (`docs/34` shape 1) and would report that as a pass. So the
+register is authored (EXPECTED), the defs' `variants` are ACTUAL, and **`git ls-files` over
+`components/` is the oracle** for which defs must be represented — never `components/index.ts`, which
+would put a second list in the oracle position. Mutation M6 is the proof this is not decorative: a
+tracked def file the registry has never heard of is still censused, and the run reports 12 defs / 25
+pairs rather than 11 / 24. The register is **authored and never generated**, same reason as
+`token-contract.json` (principle 5): regenerated from a scan it would classify each new spelling itself.
+It lives in the gate file as a `const` rather than as a JSON artifact, and not only for the prose — a
+JSON baseline in the repo is a standing invitation to add it to `regen.ts`, and a `const` in a script
+cannot be regenerated by anything.
+
+**Nine mutations, each failing by name, both directions.** M1 a fourth `selection` spelling (the
+motivating defect — arms A *and* B); M2 an axis removed from a def; M3 `overlapping` declared as
+`subset`; M4a an entry naming a def that does not use it; M4b a def using a declared set the entry does
+not name; M5 a def's values *reordered* (order is meaningful — the first value is the rest coordinate a
+paint key falls through to); M6 the git-oracle case above; M7 the census collapsed to nothing, caught by
+the shape-9 floors rather than passing vacuously; M9 the registry exclusion matching nothing after a
+rename. M8 typos an axis name in the register itself.
+
+**A defect of my own, found by the mutation runs rather than by a gate.** Every `grep` against the new
+file answered `binary file matches` instead of the line. The `key()` helper joined `(axis, values)` with
+a literal **NUL** and **SOH** — control characters chosen because they cannot collide with an author's
+value, and a NUL makes the file binary to `grep` and `file(1)` while staying **invisible in every diff**
+and valid UTF-8. Git diffed it as text, so nothing in review would have shown it. *A source file that
+text tooling silently skips is worse than the collision the control characters were avoiding* —
+`JSON.stringify` is collision-free and text-safe, and is what ships. A repo-wide scan of all 627 tracked
+files found one more instance of the same pattern, `apps/studio/src/main.ts:7365-7366` using `\x02` as a
+join delimiter; it does **not** trigger the binary heuristic the way NUL does, so it is recorded here
+rather than changed — the trap is the pattern, not that file.
+
+**Stated limit**, the same one `lint-context-nodes.ts` states about itself: this proves every set is
+declared, that the declaration is not stale, and that a stated relation is the relation the values
+actually stand in. It does not prove the values are the right values. `MIN_REASON` (80) is a floor
+against a label standing in for a justification, not a judge of content.
+
+---
+
 ## (2026-08-25) — the properties nobody wrote, and the direction no read-back can see (#865)
 
 **STATUS: shipped.** No version change — the executor writes Figma's own defaults explicitly, so no
