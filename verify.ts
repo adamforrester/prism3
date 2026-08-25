@@ -106,6 +106,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, realpathSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -181,6 +182,13 @@ export const driftCheckPrecondition = (): string | null => {
     `generated output against your working tree rather than against HEAD. Commit or stash them, then rerun.`;
 };
 
+/** Where Playwright looks for its downloaded browsers — shared by `chromiumPrecondition` and
+ *  `environmentProblems` below so the path logic has exactly one copy (the same "one predicate, not
+ *  two copies that drift" reasoning `chromiumPrecondition`'s own header already states for #870). */
+const browserCacheDir = (): string =>
+  process.env.PLAYWRIGHT_BROWSERS_PATH
+    || (process.platform === 'darwin' ? join(process.env.HOME ?? '', 'Library/Caches/ms-playwright') : join(process.env.HOME ?? '', '.cache/ms-playwright'));
+
 /**
  * The two browser gates' shared skip reason: no Chromium on this machine.
  *
@@ -193,12 +201,123 @@ export const driftCheckPrecondition = (): string | null => {
  * is the shape this file exists to prevent one tier up — the second browser gate (#870) copying the
  * cache-path logic, and a fixed path drifting in one copy so one suite skips honestly while the other
  * reports a browser it does not have.
+ *
+ * DELIBERATELY LOOSE — "is there ANY chromium-ish directory here" — and that looseness is exactly
+ * what `environmentProblems` exists to cover for (#935): a cache holding the WRONG revision satisfies
+ * this and still fails the real gate later. Tightening this predicate to check the exact revision was
+ * considered and rejected — it would have to duplicate the version-to-revision logic the preflight
+ * below deliberately avoids duplicating (see that function's header), and this predicate's job is only
+ * ever "SKIP rather than run with nothing" for a fully empty cache. Version-correctness is the
+ * preflight's job, checked once before anything is selected to run, not this predicate's.
  */
 const chromiumPrecondition = (): string | null => {
-  const cache = process.env.PLAYWRIGHT_BROWSERS_PATH
-    || (process.platform === 'darwin' ? join(process.env.HOME ?? '', 'Library/Caches/ms-playwright') : join(process.env.HOME ?? '', '.cache/ms-playwright'));
+  const cache = browserCacheDir();
   const has = existsSync(cache) && readdirSync(cache).some((d) => d.startsWith('chromium'));
   return has ? null : 'no Chromium in the Playwright browser cache — run `npx playwright install chromium` once, then rerun';
+};
+
+/**
+ * PREFLIGHT (#935) — a THIRD kind of red, distinct from a failing gate, for the two ways a fresh
+ * container fails BOTH browser gates for reasons that have nothing to do with the diff:
+ *
+ *   1. `playwright` is a devDependency (`apps/studio` + `apps/plugin`, hoisted to the repo root) that
+ *      a container provisioned before #775/#883 flipped smoke to gating simply does not have.
+ *      `spawnSync` still launches `npm run … test:smoke` fine — npm exists — so the child process
+ *      dies with `ERR_MODULE_NOT_FOUND` and a non-null exit code, which point 4 correctly reports as
+ *      FAIL. Correctly reported, and still the wrong verdict: nothing about the change under test
+ *      caused it.
+ *   2. The pre-installed browser cache is pinned to whatever revision was baked into the container
+ *      image, and `package-lock.json` moves independently of it. `chromiumPrecondition` above only
+ *      asks "is there a Chromium here at all", which cannot see a cache that has the WRONG one — the
+ *      two gates then run, launch, and fail on a Playwright "Executable doesn't exist" error, which
+ *      again is a genuine FAIL by point 4's own rule, and again is not about the diff.
+ *
+ * THREE LANES (#883, #910, #929) each hit this, each correctly declined to fix an environment problem
+ * inside an unrelated PR, and each then had to argue in the PR body that a red run was fine — which is
+ * the exact judgment this file exists to remove (see the header's "WHY THIS EXISTS"). A standing,
+ * known-benign-looking FAIL trains a lane to annotate red instead of trusting it, and the next failure
+ * that looks environmental and is not gets the same sentence.
+ *
+ * SO THIS RUNS BEFORE ANY GATE, NOT AS ONE. Structurally excluded from `GATES` on purpose — no `id`,
+ * no `ciStep`, never reaches `results`/`verdictOf` — which is what keeps it invisible to
+ * `lint-doc-gates.ts`'s bidirectional comparison against `ci.yml` (see the header's "WHY THE LIST IS
+ * AUTHORED HERE"). A preflight that read as a 39th gate would need a `ci.yml` step, a `CONTRIBUTING.md`
+ * §3 line and a PR-template line to stay green under that gate's own rule — for a check that asserts
+ * nothing about the CODE under test. Reported through its own message shape instead (`ENVIRONMENT NOT
+ * READY`, never `N/M gates … PASS/FAIL`), so a lane cannot mistake it for either a pass or a gate
+ * failure without reading a word of it.
+ *
+ * WHY THIS LAUNCHES A REAL BROWSER RATHER THAN COMPUTING A PATH. The obvious-looking cheap version —
+ * read `chromium.executablePath()` and check `existsSync` — was tried first here and is WRONG: that
+ * path resolves to the plain `chromium-<rev>` build, and `chromium.launch()` with no options (exactly
+ * what `test-smoke.mjs` and `test-build-verdict.mjs` both call) launches `chromium_headless_shell-<rev>`
+ * instead — a DIFFERENT revision directory. Measured directly: with only `chromium_headless_shell-1234`
+ * removed, `executablePath()` still returned a path that exists (the plain build was untouched) while
+ * `chromium.launch()` still threw `Executable doesn't exist at …chrome-headless-shell`. A preflight
+ * built on the cheap check would have reported READY while the real gate still failed — `docs/34`'s
+ * point exactly: this check would itself be the identical defect it exists to catch. So rather than
+ * duplicate Playwright's revision-selection logic (and inherit whatever it does next time that logic
+ * changes), this performs the SAME operation the real gates perform — launch, then immediately close —
+ * and reads the real failure Playwright itself reports. No revision number is hardcoded anywhere in
+ * this file; asking Playwright is what keeps this from becoming the next stale landmark (#568).
+ *
+ * SCOPED TO WHEN IT MATTERS, not every invocation: the caller only awaits this when `selected` contains
+ * a gate whose `precondition` is `chromiumPrecondition` — the same marker that already identifies "the
+ * two browser gates" for that predicate, so there is no second hardcoded id list to drift out of step
+ * with the first (the exact sibling-gate hazard `chromiumPrecondition`'s own header names for #870).
+ * `verify.ts engine-test` on a container with no browsers at all pays nothing for this.
+ *
+ * THE TWO CHECKS ARE INDEPENDENT, on purpose, and neither short-circuits the other. `playwright`
+ * missing and the browser cache holding the wrong revision are two unrelated facts — one about
+ * `node_modules`, one about `/opt/pw-browsers` or `~/.cache/ms-playwright` — and a container can be
+ * missing on either axis without the other. So the browser-launch check below drives
+ * **`playwright-core`** directly rather than `playwright`: `playwright-core` is the package that
+ * actually resolves a revision and launches it (`playwright` is a thin wrapper that re-exports it),
+ * so it can confirm or refute the browser cache even on a container where `playwright` itself is the
+ * thing absent — which is exactly the state a mutation test of "remove `playwright`, ALSO point the
+ * cache at the wrong revision" produces, and the one case a short-circuited version of this function
+ * would report only the first of two real problems for.
+ */
+export const environmentProblems = async (): Promise<string[]> => {
+  const problems: string[] = [];
+
+  const pwPkg = resolve(repoRoot, 'node_modules/playwright/package.json');
+  if (!existsSync(pwPkg)) {
+    problems.push(
+      'playwright is not installed (apps/studio and apps/plugin both depend on it for their browser ' +
+      'suites, hoisted to the repo root node_modules) — run `npm ci`.',
+    );
+  }
+
+  const corePkg = resolve(repoRoot, 'node_modules/playwright-core/package.json');
+  if (!existsSync(corePkg)) {
+    // Nothing left to check without a launcher at all — the message above (if pushed) is already the
+    // complete remedy; if `playwright` was present but `playwright-core` somehow is not, that is itself
+    // an `npm ci`-shaped problem this predicate has no more specific name for.
+    if (!problems.length) {
+      problems.push('playwright-core is not installed (playwright\'s own launcher) — run `npm ci`.');
+    }
+    return problems;
+  }
+  const coreVersion = (JSON.parse(readFileSync(corePkg, 'utf8')) as { version: string }).version;
+  try {
+    const req = createRequire(resolve(repoRoot, 'package.json'));
+    const core = req('playwright-core') as typeof import('playwright-core');
+    const browser = await core.chromium.launch();
+    await browser.close();
+  } catch (e) {
+    const message = (e as Error).message.split('\n')[0];
+    const cache = browserCacheDir();
+    const cached = existsSync(cache) ? readdirSync(cache).filter((d) => d.startsWith('chromium')).sort() : [];
+    const have = cached.length ? cached.join(', ') : '(nothing)';
+    problems.push(
+      `playwright-core ${coreVersion} could not launch Chromium headless (${message}) — the browser ` +
+      `cache does not match this playwright version. Cache currently has: ${have}. Run ` +
+      '`npx playwright install chromium chromium-headless-shell` (writes outside node_modules, the ' +
+      'one-off download CLAUDE.md already sanctions), then rerun.',
+    );
+  }
+  return problems;
 };
 
 /** The artifact-count meta-check, taken from the drift gate's ALREADY-CAPTURED output rather than by
@@ -770,6 +889,20 @@ if (isMain) {
     const unknown = only.filter((o) => !GATES.some((g) => g.id === o));
     if (unknown.length) { console.error(`unknown gate id(s): ${unknown.join(', ')} — try --list`); process.exit(1); }
     console.log(`⚠ running ${selected.length} of ${GATES.length} gates — a SUBSET, so this run cannot say the gates pass.\n`);
+  }
+
+  // PREFLIGHT (#935) — before any gate spawns, not as one. See `environmentProblems`'s header for why
+  // this is neither a pass nor a gate failure, and why it only runs when a browser gate is selected.
+  if (selected.some((g) => g.precondition === chromiumPrecondition)) {
+    const envProblems = await environmentProblems();
+    if (envProblems.length) {
+      console.error('\n⚠ ENVIRONMENT NOT READY — no gate has run:\n');
+      for (const p of envProblems) console.error(`    ${p}`);
+      console.error('\n  This is not a gate failure — nothing about this change has been checked yet. Apply the');
+      console.error('  remedy above and rerun. (#935 — three PRs in a row argued a red run here was fine; the');
+      console.error('  point of this message is that nobody should have to make that argument again.)');
+      process.exit(1);
+    }
   }
 
   const results: Result[] = [];

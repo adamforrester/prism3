@@ -7,6 +7,74 @@
 
 ---
 
+## (2026-08-25) — `verify` now refuses to run rather than let a fresh container talk a lane into "36/38 is fine" (#935)
+
+**STATUS: shipped.** Three PRs (#883, #910, #929) each hit the same two environment failures on a
+fresh container — `playwright` absent (a container provisioned before #775/#883 never installed it)
+and the pre-baked browser cache holding the wrong Chromium revision for the pinned playwright version
+— and each correctly declined to fix an unrelated environment inside its own diff, and each then had
+to argue in the PR body that a red run was fine. `verify.ts` exists specifically so that judgment is
+never needed; a standing, benign-looking FAIL trains every lane to annotate red instead of trusting the
+signal, and the next failure that *looks* environmental and is not gets the same sentence.
+
+**What shipped is a preflight, not a 39th gate.** `environmentProblems()` in `verify.ts` runs before any
+gate spawns — only when `smoke` or `plugin-verdict` is actually selected — and reports `ENVIRONMENT NOT
+READY` in a message shape that can never enter the PASS/FAIL/SKIP table at all, so a lane cannot
+mistake it for either. Structurally excluded from `GATES` on purpose: no `id`, no `ciStep`, invisible
+to `lint-doc-gates.ts`'s bidirectional comparison against `ci.yml` by construction (checked: 44 gates
+both directions before and after, unchanged). `CONTRIBUTING.md` §3 carries the same note, explicitly
+disclaiming gate-hood in its own first sentence — `lint-doc-gates.ts`'s membership rule ("a region is a
+gate promise when it is the passage a contributor is told to run before pushing") already handles
+extra prose correctly (`findGaps` only checks the forward direction — every real gate must be
+documented — never the reverse), so the rule itself needed no change; verified by rerunning the gate
+after the doc edit rather than assumed.
+
+**The two checks are independent, not a package-check that short-circuits a cache-check.** The browser
+launch check drives `playwright-core` directly (the package that actually resolves and launches a
+revision; `playwright` is a thin re-export) specifically so it still works when `playwright` itself is
+the thing missing — otherwise "playwright removed AND the cache is wrong" would only ever report the
+first problem found.
+
+**Why this launches a real headless Chromium rather than computing a path — found by measuring, not
+assumed.** The obvious cheap version, `chromium.executablePath()` + `existsSync`, was tried first and
+is WRONG: that path resolves to the plain `chromium-<rev>` build, while `chromium.launch()` with no
+options — exactly what `test-smoke.mjs`/`test-build-verdict.mjs` both call — launches
+`chromium_headless_shell-<rev>` instead, a DIFFERENT revision directory. Measured directly: with only
+`chromium_headless_shell-1234` removed, `executablePath()` still returned a path that exists (the
+plain build was untouched) while `chromium.launch()` still threw `Executable doesn't exist`. A
+preflight built on the cheap check would have reported READY while the real gate still failed — the
+identical class of defect it exists to catch, per `docs/34`. So the preflight performs the SAME
+operation the real gates perform (launch, then close) and reads Playwright's own error, rather than
+duplicating its version-to-revision logic. No browser revision number is hardcoded anywhere in
+`verify.ts`; asking Playwright is what keeps this from becoming the next stale landmark (#568).
+
+**Mutation-verified against the real environment, all four cases named in #935's lane prompt** (not
+against fabricated inputs — `environmentProblems` is impure by nature, same as `chromiumPrecondition`,
+which the file already leaves outside the pure-function `selfFails` self-check convention):
+
+| break | preflight output |
+|---|---|
+| `mv node_modules/playwright` away | names `playwright is not installed`, remedy `npm ci` |
+| rename `chromium-1234`/`chromium_headless_shell-1234` away | names the installed `playwright-core` version, Playwright's own "Executable doesn't exist" error, what the cache currently DOES have (`chromium, chromium-1194, chromium_headless_shell-1194`), and the install command |
+| both at once | names **both** problems, not just the first |
+| healthy environment (negative control) | **no preflight output at all** |
+
+This container's own environment needed neither remedy going in (`playwright` and a matching browser
+cache were both already present from earlier work this session) — stated explicitly per #935's own
+ask, rather than folded into a silently-clean report.
+
+**Also fixed:** `chromiumPrecondition`'s cache-path resolution (`PLAYWRIGHT_BROWSERS_PATH` / platform
+default) was duplicated nowhere — factored into one `browserCacheDir()` both it and the new preflight
+share, extending the "one predicate, not two copies that drift" reasoning `chromiumPrecondition`'s own
+header already states for #870 one level further.
+
+**Not attempted, per #935's own scope call:** option 1 (fixing the container image) — outside what a
+PR here can reach, and does nothing for containers already provisioned.
+
+`npm run verify` → **44/44 gates reached a verdict in 123s — 44 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**.
+
+---
+
 ## (2026-08-25) — The one binding the alias layer cannot carry, and the axis it turns out to be (#871)
 
 **STATUS: shipped.** No version change — nothing emitted moves, no token name moves, no contract
