@@ -18,6 +18,7 @@ import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT } from './modes';
+import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
 import { surfaceRows, SURFACE_MODES } from './emit-figma-surface';
@@ -1429,21 +1430,14 @@ for (const b of brands) {
     // ending the second opinion, which is `docs/34` shape 1 arriving through a refactor rather than
     // through a bad gate.
     //
-    // ── WHAT THIS COVERS, AND WHAT IT DOES NOT ─────────────────────────────────────────────────
+    // ── BOTH SIDES, SINCE #988 ─────────────────────────────────────────────────────────────────
     //
-    // These arms re-derive the ground set HERE, from the tree, and hold `engineGrounds` to it. That
-    // catches the ENGINE dropping an edge, which is the defect that happened. It does NOT compare the
-    // two definitions directly, so it cannot catch the GATE dropping one.
-    //
-    // The direct comparison was written first and REVERTED, because importing `groundsOf` from
-    // `lint-ratio-truth.ts` **runs the entire gate**: it is a script with top-level side effects,
-    // including `process.exit(1)`. A failing ratio-truth run would then kill `test.ts` before any of
-    // its own assertions reported — a crash that names no gate, which is precisely the failure #984's
-    // post-mortem is about, reintroduced by the fix for it. Measured before reverting: the import
-    // added a full 34,128-ratio sweep to every `test.ts` run.
-    //
-    // Closing that gap needs `groundsOf` extracted into a side-effect-free module, which is a change
-    // to a file with two PRs open against it. Filed rather than raced.
+    // These arms re-derive the ground set HERE and hold `engineGrounds` to it, which catches the
+    // ENGINE dropping an edge — the defect that happened. The last arm then compares the two
+    // definitions DIRECTLY, which is the half #987 could not ship: `groundsOf` lived in
+    // `lint-ratio-truth.ts`, a script whose module scope runs a 34,128-ratio sweep and calls
+    // `process.exit(1)`, so importing it killed `test.ts` before it reported anything. #988 moved it
+    // to `grounds.ts`; the fork is held from both ends now rather than one.
     {
       const light = resolveAllModes(nbTheme()).find((m) => m.mode === 'light')!;
       const roles = light.roles;
@@ -1476,6 +1470,24 @@ for (const b of brands) {
       const viaLegible = legibleOnly[0];
       ok(!viaLegible || groundDependentsOf(roles, viaLegible).length > 0,
         `grounds: groundDependentsOf counts legibleFor dependents (${viaLegible} → ${viaLegible ? groundDependentsOf(roles, viaLegible).length : 0})`);
+
+      // THE FORK ITSELF, both directions (#988). The two definitions are maintained separately on
+      // purpose — see the header — so the only thing that can stop them drifting is an assertion that
+      // they have not.
+      //
+      // INTERSECTED WITH THE ROLE KEYS FIRST, and this is the easiest thing here to get wrong.
+      // `engineGrounds` returns palette-step refs (`neutral.050`) as well as role keys, because some
+      // roles are legitimately measured against a primitive; `groundsOf` filters those out. Comparing
+      // the raw sets fails on a difference that is not a fork, and a gate that cries wolf on a
+      // designed-in difference is one nobody reads twice.
+      const roleValued = [...actual].filter((g) => g in roles).sort();
+      const fromGate = groundsOf(nbTheme());
+      const engineOnly = roleValued.filter((g) => !fromGate.includes(g));
+      const gateOnly = fromGate.filter((g) => !roleValued.includes(g));
+      ok(engineOnly.length === 0 && gateOnly.length === 0,
+        `grounds: the engine's refusal and the gate's sweep agree on what a ground is (${roleValued.length} role-valued)`
+        + (engineOnly.length ? ` — ENGINE ONLY: ${engineOnly.join(', ')}` : '')
+        + (gateOnly.length ? ` — GATE ONLY: ${gateOnly.join(', ')}` : ''));
 
       // `GROUND_INPUT` is the other half of the refusal. An entry for a role nothing is measured
       // against would arm the refusal on something that cannot desync.
@@ -3171,6 +3183,50 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const dispatch = src.indexOf("process.argv.includes('--check')");
     ok(guard !== -1 && dispatch > guard,
       '[#349] regen.ts guards its CLI dispatch behind an entry-point check — importing it for the ARTIFACTS constants must not regenerate');
+  }
+  // #988 — THE SAME RULE, GENERALISED, because the arm above is pinned to one filename and that is
+  // exactly why it could not see the next instance.
+  //
+  // The repo had already diagnosed this class twice and fixed it twice — `regen.ts` (#349) and
+  // `materialise-to-figma.ts` before it — and then `lint-ratio-truth.ts` became the third: its module
+  // scope runs a 34,128-ratio sweep and calls `process.exit(1)`, so `import { groundsOf }` killed the
+  // importer before it reported anything. A rule with a known remedy and a check that names one file
+  // is a rule that only holds where somebody remembered to hold it.
+  //
+  // TWO REMEDIES, and which one applies depends on WHERE the side effect lives:
+  //   - a CLI DISPATCH at the bottom → guard it behind the entry-point check (`regen.ts`).
+  //   - the module BODY itself doing the work → extract what others need (`grounds.ts`, #988). A
+  //     guard cannot help when the side effect IS the file.
+  // Either satisfies this arm; so does simply not being imported.
+  //
+  // SOURCE-LEVEL, like the arm above, and for the same reason: proving it behaviourally needs process
+  // isolation. It detects `export` + a top-level exit/dispatch, then asks whether anything imports
+  // the module. A file that trips the heuristic and is imported must carry the guard.
+  {
+    const dir = new URL('./', import.meta.url);
+    const files = readdirSync(dir).filter((f) => f.endsWith('.ts'));
+    const sources = new Map(files.map((f) => [f, readFileSync(new URL(`./${f}`, dir), 'utf8')]));
+    const GUARD = 'resolve(process.argv[1]) === fileURLToPath(import.meta.url)';
+    const offenders: string[] = [];
+    let scanned = 0;
+    for (const [f, src] of sources) {
+      if (!/^export /m.test(src)) continue;
+      // A top-level side effect: an unindented exit, or an unindented `if (failures` / console report.
+      const sideEffect = /^process\.exit\(/m.test(src) || /^if \(failures/m.test(src) || /^console\.(log|error)\(/m.test(src);
+      if (!sideEffect) continue;
+      scanned++;
+      if (src.includes(GUARD)) continue;                       // guarded — safe to import
+      const base = f.replace(/\.ts$/, '');
+      const importers = [...sources].filter(([g, gs]) => g !== f && gs.includes(`from './${base}'`)).map(([g]) => g);
+      if (importers.length)
+        offenders.push(`${f} runs work at module scope, exports, has no entry-point guard, and is imported by ${importers.join(', ')}`);
+    }
+    ok(offenders.length === 0,
+      `[#988] no module imports a script that does its work at module scope (${scanned} script(s) with exports + top-level effects checked)`
+      + (offenders.length ? ` — ${offenders.join('; ')}` : ''));
+    // Shape 9: if the scan stops finding scripts of this shape, it is measuring an empty set. The
+    // engine has many; a collapse to zero means the detection moved, not that the repo got tidy.
+    ok(scanned >= 5, `[#988] the import-safety scan still finds scripts of the risky shape to check (${scanned})`);
   }
   // Reading/UI text is the boundary the preset exists to respect — it must NOT move.
   for (const scale of ['compact', 'expressive'] as const) {
