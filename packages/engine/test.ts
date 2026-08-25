@@ -11744,9 +11744,32 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   refuses({ collections: [], variables: [v('color/a', 'color/b'), v('color/b', 'color/c')] }, 'chain', 'a chain makes the outcome depend on iteration order, which is why chains are refused before the pass runs and not during it');
   refuses({ collections: [], variables: [v('color/a', 'color/b'), v('color/a', 'color/c')] }, 'fan-out', 'one source claiming two targets is unresolvable — there is no answer to which binding wins');
   refuses({ collections: [c('color', 'color')], variables: [] }, 'collection self-rename', 'a collection renamed to itself');
-  refuses({ collections: [c('color', 'surface'), c('surface', 'color')], variables: [] }, 'cycle', 'a SWAP passes through a state where find-by-name is arbitrary (Figma permits duplicate collection names), so it needs a two-phase temp name this deliberately does not do');
+  refuses({ collections: [c('color', 'surface'), c('surface', 'color')], variables: [] }, 'collection rename cycle', 'a SWAP is migratable under NO ordering — measured: both entries return `target-occupied` in both directions — so it needs the two-phase temp name this deliberately does not do');
   refuses({ collections: [c('color', 'a'), c('color', 'b')], variables: [] }, 'duplicate collection source', 'one collection claiming two new names');
   refuses({ collections: [c('a', 'color'), c('b', 'color')], variables: [] }, 'duplicate collection target', 'two collections claiming one name');
+  // A collection CHAIN and a collection CYCLE both refuse, and they used to refuse as the same
+  // sentence — "which is itself a source", worded cycle. They are not the same problem: measured
+  // (docs/44 §3), the chain `surface`→`color` + `color`→`color.appearance` migrates FULLY under one
+  // executor order and refuses safely under the other, while a swap migrates under neither. So the
+  // chain's fix is an ordered pre-pass and the swap's is a temp name, and a reader handed one message
+  // for both cannot tell which they are looking at.
+  const CHAIN: RenameMap = { collections: [c('surface', 'color'), c('color', 'color.appearance')], variables: [] };
+  const CYCLE: RenameMap = { collections: [c('color', 'surface'), c('surface', 'color')], variables: [] };
+  refuses(CHAIN, 'collection rename chain', 'a chain is a target that is also a source but does NOT close a loop — an ordering exists, and the refusal is this module declining to choose it rather than the operation being impossible');
+  // The arms that make the two ABOVE a split rather than a shared wording. Without these, one message
+  // mentioning both words satisfies both `refuses` calls and the conflation reads as green.
+  ok(!validateRenameMap(CHAIN).some((x) => x.includes('cycle')),
+    `rename-map: a chain is NOT reported as a cycle — the fixes differ (ordered pre-pass vs two-phase temp name), so one wording for both misdirects the reader${validateRenameMap(CHAIN).some((x) => x.includes('cycle')) ? ` (got: ${validateRenameMap(CHAIN).find((x) => x.includes('cycle'))})` : ''}`);
+  ok(!validateRenameMap(CYCLE).some((x) => x.includes('chain')),
+    `rename-map: a swap is NOT reported as a chain — it is migratable under no ordering, so offering "an ordering exists" would send the reader looking for one${validateRenameMap(CYCLE).some((x) => x.includes('chain')) ? ` (got: ${validateRenameMap(CYCLE).find((x) => x.includes('chain'))})` : ''}`);
+  // The chain classification must survive a longer chain and must not be fooled by a 3-cycle — the
+  // two shapes a two-entry probe cannot tell apart, and the reason `closesLoop` walks the graph
+  // instead of testing one hop.
+  ok(validateRenameMap({ collections: [c('a', 'b'), c('b', 'c')], variables: [] }).filter((x) => x.includes('collection rename chain')).length === 1,
+    'rename-map: a 3-name chain (a→b→c) reports exactly ONE chain refusal — the tail entry b→c has a free target and is not a hazard at all');
+  const THREE_CYCLE = validateRenameMap({ collections: [c('a', 'b'), c('b', 'c'), c('c', 'a')], variables: [] });
+  ok(THREE_CYCLE.filter((x) => x.includes('collection rename cycle')).length === 3 && !THREE_CYCLE.some((x) => x.includes('chain')),
+    `rename-map: a 3-name CYCLE (a→b→c→a) reports all three entries as cycles and none as a chain — a one-hop test would call every one of them a chain (got ${THREE_CYCLE.filter((x) => x.includes('cycle')).length} cycle, ${THREE_CYCLE.filter((x) => x.includes('chain')).length} chain)`);
   // Fan-IN is NOT a static refusal, and this is the arm that keeps it that way. Two historical paths
   // really do point at one live path in today's data (a 3.0.0 entry and a 4.0.0 entry both landing on
   // `color/interactive/<palette>/inverse/border/rest`) — a correct contract record and an ambiguous

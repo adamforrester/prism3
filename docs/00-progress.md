@@ -7,6 +7,115 @@
 
 ---
 
+## (2026-08-25) — What the record of a materialization rename is, given `DEPRECATIONS` cannot hold one (#1032)
+
+**STATUS: design decided, mechanism NOT built.** #739's discipline — measure in one PR, decide in
+another. Nothing emitted moves, no token name moves, `COLLECTION_RENAMES` is still empty, and the three
+renames waiting on this decision (`surface`↔`color`, the brand namespace folder, `core-*`→`core.*`) are
+deliberately absent from the diff. What ships: `docs/44-materialization-renames.md`, one separable
+correction to `validateRenameMap` with five new `test.ts` arms, and a `docs/34` register row.
+
+**The question.** `DEPRECATIONS` records a rename of a *contract path* and a gate forces the entry at
+the moment it happens (`token-contract.ts --accept` refuses a MAJOR bump without one). A Figma
+collection name, a variable's namespace folder and a mode name are not contract paths, so
+structurally cannot appear there — and widening the contract to cover them would make every cosmetic
+Figma change a contract event. #1013's header rejects a hand-authored Figma-side list for a reason
+that survives inspection: *a rule performed by memory fails silently*. So the task was to find a
+record with a real forcing function, not to accept a list without one.
+
+**Decided: a rule, forced by the emission diff — and neither half works alone.** The record is a
+*transformation* (`∀v ∈ domain: v → f(v)`), with a one-off pair as the degenerate case, domain size 1,
+so there is one mechanism rather than three. The forcing function is a totality check between the
+committed emission at the merge base and this one: every disappeared name claimed by exactly one rule,
+every appeared name some claimed name's image. A rule alone has no forcing function at all (nothing
+makes it exist); a diff alone has both sets and **cannot pair them** — a rename and a
+delete-plus-add produce byte-identical diffs, and the pairing is the whole question. Full argument,
+including the two rejected options with their costs, in `docs/44` §4–5.
+
+**The measurement that decided it, and it is not the total.** Distinct variables per collection per
+brand: **659 (nb) / 699 (aurora) / 718 (wendys)** across 15 variable collections; the three
+`*-styles` collections hold zero variables and are excluded. #1032 said "all of them" without a
+number. Two corrections fell out. The corpus total of 2,076 is the wrong number to design against — a
+designer opens one brand, so one apply performs 659–718 renames; and an earlier count of 4,734 was
+per-mode *rows*, not variables (`color`'s 236 variables appear in four mode files and are one name).
+The deciding figure is the **variance**: `core-palette` is 122/162/182 across three brands,
+`core-dimension` 38/37/37, `layout` 10/11/10. So a pair list would be per-brand authored data sized to
+each brand's ramp count, and a new brand would ship without one; the same change as a transformation is
+one line and brand-independent. That asymmetry, not the total, is the argument for rules.
+
+**Three things #1032 got wrong, found by building against the module rather than reading it.**
+(1) It frames the swap as "122 variables named `surface/*`". The 122 is right; a variable's first name
+segment is the **contract root**, not its collection name — `core-palette` holds `palette/*` and
+`type-sets` holds `font-fluid/*` — so renaming the `color` collection does not by itself rename its
+236 variables, and whether they become `color.appearance/*` is a second decision the swap PR must take
+rather than inherit. 122 or 358 per brand; both buildable, not the same change. (2) There is **no map
+order to sort**: `planCollectionRename` resolves `renames.find(c => c.to === wanted)`, a lookup pulled
+by the name the plan is about to write, so the application order is the `upsertCollection` call
+sequence — the executor's. The answer to "is that a sort or a redesign?" is neither; it is a
+*relocation of a guarantee*, and the guarantee's new home (one topologically ordered pre-pass) belongs
+with the rename PR, because a pre-pass over an empty map is untestable. (3) The static cycle check is
+not what prevents corruption. Measured: a mis-ordered chain yields `target-occupied` and leaves 122
+variables un-migrated — today's orphan-and-recreate, reported, nothing half-written. The **apply-time**
+guard is load-bearing; the static refusal buys one early legible report instead of two late ones.
+
+**And the chain works today by coincidence.** Post-swap the emitter writes the value layer as
+`color.appearance` before the alias layer as `color`, which is exactly the order that fully migrates —
+but `applySurfacePlan` runs after `applyWritePlan` for an **alias-resolution** reason
+(`write-figma.ts:330`, it reads its `color/*` targets back out of the file), documented nowhere as a
+rename dependency. **Filed as #1035** rather than left in a doc section — it fails safe (a reported
+refusal, nothing destroyed), which is exactly why it would read as "the map was wrong" instead of "the
+executors moved".
+
+**The enabling change, and why it is separable.** `validateRenameMap` now classifies a collection
+chain apart from a cycle, with a distinct message for each. **Both still refuse**, so the apply pass
+does not change and `COLLECTION_RENAMES` stays empty — that is what makes it separable from the
+renames. The classification walks the `from → to` graph rather than testing one hop, because a
+two-entry probe cannot tell a 3-cycle from a 3-chain. The module header's own justification was
+corrected in the same edit: it claimed a swap "passes through a state where find-by-name is arbitrary",
+which is unreachable.
+
+**Mutation-verified three ways, each firing by name and direction-specifically** (2543 passed / 0
+failed clean; base 2538, so 5 new arms). Conflate the two messages back into one → **3 failures**, all
+the chain arms, quoting the cycle wording they got. Reduce `closesLoop` to a single hop → **1 failure**,
+the `a→b→c→a` arm, reporting `0 cycle, 3 chain`. Invert it so no loop is ever detected → **3
+failures**, the cycle arms. The negative arms are the load-bearing ones: without "a chain is not
+reported as a cycle" and its converse, one sentence mentioning both words satisfies both positive arms
+and the conflation reads as green. Registered in `docs/34` as `scope` — no check's oracle was wrong,
+because *which of the two shapes is this* was in no check's scope.
+
+**Measured blind spot in my own first accounting, kept because it is the design's sharpest edge.**
+Evaluating rules only over names that **moved** catches an under-covering rule (846–964 unaccounted,
+named individually) and reports **TOTAL** for an **over-claiming** one — the rule's false claim is
+never exercised. Evaluating rules over the **whole before-set** contradicts the claim against the
+emission: 463 contradicted claims on the same input. An over-claiming rule is inert at apply time via
+`target-not-planned`, so this is a reporting hole rather than a destructive one, which is exactly the
+kind that survives for years. `docs/44` §5 carries the table.
+
+**Two implementation costs stated rather than discovered later.** CI checks out with a bare
+`actions/checkout@v4` — a depth-1 shallow clone, so there is no merge base and no `HEAD~1`, and every
+existing git-reading gate uses only `git ls-files`. The totality check would pass locally, where
+history exists, and be unable to run in CI; it needs `fetch-depth: 2` and must **fail** rather than
+skip when it cannot find a base ref. And the check must compare the merge base to the working tree, not
+`HEAD` to the working tree — in CI those are identical, the diff is empty, and the check passes
+vacuously.
+
+**The `stripNs` invariant needs a gate, not a comment.** `replace(/^[^.]+\./, '')` strips *a* leading
+segment; `theme.ts:1683` already refuses a root containing a dot, which is what makes the segment form
+sufficient. Two of the three Figma-emitting brands use the root `prism` and one uses `nbds`, so a
+`startsWith('prism/')` "simplification" would be caught — by one brand out of three. Too thin to rely
+on: the gate must drive the transform with a namespace **no brand uses**, so it is independent of the
+corpus rather than a bet on its diversity.
+
+**The residual risk, named because it is not fully closable.** `docs/34` shape 11 — if the rule is
+expressed by calling `figName`, the emitter sits below both sides of the comparison and the check is
+self-agreement. No gate can reliably tell an independently stated rule from a derived one; the
+countermeasure is that the rule states its transformation literally and the module is forbidden from
+importing the emitters. `docs/44` §6 names the other six blind spots, including the one that matters
+most for review: the accounting proves the **record** is complete, not that a **binding survived** —
+that is `test-write.mjs`'s claim, and the two must stay apart.
+
+---
+
 ## (2026-08-25) — The one binding the alias layer cannot carry, and the axis it turns out to be (#871)
 
 **STATUS: shipped.** No version change — nothing emitted moves, no token name moves, no contract
