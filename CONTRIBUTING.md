@@ -141,6 +141,28 @@ npx tsx packages/engine/lint-ratio-truth.ts          # every reported contrast r
                                                     # counted in its own output — they model `against`
                                                     # in the OPPOSITE direction (the role is the wash,
                                                     # `against` names the ink on top of it)
+npx tsx packages/engine/lint-axis-values.ts          # every axis VALUES set is declared in
+                                                    # AXIS_VALUE_SETS with a reason, and stands in
+                                                    # the relation it declares (#934). `VARIANT_AXES`
+                                                    # closed axis NAMES after #756 found four
+                                                    # spellings of one axis, each defensible, caught
+                                                    # by a census that ran after all three shipped;
+                                                    # one level down there was no census at all. NOT
+                                                    # a uniformity rule — switch's `[off, on]`
+                                                    # diverges from checkbox's and is correct (#930)
+                                                    # — so divergence is made WEIGHABLE instead:
+                                                    # both directions (an undeclared set fails, a
+                                                    # declared set no def uses fails as stale), plus
+                                                    # a third arm comparing the DECLARED relation
+                                                    # against the one set algebra computes, so the
+                                                    # expensive `overlapping` case cannot be filed as
+                                                    # a cheap `subset` one. EXPECTED is the authored
+                                                    # register, ACTUAL is the defs' `variants`, and
+                                                    # the ORACLE is `git ls-files` over `components/`
+                                                    # — never the registry, which would only confirm
+                                                    # a list agrees with itself. Never generate the
+                                                    # register: a gate allowed to rewrite what it
+                                                    # reads has no memory
 npx tsx packages/engine/lint-decisions-index.ts      # every recorded decision is indexed, and every
                                                     # index row is real (#886), both directions: an
                                                     # index row must resolve to a real `Decided (date,
