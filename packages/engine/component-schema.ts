@@ -176,6 +176,27 @@ export type PartDef = {
    *  MUTUALLY EXCLUSIVE with `height`, and validated so: a part declaring both is stating its height
    *  twice, and the projection would silently keep whichever branch ran last. */
   size?: string;
+  /** The MAIN-AXIS edge, for a box that is deliberately NOT square (#990). A switch's track: `height`
+   *  gives the pill's thickness and this gives its length.
+   *
+   *  WHY THIS IS NOT THE `width` `size`'s OWN NOTE ARGUES AGAINST. That note says a square is one fact
+   *  rather than "two bindings that happen to agree", because two independent bindings can be rebound on
+   *  one axis with nothing noticing. That argument is about a SQUARE and it still holds — `size` is how a
+   *  square is spelled, and this field is refused alongside it. What it cannot cover is a box whose two
+   *  edges are two different decisions: `control.size.*` emits `height` AND `width` (#900, `width` = 2 x
+   *  `height`, the one ratio the field converges on), and until this field existed the tier emitted a
+   *  number the schema had no way to read. A track is not a square that drifted; it is 2:1 by design.
+   *
+   *  MAIN-AXIS, not "horizontal". A `column` box's main axis is vertical, so this field means "the axis
+   *  the children run along" and the projector reads it against `layout.direction` — which is also why a
+   *  part binding it must declare `sizing.x: 'fixed'`: a hugging main axis is decided by the children and
+   *  the binding would be silently overridden. That is the same trap `size`'s two sizing rules catch, and
+   *  the same one #989 records for `'fill'`.
+   *
+   *  It is ALSO the precondition for `positionWhen` — see that field. A part cannot travel along an axis
+   *  whose length its parent does not fix, because a parent hugging one child is exactly as long as the
+   *  child and every alignment lands in the same place. */
+  width?: string;
   /** For `text` parts: the binding key giving the composite type style. */
   type?: string;
   /** For `text` parts: WHICH ink slot this part asks the paint grammar for. Defaults to `label`,
@@ -276,6 +297,42 @@ export type PartDef = {
    *  must be one `figmaProperties.variantAxes` actually projects — a gate on an axis Figma does not
    *  carry makes the part absent from every member of the set, silently. */
   presentWhen?: Record<string, readonly string[]>;
+  /** VARIANT-GATED POSITION (#990): axis → value → where along its PARENT's main axis this part sits.
+   *  A switch's thumb says `{ selection: { off: 'start', on: 'end' } }` — ONE part, in two places.
+   *
+   *  WHY IT IS NOT `presentWhen` TWICE. The rejected shape was two parts, `thumb-off` and `thumb-on`,
+   *  each gated to one value. It projects a lie: every real switch is one element that translates, and a
+   *  code projection reading two parts emits two elements and toggles them. It also duplicates every
+   *  binding on the moving part with nothing in the schema noticing when the two copies diverge — the
+   *  #933 shape, where a field doing two jobs was fixed by separating the concepts rather than by
+   *  working around them. A position is a position; it is not an absence.
+   *
+   *  PROJECTED ONTO THE PARENT, not onto this part. Figma has no per-child main-axis offset inside auto
+   *  layout: `layoutAlign`'s `MIN|CENTER|MAX` are DEPRECATED by Figma ("all layers in an auto-layout
+   *  frame must now have the same counter axis alignment") and are the COUNTER axis anyway, and
+   *  `layoutGrow` is a 0/1 stretch flag. Main-axis distribution exists only on the frame, as
+   *  `primaryAxisAlignItems` — which both executors already write. So the projector overrides the
+   *  PARENT's `primaryAxisAlignItems` at the coordinate, reusing the same `start|center|end` vocabulary
+   *  and the same `JUSTIFY` map as `layout.justify`. Nothing new reaches the plan type or the executors.
+   *  This is why #990's option 1 was not taken: it is the one that cannot express the travel at all.
+   *
+   *  TWO PRECONDITIONS, both ASSERTED by `anatomyErrors` rather than trusted:
+   *  1. the parent's MAIN-AXIS sizing must be `'fixed'`. A hugging parent is exactly as long as its
+   *     child, so `MIN`, `CENTER` and `MAX` all land in the same place and the field is a silent no-op.
+   *     This is the #989 shape — `'hug'` and `'fill'` both project to AUTO — and the reason the moving
+   *     part's parent must bind `width` (a track states its length; the thumb travels inside it).
+   *  2. the part must be its parent's ONLY flow child. `primaryAxisAlignItems` distributes the whole
+   *     row, so a second sibling means the alignment moves the GROUP and this part's position is a
+   *     side effect of where its neighbours are.
+   *  Both are things a reasonable author gets wrong once and cannot see in the output, because the
+   *  failure is a thumb that renders — in the wrong place, or in the same place twice.
+   *
+   *  ITS LIMIT, stated rather than discovered: `MIN|CENTER|MAX` is three positions, so this expresses a
+   *  2- or 3-value axis and no more. A segmented control with four segments and a slider's continuous
+   *  thumb are NOT expressible this way and will need real offsets (`absolute`, or a plan field Figma
+   *  does carry). The field is not switch-shaped — it names no component and no axis — but it is
+   *  three-position-shaped, and that is a property of the projection target, not of this schema. */
+  positionWhen?: Record<string, Record<string, 'start' | 'center' | 'end'>>;
   /** For `overlay`: the part whose position it takes (width-preserving, per the brief).
    *
    *  An ORDERED LIST of candidates as of #848, resolved to the FIRST one present at this coordinate.
@@ -1911,7 +1968,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
 
   // Every binding key anatomy names must be a slot the component actually binds, at every size.
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.radius, p.size, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+    [p.gap, p.height, p.radius, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -2079,6 +2136,103 @@ const anatomyErrors = (def: ComponentDef): string[] => {
         }
       }
     }
+    // ---- VARIANT-GATED POSITION (#990) ----
+    // The field projects onto the PARENT's `primaryAxisAlignItems`, and every rule here is a way to author
+    // it so that the projection is a NO-OP or positions something other than this part — both of which
+    // render. A thumb in the wrong place, or in the same place at both values, is not a missing node: it
+    // is a switch that looks built and does not read as on or off. Nothing downstream can see that.
+    if (p.positionWhen !== undefined) {
+      const gates = Object.entries(p.positionWhen);
+      const parent = claimed.get(n);
+      const pp = parent ? parts[parent] : undefined;
+      if (!gates.length)
+        e.push(`anatomy part '${n}' declares an EMPTY 'positionWhen' — a position keyed on no axis is not "wherever the parent says", it is a claim with nothing in it. Drop the field`);
+      // ONE AXIS ONLY. `presentWhen` AND-composes because absence composes — two gates both have to be
+      // satisfied for the part to exist. A POSITION does not compose: two axes each naming a place for the
+      // same part is two answers to one question, and the projector would return whichever it read first.
+      if (gates.length > 1)
+        e.push(`anatomy part '${n}' declares 'positionWhen' on ${gates.length} axes [${gates.map(([k]) => k).join(', ')}] — unlike presence, a position does not AND-compose: each axis names a different place for the same part and only one of them can be projected. Key the travel on one axis`);
+      // The ROOT has no parent, so there is no frame whose distribution could carry it.
+      if (n === a.root)
+        e.push(`anatomy part '${n}' is the anatomy ROOT and declares 'positionWhen' — a position is projected onto the PARENT's main-axis distribution, and the root has no parent`);
+      else if (!parent)
+        e.push(`anatomy part '${n}' declares 'positionWhen' but is not a child of any part — the position projects onto its parent's distribution, so with no parent there is nothing to write it to`);
+      // Outside the flow there is no distribution to be distributed by: an overlay takes another part's
+      // position and an absolute part is placed against its parent's bounds. Either would validate clean
+      // and project nothing, which is this pass's whole defect class.
+      if (p.kind === 'overlay' || p.kind === 'absolute')
+        e.push(`anatomy part '${n}' is kind '${p.kind}' and declares 'positionWhen' — that kind sits OUTSIDE the layout flow (an overlay takes another part's cell, an absolute is placed against its parent's bounds), so main-axis distribution never reaches it`);
+      // ---- THE TWO PRECONDITIONS, asserted rather than reasoned about ----
+      // #964's topological-order assumption and #900's prescribed derivation were both confident and both
+      // wrong, so these are checks, not prose. Each one is a configuration in which the field is a silent
+      // no-op — the part renders, at one position, for every value of the axis.
+      if (pp && !pp.layout)
+        e.push(`anatomy part '${n}' declares 'positionWhen' but its parent '${parent}' carries no layout — the position is projected as that parent's 'primaryAxisAlignItems', which only exists on an auto-layout frame`);
+      // PRECONDITION 1: the parent's main axis must be FIXED. A hugging parent is exactly as long as its
+      // child, so MIN, CENTER and MAX all land in the same place — the field validates, projects a real
+      // value, and the part does not move. `sizingMode` maps BOTH 'hug' and 'fill' to AUTO (#989), so
+      // 'fill' is refused here too: it reads like a fixed-length track and projects like a hugging one.
+      if (pp?.layout && pp.layout.sizing.x !== 'fixed')
+        e.push(`anatomy part '${n}' declares 'positionWhen' but its parent '${parent}' has main-axis sizing '${pp.layout.sizing.x}' — a parent that is not FIXED along that axis is exactly as long as its children, so 'start', 'center' and 'end' are the same place and the travel is a silent no-op. Bind the parent's 'width' and declare sizing.x 'fixed' ('fill' projects to AUTO as well, #989)`);
+      // PRECONDITION 2: sole flow child. `primaryAxisAlignItems` distributes the WHOLE row, so with a
+      // sibling present the alignment moves the group and this part's position is a side effect of where
+      // its neighbours happen to be — which is a position that changes when an unrelated part is added.
+      if (pp) {
+        const flow = (pp.children ?? []).filter((c) => parts[c] && parts[c].kind !== 'overlay' && parts[c].kind !== 'absolute');
+        if (flow.length > 1)
+          e.push(`anatomy part '${n}' declares 'positionWhen' but its parent '${parent}' has ${flow.length} flow children [${flow.join(', ')}] — main-axis distribution positions the whole group, so this part's place would be decided by where its siblings sit rather than by the value of the axis`);
+      }
+      for (const [axis, byValue] of gates) {
+        const declared = variantsOf(def)[axis];
+        // `size` is excluded for the same reason `presentWhen` excludes it: a part sitting in a different
+        // place at a different rung is not a variant fact, and admitting the axis would add an
+        // unexercised path to a mechanism whose failure mode is invisible. A state is refused by the same
+        // check — `states` is not in `variants`.
+        if (axis === 'size' || !declared) {
+          e.push(`anatomy part '${n}' keys its position on '${axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}]${axis === 'size' ? " ('size' is deliberately excluded — a part that sits elsewhere at another rung is a ladder claim, not a position one)" : ''} — an axis the projector never supplies leaves the part at its parent's declared justify at EVERY coordinate`);
+          continue;
+        }
+        const entries = Object.entries(byValue ?? {});
+        if (!entries.length) {
+          e.push(`anatomy part '${n}' keys its position on '${axis}' with no values — a map from nothing positions nothing, so the part never moves`);
+          continue;
+        }
+        for (const [v, pos] of entries) {
+          if (!declared.includes(v))
+            e.push(`anatomy part '${n}' positions itself at ${axis}='${v}', which is not a declared value of that axis [${declared.join(', ')}] — the coordinate it names does not exist, so that position is never projected`);
+          if (!['start', 'center', 'end'].includes(pos))
+            e.push(`anatomy part '${n}' positions itself '${pos}' at ${axis}='${v}', which is not one of start/center/end — the projector resolves the word through the same JUSTIFY map 'layout.justify' uses, and an unknown one projects as undefined`);
+        }
+        // EXHAUSTIVE over the axis. A value with no entry falls back to the parent's own `justify`, which
+        // is a position decided somewhere else and not visible from this field — so a three-value axis
+        // that names two positions has a third coordinate nobody chose.
+        const missing = declared.filter((v) => !(v in (byValue ?? {})));
+        if (missing.length)
+          e.push(`anatomy part '${n}' keys its position on '${axis}' but names no position for [${missing.join(', ')}] — those coordinates fall back to parent '${parent ?? '(none)'}'s own justify, so their position is decided by a field that does not mention this part. Name every value of the axis`);
+        // ALL THE SAME POSITION is `layout.justify` wearing a condition's clothes: it reads as "this part
+        // travels" to whoever maintains the def, and projects as a part that does not.
+        const places = new Set(entries.map(([, pos]) => pos));
+        if (entries.length > 1 && places.size === 1)
+          e.push(`anatomy part '${n}' positions itself '${[...places][0]}' at every value of '${axis}' — that is the same as no positioning at all, so either a value is wrong or this belongs in parent '${parent ?? '(none)'}'s 'layout.justify'`);
+        // THE AXIS MUST BE ONE FIGMA CARRIES, the same rule `presentWhen` needs and for the same reason:
+        // the set is enumerated over `variantAxes`, so a position keyed on an axis outside that list is
+        // never supplied and every member of the set builds with the part at the parent's justify.
+        if (def.figmaProperties && !(def.figmaProperties.variantAxes ?? []).includes(axis))
+          e.push(`anatomy part '${n}' keys its position on '${axis}', which figmaProperties.variantAxes does not project [${(def.figmaProperties.variantAxes ?? []).join(', ') || 'none'}] — the set is enumerated over the projected axes only, so every member would build with this part at its parent's justify`);
+      }
+    }
+    // ---- A NON-SQUARE BOX'S MAIN AXIS (#990) ----
+    // `width` is the field a 2:1 track needs and `size` is the field a square needs; each is refused where
+    // the other belongs. Both arms are about a binding that would be silently dropped.
+    if (p.width !== undefined && p.kind !== 'box')
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'width' — only a 'box' has a main axis of its own to fix; a slot/vector is sized by its square artboard and a text by its content`);
+    if (p.size && p.width)
+      e.push(`anatomy part '${n}' binds both 'size' and 'width' — 'size' already drives both axes, so the two write the same property and one of them is silently discarded. A square declares 'size' alone; a box that is deliberately not square declares 'height' and 'width'`);
+    // A bound main axis needs a FIXED main axis, exactly as a square's does — otherwise the children
+    // decide the length and the binding is overridden. This is also the precondition `positionWhen` checks
+    // from the child's side; stated here too, because a track may bind a width for its own sake.
+    if (p.kind === 'box' && p.width && p.layout && p.layout.sizing.x !== 'fixed')
+      e.push(`anatomy part '${n}' binds 'width' but its main-axis sizing is '${p.layout.sizing.x}' — a bound dimension needs 'fixed', or the content decides the length and the binding is overridden ('fill' projects to AUTO as well, #989)`);
     if (p.kind !== 'box' && (p.layout || p.padding || p.gap !== undefined))
       e.push(`anatomy part '${n}' is kind '${p.kind}' but carries layout/padding/gap — only a 'box' lays out`);
     // `inset` is the absolute kind's own geometry and means nothing anywhere else: on a flow part it

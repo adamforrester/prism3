@@ -102,6 +102,36 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.21.0: a part can say WHERE it sits per variant value, and a box that is deliberately not square can
+ * bind its main axis (#990, switch's anatomy). `PartDef.positionWhen` is keyed on one variant axis and
+ * projects onto the PARENT frame's `primaryAxisAlignItems`; `PartDef.width` binds the main-axis edge that
+ * `size` — one key for both axes of a square — cannot express.
+ *
+ * The projection target was measured rather than chosen. #990's option 1 was `layoutGrow`/`layoutAlign`
+ * on the child, described in the issue as the broader fix because it also closes #989; the vendored
+ * typings say otherwise. `layoutAlign`'s MIN/CENTER/MAX are DEPRECATED — Figma moved counter-axis
+ * alignment onto the frame as `counterAxisAlignItems`, with all children in an auto-layout frame now
+ * required to share it — and `layoutGrow` is a 0/1 stretch flag along the primary axis. Both are stretch
+ * flags. Main-axis PLACEMENT exists only on the parent. So option 1 leaves a thumb exactly as unable to
+ * travel as it was, #989 stands on its own merits, and the narrower field is not a compromise.
+ *
+ * Two preconditions are asserted rather than reasoned about, because both project a clean no-op: the
+ * parent's main-axis sizing must be `fixed` (a hugging parent is as long as its child, so start/center/end
+ * are one coordinate — and `fill` maps to AUTO too, which is #989), and the part must be its parent's only
+ * FLOW child (`primaryAxisAlignItems` distributes the whole group; `absolute`/`overlay` do not count,
+ * which is what lets a focus ring share the track with the thumb).
+ *
+ * ITS CEILING, stated because it decides which future asks this can serve: MIN/CENTER/MAX is three
+ * positions. A two- or three-value axis travels — a segmented control of three, tabs of three. A slider's
+ * continuous thumb and a four-segment indicator are not expressible this way and need real offsets, which
+ * is a different mechanism and not an extension of this one.
+ *
+ * No token name moved. Switch binds `control.size.*.{height,width,dot}`, all nine of which have been in
+ * `token-contract.json` since 0.19.0 — `width` had been emitted since #951 and bound by nothing — so
+ * `CONTRACT_VERSION` stands and `token-contract.ts --check` confirms it rather than this comment.
+ * Switch's own token keys are def-local and outside the contract's surface; the `off.icon`→`off.indicator`
+ * rename in the same PR is a def-local key made to match `BOX_PAINT_SLOTS`, not a public path. (#990)
+ *
  * 0.20.0: overriding a ground re-derives its dependents' VALUES, not only their ratios (#979).
  *
  * 0.18.0 recomputed a dependent's ratio in a post-pass but could not touch its value — a dependent is
@@ -355,7 +385,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.20.0';
+export const ENGINE_VERSION = '0.21.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -807,6 +807,39 @@ export const figmaAnatomyPlan = (
     return !p?.optional;
   };
 
+  /* WHERE A TRAVELLING CHILD PUTS ITS PARENT'S DISTRIBUTION (#990). A switch's thumb declares
+   * `positionWhen: { selection: { off: 'start', on: 'end' } }`, and this is where that becomes Figma:
+   * the value is read at THIS coordinate and replaces the parent's own `layout.justify`.
+   *
+   * PROJECTED ONTO THE PARENT because Figma offers nowhere else to put it. `layoutAlign`'s
+   * `MIN|CENTER|MAX` are deprecated ("all layers in an auto-layout frame must now have the same counter
+   * axis alignment") and are the counter axis regardless; `layoutGrow` is a 0/1 stretch flag. The only
+   * main-axis distribution in the API is `primaryAxisAlignItems` on the frame — which both executors
+   * already write unconditionally alongside `layoutMode`, so this reaches Figma with no new plan field
+   * and no executor change. That measurement is why #990 option 1 was not taken: it would have widened
+   * the plan type and both executors and still left the thumb unable to move.
+   *
+   * Called with the PRESENT children only, so a part gated away by `presentWhen` cannot move a parent it
+   * is absent from. First match wins across children, which is unambiguous because `anatomyErrors`
+   * admits at most one flow child under a positioning parent and at most one axis per part — the
+   * ordering here is a consequence of those rules, not a tie-break substituting for them.
+   *
+   * An axis the caller did not supply reads as NO OVERRIDE rather than as a default position: a
+   * structure-only plan gets the def's declared `justify` and the parent is projected exactly as an
+   * unpositioned one. The conservative direction, and the same answer `present()` gives — asserting a
+   * coordinate on no evidence is what ships. */
+  const positionOf = (childNames: readonly string[]): 'start' | 'center' | 'end' | undefined => {
+    for (const c of childNames) {
+      const byAxis = a.parts[c]?.positionWhen;
+      if (!byAxis) continue;
+      for (const [axis, byValue] of Object.entries(byAxis)) {
+        const v = axisValue(axis);
+        if (v !== undefined && byValue[v]) return byValue[v];
+      }
+    }
+    return undefined;
+  };
+
   /* Padding asks about the CELL, not the slot. #326 insets a side less when a glyph sits against it,
    * and a spinner is a glyph — asking `leading` alone would inset a pending button as though its
    * leading cell were empty while a spinner sits in it.
@@ -867,6 +900,12 @@ export const figmaAnatomyPlan = (
       // with `height` (the validator enforces it), so this is an else-if in effect rather than a second
       // chance to set the same property.
       if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
+      // A NON-SQUARE box states its main axis separately (#990). Two variables rather than one, which is
+      // the case the aspect-ratio unlock above was already required for: a proportion-locked frame keeps
+      // whichever dimension was written last, and a 2:1 track written height-then-width would come back
+      // square. `unlockAspectRatio()` runs before every binding in both executors, so nothing extra is
+      // needed here — but the reason it is safe is that call, not the arithmetic.
+      if (p.width) bound.width = varOf(p.width);
       if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
@@ -1048,7 +1087,10 @@ export const figmaAnatomyPlan = (
       ...(p.layout
         ? {
             layoutMode: p.layout.direction === 'row' ? ('HORIZONTAL' as const) : ('VERTICAL' as const),
-            primaryAxisAlignItems: JUSTIFY[p.layout.justify],
+            // A travelling child's declared position OVERRIDES the parent's own justify at this
+            // coordinate (#990) — see `positionOf`. Absent one, the def's justify is projected unchanged,
+            // so every existing plan is byte-identical.
+            primaryAxisAlignItems: JUSTIFY[positionOf(childNames) ?? p.layout.justify],
             counterAxisAlignItems: ALIGN[p.layout.align],
             primaryAxisSizingMode: sizingMode(p.layout.sizing.x),
             counterAxisSizingMode: sizingMode(p.layout.sizing.y),

@@ -96,6 +96,18 @@
         "assignments": 147,
         "sha256": "029579a313633fa6ee61d480c2892ec435277ef920ff0ac3a911f3f25ab935b0"
       }
+    },
+    "switch": {
+      "set": {
+        "members": 24,
+        "assignments": 96,
+        "sha256": "a7658cf2b7177f4b5b4c799063b870c8d3d283a6945346551f78c08c8d2f9530"
+      },
+      "grid": {
+        "members": 32,
+        "assignments": 128,
+        "sha256": "d5e322e95c6fb2da4cd5b7f3441e7e9e96a43a708c3b7a105cebb63c98d33f78"
+      }
     }
   }
 }

@@ -57,7 +57,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox } from './components/index';
+import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
@@ -720,9 +720,9 @@ for (const b of brands) {
     //
     // Discovered from `componentDefs` and then pinned by NAME, so a third control def is covered the day it
     // lands, and a discovery that silently returns nothing fails instead of passing over an empty set.
-    const CONTROL_DEFS = ['checkbox', 'radio'];
+    const CONTROL_DEFS = ['checkbox', 'radio', 'switch'];
     const withControl = componentDefs.filter((d) =>
-      Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot)$/.test(k)));
+      Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
       `#910 the defs binding a control box are exactly the authored set {${CONTROL_DEFS.join(', ')}} — a new one must join this list, and a def losing its binding fails HERE rather than dropping out of the arms below (found: ${withControl.map((d) => d.id).join(', ') || 'none'})`);
 
@@ -739,7 +739,14 @@ for (const b of brands) {
       // Per FIELD, because a def that pins its box per size but its dot only once has a dot that stops
       // tracking its own box. `continue` rather than fail on an absent field: a def need not draw an inner
       // mark as a filled shape at all — checkbox's is a glyph, sized at `control` full-bleed.
-      for (const field of ['control', 'dot'] as const) {
+      //
+      // `track` joined with switch (#990): its control box is not square, so it binds a height at `control`
+      // AND a main-axis edge at `track` (→ `control.size.*.width`). That edge needs the same brand-density
+      // check as the other two for the same reason — it is a control dimension, and a brand-invariant one
+      // is one rung too large on aurora with nothing downstream able to see it. Naming it here rather than
+      // reading `PartDef.width` off the anatomy: the field to check is the TOKEN family, and deriving the
+      // list from the anatomy that binds it is the shape `docs/34` forbids.
+      for (const field of ['control', 'dot', 'track'] as const) {
         const refs = Object.entries(def.tokens ?? {}).filter(([k]) => new RegExp(`^size\\.[^.]+\\.${field}$`).test(k));
         if (refs.length === 0) continue;
         if (refs.length !== sizes) shortfall.push(`${def.id}.${field} ${refs.length} of ${sizes} (${refs.map(([k]) => k).join(', ')})`);
@@ -754,7 +761,7 @@ for (const b of brands) {
     ok(shortfall.length === 0, '#910 every def binds each control field it uses at EVERY size it declares — a dot bound once does not track the box it sits in'
       + (shortfall.length ? ` — SHORT: ${shortfall.join('; ')}` : ''));
     ok(invariant.length === 0,
-      '#910 every `size.*.control` and `size.*.dot` ref, in every def that binds one, resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on aurora, and nothing downstream can see it'
+      '#910 every `size.*.control`, `size.*.dot` and `size.*.track` ref, in every def that binds one, resolves to a px that MOVES with brand density — a control bound to a brand-invariant family is one rung too large on aurora, and nothing downstream can see it'
       + (invariant.length ? ` — INVARIANT: ${invariant.join('; ')}` : ''));
   }
 
@@ -9023,6 +9030,80 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // part appearing too OFTEN rather than too rarely, which is why it needs its own line.
       ibBroke('a gate naming ALL of an axis\'s values fails as a no-op', /gates presence on all 3 values of 'selection'/, cbPart('mark', { presentWhen: { selection: ['unchecked', 'checked', 'indeterminate'] } }));
 
+      // The `positionWhen` rules (#990), and the failure direction is the opposite of `presentWhen`'s: a
+      // mis-authored position never makes a part vanish, it leaves the part exactly where the parent's own
+      // `layout.justify` already put it. So the symptom is a switch whose thumb does not travel — visible
+      // only by looking at two members of the set side by side, which no gate downstream does. Every rule
+      // was deleted from `anatomyErrors` in turn and the matching line here confirmed to fail BY NAME.
+      // Patched onto `switch`, the only def that uses the field.
+      const swPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(switchDef, part, patch);
+      ibBroke('an EMPTY positionWhen fails — a position keyed on no axis is a claim with nothing in it', /declares an EMPTY 'positionWhen'/, swPart('thumb', { positionWhen: {} }));
+      // The rule `presentWhen` does NOT have, and the reason the two fields could not be one: presence
+      // AND-composes across axes (absent on any gate ⇒ absent), a position cannot — two axes name two
+      // different places for one part and the projector writes whichever it reaches first.
+      ibBroke('positioning on TWO axes fails — a position does not AND-compose', /declares 'positionWhen' on 2 axes/,
+        { ...switchDef, variants: { ...switchDef.variants, tone: ['neutral', 'danger'] },
+          anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts, thumb: { ...switchDef.anatomy!.parts.thumb, positionWhen: { selection: { off: 'start', on: 'end' }, tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
+      ibBroke('positioning the anatomy ROOT fails — the position projects onto a parent the root has not got', /is the anatomy ROOT and declares 'positionWhen'/, swPart('row', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
+      // The root's SIBLING case: a part nobody lists as a child. Separate from the root rule because the
+      // root legitimately has no parent while this is a dangling part, and the fix for each is different.
+      ibBroke('positioning a part nobody claims as a child fails', /declares 'positionWhen' but is not a child of any part/,
+        { ...switchDef, anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts,
+          track: { ...switchDef.anatomy!.parts.track, children: ['focusRing'] } } } } as ComponentDef);
+      // A parent with no layout at all is not an auto-layout frame, so it has no `primaryAxisAlignItems` for
+      // the position to be written to — distinct from the sizing precondition, which is about a frame that
+      // exists and cannot distribute.
+      ibBroke('a parent carrying NO layout fails — there is no frame property to write the position to', /carries no layout/, swPart('track', { layout: undefined, width: undefined }));
+      // The two PRECONDITIONS, asserted rather than reasoned about — both were measured out of the Figma
+      // typings and both project a clean no-op if violated.
+      //
+      // (a) A parent that is not FIXED along its main axis is exactly as long as its children, so MIN,
+      // CENTER and MAX are the same coordinate. `sizingMode` maps 'hug' AND 'fill' to AUTO (#989), so
+      // 'fill' is refused too and the message says so.
+      ibBroke('a parent that HUGS its main axis fails — start/center/end collide, so the travel is a no-op', /has main-axis sizing 'hug'/,
+        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } }, width: undefined }));
+      ibBroke("…and 'fill' fails the same way, BY NAME — it projects to AUTO as well (#989)", /has main-axis sizing 'fill'/,
+        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'fill', y: 'fixed' } }, width: undefined }));
+      // (b) `primaryAxisAlignItems` distributes the WHOLE group, so a part sharing the flow with a sibling
+      // has its place decided by where the sibling sits. `absolute`/`overlay` are not flow children, which
+      // is the carve-out that lets `focusRing` sit inside the track alongside the thumb — asserted by the
+      // clean-validation line at the end of this block rather than assumed.
+      ibBroke('a positioned part sharing its parent\'s flow with a sibling fails', /has 2 flow children/,
+        { ...switchDef, anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts,
+          track: { ...switchDef.anatomy!.parts.track, children: ['thumb', 'focusRing', 'label'] } } } } as ComponentDef);
+      // A part OUTSIDE the flow cannot be distributed at all, so the two mechanisms are refused together.
+      ibBroke('an `absolute` declaring positionWhen fails — it is placed against bounds, not distributed', /is kind 'absolute' and declares 'positionWhen'/, swPart('focusRing', { positionWhen: { selection: { off: 'start', on: 'end' } } }));
+      // The AXIS rules, the same three `presentWhen` needs, for the same reasons — an axis the projector
+      // never supplies leaves the part at the parent's justify at every coordinate.
+      ibBroke('keying a position on an undeclared axis fails', /keys its position on 'tone', which is not one of this def's variant axes/, swPart('thumb', { positionWhen: { tone: { neutral: 'start', danger: 'end' } } }));
+      ibBroke("keying on `size` fails BY NAME — a part elsewhere at another rung is a ladder claim", /'size' is deliberately excluded/, swPart('thumb', { positionWhen: { size: { small: 'start', medium: 'end' } } }));
+      // `tone` rather than an invented name: axis NAMES are closed, so a made-up one fails on that rule and
+      // would leave this line green on somebody else's error.
+      ibBroke('keying on an axis the def declares but does not PROJECT fails', /keys its position on 'tone', which figmaProperties\.variantAxes does not project/,
+        { ...switchDef, variants: { ...switchDef.variants, tone: ['neutral', 'danger'] },
+          anatomy: { ...switchDef.anatomy!, parts: { ...switchDef.anatomy!.parts, thumb: { ...switchDef.anatomy!.parts.thumb, positionWhen: { tone: { neutral: 'start', danger: 'end' } } } } } } as ComponentDef);
+      ibBroke('an empty value map fails — a map from nothing positions nothing', /keys its position on 'selection' with no values/, swPart('thumb', { positionWhen: { selection: {} } }));
+      ibBroke('an undeclared VALUE fails — the coordinate it names does not exist', /positions itself at selection='mixed'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'end', mixed: 'center' } } }));
+      ibBroke('a position outside start/center/end fails — the JUSTIFY map returns undefined for it', /positions itself 'middle' at selection='off'/, swPart('thumb', { positionWhen: { selection: { off: 'middle', on: 'end' } } }));
+      // EXHAUSTIVE, and this is the arm that carries the mechanism's real risk: a named value falls back to
+      // the parent's `justify` silently, so a partial map is a coordinate whose position nobody chose and
+      // which reads in the def as though it had been.
+      ibBroke('naming a position for only SOME values fails — the rest fall back to a field that does not mention this part', /names no position for \[on\]/, swPart('thumb', { positionWhen: { selection: { off: 'start' } } }));
+      // ALL THE SAME POSITION is `layout.justify` wearing a condition's clothes — the one rule here whose
+      // symptom is a part that reads as travelling and projects as static.
+      ibBroke('the same position at every value fails as a no-op', /positions itself 'start' at every value of 'selection'/, swPart('thumb', { positionWhen: { selection: { off: 'start', on: 'start' } } }));
+
+      // The NON-SQUARE BOX rules (#990). `width` is what a 2:1 track needs and `size` is what a square
+      // needs; each is refused where the other belongs, and every arm is a binding silently discarded.
+      ibBroke('a non-box binding `width` fails', /is kind 'text' but binds 'width'/, swPart('label', { width: 'size.{size}.track' }));
+      ibBroke('binding both `size` and `width` fails — one of the two is silently discarded', /binds both 'size' and 'width'/, swPart('thumb', { width: 'size.{size}.dot' }));
+      // The same FIXED precondition as the square's, from the box's own side rather than the child's — a
+      // track may bind a width with nothing positioned inside it.
+      ibBroke('a box binding `width` while hugging its main axis fails', /binds 'width' but its main-axis sizing is 'hug'/,
+        swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } } }));
+      ok(validateComponentDef(switchDef, nbTree, nbT.root).errors.length === 0,
+        `nesting gate: and the mechanism VALIDATES as authored — a thumb positioned per selection inside a fixed-width track that also holds an absolute focus ring is clean, which is the whole of what #990 added (got [${validateComponentDef(switchDef, nbTree, nbT.root).errors.join('; ')}])`);
+
       // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
       // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
       // swaps the whole component into a slot and binds `size.{size}.icon` there, and true of nobody for a
@@ -10769,7 +10850,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(partDefFields.includes('strokeInset'),
     'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
   ok(declaresOwnStroke.length === 0,
-    `focus-ring wall 1b: PartDef declares NO field for a part's OWN stroke/border/outline — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names another component's stroke to compensate for (#801), not this part's own. Fails when #740 adds one, by design${declaresOwnStroke.length ? ` — found [${declaresOwnStroke.join(', ')}]` : ''}`);
+    `focus-ring wall 1b: PartDef declares NO field for a part's OWN stroke/border/outline — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names another component's stroke to compensate for (#801), not this part's own. Fails when #740 adds one, by design${declaresOwnStroke.length ? ` — found [${declaresOwnStroke.join(', ')}]` : ''}`);
   // AND THE CONSEQUENCE, measured rather than inferred from the absence above: the def projects and its
   // members are STROKELESS. Two independent readings — the schema has no field (above), and the plans
   // bind no stroke variable (here) — because "no field" would still permit a projector that wrote one
@@ -11007,6 +11088,141 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `#910 ${def.id}: '${name}' is NOT in the tree at ${axis}=${v} — the values the gate excludes, which is the direction that makes it a gate rather than a comment`);
       ok(!has(rest),
         `#910 ${def.id}: '${name}' is absent when '${axis}' is not supplied at all — an unsupplied axis reads ABSENT, the conservative answer, and the case no member of the projected set can reach`);
+    }
+  }
+
+  // ---- `PartDef.width`: the non-square box, and the binding that vanished silently (#990) ---------
+  // `positionWhen`'s first precondition is a parent FIXED along its main axis, and `width` is how that
+  // length is bound — `size` is one key for both axes, which is correct for a square and cannot express a
+  // 2:1 track. `anatomyErrors` refuses the authoring mistakes (a non-box binding it, `size` and `width`
+  // together, a hugging main axis), and all three are mutation-verified above.
+  //
+  // WHAT NONE OF THAT COVERS, measured rather than supposed: `if (p.width) bound.width = varOf(p.width)`
+  // deleted from the projector left 2415/0 green, plus `lint-paint`, `lint-standalone-floor`,
+  // `lint-glyph-geometry` and `regen --check` all clean. The field validates, the def reads as though the
+  // track were 2:1, and the plan binds a height with no width — so the frame keeps whatever length its
+  // fixed sizing was given and the thumb travels inside a box of the wrong size. No node count moves, no
+  // paint assignment moves, and the census is byte-identical, which is why nothing saw it.
+  //
+  // THE ORACLE IS THE DEF'S OWN TOKEN MAP, not the projector's resolution: the expected variable name is
+  // the ref slash-swapped, one derivation, against the projector's `varOf`→`figmaVarName` path, which is
+  // another. A def whose `width` ref does not map that way fails HERE, loudly, rather than being quietly
+  // exempted — that direction is deliberate.
+  const widthDefs = componentDefs.filter((d) =>
+    d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width));
+  const WIDTH_EXPECTED = ['switch'];
+  ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
+    `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
+  for (const def of widthDefs) {
+    const sizes = def.variants?.size ?? [];
+    const size = sizes[Math.min(1, sizes.length - 1)];
+    const coord: Record<string, string> = { state: 'rest' };
+    for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size') coord[a] = vs[0];
+    const plan = figmaAnatomyPlan(def, size, coord as never);
+    const find = (part: string): any => {
+      const walk = (n: any): any => n.name === part ? n : (n.children ?? []).reduce((f: any, c: any) => f ?? walk(c), undefined);
+      return walk(plan.root);
+    };
+    for (const [name, part] of Object.entries(def.anatomy!.parts)) {
+      if (!part.width) continue;
+      const node = find(name);
+      const key = part.width.replace('{size}', String(size));
+      const ref = (def.tokens ?? {})[key];
+      ok(!!ref, `#990 ${def.id}.${name} binds width '${part.width}' and the def's own tokens map resolves it at '${key}' — a template that resolves to nothing would make the arms below vacuous`);
+      if (!ref) continue;
+      ok(node?.bound?.width === ref.replace(/\./g, '/'),
+        `#990 ${def.id}: '${name}' binds its MAIN AXIS to '${ref.replace(/\./g, '/')}' in the plan — deleting the projector's width line leaves every other gate in this repo green, so this is the only place a track that reads as 2:1 and projects with no length is visible (got '${node?.bound?.width}')`);
+      ok(!!node?.bound?.height && node.bound.height !== node.bound.width,
+        `#990 ${def.id}: '${name}' binds height and width to DIFFERENT variables — that is the whole of what 'width' is for, and a part whose two axes resolve to one variable should have declared 'size' instead (h '${node?.bound?.height}' / w '${node?.bound?.width}')`);
+    }
+  }
+
+  // ---- `positionWhen`: variant-keyed POSITION, and why it needed its own mechanism (#990) ---------
+  // #990's rejected option was two mutually-exclusive parts (`thumb-off`/`thumb-on`) gated by
+  // `presentWhen`. What made that a modelling lie rather than a workaround is that a switch's thumb is
+  // ONE part whose place varies, and the code projection inherits the lie — an agent generating markup
+  // from a two-part anatomy emits two elements and toggles them, where every real switch translates one.
+  //
+  // The mechanism's failure direction is the opposite of `presentWhen`'s, and that is why it needs
+  // projection coverage of its own rather than a validation battery alone: a `positionWhen` the projector
+  // ignored would leave every part exactly where the parent's `layout.justify` already puts it. Same node
+  // count, same paint assignments, same census — so `lint-paint.ts`, `lint-glyph-geometry.ts` and the
+  // standalone-floor gate all stay green on a mechanism that does nothing at all. Measured, not assumed:
+  // deleting the `positionOf(childNames) ?? ` clause from the projector leaves every other gate in the
+  // repo green and only the arms below go red.
+  //
+  // ITS LIMIT, STATED AS THE `presentWhen` BLOCK STATES ITS OWN. EXPECTED is the def's own declaration and
+  // ACTUAL is the plan, so these check that the MECHANISM honours the map — not that the map is the right
+  // way round. Swapping switch's `off`/`on` positions passes all of this; what catches THAT is the
+  // distinctness arm being unable to see it and nothing else being able to either, which is a real hole
+  // and the honest place to record it: no gate anywhere knows which end of a track an `on` thumb sits at.
+  // It is a fact about the brand's reading direction, not about the engine.
+  const alignAt = (plan: AnatomyPlan, part: string): string | undefined => {
+    const walk = (n: any): any => n.name === part ? n : (n.children ?? []).reduce((f: any, c: any) => f ?? walk(c), undefined);
+    return walk(plan.root)?.primaryAxisAlignItems;
+  };
+  const parentOf = (a: AnatomyDef, child: string): string | undefined =>
+    Object.entries(a.parts).find(([, p]) => (p.children ?? []).includes(child))?.[0];
+  // Discovered from `componentDefs` and then pinned BY NAME, so the second def to position a part is
+  // covered the day it lands, and a discovery that silently returns nothing fails rather than passing over
+  // an empty set — `docs/34` shape 15, the same shape the CONTROL_DEFS scope above was widened for.
+  const positionedDefs = componentDefs.filter((d) =>
+    d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.positionWhen));
+  const POSITIONED_EXPECTED = ['switch'];
+  ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
+    `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
+  const JUSTIFY_EXPECT: Record<string, string> = { start: 'MIN', center: 'CENTER', end: 'MAX' };
+  for (const def of positionedDefs) {
+    const sizes = def.variants?.size ?? [];
+    const size = sizes[Math.min(1, sizes.length - 1)];
+    for (const [name, part] of Object.entries(def.anatomy!.parts)) {
+      if (!part.positionWhen) continue;
+      const axes = Object.entries(part.positionWhen);
+      // ONE axis, and this is `anatomyErrors`' rule restated where the arms below depend on it: a position
+      // does not AND-compose, so "supply the axis and read the parent's distribution" stops being the right
+      // question over two of them. Fail rather than skip, so these cannot go quietly vacuous.
+      ok(axes.length === 1,
+        `#990 ${def.id}.${name} keys its position on ${axes.length} axes [${axes.map(([a]) => a).join(', ')}] — the arms below supply ONE axis and would read an arbitrary winner as the projected position. See the structural-validity failure above for the authored fix`);
+      if (axes.length !== 1) continue;
+      const [axis, byValue] = axes[0];
+      const parent = parentOf(def.anatomy!, name);
+      ok(parent !== undefined,
+        `#990 ${def.id}.${name} is positioned but is nobody's child — the position projects onto a parent's distribution, so with no parent these arms have nothing to read`);
+      if (!parent) continue;
+      const rest: Record<string, string> = { state: 'rest' };
+      for (const [a, vs] of Object.entries(def.variants ?? {})) if (a !== 'size' && a !== axis) rest[a] = vs[0];
+      const declared = def.variants?.[axis] ?? [];
+      const undeclared = Object.keys(byValue).filter((v) => !declared.includes(v));
+      ok(undeclared.length === 0,
+        `#990 ${def.id}.${name} positions itself at ${axis}=[${undeclared.join(', ')}], which that axis does not declare — reported here rather than projected, because 'figmaAnatomyPlan' THROWS on an undeclared axis value and would take the whole summary down with it (#986's fall-through, arriving from the other side — 'ok' buffers, so a throw discards every failure already collected: #998)`);
+      if (undeclared.length) continue;
+      const seen = new Set<string>();
+      for (const [v, pos] of Object.entries(byValue)) {
+        const plan = figmaAnatomyPlan(def, size, { ...rest, [axis]: v } as never);
+        const got = alignAt(plan, parent);
+        seen.add(String(got));
+        ok(got === JUSTIFY_EXPECT[pos],
+          `#990 ${def.id}: at ${axis}=${v} the PARENT '${parent}' distributes '${JUSTIFY_EXPECT[pos]}' — the position is written to the frame, because 'layoutAlign's MIN/CENTER/MAX are deprecated in the Figma API and 'layoutGrow' is a stretch flag, so main-axis placement exists nowhere else (got '${got}')`);
+        // …and NOT to the positioned part itself. A projector that wrote the child's own distribution would
+        // satisfy nothing visible: the thumb has no flow children to distribute, so the property is inert
+        // there and the part never moves. This is the arm that pins the mechanism's TARGET rather than its
+        // value, and it fails on a mis-placed write that the arm above cannot see.
+        ok(alignAt(plan, name) === JUSTIFY_EXPECT[def.anatomy!.parts[name].layout?.justify ?? 'start'],
+          `#990 ${def.id}: '${name}'s OWN distribution is still its declared justify at ${axis}=${v} — 'positionWhen' moves the part by writing the PARENT, and a write landing on the part itself is inert (got '${alignAt(plan, name)}')`);
+      }
+      // The part must actually TRAVEL. Every arm above compares the plan to the map, so all of them pass on
+      // a map whose values are identical — `anatomyErrors` refuses that on the authoring side, and this is
+      // the same claim read out of the PROJECTION, which is where a projector that silently collapsed the
+      // travel (a stale `JUSTIFY` lookup, a `??` reversed) would show up.
+      ok(seen.size > 1,
+        `#990 ${def.id}: '${name}' occupies MORE THAN ONE place across '${axis}' — a projection that resolved every value to '${[...seen][0]}' is a part that reads as travelling and renders as static, and no node count, paint assignment or census can tell the difference (got ${seen.size} distinct: ${[...seen].join(', ')})`);
+      // THE UNSUPPLIED AXIS, the third direction the projected set cannot reach: a structure-only plan is
+      // legal (the partial-coordinate guard throws only when SOME of a template's axes are missing), and it
+      // must fall back to the parent's DECLARED justify rather than to the first entry of the map. Asserting
+      // no position on no evidence — the same conservative answer `presentWhen` gives for absence.
+      const bare = alignAt(figmaAnatomyPlan(def, size, rest as never), parent);
+      ok(bare === JUSTIFY_EXPECT[def.anatomy!.parts[parent].layout?.justify ?? 'start'],
+        `#990 ${def.id}: with '${axis}' unsupplied, '${parent}' falls back to its own declared justify — a structure-only plan asserts no position on no evidence, and reading the map's first entry instead would put the part somewhere nobody chose (got '${bare}')`);
     }
   }
 
