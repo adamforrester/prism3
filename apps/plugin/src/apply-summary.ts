@@ -63,12 +63,53 @@ export const APPLY_FAILED_HEADLINE = '✗ write failed';
  * `skipped` reaching the pill only in the all-skipped case is deliberate: a partial re-run (some
  * skipped, some added) leads with what it ADDED, since that is the change to the file, and the detail
  * behind the pill carries both counts.
+ *
+ * `stale` IS DIFFERENT, AND IT OUTRANKS `built N` (#827). The other counts describe what the run did;
+ * this one describes what the FILE still holds — members whose plan has moved since they were written,
+ * which this build deliberately did not replace. A run that added 100 members and left 548 stale led with
+ * "built 100" under the old precedence, and the 548 were the fact the designer needed. It ranks below real
+ * misses because a miss is something that did not resolve at all, which is more actionable.
+ *
+ * `✓ already built` is the verdict this exists to stop being reachable over a stale set: it asserts the
+ * file holds what was asked for, and a name match was never evidence of that.
  */
-export const componentHeadline = (added: number, skipped: number, misses: number): string => {
-  if (added === 0 && skipped === 0) return '✗ nothing built';
+export const componentHeadline = (added: number, skipped: number, misses: number, stale = 0): string => {
+  if (added === 0 && skipped === 0 && stale === 0) return '✗ nothing built';
   if (misses > 0) return `⚠ ${misses} miss${misses === 1 ? '' : 'es'}`;
+  if (stale > 0) return `⚠ ${stale} stale`;
   if (added === 0) return '✓ already built';
   return `✓ built ${added} variant${added === 1 ? '' : 's'}`;
+};
+
+/**
+ * WHY A STALE MEMBER WAS LEFT ALONE, said ONCE (#827) — the sentence the designer reads after the pill.
+ *
+ * Once rather than per member, because the per-member `misses` line already names each one and a 648-member
+ * set would otherwise repeat this same reasoning 648 times.
+ *
+ * THE REASON SITS IN THE SAME SENTENCE AS THE OUTCOME, deliberately — "left in place, BECAUSE rebuilding
+ * would orphan…", not two sentences with the remedy standing alone. "Delete the set or use a fresh page" on
+ * its own reads as the tool failing and handing the work back. The build did not fail: it declined a repair
+ * that would have cost more than the defect, and the designer cannot weigh that without the reason — a
+ * rebuild replaces the component node, and an instance tracks its main component by id, so it would orphan
+ * work already placed. Stated in `docs/voice-standard.md`'s terms: recessive, and honest about what it did
+ * rather than instructing from nowhere.
+ *
+ * The engine version is REPORTED here and nowhere compared. It is the answer to "which build is this?",
+ * which the panel could not previously give at all (#836) — and it is deliberately not part of the staleness
+ * test, because `ENGINE_VERSION` bumps on a pure value change and would otherwise flag every member in the
+ * file as stale the day a brand's hue moves.
+ *
+ * `null` when nothing is stale, so the caller appends nothing rather than an empty clause.
+ */
+export const staleNote = (stale: number, engineVersion: string): string | null => {
+  if (stale === 0) return null;
+  const one = stale === 1;
+  return (
+    `${stale} member${one ? '' : 's'} in this set ${one ? 'was' : 'were'} built from an earlier plan and ${one ? 'was' : 'were'} left in place, ` +
+    `because rebuilding ${one ? 'it' : 'them'} would orphan any instance you have already placed — an instance tracks its main component by id. ` +
+    `This build is engine ${engineVersion}; to pick it up, delete ${one ? 'that member' : 'those members'} and run again, or build into a fresh page.`
+  );
 };
 
 /**

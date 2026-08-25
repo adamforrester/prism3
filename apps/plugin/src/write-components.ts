@@ -54,8 +54,10 @@
  * assertion instead, because with no caller the port could have drifted out of satisfaction with the
  * whole suite green; the trigger retired it rather than leaving two mechanisms for one guarantee.
  */
-import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice } from '@prism3/engine/anatomy-figma';
+import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
+import { ENGINE_VERSION } from '@prism3/engine/version';
+import { NS } from './persist-figma';
 import type { PartialWriteFacts } from './apply-summary';
 
 /** A Figma variable as this lane needs it: a name to index by, an id nothing here reads, and the
@@ -149,6 +151,15 @@ export interface CompNode {
    *  inherit it through `DefaultFrameMixin` → `BaseFrameMixin`. That is why the call below needs no
    *  presence guard. */
   unlockAspectRatio?(): void;
+  /** THE #827 STAMP, read and written on a MEMBER. Shared rather than private plugin data for the reason
+   *  `persist-figma.ts` gives: the namespace is the collision boundary, and a stamp a second tool can
+   *  read is a stamp a second tool can honor.
+   *
+   *  Optional like every other field here — but note that a HOST that does not implement these is
+   *  indistinguishable from a member that was never stamped, and the executor treats both the same way
+   *  (as unknown provenance, which is stale). That is the safe reading in both cases. */
+  getSharedPluginData?(namespace: string, key: string): string;
+  setSharedPluginData?(namespace: string, key: string, value: string): void;
 }
 
 /** A COMPONENT_SET, which has a surface no ordinary node does. `componentPropertyDefinitions` is a
@@ -263,6 +274,16 @@ export type ComponentApplyResult = {
    *  The one field the paste payload does not return: a CHUNK cannot report this meaningfully, since it
    *  sees only its own slice of the set. */
   skipped: number;
+  /** Members that were already in the set under the right name and were built from a DIFFERENT plan than
+   *  this build would write — or from no recorded plan at all (#827). Skipped like the above, and counted
+   *  apart from it for the reason that field's note gives one step further: `skipped` and `stale` are both
+   *  "this run wrote nothing here", and only one of them means the file holds what was asked for.
+   *
+   *  Kept out of `skipped` rather than folded in, because the verdict has to distinguish them: `✓ already
+   *  built` over a stale set is the exact false green this field exists to prevent.
+   *
+   *  Second plugin-only field, same reason as `skipped`. */
+  stale: number;
   size: [number, number];
   /** rows × cols of the computed grid. */
   grid: [number, number];
@@ -411,6 +432,46 @@ export const CHUNK = 4;
  *  boundary (counted at `yieldTo`); that it is a macrotask is gated only by the live run, which is why
  *  the 1m10s / Livegraph-1006 measurement in the header is cited rather than a test name. */
 const realYield: YieldFn = () => new Promise<void>((resolve) => { setTimeout(resolve, 0); });
+
+/**
+ * THE MEMBER STAMP (#827) — what a member records about the build that wrote it, so a re-run has
+ * something to compare that is not the member's NAME.
+ *
+ * Shape: `<engine version>|<plan stamp>`. Two fields, and only ONE of them is compared.
+ *
+ * THE PLAN STAMP IS THE DECISION. It moves exactly when the plan this executor would write moves, which
+ * is the question the skip branch is actually asking.
+ *
+ * THE ENGINE VERSION IS REPORTED AND NEVER COMPARED, and that asymmetry is the design rather than an
+ * oversight. `ENGINE_VERSION` bumps on any behavior change including a pure token-value change — so
+ * comparing it would mark all 913 members of the library stale every time a brand's hue moved, which is
+ * both wrong (a bound paint re-themes; the geometry did not move) and useless (a verdict that always
+ * fires is not a verdict). It is stored because the one thing a human asks on being told a member is
+ * stale is *how old is it*, and a bare hash cannot answer that.
+ *
+ * NO BUILD IDENTITY IN IT YET, and this is the honest boundary rather than a gap I am papering over.
+ * A plan stamp cannot see a change that lives only in this file: 7 of the 22 commits touching the
+ * component pipeline since 2026-07-01 changed `write-components.ts` alone and moved no plan bytes. The
+ * field that would close that is the bundle's identity, and it is not available here — `build.mjs`
+ * defines `PRISM3_BUILD` only for the entry that bundles `studio/src`, and `tsconfig.main.json` does not
+ * include the declaration, so naming it in this context is a bare identifier that throws at load. Adding
+ * that define is #836's own scope. When it lands, it goes here as a third field, still unread by the
+ * comparison for the same reason the engine version is.
+ *
+ * `|` as the separator because neither field can contain one: a semver is `[0-9.]` and a plan stamp is
+ * 16 hex characters. A JSON blob would be the general answer and buys nothing at 26 bytes.
+ */
+const STAMP_KEY = 'memberStamp';
+const memberStamp = (plan: AnatomyPlan): string => `${ENGINE_VERSION}|${planStamp(plan)}`;
+
+/** The plan-stamp half — the only half the staleness decision reads. `''` for an unstamped member, which
+ *  is what an empty `getSharedPluginData` and a host with no plugin-data surface both produce, and which
+ *  never equals a real 16-hex stamp. That is the intended reading: unknown provenance is stale. */
+const planHalf = (stamp: string): string => stamp.split('|')[1] ?? '';
+
+/** The engine-version half, for the report only. `'unknown'` rather than `''` so the miss line reads as
+ *  a fact about the member instead of as a missing interpolation. */
+const engineHalf = (stamp: string): string => stamp.split('|')[0] || 'unknown';
 
 /** The node as the executor USES it — every field present, none of them narrowed. The cast happens
  *  once per created node rather than per field, because the PLAN decided the node kind: a TEXT node's
@@ -982,8 +1043,17 @@ const writeComponentSet = async (
   // it. This is the one behaviour the single-shot paste payload does not have and a plugin needs, since
   // a designer can press the button twice.
   let set = api.currentPage.findOne((n) => n.type === 'COMPONENT_SET' && n.name === component) as CompSet | null;
-  const have = new Set((set?.children ?? []).map((c) => c.name));
+  // THE EXISTING MEMBERS BY NAME — a Map rather than the Set this was, because the skip branch now needs
+  // the NODE and not just the fact of it: name-matching is what #827 is about, and the stamp it compares
+  // instead lives on the member. `c.name` can be undefined on the port, so the entries are filtered
+  // rather than keyed by `string | undefined` — an unnamed child cannot be matched by name anyway.
+  const have = new Map((set?.children ?? []).flatMap((c) => (c.name ? [[c.name, c] as const] : [])));
   const byCell = new Map(cells.map((c) => [c.name, c] as const));
+  // WHAT THIS BUILD WOULD WRITE, per member (#827). Derived here rather than carried on the cell for a
+  // measured reason: `planSetLayout`'s cells are `JSON.stringify`d wholesale into the paste payload, so a
+  // field added there costs ~19 KB of payload on Button for something the payload never reads. Both
+  // derivations call `planComponentName`, so the key agrees with `spec.name` by construction.
+  const stampByMember = new Map(plans.map((p) => [planComponentName(p), memberStamp(p)] as const));
 
   // CHUNKED (#684). The yield is on the CELL index, not on `fresh.length`, because `fresh.length` is not
   // monotonic with the loop — a run that skips every member by name leaves it at 0 for all 648 cells, so
@@ -1012,10 +1082,29 @@ const writeComponentSet = async (
   // so the case with no fast path available is the case that does not need one.
   const builtParts = new Map<string, Map<string, Wr>>();
   let skipped = 0;
+  let stale = 0;
   for (let i = 0; i < cells.length; i++) {
     const spec = cells[i];
-    if (have.has(spec.name)) { skipped++; misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`); }
-    else {
+    const existing = have.get(spec.name);
+    if (existing) {
+      // #827: A NAME MATCH IS NOT PROOF THE MEMBER IS CORRECT. Both branches skip — this build does not
+      // rebuild either one, because rebuilding means replacing the component node, and instances track
+      // their main component by id: a rebuild would orphan every instance a designer had already placed.
+      // That is a worse outcome than the stale member, which is why the fix here is to REPORT rather than
+      // to repair. So the only thing that changes between these two branches is what the run SAYS.
+      const want = stampByMember.get(spec.name) ?? '';
+      const got = existing.getSharedPluginData?.(NS, STAMP_KEY) ?? '';
+      if (planHalf(got) === planHalf(want) && planHalf(want) !== '') {
+        skipped++;
+        misses.push(`member ${spec.name} -> ALREADY PRESENT (skipped; this set has been written before)`);
+      } else {
+        stale++;
+        // TERSE, and the advice is NOT repeated here: this line appears once per member, so a 648-member
+        // set would carry the same sentence 648 times. The reason and the remedy are stated once, in
+        // `staleNote`, which is what the designer actually reads.
+        misses.push(`member ${spec.name} -> STALE (built by engine ${engineHalf(got)}, plan ${planHalf(got) || 'unstamped'}; this build plans ${planHalf(want)})`);
+      }
+    } else {
       const parts = new Map<string, Wr>();
       const root = await build(spec.root, parts);
       // `!root` is a missing shared component — its own miss is already recorded, precisely. It must NOT
@@ -1030,6 +1119,15 @@ const writeComponentSet = async (
         trail.loose.delete(root);
         trail.loose.add(comp);
         comp.name = spec.name;
+        // THE STAMP (#827), on the COMPONENT and not on the frame it was made from: the frame is consumed
+        // by `createComponentFromNode`, and the node a later run reads is this one. Written here rather
+        // than after the wire pass so a build that throws mid-wire still leaves every member it completed
+        // truthfully stamped — an unstamped member reads as stale, which is the safe direction for a
+        // partial write, but a member that was fully built and then reported stale is a false alarm the
+        // designer would act on. `?.` because the port makes it optional; a host without plugin data
+        // leaves every member unstamped, and every re-run then reports the whole set stale rather than
+        // silently reporting it correct.
+        comp.setSharedPluginData?.(NS, STAMP_KEY, stampByMember.get(spec.name) ?? '');
         fresh.push(comp);
         // AFTER the component exists and is named, under the name the wire loop will look it up by.
         // `createComponentFromNode` "preserv[es] all of its properties and children" (Figma's own words in
@@ -1046,7 +1144,7 @@ const writeComponentSet = async (
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
-      return { set: null, id: '', variants: 0, added: 0, skipped, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, misses };
+      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, misses };
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
@@ -1281,6 +1379,7 @@ const writeComponentSet = async (
     variants: members.length,
     added: fresh.length,
     skipped,
+    stale,
     size: [set.width ?? 0, set.height ?? 0],
     grid: [rows, cols],
     axes: derived.map((k) => `${k}:${(defs[k]?.variantOptions ?? []).length}`),

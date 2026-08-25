@@ -1377,6 +1377,57 @@ export const planComponentName = (plan: AnatomyPlan): string =>
   ].join(', ');
 
 /**
+ * FNV-1a, 32 bits, twice — forward and over the reversed string (#827). Hand-written because the engine
+ * is dependency-free and this runs inside the Figma sandbox, where `node:crypto` does not exist and the
+ * `plugin-no-node-builtins` gate would refuse the import anyway.
+ *
+ * TWO PASSES rather than one, and the reason is the failure mode: a stamp collision reports a stale
+ * member as correct, which is precisely the defect #827 exists to fix. One 32-bit pass would give ~2^-32
+ * per real change — small, and the wrong direction to economize in for eight bytes. Reversed rather than
+ * a second offset basis, because two FNV runs over the same byte order share most of their avalanche and
+ * would not independently notice a transposition.
+ */
+const fnv1a32 = (s: string, reverse: boolean): number => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(reverse ? s.length - 1 - i : i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+};
+
+const hex8 = (n: number): string => n.toString(16).padStart(8, '0');
+
+/**
+ * WHAT ONE MEMBER'S PLAN HASHES TO (#827) — 16 hex characters that move when anything the executor
+ * would write moves, and stay put otherwise.
+ *
+ * WHY THIS IS THE RIGHT SUBJECT. `write-components.ts` decides whether a member already exists **by
+ * name** and skips it, so a name match is treated as proof the member is correct. It cannot be: a
+ * member built by an older engine has the same name and different geometry. The stamp gives the skip
+ * branch something to compare that is not the name.
+ *
+ * OVER THE WHOLE PLAN, deliberately, rather than over the properties the executor is known to write.
+ * A hand-picked field list is a second statement of what the executor writes, and the two would drift
+ * the first time a property is added — the drift being silent and in the unsafe direction, since the
+ * new property would be written and never stamped. Hashing everything is OVER-sensitive: a plan field
+ * no executor reads still moves the stamp, and the cost is a member reported stale that would have
+ * rendered identically. That is the safe direction, and it is the whole argument for the choice.
+ *
+ * WHAT IT DOES NOT COVER, stated because the boundary is invisible from the call site. `figmaAnatomySet`
+ * takes a `ComponentDef` and no theme, so this is a pure function of the DEFINITION: it does not move
+ * when the brand's values move. It does not need to — brand values reach a member through variable
+ * bindings, and a binding re-themes because the binding is what was written. What it also cannot see is
+ * a change that lives only in the executor: 7 of the 22 commits touching this component pipeline since
+ * 2026-07-01 changed `write-components.ts` alone and moved no plan bytes. That is why the stamp the
+ * plugin stores carries the build identity alongside this hash (#836), and why that issue stays open.
+ */
+export const planStamp = (plan: AnatomyPlan): string => {
+  const json = JSON.stringify(plan);
+  return `${hex8(fnv1a32(json, false))}${hex8(fnv1a32(json, true))}`;
+};
+
+/**
  * WHAT A MISSING NEST TARGET ACTUALLY IS, in the message the designer reads (#681).
  *
  * The live 648-variant build reported 108 identical misses — every `state=focus-visible` member — saying

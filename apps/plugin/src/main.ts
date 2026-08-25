@@ -18,7 +18,8 @@
  * Compiled under `tsconfig.main.json` (plugin-typings, `lib` WITHOUT `dom`), so any accidental
  * `document`/`window` reference is a COMPILE error — the two-context split is enforced by types.
  */
-import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, partialWriteHeadline, partialWriteNote } from './apply-summary';
+import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
+import { ENGINE_VERSION } from '@prism3/engine/version';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
@@ -348,20 +349,30 @@ const buildComponents = async (defId?: string): Promise<void> => {
       const missNote = r.misses.length
         ? `, ⚠️ ${r.misses.length} misses (${r.misses.slice(0, 3).join('; ')}${r.misses.length > 3 ? '; …' : ''})`
         : '';
+      // THE STALE REASON, appended once (#827) — see `staleNote` for why the reason and the remedy are
+      // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
+      // this is what explains them.
+      const stale = staleNote(r.stale, ENGINE_VERSION);
       const summary = r.set === null
         ? `nothing assembled — no set on this page and no member built${missNote}`
-        : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present), ` +
+        : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
+          `${r.stale ? `, ${r.stale} stale` : ''}), ` +
           `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
           `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-          `${r.refs} refs across ${r.wiredMembers} members${missNote}`;
+          `${r.refs} refs across ${r.wiredMembers} members${missNote}${stale ? `. ${stale}` : ''}`;
       // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
       // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
       // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason
       // the theme write's is — never by re-reading the prose above.
+      //
+      // A STALE MEMBER MAKES THE RUN NOT-`ok` (#827), and it does so through the line below UNCHANGED:
+      // the STALE lines are in `misses` and are not counted in `skipped`, so the equality already fails.
+      // Stated rather than left to be re-derived, because it is the one place where the right behaviour
+      // comes out of an expression that does not mention the new field.
       postToUi({
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
-        headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped),
+        headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale),
         summary,
       });
       verdictPosted = true;

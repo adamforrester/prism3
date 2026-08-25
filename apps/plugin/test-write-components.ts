@@ -31,6 +31,14 @@
  * and the degraded cases (missing variables, missing swap target, missing shared component, a stray
  * member, a duplicate member name) are reported as misses rather than thrown or silently dropped.
  *
+ * SINCE #827 THE SHIM ALSO STORES SHARED PLUGIN DATA, per node, and that is a load-bearing addition rather
+ * than a convenience: the member stamp is written on one run and READ on the next, so a shim that merely
+ * counted the write would leave every re-run reporting the whole set stale and the idempotence arms above
+ * could never be green. The arms it enables are the ones that distinguish "already built and still correct"
+ * from "built by an earlier plan and now wrong" — the second of which a name match cannot see, and which
+ * this build reports rather than repairs, because a rebuild replaces the component node and an instance
+ * tracks its main component by ID. That last claim is checked by node IDENTITY, not by a count.
+ *
  * ON THE #684 CHUNKING, THE LIMIT IS WORTH STATING BEFORE THE ASSERTIONS: this harness has no event loop
  * to starve, no Figma heartbeat, no socket to drop and no scenegraph to reconcile. So it cannot verify the
  * thing #684 is actually about — that the host stays responsive — and it cannot tell a good chunk size
@@ -44,13 +52,16 @@
  * tells you nothing about which of the two loops did it. The responsiveness itself is verified by running
  * it in Figma, and the chunk size is set from `chunkMs` off that run. See `CHUNK` in `write-components.ts`.
  */
-import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBoundVars, planPaintVars, planTextStyles, planEffectStyles, planSetProperties, planSetLayout, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
+import { ENGINE_VERSION } from '@prism3/engine/version';
+// Source-text only, for `main.ts`'s wiring — see the `(5)` block below for what that can and cannot see.
+import { readFileSync } from 'node:fs';
 import { button } from '@prism3/engine/components/button';
 import { fieldLabel } from '@prism3/engine/components/field-label';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
 import { applyComponentPlan, CHUNK, partialWriteOf } from './src/write-components';
-import { partialWriteHeadline, partialWriteNote } from './src/apply-summary';
+import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress } from './src/write-components';
 import type { AnatomyPlan } from '@prism3/engine/anatomy-figma';
 
@@ -383,6 +394,25 @@ const makeShim = (opts: ShimOpts = {}) => {
       findOne(pred: (n: unknown) => boolean) {
         if (opts.hostSearches) opts.hostSearches.n++;
         return (node.findAll as (p?: unknown) => Node[])(pred)[0] ?? null;
+      },
+      // PER-NODE SHARED PLUGIN DATA (#827) — a real store, not a recorder. The stamp is the only thing that
+      // distinguishes "already built and correct" from "built by an older plan and now wrong", and it is
+      // written on one run and READ on the next: a shim that only counted the write would leave the read
+      // arm reading `''` forever, so every re-run would report STALE and the idempotence arms could never
+      // go green. So the two halves have to compose, across runs, on a node that outlives one run.
+      //
+      // Keyed `namespace|key` because Figma scopes an entry by both, and returning `''` for an unset key is
+      // Figma's documented behaviour rather than a convenience — `undefined` would let `planHalf(got)` throw
+      // instead of comparing, and the executor's "unstamped reads as stale" branch depends on the empty
+      // string specifically. Per node, because that is the storage shape this build chose (a set-level map of
+      // 648 member names against their hashes measures 66.9 kB in a single entry, against a documented 100 kB
+      // per-entry ceiling; 16 B on each of 648 nodes is the cheap side of that).
+      _pluginData: new Map<string, string>(),
+      getSharedPluginData(namespace: string, key: string) {
+        return (node._pluginData as Map<string, string>).get(`${namespace}|${key}`) ?? '';
+      },
+      setSharedPluginData(namespace: string, key: string, value: string) {
+        (node._pluginData as Map<string, string>).set(`${namespace}|${key}`, value);
       },
     };
     return node;
@@ -969,6 +999,143 @@ ok(r2.skipped === r2.misses.filter((m) => m.includes('ALREADY PRESENT')).length,
 ok(r2.properties.length === r1.properties.length && r2.wiredMembers === 21,
   `re-running neither duplicates a property nor loses a reference (${r2.properties.length} props, ${r2.wiredMembers} wired members)`);
 ok(JSON.stringify(r2.size) === JSON.stringify(r1.size), `the box is unchanged by a no-op re-run (${r2.size.join('x')})`);
+
+// ---- #827: A NAME MATCH IS NOT PROOF THE MEMBER IS CORRECT ---------------------------------
+// The defect: `have.has(spec.name)` cannot distinguish "already built, and still what this build plans"
+// from "built by an older engine, and now wrong". Both read as `ALREADY PRESENT`, so a designer who
+// re-runs after the engine moved is told the file holds what they asked for and it does not.
+//
+// The fix REPORTS rather than repairs, and that choice is asserted below rather than merely commented:
+// rebuilding means `createComponentFromNode` + a replacement node, and an instance tracks its main
+// component by ID — so an auto-rebuild silently orphans every instance a designer had already placed.
+// That is a worse outcome than a stale member, so the arms here check BOTH halves: that the staleness is
+// named, and that the member node is the same object afterwards.
+//
+// THE NAMESPACE IS HARDCODED, not imported from `persist-figma`. It is the storage contract with files
+// written by earlier builds: change it and every stamp already in the wild becomes unreadable, so every
+// existing set silently reports stale. Importing `NS` would make that migration invisible to this gate;
+// spelling it out means the rename has to come past an assertion (docs/34 shape 16).
+const STAMP_NS = 'prism3';
+const STAMP_K = 'memberStamp';
+const stampOf = (n: Node): string => (n.getSharedPluginData as (ns: string, k: string) => string)(STAMP_NS, STAMP_K);
+
+// (1) THE STAMP IS WRITTEN AT BUILD TIME, on the member the next run will read. Read off the shim's own
+// store rather than from anything the executor returns — a `stale` count derived from a stamp the
+// executor also produced would agree with itself.
+const r1Members = page.children[0].children as Node[];
+const r1Stamps = r1Members.map(stampOf);
+ok(r1Stamps.every((s) => s !== ''), `every member built by the first run carries a stamp (${r1Stamps.filter((s) => s === '').length} of ${r1Stamps.length} unstamped)`);
+ok(new Set(r1Stamps).size === 21,
+  `the 21 stamps are DISTINCT — a constant would make every member look correct against every plan (${new Set(r1Stamps).size} distinct)`);
+ok(r1Stamps.every((s) => s.split('|')[0] === ENGINE_VERSION && /^[0-9a-f]{16}$/.test(s.split('|')[1] ?? '')),
+  `each stamp reads '<engine version>|<64-bit plan hash>', so a human reading the panel can tell which half moved (${r1Stamps[0]})`);
+// The idempotent re-run above is therefore a round-trip claim as well as a skip claim: `ALREADY PRESENT`
+// is now reachable ONLY through a stamp that was written on one run and read back on the next.
+ok(r2.stale === 0, `a genuinely unchanged re-run reports NOTHING stale — the false-positive direction, and the one that would make this feature useless (${r2.stale})`);
+
+// (2) THE PERTURBED PLAN. `derived` is plan metadata a later engine legitimately rewrites; it does not
+// enter `planComponentName`, which is exactly the case the name-match check is blind to.
+const laterGrid = grid.map((p) => ({ ...p, derived: { ...p.derived, minTapTarget: 'moved-by-a-later-engine' } }));
+// GUARD FIRST — without both of these the arms below pass against any implementation. The names must be
+// IDENTICAL (otherwise this is the ordinary add-a-member path, not the stale path) and the stamps must
+// have MOVED (otherwise `STALE` is unreachable and the assertion is vacuous, #969).
+ok(laterGrid.map(planComponentName).join('|') === grid.map(planComponentName).join('|'),
+  'the perturbed plans carry the SAME 21 member names — so what follows exercises the name match, not a fresh build');
+ok(laterGrid.every((p, i) => planStamp(p) !== planStamp(grid[i])),
+  `...and a DIFFERENT plan stamp on every one of them (${laterGrid.filter((p, i) => planStamp(p) !== planStamp(grid[i])).length}/21 moved)`);
+
+const stalePage: Page = { children: [] };
+await run(grid, { ...full(), page: stalePage });
+const staleSet = stalePage.children[0];
+const beforeNodes = [...(staleSet.children as Node[])];
+const beforeStamps = beforeNodes.map(stampOf);
+const rStale = await run(laterGrid, { ...fullFor(laterGrid), page: stalePage });
+
+ok(rStale.stale === 21 && rStale.skipped === 0 && rStale.added === 0,
+  `every member built from an earlier plan is counted STALE and NOT as a skip (stale=${rStale.stale}, skipped=${rStale.skipped}, added=${rStale.added})`);
+ok(rStale.misses.filter((m) => m.includes('-> STALE')).length === 21 && !rStale.misses.some((m) => m.includes('ALREADY PRESENT')),
+  `...and each one is NAMED, with nothing reported as already present (${rStale.misses.length} misses; ${rStale.misses[0]})`);
+ok(rStale.misses.every((m) => !m.includes('-> STALE') || (/built by engine [^,]+, plan [0-9a-f]{16}/.test(m) && /this build plans [0-9a-f]{16}/.test(m))),
+  'every STALE line carries BOTH hashes — the one in the file and the one this build wanted — because "stale" with no pair of values is unactionable');
+// THE ORPHANING CLAIM, checked by identity rather than by count: a rebuild would replace the node, and
+// every instance a designer placed points at the OLD id. Same objects, in the same order.
+ok((staleSet.children as Node[]).length === 21 && (staleSet.children as Node[]).every((c, i) => c === beforeNodes[i]),
+  'a stale member is left in place — the SAME node object, so no instance a designer placed is orphaned');
+ok(stalePage.children.length === 1, `and no second set is combined beside it (${stalePage.children.length} node on the page)`);
+// AND THE RUN DOES NOT QUIETLY RE-STAMP WHAT IT DID NOT REBUILD. Re-stamping would make the next run
+// report the set clean while the file still holds the old members — the original defect, self-inflicted.
+ok((staleSet.children as Node[]).map(stampOf).join('|') === beforeStamps.join('|'),
+  'the stale members keep their OLD stamps — re-stamping a member this build declined to rebuild would launder the defect into a clean verdict');
+// `main.ts` flips `ok` off `misses.length === skipped`, so a stale run is already not-ok with no change
+// there. Stated as the property rather than trusted, since the two counts move independently.
+ok(rStale.misses.length !== rStale.skipped,
+  `the result is NOT-ok by main.ts's own test (misses ${rStale.misses.length} vs skipped ${rStale.skipped}) — a stale set must not reach the pill as a success`);
+ok(componentHeadline(rStale.added, rStale.skipped, rStale.misses.length - rStale.skipped - rStale.stale, rStale.stale) === '⚠ 21 stale',
+  `the pill says so too, rather than '✓ already built' (${componentHeadline(rStale.added, rStale.skipped, rStale.misses.length - rStale.skipped - rStale.stale, rStale.stale)})`);
+const note = staleNote(rStale.stale, ENGINE_VERSION);
+ok(note !== null && note.includes('orphan') && note.includes('id'),
+  'and the note gives the REASON in the same clause as the remedy, so declining the rebuild does not read as the tool failing');
+
+// (3) AN UNSTAMPED MEMBER READS AS STALE. This is not an edge case — it is every set in every file
+// written before this lands, and it is also the paste-payload route, which builds members without ever
+// running this executor. Reported stale rather than assumed correct: the build has no way to know what
+// plan produced it, and claiming it is current is the one thing this must not do.
+const oldPage: Page = { children: [] };
+await run(grid, { ...full(), page: oldPage });
+const oldSet = oldPage.children[0];
+const unstamped = (oldSet.children as Node[])[7];
+(unstamped.setSharedPluginData as (ns: string, k: string, v: string) => void)(STAMP_NS, STAMP_K, '');
+ok(stampOf(unstamped) === '', 'reachable: the member really is unstamped now, so the arms below are about the empty-stamp branch');
+const rOld = await run(grid, { ...full(), page: oldPage });
+ok(rOld.stale === 1 && rOld.skipped === 20,
+  `one unstamped member among 20 stamped ones is the ONLY one reported stale (stale=${rOld.stale}, skipped=${rOld.skipped})`);
+ok(rOld.misses.some((m) => m.includes(String(unstamped.name)) && m.includes('plan unstamped')),
+  `...named as unstamped rather than as a hash mismatch, because those have different remedies (${rOld.misses.find((m) => m.includes('-> STALE'))})`);
+
+// (3b) THE ENGINE HALF IS STORED AND REPORTED, NEVER COMPARED — and this is the arm that keeps it that
+// way. `ENGINE_VERSION` bumps on any behaviour change INCLUDING a pure value change (`docs/30`), so a
+// comparison that read it would report all 648 members stale the day a brand's hue moved four degrees.
+// Every one of them would be a false alarm, and the remedy the note gives is to delete them.
+const verPage: Page = { children: [] };
+await run(grid, { ...full(), page: verPage });
+const verSet = verPage.children[0];
+const bumped = (verSet.children as Node[])[3];
+const wasStamp = stampOf(bumped);
+(bumped.setSharedPluginData as (ns: string, k: string, v: string) => void)(STAMP_NS, STAMP_K, `99.99.99|${wasStamp.split('|')[1]}`);
+ok(stampOf(bumped) !== wasStamp && stampOf(bumped).split('|')[1] === wasStamp.split('|')[1],
+  'reachable: the member now carries a DIFFERENT engine version and the SAME plan hash — the shape a pure value bump produces');
+const rVer = await run(grid, { ...full(), page: verPage });
+ok(rVer.stale === 0 && rVer.skipped === 21,
+  `a member stamped by a different engine build but the same PLAN is still correct — comparing the version half would flag a whole file stale on a value change (stale=${rVer.stale}, skipped=${rVer.skipped})`);
+
+// (5) `main.ts` IS WIRED TO ALL OF THIS, gated by source text only — the same limit `applySurfacePlan`'s
+// suite states. `main.ts` calls `figma.showUI` at module scope so it cannot be imported, and every count
+// above is inert if the panel never receives it. This cannot see a reordering that preserves textual
+// order, and it is not a substitute for running the plugin in a real file.
+const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+ok(/componentHeadline\([^)]*r\.stale[^)]*\)/.test(mainSrc),
+  'main.ts passes the stale count to `componentHeadline`, so the pill can outrank `built N` with it');
+ok(/staleNote\(r\.stale,\s*ENGINE_VERSION\)/.test(mainSrc) && /\$\{stale \? `\. \$\{stale\}` : ''\}/.test(mainSrc),
+  'and appends `staleNote`\'s sentence to the summary the panel shows, rather than computing it into a void');
+ok(/misses\.length - r\.skipped - r\.stale/.test(mainSrc),
+  'and subtracts BOTH the skips and the stale lines before reporting real misses — they are all in `misses[]`');
+
+// (4) THE HASH ITSELF, from the engine side — the two directions that decide whether any of the above
+// means anything. Authored here against `planStamp` directly rather than through the executor.
+ok(planStamp(grid[0]) === planStamp(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: button.variants!.appearance![0], state: button.states![0] })),
+  'the same def and the same coordinate hash to the same stamp — a stamp that moved on every regeneration would report every member stale forever');
+ok(new Set(grid.map(planStamp)).size === 21, `21 distinct coordinates give 21 distinct stamps (${new Set(grid.map(planStamp)).size})`);
+// THE SECOND PASS CARRIES INFORMATION, rather than restating the first. What it buys is width: 32 bits over
+// a 648-member set is ~209,628 pairs against 2^32, about one collision per 20,000 sets — and a collision
+// reports a STALE member as CORRECT, the false-negative direction that hides the defect. 64 bits puts that
+// at ~1 in 8×10^13. What can be gated is the construction, not the bound: the two halves must DIFFER, which
+// they do not if both passes read the string the same way. Asserted over all 21 plans, since a single plan
+// agreeing by chance is a 1-in-4-billion coincidence and 21 of them is not.
+const halves = grid.map(planStamp).map((s) => [s.slice(0, 8), s.slice(8)]);
+ok(halves.every(([a, b]) => a !== b),
+  `the two 32-bit halves differ on every plan, so the digest is really 64 bits wide (${halves.filter(([a, b]) => a === b).length} of 21 identical)`);
+ok(grid.map(planStamp).every((s) => s.length === 16),
+  'and the stamp is 16 hex characters — the width the staleness comparison rests on');
 
 // ---- DEGRADED: a file with no variables ----------------------------------------------------
 // Reported, not thrown, and the set still assembles — a designer gets a structurally correct set they
