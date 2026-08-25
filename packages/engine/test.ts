@@ -11396,6 +11396,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
   }
 
+  // A cross-root `replacedBy` is a MOVE, not a rename: the variable would have to change collection, and
+  // Figma has no such operation — `projectionsOf` refuses to project it at all. Nothing in today's
+  // `DEPRECATIONS` is cross-root, so this is asserted on a CONSTRUCTED pair rather than on the corpus. A
+  // guard with no live case is a guard with no arm, and this one was found exactly that way: deleting the
+  // guard changed no result anywhere until this arm existed.
+  ok(projectionsOf({ path: 'color.a.b', replacedBy: 'space.a.b', since: '9.9.9' }).length === 0
+      && projectionsOf({ path: 'color.a.b', replacedBy: 'color.a.c', since: '9.9.9' }).length === 2,
+    'rename-map: a cross-root replacement projects NOTHING (that is a move, not a rename) while a same-root one projects both mirrors — the paired negative is what stops the guard from being satisfied by a derivation that projects nothing at all');
+
   // The authored projection domain, checked against the emission rather than trusted. `PROJECTED_ROOTS`
   // is the one hand-written thing the variable map depends on, and its failure mode is silence in both
   // directions: a root that is not really a collection name yields entries nothing ever reads, and a
