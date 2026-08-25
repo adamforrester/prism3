@@ -7,6 +7,126 @@
 
 ---
 
+## (2026-08-25) — migrate the variable, keep the binding: the rename map (#1013)
+
+**STATUS: shipped.** No version change (nothing emitted moves; no token name changes) and **no gate
+count change — still 43**: the check lives in `packages/engine/test.ts` (2470 arms), not a new file, for
+a reason stated below.
+
+**The cost curve, not a defect.** `write-figma.ts` is create-or-update **by name**, which is idempotent
+for adds and edits and structurally blind to a rename: the new name is created, the old one is never
+touched, and every binding a designer made against the old name keeps pointing at a variable the engine
+has stopped writing. `orphansOf` (#479) makes that visible; nothing migrated it. With #1013 Q4 on the
+table — whether the alias layer and the value layer swap names — that rename is cheapest today and
+grows more expensive every week a themed file exists. Landing the mechanism first is what makes the
+decision safe to take slowly.
+
+**The mechanism is one line, and it was checked rather than assumed.** `Variable.name` and
+`VariableCollection.name` are writable in `@figma/plugin-typings/plugin-api.d.ts`; `.id` is `readonly`
+on both. A binding stores the **id**, so `v.name = to` carries every existing binding across. That is
+why this lane is worth more than the prune lane it is deliberately not: it is the non-destructive half
+of the same problem.
+
+**Decision 1 — the map is DERIVED from `DEPRECATIONS`, not hand-authored.** The deciding property is a
+forcing function, not brevity. `token-contract.ts --accept` refuses a MAJOR bump without the
+`CONTRACT_VERSION` increment and prints "If a removal is a RENAME, add a DEPRECATIONS entry"; `classify`
+refuses a `replacedBy` absent from the live guaranteed set. So a rename is recorded **by a gate, at the
+moment it happens**. A second, Figma-side, hand-authored list has no forcing function at all — it is a
+rule performed by memory, and its failure is silent: the rename ships, the list does not gain an entry,
+nothing notices. One authored record, two consumers. Measured today: **43 deprecations → 80 projections
+(40 `color` + 40 `surface`), 40 of which have a live Figma target**; the 3 that project to nothing are
+exactly `motion.easing.*`, and that is asserted **by name** rather than tolerated as a count.
+
+**Decision 2 — a COLLECTION rename and a VARIABLE rename are different operations.** A collection
+rename is ONE write that preserves every child id and every child name; 200 variable renames are 200.
+It is also **invisible to `DEPRECATIONS`** — the collection name is a materialisation choice, not a
+contract path — so `COLLECTION_RENAMES` is *authored*, and **ships empty**, asserted empty, because
+pre-authoring the entry would take #1013 Q4 by shipping it into designers' files. The sharp difference
+is **ordering**: the collection rename must run *above* the find-by-name it exists to fix, or
+`upsertCollection` creates a fresh empty collection beside the old one and orphans ~236 variables at
+once — strictly worse than doing nothing. So it lives inside `upsertCollection`, which is the only
+place a caller cannot get the order wrong. A **swap** refuses statically: Figma permits duplicate
+collection names, so `color`→`surface` alongside `surface`→`color` passes through a state where
+find-by-name is arbitrary, and that needs a two-phase temp name this deliberately does not do.
+
+**Decision 3 — a wrong map is inert, and the split between static and apply-time is load-bearing.**
+Static (`validateRenameMap`, before any write): self-entries, chains, fan-**out**, duplicate collection
+sources/targets, cycles — a non-empty result empties the map and the write degrades to today's
+orphan-and-recreate, a known state rather than a new one. Apply-time (`planVariableRenames`, per entry):
+`source-absent` (the *normal* case), `target-occupied` (merging would drop one side's bindings),
+`ambiguous-source`. Refusing chains **statically** is what makes the apply pass order-independent. And
+the precondition that makes a wrong entry inert instead of destructive is `target-not-planned`: a
+migration only applies when `to` is a name the current plan is about to write, so a stale entry can
+never rename a live variable to a name the engine has stopped emitting — the one way this operation
+could manufacture an orphan out of a healthy variable.
+
+**Fan-in is real, and it is not a static refusal.** Three groups today: a 3.0.0 entry and a 4.0.0 entry
+both landing on `color/interactive/<palette>/inverse/border/rest`. That is a correct contract record and
+an ambiguous migration, so the **file** is the disambiguator rather than an authored preference — one
+source live migrates, two live refuses the group and moves neither, and the refused sources fall through
+to the orphan report so nothing goes unmentioned in either direction.
+
+**The surface mirror is the hole a color-only map would have left silently.** `surface/*` carries a
+122-of-236 subset of `color/*`'s suffixes, so one renamed contract path can exist **twice** in a file
+under two Figma names — 3 of the 40 live entries need the surface migration too. The mirror
+over-projects on purpose, and that is safe *only* because an absent source is a reported no-op rather
+than an error; both halves are asserted.
+
+**Reversible or reportable, per the restraint `orphansOf` set.** A migration is `name = to` on a
+preserved id, so its inverse is `name = from`, and every applied migration is reported with both names.
+Refusals (`isRefusal`: occupied / not-planned / ambiguous) appear in the summary but deliberately do
+**not** flip `ok` — a designer's file having drifted is not a failure of the write. There is no undo
+command: that would be a second write path into a file the engine did not author.
+
+**Why no new gate, and why that is not laziness.** The check needs exactly two things — the authored
+record and the emitted corpus for all three brands — and `test.ts` already reads both (the `surface`
+block does it for the same reason). A `lint-rename-map.ts` would add five files of wiring and not one
+unit of independence. The direction this *cannot* hold — "every rename that ever happened has a
+DEPRECATIONS entry" — is unknowable from today's emission and is held by construction at the other end
+by `token-contract.ts --accept`. Two checks, one property each.
+
+**The oracle is the emitted corpus, because the characteristic failure here is silence.** Get the
+DTCG→Figma transform wrong and every `from` is a name no file contains: the pass migrates nothing,
+reports a clean run, and is indistinguishable from a healthy file. Nothing inside the module can catch
+that — `deriveVariableRenames` agrees with itself by construction (`docs/34` shape 2). So every arm
+compares the derivation to `out/figma/**`, written by the emitters and knowing nothing about
+`DEPRECATIONS`, in **both** directions (every `to` resolves; no `from` is still emitted), with floors so
+a collapsed derivation fails instead of reading clean (shape 9). `figmaVarName` is **imported** from
+`anatomy-figma.ts` rather than re-derived, for the same reason its own comment gives.
+
+**Two holes the harness found on its first run, neither of them predicted.** (1) `motion.easing.*` was
+projecting into a `motion` collection no write plan produces — entries that can never fire and can never
+be reported, which is worse than no entry because they inflate the map's own count. Fixed by measuring
+the real domain: `PROJECTED_ROOTS` is 9 of the 18 guaranteed roots, and the other 9 are excluded for
+three *different* reasons (prefixed collection names, Figma STYLES, no variable counterpart at all) —
+named individually so a future deprecation landing there forces the decision instead of skipping
+quietly. (2) The plugin harness read 34/40 migrations, which was not a defect in the executor but in the
+seed's realism: seeding *every* source makes all 3 fan-in groups ambiguous. The fix was to make that a
+**named arm driven by the real map** — one file with one source per target, a second with both — rather
+than an accident. The unit of report is the *target*, not the map row, and the two counts differ on
+purpose (40 entries → 37 targets); that is now its own arm.
+
+**19/19 mutations fail by the gate's own named assertion**, tree clean after each. The battery covers
+both halves: recreate-instead-of-rename (id arm), `byName` not updated (the create-saved arm — this is
+the one that fails if the rename lands after `byName` is read), collection rename moved *below*
+find-by-name, the orphan snapshot taken *before* the migration, the invalid map not emptied, each of the
+five statuses individually, the transform broken, the mirror collapsed, a root added to and removed from
+`PROJECTED_ROOTS`, each static refusal, and `COLLECTION_RENAMES` pre-authored. The last one is the
+finding worth carrying: the cross-root guard (a `replacedBy` under a different root is a *move*, not a
+rename) could be **deleted with no effect anywhere**, because nothing in today's data is cross-root. A
+guard with no live case is a guard with no arm, and only the battery says so. It is now armed on a
+constructed pair, negative *and* positive, so the arm cannot be satisfied by a derivation that projects
+nothing.
+
+**Not in scope, deliberately:** the prune lane (a separate open decision, genuinely destructive where
+this is not), and the CLI paste path — `materialise-to-figma.ts` does not adopt the map, so it keeps
+today's orphan-and-recreate behaviour. That degrades safely rather than silently, and it is filed as
+**#1024** rather than left in this paragraph. Also noted while measuring: there is **no parity gate**
+between `materialise-to-figma.ts` and `write-figma.ts`, which is why the divergence is worth an issue
+rather than a comment.
+
+---
+
 ## (2026-08-25) — the vertical rule: one QA observation, two properties, one of them buildable (#1009)
 
 **STATUS: shipped, half 2 of two.** `ENGINE_VERSION` 0.21.0 → **0.24.0** (0.22.0 taken by #1016, 0.23.0

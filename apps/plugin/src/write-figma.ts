@@ -17,6 +17,12 @@
  * change without cleanup). Uses the async getters required under `documentAccess:"dynamic-page"`
  * (`getLocalVariableCollectionsAsync` / `getLocalVariablesAsync`).
  *
+ * Idempotency by name is blind to a RENAME, and that blindness is why every executor takes an optional
+ * `Migration` (#1013): the rename pass sets `Variable.name`/`VariableCollection.name` in place, keeping
+ * the id and therefore every binding a designer made, so a renamed token MIGRATES instead of being
+ * orphaned and recreated. It is opt-in per call, refuses rather than guesses, and degrades to the
+ * unmigrated write on any refusal — the policy lives in `@prism3/engine/rename-map`, the ordering here.
+ *
  * A `setValueForMode` CAN FAIL FOR A REASON THAT IS NOT ABOUT THE VALUE (#680): writing a
  * `font/family/*` variable makes Figma re-resolve the text styles bound to it, which throws if the
  * resulting face is not loaded this session. `applyVarCollectionPlan` records such refusals and keeps
@@ -27,6 +33,10 @@
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
 import type { WritePlan, Rgba, SurfacePlan, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
+import {
+  renameMap, validateRenameMap, planVariableRenames, planCollectionRename,
+  type RenameMap, type RenameOutcome,
+} from '@prism3/engine/rename-map';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -107,14 +117,63 @@ export const orphansOf = (existing: Iterable<string>, planned: Iterable<string>)
   return [...existing].filter((n) => !keep.has(n)).sort();
 };
 
+/**
+ * One rename pass, shared by every executor in a single apply (#1013).
+ *
+ * State, not just a map, for two reasons. The static validation must run **once, before any write**
+ * and neuter the whole pass rather than per collection — so `beginMigration` is the only construction
+ * point and an invalid map cannot reach `upsertCollection`. And `outcomes` accumulates across all
+ * four executors, so `main.ts` reads one list instead of four result fields gaining a rename member.
+ */
+export type Migration = {
+  /** Empty when `refusals` is non-empty: a statically-invalid map migrates NOTHING. */
+  map: RenameMap;
+  /** Every entry the pass considered, no-ops included — "checked, none" ≠ "never checked". */
+  outcomes: RenameOutcome[];
+  /** Static refusals. Non-empty means the rename pass was abandoned and the write proceeded
+   *  unmigrated — today's orphan-and-recreate behaviour, reported rather than silent. */
+  refusals: string[];
+};
+
+/**
+ * Validate once, up front. A statically-invalid map does NOT abort the apply: it abandons the rename
+ * pass only and degrades to the pre-#1013 behaviour, which is a known state rather than a new one. The
+ * write is what the designer asked for; the migration is the improvement, and a broken improvement
+ * must not cost them the write.
+ */
+export const beginMigration = (map: RenameMap = renameMap()): Migration => {
+  const refusals = validateRenameMap(map);
+  return { map: refusals.length ? { collections: [], variables: [] } : map, outcomes: [], refusals };
+};
+
 // Idempotent get-or-create for a collection by name (find-by-name → reuse). Scopes the returned
 // var index to that collection so a name collision across collections can't cross-wire.
+//
+// `migration` is where a rename becomes a MIGRATION rather than an orphan (#1013). Both halves are
+// here, and the ordering is the reason: the collection rename must land ABOVE the find-by-name it
+// exists to fix (otherwise a fresh empty collection is created beside the old one, orphaning every
+// variable in it at once — strictly worse than doing nothing), and the variable renames must land
+// after `byName` is built and before any caller's create loop reads it. Neither ordering is
+// something a caller can get wrong, because neither is exposed. `planned` is carried in the same
+// object as the pass so a caller cannot supply one without the other — passing the pass alone would
+// silently make every entry `target-not-planned`.
 const upsertCollection = async (
   vars: VariablesApi,
   name: string,
+  migration?: { pass: Migration; planned: readonly string[] },
 ): Promise<{ collection: VarCollection; byName: Map<string, Variable> }> => {
+  const collections = await vars.getLocalVariableCollectionsAsync();
+  if (migration) {
+    const cr = planCollectionRename(collections.map((c) => c.name), name, migration.pass.map.collections);
+    if (cr) {
+      migration.pass.outcomes.push(cr);
+      // Renaming in place keeps the collection id, and therefore every variable in it and every
+      // binding to those variables. The mutated object is the one `.find` reads on the next line.
+      if (cr.status === 'migrated') collections.find((c) => c.name === cr.from)!.name = cr.to;
+    }
+  }
   const collection =
-    (await vars.getLocalVariableCollectionsAsync()).find((c) => c.name === name) ??
+    collections.find((c) => c.name === name) ??
     vars.createVariableCollection(name);
   // NB: fetch ALL local variables (no type filter) — `getLocalVariablesAsync('COLOR')` returns ONLY
   // COLOR-typed vars, which would make `byName` empty for a FLOAT collection and break idempotency
@@ -125,6 +184,18 @@ const upsertCollection = async (
       .filter((v) => v.variableCollectionId === collection.id)
       .map((v) => [v.name, v] as const),
   );
+  if (migration) {
+    const rows = migration.pass.map.variables.filter((r) => r.collection === name);
+    const outcomes = planVariableRenames(byName.keys(), migration.planned, rows);
+    migration.pass.outcomes.push(...outcomes);
+    for (const o of outcomes) {
+      if (o.status !== 'migrated') continue;
+      const v = byName.get(o.from)!;
+      v.name = o.to;                 // id preserved → every existing binding comes with it
+      byName.delete(o.from);
+      byName.set(o.to, v);           // so the caller's create loop finds it and UPDATES rather than creates
+    }
+  }
   return { collection, byName };
 };
 
@@ -132,9 +203,12 @@ const upsertCollection = async (
  * Materialise the colour write-plan into `figma.variables`. Runs the three passes in order —
  * palette first (the colour aliases target it), then the two-pass colour write.
  */
-export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi): Promise<ApplyResult> => {
+export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration): Promise<ApplyResult> => {
   // ---- pass 1: core-palette (one Default mode, literal RGBA, hidden primitives) ----
-  const pal = await upsertCollection(vars, 'core-palette');
+  const pal = await upsertCollection(vars, 'core-palette', mig && { pass: mig, planned: plan.palette.map((r) => r.name) });
+  // Snapshot AFTER the migration pass, deliberately: a variable that was MIGRATED now carries a
+  // planned name and is no longer drift. `orphans` keeps meaning "what we could not explain";
+  // `Migration.outcomes` is "what we moved". Overlapping the two would double-report every rename.
   const palPreExisting = [...pal.byName.keys()];   // snapshot before creates
   const palModeId = pal.collection.modes[0].modeId;
   let paletteCreated = 0;
@@ -149,8 +223,8 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi): Promi
 
   // ---- pass 2: color create (N modes, literal per-mode fallback values) ----
   const { modes, create, aliases } = plan.color;
-  const col = await upsertCollection(vars, 'color');
-  const colPreExisting = [...col.byName.keys()];   // snapshot before creates
+  const col = await upsertCollection(vars, 'color', mig && { pass: mig, planned: create.map((r) => r.name) });
+  const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
   // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
   col.collection.renameMode(col.collection.modes[0].modeId, modes[0]);
   const modeIds: Record<string, string> = { [modes[0]]: col.collection.modes[0].modeId };
@@ -221,6 +295,10 @@ export type SurfaceApplyResult = {
  * would convert that into a silent success — the collection would exist, every target lookup would still
  * miss, and the next `applyWritePlan` would quietly adopt the empty shell. So the absence is diagnosed,
  * not repaired.
+ *
+ * It takes no `Migration` for the same ordering reason, not by omission: the only collection it reads is
+ * `color`, which `applyWritePlan` has already migrated by the time this runs. Migrating here as well
+ * would be a second write to the same names, with the first pass's result as its input.
  */
 const findCollection = async (
   vars: VariablesApi,
@@ -277,6 +355,7 @@ const findCollection = async (
 export const applySurfacePlan = async (
   plan: SurfacePlan,
   vars: VariablesApi,
+  mig?: Migration,
 ): Promise<SurfaceApplyResult> => {
   const misses: string[] = [];
   // Nothing to write (a theme with no `light` mode — `buildFigmaSurface` returns no files). Return
@@ -284,8 +363,10 @@ export const applySurfacePlan = async (
   if (plan.create.length === 0) return { total: 0, created: 0, bound: 0, misses, orphans: [] };
 
   // ---- pass A: create/update every row with its literal per-mode fallback colour ----
-  const surf = await upsertCollection(vars, plan.name);
-  const preExisting = [...surf.byName.keys()];   // snapshot before creates
+  // The `surface` half of the mirror (#1013): a renamed `color/*` contract path carries a second Figma
+  // name here, and a color-only migration would leave this one orphaned without saying so.
+  const surf = await upsertCollection(vars, plan.name, mig && { pass: mig, planned: plan.create.map((r) => r.name) });
+  const preExisting = [...surf.byName.keys()];   // snapshot before creates (and after migration)
   surf.collection.renameMode(surf.collection.modes[0].modeId, plan.modes[0]);
   const modeIds: Record<string, string> = { [plan.modes[0]]: surf.collection.modes[0].modeId };
   for (let i = 1; i < plan.modes.length; i++) {
@@ -353,6 +434,7 @@ export type FloatApplyResult = {
 export const applyFloatPlan = async (
   plans: FloatCollectionPlan[],
   vars: VariablesApi,
+  mig?: Migration,
 ): Promise<FloatApplyResult> => {
   const collections: FloatApplyResult['collections'] = [];
   // Per-collection modeId maps, kept for pass B; and the global name→Variable map across all axes.
@@ -361,7 +443,7 @@ export const applyFloatPlan = async (
 
   // ---- pass A: create/update every FLOAT var in every collection (literal per-mode values) ----
   for (const p of plans) {
-    const { collection, byName } = await upsertCollection(vars, p.name);
+    const { collection, byName } = await upsertCollection(vars, p.name, mig && { pass: mig, planned: p.create.map((r) => r.name) });
     const preExisting = [...byName.keys()];   // snapshot before creates — see applyVarCollectionPlan
     // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
     collection.renameMode(collection.modes[0].modeId, p.modes[0]);
@@ -465,6 +547,7 @@ const setSurviving = (
 export const applyVarCollectionPlan = async (
   plans: VarCollectionPlan[],
   vars: VariablesApi,
+  mig?: Migration,
 ): Promise<VarCollectionApplyResult> => {
   const collections: VarCollectionApplyResult['collections'] = [];
   const modeIdsByCollection = new Map<string, Record<string, string>>();
@@ -474,7 +557,7 @@ export const applyVarCollectionPlan = async (
 
   // ---- pass A: create/update every var (STRING or FLOAT) with its literal per-mode value ----
   for (const p of plans) {
-    const { collection, byName } = await upsertCollection(vars, p.name);
+    const { collection, byName } = await upsertCollection(vars, p.name, mig && { pass: mig, planned: p.rows.map((r) => r.name) });
     // Snapshot BEFORE the row loop — `byName` gains every var this pass creates, and a set read after
     // the fact would be existing+created, which still happens to give the right answer today only
     // because created names are by definition planned. Snapshotting says what we mean.

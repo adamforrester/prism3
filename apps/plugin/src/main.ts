@@ -23,7 +23,8 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { UiToMain } from './messages';
-import { applyWritePlan, applySurfacePlan, applyFloatPlan, applyVarCollectionPlan } from './write-figma';
+import { applyWritePlan, applySurfacePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
+import { isRefusal } from '@prism3/engine/rename-map';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
 import { preloadFonts } from './preload-fonts';
@@ -98,20 +99,25 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       loadFontAsync: figma.loadFontAsync.bind(figma),
       listAvailableFontsAsync: figma.listAvailableFontsAsync.bind(figma),
     });
+    // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
+    // one because the static validation must happen once, before any write, and because a designer
+    // reads a single list of what moved — not four. Ordering falls out for free: `applyWritePlan` runs
+    // first, so `color` is migrated before `applySurfacePlan` reads its own targets back out of it.
+    const mig = beginMigration();
     // Colour axis (#108): core-palette + color, per-mode alias-bound.
-    const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables);
+    const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables, mig);
     // SURFACE axis (#993): the `default`/`inverse` alias layer over `color`. MUST run after the line
     // above — every row is a pointer into the `color` collection, resolved by NAME out of the file, so
     // the targets have to be there already. An unresolved one is reported in `misses`, never thrown.
-    const sf = await applySurfacePlan(buildSurfaceWritePlan(theme), figma.variables);
+    const sf = await applySurfacePlan(buildSurfaceWritePlan(theme), figma.variables, mig);
     // FLOAT axes (#146): core-dimension/space/radius/size/border-width/focus/opacity + layout.
-    const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables);
+    const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables, mig);
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
     // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
     const s = await applyStylesPlan(buildStylesPlan(theme), figma);
     // TYPOGRAPHY (#237): core-font/type-sets variables first (bound targets must exist), then Text
     // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
-    const tv = await applyVarCollectionPlan(buildFontVarPlan(theme), figma.variables);
+    const tv = await applyVarCollectionPlan(buildFontVarPlan(theme), figma.variables, mig);
     const textApi = {
       getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
       createTextStyle: figma.createTextStyle.bind(figma),
@@ -157,6 +163,23 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const orphanNote = orphanCount
       ? `, ⚠️ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
+    // Rename migrations (#1013) — the other half of the orphan report above. A variable the plan renamed
+    // is moved in place (id preserved, so every binding a designer made comes with it) rather than left
+    // behind for `orphanNote` to count. The two are disjoint by construction: the orphan snapshot is taken
+    // AFTER the migration pass, so a migrated name is no longer drift.
+    //
+    // Deliberately does NOT flip `ok`. A refused rename leaves exactly the pre-#1013 behaviour — the token
+    // layer is complete either way, and the only loss is the old name's bindings, which is what happened on
+    // every apply before this. So it is a warning, not a failure. But it must be VISIBLE, per this
+    // executor's own restraint: this writes into a file the engine did not author, and a wrong migration
+    // that reported nothing would be indistinguishable from a clean run. The `from`→`to` pair is printed
+    // for each refusal because that pair is also what makes an applied migration reversible by hand.
+    const migrated = mig.outcomes.filter((o) => o.status === 'migrated');
+    const migRefused = mig.outcomes.filter((o) => isRefusal(o.status));
+    const renameNote =
+      (migrated.length ? `, ${migrated.length} renamed ${migrated.length === 1 ? 'token' : 'tokens'} migrated in place (bindings kept: ${migrated.slice(0, 3).map((o) => `${o.from}→${o.to}`).join(', ')}${migrated.length > 3 ? '…' : ''})` : '') +
+      (migRefused.length ? `, ⚠️ ${migRefused.length} ${migRefused.length === 1 ? 'rename' : 'renames'} refused (${migRefused.slice(0, 2).map((o) => `${o.from}→${o.to}: ${o.status}`).join(', ')}) — nothing moved for those` : '') +
+      (mig.refusals.length ? `, ⚠️ rename map invalid, no migrations attempted (${mig.refusals[0]})` : '');
     // #499: styles whose emitted name was corrected (e.g. `Semi Bold` → `SemiBold`). Worth surfacing
     // rather than silently succeeding — it is the difference between "the guess was right" and "the
     // guess was wrong and would have cost these styles before".
@@ -181,7 +204,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
       `${r.bound + sf.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
-      orphanNote + resolvedNote + skippedNote + fontNote + refusedNote;
+      renameNote + orphanNote + resolvedNote + skippedNote + fontNote + refusedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
     // prose above is edited whenever an axis is added, and re-parsing it would make its wording

@@ -36,12 +36,13 @@ import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
-import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump } from './version';
+import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
+import { renameMap, validateRenameMap, planVariableRenames, planCollectionRename, projectionsOf, PROJECTED_ROOTS, isRefusal, type RenameMap } from './rename-map';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
-import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
@@ -11441,6 +11442,200 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `field-message: the chunk SHIPS the def's exemption list, so the payload's own derivation has something to append (got '${fmPayload.decl}')`);
   ok(fmPayload.fn !== null && fmLayout.cells.every((c) => fmPayload.fn!(c.name).group === c.group),
     'field-message: ...and reaches the byte-identical key from the member name — the exemption is honored on the chunked path too, where a disagreement would put every member in a cohort of one and silence the footprint read-back rather than redden it');
+}
+
+// (24) RENAME MAP (#1013) — the variable map is DERIVED from `DEPRECATIONS`, so this is where the
+// derivation is checked against something that is not itself.
+//
+// WHY THE ORACLE IS THE EMITTED CORPUS. A rename map's characteristic failure is not a crash, it is
+// silence: get the DTCG→Figma transform wrong and every `from` is a name no file contains, so the pass
+// migrates nothing, reports a clean run, and is indistinguishable from a healthy file. Nothing inside
+// the module can catch that — `deriveVariableRenames` agrees with itself by construction. So every arm
+// below compares the derivation to `out/figma/**`, which is written by the emitters and knows nothing
+// about `DEPRECATIONS`.
+//
+// WHY THIS IS NOT A NEW GATE. The check needs exactly two things: the authored record and the emitted
+// corpus for every brand. This suite already has both (see the surface block at (a4), which reads the
+// same files for the same reason), so a `lint-rename-map.ts` would add five files of gate wiring and
+// not one unit of independence. The direction this CANNOT hold — "every rename that ever happened has
+// a DEPRECATIONS entry" — is unknowable from today's emission, and is held elsewhere by construction:
+// `token-contract.ts --accept` refuses a removal without a recorded replacement, so the entry is forced
+// at the moment of the rename rather than checked afterwards. Two gates, one property each.
+{
+  const map = renameMap();
+  const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+  ok(figmaBrands.length >= 3,
+    `rename-map: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+
+  // name → the collection it is emitted into, per brand, read out of the artifacts.
+  const indexFor = (brand: string): Map<string, string> => {
+    const dir = resolve(HERE, `./out/figma/${brand}`);
+    const idx = new Map<string, string>();
+    for (const f of readdirSync(dir)) {
+      const j = JSON.parse(readFileSync(resolve(dir, f), 'utf8'));
+      if (!j.$collection || !Array.isArray(j.variables)) continue;
+      for (const v of j.variables) if (!idx.has(v.name)) idx.set(v.name, j.$collection);
+    }
+    return idx;
+  };
+  const indexes = new Map(figmaBrands.map((b) => [b, indexFor(b)] as const));
+  const nbIdx = indexes.get('nb')!;
+  ok(nbIdx.size > 500, `rename-map: the corpus index is populated (${nbIdx.size} nb variables) — an empty index would satisfy every arm below`);
+
+  // ---- (a) the derivation against the corpus ----
+  const colorRows = map.variables.filter((r) => r.collection === 'color');
+  ok(map.variables.length >= 80 && colorRows.length >= 40,
+    `rename-map: the derivation materialises ${map.variables.length} entries, ${colorRows.length} of them in \`color\` (floors 80/40) — zero derived entries is the silent failure this whole block exists for`);
+
+  for (const [brand, idx] of indexes) {
+    // Direction 1: the map points at something real. A `to` that resolves nowhere is a migration that
+    // would rename a live variable to a name the engine has stopped writing — manufacturing an orphan
+    // out of a healthy variable, the one way this operation is worse than doing nothing.
+    const unresolved = colorRows.filter((r) => !idx.has(r.to));
+    ok(unresolved.length === 0,
+      `rename-map(${brand}): every derived \`color\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => r.to).join(', ')}` : ` (${colorRows.length} entries)`}`);
+
+    // Direction 2: the map does not point at something LIVE. A `from` still emitted means the entry is
+    // stale — the rename never happened, or reverted — and applying it would move a variable the plan
+    // is about to write, under the name the plan is writing it under.
+    const stale = map.variables.filter((r) => idx.has(r.from));
+    ok(stale.length === 0,
+      `rename-map(${brand}): no derived SOURCE is still emitted — a live \`from\` is an entry that would migrate a variable the plan still owns${stale.length ? ` — STALE: ${stale.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
+
+    // And the entry's claimed collection is where the target actually lives. An entry filed under the
+    // wrong collection never fires (the executor filters by collection name) and reports nothing —
+    // exactly the shape of a silently inert map.
+    const misfiled = colorRows.filter((r) => idx.get(r.to) !== r.collection);
+    ok(misfiled.length === 0,
+      `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
+  }
+
+  // A cross-root `replacedBy` is a MOVE, not a rename: the variable would have to change collection, and
+  // Figma has no such operation — `projectionsOf` refuses to project it at all. Nothing in today's
+  // `DEPRECATIONS` is cross-root, so this is asserted on a CONSTRUCTED pair rather than on the corpus. A
+  // guard with no live case is a guard with no arm, and this one was found exactly that way: deleting the
+  // guard changed no result anywhere until this arm existed.
+  ok(projectionsOf({ path: 'color.a.b', replacedBy: 'space.a.b', since: '9.9.9' }).length === 0
+      && projectionsOf({ path: 'color.a.b', replacedBy: 'color.a.c', since: '9.9.9' }).length === 2,
+    'rename-map: a cross-root replacement projects NOTHING (that is a move, not a rename) while a same-root one projects both mirrors — the paired negative is what stops the guard from being satisfied by a derivation that projects nothing at all');
+
+  // The authored projection domain, checked against the emission rather than trusted. `PROJECTED_ROOTS`
+  // is the one hand-written thing the variable map depends on, and its failure mode is silence in both
+  // directions: a root that is not really a collection name yields entries nothing ever reads, and a
+  // missing root yields no entries at all. The first direction is what the domain arm below catches; this
+  // is the second, and it is why the list can be authored at all.
+  const emittedCollections = new Set(nbIdx.values());
+  const notCollections = PROJECTED_ROOTS.filter((r) => !emittedCollections.has(r));
+  ok(PROJECTED_ROOTS.length >= 9 && notCollections.length === 0,
+    `rename-map: every projected root is genuinely an emitted collection name (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
+
+  // ---- (b) the entries with NO Figma counterpart are a stated set, not a silent skip ----
+  // 3 of the 43 deprecations project to nothing: `motion.easing.*` has no Figma variable at all (easing
+  // is not a variable type Figma has). Named rather than counted, so a future deprecation quietly
+  // joining the unprojected set fails here instead of being absorbed into a tolerance.
+  const unprojected = DEPRECATIONS.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(p.to)));
+  ok(unprojected.length === 3 && unprojected.every((d) => d.path.startsWith('motion.easing.')),
+    `rename-map: exactly the 3 \`motion.easing.*\` deprecations project to nothing — Figma has no easing variable, so there is nothing to migrate (got ${unprojected.length}: ${unprojected.map((d) => d.path).join(', ')})`);
+
+  // ---- (c) the SURFACE mirror — one contract path, two Figma names ----
+  // `surface/*` carries a subset of `color/*`'s suffixes, so a renamed contract path can exist twice in
+  // the file. A color-only map leaves the surface twin behind and says nothing about it, which is the
+  // hole this arm pins: 3 live entries today, and the floor is what makes a collapsed mirror fail.
+  const surfRows = map.variables.filter((r) => r.collection === 'surface');
+  const surfLive = surfRows.filter((r) => nbIdx.has(r.to));
+  ok(surfLive.length >= 3,
+    `rename-map: the \`surface\` mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every surface twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => r.to).join(', ')})` : ''}`);
+  ok(surfLive.every((r) => nbIdx.get(r.to) === 'surface'),
+    'rename-map: every live mirror target is emitted into `surface`, not read back out of `color` under a re-rooted name');
+  // The mirror over-projects on purpose — most `color` entries have no surface twin — and that is safe
+  // ONLY because an absent source is a reported no-op rather than an error. Asserted, because if it
+  // ever became an error, over-projection would turn every apply into a wall of false refusals.
+  const surfDead = surfRows.filter((r) => !nbIdx.has(r.to));
+  ok(surfDead.length > 0 && planVariableRenames([], surfDead.map((r) => r.to), surfDead).every((o) => o.status === 'source-absent'),
+    `rename-map: the ${surfDead.length} mirror entries with no live twin resolve to \`source-absent\`, not a refusal — over-projecting is self-correcting, under-projecting is not`);
+
+  // ---- (d) the DOMAIN: every collection named in the map is one the engine writes ----
+  // The oracle is the plans themselves, built here and knowing nothing about the map. A typo'd
+  // collection name is the inert-map failure again: the executor filters by collection, so an entry
+  // filed under `colour` is never looked at and never reported.
+  const domainTheme = nbTheme();
+  const written = new Set<string>([
+    'core-palette', 'color',
+    buildSurfaceWritePlan(domainTheme).name,
+    ...buildFloatWritePlan(domainTheme).map((p) => p.name),
+    ...buildFontVarPlan(domainTheme).map((p) => p.name),
+  ]);
+  ok(written.size >= 10, `rename-map: the plan-derived collection domain is populated (${written.size} collections) — an empty domain would fail every entry rather than checking it`);
+  const outsideDomain = [...new Set(map.variables.map((r) => r.collection)), ...map.collections.map((c) => c.to)]
+    .filter((n) => !written.has(n));
+  ok(outsideDomain.length === 0,
+    `rename-map: every collection the map names is one the write plans actually produce${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+  // `COLLECTION_RENAMES` ships EMPTY, and that is the honest state: #1013 Q4 (whether the alias layer
+  // and the value layer swap names) is an open decision, and pre-authoring the entry would take it by
+  // shipping it into designers' files. Asserted rather than left to be noticed, so the day an entry is
+  // added, the arms below are already the thing that has to pass.
+  ok(map.collections.length === 0,
+    `rename-map: COLLECTION_RENAMES is empty — the mechanism ships before the decision, so taking #1013 Q4 later costs nothing (got ${map.collections.length})`);
+
+  // ---- (e) STATIC refusals: constructed hazards, each by its own name ----
+  ok(validateRenameMap(map).length === 0,
+    `rename-map: the real map validates clean${validateRenameMap(map).length ? ` — ${validateRenameMap(map)[0]}` : ''}`);
+  const v = (from: string, to: string, collection = 'color'): { collection: string; from: string; to: string; since: string } =>
+    ({ collection, from, to, since: '9.9.9' });
+  const c = (from: string, to: string): { from: string; to: string; since: string } => ({ from, to, since: '9.9.9' });
+  const refuses = (m: RenameMap, needle: string, why: string): void => {
+    const got = validateRenameMap(m);
+    ok(got.some((x) => x.includes(needle)),
+      `rename-map: ${why} — refused as '${needle}'${got.length ? ` (got: ${got[0]})` : ' (got NOTHING — the validator is silent on a hazard it claims to catch)'}`);
+  };
+  refuses({ collections: [], variables: [v('color/a', 'color/a')] }, 'self-rename', 'a variable renamed to itself is a no-op the report would count as a migration');
+  refuses({ collections: [], variables: [v('color/a', 'color/b'), v('color/b', 'color/c')] }, 'chain', 'a chain makes the outcome depend on iteration order, which is why chains are refused before the pass runs and not during it');
+  refuses({ collections: [], variables: [v('color/a', 'color/b'), v('color/a', 'color/c')] }, 'fan-out', 'one source claiming two targets is unresolvable — there is no answer to which binding wins');
+  refuses({ collections: [c('color', 'color')], variables: [] }, 'collection self-rename', 'a collection renamed to itself');
+  refuses({ collections: [c('color', 'surface'), c('surface', 'color')], variables: [] }, 'cycle', 'a SWAP passes through a state where find-by-name is arbitrary (Figma permits duplicate collection names), so it needs a two-phase temp name this deliberately does not do');
+  refuses({ collections: [c('color', 'a'), c('color', 'b')], variables: [] }, 'duplicate collection source', 'one collection claiming two new names');
+  refuses({ collections: [c('a', 'color'), c('b', 'color')], variables: [] }, 'duplicate collection target', 'two collections claiming one name');
+  // Fan-IN is NOT a static refusal, and this is the arm that keeps it that way. Two historical paths
+  // really do point at one live path in today's data (a 3.0.0 entry and a 4.0.0 entry both landing on
+  // `color/interactive/<palette>/inverse/border/rest`) — a correct contract record and an ambiguous
+  // migration, so it is resolved against the FILE at apply time, not against an authored preference.
+  ok(validateRenameMap({ collections: [], variables: [v('color/a', 'color/c'), v('color/b', 'color/c')] }).length === 0,
+    'rename-map: fan-IN validates clean — it is legitimate history, and refusing it statically would reject the map the engine actually has');
+  const realFanIn = [...colorRows.reduce((m2, r) => m2.set(r.to, (m2.get(r.to) ?? 0) + 1), new Map<string, number>())]
+    .filter(([, n]) => n > 1);
+  ok(realFanIn.length >= 3,
+    `rename-map: the derived map really does contain fan-in (${realFanIn.length} groups, floor 3) — the hazard above is measured, not imagined${realFanIn.length ? `: ${realFanIn.slice(0, 2).map(([t, n]) => `${t} ←${n}`).join(', ')}` : ''}`);
+
+  // ---- (f) APPLY-TIME outcomes: every status reachable, and the no-ops reported ----
+  const statuses = (existing: string[], planned: string[], rows: ReturnType<typeof v>[]): string =>
+    planVariableRenames(existing, planned, rows).map((o) => `${o.from}→${o.to}:${o.status}`).sort().join(' | ');
+  ok(statuses(['color/a'], ['color/b'], [v('color/a', 'color/b')]) === 'color/a→color/b:migrated',
+    'rename-map: source present, target planned and free → migrated (the whole point: one write, id kept, bindings kept)');
+  ok(statuses([], ['color/b'], [v('color/a', 'color/b')]) === 'color/a→color/b:source-absent',
+    'rename-map: source absent → source-absent, REPORTED not omitted — a fresh file and an already-migrated one both land here, and "checked, none" must not read like "never checked"');
+  ok(statuses(['color/a', 'color/b'], ['color/b'], [v('color/a', 'color/b')]) === 'color/a→color/b:target-occupied',
+    'rename-map: target already held by another variable → target-occupied, because merging two variables would silently drop the bindings on one of them');
+  ok(statuses(['color/a'], ['color/zzz'], [v('color/a', 'color/b')]) === 'color/a→color/b:target-not-planned',
+    'rename-map: target absent from the plan → target-not-planned — the precondition that makes a WRONG map inert instead of destructive');
+  ok(statuses(['color/a', 'color/b'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')])
+      === 'color/a→color/c:ambiguous-source | color/b→color/c:ambiguous-source',
+    'rename-map: fan-in with BOTH sources live → ambiguous-source for both, migrating neither — the file is the disambiguator, and picking one would silently discard the bindings on the other');
+  ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
+    'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
+
+  // The collection planner, same shape. Its plan-membership precondition is implicit and stronger: the
+  // name it is asked about is one the write is about to use, so an unplanned target is never looked up.
+  ok(planCollectionRename(['old'], 'new', [c('old', 'new')])?.status === 'migrated',
+    'rename-map: a collection whose source exists and whose target does not → migrated in ONE write, keeping every child id and every binding under it');
+  ok(planCollectionRename(['old', 'new'], 'new', [c('old', 'new')])?.status === 'target-occupied',
+    'rename-map: a collection rename onto an existing name → target-occupied — both would answer find-by-name, and which one wins is not defined');
+  ok(planCollectionRename([], 'new', [c('old', 'new')])?.status === 'source-absent',
+    'rename-map: nothing to migrate → source-absent, so the ordinary fresh-file case is a reported no-op');
+  ok(planCollectionRename(['old'], 'unrelated', [c('old', 'new')]) === null,
+    'rename-map: no entry targets this collection → null, so 14 of the 15 collections do no work and cost nothing');
+  ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
+      && !isRefusal('migrated') && !isRefusal('source-absent'),
+    'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
 }
 
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
