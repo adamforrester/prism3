@@ -48,9 +48,20 @@
  * inside `upsertCollection`, above the `.find(c => c.name === name)`, which is the only place that
  * ordering can't be got wrong by a caller.
  *
- * A **swap** is deliberately not supported, and refuses statically rather than half-applying. Figma
- * permits duplicate collection names, so `color`→`surface` alongside `surface`→`color` passes through
- * a state where find-by-name is arbitrary; that needs a two-phase temp-name design, which this is not.
+ * A **swap** is deliberately not supported, and refuses statically rather than half-applying. It needs
+ * a two-phase temp-name design, which this is not. An earlier version of this paragraph justified the
+ * refusal by saying the swap "passes through a state where find-by-name is arbitrary" because Figma
+ * permits duplicate collection names. **That state is not reachable, and the correction matters
+ * because it tells you which check is load-bearing:** `planCollectionRename` tests `have.has(entry.to)`
+ * first, so both entries of a swap return `target-occupied` under BOTH orders and nothing is written.
+ * What prevents the corruption is the apply-time guard, not the static refusal — the static refusal
+ * buys one early, legible report instead of two apply-time ones. Measured in docs/44 §3.
+ *
+ * That measurement is also what separates a swap from a **chain** (`surface`→`color` alongside
+ * `color`→`color.appearance`), which the static check used to report as a cycle. A chain is fully
+ * migratable under one order and refuses safely under the other, so it is a different problem with a
+ * different fix, and it now says so. See the comment on the collection loop below for why it still
+ * refuses.
  *
  * ## When the map is wrong
  *
@@ -234,12 +245,38 @@ export const validateRenameMap = (map: RenameMap): string[] => {
   }
 
   const cSources = new Set(map.collections.map((c) => c.from));
+  // `from → to` as a graph, so a target that is also a source can be told apart from one that closes a
+  // loop. First entry wins on a duplicate source; the duplicate itself is refused separately below.
+  const cEdges = new Map<string, string>();
+  for (const c of map.collections) if (!cEdges.has(c.from)) cEdges.set(c.from, c.to);
+  /** Does following the edges out of `entry.to` arrive back at `entry.from`? */
+  const closesLoop = (entry: CollectionRename): boolean => {
+    let at = entry.to;
+    for (let step = 0; step <= map.collections.length && cEdges.has(at); step++) {
+      at = cEdges.get(at)!;
+      if (at === entry.from) return true;
+    }
+    return false;
+  };
   const seenFrom = new Set<string>();
   const seenTo = new Set<string>();
   for (const c of map.collections) {
     if (c.from === c.to) bad.push(`collection self-rename: ${c.from} → itself`);
-    // Covers a two-entry swap and any longer cycle: in a swap each entry's target is the other's source.
-    if (cSources.has(c.to)) bad.push(`collection rename cycle: ${c.from} → ${c.to}, which is itself a source — a swap needs a two-phase temp name, which this does not do`);
+    // A target that is also a source is one of TWO different problems, and both refuse — but they
+    // refuse for opposite reasons, so they are reported as different things (docs/44 §3, measured):
+    //   • CYCLE — the walk returns to this entry's own source. NO ordering migrates it; both entries
+    //     of a swap hit `target-occupied` in both directions. A two-phase temp name is the only fix.
+    //   • CHAIN — the walk terminates. An ordering DOES exist that migrates every entry, so the
+    //     refusal is a limitation of this module rather than of the operation. It stays a refusal
+    //     because the apply order is not the map's to choose: `planCollectionRename` is a lookup
+    //     pulled by the name the plan wants (`find(c => c.to === wanted)`), so the order is the
+    //     sequence of `upsertCollection` calls — the executor's. Supporting a chain means hoisting
+    //     the collection renames into one topologically ordered pre-pass, not sorting this list.
+    if (cSources.has(c.to)) {
+      bad.push(closesLoop(c)
+        ? `collection rename cycle: ${c.from} → ${c.to} closes a loop back to ${c.from} — no ordering migrates it, so a swap needs a two-phase temp name, which this does not do`
+        : `collection rename chain: ${c.from} → ${c.to}, which is itself a source — an ordering exists, but this module cannot choose it (the apply order is the executor's call order, not the map's)`);
+    }
     if (seenFrom.has(c.from)) bad.push(`duplicate collection source: ${c.from} appears twice`);
     if (seenTo.has(c.to)) bad.push(`duplicate collection target: two collections claim ${c.to}`);
     seenFrom.add(c.from);

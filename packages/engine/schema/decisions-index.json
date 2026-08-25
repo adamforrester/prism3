@@ -72,6 +72,13 @@
       "title": "overriding a ground re-derives its dependents' ratios; their values stay, and say so",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.7"
+    },
+    {
+      "date": "2026-08-25",
+      "issue": 1032,
+      "title": "a materialization rename is recorded as a RULE, and the emission diff is what forces the rule to exist",
+      "doc": "docs/44-materialization-renames.md",
+      "section": null
     }
   ]
 }
