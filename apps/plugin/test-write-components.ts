@@ -269,6 +269,21 @@ const makeShim = (opts: ShimOpts = {}) => {
       // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
       // border-box has to override.
       ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+      // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
+      // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
+      // having defaulted helpfully — and every other node type THROWS on the write, which is what Figma
+      // does. Without the throw this port would accept the property on a frame, the executor's
+      // try/catch would never fire, and a plan claiming it on the wrong node type would pass the one
+      // test written to catch that. Same argument as `_aspectLocked` above: a shim that cannot refuse
+      // cannot witness a refusal.
+      ...(type === 'TEXT'
+        ? { textAlignVertical: 'TOP' as string }
+        : {
+            get textAlignVertical(): string | undefined { return undefined; },
+            set textAlignVertical(_v: string | undefined) {
+              throw new Error(`in set_textAlignVertical: Cannot write to node with unsupported type: ${type}`);
+            },
+          }),
       characters: '',
       opacity: 1,
       componentPropertyReferences: null as Record<string, string> | null,

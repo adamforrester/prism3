@@ -125,6 +125,10 @@ export interface CompNode {
   strokes?: unknown;
   strokeWeight?: unknown;
   strokeAlign?: unknown;
+  /** A `TextNode` property, not a frame one (#1009) — typed here as its own field rather than folded in
+   *  with the layout ones below for the reason `characters` is separate: writing it to a frame throws in
+   *  Figma, so the port keeps the two node vocabularies apart. */
+  textAlignVertical?: 'TOP' | 'CENTER' | 'BOTTOM';
   layoutMode?: unknown;
   primaryAxisAlignItems?: unknown;
   counterAxisAlignItems?: unknown;
@@ -1015,6 +1019,18 @@ const writeComponentSet = async (
       // READ BACK: a text node that silently kept nothing is the empty-label set #510 shipped.
       if (node.characters !== n.characters)
         misses.push(`${n.name}.characters -> DISCARDED (set ${JSON.stringify(n.characters)}, reads ${JSON.stringify(node.characters)})`);
+    }
+    // AFTER the text style, because a text style does not carry it and could not overwrite it —
+    // `TextStyle` in `@figma/plugin-typings` has no alignment field on either axis (#1009, measured).
+    // READ BACK like `characters` above, and for the same reason: the executor is not the oracle for
+    // what the node kept. `textAlignVertical` is a `TextNode` property, so a plan that ever carried it
+    // on a frame would fail HERE, loudly and by name, rather than in the live file — `anatomyErrors`
+    // refuses that plan first, and this is the second of the two directions.
+    if (n.textAlignVertical) {
+      try { node.textAlignVertical = n.textAlignVertical; }
+      catch (err) { misses.push(`${n.name}.textAlignVertical -> ${n.textAlignVertical} (${(err as Error).message})`); }
+      if (node.textAlignVertical !== undefined && node.textAlignVertical !== n.textAlignVertical)
+        misses.push(`${n.name}.textAlignVertical -> DISCARDED (set ${n.textAlignVertical}, reads ${String(node.textAlignVertical)})`);
     }
     if (n.effectStyle) {
       const ef = effectByName.get(n.effectStyle);
