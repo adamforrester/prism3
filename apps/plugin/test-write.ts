@@ -18,7 +18,7 @@ import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan } from '@prism3/engine/write-plan';
 import { nbThemeFrom } from '@prism3/engine/theme';
 import { applyWritePlan, orphansOf, beginMigration } from './src/write-figma';
-import { deriveVariableRenames } from '@prism3/engine/rename-map';
+import { deriveVariableRenames, isRefusal } from '@prism3/engine/rename-map';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 
 let failed = 0;
@@ -243,10 +243,29 @@ ok(migShim.vars.length >= varsBefore,
 // tell a designer both that a token moved and that it went missing.
 ok(migRes.orphans.find((o) => o.name === 'color')!.names.length === 0,
   '#1013 a migrated variable is NOT also reported as an orphan — the two reports partition the drift, they do not overlap');
-// The fan-in groups' SECOND sources are absent from this file, and are reported as such rather than
-// omitted — a caller can tell "checked, none" from "never checked".
-ok(pass.outcomes.filter((o) => o.status === 'source-absent').length === realRenames.length - soloCount,
-  `#1013 the ${realRenames.length - soloCount} entries with no source in this file are reported as \`source-absent\`, not omitted`);
+// THE UNIT OF REPORT IS THE TARGET, not the map entry — and this arm is what pins that, because the
+// two counts differ: 40 live entries collapse to 37 targets. A migrated group names the source that
+// actually moved and stays silent about the fan-in siblings that were absent, which is the honest
+// summary: naming them would tell a designer a token went missing when nothing of theirs did.
+ok(pass.outcomes.length === soloCount && pass.outcomes.every((o) => o.collection === 'color'),
+  `#1013 one outcome per TARGET considered (${pass.outcomes.length} for ${soloCount} targets across ${realRenames.length} entries) — no entry is silently dropped and none is double-counted`);
+
+// (ii-c) THE FRESH FILE — the normal case, and the one that must not read as a clean skip. None of the
+// old names are present, so every target is checked and reported `source-absent`: a caller can tell
+// "checked, nothing to do" from "never checked", and the write is byte-for-byte the control's.
+const freshShim = new VariablesShim();
+const freshPass = beginMigration();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const freshRes = await applyWritePlan(plan, freshShim as any, freshPass);
+ok(freshPass.outcomes.length === realRenames.length && freshPass.outcomes.every((o) => o.status === 'source-absent'),
+  `#1013 a file holding none of the old names reports every one of the ${freshPass.outcomes.length} entries as \`source-absent\` — checked and nothing to do, which is not the same as never checked`);
+// The two counts differ ON PURPOSE, and this is the arm that says so out loud: with nothing live, all 40
+// historical names are named, because any of them could be what a designer is holding; with one live per
+// target, the 37 that moved are named and their absent siblings are not.
+ok(freshPass.outcomes.length > pass.outcomes.length,
+  `#1013 and an absent group names EVERY historical alternative (${freshPass.outcomes.length}) where a migrated one names only what moved (${pass.outcomes.length}) — the report follows the file, not the map's row count`);
+ok(freshRes.colorCreated === ctrl.colorCreated && freshPass.outcomes.every((o) => !isRefusal(o.status)),
+  `#1013 and the fresh file is written exactly as it is without the map (${freshRes.colorCreated} created, no refusals) — the migration pass is a no-op on a file it has nothing to say about`);
 
 // (ii-b) THE FAN-IN FILE — both historical names present. Neither may move: the bindings on each point at
 // a different variable, and promoting one would silently discard the other. The FILE is the disambiguator,
