@@ -22,6 +22,7 @@
     "./persist-input": "./persist-input.ts",
     "./preview": "./preview.ts",
     "./ramp": "./ramp.ts",
+    "./rename-map": "./rename-map.ts",
     "./read-back": "./read-back.ts",
     "./resolve-preview": "./resolve-preview.ts",
     "./standard-design-md": "./standard-design-md.ts",
