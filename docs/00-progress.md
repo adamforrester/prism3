@@ -50,9 +50,22 @@ so this is a reordering rather than a weakening.
 
 Every existing arm walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
 executor does not: `upsertCollection` filters per collection and tests each target against **that**
-collection's planned names. So 40 `surface` rows were checked by nothing at all, and a green suite
-coexisted with 37 runtime refusals. **Emission-wide resolution and per-collection planning are two
-different questions, and the gate was only ever asking the first.**
+collection's planned names. So the 40 `surface` rows were checked by nothing **that could see this
+defect**, and a green suite coexisted with 37 runtime refusals. **Emission-wide resolution and
+per-collection planning are two different questions, and the gate was only ever asking the first.**
+
+**That wording is a correction made in review, and the corrected version is the more useful claim.**
+The entry first said those rows were "checked by nothing at all". They were not: arm (c)
+(`test.ts`, *the SURFACE mirror*) walks exactly these rows and asserts *"…resolve to `source-absent`,
+**not a refusal** — over-projecting is self-correcting"* — #1087's property, named, in an arm predating
+the issue. **It cannot fail.** Its `planned` set is `surfDead.map(r => r.to)`, built from the targets of
+the rows under test, so `!want.has(to)` is unreachable and control reaches `source-absent` under either
+branch order. Measured both ways: with the defect live the arm still reports `source-absent=37`, while
+the honest call (`want = []`) reports `target-not-planned=37`.
+
+*A gate that cannot fail is worse than no gate, because its message tells every later reader the
+property is pinned.* `docs/34` shape 1 — the oracle derived from the subject — and the register row this
+PR adds names both shapes for that reason. Arm (c) itself is pre-existing and filed as **#1095**.
 
 The new arm classifies every row in the executor's space — planned / expected-mirror / break — and
 admits a mirror **only** when its primary twin is planned. That conjunction is what stops the bucket

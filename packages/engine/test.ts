@@ -11920,11 +11920,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // ---- #1087: THE MAP, CHECKED IN THE SPACE THE EXECUTOR ACTUALLY APPLIES IT IN ----
   //
-  // Every arm above walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
+  // Every arm ABOVE walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
   // executor does NOT: `upsertCollection` filters per collection and tests each target against THAT
-  // collection's planned names. So 37 `surface` rows were checked by nothing at all, and a green suite
-  // coexisted with 37 runtime refusals (#1087). Emission-wide resolution and per-collection planning
-  // are two different questions, and the gate was only ever asking the first.
+  // collection's planned names. So the 40 `surface` rows were checked by nothing that could see this
+  // defect, and a green suite coexisted with 37 runtime refusals (#1087). Emission-wide resolution and
+  // per-collection planning are two different questions, and the gate was only ever asking the first.
+  //
+  // "NOTHING THAT COULD SEE IT" IS THE CAREFUL WORDING, AND THE CARE IS THE FINDING. An earlier draft
+  // said "checked by nothing at all", and that is false: arm (c) below (`the SURFACE mirror`) walks
+  // exactly these rows and asserts, in its own message, *"…resolve to `source-absent`, **not a
+  // refusal** — over-projecting is self-correcting"*. That is #1087's property, named, in an arm that
+  // predates the issue.
+  //
+  // It cannot fail. It calls `planVariableRenames([], surfDead.map(r => r.to), surfDead)` — the
+  // `planned` set is built from the TARGETS OF THE ROWS UNDER TEST, so `want.has(to)` is true for every
+  // row, `!want.has(to)` is unreachable, and control falls through to the `source-absent` branch under
+  // EITHER branch order. Measured both ways: with the defect live, the arm as written still reports
+  // `source-absent=37`, while the honest call (`want = []`, an empty file) reports
+  // `target-not-planned=37`.
+  //
+  // So these rows were not bare — they were covered by an assertion that could not fail, whose message
+  // told every subsequent reader the property was pinned. That is a worse state than absence and it is
+  // `docs/34` shape 1 (the oracle derived from the subject). Arm (c) is pre-existing and out of scope
+  // here; it is **#1095**.
   //
   // Three buckets, and the classification is the point:
   //
@@ -11980,6 +11998,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // stated — a row in a collection that mirrors NOTHING can never land here.
     const declaredMirrors = new Set(Object.entries(MIRRORED_COLLECTIONS).flatMap(([k, ms]) => ms.filter((m) => m !== k)));
     const mirrorEligible = map.variables.filter((r) => declaredMirrors.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
+    //
+    // ITS BOUND, STATED because the message is scoped precisely and the scope is easy to over-read.
+    // This catches a widened predicate absorbing a break in a collection that mirrors NOTHING (measured:
+    // an injected `focus` break, caught). It does NOT catch one absorbing a break inside a DECLARED
+    // mirror — a fabricated unplanned `surface` row under a widened predicate is absorbed and both arms
+    // go silent (review of #1092, probe B3). That is a limit of counting membership rather than the
+    // conjunction, and closing it needs the primary-twin test to be re-expressed independently, which
+    // would be a second copy of the thing under test. Recorded rather than papered over.
     ok(mirrorRows === mirrorEligible,
       `rename-map(${brand}) #1087: the mirror bucket holds exactly the unplanned rows of a DECLARED mirror collection (${mirrorRows} classified vs ${mirrorEligible} eligible) — counted a second way, so a widened predicate cannot quietly absorb a break in a collection that mirrors nothing`);
     ok(breaks.length === 0,
