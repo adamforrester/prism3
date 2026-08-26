@@ -486,9 +486,12 @@ const realYield: YieldFn = () => new Promise<void>((resolve) => { setTimeout(res
  * component pipeline since 2026-07-01 changed `write-components.ts` alone and moved no plan bytes. The
  * field that would close that is the bundle's identity, and it is not available here — `build.mjs`
  * defines `PRISM3_BUILD` only for the entry that bundles `studio/src`, and `tsconfig.main.json` does not
- * include the declaration, so naming it in this context is a bare identifier that throws at load. Adding
- * that define is #836's own scope. When it lands, it goes here as a third field, still unread by the
- * comparison for the same reason the engine version is.
+ * include the declaration, so naming it in this context is a bare identifier that throws at load. #836
+ * scoped adding that define as its own remaining work — its last comment (2026-08-24) says explicitly
+ * that landing the plan-stamp half (#827) "narrows this issue, it does not close it" — but #836 was
+ * closed the next day with no commit adding the define. So this gap is real and **currently untracked**,
+ * not merely unlanded: were it built, it would go here as a third field, still unread by the comparison
+ * for the same reason the engine version is.
  *
  * `|` as the separator because neither field can contain one: a semver is `[0-9.]` and a plan stamp is
  * 16 hex characters. A JSON blob would be the general answer and buys nothing at 26 bytes.
