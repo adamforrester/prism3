@@ -7,7 +7,18 @@
     <style>
       /* The shared apps/studio/src UI injects its own full stylesheet into <head> at boot; this only
          resets the iframe body + adopts Figma's theme so the app sits flush in the panel. */
-      :root { color-scheme: light dark; }
+      /* LIGHT ONLY, and that is a statement of fact rather than a preference (#1031). `color-scheme`
+         does not ask the UA to recolor the page — it declares which schemes this document is prepared
+         to be rendered in, and the UA then supplies the parts it owns from the resolved one: form-field
+         text, the caret, autofill, scrollbars, native option lists. The app's stylesheet paints every
+         surface from light tokens unconditionally (`--paper #f2f3f6`, `--panel #ffffff`), so `light dark`
+         promised an adaptation that does not exist: in Figma's dark theme the UA supplied near-white
+         field text over the author's light field background — the Name and Namespace inputs rendered at
+         1.11:1, measured. The `--figma-color-*` variables below are unaffected; they are Figma's own
+         injected custom properties, not UA-resolved, so the pre-boot canvas still follows the host theme.
+         Making the panel genuinely follow Figma's theme is a real ask, and this is the wrong half of it:
+         it would need the token layer to have a dark scheme, at which point `light dark` becomes true. */
+      :root { color-scheme: light; }
       html, body { margin: 0; padding: 0; }
       body { background: var(--figma-color-bg, #fff); color: var(--figma-color-text, #1e1e1e); }
     </style>

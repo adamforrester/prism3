@@ -348,6 +348,219 @@ is where a reader of the old one should be sent.
 
 ---
 
+## (2026-08-25) — Three brand-menu bugs found in live use, and the render that had been quietly marking every restored file as edited (#1031, #1033, #1034)
+
+**STATUS: shipped.** One surface (`renderBrandMenu`), three separately-reasoned bugs, all three found
+by the owner actually using the plugin. They land together because they share the code path, not
+because they are one concern — each has its own before/after in the PR body. A fourth defect was found
+while verifying the second and had to be fixed here: without it #1033's confirmation fires
+unconditionally, which is the failure mode the confirmation exists to avoid.
+
+**#1031 — the Name and Namespace fields rendered near-white on a light ground, and the cause was one
+declaration in a file with no colors in it.** `apps/plugin/src/ui/index.html` carried
+`:root { color-scheme: light dark }`. That property does not recolor anything; it declares which
+schemes the document is prepared for, and the UA then supplies the parts it owns from the resolved
+one — form-field text, the caret, autofill, scrollbars, native option lists. An `<input>` inherits
+neither `color` nor `background` by UA default, so a rule that sets only `background` hands the other
+half to the UA. Measured on the built `dist/ui.html`: light theme `.bm-in` ink `rgb(0,0,0)` on
+`rgb(242,243,246)` = 18.93:1; **Figma dark theme, same field, ink `rgb(255,255,255)` = 1.11:1**, caret
+white with it. Fixed at the root (`color-scheme: light` — a statement of fact: the stylesheet paints
+every surface from light tokens unconditionally, so `light dark` promised an adaptation that does not
+exist) *and* per control, because the root fix leaves the class of defect one `color-scheme` away.
+The affected set was re-derived rather than assumed — live controls with an author `background` and no
+author `color`: `.bm-in` (and `.bm-in.bad`), `.bm-ta`, `.num`, `.mctx-addname`. `.te-font` has the same
+omission and is deliberately left: it has no call site in `main.ts`. Five siblings already paired the
+two and are the convention this follows. **Cross-effect, stated because it is real:** the root change
+also returns scrollbars and native `<select>` option lists to the light palette in a dark-themed
+Figma. Making the panel genuinely follow Figma's theme is a real ask and this is the wrong half of it
+— it needs a dark scheme in the token layer, at which point `light dark` becomes true.
+
+**#1033 — the Examples list was the one writer that never went through the overwrite guard.** The
+mechanism was already built: `needsOverwriteConfirm(brandState, provenance)` is fully generic, and
+`Origin` already had `{ kind: 'example', id }`. Wiring, not design. Per the decision taken in the
+issue, Examples stay selectable and one click from an untouched brand; the confirm is what makes that
+safe. The staging state changed shape in the process — `importPending: BrandInput` became
+`pendingLoad: { input, origin }`, because `loadBrand` requires an origin by construction and a pending
+load that stored only the input had to have its origin **re-authored at the confirm button**: fine with
+one writer, silently wrong with three (the second writer's confirm would load its brand under the
+first's origin, and every later dirty check would measure against the wrong baseline). The confirm
+itself is now one `renderOverwriteConfirm`, shared by all three writers, and closing the menu discards
+a staged load rather than leaving an unanswered question behind a reopened popover.
+
+**#1034 — "+ New brand" was not dead. It was already satisfied, and nothing said so.** Three
+diagnoses had failed here before this one, so the eliminations are worth recording: no uncaught
+exception at any panel size (console clean throughout), the menu does close (so the handler fires),
+`restore-input` is posted exactly once from `ui-ready` (no re-clobber), and the outside-click
+dismisser is guarded by `.barmenu-wrap`, which contains the popover. **Both branches of the binary the
+lane prompt offered were false** — the menu closes *and* the state changes visibly — so neither branch
+was the answer. What reproduces it: seed the host's `restore-input` from a file whose stored brand
+*is* `NEW_BRAND()` — a file themed by clicking "+ New brand" and applying, never renamed — and the
+click is a pixel-for-pixel no-op. Measured: same brand chip, same dot, same 152 swatches, identical
+`document.body.innerHTML` length on both sides, nothing on the console. That is mechanically "specific
+to a file that already has tokens", because only `restore-input` can seed the panel with the file's own
+brand; a fresh file boots on `aurora`, where the same click changes everything. The fix is the menu's
+own existing idiom — the `.cur` marker the Examples list already uses — plus the confirm the issue
+asked to fold in.
+
+**The fourth defect, and why it could not wait: a RENDER was mutating the brand input.**
+`renderPrimitives` materialized the palette array with
+`brandState.brandColors ?? (brandState.brandColors = [])`. `loadBrand` takes the baseline *before* that
+render, so every brand whose input omits `brandColors` — `harbor`, `NEW_BRAND()`, any `design.md`
+without one, **any brand restored from a Figma file** — gained a `brandColors: []` the instant its
+palettes page drew, and `isDirty` reported it as edited from boot onward. Measured with a temporary
+in-page hook: a `restore-input`-seeded panel read dirty with zero interaction, the diff being exactly
+that one key. Not cosmetic once a confirmation depends on it — #1033's prompt would have fired on
+every Examples click in a themed file with nothing to lose, which is the "fires every time, gets
+clicked through" failure `provenance.ts`'s own header says the dirty check exists to prevent, and it
+also kept #1034's marker permanently off. Materialization moved into the add handler.
+
+One more review nit, and it is a comment rather than code: the add handler's note said `list` and `arr` were
+"the same array either way" after materializing, which is false in exactly the case the fix creates — with
+`brandColors` absent, `list` is the render's detached `[]` and `arr` is a new array now on `brandState`. The
+code is right for a reason the comment did not give: the detached case is the *empty* one, so that render
+drew no rows and nothing holds `list`, and `applyFull()` immediately re-renders against the materialized
+array. Divergence unreachable, not handled — worth saying, because a false reassurance is what a later
+reader trusts instead of re-deriving.
+
+**Correction taken in review, and it is about the instrument, not the answer.** "The four sibling
+materializations" was a sample of **six**. `modeLevers`, `interactivePalettes`, `modeAnchors` and
+`overrides` use `x ?? (x = …)`; `customModes` uses the same form and was missed reading the grep's own
+output; `typography` uses `??=`, inside `setBrandSize`, and the grep shape `?? (x = ` **cannot match it at
+all**. Re-checked individually, all six are on edit paths — a handler, or a setter only a handler calls —
+so the conclusion holds: the render-path one was unique. The confidence did not, because it rested on an
+instrument blind to a syntactic variant of the idiom it was searching for, and "I grepped for it" was
+doing load-bearing work in the write-up. That is the docs/34 family one layer down, in a grep rather than
+a gate: an oracle that cannot see the thing it is asked about reports its blindness as a clean result.
+Search for both forms. `setBrandSize`'s own materialization turned out to carry a separate defect —
+it runs `??=` before the clear path and never prunes it back, against its docstring's claim — filed as
+**#1071**.
+
+**Why the suite missed #1031 — three findings where the lane prompt expected two.** `lint:contrast` is
+correctly silent: it holds token *values*, and every value here is legal — the pairing was UA-supplied.
+For `test:smoke`, whose stated counterfactual for being allowed to gate was, verbatim, "three broken
+cards ship and surface in a client Figma session as 'the style guide has invisible labels'":
+
+1. **Corpus.** The sweep drives the rail and the mode bar and never opens the brand menu, so no node
+   inside the popover was ever measured (docs/34 shape 9 — a clean report over a corpus that excludes
+   the defect).
+2. **Instrument.** Even with the popover open, `CONTRAST_PROBE` required an element to own a text node,
+   and **a field's value is not a text node** — `<input value="my-brand">` has no child nodes at all.
+   Every editable control in the studio was outside the probe's reach, not merely unvisited.
+3. **Artifact.** The suite drives `apps/studio/dist/main.js`, whose shell declares no `color-scheme` at
+   all, so the UA resolves light regardless of the OS preference and that artifact **cannot exhibit
+   this class in any scheme**. Only `apps/plugin/dist/ui.html` can, and nothing asserts legibility over it.
+
+(1) and (2) are closed here: the probe became `LEGIBILITY_PROBE`, returning a second collection that
+measures every visible `input`/`textarea`/`select`'s ink **and caret** against its own composited field
+ground, and a new section 4 opens the brand menu on every corpus brand under both emulated color
+schemes, types into the Name field (an empty field renders no glyphs, so a pristine input asserts a
+pairing that is not on screen) and checks the popover's own controls — **by identity first, count second**.
+The count turns "the sweep was clean" into "the sweep looked here", but a count can only say *three of
+something*, and #1031 was a defect in a specific field. So `BRANDMENU_CONTROLS` names the three —
+`input.bm-in`, `input.bm-in.mono`, `textarea.bm-ta` — and asserts each was mounted **and measured**,
+printing what it did see when one is absent; the floor stays behind it as the weaker "and nothing else
+vanished" check. (Held as a review nit: the probe's rows already carried `cls`, so the identity was in hand
+and only the assertion was reading past it. CLAUDE.md's rule is that a gate's scope must assert each
+promised surface is *represented*, never merely count files, and a count of fields is the same shape one
+level down.) **965 assertions, up from 942** (946 for #1031's two findings, then the confirm sentence and
+its second scenario below); 506 form controls now measured across the 72 sweep states, 12 inside the
+popover. **(3) is residual and filed.**
+
+**Mutation-verified, and the two rows carrying a NO are the ones worth reading:**
+
+| mutation | caught by name? |
+|---|---|
+| `.bm-in { color: #f4f4f5 }` (near-invisible on `--paper`) | **yes** — 4 popover assertions, naming the class, the typed value, 1.01:1 and the caret |
+| `.num { color: #f0f0f0 }` | **yes** — 6 sweep states, and by the FIELD assertion only; the text walk stayed silent, which is finding 2 demonstrated |
+| Namespace field never appended | **yes** — 9 of 965, and now **by class**: *"`input.bm-in.mono` is mounted and was measured (saw `input.bm-in`, `textarea.bm-ta`)"* in all 4 states, the floor and the cross-state total behind it |
+| the two confirm slots swapped at the call site | **yes** — section 5 by name, printing the sentence that rendered |
+| `case 'new'` collapsed back to one string (*the round-1 regression*) | **NO at 951** — typechecked clean, because `where` stays in the signature. **yes at 965**, once scenario B existed: *"the at-risk slot names a new brand deictically — got …a new brand…"* |
+| `color-scheme: light dark` added to `apps/studio/index.html` | **NO — 946/946 passed.** The claim in the first draft of that section's comment was false |
+
+The last row is why section 4 reads the way it does. #1031 needs *two* halves — the document opts into
+dark **and** a control leaves its `color` to the UA — and the per-control half of this very fix made
+the second half false in the studio, so a ratio assertion under emulated dark now catches the class
+only in combination with a *new* control that omits `color`. That is a real but compound tripwire, and
+not the one the comment claimed. So the first half got its own one-line assertion on the shell's
+resolved `color-scheme`, which fails the moment the opt-in appears and is independent of how well the
+stylesheet happens to be inked that week. **Written down because reasoning produced the wrong answer
+here and only mutation produced the right one** — the section's own comment now carries the measurement.
+
+**The generalization that broke the position it was generalizing from.** Held in review, and worth its own
+paragraph because it is a second prose defect on the same surface, from the fix rather than the bug.
+#1033 needed `originLabel` in a slot it had never served — the ARRIVING brand ("Replace the current brand
+with …") — where #722's "this new brand" is wrong, because the incoming brand is not on screen to point
+at. Collapsing both slots to "a new brand" made one string serve two positions, and it served neither:
+two clicks from boot read *"Replace the current brand with a new brand? Your edits to a new brand are not
+saved anywhere else."*, where the second phrase reads as though the unsaved edits belong to the brand
+about to destroy them. Fixed by giving the two positions what each needs — `originLabel(o, where)`, one
+switch, `new` the only case that answers differently, because it is the only anonymous one; the other four
+name something specific enough to point at on their own and read identically in both slots. A parameter
+rather than a second switch for the reason the original generalization was right about: two label
+functions differing in one case drift apart.
+
+A new smoke section 5 reads the sentence — the first assertion of any kind on this string, against a
+**hand-authored** expected sentence rather than one assembled from the app's own template. Two scenarios:
+**A** enters through an example and clicks another, so the at-risk slot says "the aurora example"; **B**
+enters through "Start blank", renames, then clicks an example, so the at-risk slot says "this new brand" —
+the case that regressed.
+
+**Scenario B exists because the first draft of this paragraph was wrong, and held in review for it.** It
+claimed `new` becomes an origin only through the plugin branch of "+ New brand", and concluded the case was
+structurally out of the studio's reach and therefore belonged with #1041. `new` has **three** producers:
+`main.ts:8448` ("Create theme →") and `main.ts:8458` ("Start blank") both hand `loadBrand` a `{kind:'new'}`
+origin with **no host gate at all**, and `main.ts:7863`'s `stageLoad(NEW_BRAND(), { kind: 'new' })` is the
+one that is plugin-gated. Only the narrower claim is true: no studio artifact can produce the *pair* of
+`new` phrases, because the ARRIVING side needs the gated producer. What was reachable all along — and is
+where the regression rendered — is the at-risk slot alone. The move that produced the error is the same one
+the paragraph above diagnoses in `originLabel`: a true statement about one position ("the arriving slot is
+plugin-only") generalized to the case ("the `new` case is plugin-only"), and it was the generalization that
+routed a six-line assertion to a filed issue.
+
+**Both halves were mutated, and the second is the one worth reading:** swapping the two slots at the call
+site fails section 5 by name, printing the wrong sentence. Collapsing `new` back to one string — *the exact
+regression this paragraph is about* — **passed 951/951 and typechecked clean** before scenario B existed,
+because `where` stays in the signature and no rule notices the body stopped reading it. With scenario B it
+fails by name, at 965 assertions. That is the whole value of having disclosed the failing mutation row
+rather than reporting a green suite: the row that said NO is what made the gap actionable in review.
+
+The plugin's own pairing is still verified by hand on the built plugin bundle, because no gate renders it
+(#1041): two clicks from boot read *"Replace the current brand with a new brand? Your edits to this new
+brand are not saved anywhere else."*, first click loads straight through with no confirm, 0 console errors.
+
+That hand pass turned up one more thing, filed as **#1075**: both `.cur` markers in the menu are computed
+at render, and the Name field deliberately skips the re-render (it patches `.bs-name` imperatively instead,
+to keep the caret), so after a rename the "+ New brand" marker still claims the brand is an untouched new
+brand until the menu is reopened. Measured across the three steps — correct on open, stale after the edit,
+correct again after a reopen. Display only: the click path reads live state and correctly raises the
+confirm at the stale step. Adjacent to #1073 but a different mechanism — that one is about which key the
+marker compares, this one about when it is computed.
+
+**Filed rather than fixed here.** **#1041** — nothing asserts rendered legibility over
+`apps/plugin/dist/ui.html`, the only artifact that can exhibit `color-scheme`-derived defects; the
+strengthening above is real for the studio and structurally cannot reach the plugin. Corrected downward in
+review, and the correction matters: `apps/plugin/test-build-verdict.mjs` already launches Chromium and
+navigates to that exact file, so what is missing is an **assertion inside an existing harness**, not a
+harness — a much cheaper piece of work than "no gate renders it" implied, and this entry said that in its
+first draft. **#1071** — `setBrandSize` materializes `typography` before its clear path and never prunes
+it, against its own docstring. **#1073** — the Examples `.cur` marker matches `brandState.id`, so renaming
+a loaded example un-marks it while the confirm sentence still names the origin correctly; the two answers
+to "which example is this?" diverge. **#1042** — the
+brand-menu popover's tail is unreachable below roughly 835px of panel height (at 480×600: 4 of 9 rows
+visible, 186px of hidden scroll, no scrollbar affordance, "+ New brand" below the fold), degrading as
+`--chrome-h` grows and therefore worst in exactly the themed file the reporter was in. Neither is the
+cause of any of the three reports; both want their own lane, and #1042's fixes are all menu
+restructuring, which is a different concern from a colour pairing and a guard call site.
+
+**Traps for whoever re-verifies this.** The plugin panel is `DEFAULT_SIZE = 1280×900`, not the ~480×600
+an unstated assumption suggested; at 900 tall the menu fits and the button is visible, and measuring at
+the wrong size changes the #1034 conclusion outright. `.brandmenu` has been bounded with
+`max-height` + `overflow-y: auto` since #432, so the popover scrolls rather than clips — "clipped, not
+scrolled" is the wrong mental model. And the `.stage.active` selector is the rail's title block, not a
+content container: swatch queries scoped to it return `[]`, which reads as "nothing rendered".
+
+---
+
 ## (2026-08-25) — `verify` now refuses to run rather than let a fresh container talk a lane into "36/38 is fine" (#935)
 
 **STATUS: shipped.** Three PRs (#883, #910, #929) each hit the same two environment failures on a
