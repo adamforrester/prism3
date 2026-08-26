@@ -135,6 +135,13 @@ really the one stated.
 
 *A mutation that fires through somebody else's arm is not evidence about yours.*
 
+**The recorded limit is narrower than it first read, and review measured the narrowing.** A6's bound is
+that a widened predicate escapes when the break sits inside a grouped collection. The escape needs
+**both** conditions: a grouped-collection break under the *honest* predicate fires A6
+(`37 classified vs 38 eligible`) **and** A7 — 6 failures, three brands, re-measured here rather than
+taken on the reviewer's word. The uncovered case is the conjunction, not the membership. *An
+under-stated bound gets read as a bigger gap than it is,* which is its own kind of inaccurate record.
+
 **Re-run in full after the rebase, because rewritten arms inherit nothing from a previous battery.** M3
 → 3 failures, the empty-file pin by name, one per brand, and the classifier arms correctly silent. M4 →
 A7 absorbed, **A6 fires by name** (`38 classified vs 37 eligible`), three brands; converse M4b, with A6
@@ -175,10 +182,17 @@ tidiness, not urgency.
 **Then the correction needed a correction, and that is the part worth carrying.** My answer also said
 `MATERIALIZATION_RENAMES` "does not reach the executor at all" and located the risk "at the namespace
 PR". Both were read off `main` — and **#1082 is the wiring**, merged as `45b074c` at 21:26 while this
-branch was still based on `da37a94`: `composeVariableRenames`
-exists at `rename-map.ts:472` on `claude/surface-color-swap`, called from `write-figma.ts:245` with
-`migration.pass.rules`. So the moment I described as still ahead had already happened in the PR next to
-mine.
+branch was still based on `da37a94`: `composeVariableRenames` is exported from
+`packages/engine/rename-map.ts` and called from `apps/plugin/src/write-figma.ts`, inside the
+per-collection upsert, with `migration.pass.rules`. So the moment I described as still ahead had already
+happened in the PR next to mine.
+
+*Cited by symbol and full path rather than by line, deliberately.* An earlier draft said
+`rename-map.ts:472` — true on `main`, and **498 in this very branch**, because the #1087 fix adds a
+comment block above it. A line number in durable prose is correct only against the ref its author had
+checked out, and review found this one two ways at once. The bare filename was the other half of the
+problem: `rename-map.ts` is in `packages/engine/`, `write-figma.ts` is in `apps/plugin/src/`, and
+nothing in the citation said so.
 
 It is clean, for the structural reason and not by luck: `composeVariableRenames` takes `collection` as a
 parameter, filters the contract to it, and emits rows in that same collection — it cannot move a row

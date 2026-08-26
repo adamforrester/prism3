@@ -407,11 +407,19 @@ export const planVariableRenames = (
     // NO LIVE SOURCE IS TESTED FIRST, and the order is the whole of #1087.
     //
     // Reversed — `target-not-planned` first — a row with nothing to migrate is reported as a REFUSAL
-    // rather than as the benign no-op it is, and `isRefusal()` counts it. Measured on `main`: **37 of
-    // the 80 derived rows** came back `target-not-planned` on a FRESH, EMPTY file, where by
-    // construction no source exists and nothing could have been migrated by any ordering. All 37 are
-    // `surface` MIRROR rows whose `color` twin is planned and does migrate, so nothing was ever lost —
-    // the user was warned about a filter doing its job.
+    // rather than as the benign no-op it is, and `isRefusal()` counts it. Measured: **37 of the 80
+    // derived rows** came back `target-not-planned` on a FRESH, EMPTY file, where by construction no
+    // source exists and nothing could have been migrated by any ordering. All 37 are MIRROR rows in the
+    // group's PARTIAL member — the alias tier, which carries 128 of the value tier's 242 names — and
+    // every one has a twin in the other member that is planned and does migrate, so nothing was ever
+    // lost: the user was warned about a filter doing its job.
+    //
+    // Named by ROLE rather than by tier ON PURPOSE, because the tiers were renamed underneath this
+    // comment while the fix was in review. The partial member was `surface` before #1082 and is `color`
+    // after it, with the value tier moving to `color.appearance`; a sentence naming them was correct
+    // when written and inverted one merge later. The 37 were re-measured on both layouts — identical in
+    // count, in split, and in emission-wide resolution (0 of 37), across all three brands — which is
+    // the evidence that this is the branch order and not the arrangement.
     //
     // This module's own header already described the correct behaviour: *"the mirror that has no
     // counterpart in a given file simply reports `source-absent`, so over-projecting is

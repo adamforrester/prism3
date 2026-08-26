@@ -12045,6 +12045,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // absorbed and both arms go silent (review of #1092, probe B3). That is a limit of counting
     // membership rather than the counterpart, and closing it needs the counterpart test re-expressed
     // independently, which would be a second copy of the thing under test. Recorded, not papered over.
+    //
+    // AND THE HOLE IS NARROWER THAN THAT SENTENCE ALONE IMPLIES, which is worth saying because an
+    // under-stated bound gets read as a bigger gap than it is. The escape needs BOTH conditions at once:
+    // the widened predicate AND the break sitting inside a grouped collection. Either alone is caught —
+    // a grouped-collection break under the HONEST predicate fires A6 (`37 classified vs 38 eligible`)
+    // AND A7, three brands, 6 failures (review of #1092, probe B7, re-measured here). So the uncovered
+    // case is the conjunction, not the membership.
     ok(mirrorRows === mirrorEligible,
       `rename-map(${brand}) #1087: the mirror bucket holds exactly the unplanned rows of a collection in a DECLARED mirror group (${mirrorRows} classified vs ${mirrorEligible} eligible) — counted a second way, so a widened predicate cannot quietly absorb a break in a collection that mirrors nothing`);
     ok(breaks.length === 0,
