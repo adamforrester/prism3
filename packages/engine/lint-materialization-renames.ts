@@ -249,7 +249,10 @@ if (!isTotal(acct)) {
     `    ${acct.removed.length} removed · ${acct.added.length} added · ${acct.claims.length} claim(s) evaluated over the whole before-set`,
     '',
     ...listing('UNACCOUNTED REMOVALS — a name left the emission and no rule claimed it', acct.unaccountedRemovals),
-    ...listing('UNACCOUNTED ADDITIONS — a name arrived and is no claim\'s image', acct.unaccountedAdditions),
+    // CONTEXT, NOT A CAUSE (#1053). Printed only inside an already-failing report, and labelled so no
+    // reader takes it for the reason: a mis-mapped rule says its claimed image is missing without
+    // saying what turned up instead, and this is where that answer is.
+    ...listing('names that ARRIVED (context — an addition is a new token and never a failure on its own)', acct.unaccountedAdditions),
     ...listing(
       'CONTRADICTED CLAIMS — a rule states a rename the emission does not show',
       acct.contradictedClaims.map((c) => `[${c.rule}] ${c.from} → ${c.to}: ${c.contradiction}`),
@@ -270,5 +273,9 @@ if (!isTotal(acct)) {
 console.log(
   `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}): `
   + `${acct.beforeCount} keys → ${acct.afterCount}, ${acct.removed.length} removed / ${acct.added.length} added, `
-  + `${MATERIALIZATION_RENAMES.length} rule(s) making ${acct.claims.length} claim(s) over the whole before-set.`,
+  + `${MATERIALIZATION_RENAMES.length} rule(s) making ${acct.claims.length} claim(s) over the whole before-set.`
+  // Said in the SUCCESS line, not only in the header, because this is where a reader meets the rule:
+  // an additive change is the common case, and "6 added" sitting in a passing run needs to explain
+  // itself or it reads as something the gate failed to notice.
+  + (acct.added.length ? `\n  ${acct.added.length} added and unclaimed — additions need no rule; only a REMOVAL can hide a rename (#1053).` : ''),
 );
