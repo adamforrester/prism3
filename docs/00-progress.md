@@ -37,9 +37,10 @@ provable **STALE** findings:
 
 **Issue-side actions, each landed on the issue itself, not only described here:**
 
-- **#849 closed** (pending — see below) as resolved by #960 (implemented the decision: component-def
-  comments in scope) and #968 (corrected the stated reason without disturbing the decision). #849 kept
-  asking a question that was answered and shipped nine days ago.
+- **#849 closed** as resolved by #960 (implemented the decision: component-def comments in scope) and
+  #968 (corrected the stated reason without disturbing the decision). #849 kept asking a question that
+  was answered and shipped nine days ago. (Closing itself was blocked by a GitHub rate limit for most of
+  this session — see the note below — and went through once the limit cleared.)
 - **#836** — comment posted, not reopened; see above.
 - Read in full and confirmed *current* (no stale premise, correctly framed, no action needed):
   #1012, #1013, #1040, #1049, #1002, #1050, #1052, #1024, #113, #377, #609, #677, #740, #745, #767, #802
@@ -65,6 +66,43 @@ correctly; the inconsistency the lane prompt flagged (many issues carry no lane/
 real and was not treated as a labeling project, per the prompt's own instruction not to make it one
 unless it's actively costing something — no evidence gathered here that it is, beyond the two decisions
 read closely (#1012, #1013) that would benefit from the `type:decision` label they lack.
+
+**Update, after independent review (same day).** An independent reviewer rebased onto the current tip,
+re-derived every checkable claim in this entry rather than trusting it, and found it accurate on every
+point it could verify — except one, which is fixed here:
+
+- **The headline numbers had already gone stale by the time of review**, because two more forward
+  claims landed on `main` in the interim (#1046): `main.ts:1137` citing #1033, `main.ts:7559` citing
+  #160. Resolved both — #160 (closed since 2026-07-18) and #1033, which turned out to be a second
+  instance of this entry's own finding: **shipped and unclosed.** `3c3852c` ("Fix three brand-menu
+  bugs... #1031, #1033, #1034") verifiably implements all three fixes — checked directly against
+  current source, not assumed from the commit message — so #1031, #1033 and #1034 are now closed too,
+  each with a comment tracing the specific line that proves the fix landed. #1034's actual root cause
+  ("+ New brand" wasn't marking itself current when the working brand already was one) differs from
+  this issue's own leading hypothesis (an uncaught exception); noted on the issue so a future reader
+  doesn't chase the wrong lead.
+- **Both new citations are the same tense-blind false positive as the #908 pair — registered, not
+  edited** — and registering them produced a recursive instance of the tool's own #252 lesson: the
+  first draft of these two register entries quoted "blocked on #1033" and "waiting on issue #160" in
+  their own `why` text, which is itself a matchable claim, and the tool duly flagged its own
+  documentation as STALE. Fixed by keeping a register entry's issue digits out of range of the trigger
+  stem it's explaining, the same discipline the header already states for #252 — schematic citation,
+  not a live one — and left a comment on the entries themselves so the next register write doesn't
+  reintroduce it.
+- **The reviewer's own probes are worth carrying forward.** Sampled 5 issues from the ~175 marked
+  lower-risk-by-construction; 4 held, 1 didn't — #327's stated blocker (#342) is closed without shipping
+  the item #342 itself named as what #327 was waiting on, so #327's actual gap (a text-style writer for
+  the CLI paste path) is currently tracked by nothing. Same shape as this entry's #836 finding, one hop
+  into the "not covered" part of the backlog — evidence that the coverage judgment was reasonable
+  (4 of 5) but not free of misses, exactly as stated going in. Filed as #1085 by the reviewer, not
+  fixed here. Also: **192 was correct only as of the count** — re-run during review, `list_issues`
+  returned 216 a few hours later (this repo files on the order of 10+ issues/day right now), so any
+  reference to "192" should carry its 2026-08-26 ~04:20 UTC timestamp rather than travel as a bare
+  number.
+
+`npm run verify` (post-review-fixes) → **45/45 gates reached a verdict in 145s — 45 PASS · 0 FAIL · 0
+SKIP · 0 ADVISORY**. `measure.ts` → **0 STALE · 9 HOLDS · 8 NON-CHECKABLE · 0 UNRESOLVED**, 17
+reportable claim sites, exit 0.
 
 **GitHub API note:** `list_issues`/`search_issues` hit a rate limit immediately (fixed by requesting
 `fields` explicitly rather than the default, which fetches per-issue custom field values); `issue_write`

@@ -5,6 +5,7 @@
   "method": "mcp__github__issue_read, method=get",
   "states": {
     "50": { "state": "closed", "kind": "pull request", "title": "engine: emit-figma — generalise across aurora + wendys (queue item 6)" },
+    "160": { "state": "closed", "kind": "issue", "title": "[web] design.md import: post-setup import, startup upload card, validation + error handling" },
     "72": { "state": "closed", "kind": "pull request", "title": "Consumption eval: the .ai.json guidance differential — 95% → 100%", "caution": "NOT the issue the citing line means — see NON_CHECKABLE: apps/tokenpress cites Token Press's own tracker" },
     "101": { "state": "closed", "kind": "issue", "title": "[web] Regroup the Semantic tab into sub-sections + fix stale hero copy" },
     "113": { "state": "open", "kind": "issue", "title": "[research] Font availability + name resolution across web / Figma / MCP" },
@@ -18,6 +19,10 @@
     "768": { "state": "closed", "kind": "issue", "title": "[studio] Cleanup tracking — four seams the defects named" },
     "802": { "state": "open", "kind": "issue", "title": "[decision] No gate asserts that a rendered value matches the intent behind it" },
     "836": { "state": "closed", "kind": "issue", "title": "The plugin cannot report which build is running, and five worktrees can each answer differently" },
-    "908": { "state": "closed", "kind": "issue", "title": "Component build verdict waits ~8.4s on a busy host: measureSettle() is awaited before the result is posted" }
+    "849": { "state": "closed", "kind": "issue", "title": "Engine code comments are exempt from the prose gates only for as long as tree-shaking happens to drop them" },
+    "908": { "state": "closed", "kind": "issue", "title": "Component build verdict waits ~8.4s on a busy host: measureSettle() is awaited before the result is posted" },
+    "1031": { "state": "closed", "kind": "issue", "title": "Plugin panel: input text is illegible (near-white on light background) in Name/Namespace and other text fields when Figma's UI theme is dark" },
+    "1033": { "state": "closed", "kind": "issue", "title": "Selecting an Example brand silently overwrites unsaved edits — no confirm, unlike design.md import" },
+    "1034": { "state": "closed", "kind": "issue", "title": "\"+ New brand\" works on web but appears to do nothing in the Figma plugin" }
   }
 }

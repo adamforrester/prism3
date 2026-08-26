@@ -423,6 +423,27 @@ const NON_CHECKABLE: Register[] = [
     issue: 908,
     why: "same trap, same function's call site: 'What #908 removed is the designer waiting for it' (two lines below the fingerprint) states outright that the wait is gone. 'waiting-on' has no tense/role guard, so a comment correctly narrating a fix reads identically to one asserting a live block.",
   },
+  {
+    // Found the same way as the #908 pair above, one issue-states.json refresh later: this issue landed
+    // and closed (3c3852c) between this file's first pass and an independent reviewer's re-check of it,
+    // and recording that state turned this citation STALE for the first time.
+    //
+    // NOTE FOR THE NEXT EDITOR OF THIS ENTRY: keep the issue's digits out of `why`, adjacent to a trigger
+    // stem ("depends"/"waiting"/"blocked") — this file scans itself, and an earlier draft of this exact
+    // pair of entries wrote "blocked on #1033" and "waiting on issue #160" in their own `why` text and
+    // tripped the patterns they were describing. Same shape as the header's #252 lesson, one tier down:
+    // documenting a citation is indistinguishable from asserting one.
+    file: 'apps/studio/src/main.ts',
+    fingerprint: 'a confirm depends on it',
+    issue: 1033,
+    why: "'depends-on' matched a design-rationale sentence, not a live-dependency claim: the source line explains WHY a dirty-tracking fix matters (the confirm prompt this issue added needs accurate data), not that anything is presently unresolved. True regardless of this issue's open/closed state — reporting it STALE would be confidently wrong about a sentence that never made a state claim at all.",
+  },
+  {
+    file: 'apps/studio/src/main.ts',
+    fingerprint: 'A load waiting on confirm-overwrite',
+    issue: 160,
+    why: "this is a type/variable doc comment describing what the state STRUCTURALLY IS — a load that is, by design, always pending user confirmation — not a claim about this issue's present status. The pattern matched the phrase regardless of role; the confirm-overwrite mechanism it describes shipped in PR #175 (2026-07-18), and the comment describes that shipped mechanism, not an open item.",
+  },
 ];
 
 /**
