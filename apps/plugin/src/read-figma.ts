@@ -37,9 +37,14 @@ const isRgb = (v: ReadVarValue): v is { r: number; g: number; b: number; a?: num
 
 /**
  * Read the live colour variables into a `ReadbackSnapshot`. Only the two colour collections
- * (`core-palette` + `color`) are read — the scope this lane materialises. Vars in other collections
- * are ignored. An alias whose target var can't be found is surfaced as `{ alias: null }` rather than
- * a fabricated name, so `verifyReadback`'s dangling-alias check stays honest.
+ * (`core-palette` + `color.appearance`) are read — the scope this lane materialises. Vars in other
+ * collections are ignored. An alias whose target var can't be found is surfaced as `{ alias: null }`
+ * rather than a fabricated name, so `verifyReadback`'s dangling-alias check stays honest.
+ *
+ * `color.appearance` and not `color` since #1013 — the value tier is what `verifyReadback` checks, and
+ * it is the tier that carries the appearance modes and the palette aliases. The alias tier that took the
+ * short name is still unread here, which is the pre-existing hole the swap relocated rather than opened;
+ * see `read-back.ts`'s header.
  */
 export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesReadApi): Promise<ReadbackSnapshot> => {
   const collections = await vars.getLocalVariableCollectionsAsync();
@@ -51,7 +56,7 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
   const nameById = new Map(allVars.map((v) => [v.id, v.name] as const));
 
   const palCol = collections.find((c) => c.name === 'core-palette');
-  const colCol = collections.find((c) => c.name === 'color');
+  const colCol = collections.find((c) => c.name === 'color.appearance');
 
   const palette = palCol
     ? allVars

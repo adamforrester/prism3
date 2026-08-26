@@ -102,6 +102,40 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.26.0: THE TIER SWAP (#1013). The value tier moves to `color.appearance.*` and the surface alias
+ * tier takes the short name `color.*`, in BOTH formats — the Figma `color` collection is renamed
+ * `color.appearance` and its 242 variables with it, the `surface` collection is renamed `color` and
+ * its 128 variables with it, and the DTCG tree gains a `color.appearance` level under which every
+ * former `color.<role>` leaf now sits. Emitted Figma FILENAMES follow the collection, so six files
+ * per brand cease to exist (`color.{light,dark,hc-light,hc-dark}.json`,
+ * `surface.{default,inverse}.json`) and six take their place; they are deleted explicitly in this
+ * change because `regen --check`'s removal arm cannot see them (#1059).
+ *
+ * `CONTRACT_VERSION` goes to 6.0.0 in the same breath — 114 guaranteed paths are removed and 242
+ * added, and a removal is a MAJOR. The two versions move together here for once, and for genuinely
+ * different reasons: the contract moved because names moved, the engine moved because the ARTIFACT
+ * SET moved. No colour value changes anywhere in the corpus — every emitted paint is byte-identical
+ * to 0.25.0 under a different name, and the second mode on the alias tier is a pointer to a name
+ * that already existed. This is the mirror of the case the split usually illustrates, and the same
+ * mirror 0.8.0 was: names move, values do not.
+ *
+ * A minor rather than a major on the ENGINE version even though the artifact set changed, because
+ * `ENGINE_VERSION` answers "what code produced this?" and is not a compatibility promise — the
+ * promise is `CONTRACT_VERSION`, and it took the major.
+ *
+ * TWO DOWNSTREAM CLAIMS THE SWAP FALSIFIED, both fixed here rather than filed, because each is a
+ * shipped or gated surface asserting something about the names that moved:
+ *   · `tools/exporter-comparison/axes.ts` declared the surface axis `absent` from the DTCG projection,
+ *     which was true only while the value tier held the short name — a pointer tier and its targets
+ *     under one name have nothing to project separately. It is `base-only` now: the `default` member
+ *     pairs path-for-path, `inverse` still has no overlay (#1027). The naive fix — swapping the key and
+ *     leaving the kind — drops every `color.appearance.*` path as well, because the drop is keyed on a
+ *     path's FIRST SEGMENT and `color` now prefixes `color.appearance.*`. Measured: 1074 unpaired
+ *     across three brands, reported as agreement. That trap is written at `absentFromProjection`.
+ *   · the studio printed `color.<role>` on every colour pill, so 114 of them named a path that stops
+ *     resolving. `colorPath` picks the tier from `surfaceRows` — the derivation both materialisations
+ *     read — rather than pattern-matching `inverse`, which misses `scrim.default`.
+ *
  * 0.25.0: the media veil — `color.veil.{dark,light}.{large,body,enhanced}`, six roles a designer picks
  * from when laying text over a photograph (see `CONTRACT_VERSION` 5.4.0 below). Additive; no existing
  * value or name moves.
@@ -475,7 +509,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.25.0';
+export const ENGINE_VERSION = '0.26.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -521,6 +555,38 @@ export const ENGINE_VERSION = '0.25.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 6.0.0: THE TIER SWAP. `color.*` and the surface layer trade names. 114 removed, 242 added, so MAJOR,
+ * and every removal ships a `DEPRECATIONS` entry pointing at `color.appearance.<the same path>`.
+ * (586 → 714)
+ *
+ * The value tier — one leaf per resolved role, varying by appearance mode — moves from `color.*` to
+ * `color.appearance.*`. The surface tier takes the vacated name: 128 leaves, one per role that has a
+ * default/inverse pair, each a POINTER into `color.appearance.*`. In Figma the same two collections
+ * trade names, so `color` is what a designer picks from and `color.appearance` is what it resolves to.
+ *
+ * WHY IT IS WORTH A MAJOR, in one sentence: a component that binds `color.<role>` becomes
+ * surface-responsive with no change to the component, because the name it already binds now resolves in
+ * the layer that has a mode. Before the swap that responsiveness was opt-in per binding and nothing
+ * reported a binding that had missed it.
+ *
+ * WHY IT COMPOSES INSTEAD OF MULTIPLYING, which is the finding that made it safe to carry into DTCG
+ * rather than keep Figma-only: a surface projection carrying a NAME agrees with the appearance tier in
+ * 2560 of 2560 cells, where one carrying a VALUE disagrees in 1510 — measured over 128 alias rows × 4
+ * appearances × 5 corpus brands, 0.25.0's six veil rows included. Composition is a property of the
+ * pointer, not of the axes. (#1027)
+ *
+ * WHY 114 AND NOT 242. A role WITH an inverse counterpart keeps its short name — the path does not move,
+ * only what it resolves to, so there is nothing to deprecate and nothing for a consumer to rewrite. The
+ * 114 are the roles with no counterpart: 113 inverse roles, which cannot have a surface row because
+ * inverse-ness is what the modes express, plus `scrim.default`, whose gap `inverse-coverage.ts` disposes
+ * as `omit` rather than a self-alias. So the break falls exactly on the paths that were never
+ * surface-contextual, and the paths an app actually references are untouched.
+ *
+ * WHAT DTCG DOES NOT CARRY: the `inverse` MODE. The pairing lives in the Figma collection's second mode;
+ * DTCG emits the default column only. A surface overlay is a fifth overlay file per brand plus a decision
+ * about where the surface axis sits in the extension namespace — #1027's work, deliberately not this
+ * bump's. (#1013)
  *
  * 5.4.0: 6 added guaranteed paths, no removal and no retype, so MINOR — `color.veil.{dark,light}.
  * {large,body,enhanced}`, the media veil: a wash laid over a photograph so text on top clears a stated
@@ -645,7 +711,7 @@ export const ENGINE_VERSION = '0.25.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '5.4.0';
+export const CONTRACT_VERSION = '6.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -669,6 +735,15 @@ export type Deprecation = {
  * cannot rot into a pointer at nothing — the failure mode that makes most deprecation tables
  * worse than none.
  */
+/** The 15 slots every `interactive.<palette>.inverse.*` group carries — spelled once, used three times. */
+const INVERSE_INTERACTIVE_SLOTS = [
+  'border.hover', 'border.pressed', 'border.rest',
+  'fill.focused', 'fill.hover', 'fill.pressed', 'fill.rest', 'fill.selected',
+  'on-fill',
+  'overlay.hover', 'overlay.pressed', 'overlay.selected',
+  'text.hover', 'text.pressed', 'text.rest',
+] as const;
+
 export const DEPRECATIONS: Deprecation[] = [
   { path: 'motion.easing.enter', replacedBy: 'motion.easing.decelerate', since: '2.0.0' },
   { path: 'motion.easing.exit', replacedBy: 'motion.easing.accelerate', since: '2.0.0' },
@@ -687,9 +762,12 @@ export const DEPRECATIONS: Deprecation[] = [
   // literally called — but `replacedBy` must name something the engine still emits, so it follows
   // the rename. This is the rot case the gate exists to catch, and it caught it: `--check` failed
   // with "3 deprecation(s) point at a path the engine does not emit" before this line was touched.
-  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.interactive.primary.inverse.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.interactive.neutral.inverse.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.interactive.destructive.inverse.border.rest', since: '3.0.0' },
+  // …and #1013 renamed them out from under them a SECOND time, for the same reason and with the same
+  // rule: `path` is history and never moves, `replacedBy` follows the live name. Every inverse role is
+  // now under `color.appearance.*` because `color.*` is the surface tier and carries no inverse roles.
+  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.appearance.interactive.primary.inverse.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.appearance.interactive.neutral.inverse.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.appearance.interactive.destructive.inverse.border.rest', since: '3.0.0' },
   // #891 — the inverse-context qualifier drops `on-`. Generated rather than hand-typed: 30 entries
   // written out longhand is 30 chances to fat-finger a segment, and the pairing here is 1:1 by
   // construction. It is still checked rather than asserted — a wrong slot name makes `path` miss the
@@ -699,18 +777,56 @@ export const DEPRECATIONS: Deprecation[] = [
     ['text.rest', 'text.hover', 'text.pressed', 'fill.rest', 'fill.hover', 'fill.pressed',
      'border.rest', 'border.hover', 'border.pressed', 'on-fill'].map((slot) => ({
       path: `color.interactive.${c}.on-inverse.${slot}`,
-      replacedBy: `color.interactive.${c}.inverse.${slot}`,
+      replacedBy: `color.appearance.interactive.${c}.inverse.${slot}`,
       since: '4.0.0',
     }))),
   // #891 — `border` spelled the qualifier two ways at once; both become segments under one group.
   // `border.inverse` is the leaf-to-group promotion, so its own replacement is the `default` child.
-  { path: 'color.border.inverse', replacedBy: 'color.border.inverse.default', since: '4.0.0' },
-  { path: 'color.border.focus-inverse', replacedBy: 'color.border.inverse.focus', since: '4.0.0' },
+  { path: 'color.border.inverse', replacedBy: 'color.appearance.border.inverse.default', since: '4.0.0' },
+  { path: 'color.border.focus-inverse', replacedBy: 'color.appearance.border.inverse.focus', since: '4.0.0' },
   // #892 — the two leaves that became 17-role groups. The promoted tier is the honest replacement:
   // it carries the value the leaf had, so a consumer following the pointer keeps the same ink rather
   // than silently adopting a different tier.
-  { path: 'color.text.on-inverse', replacedBy: 'color.text.on-inverse.primary', since: '5.0.0' },
-  { path: 'color.icon.on-inverse', replacedBy: 'color.icon.on-inverse.primary', since: '5.0.0' },
+  { path: 'color.text.on-inverse', replacedBy: 'color.appearance.text.on-inverse.primary', since: '5.0.0' },
+  { path: 'color.icon.on-inverse', replacedBy: 'color.appearance.icon.on-inverse.primary', since: '5.0.0' },
+  // ── #1013: THE TIER SWAP ────────────────────────────────────────────────────────────────────────
+  //
+  // `color.*` used to be the VALUE tier — one leaf per resolved role, varying by appearance mode.
+  // It is now the SURFACE ALIAS tier: one leaf per role that has a default/inverse pair, pointing into
+  // `color.appearance.*`. So a role WITH a pair keeps its short name and gains a second surface mode
+  // (no entry needed — the path did not move, only what it resolves to), and a role WITHOUT one loses
+  // `color.<role>` entirely. These 114 are the second group.
+  //
+  // WHY THE LIST IS LITERAL AND NOT DERIVED. `surfaceRowsFor` knows exactly which roles have no row,
+  // and importing it here would spell this table in one line. That line would also make the check
+  // worthless: `token-contract.ts --accept` refuses a removal with no `DEPRECATIONS` entry, so a table
+  // generated from the same function that caused the removal agrees with any bug in it — the removal
+  // and its own justification would move together, and the refusal could never fire (`docs/34`). Held
+  // literally, a wrong segment fails BOTH ways, loudly: `path` misses the removed set (an unjustified
+  // removal) and `replacedBy` misses the live set (a dangling deprecation).
+  ...([
+    ['background.inverse', ['primary', 'secondary', 'tertiary']],
+    ['border.inverse', ['brand', 'danger', 'default', 'focus', 'info', 'primary', 'secondary', 'success', 'warning']],
+    ['disabled.inverse', ['border', 'fill', 'icon', 'on-fill', 'text']],
+    ['field.inverse', ['border.hover', 'border.rest', 'fill', 'placeholder']],
+    ['foreground.inverse', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
+    // `text`/`icon` keep the `on-` qualifier: these are INKS on an inverse ground, not roles in an
+    // inverse context, and #891 renamed only the latter.
+    ['icon.on-inverse', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default', 'link.focused', 'link.hover', 'link.visited', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
+    ['text.on-inverse', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default', 'link.focused', 'link.hover', 'link.visited', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
+    ['interactive.primary.inverse', INVERSE_INTERACTIVE_SLOTS],
+    ['interactive.neutral.inverse', INVERSE_INTERACTIVE_SLOTS],
+    ['interactive.destructive.inverse', INVERSE_INTERACTIVE_SLOTS],
+    // The one NON-inverse role that moves. It has no counterpart and `inverse-coverage.ts` disposes
+    // the gap as `omit` rather than a self-alias, so there is no surface row to keep the short name
+    // alive. Deliberate — see that register's entry, which was re-argued at this swap.
+    ['scrim', ['default']],
+  ] as Array<[string, readonly string[]]>).flatMap(([group, leaves]) =>
+    leaves.map((leaf) => ({
+      path: `color.${group}.${leaf}`,
+      replacedBy: `color.appearance.${group}.${leaf}`,
+      since: '6.0.0',
+    }))),
 ];
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */

@@ -34,9 +34,10 @@
  */
 import type { WritePlan, Rgba, SurfacePlan, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
 import {
-  renameMap, validateRenameMap, planVariableRenames, planCollectionRename,
-  type RenameMap, type RenameOutcome,
+  renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, isRefusal,
+  type RenameMap, type RenameOutcome, type MaterializationStep,
 } from '@prism3/engine/rename-map';
+import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -128,6 +129,11 @@ export const orphansOf = (existing: Iterable<string>, planned: Iterable<string>)
 export type Migration = {
   /** Empty when `refusals` is non-empty: a statically-invalid map migrates NOTHING. */
   map: RenameMap;
+  /** The MATERIALIZATION rules, carried on the pass rather than imported at the point of use — so that
+   *  emptying `map` on a refusal disarms them TOO. They are not part of the map (they are rules, not
+   *  rows) but they are part of the same migration, and a refusal that neutered only the rows would
+   *  leave 370 variables per brand renaming into collections that did not move. */
+  rules: readonly MaterializationStep[];
   /** Every entry the pass considered, no-ops included — "checked, none" ≠ "never checked". */
   outcomes: RenameOutcome[];
   /** Static refusals. Non-empty means the rename pass was abandoned and the write proceeded
@@ -136,42 +142,90 @@ export type Migration = {
 };
 
 /**
- * Validate once, up front. A statically-invalid map does NOT abort the apply: it abandons the rename
- * pass only and degrades to the pre-#1013 behaviour, which is a known state rather than a new one. The
- * write is what the designer asked for; the migration is the improvement, and a broken improvement
- * must not cost them the write.
+ * Validate once, up front — then rename every COLLECTION, once, before any executor runs (#1035).
+ *
+ * A statically-invalid map does NOT abort the apply: it abandons the rename pass only and degrades to
+ * the pre-#1013 behaviour, which is a known state rather than a new one. The write is what the designer
+ * asked for; the migration is the improvement, and a broken improvement must not cost them the write.
+ *
+ * ── WHY THE COLLECTION RENAMES ARE A PRE-PASS AND NOT PER-COLLECTION (#1035) ──────────────────────
+ *
+ * They used to live inside `upsertCollection`, which is handed ONE target name at a time. That was
+ * correct while `COLLECTION_RENAMES` held one entry and became wrong the moment #1013 gave it two:
+ * `color → color.appearance` and `surface → color` are a CHAIN, and a chain's correct order is a
+ * property of the whole map, not of any single entry. Applied in the order the executors happen to ask
+ * for their collections, `surface → color` lands first, `color` is then occupied by the surface tier,
+ * and the value tier's own rename is refused — half-applied, with the two tiers' variables merged into
+ * one collection and no way back. `planCollectionRenames` computes the order.
+ *
+ * **ATOMICITY IS THIS FUNCTION'S OBLIGATION, and it is what makes "refused, not half-applied" true
+ * rather than aspirational.** `planCollectionRenames` is pure — it plans the whole ordered sequence
+ * against a simulated name set and writes nothing — so every outcome is visible before the first
+ * mutation. If ANY of them is a refusal, none are applied and the whole map is neutered, exactly as a
+ * static refusal neuters it: the variable rows are keyed by their collection's NEW name, so a variable
+ * rename that ran against a collection that did not move would find no rows and orphan the variable it
+ * was there to migrate. The two halves stand or fall together. A future edit that applies outcomes as
+ * it walks them, or that keeps `map.variables` alive past a collection refusal, has deleted the
+ * guarantee while leaving this comment standing.
+ *
+ * Async, and taking `vars`, so that construction IS the pre-pass: there is no second call for a caller
+ * to forget, which is the same reasoning that made `beginMigration` the only construction point.
  */
-export const beginMigration = (map: RenameMap = renameMap()): Migration => {
+export const beginMigration = async (
+  vars: VariablesApi,
+  map: RenameMap = renameMap(),
+  rules: readonly MaterializationStep[] = MATERIALIZATION_RENAMES,
+): Promise<Migration> => {
   const refusals = validateRenameMap(map);
-  return { map: refusals.length ? { collections: [], variables: [] } : map, outcomes: [], refusals };
+  const mig: Migration = {
+    map: refusals.length ? { collections: [], variables: [] } : map,
+    rules: refusals.length ? [] : rules,
+    outcomes: [],
+    refusals,
+  };
+  if (!mig.map.collections.length) return mig;
+
+  const collections = await vars.getLocalVariableCollectionsAsync();
+  const planned = planCollectionRenames(collections.map((c) => c.name), mig.map.collections);
+  // Every outcome is reported either way — "checked, none" ≠ "never checked" — but only a clean plan
+  // is applied.
+  mig.outcomes.push(...planned);
+  const refused = planned.filter((o) => isRefusal(o.status));
+  if (refused.length) {
+    mig.refusals.push(...refused.map((o) => `collection ${o.from} -> ${o.to}: ${o.status}`));
+    mig.map = { collections: [], variables: [] };
+    mig.rules = [];
+    return mig;
+  }
+  // Renaming in place keeps the collection id, and therefore every variable in it and every binding to
+  // those variables. The executors re-fetch, and see the new names.
+  for (const o of planned) {
+    if (o.status !== 'migrated') continue;
+    collections.find((c) => c.name === o.from)!.name = o.to;
+  }
+  return mig;
 };
 
 // Idempotent get-or-create for a collection by name (find-by-name → reuse). Scopes the returned
 // var index to that collection so a name collision across collections can't cross-wire.
 //
-// `migration` is where a rename becomes a MIGRATION rather than an orphan (#1013). Both halves are
-// here, and the ordering is the reason: the collection rename must land ABOVE the find-by-name it
-// exists to fix (otherwise a fresh empty collection is created beside the old one, orphaning every
-// variable in it at once — strictly worse than doing nothing), and the variable renames must land
-// after `byName` is built and before any caller's create loop reads it. Neither ordering is
-// something a caller can get wrong, because neither is exposed. `planned` is carried in the same
-// object as the pass so a caller cannot supply one without the other — passing the pass alone would
-// silently make every entry `target-not-planned`.
+// `migration` is where a rename becomes a MIGRATION rather than an orphan (#1013) — the VARIABLE half
+// of it. The COLLECTION half moved to `beginMigration` in #1035, because a chain's correct order is a
+// property of the whole map and this function is handed one name at a time; read the reasoning there
+// before moving it back. By the time this runs, the collection this `name` refers to already carries
+// that name, which is why the find-by-name below reaches a migrated collection rather than creating a
+// fresh empty one beside it.
+//
+// The one ordering left here is still not something a caller can get wrong, because it is not exposed:
+// the variable renames land after `byName` is built and before any caller's create loop reads it.
+// `planned` is carried in the same object as the pass so a caller cannot supply one without the other —
+// passing the pass alone would silently make every entry `target-not-planned`.
 const upsertCollection = async (
   vars: VariablesApi,
   name: string,
   migration?: { pass: Migration; planned: readonly string[] },
 ): Promise<{ collection: VarCollection; byName: Map<string, Variable> }> => {
   const collections = await vars.getLocalVariableCollectionsAsync();
-  if (migration) {
-    const cr = planCollectionRename(collections.map((c) => c.name), name, migration.pass.map.collections);
-    if (cr) {
-      migration.pass.outcomes.push(cr);
-      // Renaming in place keeps the collection id, and therefore every variable in it and every
-      // binding to those variables. The mutated object is the one `.find` reads on the next line.
-      if (cr.status === 'migrated') collections.find((c) => c.name === cr.from)!.name = cr.to;
-    }
-  }
   const collection =
     collections.find((c) => c.name === name) ??
     vars.createVariableCollection(name);
@@ -185,7 +239,10 @@ const upsertCollection = async (
       .map((v) => [v.name, v] as const),
   );
   if (migration) {
-    const rows = migration.pass.map.variables.filter((r) => r.collection === name);
+    // The CONTRACT rows and the MATERIALIZATION rules, composed into one list per live name, so a
+    // variable needing both moves in a single step rather than through an intermediate name no plan
+    // asks for. `composeVariableRenames` carries the reasoning and the fixed order.
+    const rows = composeVariableRenames(name, byName.keys(), migration.pass.map.variables, migration.pass.rules);
     const outcomes = planVariableRenames(byName.keys(), migration.planned, rows);
     migration.pass.outcomes.push(...outcomes);
     for (const o of outcomes) {
@@ -221,9 +278,13 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.setValueForMode(palModeId, row.value);
   }
 
-  // ---- pass 2: color create (N modes, literal per-mode fallback values) ----
+  // ---- pass 2: color.appearance create (N modes, literal per-mode fallback values) ----
+  // `color.appearance` and not `color` since #1013: this is the VALUE tier, one mode per appearance
+  // (`light`/`dark`/`hc-*`), and the short name `color` now belongs to the surface ALIAS tier written by
+  // `applySurfacePlan`. Hardcoded here rather than read off the plan because `plan.color` carries no
+  // name — see `SurfacePlan.name` in `write-plan.ts` for the other half of that asymmetry.
   const { modes, create, aliases } = plan.color;
-  const col = await upsertCollection(vars, 'color', mig && { pass: mig, planned: create.map((r) => r.name) });
+  const col = await upsertCollection(vars, 'color.appearance', mig && { pass: mig, planned: create.map((r) => r.name) });
   const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
   // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
   col.collection.renameMode(col.collection.modes[0].modeId, modes[0]);
@@ -271,7 +332,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     // matches the plan, and a caller can tell "checked, none" from "never checked".
     orphans: [
       { name: 'core-palette', names: orphansOf(palPreExisting, plan.palette.map((r) => r.name)) },
-      { name: 'color', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
+      { name: 'color.appearance', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
     ],
   };
 };
@@ -290,15 +351,15 @@ export type SurfaceApplyResult = {
 /**
  * Read a collection's variables WITHOUT creating it — `upsertCollection`'s read-only twin.
  *
- * The surface executor needs this rather than `upsertCollection` for a specific reason: an absent `color`
- * collection is the ORDERING FAILURE this whole executor is sequenced to avoid, and creating an empty one
- * would convert that into a silent success — the collection would exist, every target lookup would still
- * miss, and the next `applyWritePlan` would quietly adopt the empty shell. So the absence is diagnosed,
- * not repaired.
+ * The surface executor needs this rather than `upsertCollection` for a specific reason: an absent
+ * `color.appearance` collection is the ORDERING FAILURE this whole executor is sequenced to avoid, and
+ * creating an empty one would convert that into a silent success — the collection would exist, every
+ * target lookup would still miss, and the next `applyWritePlan` would quietly adopt the empty shell. So
+ * the absence is diagnosed, not repaired.
  *
  * It takes no `Migration` for the same ordering reason, not by omission: the only collection it reads is
- * `color`, which `applyWritePlan` has already migrated by the time this runs. Migrating here as well
- * would be a second write to the same names, with the first pass's result as its input.
+ * `color.appearance`, which `applyWritePlan` has already migrated by the time this runs. Migrating here
+ * as well would be a second write to the same names, with the first pass's result as its input.
  */
 const findCollection = async (
   vars: VariablesApi,
@@ -315,25 +376,32 @@ const findCollection = async (
 };
 
 /**
- * Materialise the `surface` collection into `figma.variables` (#993 — #893's unbuilt half).
+ * Materialise the surface axis into `figma.variables` (#993 — #893's unbuilt half). Since #1013 the
+ * collection it writes is named **`color`** and its targets live in **`color.appearance`**; the plan
+ * carries the name (`plan.name`), so the swap did not touch a line of this function's body.
  *
- * Two modes, `default` and `inverse`, whose every row is an ALIAS into the `color` collection. This is
- * the axis that makes surface context work at all: bind a layer to `surface/text/primary`, switch the
- * mode on an ancestor frame, and the whole subtree resolves to its inverse-context values.
+ * Two modes, `default` and `inverse`, whose every row is an ALIAS into the `color.appearance`
+ * collection. This is the axis that makes surface context work at all: bind a layer to
+ * `color/text/primary`, switch the mode on an ancestor frame, and the whole subtree resolves to its
+ * inverse-context values — and after #1013 that short name is the one a designer reaches for by
+ * default, which is the point of the swap rather than a side effect of it.
  *
  * ── THE ORDERING DEPENDENCY, WHICH IS THE WHOLE REASON THIS IS ITS OWN EXECUTOR ──────────────────
  *
  * Every other alias pass here resolves its targets against a name map built INSIDE THE SAME CALL —
  * `applyWritePlan` maps the palette + colour vars it created moments earlier; `applyFloatPlan` and
  * `applyVarCollectionPlan` fold each collection into one `byNameGlobal` as they go. This executor
- * cannot: its targets are `color/*` variables written by a DIFFERENT call. So it reads the `color`
- * collection back out of the file, which means **it must run after `applyWritePlan`** — and `main.ts`
- * sequences it that way.
+ * cannot: its targets are `color/appearance/*` variables written by a DIFFERENT call. So it reads the
+ * `color.appearance` collection back out of the file, which means **it must run after `applyWritePlan`**
+ * — and `main.ts` sequences it that way.
  *
- * The target map is scoped to the `color` collection ALONE, deliberately, and not merged with this
- * collection's own vars. A global map would let a target name that happened to collide resolve to a
- * `surface/*` variable — an alias pointing into the collection it lives in, which would resolve but
- * track nothing. Scoping removes that class rather than defending against it.
+ * The target map is scoped to the `color.appearance` collection ALONE, deliberately, and not merged with
+ * this collection's own vars. A global map would let a target name that happened to collide resolve to a
+ * `color/*` variable — an alias pointing into the collection it lives in, which would resolve but track
+ * nothing. Scoping removes that class rather than defending against it. #1013 made that scoping load
+ * MORE weight, not less: the two collections' variable names now differ by a single inserted segment
+ * (`color/text/primary` vs `color/appearance/text/primary`), so a collision is a typo away rather than a
+ * coincidence away.
  *
  * ── AN UNRESOLVED TARGET IS A REPORTED MISS — NEVER SILENT, NEVER THROWN ─────────────────────────
  *
@@ -359,12 +427,12 @@ export const applySurfacePlan = async (
 ): Promise<SurfaceApplyResult> => {
   const misses: string[] = [];
   // Nothing to write (a theme with no `light` mode — `buildFigmaSurface` returns no files). Return
-  // before upserting, so an empty `surface` collection is never created as a side effect.
+  // before upserting, so an empty `color` collection is never created as a side effect.
   if (plan.create.length === 0) return { total: 0, created: 0, bound: 0, misses, orphans: [] };
 
   // ---- pass A: create/update every row with its literal per-mode fallback colour ----
-  // The `surface` half of the mirror (#1013): a renamed `color/*` contract path carries a second Figma
-  // name here, and a color-only migration would leave this one orphaned without saying so.
+  // The surface half of the mirror (#1013): a renamed contract path carries a second Figma name here,
+  // and an appearance-only migration would leave this one orphaned without saying so.
   const surf = await upsertCollection(vars, plan.name, mig && { pass: mig, planned: plan.create.map((r) => r.name) });
   const preExisting = [...surf.byName.keys()];   // snapshot before creates (and after migration)
   surf.collection.renameMode(surf.collection.modes[0].modeId, plan.modes[0]);
@@ -382,13 +450,13 @@ export const applySurfacePlan = async (
     plan.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
   }
 
-  // ---- pass B: bind each mode to its OWN target in the `color` collection ----
-  const col = await findCollection(vars, 'color');
+  // ---- pass B: bind each mode to its OWN target in the `color.appearance` collection ----
+  const col = await findCollection(vars, 'color.appearance');
   if (!col) {
     // ONE named miss, not one per target. With no collection present every target fails for the same
     // single reason, and 244 restatements of it would read in the summary as 244 independent problems.
     // `bound: 0` against `total` says the rest.
-    misses.push(`collection:color absent — surface aliases cannot resolve (written before the color axis?)`);
+    misses.push(`collection:color.appearance absent — color aliases cannot resolve (written before the appearance axis?)`);
     return { total: plan.create.length, created, bound: 0, misses, orphans: orphansOf(preExisting, plan.create.map((r) => r.name)) };
   }
   let bound = 0;

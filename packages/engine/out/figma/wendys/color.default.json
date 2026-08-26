@@ -1,12 +1,12 @@
 {
-  "$collection": "surface",
+  "$collection": "color",
   "$mode": "default",
   "variables": [
     {
-      "name": "surface/background/primary",
+      "name": "color/background/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "background.primary for the default surface context — an alias into the color collection",
+      "description": "background.primary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 1,
         "g": 1,
@@ -15,14 +15,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/background/primary"
+        "name": "color/appearance/background/primary"
       }
     },
     {
-      "name": "surface/background/secondary",
+      "name": "color/background/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "background.secondary for the default surface context — an alias into the color collection",
+      "description": "background.secondary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
@@ -31,14 +31,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/background/secondary"
+        "name": "color/appearance/background/secondary"
       }
     },
     {
-      "name": "surface/background/tertiary",
+      "name": "color/background/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "background.tertiary for the default surface context — an alias into the color collection",
+      "description": "background.tertiary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -47,14 +47,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/background/tertiary"
+        "name": "color/appearance/background/tertiary"
       }
     },
     {
-      "name": "surface/border/brand",
+      "name": "color/border/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.brand for the default surface context — an alias into the color collection",
+      "description": "border.brand for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -63,14 +63,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/brand"
+        "name": "color/appearance/border/brand"
       }
     },
     {
-      "name": "surface/border/danger",
+      "name": "color/border/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.danger for the default surface context — an alias into the color collection",
+      "description": "border.danger for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7921568751335144,
         "g": 0.2862745225429535,
@@ -79,14 +79,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/danger"
+        "name": "color/appearance/border/danger"
       }
     },
     {
-      "name": "surface/border/focus",
+      "name": "color/border/focus",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.focus for the default surface context — an alias into the color collection",
+      "description": "border.focus for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -95,14 +95,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/focus"
+        "name": "color/appearance/border/focus"
       }
     },
     {
-      "name": "surface/border/info",
+      "name": "color/border/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.info for the default surface context — an alias into the color collection",
+      "description": "border.info for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -111,14 +111,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/info"
+        "name": "color/appearance/border/info"
       }
     },
     {
-      "name": "surface/border/primary",
+      "name": "color/border/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.primary for the default surface context — an alias into the color collection",
+      "description": "border.primary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -127,14 +127,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/primary"
+        "name": "color/appearance/border/primary"
       }
     },
     {
-      "name": "surface/border/secondary",
+      "name": "color/border/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.secondary for the default surface context — an alias into the color collection",
+      "description": "border.secondary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.5568627715110779,
@@ -143,14 +143,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/secondary"
+        "name": "color/appearance/border/secondary"
       }
     },
     {
-      "name": "surface/border/success",
+      "name": "color/border/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.success for the default surface context — an alias into the color collection",
+      "description": "border.success for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.2862745225429535,
         "g": 0.5137255191802979,
@@ -159,14 +159,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/success"
+        "name": "color/appearance/border/success"
       }
     },
     {
-      "name": "surface/border/warning",
+      "name": "color/border/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.warning for the default surface context — an alias into the color collection",
+      "description": "border.warning for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7176470756530762,
         "g": 0.3607843220233917,
@@ -175,14 +175,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/border/warning"
+        "name": "color/appearance/border/warning"
       }
     },
     {
-      "name": "surface/disabled/border",
+      "name": "color/disabled/border",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.border for the default surface context — an alias into the color collection",
+      "description": "disabled.border for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7529411911964417,
         "g": 0.7568627595901489,
@@ -191,14 +191,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/disabled/border"
+        "name": "color/appearance/disabled/border"
       }
     },
     {
-      "name": "surface/disabled/fill",
+      "name": "color/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.fill for the default surface context — an alias into the color collection",
+      "description": "disabled.fill for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7529411911964417,
         "g": 0.7568627595901489,
@@ -207,14 +207,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/disabled/fill"
+        "name": "color/appearance/disabled/fill"
       }
     },
     {
-      "name": "surface/disabled/icon",
+      "name": "color/disabled/icon",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.icon for the default surface context — an alias into the color collection",
+      "description": "disabled.icon for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.501960813999176,
         "g": 0.5098039507865906,
@@ -223,14 +223,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/disabled/icon"
+        "name": "color/appearance/disabled/icon"
       }
     },
     {
-      "name": "surface/disabled/on-fill",
+      "name": "color/disabled/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.on-fill for the default surface context — an alias into the color collection",
+      "description": "disabled.on-fill for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -239,14 +239,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/disabled/on-fill"
+        "name": "color/appearance/disabled/on-fill"
       }
     },
     {
-      "name": "surface/disabled/text",
+      "name": "color/disabled/text",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.text for the default surface context — an alias into the color collection",
+      "description": "disabled.text for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.501960813999176,
         "g": 0.5098039507865906,
@@ -255,14 +255,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/disabled/text"
+        "name": "color/appearance/disabled/text"
       }
     },
     {
-      "name": "surface/field/border/hover",
+      "name": "color/field/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.border.hover for the default surface context — an alias into the color collection",
+      "description": "field.border.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.45490196347236633,
         "g": 0.4588235318660736,
@@ -271,14 +271,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/field/border/hover"
+        "name": "color/appearance/field/border/hover"
       }
     },
     {
-      "name": "surface/field/border/rest",
+      "name": "color/field/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.border.rest for the default surface context — an alias into the color collection",
+      "description": "field.border.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.5568627715110779,
@@ -287,14 +287,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/field/border/rest"
+        "name": "color/appearance/field/border/rest"
       }
     },
     {
-      "name": "surface/field/fill",
+      "name": "color/field/fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.fill for the default surface context — an alias into the color collection",
+      "description": "field.fill for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
@@ -303,14 +303,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/field/fill"
+        "name": "color/appearance/field/fill"
       }
     },
     {
-      "name": "surface/field/placeholder",
+      "name": "color/field/placeholder",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.placeholder for the default surface context — an alias into the color collection",
+      "description": "field.placeholder for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -319,14 +319,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/field/placeholder"
+        "name": "color/appearance/field/placeholder"
       }
     },
     {
-      "name": "surface/foreground/brand",
+      "name": "color/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.brand for the default surface context — an alias into the color collection",
+      "description": "foreground.brand for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -335,14 +335,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/brand"
+        "name": "color/appearance/foreground/brand"
       }
     },
     {
-      "name": "surface/foreground/brand-subtle",
+      "name": "color/foreground/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.brand-subtle for the default surface context — an alias into the color collection",
+      "description": "foreground.brand-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.9411764740943909,
         "g": 0.8196078538894653,
@@ -351,14 +351,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/brand-subtle"
+        "name": "color/appearance/foreground/brand-subtle"
       }
     },
     {
-      "name": "surface/foreground/danger",
+      "name": "color/foreground/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.danger for the default surface context — an alias into the color collection",
+      "description": "foreground.danger for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7921568751335144,
         "g": 0.2862745225429535,
@@ -367,14 +367,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/danger"
+        "name": "color/appearance/foreground/danger"
       }
     },
     {
-      "name": "surface/foreground/danger-subtle",
+      "name": "color/foreground/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.danger-subtle for the default surface context — an alias into the color collection",
+      "description": "foreground.danger-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.9490196108818054,
         "g": 0.8352941274642944,
@@ -383,14 +383,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/danger-subtle"
+        "name": "color/appearance/foreground/danger-subtle"
       }
     },
     {
-      "name": "surface/foreground/info",
+      "name": "color/foreground/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.info for the default surface context — an alias into the color collection",
+      "description": "foreground.info for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -399,14 +399,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/info"
+        "name": "color/appearance/foreground/info"
       }
     },
     {
-      "name": "surface/foreground/info-subtle",
+      "name": "color/foreground/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.info-subtle for the default surface context — an alias into the color collection",
+      "description": "foreground.info-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7960784435272217,
         "g": 0.8705882430076599,
@@ -415,14 +415,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/info-subtle"
+        "name": "color/appearance/foreground/info-subtle"
       }
     },
     {
-      "name": "surface/foreground/primary",
+      "name": "color/foreground/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.primary for the default surface context — an alias into the color collection",
+      "description": "foreground.primary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
@@ -431,14 +431,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/primary"
+        "name": "color/appearance/foreground/primary"
       }
     },
     {
-      "name": "surface/foreground/secondary",
+      "name": "color/foreground/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.secondary for the default surface context — an alias into the color collection",
+      "description": "foreground.secondary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
@@ -447,14 +447,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/secondary"
+        "name": "color/appearance/foreground/secondary"
       }
     },
     {
-      "name": "surface/foreground/success",
+      "name": "color/foreground/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.success for the default surface context — an alias into the color collection",
+      "description": "foreground.success for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.2862745225429535,
         "g": 0.5137255191802979,
@@ -463,14 +463,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/success"
+        "name": "color/appearance/foreground/success"
       }
     },
     {
-      "name": "surface/foreground/success-subtle",
+      "name": "color/foreground/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.success-subtle for the default surface context — an alias into the color collection",
+      "description": "foreground.success-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.9254902005195618,
@@ -479,14 +479,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/success-subtle"
+        "name": "color/appearance/foreground/success-subtle"
       }
     },
     {
-      "name": "surface/foreground/tertiary",
+      "name": "color/foreground/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.tertiary for the default surface context — an alias into the color collection",
+      "description": "foreground.tertiary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8078431487083435,
@@ -495,14 +495,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/tertiary"
+        "name": "color/appearance/foreground/tertiary"
       }
     },
     {
-      "name": "surface/foreground/warning",
+      "name": "color/foreground/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.warning for the default surface context — an alias into the color collection",
+      "description": "foreground.warning for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7176470756530762,
         "g": 0.3607843220233917,
@@ -511,14 +511,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/warning"
+        "name": "color/appearance/foreground/warning"
       }
     },
     {
-      "name": "surface/foreground/warning-subtle",
+      "name": "color/foreground/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.warning-subtle for the default surface context — an alias into the color collection",
+      "description": "foreground.warning-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.9529411792755127,
         "g": 0.8352941274642944,
@@ -527,14 +527,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/foreground/warning-subtle"
+        "name": "color/appearance/foreground/warning-subtle"
       }
     },
     {
-      "name": "surface/icon/brand",
+      "name": "color/icon/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.brand for the default surface context — an alias into the color collection",
+      "description": "icon.brand for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -543,14 +543,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/brand"
+        "name": "color/appearance/icon/brand"
       }
     },
     {
-      "name": "surface/icon/brand-subtle",
+      "name": "color/icon/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.brand-subtle for the default surface context — an alias into the color collection",
+      "description": "icon.brand-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.239215686917305,
@@ -559,14 +559,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/brand-subtle"
+        "name": "color/appearance/icon/brand-subtle"
       }
     },
     {
-      "name": "surface/icon/danger",
+      "name": "color/icon/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.danger for the default surface context — an alias into the color collection",
+      "description": "icon.danger for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -575,14 +575,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/danger"
+        "name": "color/appearance/icon/danger"
       }
     },
     {
-      "name": "surface/icon/danger-subtle",
+      "name": "color/icon/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.danger-subtle for the default surface context — an alias into the color collection",
+      "description": "icon.danger-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -591,14 +591,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/danger-subtle"
+        "name": "color/appearance/icon/danger-subtle"
       }
     },
     {
-      "name": "surface/icon/info",
+      "name": "color/icon/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.info for the default surface context — an alias into the color collection",
+      "description": "icon.info for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -607,14 +607,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/info"
+        "name": "color/appearance/icon/info"
       }
     },
     {
-      "name": "surface/icon/info-subtle",
+      "name": "color/icon/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.info-subtle for the default surface context — an alias into the color collection",
+      "description": "icon.info-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -623,14 +623,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/info-subtle"
+        "name": "color/appearance/icon/info-subtle"
       }
     },
     {
-      "name": "surface/icon/link/default",
+      "name": "color/icon/link/default",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.default for the default surface context — an alias into the color collection",
+      "description": "icon.link.default for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -639,14 +639,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/link/default"
+        "name": "color/appearance/icon/link/default"
       }
     },
     {
-      "name": "surface/icon/link/focused",
+      "name": "color/icon/link/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.focused for the default surface context — an alias into the color collection",
+      "description": "icon.link.focused for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -655,14 +655,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/link/focused"
+        "name": "color/appearance/icon/link/focused"
       }
     },
     {
-      "name": "surface/icon/link/hover",
+      "name": "color/icon/link/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.hover for the default surface context — an alias into the color collection",
+      "description": "icon.link.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -671,14 +671,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/link/hover"
+        "name": "color/appearance/icon/link/hover"
       }
     },
     {
-      "name": "surface/icon/link/visited",
+      "name": "color/icon/link/visited",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.visited for the default surface context — an alias into the color collection",
+      "description": "icon.link.visited for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -687,14 +687,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/link/visited"
+        "name": "color/appearance/icon/link/visited"
       }
     },
     {
-      "name": "surface/icon/on-brand",
+      "name": "color/icon/on-brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-brand for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-brand for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -703,14 +703,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/on-brand"
+        "name": "color/appearance/icon/on-brand"
       }
     },
     {
-      "name": "surface/icon/on-danger",
+      "name": "color/icon/on-danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-danger for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-danger for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -719,14 +719,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/on-danger"
+        "name": "color/appearance/icon/on-danger"
       }
     },
     {
-      "name": "surface/icon/on-info",
+      "name": "color/icon/on-info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-info for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-info for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -735,14 +735,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/on-info"
+        "name": "color/appearance/icon/on-info"
       }
     },
     {
-      "name": "surface/icon/on-success",
+      "name": "color/icon/on-success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-success for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-success for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -751,14 +751,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/on-success"
+        "name": "color/appearance/icon/on-success"
       }
     },
     {
-      "name": "surface/icon/on-warning",
+      "name": "color/icon/on-warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-warning for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-warning for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -767,14 +767,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/on-warning"
+        "name": "color/appearance/icon/on-warning"
       }
     },
     {
-      "name": "surface/icon/primary",
+      "name": "color/icon/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.primary for the default surface context — an alias into the color collection",
+      "description": "icon.primary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -783,14 +783,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/primary"
+        "name": "color/appearance/icon/primary"
       }
     },
     {
-      "name": "surface/icon/secondary",
+      "name": "color/icon/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.secondary for the default surface context — an alias into the color collection",
+      "description": "icon.secondary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -799,14 +799,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/secondary"
+        "name": "color/appearance/icon/secondary"
       }
     },
     {
-      "name": "surface/icon/success",
+      "name": "color/icon/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.success for the default surface context — an alias into the color collection",
+      "description": "icon.success for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.20392157137393951,
         "g": 0.40392157435417175,
@@ -815,14 +815,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/success"
+        "name": "color/appearance/icon/success"
       }
     },
     {
-      "name": "surface/icon/success-subtle",
+      "name": "color/icon/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.success-subtle for the default surface context — an alias into the color collection",
+      "description": "icon.success-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -831,14 +831,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/success-subtle"
+        "name": "color/appearance/icon/success-subtle"
       }
     },
     {
-      "name": "surface/icon/tertiary",
+      "name": "color/icon/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.tertiary for the default surface context — an alias into the color collection",
+      "description": "icon.tertiary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.501960813999176,
         "g": 0.5098039507865906,
@@ -847,14 +847,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/tertiary"
+        "name": "color/appearance/icon/tertiary"
       }
     },
     {
-      "name": "surface/icon/warning",
+      "name": "color/icon/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.warning for the default surface context — an alias into the color collection",
+      "description": "icon.warning for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.5764706134796143,
         "g": 0.2705882489681244,
@@ -863,14 +863,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/warning"
+        "name": "color/appearance/icon/warning"
       }
     },
     {
-      "name": "surface/icon/warning-subtle",
+      "name": "color/icon/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.warning-subtle for the default surface context — an alias into the color collection",
+      "description": "icon.warning-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -879,14 +879,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/icon/warning-subtle"
+        "name": "color/appearance/icon/warning-subtle"
       }
     },
     {
-      "name": "surface/interactive/destructive/border/hover",
+      "name": "color/interactive/destructive/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.border.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.border.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.24705882370471954,
@@ -895,14 +895,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/border/hover"
+        "name": "color/appearance/interactive/destructive/border/hover"
       }
     },
     {
-      "name": "surface/interactive/destructive/border/pressed",
+      "name": "color/interactive/destructive/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.border.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.border.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -911,14 +911,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/border/pressed"
+        "name": "color/appearance/interactive/destructive/border/pressed"
       }
     },
     {
-      "name": "surface/interactive/destructive/border/rest",
+      "name": "color/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.border.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.border.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7921568751335144,
         "g": 0.2862745225429535,
@@ -927,14 +927,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/border/rest"
+        "name": "color/appearance/interactive/destructive/border/rest"
       }
     },
     {
-      "name": "surface/interactive/destructive/fill/focused",
+      "name": "color/interactive/destructive/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.focused for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.fill.focused for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.24705882370471954,
@@ -943,14 +943,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/fill/focused"
+        "name": "color/appearance/interactive/destructive/fill/focused"
       }
     },
     {
-      "name": "surface/interactive/destructive/fill/hover",
+      "name": "color/interactive/destructive/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.fill.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.24705882370471954,
@@ -959,14 +959,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/fill/hover"
+        "name": "color/appearance/interactive/destructive/fill/hover"
       }
     },
     {
-      "name": "surface/interactive/destructive/fill/pressed",
+      "name": "color/interactive/destructive/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.fill.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -975,14 +975,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/fill/pressed"
+        "name": "color/appearance/interactive/destructive/fill/pressed"
       }
     },
     {
-      "name": "surface/interactive/destructive/fill/rest",
+      "name": "color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.fill.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7921568751335144,
         "g": 0.2862745225429535,
@@ -991,14 +991,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/fill/rest"
+        "name": "color/appearance/interactive/destructive/fill/rest"
       }
     },
     {
-      "name": "surface/interactive/destructive/fill/selected",
+      "name": "color/interactive/destructive/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.selected for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.fill.selected for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -1007,14 +1007,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/fill/selected"
+        "name": "color/appearance/interactive/destructive/fill/selected"
       }
     },
     {
-      "name": "surface/interactive/destructive/on-fill",
+      "name": "color/interactive/destructive/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.on-fill for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.on-fill for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 1,
         "g": 1,
@@ -1023,14 +1023,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/on-fill"
+        "name": "color/appearance/interactive/destructive/on-fill"
       }
     },
     {
-      "name": "surface/interactive/destructive/overlay/hover",
+      "name": "color/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.overlay.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.overlay.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1039,14 +1039,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/overlay/hover"
+        "name": "color/appearance/interactive/destructive/overlay/hover"
       }
     },
     {
-      "name": "surface/interactive/destructive/overlay/pressed",
+      "name": "color/interactive/destructive/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.overlay.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.overlay.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1055,14 +1055,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/overlay/pressed"
+        "name": "color/appearance/interactive/destructive/overlay/pressed"
       }
     },
     {
-      "name": "surface/interactive/destructive/overlay/selected",
+      "name": "color/interactive/destructive/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.overlay.selected for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.overlay.selected for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1071,14 +1071,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/overlay/selected"
+        "name": "color/appearance/interactive/destructive/overlay/selected"
       }
     },
     {
-      "name": "surface/interactive/destructive/text/hover",
+      "name": "color/interactive/destructive/text/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.text.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.text.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7137255072593689,
         "g": 0.24705882370471954,
@@ -1087,14 +1087,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/text/hover"
+        "name": "color/appearance/interactive/destructive/text/hover"
       }
     },
     {
-      "name": "surface/interactive/destructive/text/pressed",
+      "name": "color/interactive/destructive/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.text.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.text.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -1103,14 +1103,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/text/pressed"
+        "name": "color/appearance/interactive/destructive/text/pressed"
       }
     },
     {
-      "name": "surface/interactive/destructive/text/rest",
+      "name": "color/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.text.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.destructive.text.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7921568751335144,
         "g": 0.2862745225429535,
@@ -1119,14 +1119,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/destructive/text/rest"
+        "name": "color/appearance/interactive/destructive/text/rest"
       }
     },
     {
-      "name": "surface/interactive/neutral/border/hover",
+      "name": "color/interactive/neutral/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.border.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.border.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.45490196347236633,
         "g": 0.4588235318660736,
@@ -1135,14 +1135,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/border/hover"
+        "name": "color/appearance/interactive/neutral/border/hover"
       }
     },
     {
-      "name": "surface/interactive/neutral/border/pressed",
+      "name": "color/interactive/neutral/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.border.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.border.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.3529411852359772,
         "g": 0.3607843220233917,
@@ -1151,14 +1151,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/border/pressed"
+        "name": "color/appearance/interactive/neutral/border/pressed"
       }
     },
     {
-      "name": "surface/interactive/neutral/border/rest",
+      "name": "color/interactive/neutral/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.border.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.border.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.5529412031173706,
         "g": 0.5568627715110779,
@@ -1167,14 +1167,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/border/rest"
+        "name": "color/appearance/interactive/neutral/border/rest"
       }
     },
     {
-      "name": "surface/interactive/neutral/fill/focused",
+      "name": "color/interactive/neutral/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.focused for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.fill.focused for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7529411911964417,
         "g": 0.7568627595901489,
@@ -1183,14 +1183,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/fill/focused"
+        "name": "color/appearance/interactive/neutral/fill/focused"
       }
     },
     {
-      "name": "surface/interactive/neutral/fill/hover",
+      "name": "color/interactive/neutral/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.fill.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7529411911964417,
         "g": 0.7568627595901489,
@@ -1199,14 +1199,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/fill/hover"
+        "name": "color/appearance/interactive/neutral/fill/hover"
       }
     },
     {
-      "name": "surface/interactive/neutral/fill/pressed",
+      "name": "color/interactive/neutral/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.fill.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7019608020782471,
         "g": 0.7058823704719543,
@@ -1215,14 +1215,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/fill/pressed"
+        "name": "color/appearance/interactive/neutral/fill/pressed"
       }
     },
     {
-      "name": "surface/interactive/neutral/fill/rest",
+      "name": "color/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.fill.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8078431487083435,
@@ -1231,14 +1231,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/fill/rest"
+        "name": "color/appearance/interactive/neutral/fill/rest"
       }
     },
     {
-      "name": "surface/interactive/neutral/fill/selected",
+      "name": "color/interactive/neutral/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.selected for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.fill.selected for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7019608020782471,
         "g": 0.7058823704719543,
@@ -1247,14 +1247,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/fill/selected"
+        "name": "color/appearance/interactive/neutral/fill/selected"
       }
     },
     {
-      "name": "surface/interactive/neutral/on-fill",
+      "name": "color/interactive/neutral/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.on-fill for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.on-fill for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1263,14 +1263,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/on-fill"
+        "name": "color/appearance/interactive/neutral/on-fill"
       }
     },
     {
-      "name": "surface/interactive/neutral/overlay/hover",
+      "name": "color/interactive/neutral/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.overlay.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.overlay.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1279,14 +1279,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/overlay/hover"
+        "name": "color/appearance/interactive/neutral/overlay/hover"
       }
     },
     {
-      "name": "surface/interactive/neutral/overlay/pressed",
+      "name": "color/interactive/neutral/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.overlay.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.overlay.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1295,14 +1295,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/overlay/pressed"
+        "name": "color/appearance/interactive/neutral/overlay/pressed"
       }
     },
     {
-      "name": "surface/interactive/neutral/overlay/selected",
+      "name": "color/interactive/neutral/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.overlay.selected for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.overlay.selected for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1311,14 +1311,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/overlay/selected"
+        "name": "color/appearance/interactive/neutral/overlay/selected"
       }
     },
     {
-      "name": "surface/interactive/neutral/text/hover",
+      "name": "color/interactive/neutral/text/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.text.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.text.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1327,14 +1327,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/text/hover"
+        "name": "color/appearance/interactive/neutral/text/hover"
       }
     },
     {
-      "name": "surface/interactive/neutral/text/pressed",
+      "name": "color/interactive/neutral/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.text.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.text.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1343,14 +1343,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/text/pressed"
+        "name": "color/appearance/interactive/neutral/text/pressed"
       }
     },
     {
-      "name": "surface/interactive/neutral/text/rest",
+      "name": "color/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.text.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.neutral.text.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1359,14 +1359,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/neutral/text/rest"
+        "name": "color/appearance/interactive/neutral/text/rest"
       }
     },
     {
-      "name": "surface/interactive/primary/border/hover",
+      "name": "color/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.border.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.border.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -1375,14 +1375,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/border/hover"
+        "name": "color/appearance/interactive/primary/border/hover"
       }
     },
     {
-      "name": "surface/interactive/primary/border/pressed",
+      "name": "color/interactive/primary/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.border.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.border.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -1391,14 +1391,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/border/pressed"
+        "name": "color/appearance/interactive/primary/border/pressed"
       }
     },
     {
-      "name": "surface/interactive/primary/border/rest",
+      "name": "color/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.border.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.border.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -1407,14 +1407,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/border/rest"
+        "name": "color/appearance/interactive/primary/border/rest"
       }
     },
     {
-      "name": "surface/interactive/primary/fill/focused",
+      "name": "color/interactive/primary/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.focused for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.fill.focused for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -1423,14 +1423,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/fill/focused"
+        "name": "color/appearance/interactive/primary/fill/focused"
       }
     },
     {
-      "name": "surface/interactive/primary/fill/hover",
+      "name": "color/interactive/primary/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.fill.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -1439,14 +1439,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/fill/hover"
+        "name": "color/appearance/interactive/primary/fill/hover"
       }
     },
     {
-      "name": "surface/interactive/primary/fill/pressed",
+      "name": "color/interactive/primary/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.fill.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -1455,14 +1455,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/fill/pressed"
+        "name": "color/appearance/interactive/primary/fill/pressed"
       }
     },
     {
-      "name": "surface/interactive/primary/fill/rest",
+      "name": "color/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.fill.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -1471,14 +1471,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/fill/rest"
+        "name": "color/appearance/interactive/primary/fill/rest"
       }
     },
     {
-      "name": "surface/interactive/primary/fill/selected",
+      "name": "color/interactive/primary/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.selected for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.fill.selected for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -1487,14 +1487,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/fill/selected"
+        "name": "color/appearance/interactive/primary/fill/selected"
       }
     },
     {
-      "name": "surface/interactive/primary/on-fill",
+      "name": "color/interactive/primary/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.on-fill for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.on-fill for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 1,
         "g": 1,
@@ -1503,14 +1503,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/on-fill"
+        "name": "color/appearance/interactive/primary/on-fill"
       }
     },
     {
-      "name": "surface/interactive/primary/overlay/hover",
+      "name": "color/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.overlay.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.overlay.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1519,14 +1519,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/overlay/hover"
+        "name": "color/appearance/interactive/primary/overlay/hover"
       }
     },
     {
-      "name": "surface/interactive/primary/overlay/pressed",
+      "name": "color/interactive/primary/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.overlay.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.overlay.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1535,14 +1535,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/overlay/pressed"
+        "name": "color/appearance/interactive/primary/overlay/pressed"
       }
     },
     {
-      "name": "surface/interactive/primary/overlay/selected",
+      "name": "color/interactive/primary/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.overlay.selected for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.overlay.selected for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0,
         "g": 0,
@@ -1551,14 +1551,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/overlay/selected"
+        "name": "color/appearance/interactive/primary/overlay/selected"
       }
     },
     {
-      "name": "surface/interactive/primary/text/hover",
+      "name": "color/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.text.hover for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.text.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -1567,14 +1567,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/text/hover"
+        "name": "color/appearance/interactive/primary/text/hover"
       }
     },
     {
-      "name": "surface/interactive/primary/text/pressed",
+      "name": "color/interactive/primary/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.text.pressed for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.text.pressed for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -1583,14 +1583,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/text/pressed"
+        "name": "color/appearance/interactive/primary/text/pressed"
       }
     },
     {
-      "name": "surface/interactive/primary/text/rest",
+      "name": "color/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.text.rest for the default surface context — an alias into the color collection",
+      "description": "interactive.primary.text.rest for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -1599,14 +1599,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/interactive/primary/text/rest"
+        "name": "color/appearance/interactive/primary/text/rest"
       }
     },
     {
-      "name": "surface/text/brand",
+      "name": "color/text/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.brand for the default surface context — an alias into the color collection",
+      "description": "text.brand for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -1615,14 +1615,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/brand"
+        "name": "color/appearance/text/brand"
       }
     },
     {
-      "name": "surface/text/brand-subtle",
+      "name": "color/text/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.brand-subtle for the default surface context — an alias into the color collection",
+      "description": "text.brand-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.239215686917305,
@@ -1631,14 +1631,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/brand-subtle"
+        "name": "color/appearance/text/brand-subtle"
       }
     },
     {
-      "name": "surface/text/danger",
+      "name": "color/text/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.danger for the default surface context — an alias into the color collection",
+      "description": "text.danger for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6352941393852234,
         "g": 0.2078431397676468,
@@ -1647,14 +1647,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/danger"
+        "name": "color/appearance/text/danger"
       }
     },
     {
-      "name": "surface/text/danger-subtle",
+      "name": "color/text/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.danger-subtle for the default surface context — an alias into the color collection",
+      "description": "text.danger-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.32156863808631897,
@@ -1663,14 +1663,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/danger-subtle"
+        "name": "color/appearance/text/danger-subtle"
       }
     },
     {
-      "name": "surface/text/info",
+      "name": "color/text/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.info for the default surface context — an alias into the color collection",
+      "description": "text.info for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -1679,14 +1679,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/info"
+        "name": "color/appearance/text/info"
       }
     },
     {
-      "name": "surface/text/info-subtle",
+      "name": "color/text/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.info-subtle for the default surface context — an alias into the color collection",
+      "description": "text.info-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -1695,14 +1695,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/info-subtle"
+        "name": "color/appearance/text/info-subtle"
       }
     },
     {
-      "name": "surface/text/link/default",
+      "name": "color/text/link/default",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.default for the default surface context — an alias into the color collection",
+      "description": "text.link.default for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -1711,14 +1711,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/link/default"
+        "name": "color/appearance/text/link/default"
       }
     },
     {
-      "name": "surface/text/link/focused",
+      "name": "color/text/link/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.focused for the default surface context — an alias into the color collection",
+      "description": "text.link.focused for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7843137383460999,
         "g": 0.062745101749897,
@@ -1727,14 +1727,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/link/focused"
+        "name": "color/appearance/text/link/focused"
       }
     },
     {
-      "name": "surface/text/link/hover",
+      "name": "color/text/link/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.hover for the default surface context — an alias into the color collection",
+      "description": "text.link.hover for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7098039388656616,
         "g": 0.0235294122248888,
@@ -1743,14 +1743,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/link/hover"
+        "name": "color/appearance/text/link/hover"
       }
     },
     {
-      "name": "surface/text/link/visited",
+      "name": "color/text/link/visited",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.visited for the default surface context — an alias into the color collection",
+      "description": "text.link.visited for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.6313725709915161,
         "g": 0,
@@ -1759,14 +1759,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/link/visited"
+        "name": "color/appearance/text/link/visited"
       }
     },
     {
-      "name": "surface/text/on-brand",
+      "name": "color/text/on-brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-brand for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-brand for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -1775,14 +1775,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/on-brand"
+        "name": "color/appearance/text/on-brand"
       }
     },
     {
-      "name": "surface/text/on-danger",
+      "name": "color/text/on-danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-danger for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-danger for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -1791,14 +1791,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/on-danger"
+        "name": "color/appearance/text/on-danger"
       }
     },
     {
-      "name": "surface/text/on-info",
+      "name": "color/text/on-info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-info for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-info for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -1807,14 +1807,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/on-info"
+        "name": "color/appearance/text/on-info"
       }
     },
     {
-      "name": "surface/text/on-success",
+      "name": "color/text/on-success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-success for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-success for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -1823,14 +1823,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/on-success"
+        "name": "color/appearance/text/on-success"
       }
     },
     {
-      "name": "surface/text/on-warning",
+      "name": "color/text/on-warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-warning for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-warning for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -1839,14 +1839,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/on-warning"
+        "name": "color/appearance/text/on-warning"
       }
     },
     {
-      "name": "surface/text/primary",
+      "name": "color/text/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.primary for the default surface context — an alias into the color collection",
+      "description": "text.primary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1855,14 +1855,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/primary"
+        "name": "color/appearance/text/primary"
       }
     },
     {
-      "name": "surface/text/secondary",
+      "name": "color/text/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.secondary for the default surface context — an alias into the color collection",
+      "description": "text.secondary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.40392157435417175,
         "g": 0.4117647111415863,
@@ -1871,14 +1871,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/secondary"
+        "name": "color/appearance/text/secondary"
       }
     },
     {
-      "name": "surface/text/success",
+      "name": "color/text/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.success for the default surface context — an alias into the color collection",
+      "description": "text.success for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.20392157137393951,
         "g": 0.40392157435417175,
@@ -1887,14 +1887,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/success"
+        "name": "color/appearance/text/success"
       }
     },
     {
-      "name": "surface/text/success-subtle",
+      "name": "color/text/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.success-subtle for the default surface context — an alias into the color collection",
+      "description": "text.success-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.32549020648002625,
         "g": 0.5647059082984924,
@@ -1903,14 +1903,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/success-subtle"
+        "name": "color/appearance/text/success-subtle"
       }
     },
     {
-      "name": "surface/text/tertiary",
+      "name": "color/text/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.tertiary for the default surface context — an alias into the color collection",
+      "description": "text.tertiary for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.501960813999176,
         "g": 0.5098039507865906,
@@ -1919,14 +1919,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/tertiary"
+        "name": "color/appearance/text/tertiary"
       }
     },
     {
-      "name": "surface/text/warning",
+      "name": "color/text/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.warning for the default surface context — an alias into the color collection",
+      "description": "text.warning for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.5764706134796143,
         "g": 0.2705882489681244,
@@ -1935,14 +1935,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/warning"
+        "name": "color/appearance/text/warning"
       }
     },
     {
-      "name": "surface/text/warning-subtle",
+      "name": "color/text/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.warning-subtle for the default surface context — an alias into the color collection",
+      "description": "text.warning-subtle for the default surface context — an alias into the color.appearance collection",
       "value": {
         "r": 0.7803921699523926,
         "g": 0.4000000059604645,
@@ -1951,14 +1951,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/text/warning-subtle"
+        "name": "color/appearance/text/warning-subtle"
       }
     },
     {
-      "name": "surface/veil/dark/body",
+      "name": "color/veil/dark/body",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.dark.body for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.dark.body for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1967,14 +1967,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/veil/dark/body"
+        "name": "color/appearance/veil/dark/body"
       }
     },
     {
-      "name": "surface/veil/dark/enhanced",
+      "name": "color/veil/dark/enhanced",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.dark.enhanced for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.dark.enhanced for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1983,14 +1983,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/veil/dark/enhanced"
+        "name": "color/appearance/veil/dark/enhanced"
       }
     },
     {
-      "name": "surface/veil/dark/large",
+      "name": "color/veil/dark/large",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.dark.large for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.dark.large for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 0,
         "g": 0,
@@ -1999,14 +1999,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/veil/dark/large"
+        "name": "color/appearance/veil/dark/large"
       }
     },
     {
-      "name": "surface/veil/light/body",
+      "name": "color/veil/light/body",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.light.body for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.light.body for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -2015,14 +2015,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/veil/light/body"
+        "name": "color/appearance/veil/light/body"
       }
     },
     {
-      "name": "surface/veil/light/enhanced",
+      "name": "color/veil/light/enhanced",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.light.enhanced for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.light.enhanced for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -2031,14 +2031,14 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/veil/light/enhanced"
+        "name": "color/appearance/veil/light/enhanced"
       }
     },
     {
-      "name": "surface/veil/light/large",
+      "name": "color/veil/light/large",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.light.large for the default surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.light.large for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
       "value": {
         "r": 1,
         "g": 1,
@@ -2047,7 +2047,7 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "color/veil/light/large"
+        "name": "color/appearance/veil/light/large"
       }
     }
   ]

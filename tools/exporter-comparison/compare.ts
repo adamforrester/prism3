@@ -1144,6 +1144,11 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
   // so a collection prism3 deliberately keeps OUT of the DTCG projection comes back as tokenpress-only
   // paths that no prism3 path can ever pair with. Driven by the axis declaration — see
   // `absentFromProjection` — so this is a drop someone declared, not a name the comparison exempted.
+  //
+  // As of #1013 that declaration names NOTHING and this loop drops nothing: the surface axis was the
+  // only `absent` one, and the swap gave its tier a DTCG name (`color.*`), so all 128 alias paths now
+  // pair. Read `absentFromProjection`'s trap note before re-arming it — the first-segment test below
+  // is safe only while no collection's name prefixes another's paths, which `color` no longer satisfies.
   const absent = absentFromProjection();
   const isAbsent = (k: string): boolean => absent.has(k.split('.')[0]);
   const absentDropped = [...union.keys()].filter(isAbsent).length;

@@ -32,6 +32,7 @@ import { resolveAllModes, outlineFillFamily, outlineFillRole } from '@prism3/eng
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
+import { surfaceRows } from '@prism3/engine/surface-rows';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
@@ -504,6 +505,35 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
   input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
   return knobBody(input, val);
 };
+/** WHICH TIER a colour role's DTCG path lives in (#1013), for every pill that shows one.
+ *
+ *  The swap split `color.*` in two: the ALIAS tier keeps the short name and carries only the roles the
+ *  surface axis pairs (128 in the measured corpus), while the rest exist ONLY in the VALUE tier as
+ *  `color.appearance.*` (114 — the 113 inverse-band roles plus `scrim.default`, whose gap disposition
+ *  is `omit`). A pill is a path a developer copies, so `color.background.inverse.primary` — correct
+ *  before #1013 — is now a name that resolves to nothing.
+ *
+ *  Derived from `surfaceRows`, the ONE derivation both materialisations read (`tree.ts` for DTCG,
+ *  `emit-figma-surface.ts` for the Figma collection), so the pill cannot disagree with the tree it
+ *  names. A pattern match on `inverse` would have been the natural thing to write and is wrong twice:
+ *  it misses `scrim.default`, and it would keep answering confidently the day a role gains a
+ *  counterpart and moves tier.
+ *
+ *  What it deliberately does NOT do is tell the richer story — an inverse-band token is also reachable
+ *  as its page-role sibling under the collection's `inverse` mode, which is the thing a developer
+ *  actually wants and which DTCG cannot express until the surface overlay lands (#1027). */
+let aliasTierCache: { of: Theme; set: Set<string> } | null = null;
+const aliasTierRoles = (): Set<string> => {
+  if (aliasTierCache?.of !== theme) {
+    aliasTierCache = { of: theme, set: new Set(surfaceRows(theme).map((r) => r.role)) };
+  }
+  return aliasTierCache.set;
+};
+/** The resolvable DTCG path for a colour role — `color.*` if the alias tier carries it, else
+ *  `color.appearance.*`. See `aliasTierRoles`. */
+const colorPath = (role: string): string =>
+  aliasTierRoles().has(role) ? `color.${role}` : `color.appearance.${role}`;
+
 /** A token-path chip (doc 24 C4) — the small mono pill that shows a DTCG/role path.
  *
  *  A long path ELIDES FROM THE LEFT instead of wrapping to two lines (#289): the CSS gives the pill
@@ -1745,10 +1775,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   const fails = (m: string, k: string): boolean => { const r = role(m, k); return !!(r && r.min > 0 && r.ratio < r.min); };
   const tipOf = (m: string, k: string): string => { const r = role(m, k); if (!r) return `${k} — unset`; const c = r.min > 0 ? ` · ${r.ratio.toFixed(2)}:1 (min ${r.min})` : ''; return `${stepOf(r)} · ${r.hex}${c}`; };
   // token pill with hover-reveal of the resolved primitive (semantic lead, primitive on hover). The
-  // visible label is the real, resolvable path — semantic roles emit under `color.*` (doc-26 contract),
-  // so a bare role key is prefixed; a short contextual label (e.g. `fill.rest`) is shown verbatim.
+  // visible label is the real, resolvable path — a bare role key is prefixed by `colorPath`, which is
+  // also what picks the right TIER now that #1013 split them; a short contextual label (e.g.
+  // `fill.rest`) is shown verbatim.
   const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
-    const path = label ?? `color.${k}`;
+    const path = label ?? colorPath(k);
     const p = tokenPill(path);
     // Gallery pills wrap (see .sg-pills), and a bare wrap breaks mid-segment — "color.foreground.bran /
     // d". `<wbr>` after each dot moves the break onto the path boundaries. It is the right element
@@ -2492,7 +2523,7 @@ const slotRow = (o: { name: string; slot: string; label: string; palette: string
   const r = roles[roleKey]; if (!r) return null;
   return iRow({
     swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
-    pill: `color.${roleKey}`, desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
+    pill: colorPath(roleKey), desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
     states: o.states ? iStates(roles, o.palette, o.states) : null,
   });
 };
@@ -2529,7 +2560,7 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
     select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, baselineStepOf(`interactive.${col.name}.fill.rest`));
   }
   return iRow({
-    swatchBg: r.hex, label: 'Fill · rest', select, pill: `color.interactive.${col.name}.fill.rest`,
+    swatchBg: r.hex, label: 'Fill · rest', select, pill: colorPath(`interactive.${col.name}.fill.rest`),
     desc: 'The button / container fill. This anchors the family — hover, pressed, text and on-fill derive from it unless you override them below.',
     warn,
     example: iExample(exBtn(r.hex, onFill?.hex ?? '#ffffff', false, 'Button',
@@ -2548,7 +2579,7 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   return iRow({
     swatchBg: rgbaOf(r), label: 'Overlay wash',
     select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
-    pill: `color.interactive.${col.name}.overlay.hover`,
+    pill: colorPath(`interactive.${col.name}.overlay.hover`),
     desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — it composites over any surface.',
     // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
     // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
@@ -2578,7 +2609,7 @@ const subtleFillRow = (col: ICol): HTMLElement | null => {
   return iRow({
     swatchBg: r.hex, label: 'Subtle tint',
     select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, baselineStepOf(`interactive.${col.name}.subtle-fill.hover`)),
-    pill: `color.interactive.${col.name}.subtle-fill.hover`,
+    pill: colorPath(`interactive.${col.name}.subtle-fill.hover`),
     desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
     // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
     // which must read as no warning, not as a failed one.
@@ -5759,7 +5790,7 @@ const sectionContrastRoles = (intro: string, roleLabels: Array<[string, string]>
   table.append(thead);
   for (const [role, label] of rows) {
     const tr = el('tr');
-    const td = el('td', 'pair'); td.append(el('span', 'pair-path mono', `color.${role}`), el('span', 'pair-sub', label)); tr.append(td);
+    const td = el('td', 'pair'); td.append(el('span', 'pair-path mono', colorPath(role)), el('span', 'pair-sub', label)); tr.append(td);
     for (const m of rp.modes) {
       const cell = el('td', 'mcol');
       const r = all.find((x) => x.mode === m)?.roles[role];
@@ -5989,7 +6020,7 @@ const renderForegroundEditor = (): HTMLElement => {
     const sel = stepPicker(nPal, nSteps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
       (step) => setFillOverride(role, nPal, step));
     sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: `color.${role}`,
+      swatchHex: r.hex, name: label, tokenPath: colorPath(role),
       controls: sfCtl(sfCtlBlock('Step', sel)),
       example: sfExText(r.hex, TEXT_SAMPLE[role] ?? 'Sample text', surfaceHex),
       badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
@@ -6007,7 +6038,7 @@ const renderForegroundEditor = (): HTMLElement => {
     const sel = stepPicker(palette, steps, baselineStepOf(role), typeof cur === 'string' ? cur : undefined,
       role === 'text.link.default' ? (step) => setLinkOverride(palette, steps, step) : (step) => setFillOverride(role, palette, step));
     sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
+      swatchHex: r.hex, name: label, tokenPath: colorPath(role), desc,
       controls: sfCtl(sfCtlBlock('Step', sel)),
       example: sfExText(r.hex, sample, surfaceHex),
       // The muted variants are gated too now (#570), at the LARGE-TEXT bar rather than the 4.5:1 the
@@ -6032,7 +6063,7 @@ const renderForegroundEditor = (): HTMLElement => {
     // on-brand ink previewed on a white page is invisible, and would look like a bug in the value.
     const on = onRole ? roles[onRole]?.hex : undefined;
     sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc: why,
+      swatchHex: r.hex, name: label, tokenPath: colorPath(role), desc: why,
       controls: sfCtl(sfCtlBlock('Source', el('span', 'sf-derived', from))),
       example: sfExText(r.hex, sample, on ?? surfaceHex),
       badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,
@@ -6105,7 +6136,7 @@ const renderForegroundsEditor = (): HTMLElement => {
     const tier = label.split('—')[1]?.trim();                 // "Surface — card" → "card"
     const exLabel = isSurface ? (tier ? tier[0].toUpperCase() + tier.slice(1) : 'Surface') : `${label} fill`;
     sec.append(sfRow({
-      swatchHex: r.hex, name: label, tokenPath: `color.${role}`, desc,
+      swatchHex: r.hex, name: label, tokenPath: colorPath(role), desc,
       controls: sfCtl(sfCtlBlock('Step', picker)),
       example: sfExFill(r.hex, exLabel, isSurface ? legibleInkOn(r.hex) : undefined),
       badge: r.min != null && r.min > 0 && r.ratio != null ? contrastBadge(r.ratio, r.min) : undefined,

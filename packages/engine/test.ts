@@ -37,9 +37,10 @@ import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
-import { renameMap, validateRenameMap, planVariableRenames, planCollectionRename, projectionsOf, PROJECTED_ROOTS, isRefusal, type RenameMap } from './rename-map';
+import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, MIRRORED_COLLECTIONS, type RenameMap } from './rename-map';
 import {
   MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
+  recollect, recollectAll,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
@@ -331,14 +332,17 @@ for (const b of brands) {
   // (e) Figma slots are scoped by SLOT (fill→paint, text→TEXT_FILL, border→STROKE_COLOR).
   const { color } = buildFigmaColor(nbTheme());
   const byName = new Map<string, any>(color.find((c) => c.$mode === 'light')!.variables.map((v: any) => [v.name, v]));
+  // Names carry the `color/appearance/` tier prefix since #1013. Spelled out per call rather than
+  // built from a constant: a missing name returns `null` here, so a stale prefix reads as "scopes are
+  // null" on all twelve at once — and a prefix derived from the emitter could not report that at all.
   const scopeOf = (n: string) => JSON.stringify(byName.get(n)?.scopes ?? null);
   const scopeBad: string[] = [];
-  if (scopeOf('color/interactive/primary/text/rest') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text/rest');
+  if (scopeOf('color/appearance/interactive/primary/text/rest') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text/rest');
   // Every border STATE must carry the stroke scope, not just the one that used to be the whole slot
   // — a state emitted without it would land in Figma unusable as a stroke (#576).
   for (const st of ['rest', 'hover', 'pressed'])
-    if (scopeOf(`color/interactive/primary/border/${st}`) !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push(`primary/border/${st}`);
-  if (scopeOf('color/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
+    if (scopeOf(`color/appearance/interactive/primary/border/${st}`) !== JSON.stringify(['STROKE_COLOR'])) scopeBad.push(`primary/border/${st}`);
+  if (scopeOf('color/appearance/interactive/primary/fill/rest') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) scopeBad.push('primary/fill/rest');
   ok(scopeBad.length === 0, 'interactive: Figma slots carry slot-aware scopes' + (scopeBad.length ? ` — ${scopeBad.join(',')}` : ''));
 
   // (e2) disabled.<slot> is also slot-scoped — surface/on-disabled paint, text=TEXT_FILL,
@@ -347,20 +351,20 @@ for (const b of brands) {
   //     the NB fixture doesn't carry disabled/*, so the round-trip test was the only
   //     signal. This pins all five slots.
   const disabledScopeBad: string[] = [];
-  if (scopeOf('color/disabled/fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) disabledScopeBad.push('disabled/fill');
-  if (scopeOf('color/disabled/on-fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'])) disabledScopeBad.push('disabled/on-fill');
-  if (scopeOf('color/disabled/text') !== JSON.stringify(['TEXT_FILL'])) disabledScopeBad.push('disabled/text');
-  if (scopeOf('color/disabled/icon') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'])) disabledScopeBad.push('disabled/icon');
-  if (scopeOf('color/disabled/border') !== JSON.stringify(['STROKE_COLOR'])) disabledScopeBad.push('disabled/border');
+  if (scopeOf('color/appearance/disabled/fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) disabledScopeBad.push('disabled/fill');
+  if (scopeOf('color/appearance/disabled/on-fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'])) disabledScopeBad.push('disabled/on-fill');
+  if (scopeOf('color/appearance/disabled/text') !== JSON.stringify(['TEXT_FILL'])) disabledScopeBad.push('disabled/text');
+  if (scopeOf('color/appearance/disabled/icon') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'])) disabledScopeBad.push('disabled/icon');
+  if (scopeOf('color/appearance/disabled/border') !== JSON.stringify(['STROKE_COLOR'])) disabledScopeBad.push('disabled/border');
   ok(disabledScopeBad.length === 0, 'disabled: Figma slots carry slot-aware scopes' + (disabledScopeBad.length ? ` — ${disabledScopeBad.join(',')}` : ''));
 
   // (e3) field.<slot> (docs/20 §17) is slot-scoped too — surface paints, border strokes,
   //      placeholder = TEXT_FILL. Same fall-through risk as disabled if it lacked a branch.
   const fieldScopeBad: string[] = [];
-  if (scopeOf('color/field/fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) fieldScopeBad.push('field/fill');
-  if (scopeOf('color/field/border/rest') !== JSON.stringify(['STROKE_COLOR'])) fieldScopeBad.push('field/border/rest');
-  if (scopeOf('color/field/border/hover') !== JSON.stringify(['STROKE_COLOR'])) fieldScopeBad.push('field/border/hover');
-  if (scopeOf('color/field/placeholder') !== JSON.stringify(['TEXT_FILL'])) fieldScopeBad.push('field/placeholder');
+  if (scopeOf('color/appearance/field/fill') !== JSON.stringify(['FRAME_FILL', 'SHAPE_FILL'])) fieldScopeBad.push('field/fill');
+  if (scopeOf('color/appearance/field/border/rest') !== JSON.stringify(['STROKE_COLOR'])) fieldScopeBad.push('field/border/rest');
+  if (scopeOf('color/appearance/field/border/hover') !== JSON.stringify(['STROKE_COLOR'])) fieldScopeBad.push('field/border/hover');
+  if (scopeOf('color/appearance/field/placeholder') !== JSON.stringify(['TEXT_FILL'])) fieldScopeBad.push('field/placeholder');
   ok(fieldScopeBad.length === 0, 'field: Figma slots carry slot-aware scopes' + (fieldScopeBad.length ? ` — ${fieldScopeBad.join(',')}` : ''));
 
   // (f) overlays (docs/20 §6): each colour has hover/pressed/selected washes, mode-adaptive
@@ -1010,7 +1014,12 @@ for (const b of brands) {
   ok(modes.length === 4, `materialise: nb emits 4 colour modes (${modes.join('/')})`);
   ok(rows.length > 0 && rows.every(([, t]) => t.length === modes.length), 'materialise: every alias row carries one target per mode');
   ok(rows.some(([, t]) => new Set(t).size > 1), 'materialise: alias rows carry distinct per-mode targets (collapse-proof — not one target repeated)');
-  const bg = rows.find(([n]) => n === 'color/background/primary');
+  // The probe names the VALUE tier's variable, and since #1013 that spelling is
+  // `color/appearance/background/primary`. `color/background/primary` still exists — it is the ALIAS tier's
+  // pointer — so a probe left on the old spelling would not go quiet here (these rows are value-tier only)
+  // but would silently become the wrong claim the moment anyone widened the row source: the alias tier has
+  // two modes on the SURFACE axis, and "distinct per mode" there means something else entirely.
+  const bg = rows.find(([n]) => n === 'color/appearance/background/primary');
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
 }
 
@@ -1061,7 +1070,7 @@ for (const b of brands) {
   ok(create.length > 0 && create.every((r) => r.valuesByMode.length === modes.length), 'write-plan: every colour create-row carries one literal value per mode');
   ok(aliases.length === create.length && aliases.every((r) => r.targetsByMode.length === modes.length), 'write-plan: every colour alias-row carries one target per mode (parallel to create-rows)');
   ok(aliases.some((r) => new Set(r.targetsByMode).size > 1), 'write-plan: alias rows carry distinct per-mode targets (collapse-proof at the plan level)');
-  const bgp = aliases.find((r) => r.name === 'color/background/primary');
+  const bgp = aliases.find((r) => r.name === 'color/appearance/background/primary');
   ok(!!bgp && new Set(bgp!.targetsByMode).size > 1, 'write-plan: background/primary binds a different palette step per mode (plan-level collapse-guard probe)');
 }
 
@@ -1076,7 +1085,10 @@ for (const b of brands) {
   const snapFrom = (aliasRowsIn: typeof plan.color.aliases): ReadbackSnapshot => ({
     collections: [
       { name: 'core-palette', modes: ['Default'] },
-      { name: 'color', modes: plan.color.modes },
+      // The VALUE tier's collection, `color.appearance` since #1013. `read-back.ts` looks the appearance
+      // modes up BY THIS NAME, so a snapshot still saying `color` reports zero modes and `modesDistinct`
+      // goes false — the collapse guard failing for a reason that has nothing to do with a collapse.
+      { name: 'color.appearance', modes: plan.color.modes },
     ],
     palette: plan.palette.map((p) => ({ name: p.name, scopes: p.scopes, hidden: p.hidden })),
     color: plan.color.create.map((c, i) => ({
@@ -1097,8 +1109,14 @@ for (const b of brands) {
   ok(good.checks.primitivesHidden, 'read-back: core-palette primitives hidden from publishing');
 
   // NEGATIVE: collapse every mode of background/primary to a single target → modesDistinct must fail.
+  //
+  // #1013 caught this pair mid-swap in the state worth recording: with the snapshot's collection still
+  // named `color`, `read-back.ts` found no appearance modes, `modesDistinct` was false for BOTH snapshots,
+  // and the NEGATIVE arm passed — for a reason having nothing to do with collapsing anything. Only the
+  // paired POSITIVE arm going red said so. A negative arm alone cannot tell "the mutation was detected"
+  // from "the check was already failing", which is why the two are written together here.
   const collapsed = plan.color.aliases.map((r) =>
-    r.name === 'color/background/primary' ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
+    r.name === 'color/appearance/background/primary' ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
   const bad = verifyReadback(snapFrom(collapsed));
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
@@ -1374,8 +1392,16 @@ for (const b of brands) {
     }
     // The 9 known-removable, and why each is here rather than fixed: `outlineInteraction` opts out of
     // overlay tokens by design. Listed literally so the exemption is a claim about specific paths.
+    //
+    // `color.appearance.*` since #1013: the overlays are appearance-varying paint, so they moved to the
+    // VALUE tier with the rest of it. What did not move is the SWEPT count — 113 guaranteed inverse paths
+    // before the swap and 113 after — and that is the useful reading of this arm during a rename: the tier
+    // moved, and no inverse path was added or lost on the way. The arm reported the change in both
+    // directions (4 newly removable under the new spelling, 4 no-longer-removable under the old), which is
+    // what an EQUALITY assertion buys over `unexpected.length === 0`: a subset check would have accepted
+    // the stale list silently, since nothing under the old spelling is removable any more.
     const KNOWN = (['primary', 'neutral', 'destructive'] as const)
-      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.interactive.${c}.inverse.overlay.${s}`))
+      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.interactive.${c}.inverse.overlay.${s}`))
       .sort();
     const got = [...removable].sort();
     const unexpected = got.filter((p) => !KNOWN.includes(p));
@@ -1622,13 +1648,15 @@ for (const b of brands) {
     // halves are SUPPOSED to agree.
     // The brands with a committed Figma emission — `regen`'s emit-figma step writes these three; a
     // brand absent here is not a silent skip, the count below is asserted.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/surface.inverse.json`)));
+    // #1013 swapped the two collections' names, so both filenames here moved: this layer is now
+    // `color.<surface-mode>.json` and the value tier it aliases is `color.appearance.<mode>.json`.
+    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.inverse.json`)));
     ok(figmaBrands.length >= 3, `surface: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
       const colorVars = new Set<string>(
-        JSON.parse(readFileSync(resolve(dir, 'color.light.json'), 'utf8')).variables.map((v: any) => v.name));
-      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `surface.${m}.json`), 'utf8')));
+        JSON.parse(readFileSync(resolve(dir, 'color.appearance.light.json'), 'utf8')).variables.map((v: any) => v.name));
+      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `color.${m}.json`), 'utf8')));
 
       // THE DEAD POINTER — the failure #893 says the whole sequencing exists to prevent. An alias at
       // a name no variable carries pastes clean into Figma and resolves to nothing at bind time.
@@ -1648,13 +1676,13 @@ for (const b of brands) {
       // were emitted as a self-alias anyway, the distinction the register exists to preserve would be
       // gone from the artifact and a deliberate gap would read exactly like a filled one.
       const omitted = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'omit');
-      const leaked = omitted.filter((g) => names[0].has(`surface/${g.replace(/^color\./, '').replace(/\./g, '/')}`));
+      const leaked = omitted.filter((g) => names[0].has(`color/${g.replace(/^color\./, '').replace(/\./g, '/')}`));
       ok(leaked.length === 0,
         `surface(${brand}): a gap dispositioned 'omit' emits NO row${leaked.length ? ` — LEAKED: ${leaked.join(', ')}` : ` (${omitted.length} omitted)`}`);
 
       // And the converse: a gap dispositioned `self` must be present, with both modes on one target.
       const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self')
-        .map((g) => `surface/${g.replace(/^color\./, '').replace(/\./g, '/')}`);
+        .map((g) => `color/${g.replace(/^color\./, '').replace(/\./g, '/')}`);
       const missingSelf = selfs.filter((n) => !names[0].has(n));
       const notSelfAliased = selfs.filter((n) => {
         const d = files[0].variables.find((v: any) => v.name === n);
@@ -1674,10 +1702,13 @@ for (const b of brands) {
     // hand-authored client brand (#893, the Mistica case).
     {
       const rowSets = figmaBrands.map((b) =>
-        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/surface.inverse.json`), 'utf8'))
+        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.inverse.json`), 'utf8'))
           .variables.map((v: any) => `${v.name}→${v.alias?.name}`).sort().join('|'));
-      ok(new Set(rowSets).size === 1,
-        `surface: every emitted brand ships the identical row set — the shared-collection property (${rowSets[0].split('|').length} rows)`);
+      // `rowSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
+      // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
+      // under a stack trace that named this line instead — the diagnosis pointing at the wrong file.
+      ok(rowSets.length > 0 && new Set(rowSets).size === 1,
+        `surface: every emitted brand ships the identical row set — the shared-collection property (${rowSets[0]?.split('|').length ?? 0} rows)`);
     }
     // Floor: a scan finding nothing to cover would pass both arms trivially (`docs/34` shape 9).
     ok(uncovered.length > 0 && roleSet.size > 100,
@@ -1902,7 +1933,7 @@ for (const b of brands) {
   const roleKey = 'interactive.primary.fill.rest';
   const root = 'prism';
   const base = { id: 'ovr', primary: { l: 0.55, c: 0.18, h: 285 }, neutral: { hue: 285, chroma: 0.01 } } as unknown as BrandInput;
-  const nodeAt = (t: any) => roleKey.split('.').reduce((n, k) => n?.[k], t.color);
+  const nodeAt = (t: any) => roleKey.split('.').reduce((n, k) => n?.[k], t.color.appearance);
   const threw = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
@@ -2002,7 +2033,10 @@ for (const b of brands) {
   const threw = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
   const stable = (v: any): any => Array.isArray(v) ? v.map(stable)
     : (v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, stable(v[k])])) : v);
-  const nodeAt = (t: any) => roleKey.split('.').reduce((n, k) => n?.[k], t.color);
+  // `color.appearance` since #1013. `t.color[roleKey]` is now the surface-ALIAS leaf, which carries no
+  // `modes` map at all — so reading it here would have failed as "no per-mode override" rather than as
+  // a path that moved, which is the quiet version of this whole rename.
+  const nodeAt = (t: any) => roleKey.split('.').reduce((n, k) => n?.[k], t.color.appearance);
   const modeOf = (input: BrandInput, m: string) => resolveAllModes(brandTheme(input)).find((r) => r.mode === m);
 
   // (a) resolveAllModes includes the custom mode, and with NO deviation its roles EQUAL the base's.
@@ -4586,6 +4620,14 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // emitted tree, so a producer change plus `regen` moves BOTH sides into disagreement rather than
   // into agreement. Read off the committed trees, over every brand in `out/`, so a new brand is
   // covered without editing this file.
+  //
+  // BOTH ARMS BELOW NAME `color.appearance.veil`, AND THE TIER IS LOAD-BEARING (#1013). The six leaves
+  // exist at BOTH tiers now: `color.appearance.veil.*` carries the alpha-ramp aliases and the mode
+  // entries, `color.veil.*` is one pointer at it. Read against the pointer tier, arm C fails loudly
+  // (a pointer's `$value` is not an alpha ramp) but arm B passes VACUOUSLY — a pointer leaf has no mode
+  // entries, so "every mode entry equals base" is `every` over an empty set (#1078's shape, found here
+  // by arm C failing beside it). A veil that started varying by appearance would be invisible to the
+  // arm built to catch exactly that.
   {
     const trees = readdirSync(resolve(HERE, './out'))
       .map((f) => /^([a-z0-9-]+)\.tokens\.json$/.exec(f)?.[1]).filter((b): b is string => !!b).sort();
@@ -4595,7 +4637,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     for (const brand of trees) {
       const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
       const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
-      const veil = tree[root]?.color?.veil;
+      const veil = tree[root]?.color?.appearance?.veil;
       if (!veil) { missing.push(brand); continue; }
       for (const polarity of ['dark', 'light']) {
         for (const rung of Object.keys(WCAG_FLOOR)) {
@@ -4621,7 +4663,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     for (const brand of trees) {
       const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
       const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
-      const veil = tree[root]?.color?.veil;
+      const veil = tree[root]?.color?.appearance?.veil;
       if (!veil) continue;
       for (const polarity of ['dark', 'light']) {
         const want = polarity === 'dark' ? 'black-alpha' : 'white-alpha';
@@ -5116,7 +5158,30 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const fix = JSON.parse(readFileSync(resolve(FIXDIR, `${key}.json`), 'utf8'));
     const out = emitted[key];
     const fixByName = new Map<string, any>(fix.variables.map((v: any) => [v.name, v]));
-    const outByName = new Map<string, any>(out.variables.map((v: any) => [v.name, v]));
+    // ── THE #1013 TIER PREFIX, STATED LITERALLY, ON THE ENGINE'S SIDE ONLY ──────────────────────────
+    //
+    // Post-#1013 the engine spells the value tier `color/appearance/<role>`; the fixture is the FROZEN
+    // real NB Token Press export and spells the same role `color/<role>`. Both are right — one records
+    // what NB shipped, the other what we ship now — so what this comparison needs is the RELATION between
+    // them, and the one place it must not be recorded is inside the fixture. Rewriting 78 names × 4 modes
+    // to agree with our own rename would leave this gate reading a file the renaming change had itself
+    // edited: green on every future rename, which is the one thing it is here to catch. `docs/34` shape 6,
+    // and the same reason `NB_KNOWN_RENAMES` exists below rather than a fixture edit.
+    //
+    // Literal, one direction, and deliberately NOT `roleOf` from `rename-map.ts` or anything else the
+    // engine uses to build these names — importing the emission's own de-tiering would put one subject
+    // under both sides of the comparison (`docs/34` shape 11). A hand-typed prefix swap is a second
+    // expression of the change; the arm below is what stops it from being a silent no-op.
+    const deTier = (n: string): string =>
+      n.startsWith('color/appearance/') ? `color/${n.slice('color/appearance/'.length)}` : n;
+    if (key !== 'palette') {
+      const tiered = out.variables.filter((v: any) => v.name.startsWith('color/appearance/')).length;
+      ok(tiered === out.variables.length,
+        `figma ${key}: every emitted value-tier variable carries #1013's \`color/appearance/\` prefix (${tiered}/${out.variables.length}) — an untiered row would make the de-tiering above inert for it, and the fixture match would then be an accident rather than a translation`);
+    }
+    const outByName = new Map<string, any>(out.variables.map((v: any) => [deTier(v.name), v]));
+    ok(outByName.size === out.variables.length,
+      `figma ${key}: de-tiering collides with nothing (${outByName.size} keys from ${out.variables.length} rows) — two rows landing on one key would silently drop one from every check below`);
     // The fixture is the FROZEN real NB Token Press export. `missing === 0` keeps the
     // byte-repro guarantee (every real-NB var is still emitted, and the scope/alias/value
     // checks below verify them). Engine-invented FAMILIES that NB's export predates
@@ -5760,13 +5825,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const loRp = resolvePreview(lo);
   ok(loRp.modes.length === 1 && loRp.modes[0] === 'light', 'mode config: modes:[light] → light only');
   const loTree = (buildTree(lo).tree as any).prism;
-  ok(Object.keys(loTree.color.interactive.primary.fill.rest.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode colour overrides');
+  ok(Object.keys(loTree.color.appearance.interactive.primary.fill.rest.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode colour overrides');
   ok(Object.keys(loTree.shadow.xs.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode SHADOW overrides (dark reduction gated)');
 
   const ld = brandTheme({ ...input, modes: ['light', 'dark'] });
   ok(resolvePreview(ld).modes.length === 2, 'mode config: modes:[light,dark] → two modes');
   const ldTree = (buildTree(ld).tree as any).prism;
-  ok('dark' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes && !('hc-light' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes), 'mode config: [light,dark] carries the dark override, not HC');
+  ok('dark' in ldTree.color.appearance.interactive.primary.fill.rest.$extensions.prism3.modes && !('hc-light' in ldTree.color.appearance.interactive.primary.fill.rest.$extensions.prism3.modes), 'mode config: [light,dark] carries the dark override, not HC');
   ok('dark' in ldTree.shadow.xs.$extensions.prism3.modes, 'mode config: [light,dark] keeps the dark shadow reduction');
 
   let t1 = false, t2 = false;
@@ -5787,7 +5852,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const R = wf.root, neutralPal = wf.roleToPalette.neutral, actionPal = wf.roleToPalette.action;
   const wfBuilt = buildTree(wf);
   const wfTree = (wfBuilt.tree as any)[R];
-  const act = wfTree.color.interactive.primary.fill.rest;
+  const act = wfTree.color.appearance.interactive.primary.fill.rest;
   ok(actionPal !== neutralPal && act.$value.includes(`.${actionPal}.`), 'wireframe: light $value stays the chromatic (accent) pick');
   ok(act.$extensions.prism3.modes.wireframe.$value.includes(`.${neutralPal}.`), 'wireframe: the wireframe override remaps a chromatic role → neutral (greyscale)');
   ok(wfTree.radius.md.$extensions.prism3.modes?.wireframe?.$value === `{${R}.dimension.0}`, 'wireframe: radius.md carries a wireframe → dimension.0 override');
@@ -5982,8 +6047,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // value must equal the dark extension's alias target, not the light $value.
   const ldTree = (buildTree(ld).tree as any)[Object.keys(buildTree(ld).tree)[0]];
   const darkFile = ldColor.find((f) => f.$mode === 'dark')!;
-  const darkAction = darkFile.variables.find((v) => v.name === 'color/interactive/primary/fill/rest')!;
-  const darkExtAlias = ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes.dark.$value.replace(/^\{|\}$/g, '');
+  const darkAction = darkFile.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
+  const darkExtAlias = ldTree.color.appearance.interactive.primary.fill.rest.$extensions.prism3.modes.dark.$value.replace(/^\{|\}$/g, '');
   ok(darkAction.alias?.name === figName(darkExtAlias),
     `emit-figma mode opt-out: dark file's color/interactive/primary/fill/rest alias is the DARK extension target, not a light fallback (got ${darkAction.alias?.name}, want ${figName(darkExtAlias)})`);
 }
@@ -6184,8 +6249,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // in the light file uses the accent palette; wireframe collapses to neutral). Structural
   // proof the value shipped alongside the alias is the neutral colour, not the light
   // chromatic one.
-  const wfAction = wfMode.variables.find((v) => v.name === 'color/interactive/primary/fill/rest')!;
-  const lightAction = wfColor.find((c) => c.$mode === 'light')!.variables.find((v) => v.name === 'color/interactive/primary/fill/rest')!;
+  const wfAction = wfMode.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
+  const lightAction = wfColor.find((c) => c.$mode === 'light')!.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
   const rgbDist = Math.abs((wfAction.value as any).r - (wfAction.value as any).g)
                 + Math.abs((wfAction.value as any).g - (wfAction.value as any).b);
   const lightRgbDist = Math.abs((lightAction.value as any).r - (lightAction.value as any).g)
@@ -6682,7 +6747,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const R = Object.keys(tree)[0];
   const spotChecks: Array<[string, any, string]> = [
     ['palette/red/550', tree[R].palette.red['550'], palette.variables.find((v) => v.name === 'palette/red/550')!.description],
-    ['color/background/primary', tree[R].color.background.primary, color[0].variables.find((v) => v.name === 'color/background/primary')!.description],
+    ['color/appearance/background/primary', tree[R].color.appearance.background.primary, color[0].variables.find((v) => v.name === 'color/appearance/background/primary')!.description],
     ['space/100', tree[R].space['100'], dims.space.variables.find((v) => v.name === 'space/100')!.description],
     ['radius/md', tree[R].radius.md, dims.radius[0].variables.find((v) => v.name === 'radius/md')!.description],
     ['opacity/50', tree[R].opacity['50'], dims.opacity.variables.find((v) => v.name === 'opacity/50')!.description],
@@ -9951,7 +10016,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     return (JSON.parse(m[1]) as [string, ...unknown[]][]).map((r) => r[0]);
   };
   const packedNames = chunks.flatMap((c) => rowNames(c.js));
-  const exportedVars = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/color.light.json'), 'utf8')).variables.length;
+  const exportedVars = JSON.parse(readFileSync(resolve(HERE, './out/figma/nb/color.appearance.light.json'), 'utf8')).variables.length;
   ok(packedNames.length === exportedVars,
     `materialise: every colour variable lands in exactly one chunk (${packedNames.length} packed vs ${exportedVars} in the committed color.light.json)`);
   // The NAMES, not only the count — swapping one row for another keeps the count identical. Read by
@@ -9999,7 +10064,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the typography block below uses for font/style/text-style plans.
   const plan = buildWritePlan({
     palette: JSON.parse(readFileSync(resolve(HERE, 'out/figma/nb/core-palette.json'), 'utf8')),
-    color: ['light', 'dark', 'hc-light', 'hc-dark'].map((m) => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/color.${m}.json`), 'utf8'))),
+    color: ['light', 'dark', 'hc-light', 'hc-dark'].map((m) => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/color.appearance.${m}.json`), 'utf8'))),
   });
   const paletteMatch = verify.match(/const PLANNED_PALETTE=(\[.*?\]);/);
   const colorMatch = verify.match(/const PLANNED_COLOR=(\[.*?\]);/);
@@ -11182,14 +11247,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // This is what the def actually accomplishes. docs/32 measured the hand-authored ring carrying
   // hardcoded #2D65D4 / #AFC7F3 fills, radius 0, and a stroke weight bound to a REMOTE New Balance
   // variable — all placeholders. These four now resolve against the emitted tree for every brand.
-  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.border.inverse.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
+  // `border.inverse` names the VALUE tier since #1013 — `color.border.inverse.focus` is not a name the
+  // engine emits any more, because `color.*` is the surface tier and it carries no inverse roles.
+  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.appearance.border.inverse.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
     ok(focusRing.tokens[slot] === path && paths.has(path),
       `focus-ring: '${slot}' binds ${path}, which the engine EMITS — the ring's skin is no longer whatever a Figma file happens to hold`);
   }
   // The two axes exist because the token tier already emitted exactly two of each — docs/32's evidence
   // that the ring was always one shared thing with a per-context parameter.
   ok(focusRing.variants.color.join(',') === 'default,inverse',
-    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / color.border.inverse.focus)');
+    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / color.appearance.border.inverse.focus)');
   ok(focusRing.variants.offset.join(',') === 'control,field',
     'focus-ring: the offset axis mirrors the emitted pair (focus.ring.offset / offset-field)');
   ok(focusRing.states.length === 0,
@@ -11779,7 +11846,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // at the moment of the rename rather than checked afterwards. Two gates, one property each.
 {
   const map = renameMap();
-  const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+  const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.appearance.light.json`)));
   ok(figmaBrands.length >= 3,
     `rename-map: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
 
@@ -11799,9 +11866,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(nbIdx.size > 500, `rename-map: the corpus index is populated (${nbIdx.size} nb variables) — an empty index would satisfy every arm below`);
 
   // ---- (a) the derivation against the corpus ----
-  const colorRows = map.variables.filter((r) => r.collection === 'color');
+  const colorRows = map.variables.filter((r) => r.collection === 'color.appearance');
   ok(map.variables.length >= 80 && colorRows.length >= 40,
-    `rename-map: the derivation materialises ${map.variables.length} entries, ${colorRows.length} of them in \`color\` (floors 80/40) — zero derived entries is the silent failure this whole block exists for`);
+    `rename-map: the derivation materialises ${map.variables.length} entries, ${colorRows.length} of them in \`color.appearance\` (floors 80/40) — zero derived entries is the silent failure this whole block exists for`);
 
   for (const [brand, idx] of indexes) {
     // Direction 1: the map points at something real. A `to` that resolves nowhere is a migration that
@@ -11809,7 +11876,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // out of a healthy variable, the one way this operation is worse than doing nothing.
     const unresolved = colorRows.filter((r) => !idx.has(r.to));
     ok(unresolved.length === 0,
-      `rename-map(${brand}): every derived \`color\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => r.to).join(', ')}` : ` (${colorRows.length} entries)`}`);
+      `rename-map(${brand}): every derived \`color.appearance\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => r.to).join(', ')}` : ` (${colorRows.length} entries)`}`);
 
     // Direction 2: the map does not point at something LIVE. A `from` still emitted means the entry is
     // stale — the rename never happened, or reverted — and applying it would move a variable the plan
@@ -11846,23 +11913,76 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `rename-map: every projected root is genuinely an emitted collection name (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
 
   // ---- (b) the entries with NO Figma counterpart are a stated set, not a silent skip ----
-  // 3 of the 43 deprecations project to nothing: `motion.easing.*` has no Figma variable at all (easing
-  // is not a variable type Figma has). Named rather than counted, so a future deprecation quietly
-  // joining the unprojected set fails here instead of being absorbed into a tolerance.
-  const unprojected = DEPRECATIONS.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(p.to)));
-  ok(unprojected.length === 3 && unprojected.every((d) => d.path.startsWith('motion.easing.')),
-    `rename-map: exactly the 3 \`motion.easing.*\` deprecations project to nothing — Figma has no easing variable, so there is nothing to migrate (got ${unprojected.length}: ${unprojected.map((d) => d.path).join(', ')})`);
+  // A DEPRECATION CAN REACH NO FIGMA VARIABLE FOR THREE UNRELATED REASONS, and the arms below name each
+  // one by its OWN predicate rather than counting the union.
+  //
+  // The arm that used to stand here counted the union, and #1013 is what exposed why that was never a
+  // test: it read `projectionsOf(d).every((p) => !nbIdx.has(p.to))` — "projected, and nothing matched" —
+  // and reported 3, so it looked like it was checking the derivation against the corpus. It was not.
+  // `[].every(...)` is VACUOUSLY TRUE, all 3 of its hits were roots that project nothing at all, and
+  // `nbIdx` never came into it. When #1013 added 114 more non-projecting entries the same predicate
+  // reported 117 and the arm failed on a number — which is the only reason anyone looked. A derivation
+  // that had stopped projecting entirely would have satisfied it with every deprecation in the list.
+  //
+  //   1. ROOT NOT PROJECTED — `motion.easing.*` (3). `motion` is not in `PROJECTED_ROOTS`: Figma has no
+  //      easing variable, so there is nothing in any file to rename.
+  //   2. TIER-ONLY — #1013's moves (114). The contract path moved and the ROLE did not, so there is no
+  //      variable rename to derive: the Figma-side change is the tier prefix on every variable in the
+  //      collection, which is a MATERIALIZATION rename and lives as a rule in `materialization-renames.ts`.
+  //      Without the skip these would emit 228 self-renames, which `validateRenameMap` refuses.
+  //   3. CROSS-ROOT — 0 today; asserted on a constructed pair above, since a guard with no live case is
+  //      a guard with no arm.
+  //
+  // Then the CLASP: the three reasons must account for every non-projecting entry. Without it a fourth
+  // reason could appear and be absorbed by whichever arm's count happened to be a floor.
+  const unprojectedRoot = DEPRECATIONS.filter((d) => !PROJECTED_ROOTS.includes(d.path.split('.')[0]));
+  ok(unprojectedRoot.length === 3 && unprojectedRoot.every((d) => d.path.startsWith('motion.easing.'))
+      && unprojectedRoot.every((d) => projectionsOf(d).length === 0),
+    `rename-map: exactly the 3 \`motion.easing.*\` deprecations sit on an unprojected ROOT — Figma has no easing variable, so there is nothing to migrate (got ${unprojectedRoot.length}: ${unprojectedRoot.map((d) => d.path).join(', ')})`);
+  const tierOnly = DEPRECATIONS.filter((d) => d.replacedBy === `color.appearance.${d.path.slice('color.'.length)}`);
+  const tierOnlyProjecting = tierOnly.filter((d) => projectionsOf(d).length > 0);
+  ok(tierOnly.length === 114 && tierOnlyProjecting.length === 0,
+    `rename-map: all ${tierOnly.length} of #1013's tier-only moves project NOTHING (expected 114) — the contract path moved, the role did not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
+  const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
+  const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
+  ok(noProjection.length === 117 && unaccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 3 unprojected root + 114 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+
+  // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
+  // least one live variable. Per-ROW this is deliberately false — the mirror over-projects, see (c) — so
+  // the claim is per-deprecation, and it is the one whose failure mode is a derivation quietly aiming at
+  // names the emission stopped writing.
+  const projecting = DEPRECATIONS.filter((d) => projectionsOf(d).length > 0);
+  const projectedButDead = projecting.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(p.to)));
+  ok(projecting.length === 40 && projectedButDead.length === 0,
+    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 40)${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+
+  // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT. 151 deprecations now name a
+  // `color.appearance.*` replacement, but only 114 of them are #1013's own; the other 37 are older renames
+  // (3.0.0–5.0.0) whose `replacedBy` was carried into the new tier by the swap. Those must still project,
+  // because a real role change is buried inside them — `interactive/primary/on-inverse/border` →
+  // `interactive/primary/inverse/border/rest` — and it is `roleOf` stripping the tier from BOTH sides that
+  // separates the two cases. A derivation keyed on the tier segment instead of the role would lose all 37.
+  const intoNewTier = DEPRECATIONS.filter((d) => d.replacedBy?.startsWith('color.appearance.'));
+  const olderRepointed = intoNewTier.filter((d) => !tierOnly.includes(d));
+  ok(intoNewTier.length === 151 && olderRepointed.length === 37 && olderRepointed.every((d) => projectionsOf(d).length === 2),
+    `rename-map: the ${olderRepointed.length} PRE-#1013 deprecations repointed into the new tier still project both mirrors (${intoNewTier.length} name the new tier, ${tierOnly.length} of them tier-only) — the projection follows the ROLE, so it does not care which era the record was written in`);
 
   // ---- (c) the SURFACE mirror — one contract path, two Figma names ----
-  // `surface/*` carries a subset of `color/*`'s suffixes, so a renamed contract path can exist twice in
-  // the file. A color-only map leaves the surface twin behind and says nothing about it, which is the
-  // hole this arm pins: 3 live entries today, and the floor is what makes a collapsed mirror fail.
-  const surfRows = map.variables.filter((r) => r.collection === 'surface');
+  // The alias tier carries a subset of the value tier's suffixes, so a renamed contract path can exist
+  // twice in the file. A value-tier-only map leaves the alias twin behind and says nothing about it, which
+  // is the hole this arm pins: 3 live entries today, and the floor is what makes a collapsed mirror fail.
+  //
+  // Since #1013 the two collections are `color.appearance` (value) and `color` (alias) — the mirror is the
+  // same relation under swapped names, and `MIRRORED_COLLECTIONS` is where that pair is stated once.
+  ok(MIRRORED_COLLECTIONS['color']?.join() === 'color.appearance,color',
+    `rename-map: the mirror pair is [value tier, alias tier] in that order — the value tier is listed first because it is the superset, and a reader who takes them the other way round reads the subset relation backwards (got ${MIRRORED_COLLECTIONS['color']?.join() ?? 'nothing'})`);
+  const surfRows = map.variables.filter((r) => r.collection === 'color');
   const surfLive = surfRows.filter((r) => nbIdx.has(r.to));
   ok(surfLive.length >= 3,
-    `rename-map: the \`surface\` mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every surface twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => r.to).join(', ')})` : ''}`);
-  ok(surfLive.every((r) => nbIdx.get(r.to) === 'surface'),
-    'rename-map: every live mirror target is emitted into `surface`, not read back out of `color` under a re-rooted name');
+    `rename-map: the alias-tier mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every alias twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => r.to).join(', ')})` : ''}`);
+  ok(surfLive.every((r) => nbIdx.get(r.to) === 'color'),
+    'rename-map: every live mirror target is emitted into `color`, not read back out of `color.appearance` under a re-rooted name');
   // The mirror over-projects on purpose — most `color` entries have no surface twin — and that is safe
   // ONLY because an absent source is a reported no-op rather than an error. Asserted, because if it
   // ever became an error, over-projection would turn every apply into a wall of false refusals.
@@ -11876,7 +11996,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // filed under `colour` is never looked at and never reported.
   const domainTheme = nbTheme();
   const written = new Set<string>([
-    'core-palette', 'color',
+    'core-palette', 'color.appearance',
     buildSurfaceWritePlan(domainTheme).name,
     ...buildFloatWritePlan(domainTheme).map((p) => p.name),
     ...buildFontVarPlan(domainTheme).map((p) => p.name),
@@ -11886,12 +12006,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     .filter((n) => !written.has(n));
   ok(outsideDomain.length === 0,
     `rename-map: every collection the map names is one the write plans actually produce${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
-  // `COLLECTION_RENAMES` ships EMPTY, and that is the honest state: #1013 Q4 (whether the alias layer
-  // and the value layer swap names) is an open decision, and pre-authoring the entry would take it by
-  // shipping it into designers' files. Asserted rather than left to be noticed, so the day an entry is
-  // added, the arms below are already the thing that has to pass.
-  ok(map.collections.length === 0,
-    `rename-map: COLLECTION_RENAMES is empty — the mechanism ships before the decision, so taking #1013 Q4 later costs nothing (got ${map.collections.length})`);
+  // `COLLECTION_RENAMES` shipped EMPTY until #1013, because #1013 Q4 — whether the alias layer and the
+  // value layer swap names — was an open decision and pre-authoring the entry would have taken it by
+  // shipping it into designers' files. #1013 took it, so the arm flips from "there are none" to "there are
+  // exactly the two the swap needs", and the domain check above is what makes them checkable rather than
+  // asserted: both targets have to be collections the write plans really produce.
+  ok(map.collections.length === 2 && map.collections.every((cr) => written.has(cr.to)),
+    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and both targets are collections the write plans produce (${map.collections.map((cr) => `${cr.from}→${cr.to}`).join(', ')})`);
 
   // ---- (e) STATIC refusals: constructed hazards, each by its own name ----
   ok(validateRenameMap(map).length === 0,
@@ -11911,29 +12032,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   refuses({ collections: [c('color', 'surface'), c('surface', 'color')], variables: [] }, 'collection rename cycle', 'a SWAP is migratable under NO ordering — measured: both entries return `target-occupied` in both directions — so it needs the two-phase temp name this deliberately does not do');
   refuses({ collections: [c('color', 'a'), c('color', 'b')], variables: [] }, 'duplicate collection source', 'one collection claiming two new names');
   refuses({ collections: [c('a', 'color'), c('b', 'color')], variables: [] }, 'duplicate collection target', 'two collections claiming one name');
-  // A collection CHAIN and a collection CYCLE both refuse, and they used to refuse as the same
-  // sentence — "which is itself a source", worded cycle. They are not the same problem: measured
-  // (docs/44 §3), the chain `surface`→`color` + `color`→`color.appearance` migrates FULLY under one
-  // executor order and refuses safely under the other, while a swap migrates under neither. So the
-  // chain's fix is an ordered pre-pass and the swap's is a temp name, and a reader handed one message
-  // for both cannot tell which they are looking at.
+  // A collection CHAIN and a collection CYCLE ARE NOT THE SAME PROBLEM, and #1035 is where that stopped
+  // being a distinction without a difference: the chain is now LEGAL and the cycle is still refused.
+  // Measured (docs/44 §3), the chain `surface`→`color` + `color`→`color.appearance` migrates FULLY under
+  // one executor order and refuses safely under the other — so an ordering exists, `planCollectionRenames`
+  // computes it, and refusing the chain would refuse the map the engine actually ships. A swap migrates
+  // under NO ordering and needs a two-phase temp name this deliberately does not do, so it still refuses.
   const CHAIN: RenameMap = { collections: [c('surface', 'color'), c('color', 'color.appearance')], variables: [] };
   const CYCLE: RenameMap = { collections: [c('color', 'surface'), c('surface', 'color')], variables: [] };
-  refuses(CHAIN, 'collection rename chain', 'a chain is a target that is also a source but does NOT close a loop — an ordering exists, and the refusal is this module declining to choose it rather than the operation being impossible');
-  // The arms that make the two ABOVE a split rather than a shared wording. Without these, one message
-  // mentioning both words satisfies both `refuses` calls and the conflation reads as green.
-  ok(!validateRenameMap(CHAIN).some((x) => x.includes('cycle')),
-    `rename-map: a chain is NOT reported as a cycle — the fixes differ (ordered pre-pass vs two-phase temp name), so one wording for both misdirects the reader${validateRenameMap(CHAIN).some((x) => x.includes('cycle')) ? ` (got: ${validateRenameMap(CHAIN).find((x) => x.includes('cycle'))})` : ''}`);
+  ok(validateRenameMap(CHAIN).length === 0,
+    `rename-map: a collection CHAIN validates clean — a target that is also a source but does NOT close a loop has an ordering, and since #1035 the pre-pass computes it${validateRenameMap(CHAIN).length ? ` (got: ${validateRenameMap(CHAIN)[0]})` : ''}`);
+  // The paired positive, and it is what stops the arm above from being satisfied by a validator that
+  // stopped refusing anything at all. Same shape, one edge different, opposite verdict.
+  refuses(CYCLE, 'collection rename cycle', 'a SWAP is migratable under NO ordering — measured: both entries return `target-occupied` in both directions — so it needs the two-phase temp name this deliberately does not do');
   ok(!validateRenameMap(CYCLE).some((x) => x.includes('chain')),
-    `rename-map: a swap is NOT reported as a chain — it is migratable under no ordering, so offering "an ordering exists" would send the reader looking for one${validateRenameMap(CYCLE).some((x) => x.includes('chain')) ? ` (got: ${validateRenameMap(CYCLE).find((x) => x.includes('chain'))})` : ''}`);
-  // The chain classification must survive a longer chain and must not be fooled by a 3-cycle — the
-  // two shapes a two-entry probe cannot tell apart, and the reason `closesLoop` walks the graph
-  // instead of testing one hop.
-  ok(validateRenameMap({ collections: [c('a', 'b'), c('b', 'c')], variables: [] }).filter((x) => x.includes('collection rename chain')).length === 1,
-    'rename-map: a 3-name chain (a→b→c) reports exactly ONE chain refusal — the tail entry b→c has a free target and is not a hazard at all');
+    `rename-map: and a swap is NOT described as a chain — it is migratable under no ordering, so offering "an ordering exists" would send the reader looking for one${validateRenameMap(CYCLE).some((x) => x.includes('chain')) ? ` (got: ${validateRenameMap(CYCLE).find((x) => x.includes('chain'))})` : ''}`);
+  // A longer chain is still clean, and a 3-CYCLE must not pass as one — the two shapes a two-entry probe
+  // cannot tell apart, and the reason `closesLoop` walks the graph instead of testing one hop. Measured by
+  // mutation: reducing the walk to a single hop makes the 3-cycle below validate clean, and the pre-pass
+  // then cheerfully applies all three renames, walking one collection round the loop.
+  ok(validateRenameMap({ collections: [c('a', 'b'), c('b', 'c')], variables: [] }).length === 0,
+    'rename-map: a 3-name chain (a→b→c) validates clean — order it and every entry migrates; the tail entry b→c was never a hazard at all');
   const THREE_CYCLE = validateRenameMap({ collections: [c('a', 'b'), c('b', 'c'), c('c', 'a')], variables: [] });
-  ok(THREE_CYCLE.filter((x) => x.includes('collection rename cycle')).length === 3 && !THREE_CYCLE.some((x) => x.includes('chain')),
-    `rename-map: a 3-name CYCLE (a→b→c→a) reports all three entries as cycles and none as a chain — a one-hop test would call every one of them a chain (got ${THREE_CYCLE.filter((x) => x.includes('cycle')).length} cycle, ${THREE_CYCLE.filter((x) => x.includes('chain')).length} chain)`);
+  ok(THREE_CYCLE.filter((x) => x.includes('collection rename cycle')).length === 3,
+    `rename-map: a 3-name CYCLE (a→b→c→a) reports all three entries as cycles — a one-hop test would find no loop at any single edge and report the whole cycle as nothing at all (got ${THREE_CYCLE.filter((x) => x.includes('cycle')).length} cycle)`);
+  // And the ordering routine must not hang or silently drop entries on the cycle it is handed after the
+  // static refusal is ignored. Every entry still comes back, so a caller that skipped `validateRenameMap`
+  // gets refusals rather than a short list it cannot tell from a clean one.
+  ok(planCollectionRenames(['a', 'b', 'c'], [c('a', 'b'), c('b', 'c'), c('c', 'a')]).length === 3,
+    'rename-map: `planCollectionRenames` on a CYCLE returns an outcome per entry rather than looping or truncating — the static refusal is the guard, and this is the backstop behind it');
   // Fan-IN is NOT a static refusal, and this is the arm that keeps it that way. Two historical paths
   // really do point at one live path in today's data (a 3.0.0 entry and a 4.0.0 entry both landing on
   // `color/interactive/<palette>/inverse/border/rest`) — a correct contract record and an ambiguous
@@ -11962,19 +12089,120 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(statuses(['color/a'], ['color/c'], [v('color/a', 'color/c'), v('color/b', 'color/c')]) === 'color/a→color/c:migrated',
     'rename-map: fan-in with ONE source live → an ordinary migration, so the 3 fan-in groups in the real map still migrate on a healthy file rather than refusing forever');
 
-  // The collection planner, same shape. Its plan-membership precondition is implicit and stronger: the
-  // name it is asked about is one the write is about to use, so an unplanned target is never looked up.
-  ok(planCollectionRename(['old'], 'new', [c('old', 'new')])?.status === 'migrated',
+  // The collection planner, same shape — but it plans the WHOLE map at once (#1035), because a chain's
+  // correct order is a property of the map and not of any single entry. Its plan-membership precondition
+  // is implicit and stronger than the variable planner's: the names it works in are the ones the write is
+  // about to use, so an unplanned target is never looked up.
+  const cstat = (existing: string[], renames: ReturnType<typeof c>[]): string =>
+    planCollectionRenames(existing, renames).map((o) => `${o.from}→${o.to}:${o.status}`).join(' | ');
+  ok(cstat(['old'], [c('old', 'new')]) === 'old→new:migrated',
     'rename-map: a collection whose source exists and whose target does not → migrated in ONE write, keeping every child id and every binding under it');
-  ok(planCollectionRename(['old', 'new'], 'new', [c('old', 'new')])?.status === 'target-occupied',
+  ok(cstat(['old', 'new'], [c('old', 'new')]) === 'old→new:target-occupied',
     'rename-map: a collection rename onto an existing name → target-occupied — both would answer find-by-name, and which one wins is not defined');
-  ok(planCollectionRename([], 'new', [c('old', 'new')])?.status === 'source-absent',
+  ok(cstat([], [c('old', 'new')]) === 'old→new:source-absent',
     'rename-map: nothing to migrate → source-absent, so the ordinary fresh-file case is a reported no-op');
-  ok(planCollectionRename(['old'], 'unrelated', [c('old', 'new')]) === null,
-    'rename-map: no entry targets this collection → null, so 14 of the 15 collections do no work and cost nothing');
+  ok(cstat(['unrelated'], [c('old', 'new')]) === 'old→new:source-absent',
+    'rename-map: a file holding none of the sources reports every entry rather than omitting it — the planner has no null outcome, because "not applicable" and "checked, nothing to do" are the same fact and only one of them is reportable');
+
+  // ---- (f2) THE CHAIN, and the ORDER IS COMPUTED (#1035) ----
+  // The shipped map's two entries are a chain: `color` must vacate the short name before `surface` can
+  // take it. Every arm below drives the SAME two entries against a different file state, which is the
+  // only way to tell an ordering that works from one that happened to be written down correctly.
+  const chainRenames = [c('surface', 'color'), c('color', 'color.appearance')];
+  const PRE = 'color→color.appearance:migrated | surface→color:migrated';
+  ok(cstat(['color', 'surface'], chainRenames) === PRE,
+    `rename-map: a pre-#1013 file migrates BOTH entries of the chain, value tier first (${cstat(['color', 'surface'], chainRenames)})`);
+  // The array order must not matter. This is the arm that says the topological sort is doing the work:
+  // without it, an author who happened to write the entries in dependency order would pass every other
+  // arm here and ship a pass that breaks the day someone tidies the list.
+  ok(cstat(['color', 'surface'], [...chainRenames].reverse()) === PRE,
+    'rename-map: REVERSING the map produces the identical plan — the order is computed from the dependencies, not read off the array, so reordering `COLLECTION_RENAMES` is a no-op');
+  // The three states a real file can be in, each with a different right answer. The middle one is why the
+  // planner tests the SOURCE before the target: on an already-migrated file `color.appearance` is present
+  // precisely BECAUSE the rename happened, and a target-first test refuses that file forever.
+  ok(cstat(['color.appearance', 'surface'], chainRenames) === 'color→color.appearance:source-absent | surface→color:migrated',
+    'rename-map: HALF-migrated (value tier moved, alias tier not) → the done half is a reported no-op and the remaining half migrates — re-running finishes the job rather than refusing it');
+  ok(cstat(['color.appearance', 'color'], chainRenames) === 'color→color.appearance:source-absent | surface→color:source-absent',
+    'rename-map: ALREADY migrated → both entries source-absent, no refusal. `color` and `color.appearance` both present is the NORMAL post-swap file, and reading it as `target-occupied` is the defect #1035 fixed');
+  ok(cstat(['color.appearance', 'color', 'surface'], chainRenames) === 'color→color.appearance:source-absent | surface→color:target-occupied',
+    'rename-map: migrated BUT still carrying a stray `surface` → target-occupied, refusing to merge the leftover into the live alias tier — the one state where a refusal is the right answer');
+  // The shipped map is that chain, and validates clean. The chain refusal was DELETED in #1035, so this
+  // is not the same statement as "the map is small": it is the statement that a chain is now legal.
+  ok(COLLECTION_RENAMES.length === 2 && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0,
+    `rename-map: the shipped COLLECTION_RENAMES is a 2-entry CHAIN and validates clean (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
+  // And the entries are STAMPED with the version that made the change. This arm exists because its
+  // ABSENCE was measurable: `MATERIALIZATION_RENAMES` has carried the equivalent since #1039, this map
+  // carried nothing, and both entries duly shipped reading `0.25.0` — the media veil's version, which
+  // did not produce this rename — surviving a rebase and a review of the diff. `since` here answers
+  // "what code produced this file?" (see the map's own header), so a wrong one is not cosmetic: it is a
+  // false provenance record on the only question the field exists to answer, and permanent.
+  //
+  // Two limits, stated because the arm reads stronger than it is. It pins every entry to the CURRENT
+  // version, so it is a TRIPWIRE that fires on the next `ENGINE_VERSION` bump rather than a durable
+  // rule — correct while the map holds exactly one change's entries, and a deliberate prompt to decide
+  // then. **Which is why the failure message spends most of its length refusing the obvious remedy.** A
+  // tripwire whose easiest green is "restamp the entries to today's version" would hand the next reader
+  // the exact false provenance record it was added to prevent — the gate becoming the defect, one bump
+  // later. The message has to say the opposite of what a red gate normally implies: the data is probably
+  // right and the arm is probably obsolete. The durable form is a record checked against an era it names
+  // rather than against today, and
+  // there is nothing to key that on yet: no version history exists in `version.ts` to check membership
+  // against. That is #1080.
+  ok(COLLECTION_RENAMES.every((r) => r.since === ENGINE_VERSION),
+    `rename-map: every COLLECTION_RENAMES entry is stamped with the ENGINE_VERSION that made the change `
+    + `(got ${COLLECTION_RENAMES.map((r) => `${r.from}→${r.to}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
+    + `\n    IF YOU ARE READING THIS AFTER AN \`ENGINE_VERSION\` BUMP, DO NOT RESTAMP THE ENTRIES TO ${ENGINE_VERSION}.`
+    + `\n    \`since\` records the version whose code MADE the rename, not the version in the file today. Moving a`
+    + `\n    historical stamp forward is precisely the false provenance record this arm was added to prevent, so the`
+    + `\n    obvious way to get green here is the one change that reintroduces the defect.`
+    + `\n    This arm cannot tell a STALE stamp from a CORRECT HISTORICAL one. Once ${ENGINE_VERSION} is past these`
+    + `\n    renames, a LOWER stamp is the right answer and this arm is the thing that is obsolete, not the data.`
+    + `\n    Decide by hand: did each entry's rename ship in ${ENGINE_VERSION}? If it did, stamp it ${ENGINE_VERSION}. If it`
+    + `\n    shipped earlier, leave the stamp alone and retire this arm — #1080 is the durable replacement.`);
+  ok(cstat(['core-palette', 'color', 'surface'], [...COLLECTION_RENAMES]) === PRE,
+    'rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone');
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
       && !isRefusal('migrated') && !isRefusal('source-absent'),
     'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
+
+  // ---- (f3) COMPOSING the two kinds of rename into ONE row per live name (#1013) ----
+  // Two independent things want to rewrite the same variable name at apply time: a materialization RULE
+  // (a whole tier moved — 370 names per brand, no per-name record anywhere) and a contract ROW (one
+  // deprecated path renamed). `composeVariableRenames` folds them into a single `{from,to}` per live
+  // name, and the folding is the point rather than a convenience: run as two passes, a name matched by
+  // both would route through an INTERMEDIATE spelling no plan asks for, and the two correct rules would
+  // migrate nothing between them — `target-not-planned` on the first, `source-absent` on the second.
+  const comp = (collection: string, existing: string[], contract: ReturnType<typeof v>[] = []): string =>
+    composeVariableRenames(collection, existing, contract, MATERIALIZATION_RENAMES)
+      .map((r) => `${r.from}→${r.to}`).sort().join(' | ');
+  ok(comp('color.appearance', ['color/background/primary']) === 'color/background/primary→color/appearance/background/primary',
+    'rename-map: a pre-#1013 value-tier name in the value-tier collection composes to one row under the tier rule — this is the row that turns 242 orphans into 242 migrations');
+  ok(comp('color', ['surface/border/brand']) === 'surface/border/brand→color/border/brand',
+    'rename-map: and the alias tier composes under its own rule, in its own collection — the two rules are keyed to the collection they run in, so neither can reach into the other');
+  ok(comp('color.appearance', ['color/appearance/background/primary']) === '',
+    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding');
+  ok(comp('color', ['color/background/primary']) === '',
+    'rename-map: a value-tier SPELLING sitting in the alias collection is left alone — the tier rule tests the collection, not just the prefix, which is what keeps the post-swap `color` collection out of its reach');
+  // THE COMPOSITION-ORDER ARM. A contract row keyed on the POST-rule spelling must be reached by the
+  // name that only becomes that spelling once the rule has run. One row, one hop, and the intermediate
+  // name appears nowhere in the output.
+  const composed = composeVariableRenames('color.appearance', ['color/old'],
+    [v('color/appearance/old', 'color/appearance/new', 'color.appearance')], MATERIALIZATION_RENAMES);
+  ok(composed.length === 1 && composed[0].from === 'color/old' && composed[0].to === 'color/appearance/new'
+      && composed.every((r) => r.to !== 'color/appearance/old'),
+    `rename-map: rule THEN contract, folded into one hop (${composed.map((r) => `${r.from}→${r.to}`).join(', ') || 'NOTHING'}) — the intermediate spelling is never written, because nothing plans it and a variable renamed to an unplanned name is an orphan manufactured out of a healthy one`);
+  // And the shipped configuration cannot get into the state where that folding is ambiguous, because the
+  // two sources are disjoint: every contract row for a mirrored collection is keyed on a POST-swap name,
+  // which is precisely the domain each rule excludes. Measured against the derived map, not assumed —
+  // this is the precondition, and it is the thing that would quietly stop being true.
+  const shipped = renameMap().variables;
+  const valueRows = shipped.filter((r) => r.collection === 'color.appearance');
+  const aliasRowsHere = shipped.filter((r) => r.collection === 'color');
+  ok(valueRows.length > 0 && valueRows.every((r) => r.from.startsWith('color/appearance/'))
+      && aliasRowsHere.length > 0 && aliasRowsHere.every((r) => !r.from.startsWith('surface/')),
+    `rename-map: the shipped contract rows (${valueRows.length} value-tier, ${aliasRowsHere.length} alias-tier) are keyed on POST-swap names, exactly the domain the two rules exclude — so no live name is claimed by both, and the fold has one answer`);
+  ok(comp('color.appearance', [], [v('color/appearance/a', 'color/appearance/b', 'color.appearance')]) === 'color/appearance/a→color/appearance/b',
+    'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
 }
 
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
@@ -12146,8 +12374,100 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(missingImages.length === 0,
     `#1039 check 2: every rule's image IS emitted — a rule pointing at a name nothing emits is `
     + `\`target-not-planned\` at apply time, i.e. inert and silent. ${missingImages.slice(0, 3).join(' · ')}`);
-  ok(MATERIALIZATION_RENAMES.length === 0,
-    `#1039: the artifact ships EMPTY — an entry here takes the rename decision by shipping it into designers' files (\`docs/44\` §8 leaves the \`color.appearance\` question open). Found ${MATERIALIZATION_RENAMES.length}`);
+  // ---- #1013: THE ARTIFACT'S FIRST REAL ENTRIES ----
+  //
+  // #1039 shipped this empty and `test.ts` asserted the emptiness, because `docs/44` §8 left open whether
+  // the value tier's variables would move to `color/appearance/*` or keep `color/*` under a renamed
+  // collection. #1013 decided it — both, and both halves of the record — so the arm that pinned "empty"
+  // becomes the arm that pins WHICH rules, by id. A count would be satisfied by any two rules at all.
+  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013'
+      && MATERIALIZATION_RENAMES.every((r) => r.since === ENGINE_VERSION && r.why.length > 120),
+    `#1039/#1013: the artifact ships exactly the two swap rules, stamped with the engine version that made the change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
+    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps, and`
+    + `\n    that each rule carries a real \`why\`. IF THE STAMPS ARE WHAT MOVED, DO NOT RESTAMP THEM TO ${ENGINE_VERSION} —`
+    + `\n    the same warning as the \`COLLECTION_RENAMES\` arm in (f2), stated there in full: \`since\` records the version`
+    + `\n    that MADE the rename, this arm cannot tell a stale stamp from a correct historical one, and after a version`
+    + `\n    bump the arm is what is obsolete rather than the data (#1080).`);
+
+  // Each rule's transformation on a LITERAL witness, with both directions of its domain boundary. The
+  // negative halves are not padding: each one is a defect that check 2 would report as a wall of noise.
+  //
+  //   · rule 1 must not match its own IMAGE. `color/appearance/text/primary` starts with `color/`, so
+  //     without the `!startsWith('color/appearance/')` clause every one of the 242 migrated variables is
+  //     a live domain member — a rule claiming the current emission moved, applied a second time as
+  //     `color/appearance/appearance/text/primary`.
+  //   · rule 2 must not match ITS own image either, for the same reason under a different prefix: it
+  //     writes `color/*` into the very collection it reads `surface/*` from.
+  //   · and neither may reach across into the other's collection, which is what keeps them disjoint and
+  //     `multiplyClaimed` empty — asserted over the real corpus in the end-to-end arm below.
+  const ruleApply = (id: string, collection: string, name: string): string | null => {
+    const r = MATERIALIZATION_RENAMES.find((x) => x.id === id);
+    if (!r) return null;
+    return r.domain(collection, name) ? r.map(collection, name) : null;
+  };
+  ok(ruleApply('appearance-tier-1013', 'color.appearance', 'color/text/primary') === 'color/appearance/text/primary'
+      && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary') === null
+      && ruleApply('appearance-tier-1013', 'color', 'color/text/primary') === null,
+    '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved');
+  ok(ruleApply('surface-to-color-1013', 'color', 'surface/text/primary') === 'color/text/primary'
+      && ruleApply('surface-to-color-1013', 'color', 'color/text/primary') === null
+      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary') === null,
+    '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies — and does not re-match what it just wrote');
+
+  // ---- #1013 END-TO-END: an AUTHORED before-set against the REAL emission ----
+  //
+  // WHERE THE TWO SIDES COME FROM IS THE WHOLE POINT (`docs/34` shape 11). The before-set below is typed
+  // out by hand in the PRE-#1013 spelling — `color :: color/background/primary`, `surface ::
+  // surface/background/primary`, verifiable against `git show origin/main:…`. The after-set is `nbKeys`,
+  // the emitter's real current output. So the rules have to bridge a hand-written past to a generated
+  // present, and nothing on either side was produced by the thing under test.
+  //
+  // The tempting version — build the before-set by inverting the rules over the current emission — is
+  // vacuous: it agrees with the rules by construction and reports TOTAL whatever they say.
+  {
+    const before = new Set<VarKey>([
+      varKey('color', 'color/background/primary'),
+      varKey('color', 'color/background/inverse/primary'),
+      varKey('surface', 'surface/background/primary'),
+      varKey('surface', 'surface/border/brand'),
+    ]);
+    const recollected = recollectAll(before, COLLECTION_RENAMES);
+    ok([...recollected].sort().join(' | ') === [
+      varKey('color', 'surface/background/primary'),
+      varKey('color', 'surface/border/brand'),
+      varKey('color.appearance', 'color/background/inverse/primary'),
+      varKey('color.appearance', 'color/background/primary'),
+    ].sort().join(' | '),
+      `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
+
+    const acct = accountFor(recollected, nbKeys, MATERIALIZATION_RENAMES, parseVarKey);
+    ok(isTotal(acct) && acct.claims.length === 4 && acct.removed.length === 4,
+      `#1013: the two rules account for the swap end-to-end — 4 hand-written pre-swap keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
+
+    // THE FORCING FUNCTION, on the real rules rather than on a fixture pair: drop either rule and the keys
+    // it covered are reported as unaccounted removals BY NAME. This is the arm that fails if a later
+    // simplification decides one rule is enough.
+    for (const dropped of MATERIALIZATION_RENAMES) {
+      const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(recollected, nbKeys, kept, parseVarKey);
+      ok(!isTotal(partial) && partial.unaccountedRemovals.length === 2,
+        `#1013: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
+    }
+
+    // AND THE RECOLLECTION'S SINGLE-STEP CLAIM, as a failure rather than as a comment. `COLLECTION_RENAMES`
+    // is a chain, so following it to a fixed point sends the alias tier to `color.appearance` — where that
+    // variable never went. The misattributed keys then match no rule (rule 1 wants a `color/` name) and
+    // read as unaccounted removals against rules that are correct. See `recollect`'s header for why the
+    // apply side needs the opposite treatment.
+    const transitive = new Set([...before].map((k) => {
+      let cur = k;
+      for (let i = 0; i < COLLECTION_RENAMES.length; i++) cur = recollect(cur, COLLECTION_RENAMES);
+      return cur;
+    }));
+    const misattributed = accountFor(transitive, nbKeys, MATERIALIZATION_RENAMES, parseVarKey);
+    ok(!isTotal(misattributed) && misattributed.unaccountedRemovals.some((k) => k === varKey('color.appearance', 'surface/background/primary')),
+      `#1013: a TRANSITIVE recollection misattributes the alias tier to \`color.appearance\` and the accounting refuses it — one hop is correct, a fixed point is wrong (${misattributed.unaccountedRemovals.join(' · ') || 'NOTHING'})`);
+  }
 
   // ---- #1053: AN ADDITIVE CHANGE IS CLEAN, AND A REMOVAL IS STILL NOT ----
   //

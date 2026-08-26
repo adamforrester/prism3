@@ -8,9 +8,16 @@
  *
  * It does not cover renames of how we MATERIALIZE it. The Figma collection a variable lands in, the
  * namespace folder its name sits under, the dot-vs-dash spelling of `core-palette` — none of those are
- * contract paths, so none of them touch `DEPRECATIONS`, and nothing anywhere records them. The three
- * this exists for are named in `docs/44` and are deliberately NOT in this file: `surface`↔`color`, the
- * namespace folder, and `core-*`→`core.*`. They are the next PR; this is the mechanism.
+ * contract paths, so none of them touch `DEPRECATIONS`, and nothing anywhere records them. `docs/44`
+ * names three: `surface`↔`color`, the namespace folder, and `core-*`→`core.*`. #1039 shipped the
+ * mechanism with none of them; **#1013 landed the first, and it is the two rules below.** The other two
+ * are still out.
+ *
+ * The colour swap needed both halves of the record at once, which is the clearest available statement of
+ * why they are one mechanism. The COLLECTION renames live in `rename-map.ts`'s `COLLECTION_RENAMES`
+ * (`color` → `color.appearance`, `surface` → `color`); the VARIABLE renames inside those collections are
+ * the rules here. Figma treats the two as independent operations, so a record covering only one of them
+ * describes a migration that half-happens.
  *
  * ── WHY A RULE AND A DIFF, WHEN NEITHER WORKS ALONE ─────────────────────────────────────────────
  *
@@ -103,17 +110,42 @@ export type MaterializationRule = {
 };
 
 /**
- * SHIPS EMPTY, and the emptiness is the scope decision rather than an unfinished state.
+ * #1039 shipped this EMPTY, because `docs/44` §8 left open whether the value tier's 242 variables would
+ * move to `color/appearance/*` at the swap or keep `color/*` under a renamed collection. **#1013 decided
+ * it: both the collections and the variables inside them are renamed**, and these are the two rules that
+ * record it. §8's first open question is closed.
  *
- * Authoring an entry here would take the rename decision by shipping it — `docs/44` §8 leaves open
- * whether `color`'s 236 variables move to `color.appearance/*` at the swap or keep `color/*`, and an
- * entry would answer that question in designers' files rather than in a decision. Same reason
- * `COLLECTION_RENAMES` ships empty (#1013 Q4).
- *
- * Empty is checkable: both checks pass vacuously, and check 1's floor is what stops that vacuous pass
- * reading as coverage.
+ * Both transformations are stated LITERALLY — a string prefix swapped for a string prefix, with no
+ * emitter in scope to call. That is `docs/34` shape 11 and it is the whole reason the accounting can
+ * check anything: a rule written as "whatever `figName` now does" would sit below both sides of the
+ * comparison. The prefixes below are therefore a SECOND expression of the change, and if the emitters
+ * move without these moving, check 1 reports the unaccounted removals by name.
  */
-export const MATERIALIZATION_RENAMES: MaterializationRule[] = [];
+export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
+  {
+    id: 'appearance-tier-1013',
+    since: '0.26.0',
+    why:
+      'The value tier gave up the short name `color` to the alias tier and its variables took the matching '
+      + 'prefix, so `color/text/primary` is now the POINTER that follows the surface axis and '
+      + '`color/appearance/text/primary` is one appearance\'s paint. A designer who binds the short name '
+      + 'gets the layer that re-themes; before #1013 they got the one that does not.',
+    domain: (collection, name) =>
+      collection === 'color.appearance' && name.startsWith('color/') && !name.startsWith('color/appearance/'),
+    map: (_collection, name) => `color/appearance/${name.slice('color/'.length)}`,
+  },
+  {
+    id: 'surface-to-color-1013',
+    since: '0.26.0',
+    why:
+      'The alias tier kept its axis and changed its name: `surface/text/primary` became '
+      + '`color/text/primary`. The axis is still surface (two modes, `default` and `inverse`) — what moved '
+      + 'is which of the two tiers a designer reaches by default, which is the point of #1013 rather than '
+      + 'a side effect of it.',
+    domain: (collection, name) => collection === 'color' && name.startsWith('surface/'),
+    map: (_collection, name) => `color/${name.slice('surface/'.length)}`,
+  },
+];
 
 // ---- the accounting ---------------------------------------------------------------------------
 
@@ -203,7 +235,7 @@ const account = (
       // Staleness is check 2's arm: no git, every run, and it catches this case unconditionally.
       //
       // The over-claiming ROW of the doc's table is unaffected, because there the emission DID move: the
-      // `color`-only rename leaves 236 removals per brand, so `moved` is true and every non-`color`
+      // `color`-only rename leaves 242 removals per brand, so `moved` is true and every non-`color`
       // claim is still contradicted by name (1368 across three brands). Re-verified after this gate.
       if (after.has(key)) {
         if (moved) contradicted.push({ ...claim, contradiction: `still emitted — the rule says it moved and it did not` });
@@ -344,3 +376,57 @@ export const parseVarKey = (key: VarKey): { collection: string; name: string } =
   if (i < 0) throw new Error(`malformed var key: ${JSON.stringify(key)}`);
   return { collection: key.slice(0, i), name: key.slice(i + 4) };
 };
+
+// ---- recollecting the before-set through a COLLECTION rename (#1013) --------------------------
+
+/** The shape of a collection rename, structurally rather than by import. `rename-map.ts` owns the type,
+ *  and importing it here would pull `figmaVarName` into scope transitively — a name-producing function
+ *  this module is structurally forbidden from being able to call (`docs/34` shape 11, and the header). */
+export type CollectionMove = { from: string; to: string };
+
+/**
+ * Move one BEFORE key into the collection its variable now lives in — **a single step, never a walk.**
+ *
+ * The accounting is keyed on `collection :: name` and a rule's `map` returns the name only (deliberately
+ * — see `MaterializationRule`). So a collection rename moves every key in that collection out from under
+ * every rule at once: with `color` renamed to `color.appearance`, the before-set holds
+ * `color :: color/text/primary`, the after-set holds `color.appearance :: color/appearance/text/primary`,
+ * and no name-only rule can bridge those two keys. Recollecting the before-set is what puts both sides in
+ * one collection so the rules can be asked the only question they are able to answer.
+ *
+ * Without it #1013 was unaccountable rather than merely unaccounted: every one of the 370 keys per brand
+ * would read as an unaccounted removal AND an unaccounted addition, and the documented remedy — "write a
+ * rule" — could not have been carried out, because no rule of this shape exists.
+ *
+ * ── SINGLE-STEP, AND THE TRANSITIVE VERSION IS WRONG RATHER THAN JUST SLOWER ─────────────────────
+ *
+ * `COLLECTION_RENAMES` holds a CHAIN: `surface → color` alongside `color → color.appearance`. Following
+ * it to a fixed point would send `surface :: surface/text/primary` to `color.appearance`, which is not
+ * where that variable went — it went to `color`, one hop. The two entries describe two different
+ * collections moving at the same moment, not one collection moving twice. A `while` loop here would
+ * misattribute all 128 alias-tier keys per brand, and the accounting would then report them as
+ * unaccounted removals against rules that are correct.
+ *
+ * **This is the exact inverse of the apply side, and the asymmetry is the point.**
+ * `planCollectionRenames` DOES need topological order, because it walks one live name set and each rename
+ * observes the previous one's effect. Nothing is mutated here: the before-set is a snapshot of a past
+ * state, and every key in it is recollected against the same map. One mechanism ordered and one not, for
+ * a single reason — whether the steps share a mutable subject.
+ *
+ * `renames` is REQUIRED and has no default. Defaulting it to `COLLECTION_RENAMES` would let a caller
+ * recollect against the live map when it meant a fixture, and `test.ts` drives this with synthetic maps:
+ * the failure mode would be a test that agrees with production because it forgot to disagree.
+ */
+export const recollect = (key: VarKey, renames: readonly CollectionMove[]): VarKey => {
+  const { collection, name } = parseVarKey(key);
+  const hit = renames.find((c) => c.from === collection);
+  return hit ? varKey(hit.to, name) : key;
+};
+
+/** `recollect` over a whole before-set — what `lint-materialization-renames.ts` composes into its `from`
+ *  side. A set, so two keys recollecting onto one are collapsed the way the emission would collapse them
+ *  rather than double-counted. */
+export const recollectAll = (
+  before: ReadonlySet<VarKey>,
+  renames: readonly CollectionMove[],
+): Set<VarKey> => new Set([...before].map((k) => recollect(k, renames)));

@@ -17,6 +17,7 @@ import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { SizeStep, ControlSizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
+import { surfaceRowsFor, SURFACE_MODES } from './surface-rows';
 import { ENGINE_VERSION } from './version';
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -385,12 +386,15 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const opacity: Record<string, Token> = {};
   for (const s of ALPHA_STEPS) opacity[String(s)] = numLeaf(round(s / 100, 2), `opacity ${s}% (${round(s / 100, 2)})`);
 
-  // ---- colour semantic (role) layer → `color.*` ----
+  // ---- colour semantic (role) layer → `color.appearance.*` ----
   // Mode-AGNOSTIC token names: one token per role, `light` is the canonical
   // `$value`, and dark / hc-light / hc-dark are value overrides in
   // `$extensions.prism3.modes` (each keeping its own contrast contract). This is
   // the same shape `shadow` already uses, and it maps 1:1 to a single Figma
   // colour variable with Light/Dark/HC modes. See docs/06 + docs/07.
+  //
+  // #1013 moved this tier from `color.*` to `color.appearance.*`, and put the SURFACE ALIAS tier at
+  // `color.*` in its place — see the block below `colorRoles` for the tier the name now denotes.
   const modes = resolveAllModes(theme);
   // light is canonical ($value); the rest carry per-mode overrides — only those the brand
   // opted into (docs/11 Pillar 1). A light-only brand emits no mode overrides.
@@ -427,10 +431,59 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = aliasLeaf(lr.path, lr.description, {
       contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
-      figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
+      figma: { collection: 'color.appearance', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
     });
     const parts = roleKey.split('.'); // property-led, may nest (group / variant / state)
     let node = colorRoles;
+    for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
+    node[parts[parts.length - 1]] = leaf;
+  }
+
+  /**
+   * ---- the SURFACE ALIAS tier → `color.*` (#1013) ----
+   *
+   * The tier a def binds and an app references. Every leaf is a POINTER into `color.appearance.*`,
+   * which is why it composes with the appearance axis instead of multiplying against it: the name it
+   * resolves to is the same in every appearance mode, so the mode picks the value one hop later.
+   * Measured over 128 rows × 4 appearances × 5 corpus brands — 2560 cells agree, 0 disagree, where a
+   * value-carrying projection of the same rows disagrees in 1510 (#1027).
+   *
+   * ONE row set, shared with the Figma `color` collection via `surface-rows.ts`. The two formats are
+   * only reconcilable while the rows are identical, and a second derivation here would be a second
+   * expression of one fact with no gate able to say which was right (`docs/34`).
+   *
+   * WHAT THESE LEAVES DELIBERATELY DO NOT CARRY:
+   *   · `modes` — a pointer does not vary by appearance, which is the finding above. So these leaves
+   *     are absent from every appearance overlay, correctly, and `lint-overlay-completeness.ts`
+   *     agrees by its own traversal rather than by an exemption.
+   *   · `contrast` / `against` — a ratio recorded here would be true on the DEFAULT surface only, and
+   *     the inverse column is where the same name resolves to a different value. The ratio lives on
+   *     the appearance leaf it points at, where it is unconditionally true.
+   *   · the `inverse` COLUMN — DTCG carries the default surface only. A surface overlay is #1027's
+   *     work (a fifth overlay file per brand, plus a decision about where the surface axis sits in
+   *     the extension namespace); the pairing lives in the Figma collection's second mode.
+   */
+  const surfaceRows = surfaceRowsFor(new Set(Object.keys(lightMode.roles)));
+  const colorTier: Record<string, any> = { appearance: colorRoles };
+  // `appearance` is now a RESERVED key under `color`, and a role family of that name would silently
+  // merge the two tiers into one namespace — the one collision this split can produce, so it is a
+  // throw rather than a comment. Checked against the role keys, not against a list of families.
+  const clash = Object.keys(lightMode.roles).filter((k) => k === 'appearance' || k.startsWith('appearance.'));
+  if (clash.length)
+    throw new Error(
+      `tree: ${clash.length} role(s) named under \`appearance\` (${clash.slice(0, 3).join(', ')}) — #1013 reserves `
+      + '`color.appearance.*` for the value tier, so a role family of that name would merge the value and '
+      + 'surface-alias tiers into one namespace with nothing distinguishing them. Rename the role family.',
+    );
+  for (const r of surfaceRows) {
+    const target = `${root}.color.appearance.${r.role}`;
+    const leaf = aliasLeaf(target, `${lightMode.roles[r.role].description} — surface-context alias; resolves to ${r.default} on a default surface and ${r.inverse} on an inverse one`, {
+      role: 'surface-alias',
+      surface: SURFACE_MODES[0],
+      figma: { collection: 'color', modes: [...SURFACE_MODES], note: 'one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)' },
+    });
+    const parts = r.role.split('.');
+    let node = colorTier;
     for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
     node[parts[parts.length - 1]] = leaf;
   }
@@ -880,7 +933,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // ---- assemble under the brand root ----
   // `gradient` is included only when the brand opted in (kept off the tree for
   // brands that declare none — gradients are an opt-in axis, not a default group).
-  const brand = { palette, color: colorRoles, opacity, motion, font, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size, control };
+  const brand = { palette, color: colorTier, opacity, motion, font, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size, control };
   const tree = {
     [root]: brand,
     $extensions: {

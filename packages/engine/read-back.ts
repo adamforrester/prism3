@@ -9,9 +9,16 @@
  * `verifyReadback` ports the checks the `materialise-to-figma.ts` `verifyPass` string-emitter has
  * always encoded (the API-probe read-back), so the same guarantees hold whether the read runs via the
  * paste-path or the live plugin:
- *   - **modesDistinct** — `color/background/primary` binds a DIFFERENT target per mode (the collapse
- *     guard: the #85 round-trip caught a script that collapsed every mode to one target).
+ *   - **modesDistinct** — `color/appearance/background/primary` binds a DIFFERENT target per mode (the
+ *     collapse guard: the #85 round-trip caught a script that collapsed every mode to one target).
  *   - **aliasesResolve** — every alias target name a colour var references exists (palette or color).
+ *
+ * **The collection it reads is `color.appearance` since #1013, and the alias tier that took the short
+ * name `color` is NOT read at all.** That is a hole, not a decision: `read-figma.ts` has only ever read
+ * `core-palette` + the value tier, so the surface axis went unverified from the day it shipped (#993) —
+ * the swap did not create the gap, it moved the gap onto the collection a designer binds first. Filed
+ * separately; the names below are the value tier's and are spelled in full for the reason `docs/34`
+ * gives: a shared prefix constant would make one stale segment read as forty independent absences.
  *   - **slot scopes** — the per-slot scope contract (docs/10 §3 / docs/20) survived the round-trip.
  *   - **fieldFamilyPresent / retiredRolesAbsent / renamedRolesAbsent / bareDangerPresent** — the
  *     role-set shape (#86 renames, retired roles gone, bare `foreground/danger` present).
@@ -137,26 +144,26 @@ export type ReadbackVerdict = {
 // Expected slot scopes (docs/10 §3 / docs/20) — the same contract the emit-figma scope maps produce.
 // Sorted, comma-joined, to compare order-independently against the read-back scopes.
 const EXPECTED_SLOT_SCOPES: Record<string, string[]> = {
-  'color/interactive/primary/text/rest': ['TEXT_FILL'],
+  'color/appearance/interactive/primary/text/rest': ['TEXT_FILL'],
   // All three border states, mirroring `field/border/*` below — the edge is stateful (#576).
-  'color/interactive/primary/border/rest': ['STROKE_COLOR'],
-  'color/interactive/primary/border/hover': ['STROKE_COLOR'],
-  'color/interactive/primary/border/pressed': ['STROKE_COLOR'],
-  'color/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
-  'color/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
-  'color/disabled/text': ['TEXT_FILL'],
-  'color/disabled/icon': ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
-  'color/disabled/border': ['STROKE_COLOR'],
-  'color/field/fill': ['FRAME_FILL', 'SHAPE_FILL'],
-  'color/field/border/rest': ['STROKE_COLOR'],
-  'color/field/border/hover': ['STROKE_COLOR'],
-  'color/field/placeholder': ['TEXT_FILL'],
+  'color/appearance/interactive/primary/border/rest': ['STROKE_COLOR'],
+  'color/appearance/interactive/primary/border/hover': ['STROKE_COLOR'],
+  'color/appearance/interactive/primary/border/pressed': ['STROKE_COLOR'],
+  'color/appearance/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
+  'color/appearance/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
+  'color/appearance/disabled/text': ['TEXT_FILL'],
+  'color/appearance/disabled/icon': ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
+  'color/appearance/disabled/border': ['STROKE_COLOR'],
+  'color/appearance/field/fill': ['FRAME_FILL', 'SHAPE_FILL'],
+  'color/appearance/field/border/rest': ['STROKE_COLOR'],
+  'color/appearance/field/border/hover': ['STROKE_COLOR'],
+  'color/appearance/field/placeholder': ['TEXT_FILL'],
 };
-const FIELD_FAMILY = ['color/field/fill', 'color/field/border/rest', 'color/field/border/hover', 'color/field/placeholder'];
+const FIELD_FAMILY = ['color/appearance/field/fill', 'color/appearance/field/border/rest', 'color/appearance/field/border/hover', 'color/appearance/field/placeholder'];
 // Retired by role-set changes — must be absent (docs/20 / #86).
-const RETIRED_ROLES = ['color/action/default', 'color/text/on-action', 'color/text/on-disabled', 'color/foreground/danger/default'];
+const RETIRED_ROLES = ['color/appearance/action/default', 'color/appearance/text/on-action', 'color/appearance/text/on-disabled', 'color/appearance/foreground/danger/default'];
 // Renamed by #86 (.surface → .fill / .on-disabled → .on-fill; field/border went flat → border/{rest,hover}).
-const RENAMED_ROLES = ['color/disabled/surface', 'color/disabled/on-disabled', 'color/field/surface', 'color/field/border'];
+const RENAMED_ROLES = ['color/appearance/disabled/surface', 'color/appearance/disabled/on-disabled', 'color/appearance/field/surface', 'color/appearance/field/border'];
 
 const sortScopes = (s: string[]): string => [...s].sort().join(',');
 const isAlias = (v: ReadValue): v is { alias: string | null } => typeof v === 'object' && v !== null && 'alias' in v;
@@ -169,10 +176,10 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
   const colorByName = new Map(snap.color.map((v) => [v.name, v]));
   const has = (n: string): boolean => colorByName.has(n);
   const allNames = new Set<string>([...snap.palette.map((p) => p.name), ...snap.color.map((c) => c.name)]);
-  const colModes = snap.collections.find((c) => c.name === 'color')?.modes ?? [];
+  const colModes = snap.collections.find((c) => c.name === 'color.appearance')?.modes ?? [];
 
   // modesDistinct — background/primary must bind a different TARGET per mode (the collapse guard).
-  const bg = colorByName.get('color/background/primary');
+  const bg = colorByName.get('color/appearance/background/primary');
   const backgroundPrimaryByMode: Record<string, string> = {};
   for (const m of colModes) {
     const val = bg?.valuesByMode[m];
@@ -203,7 +210,7 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
     fieldFamilyPresent: FIELD_FAMILY.every(has),
     retiredRolesAbsent: RETIRED_ROLES.every((n) => !has(n)),
     renamedRolesAbsent: RENAMED_ROLES.every((n) => !has(n)),
-    bareDangerPresent: has('color/foreground/danger'),
+    bareDangerPresent: has('color/appearance/foreground/danger'),
     primitivesHidden: snap.palette.length > 0 && snap.palette.every((p) => p.hidden),
   };
 

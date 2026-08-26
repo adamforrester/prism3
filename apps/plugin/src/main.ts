@@ -101,14 +101,18 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     });
     // ONE rename pass across all four variable executors (#1013). Built here rather than inside each
     // one because the static validation must happen once, before any write, and because a designer
-    // reads a single list of what moved — not four. Ordering falls out for free: `applyWritePlan` runs
-    // first, so `color` is migrated before `applySurfacePlan` reads its own targets back out of it.
-    const mig = beginMigration();
-    // Colour axis (#108): core-palette + color, per-mode alias-bound.
+    // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE
+    // COLLECTIONS, in one topologically-ordered, all-or-nothing pre-pass — so it must be awaited here,
+    // before the first executor, and not moved below one of them: `color → color.appearance` and
+    // `surface → color` are a chain, and an executor that renamed its own collection on the way past
+    // would apply half of it. The atomicity obligation is stated at `beginMigration`.
+    const mig = await beginMigration(figma.variables);
+    // Colour axis (#108): core-palette + color.appearance, per-mode alias-bound.
     const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables, mig);
-    // SURFACE axis (#993): the `default`/`inverse` alias layer over `color`. MUST run after the line
-    // above — every row is a pointer into the `color` collection, resolved by NAME out of the file, so
-    // the targets have to be there already. An unresolved one is reported in `misses`, never thrown.
+    // SURFACE axis (#993): the `default`/`inverse` alias layer, written into the collection now named
+    // `color` (#1013). MUST run after the line above — every row is a pointer into `color.appearance`,
+    // resolved by NAME out of the file, so the targets have to be there already. An unresolved one is
+    // reported in `misses`, never thrown.
     const sf = await applySurfacePlan(buildSurfaceWritePlan(theme), figma.variables, mig);
     // FLOAT axes (#146): core-dimension/space/radius/size/border-width/focus/opacity + layout.
     const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables, mig);
@@ -155,7 +159,10 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // every prior run reported success.
     const allOrphans = [
       ...r.orphans,
-      { name: 'surface', names: sf.orphans },
+      // `color` and not `surface` since #1013 — the surface ALIAS tier is what this collection now is,
+      // and the label is what a designer reads in the summary, so a stale one names a collection their
+      // file does not contain.
+      { name: 'color', names: sf.orphans },
       ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
       ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
     ].filter((o) => o.names.length);
