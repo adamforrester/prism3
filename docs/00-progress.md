@@ -108,6 +108,21 @@ whole-set clause is load-bearing rather than a refinement.
 The battery reports `ran N, caught N` before it reports what it found (#1002), and a blank named grep is
 printed as a failed mutation rather than a quiet pass (#986).
 
+**AND AN EIGHTH, FOUND AFTER CI WENT GREEN, BY REFUSING TO ACCEPT GREEN AS THE ANSWER.** The CI job
+passed, but a green job does not say *this gate* found a base ref — so I went to read its output, and the
+retrievable log slice started just after the step. Rather than assume, I exercised the path CI actually
+takes: `GITHUB_BASE_REF`, which nothing local had ever set.
+
+It worked. And the *failure* direction did not: an unresolvable `GITHUB_BASE_REF` fell through to
+`origin/main` and reported clean. `GITHUB_BASE_REF` is set only on a `pull_request` event and names the
+branch the PR targets, so falling back compares against a branch that is not this PR's base and reports a
+difference belonging to someone else's work — **a confident answer to the wrong question, which is worse
+than a failure.** It is now authoritative when set, and unresolvable means cannot-run.
+
+The comment directly above that ladder already said falling through would be wrong. *The comment was
+right and the code was not*, which is the failure mode of writing the reasoning and the implementation in
+one pass: the prose records the intent, the code records what was typed, and nothing compares them.
+
 **Not in scope, and none of it appears in the diff:** the three renames themselves, #1035's pre-pass,
 and #1040's modes and styles.
 
