@@ -7,6 +7,76 @@
 
 ---
 
+## (2026-08-26) — issue triage: the pile got a pass, not a clean sweep, and the honest scope is stated
+
+**STATUS: partial by design.** The lane prompt estimated "roughly fifty" open issues; the real count,
+measured with `list_issues` (not assumed), is **192**, spanning 2026-07-16 to 2026-08-26. That
+discrepancy is reported to the requester rather than quietly absorbed — this task is about not trusting
+a stale premise, and "roughly fifty" was one. A full judged read of 192 issues was not attempted; what
+follows is what was covered and why, so the coverage claim is checkable rather than merely long.
+
+**The concrete deliverable: `tools/forward-claim-check/issue-states.json` refreshed** (`resolvedAt`
+2026-08-14 → 2026-08-26), all 11 currently-cited issue numbers re-resolved live via the GitHub MCP
+tools, 2 added (#836, #908, both closed since the tool last needed them). Re-running `measure.ts`
+after the refresh is what did the real work here — it turned two previously-`UNRESOLVED` citations into
+provable **STALE** findings:
+
+- `apps/plugin/src/write-components.ts` and `packages/engine/anatomy-figma.ts` both cited #836 as the
+  live tracker for a build-identity stamp field that was never built. Worse than simple staleness:
+  #836's own last comment (2026-08-24) said explicitly that landing its plan-stamp half "narrows this
+  issue, it does not close it," naming the remaining scope — and the issue closed the next day with no
+  commit adding that scope. Fixed both comments to state the fact (gap real, currently untracked) and
+  posted the discrepancy on #836 itself rather than reopening it unilaterally — closing is a decision,
+  and CLAUDE.md's own rule is that a decision already taken gets a new issue, not an edit to the old one.
+- Two more citations of #908 (now closed) in `build-telemetry.ts`/`main.ts` looked stale by the tool's
+  pattern but are not: both are a function's own docstring describing the fix #908 asked for, in the
+  same tense-blind trap the tool's header already documents for `blocked-on` — `waiting-on` has no
+  guard against a sentence that narrates a resolved wait rather than asserting a live one. Registered in
+  `NON_CHECKABLE` (6 entries now, was 4) rather than "fixed" — editing correct prose to satisfy a
+  detector would be exactly the false-STALE harm the tool's own header ranks worse than a miss.
+
+**Issue-side actions, each landed on the issue itself, not only described here:**
+
+- **#849 closed** (pending — see below) as resolved by #960 (implemented the decision: component-def
+  comments in scope) and #968 (corrected the stated reason without disturbing the decision). #849 kept
+  asking a question that was answered and shipped nine days ago.
+- **#836** — comment posted, not reopened; see above.
+- Read in full and confirmed *current* (no stale premise, correctly framed, no action needed):
+  #1012, #1013, #1040, #1049, #1002, #1050, #1052, #1024, #113, #377, #609, #677, #740, #745, #767, #802
+  — the last seven via the `issue-states.json` refresh's own fresh reads.
+- Checked #1049 against #1002 specifically for the supersession/shared-root distinction the lane prompt
+  warned about (using #1054/#1055 as its own example): genuinely different concerns — #1002 is mutation
+  batteries proving they ran, #1049 is a comment and its code disagreeing when written in the same pass
+  — not duplicates, no action taken, and #1049 already says so in its own body.
+- Searched for open issues citing #1047 or #1053 as still-open (both closed by #1055): none found, by
+  direct read of the issues most likely to cite them (the `materialization-renames` cluster: #1052,
+  #1050, #1040, #1035 not read but adjacent, #1024) plus `search_issues` (unreliable this session — see
+  below — so this is a bounded check, not a proof of zero).
+
+**What was not covered, stated rather than implied.** The remaining ~175 open issues — the bulk of the
+2026-07-16–2026-08-21 backlog, mostly `[decision]`/`[vision]`/`[research]`/`[task]` items about
+not-yet-started initiatives (headless primitives, the code library, MCP components, CMS output
+targets) — got a title-and-date pass, not a body read. That backlog is lower-risk for expired premises
+by construction (little has been built in those areas yet, so the repo moving forward hasn't overtaken
+them), but "lower-risk" is a judgment, not a measurement, and it was not verified issue-by-issue. The
+decision/work sort was not applied as a labeling sweep across all 192 — most already self-declare
+(`**Type:** decision` in-body, or a `type:decision`/`[decision]` label) and the ones checked here read
+correctly; the inconsistency the lane prompt flagged (many issues carry no lane/type label at all) is
+real and was not treated as a labeling project, per the prompt's own instruction not to make it one
+unless it's actively costing something — no evidence gathered here that it is, beyond the two decisions
+read closely (#1012, #1013) that would benefit from the `type:decision` label they lack.
+
+**GitHub API note:** `list_issues`/`search_issues` hit a rate limit immediately (fixed by requesting
+`fields` explicitly rather than the default, which fetches per-issue custom field values); `issue_write`
+(closes, label changes) hit a **separate**, longer-lived limit — believed to be the GraphQL
+node-ID-lookup path specifically, since `issue_read` and `add_issue_comment` kept working throughout.
+#849's close was attempted repeatedly and queued rather than forced through; if this entry still shows
+it pending, the close needs a retry once the limit clears.
+
+`npm run verify` → **45/45 gates reached a verdict in 124s — 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**.
+
+---
+
 ## (2026-08-26) — the accounting rejects additions, and the same defect was one layer up in its own test (#1053)
 
 **STATUS: shipped.** No version change — a verdict predicate, a report, one test arm and a `docs/44` §5

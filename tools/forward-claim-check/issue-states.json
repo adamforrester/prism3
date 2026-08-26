@@ -1,6 +1,6 @@
 {
   "//": "Issue states cited by forward claims, resolved through the GitHub MCP tools. A tsx script has no MCP client, so this is a committed SNAPSHOT and the report prints resolvedAt at the top. Re-resolve before quoting a verdict. Add an entry with `--issues` for the numbers needed; a cited issue with no entry is reported UNRESOLVED by name rather than being counted as fine.",
-  "resolvedAt": "2026-08-14",
+  "resolvedAt": "2026-08-26",
   "repo": "adamforrester/prism3 (formerly prism3-tokens; both names redirect)",
   "method": "mcp__github__issue_read, method=get",
   "states": {
@@ -16,6 +16,8 @@
     "745": { "state": "open", "kind": "issue", "title": "Rewrite 19 §3's output target, and re-scope 27 Idea 2 Phase 1" },
     "767": { "state": "closed", "kind": "issue", "title": "[studio] Headless smoke suite — DOM/interaction coverage main.ts cannot currently have" },
     "768": { "state": "closed", "kind": "issue", "title": "[studio] Cleanup tracking — four seams the defects named" },
-    "802": { "state": "open", "kind": "issue", "title": "[decision] No gate asserts that a rendered value matches the intent behind it" }
+    "802": { "state": "open", "kind": "issue", "title": "[decision] No gate asserts that a rendered value matches the intent behind it" },
+    "836": { "state": "closed", "kind": "issue", "title": "The plugin cannot report which build is running, and five worktrees can each answer differently" },
+    "908": { "state": "closed", "kind": "issue", "title": "Component build verdict waits ~8.4s on a busy host: measureSettle() is awaited before the result is posted" }
   }
 }

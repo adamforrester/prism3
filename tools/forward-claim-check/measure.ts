@@ -408,6 +408,21 @@ const NON_CHECKABLE: Register[] = [
     issue: 767,
     why: "'then blocked by' narrates a historical sequencing inside an already-past-tense sentence ('the owner called...') — 'blocked-on' matches the bare stem regardless of tense. Reporting it STALE would be confidently wrong about a since-resolved blocker being narrated as history.",
   },
+  {
+    // Found during issue triage (2026-08-26), refreshing issue-states.json turned #908 STALE for the
+    // first time — same trap as the two `blocked-on` entries above, one stem over: `waiting-on` has no
+    // tense/role guard either.
+    file: 'apps/plugin/src/build-telemetry.ts',
+    fingerprint: "WITHOUT the designer's verdict waiting on it",
+    issue: 908,
+    why: "this is the function's own docstring describing what IT DOES — the fix #908 asked for, not a live dependency on it. 'Run the settle probe WITHOUT the designer's verdict waiting on it' describes the absence of the old blocking behavior; 'waiting-on' matches the bare phrase regardless of whether the sentence asserts a current wait or documents a past one removed. Reporting it STALE would be confidently wrong about a sentence already describing the shipped fix.",
+  },
+  {
+    file: 'apps/plugin/src/main.ts',
+    fingerprint: 'RUN WITHOUT THE VERDICT WAITING ON IT',
+    issue: 908,
+    why: "same trap, same function's call site: 'What #908 removed is the designer waiting for it' (two lines below the fingerprint) states outright that the wait is gone. 'waiting-on' has no tense/role guard, so a comment correctly narrating a fix reads identically to one asserting a live block.",
+  },
 ];
 
 /**
