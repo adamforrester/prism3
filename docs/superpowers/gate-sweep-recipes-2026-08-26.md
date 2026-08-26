@@ -88,8 +88,12 @@ arm-D case together, so the arm asserts nothing about removals. What the overrid
 
 **ANCHOR VERIFIED, with corrected lines.** `packages/engine/modes.ts:311` — `export const
 GROUND_INPUT: Record<string, string> = {`; the refusal at `:1518` — `if (groundRoles.has(rolePath)
-&& GROUND_INPUT[rolePath]) {`. `lint-ratio-truth.ts:78` imports it; `:127` and `:260` filter
-`OVERRIDE_CASES` on the same table. (Agent-supplied "301–304" and "1437" were both stale.)
+&& GROUND_INPUT[rolePath]) {`. `lint-ratio-truth.ts:78` imports it; `:127` is the real
+`OVERRIDE_CASES` filter (`(GROUND_INPUT[ground] ? [] : ['500','100'])`), and **the arm-D site this
+hypothesis is actually about is `:285`** — `for (const [ground, field] of Object.entries(GROUND_INPUT))`.
+(Agent-supplied "301–304" and "1437" were both stale. An earlier revision of this row cited `:260`
+as a second filter site; `:260` is a *comment* about the filter — corrected in review of #1058, in
+the one file whose labels promise that following an anchor lands somewhere.)
 
 **Edit.** Delete the `'background.primary'` row from `GROUND_INPUT`.
 **Run.** `lint-ratio-truth.ts`.
@@ -148,22 +152,46 @@ a declared token nothing paints — which proves nothing about smoke.
 
 ---
 
-## M26 — the runner's self-checks reach CI only through another file's import
+## M26 — what removing `lint-doc-gates`' import of the runner actually costs
 
-**Hypothesis.** `verify.ts`'s import-time self-checks execute in CI **only** because
-`lint-doc-gates` imports it; CI never runs `verify.ts` as a step. A plausible "decoupling" cleanup
-removes them from CI with nothing saying so — #657's wider form, applied to the runner.
+**The original hypothesis here was FALSE, and is recorded rather than deleted**, because it is this
+file's own trap arriving in this file: an ANCHOR VERIFIED heading over a *reason for running* that
+did not survive measurement. It read: *"`verify.ts`'s self-checks execute in CI only because
+`lint-doc-gates` imports it; CI never runs `verify.ts` as a step."*
+
+**Both clauses are false.** `.github/workflows/ci.yml:293-294` runs `npx --yes tsx@4 verify.ts
+--list` as a dedicated step, and the comment above it (`:286-292`) states that step's purpose is
+precisely to execute the runner's own self-checks — closing with *"A `verify.ts` whose own checks
+are broken must not reach main just because CI never imported it."* The repo had already answered
+the question the recipe posed. Structurally too: `selfFails` exits at `verify.ts:859-863`, **before**
+the `isMain` guard at `:868`, so every invocation runs them.
+
+Falsified by mutation, not by reading (review of #1058, reproduced here): `return []` inserted at the
+head of `orderViolations` (`verify.ts:725`), then the CI step verbatim —
+
+```
+$ npx --yes tsx@4 verify.ts --list
+exit status: 1
+❌ the gate runner's own checks are broken — it cannot see what it claims to:
+    orderViolations misses an inverted dependency — the stale-bundle PASS could ship again
+```
+
+**The replacement hypothesis, which is the better one.** Removing that import does not cost the
+self-checks; it costs `lint-doc-gates`' **arm 3**, which joins `ci.yml`'s step names against the
+runner's *authored* `GATES` array. Replace the import with a local copy and the doc gate compares
+`ci.yml` against a **copy of the thing it is checking** — shape 2, DRY deleting the gate, in the arm
+whose whole job is to keep the two lists honest.
 
 **ANCHOR VERIFIED.** `packages/engine/lint-doc-gates.ts:131` — `import { GATES, orphanGateFiles,
 trackedGateFiles } from '../../verify.ts';`.
 
-**Edit.** Replace that import with locally-defined stand-ins (the refactor a reviewer might suggest).
-**Run.** the full list.
-**Predicted:** every gate green, with the runner's self-checks no longer executing in CI at all.
-**Note:** this mutation is large and easy to get subtly wrong — assert the import is gone *and* that
+**Edit.** Replace that import with locally-defined stand-ins.
+**Run.** `lint-doc-gates.ts`, then the full list.
+**Predicted (sound):** something reports that the doc gate's runner-side input is no longer the
+runner's. **Predicted (blind):** green — arm 3 compares two lists that now agree by construction,
+while `verify.ts --list` keeps passing in CI on its own step, unaffected.
+**Note:** the mutation is large and easy to get subtly wrong; assert the import is gone *and* that
 `lint-doc-gates` still passes for the right reason before believing the result.
-
----
 
 ## M27 — mcp-test's frontmatter probe may be reading its own fixture
 

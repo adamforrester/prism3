@@ -55,7 +55,7 @@ recipe recorded, not run) · Findings reference the ledger ids.
 | check-ignore | R? | docs/34's own "third revision" (recognized set vs actual out-of-studio inputs) unimplemented; `PATHS` trigger list audited by nothing; recipe recorded |
 | lint-contrast | R? | forward-only pairing list; joint hole with smoke for new 2.0–4.5 pairings; border tokens gated by nothing |
 | typecheck-plugin | RS | scope declared (enumerated include); honored-not-proven residual noted |
-| plugin-test | **VS** — M3 | the rebuilt ring checker fired by name, in WCAG units, on the exact #801 arithmetic |
+| plugin-test | **VS for one checker** — M3 | `test-write-components.ts`'s rebuilt ring checker fired by name, in WCAG units, on the exact #801 arithmetic. **Scope of that verdict, stated rather than implied:** one checker, in one of the two files read, of the eleven this gate chains — it is evidence about that checker, not about the gate |
 | build-plugin | RS | four artifact assertions incl. the #496 script-count pin |
 | plugin-no-node-builtins | R? | derive ignores build-plugin's result (stale-artifact PASS row possible); composite with the build's own copy is sound |
 | plugin-verdict | R? | fixture messages authored to match main.ts by hand; semantic drift inside an existing shape untested anywhere; executed-count printed, not asserted |
@@ -87,7 +87,7 @@ recipe recorded, not run) · Findings reference the ledger ids.
 | lint-unclaimed-defaults | **VW** — M17b (boundary measured by M17) | `catch { continue }` with no exemption list; three defs left the sweep under a PASS |
 | lint-advisory-expiry | **VW** — M10 (+ VS negative control) | injected clock accepted with the invalidating fact demoted to prose inside a green log |
 | smoke | **VW** — M18 | the `op < 0.02` carve-out excludes fully-invisible text; summary asserts the falsehood affirmatively. Shape-14 threshold + missing classifier confirmed still open (register row 2026-08-13); motivating case now unreproducible in the app and kept by no fixture |
-| *(runner, gate 0)* | R? | self-checks real and both-directional, but their CI reach is inherited from `lint-doc-gates`'s import (#657's wider form); a "decoupling" refactor silently removes them from CI |
+| *(runner, gate 0)* | **RS** (corrected) | self-checks real and both-directional, and their CI reach is **declared, not inherited**: `ci.yml:293-294` runs `npx --yes tsx@4 verify.ts --list` as a dedicated step for exactly this purpose. An earlier revision of this row carried the opposite claim as R? — falsified by mutation in review of #1058 (weaken `orderViolations` → that step exits 1 naming five self-checks). What removing `lint-doc-gates`' import would actually cost is arm 3's join against the runner's **authored** array — shape 2, not lost self-checks; recipe M26 |
 
 ## Findings ranked by what a false pass costs
 
@@ -113,8 +113,12 @@ recipe recorded, not run) · Findings reference the ledger ids.
 - **test.ts interior (~7,200 of 12,090 lines)** beyond the targeted blocks (stub, ring, pending,
   parity, icon, rename-map): sampled by grep only. Any independence defect wholly inside the
   unsampled regions is not covered by any verdict above.
-- **8 of 11 plugin test files** (`test-write.ts`, `-surface`, `-readback`, `-persist`, `-float`,
-  `-styles`, `-list-fonts`, `-apply-summary`, `-build-telemetry`): not read.
+- **9 of the 11 plugin test files** `apps/plugin`'s `test` script chains (`test-write.ts`,
+  `-surface`, `-readback`, `-persist`, `-float`, `-styles`, `-list-fonts`, `-apply-summary`,
+  `-build-telemetry`): not read. Two were read — `test-write-components.ts` and
+  `test-write-typography.ts`. An earlier revision of this bullet said "8 of 11" while naming nine
+  files; corrected in review of #1058, and worth noting where it sat: in the coverage section, whose
+  only job is to be countable.
 - **TokenPress's 22 ported test files**: the harness and census were audited; the ported tests were not.
 - **Recipes recorded but not run** — all nine are written out in
   [`gate-sweep-recipes-2026-08-26.md`](gate-sweep-recipes-2026-08-26.md), one section each, with the
