@@ -104,19 +104,36 @@ consult the emission.
 
 **One sentence of that filing was wrong, and it was the sentence carrying its priority.** I wrote that
 the namespace work "adds rules to this same mechanism at every-variable width," which would have made
-46% a corpus-width problem. Challenged, checked, false: there is **no composition step** —
-`composeVariableRenames` does not exist in the tree — and `MIRRORED_COLLECTIONS` has exactly **one**
-production use, `rename-map.ts` inside `projectionsOf`, which only ever runs over `DEPRECATIONS`.
-`MATERIALIZATION_RENAMES` is a separate map that nothing mirrors and that **does not reach the executor
-at all** — #1039 shipped the mechanism and its checks, not the wiring. So the 46% stays at 80 rows and
-this is tidiness, not urgency. The issue body is corrected and the answer is on the thread.
+46% a corpus-width problem. Challenged, checked, false: **the conclusion holds** — `MIRRORED_COLLECTIONS`
+has exactly **two** production references, its definition and `projectionsOf`, which only ever runs over
+`DEPRECATIONS`. Nothing mirrors `MATERIALIZATION_RENAMES`. So the 46% stays at 80 rows and this is
+tidiness, not urgency.
 
-*The measured claims in that issue all held; the one that failed was the only sentence no command had
-produced.* What survives as worth watching is the consequence rather than the count: because
-`MATERIALIZATION_RENAMES` is unwired, the namespace work **must** add that wiring, and that is the
-moment someone could give materialization rules the mirror treatment by symmetry with the map beside
-them — `MaterializationRule.map` returns a name and never a collection, so mirroring cannot fall out of
-the shape; it would have to be added on purpose.
+**Then the correction needed a correction, and that is the part worth carrying.** My answer also said
+`MATERIALIZATION_RENAMES` "does not reach the executor at all" and located the risk "at the namespace
+PR". Both were read off `main` — and **#1082 is the wiring, already open**: `composeVariableRenames`
+exists at `rename-map.ts:472` on `claude/surface-color-swap`, called from `write-figma.ts:245` with
+`migration.pass.rules`. So the moment I described as still ahead had already happened in the PR next to
+mine.
+
+It is clean, for the structural reason and not by luck: `composeVariableRenames` takes `collection` as a
+parameter, filters the contract to it, and emits rows in that same collection — it cannot move a row
+between collections, so it cannot mirror. `MaterializationStep.map` is `(collection, name) => string`,
+and both shipped rules ignore the collection argument outright (`map: (_collection, name) => …`).
+Mirroring would have to be added on purpose. What survives as worth watching is narrower than what I
+first wrote: whether **new** rules or a **widened** composition reintroduce it.
+
+Measured across the two refs, because this changes where the finding lives: the ratio is identical
+(`80` rows, `37` dead, **46%**) and the collection **moves** — `surface` on `main`, `color` on #1082 —
+so every `surface` reference in that issue goes stale when it lands. The count stays at 80 rather than
+exploding because the branch adds a tier-only early return to `projectionsOf`
+(`if (roleOf(from) === roleOf(to)) return []`, absent on `main`) routing #1013's tier-only entries to
+`materialization-renames.ts` instead: one Figma operation, one derived record.
+
+*Both failures were the same one twice — forward-looking sentences written from a `main`-only read,
+in an issue whose measured claims all held. The reviewer took the first on my word; the owner caught
+it; the second was underneath it and nobody had flagged it.* **A retraction written the same way as the
+claim inherits its blind spot.**
 
 
 ## (2026-08-26) — the tier swap: `color.appearance` holds the values, `color` holds the pointers (#1013)
