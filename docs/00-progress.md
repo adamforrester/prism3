@@ -7,6 +7,89 @@
 
 ---
 
+## (2026-08-26) — 37 refusals nobody lost anything to: the two controls refuted the diagnosis before it was built on (#1087)
+
+**STATUS: shipped.** No version change — a branch reordering and three test arms. Nothing emitted moves.
+Gates stay at **45**; `test.ts` 2585 → **2606**.
+
+**THE TWO CONTROLS ARE THE ENTRY.** The brief offered a reading — a per-collection versus emission-wide
+space mismatch — and asked for it to be attacked rather than built on. Both controls refute it, and
+neither needed Figma.
+
+**Control 1 — do the same 37 refuse on `main`?** **Yes.** Identical count on pre-swap `main`, all three
+brands. #1082 was assumed to have caused this by everyone downstream, including the issue. It is
+innocent.
+
+**Control 2 — are all 37 the same kind?** Yes, and **not the kind the summary implied.** The UI string
+truncates after two `color/…` pairs; every refusing row is actually filed under `surface`. And the
+number that decides it: **0 of 37 targets resolve emission-wide.** The offered reading predicts targets
+that resolve globally and miss locally. They miss everywhere, so that is not what this is.
+
+── WHAT IT ACTUALLY IS ─────────────────────────────────────────────────────────────────────────
+
+`MIRRORED_COLLECTIONS` projects every `color` deprecation twice — into `color` and into the `surface`
+alias mirror, which carries **128** of `color`'s **242** names. The 37 are mirror twins whose target the
+partial mirror does not hold, and **all 37 have a `color` twin that is planned and does migrate.**
+Nothing was ever lost; the user was warned about a filter doing its job.
+
+The defect is branch ORDER in `planVariableRenames`: `target-not-planned` is tested before
+`source-absent`, so a row with **nothing to migrate** reports as a refusal and `isRefusal()` counts it.
+On a fresh, empty file no source exists by construction — yet 37 came back refused.
+
+**`rename-map.ts`'s own header already described the correct behaviour**: *"the mirror that has no
+counterpart in a given file simply reports `source-absent`, so over-projecting is self-correcting."*
+That is the design. The branch order was not it. Third time this week that a comment was right and the
+code under it was not — the failure mode of writing reasoning and implementation in one pass, where the
+prose records the intent, the code records what was typed, and nothing compares them.
+
+Measured after the reorder: empty file **0 refusals** (was 37), populated-with-new-names **0**, and a
+populated file carrying the OLD names still reports **37 migrated** plus 37 legitimate mirror refusals —
+so this is a reordering rather than a weakening.
+
+── THE GATE HALF, WHICH IS THE CLASS AND NOT THE INSTANCE ──────────────────────────────────────
+
+Every existing arm walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
+executor does not: `upsertCollection` filters per collection and tests each target against **that**
+collection's planned names. So 40 `surface` rows were checked by nothing at all, and a green suite
+coexisted with 37 runtime refusals. **Emission-wide resolution and per-collection planning are two
+different questions, and the gate was only ever asking the first.**
+
+The new arm classifies every row in the executor's space — planned / expected-mirror / break — and
+admits a mirror **only** when its primary twin is planned. That conjunction is what stops the bucket
+becoming an excuse: a genuinely broken mirror row, whose primary is also unplanned, is a break and fails.
+
+── TWO FAILED MUTATIONS, BOTH REAL, AND THE SECOND IS THE INTERESTING ONE ──────────────────────
+
+**M3 — reverting the branch order passed the entire suite.** My own fix had no regression guard: the new
+arm checks the MAP, and a map can be perfect while the planner still reports a no-op as a refusal. Now
+pinned directly — over an empty file every outcome must be `source-absent`, plus the converse.
+
+**M4 — widening the mirror predicate to `true` went undetected.** "Both buckets non-empty" bounds
+nothing: every unplanned row became a mirror, `breaks` went to zero, and the arm passed. And the first
+attempt to demonstrate this was itself wrong — I injected the break into `color`, where a **pre-existing**
+arm caught it, so the mutation proved nothing about the new one. Re-injected into `focus`, which mirrors
+nothing and no old arm covers. The bucket is now counted a second way from `MIRRORED_COLLECTIONS`
+membership alone, knowing nothing about the primary-twin conjunction, so the two agree only if the
+predicate is really the one stated.
+
+*A mutation that fires through somebody else's arm is not evidence about yours.*
+
+── AND THE HAZARD THE BRIEF WARNED ABOUT, WHICH I THEN WALKED INTO ─────────────────────────────
+
+The battery's own `git checkout --` cleanup discarded the uncommitted bucket-bound edit — the third time
+in this session, and the first time after being explicitly warned in the brief. The measurements were
+valid (the edit was live when they ran); the code was gone. Re-applied and committed before re-running.
+**"Commit before every mutation" is not "commit before the first one",** and the danger is never the
+mutation, which you expect — it is the cleanup, which you do not.
+
+── FILED, NOT FIXED ────────────────────────────────────────────────────────────────────────────
+
+**#1091** — 37 of 80 derived rows (46%) can never fire in the collection they are filed under, and
+nothing counts that ratio. The over-projection is deliberate and self-correcting; whether 46% is the
+right shape is undecided, and the namespace work multiplies it to corpus width. Three options costed
+there, including why `projectionsOf` cannot simply consult the emission.
+
+
 ## (2026-08-26) — the tier swap: `color.appearance` holds the values, `color` holds the pointers (#1013)
 
 **STATUS: shipped.** `ENGINE_VERSION` **0.26.0** (rebased past the media veil, which took 0.25.0 —
