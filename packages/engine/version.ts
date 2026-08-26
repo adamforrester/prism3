@@ -117,7 +117,12 @@
  * lift a black pixel faster than a black wash drops a white one. Prism2's 40/60/80 is deliberately NOT
  * inherited: measured, its weakest dark step buys 2.85:1, below even the 3:1 large-text floor, so the
  * reference ladder would ship a token whose purpose is contrast for text and which buys none for any
- * text. (#1030)
+ * text.
+ *
+ * Two downstream counts move with it, both additive, and named here because 0.13.0 below states the old
+ * one: the `surface` Figma collection goes 122 → 128 rows, and its self-aliased register 10 → 16, since
+ * an inverse band does not change a photograph and so the same token is genuinely right in both modes
+ * (`inverse-coverage.ts`, `alias: 'self'`). (#1030)
  *
  * 0.24.0: every projected TEXT node now CLAIMS its vertical alignment (#1009 half 2). A new
  * `FigmaNodePlan.textAlignVertical`, defaulted to `CENTER` by the projector and overridable per part via
