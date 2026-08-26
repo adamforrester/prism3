@@ -11964,26 +11964,48 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       if (!plannedBy.has(j.$collection)) plannedBy.set(j.$collection, new Set<string>());
       for (const v of j.variables) plannedBy.get(j.$collection)!.add(v.name);
     }
-    // The PRIMARY collection for a mirror row is the `MIRRORED_COLLECTIONS` KEY, not the row's own
-    // root — the row's `to` has already been re-rooted into the mirror, so reading it back asks the
-    // same question twice and every mirror row classifies as a break. (It did, on the first run.)
-    const primaryOf = (coll: string): string | null => {
-      for (const [key, mirrors] of Object.entries(MIRRORED_COLLECTIONS))
-        if (key !== coll && mirrors.includes(coll)) return key;
-      return null;
+    // ACCEPTABILITY IS A PROPERTY OF THE GROUP, NOT OF WHICH MEMBER HOLDS THE KEY — and that is #1082's
+    // lesson rather than a preference. The first version of this arm read the `MIRRORED_COLLECTIONS`
+    // KEY as "the primary" and every non-key member as a mirror. That was true of the layout it was
+    // written against and of nothing else: pre-swap the key `color` was the FAT tier (242 names) and the
+    // mirror `surface` the THIN one (128), so over-projections landed in a non-key member and
+    // classified as mirrors. #1082 inverted exactly that — the key `color` IS now the thin tier and
+    // `color.appearance` the fat one — so the same 37 legitimate over-projections landed in the KEY and
+    // every one became a break. Six false-positive failures, one merge later.
+    //
+    // So the question is asked symmetrically: is this row's counterpart planned ANYWHERE ELSE in its
+    // mirror group? A group is every collection one root materialises into, key included; which member
+    // the declaration happens to be keyed by is not a fact about the tokens.
+    const groupOf = (coll: string): string[] => {
+      for (const [key, mirrors] of Object.entries(MIRRORED_COLLECTIONS)) {
+        const members = [...new Set([key, ...mirrors])];
+        if (members.includes(coll)) return members;
+      }
+      return [coll];
     };
+    // The naming convention, RE-EXPRESSED here rather than imported from the subject: a collection's
+    // DOTTED name is its variables' SLASHED prefix — `color.appearance` holds `color/appearance/<role>`.
+    // Spelling it out is deliberate; `rename-map.ts` has a `reRoot` that says the same thing, and
+    // calling it would make this oracle a second reading of the code under test — `docs/34` shape 1,
+    // which is exactly what arm (c) below does wrong. The first draft instead re-rooted by swapping
+    // path segment 0: correct for a single-segment name like `surface/…`, silently wrong for a dotted
+    // one, and it built `color.appearance/…`, a name no collection has ever held. That is a SECOND
+    // defect the tier swap exposed, independent of the key/mirror inversion above — fixing only the
+    // inversion leaves all 37 breaks standing, because the twin lookup can never hit.
+    const pfx = (coll: string) => `${coll.split('.').join('/')}/`;
     const breaks: string[] = [];
     let plannedRows = 0, mirrorRows = 0;
     for (const r of map.variables) {
       if (plannedBy.get(r.collection)?.has(r.to)) { plannedRows++; continue; }
-      // The primary projection of the same contract path: same suffix, rooted at the primary collection.
-      const primary = primaryOf(r.collection);
-      const twinTo = primary ? [primary, ...r.to.split('/').slice(1)].join('/') : null;
-      // A row in a PRIMARY collection is never a mirror, whatever its twin says — `primaryOf` returns
-      // null for one, and that null is load-bearing rather than defensive: without it the bucket is an
-      // escape hatch that absorbs any unplanned row, and mutation M4 widened it to exactly that.
-      if (primary && twinTo && (plannedBy.get(primary)?.has(twinTo) ?? false)) { mirrorRows++; continue; }
-      breaks.push(`[${r.collection}] ${r.from} → ${r.to} (not planned in '${r.collection}'${primary ? `; its primary '${primary}' does not carry ${twinTo} either` : '; and it is not a mirror of any collection'})`);
+      // The same ROLE, spelled into each of the group's other members.
+      const others = groupOf(r.collection).filter((g) => g !== r.collection);
+      const role = r.to.startsWith(pfx(r.collection)) ? r.to.slice(pfx(r.collection).length) : null;
+      const twin = role === null ? undefined : others.find((g) => plannedBy.get(g)?.has(pfx(g) + role) ?? false);
+      // A row in a collection that mirrors NOTHING has no `others` at all, so it can never land here —
+      // that emptiness is load-bearing rather than defensive: without it the bucket is an escape hatch
+      // that absorbs any unplanned row, and mutation M4 widened it to exactly that.
+      if (twin) { mirrorRows++; continue; }
+      breaks.push(`[${r.collection}] ${r.from} → ${r.to} (not planned in '${r.collection}'${others.length ? `; and no counterpart in its mirror group (${others.join(', ')}) carries it either` : '; and it is not a mirror of any collection'})`);
     }
     ok(map.variables.length >= 40,
       `rename-map(${brand}) #1087: the derived map is populated (${map.variables.length} rows) — every claim below is "every row that …", vacuously true of none`);
@@ -11994,22 +12016,30 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // "Both buckets non-empty" does not bound anything: mutation M4 replaced the mirror predicate with
     // `true`, every unplanned row became a mirror, `breaks` went to zero and the arm below passed. A
     // bucket that can absorb any row is an escape hatch, not a classification. This count knows nothing
-    // about the primary-twin conjunction, so the two can only agree if the predicate is really the one
-    // stated — a row in a collection that mirrors NOTHING can never land here.
-    const declaredMirrors = new Set(Object.entries(MIRRORED_COLLECTIONS).flatMap(([k, ms]) => ms.filter((m) => m !== k)));
-    const mirrorEligible = map.variables.filter((r) => declaredMirrors.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
+    // about the counterpart lookup — only about GROUP MEMBERSHIP — so the two can only agree if the
+    // predicate is really the one stated: a row in a collection that mirrors NOTHING cannot land here.
+    //
+    // Membership, like the classification above, is symmetric. Counting "non-key members" was the same
+    // key-is-primary assumption in a second place, and it would have gone on agreeing with a
+    // key-reading classifier through #1082 rather than contradicting it — two counts sharing one wrong
+    // premise agree with each other perfectly.
+    const grouped = new Set(Object.entries(MIRRORED_COLLECTIONS).flatMap(([k, ms]) => {
+      const members = [...new Set([k, ...ms])];
+      return members.length > 1 ? members : [];
+    }));
+    const mirrorEligible = map.variables.filter((r) => grouped.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
     //
     // ITS BOUND, STATED because the message is scoped precisely and the scope is easy to over-read.
     // This catches a widened predicate absorbing a break in a collection that mirrors NOTHING (measured:
-    // an injected `focus` break, caught). It does NOT catch one absorbing a break inside a DECLARED
-    // mirror — a fabricated unplanned `surface` row under a widened predicate is absorbed and both arms
-    // go silent (review of #1092, probe B3). That is a limit of counting membership rather than the
-    // conjunction, and closing it needs the primary-twin test to be re-expressed independently, which
-    // would be a second copy of the thing under test. Recorded rather than papered over.
+    // an injected `focus` break, caught). It does NOT catch one absorbing a break inside a collection
+    // that IS in a mirror group — a fabricated unplanned `color` row under a widened predicate is
+    // absorbed and both arms go silent (review of #1092, probe B3). That is a limit of counting
+    // membership rather than the counterpart, and closing it needs the counterpart test re-expressed
+    // independently, which would be a second copy of the thing under test. Recorded, not papered over.
     ok(mirrorRows === mirrorEligible,
-      `rename-map(${brand}) #1087: the mirror bucket holds exactly the unplanned rows of a DECLARED mirror collection (${mirrorRows} classified vs ${mirrorEligible} eligible) — counted a second way, so a widened predicate cannot quietly absorb a break in a collection that mirrors nothing`);
+      `rename-map(${brand}) #1087: the mirror bucket holds exactly the unplanned rows of a collection in a DECLARED mirror group (${mirrorRows} classified vs ${mirrorEligible} eligible) — counted a second way, so a widened predicate cannot quietly absorb a break in a collection that mirrors nothing`);
     ok(breaks.length === 0,
-      `rename-map(${brand}) #1087: every derived row's target is planned IN ITS OWN COLLECTION, or is an expected mirror over-projection whose primary twin is planned — checked in the executor's space, not emission-wide${breaks.length ? ` — BREAKS: ${breaks.slice(0, 3).join(' · ')}` : ''}`);
+      `rename-map(${brand}) #1087: every derived row's target is planned IN ITS OWN COLLECTION, or is an expected mirror over-projection whose counterpart elsewhere in its mirror group is planned — checked in the executor's space, not emission-wide${breaks.length ? ` — BREAKS: ${breaks.slice(0, 3).join(' · ')}` : ''}`);
   }
   }
 
