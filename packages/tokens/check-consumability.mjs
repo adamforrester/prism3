@@ -315,11 +315,29 @@ for (const brand of brands) {
   // A known page color, addressed through the brand's OWN root so this is not an `nb` assertion wearing
   // a loop. The canonical build must show the DEFAULT value, not a mode's — checked by comparing it
   // against the dark projection of the same variable rather than against a hard-coded color.
-  const pageVar = `--${src.root}-color-background-primary`;
+  //
+  // ── WHICH TIER TO ASK, AND WHY THE OBVIOUS ONE IS THE WRONG ONE (#1013) ────────────────────────
+  // The variable is `color.appearance.background.primary`, NOT the shorter `color.background.primary`
+  // a consumer binds. The swap gave the short name to the surface-ALIAS tier, whose leaf is a POINTER:
+  // in CSS it emits `var(--<root>-color-appearance-background-primary)`, the same string in every
+  // appearance build, because appearance varies one level down. So asking the short name here compares
+  // a pointer against itself and fails with two identical strings in the message — which is how this
+  // was found, and would read as "the overlay is inert" rather than "wrong tier asked".
+  //
+  // The two arms below are a PAIR and neither is sufficient. The first is the original assertion, moved
+  // to the tier where appearance actually varies. The second states the property that broke the first —
+  // the alias tier is appearance-INVARIANT — so a future reader who repoints arm 1 back at the short
+  // name fails arm 2 by name instead of quietly weakening the gate to a tautology.
+  const valueVar = `--${src.root}-color-appearance-background-primary`;
+  const aliasVar = `--${src.root}-color-background-primary`;
   const dark = readEmitted(await buildProjected(brand, 'dark'));
-  ok(css.byName[pageVar] !== undefined, `${brand}: the page background resolves (${pageVar} = ${css.byName[pageVar] ?? 'MISSING'})`);
-  ok(css.byName[pageVar] !== dark.byName[pageVar],
-    `${brand}: the canonical build shows the DEFAULT page background, not dark's (${css.byName[pageVar]} vs ${dark.byName[pageVar]})`);
+  ok(css.byName[valueVar] !== undefined, `${brand}: the page background resolves (${valueVar} = ${css.byName[valueVar] ?? 'MISSING'})`);
+  ok(css.byName[valueVar] !== dark.byName[valueVar],
+    `${brand}: the canonical build shows the DEFAULT page background, not dark's (${css.byName[valueVar]} vs ${dark.byName[valueVar]})`);
+  ok(css.byName[aliasVar] !== undefined && css.byName[aliasVar] === dark.byName[aliasVar],
+    `${brand}: [#1013] the alias tier is appearance-INVARIANT — the short name a consumer binds emits the same pointer in every appearance build, and the value moves beneath it (${css.byName[aliasVar] ?? 'MISSING'} vs ${dark.byName[aliasVar] ?? 'MISSING'})`);
+  ok(css.byName[aliasVar] === `var(${valueVar})`,
+    `${brand}: [#1013] and it points at the value tier rather than carrying a colour of its own (${css.byName[aliasVar]})`);
 
   ok(src.modes.length >= 3, `${brand}: [#609] the projection covers every declared mode (${src.modes.length})`);
 }

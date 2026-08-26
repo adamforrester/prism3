@@ -11,12 +11,14 @@
  *
  * ── WHY THIS IS DATA AND NOT A COMMENT ──────────────────────────────────────────────────────────
  *
- * #893 emits a `surface` Figma collection whose every row is an alias, `default` → the page token and
- * `inverse` → its counterpart. For a role with no counterpart it has to do something, and the two
- * options are not interchangeable:
+ * #893 emits the ALIAS Figma collection whose every row is an alias, `default` → the page token and
+ * `inverse` → its counterpart. (It was named `surface` until #1013 swapped the two tiers; it is `color`
+ * now, and the value tier it points into is `color.appearance`. Nothing in this file depends on either
+ * name — the register is keyed on ROLE paths, which the swap did not touch.) For a role with no
+ * counterpart it has to do something, and the two options are not interchangeable:
  *
  *   - **OMIT** the row. The collection stays smaller and "no inverse behaviour" is the readable
- *     default — but a consumer binding `surface.*` uniformly hits a name that does not resolve.
+ *     default — but a consumer binding the alias tier uniformly hits a name that does not resolve.
  *   - **SELF-ALIAS** — point `inverse` at the same token as `default`. Every name resolves in both
  *     modes, at the cost of making a deliberate gap indistinguishable from a filled one.
  *
@@ -33,7 +35,7 @@
 export type InverseGap = {
   /** Roles below the configurable root, exactly as `modes.ts` emits them. */
   paths: string[];
-  /** What #893's `surface` collection does with these rows. See the header. */
+  /** What the alias collection does with these rows. See the header. */
   alias: 'self' | 'omit';
   /** Why the gap exists. Must distinguish "the concept has no inverse form" from "not decided yet". */
   reason: string;
@@ -66,7 +68,13 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'it has no per-surface variant at all. The hero/image dim named in the same paragraph used to be '
       + 'the alternative reading; since #1030 it is `color.veil.*`, its own family below, which removes '
       + 'the ambiguity without deciding this row. Emitting a value either way would still be inventing '
-      + 'the answer; omitting the row makes a consumer who wants one ask.',
+      + 'the answer; omitting the row makes a consumer who wants one ask. '
+      + '#1013 RAISED THE STAKE AND THE DISPOSITION SURVIVED IT. `omit` used to cost only a Figma row; '
+      + 'now that `color.*` IS the alias row set in both formats, it costs the short name too — this is '
+      + 'the one non-inverse role whose plain `color.scrim.default` spelling stops existing, and a '
+      + 'consumer has to write `color.appearance.scrim.default` instead. That is the ask, made louder '
+      + 'rather than quieter: the longer name says "I took the appearance value knowing there is no '
+      + 'per-surface answer yet."',
   },
   {
     paths: [
@@ -87,6 +95,6 @@ export const INVERSE_GAPS: InverseGap[] = [
 /** Flattened, for the both-directions check in `test.ts` and for #893's emitter. */
 export const INVERSE_GAP_PATHS = new Set(INVERSE_GAPS.flatMap((g) => g.paths));
 
-/** How #893's `surface` collection should treat a role with no counterpart. */
+/** How the alias collection should treat a role with no counterpart. */
 export const gapDisposition = (path: string): 'self' | 'omit' | undefined =>
   INVERSE_GAPS.find((g) => g.paths.includes(path))?.alias;

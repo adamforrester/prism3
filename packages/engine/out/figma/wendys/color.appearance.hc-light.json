@@ -1,9 +1,9 @@
 {
-  "$collection": "color",
+  "$collection": "color.appearance",
   "$mode": "hc-light",
   "variables": [
     {
-      "name": "color/background/primary",
+      "name": "color/appearance/background/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -22,7 +22,7 @@
       }
     },
     {
-      "name": "color/background/secondary",
+      "name": "color/appearance/background/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -41,7 +41,7 @@
       }
     },
     {
-      "name": "color/background/tertiary",
+      "name": "color/appearance/background/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -60,7 +60,7 @@
       }
     },
     {
-      "name": "color/background/inverse/primary",
+      "name": "color/appearance/background/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -79,7 +79,7 @@
       }
     },
     {
-      "name": "color/background/inverse/secondary",
+      "name": "color/appearance/background/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -98,7 +98,7 @@
       }
     },
     {
-      "name": "color/background/inverse/tertiary",
+      "name": "color/appearance/background/inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -117,7 +117,7 @@
       }
     },
     {
-      "name": "color/scrim/default",
+      "name": "color/appearance/scrim/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -136,7 +136,7 @@
       }
     },
     {
-      "name": "color/veil/dark/large",
+      "name": "color/appearance/veil/dark/large",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -155,7 +155,7 @@
       }
     },
     {
-      "name": "color/veil/dark/body",
+      "name": "color/appearance/veil/dark/body",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -174,7 +174,7 @@
       }
     },
     {
-      "name": "color/veil/dark/enhanced",
+      "name": "color/appearance/veil/dark/enhanced",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -193,7 +193,7 @@
       }
     },
     {
-      "name": "color/veil/light/large",
+      "name": "color/appearance/veil/light/large",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -212,7 +212,7 @@
       }
     },
     {
-      "name": "color/veil/light/body",
+      "name": "color/appearance/veil/light/body",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -231,7 +231,7 @@
       }
     },
     {
-      "name": "color/veil/light/enhanced",
+      "name": "color/appearance/veil/light/enhanced",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -250,7 +250,7 @@
       }
     },
     {
-      "name": "color/foreground/primary",
+      "name": "color/appearance/foreground/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -270,7 +270,7 @@
       }
     },
     {
-      "name": "color/foreground/secondary",
+      "name": "color/appearance/foreground/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -290,7 +290,7 @@
       }
     },
     {
-      "name": "color/foreground/tertiary",
+      "name": "color/appearance/foreground/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -310,7 +310,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/primary",
+      "name": "color/appearance/foreground/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -330,7 +330,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/secondary",
+      "name": "color/appearance/foreground/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -350,7 +350,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/tertiary",
+      "name": "color/appearance/foreground/inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -370,7 +370,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/brand",
+      "name": "color/appearance/foreground/inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -390,7 +390,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/success",
+      "name": "color/appearance/foreground/inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -410,7 +410,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/warning",
+      "name": "color/appearance/foreground/inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -430,7 +430,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/danger",
+      "name": "color/appearance/foreground/inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -450,7 +450,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/info",
+      "name": "color/appearance/foreground/inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -470,7 +470,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/brand-subtle",
+      "name": "color/appearance/foreground/inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -490,7 +490,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/success-subtle",
+      "name": "color/appearance/foreground/inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -510,7 +510,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/warning-subtle",
+      "name": "color/appearance/foreground/inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -530,7 +530,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/danger-subtle",
+      "name": "color/appearance/foreground/inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -550,7 +550,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/info-subtle",
+      "name": "color/appearance/foreground/inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -570,7 +570,7 @@
       }
     },
     {
-      "name": "color/foreground/brand",
+      "name": "color/appearance/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -590,7 +590,7 @@
       }
     },
     {
-      "name": "color/foreground/success",
+      "name": "color/appearance/foreground/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -610,7 +610,7 @@
       }
     },
     {
-      "name": "color/foreground/warning",
+      "name": "color/appearance/foreground/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -630,7 +630,7 @@
       }
     },
     {
-      "name": "color/foreground/info",
+      "name": "color/appearance/foreground/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -650,7 +650,7 @@
       }
     },
     {
-      "name": "color/foreground/brand-subtle",
+      "name": "color/appearance/foreground/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -670,7 +670,7 @@
       }
     },
     {
-      "name": "color/foreground/success-subtle",
+      "name": "color/appearance/foreground/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -690,7 +690,7 @@
       }
     },
     {
-      "name": "color/foreground/warning-subtle",
+      "name": "color/appearance/foreground/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -710,7 +710,7 @@
       }
     },
     {
-      "name": "color/foreground/danger-subtle",
+      "name": "color/appearance/foreground/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -730,7 +730,7 @@
       }
     },
     {
-      "name": "color/foreground/info-subtle",
+      "name": "color/appearance/foreground/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -750,7 +750,7 @@
       }
     },
     {
-      "name": "color/foreground/danger",
+      "name": "color/appearance/foreground/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -770,7 +770,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/fill/rest",
+      "name": "color/appearance/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -789,7 +789,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/fill/hover",
+      "name": "color/appearance/interactive/primary/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -808,7 +808,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/fill/pressed",
+      "name": "color/appearance/interactive/primary/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -827,7 +827,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/fill/focused",
+      "name": "color/appearance/interactive/primary/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -846,7 +846,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/fill/selected",
+      "name": "color/appearance/interactive/primary/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -865,7 +865,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/on-fill",
+      "name": "color/appearance/interactive/primary/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -885,7 +885,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/text/rest",
+      "name": "color/appearance/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -903,7 +903,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/text/hover",
+      "name": "color/appearance/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -921,7 +921,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/text/pressed",
+      "name": "color/appearance/interactive/primary/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -939,7 +939,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/border/rest",
+      "name": "color/appearance/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -957,7 +957,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/border/hover",
+      "name": "color/appearance/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -975,7 +975,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/border/pressed",
+      "name": "color/appearance/interactive/primary/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -993,7 +993,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/text/rest",
+      "name": "color/appearance/interactive/primary/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1011,7 +1011,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/text/hover",
+      "name": "color/appearance/interactive/primary/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1029,7 +1029,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/text/pressed",
+      "name": "color/appearance/interactive/primary/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1047,7 +1047,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/rest",
+      "name": "color/appearance/interactive/primary/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1066,7 +1066,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/hover",
+      "name": "color/appearance/interactive/primary/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1085,7 +1085,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/pressed",
+      "name": "color/appearance/interactive/primary/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1104,7 +1104,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/focused",
+      "name": "color/appearance/interactive/primary/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1123,7 +1123,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/selected",
+      "name": "color/appearance/interactive/primary/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1142,7 +1142,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/on-fill",
+      "name": "color/appearance/interactive/primary/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1162,7 +1162,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/border/rest",
+      "name": "color/appearance/interactive/primary/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1180,7 +1180,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/border/hover",
+      "name": "color/appearance/interactive/primary/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1198,7 +1198,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/border/pressed",
+      "name": "color/appearance/interactive/primary/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1216,7 +1216,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/overlay/hover",
+      "name": "color/appearance/interactive/primary/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1235,7 +1235,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/overlay/pressed",
+      "name": "color/appearance/interactive/primary/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1254,7 +1254,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/overlay/selected",
+      "name": "color/appearance/interactive/primary/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1273,7 +1273,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/overlay/hover",
+      "name": "color/appearance/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1292,7 +1292,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/overlay/pressed",
+      "name": "color/appearance/interactive/primary/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1311,7 +1311,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/overlay/selected",
+      "name": "color/appearance/interactive/primary/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1330,7 +1330,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/fill/rest",
+      "name": "color/appearance/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1349,7 +1349,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/fill/hover",
+      "name": "color/appearance/interactive/destructive/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1368,7 +1368,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/fill/pressed",
+      "name": "color/appearance/interactive/destructive/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1387,7 +1387,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/fill/focused",
+      "name": "color/appearance/interactive/destructive/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1406,7 +1406,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/fill/selected",
+      "name": "color/appearance/interactive/destructive/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1425,7 +1425,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/on-fill",
+      "name": "color/appearance/interactive/destructive/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1445,7 +1445,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text/rest",
+      "name": "color/appearance/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1463,7 +1463,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text/hover",
+      "name": "color/appearance/interactive/destructive/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1481,7 +1481,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text/pressed",
+      "name": "color/appearance/interactive/destructive/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1499,7 +1499,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/border/rest",
+      "name": "color/appearance/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1517,7 +1517,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/border/hover",
+      "name": "color/appearance/interactive/destructive/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1535,7 +1535,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/border/pressed",
+      "name": "color/appearance/interactive/destructive/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1553,7 +1553,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/text/rest",
+      "name": "color/appearance/interactive/destructive/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1571,7 +1571,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/text/hover",
+      "name": "color/appearance/interactive/destructive/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1589,7 +1589,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/text/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1607,7 +1607,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/rest",
+      "name": "color/appearance/interactive/destructive/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1626,7 +1626,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/hover",
+      "name": "color/appearance/interactive/destructive/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1645,7 +1645,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1664,7 +1664,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/focused",
+      "name": "color/appearance/interactive/destructive/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1683,7 +1683,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/selected",
+      "name": "color/appearance/interactive/destructive/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1702,7 +1702,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/on-fill",
+      "name": "color/appearance/interactive/destructive/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1722,7 +1722,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/border/rest",
+      "name": "color/appearance/interactive/destructive/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1740,7 +1740,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/border/hover",
+      "name": "color/appearance/interactive/destructive/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1758,7 +1758,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/border/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1776,7 +1776,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/overlay/hover",
+      "name": "color/appearance/interactive/destructive/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1795,7 +1795,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/overlay/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1814,7 +1814,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/overlay/selected",
+      "name": "color/appearance/interactive/destructive/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1833,7 +1833,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/overlay/hover",
+      "name": "color/appearance/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1852,7 +1852,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/overlay/pressed",
+      "name": "color/appearance/interactive/destructive/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1871,7 +1871,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/overlay/selected",
+      "name": "color/appearance/interactive/destructive/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1890,7 +1890,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/rest",
+      "name": "color/appearance/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1909,7 +1909,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/hover",
+      "name": "color/appearance/interactive/neutral/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1928,7 +1928,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/pressed",
+      "name": "color/appearance/interactive/neutral/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1947,7 +1947,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/focused",
+      "name": "color/appearance/interactive/neutral/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1966,7 +1966,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/selected",
+      "name": "color/appearance/interactive/neutral/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1985,7 +1985,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/on-fill",
+      "name": "color/appearance/interactive/neutral/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2005,7 +2005,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text/rest",
+      "name": "color/appearance/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2023,7 +2023,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text/hover",
+      "name": "color/appearance/interactive/neutral/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2041,7 +2041,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text/pressed",
+      "name": "color/appearance/interactive/neutral/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2059,7 +2059,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border/rest",
+      "name": "color/appearance/interactive/neutral/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2077,7 +2077,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border/hover",
+      "name": "color/appearance/interactive/neutral/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2095,7 +2095,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border/pressed",
+      "name": "color/appearance/interactive/neutral/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2113,7 +2113,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/text/rest",
+      "name": "color/appearance/interactive/neutral/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2131,7 +2131,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/text/hover",
+      "name": "color/appearance/interactive/neutral/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2149,7 +2149,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/text/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2167,7 +2167,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/rest",
+      "name": "color/appearance/interactive/neutral/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2186,7 +2186,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/hover",
+      "name": "color/appearance/interactive/neutral/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2205,7 +2205,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2224,7 +2224,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/focused",
+      "name": "color/appearance/interactive/neutral/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2243,7 +2243,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/selected",
+      "name": "color/appearance/interactive/neutral/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2262,7 +2262,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/on-fill",
+      "name": "color/appearance/interactive/neutral/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2282,7 +2282,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/border/rest",
+      "name": "color/appearance/interactive/neutral/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2300,7 +2300,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/border/hover",
+      "name": "color/appearance/interactive/neutral/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2318,7 +2318,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/border/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2336,7 +2336,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/overlay/hover",
+      "name": "color/appearance/interactive/neutral/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2355,7 +2355,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/overlay/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2374,7 +2374,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/overlay/selected",
+      "name": "color/appearance/interactive/neutral/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2393,7 +2393,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/overlay/hover",
+      "name": "color/appearance/interactive/neutral/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2412,7 +2412,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/overlay/pressed",
+      "name": "color/appearance/interactive/neutral/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2431,7 +2431,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/overlay/selected",
+      "name": "color/appearance/interactive/neutral/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2450,7 +2450,7 @@
       }
     },
     {
-      "name": "color/disabled/fill",
+      "name": "color/appearance/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2469,7 +2469,7 @@
       }
     },
     {
-      "name": "color/disabled/on-fill",
+      "name": "color/appearance/disabled/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2489,7 +2489,7 @@
       }
     },
     {
-      "name": "color/disabled/text",
+      "name": "color/appearance/disabled/text",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2507,7 +2507,7 @@
       }
     },
     {
-      "name": "color/disabled/icon",
+      "name": "color/appearance/disabled/icon",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2527,7 +2527,7 @@
       }
     },
     {
-      "name": "color/disabled/border",
+      "name": "color/appearance/disabled/border",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2545,7 +2545,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/fill",
+      "name": "color/appearance/disabled/inverse/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2564,7 +2564,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/on-fill",
+      "name": "color/appearance/disabled/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2583,7 +2583,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/text",
+      "name": "color/appearance/disabled/inverse/text",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2602,7 +2602,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/icon",
+      "name": "color/appearance/disabled/inverse/icon",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2621,7 +2621,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/border",
+      "name": "color/appearance/disabled/inverse/border",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2640,7 +2640,7 @@
       }
     },
     {
-      "name": "color/field/fill",
+      "name": "color/appearance/field/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2659,7 +2659,7 @@
       }
     },
     {
-      "name": "color/field/border/rest",
+      "name": "color/appearance/field/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2677,7 +2677,7 @@
       }
     },
     {
-      "name": "color/field/border/hover",
+      "name": "color/appearance/field/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2695,7 +2695,7 @@
       }
     },
     {
-      "name": "color/field/placeholder",
+      "name": "color/appearance/field/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2713,7 +2713,7 @@
       }
     },
     {
-      "name": "color/field/inverse/fill",
+      "name": "color/appearance/field/inverse/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2732,7 +2732,7 @@
       }
     },
     {
-      "name": "color/field/inverse/border/rest",
+      "name": "color/appearance/field/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2750,7 +2750,7 @@
       }
     },
     {
-      "name": "color/field/inverse/border/hover",
+      "name": "color/appearance/field/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2768,7 +2768,7 @@
       }
     },
     {
-      "name": "color/field/inverse/placeholder",
+      "name": "color/appearance/field/inverse/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2786,7 +2786,7 @@
       }
     },
     {
-      "name": "color/text/primary",
+      "name": "color/appearance/text/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2804,7 +2804,7 @@
       }
     },
     {
-      "name": "color/text/secondary",
+      "name": "color/appearance/text/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2822,7 +2822,7 @@
       }
     },
     {
-      "name": "color/text/tertiary",
+      "name": "color/appearance/text/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2840,7 +2840,7 @@
       }
     },
     {
-      "name": "color/text/brand",
+      "name": "color/appearance/text/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2858,7 +2858,7 @@
       }
     },
     {
-      "name": "color/text/success",
+      "name": "color/appearance/text/success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2876,7 +2876,7 @@
       }
     },
     {
-      "name": "color/text/warning",
+      "name": "color/appearance/text/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2894,7 +2894,7 @@
       }
     },
     {
-      "name": "color/text/danger",
+      "name": "color/appearance/text/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2912,7 +2912,7 @@
       }
     },
     {
-      "name": "color/text/info",
+      "name": "color/appearance/text/info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2930,7 +2930,7 @@
       }
     },
     {
-      "name": "color/text/brand-subtle",
+      "name": "color/appearance/text/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2948,7 +2948,7 @@
       }
     },
     {
-      "name": "color/text/success-subtle",
+      "name": "color/appearance/text/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2966,7 +2966,7 @@
       }
     },
     {
-      "name": "color/text/warning-subtle",
+      "name": "color/appearance/text/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2984,7 +2984,7 @@
       }
     },
     {
-      "name": "color/text/danger-subtle",
+      "name": "color/appearance/text/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3002,7 +3002,7 @@
       }
     },
     {
-      "name": "color/text/info-subtle",
+      "name": "color/appearance/text/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3020,7 +3020,7 @@
       }
     },
     {
-      "name": "color/text/on-brand",
+      "name": "color/appearance/text/on-brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3038,7 +3038,7 @@
       }
     },
     {
-      "name": "color/text/on-success",
+      "name": "color/appearance/text/on-success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3056,7 +3056,7 @@
       }
     },
     {
-      "name": "color/text/on-warning",
+      "name": "color/appearance/text/on-warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3074,7 +3074,7 @@
       }
     },
     {
-      "name": "color/text/on-danger",
+      "name": "color/appearance/text/on-danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3092,7 +3092,7 @@
       }
     },
     {
-      "name": "color/text/on-info",
+      "name": "color/appearance/text/on-info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3110,7 +3110,7 @@
       }
     },
     {
-      "name": "color/text/link/default",
+      "name": "color/appearance/text/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3128,7 +3128,7 @@
       }
     },
     {
-      "name": "color/text/link/hover",
+      "name": "color/appearance/text/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3146,7 +3146,7 @@
       }
     },
     {
-      "name": "color/text/link/visited",
+      "name": "color/appearance/text/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3164,7 +3164,7 @@
       }
     },
     {
-      "name": "color/text/link/focused",
+      "name": "color/appearance/text/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3182,7 +3182,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/primary",
+      "name": "color/appearance/text/on-inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3200,7 +3200,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/secondary",
+      "name": "color/appearance/text/on-inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3218,7 +3218,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/tertiary",
+      "name": "color/appearance/text/on-inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3236,7 +3236,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/brand",
+      "name": "color/appearance/text/on-inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3254,7 +3254,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/success",
+      "name": "color/appearance/text/on-inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3272,7 +3272,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/warning",
+      "name": "color/appearance/text/on-inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3290,7 +3290,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/danger",
+      "name": "color/appearance/text/on-inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3308,7 +3308,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/info",
+      "name": "color/appearance/text/on-inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3326,7 +3326,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/brand-subtle",
+      "name": "color/appearance/text/on-inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3344,7 +3344,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/success-subtle",
+      "name": "color/appearance/text/on-inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3362,7 +3362,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/warning-subtle",
+      "name": "color/appearance/text/on-inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3380,7 +3380,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/danger-subtle",
+      "name": "color/appearance/text/on-inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3398,7 +3398,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/info-subtle",
+      "name": "color/appearance/text/on-inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3416,7 +3416,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/link/default",
+      "name": "color/appearance/text/on-inverse/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3434,7 +3434,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/link/hover",
+      "name": "color/appearance/text/on-inverse/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3452,7 +3452,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/link/visited",
+      "name": "color/appearance/text/on-inverse/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3470,7 +3470,7 @@
       }
     },
     {
-      "name": "color/text/on-inverse/link/focused",
+      "name": "color/appearance/text/on-inverse/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3488,7 +3488,7 @@
       }
     },
     {
-      "name": "color/icon/primary",
+      "name": "color/appearance/icon/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3508,7 +3508,7 @@
       }
     },
     {
-      "name": "color/icon/secondary",
+      "name": "color/appearance/icon/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3528,7 +3528,7 @@
       }
     },
     {
-      "name": "color/icon/tertiary",
+      "name": "color/appearance/icon/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3548,7 +3548,7 @@
       }
     },
     {
-      "name": "color/icon/brand",
+      "name": "color/appearance/icon/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3568,7 +3568,7 @@
       }
     },
     {
-      "name": "color/icon/success",
+      "name": "color/appearance/icon/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3588,7 +3588,7 @@
       }
     },
     {
-      "name": "color/icon/warning",
+      "name": "color/appearance/icon/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3608,7 +3608,7 @@
       }
     },
     {
-      "name": "color/icon/danger",
+      "name": "color/appearance/icon/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3628,7 +3628,7 @@
       }
     },
     {
-      "name": "color/icon/info",
+      "name": "color/appearance/icon/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3648,7 +3648,7 @@
       }
     },
     {
-      "name": "color/icon/brand-subtle",
+      "name": "color/appearance/icon/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3668,7 +3668,7 @@
       }
     },
     {
-      "name": "color/icon/success-subtle",
+      "name": "color/appearance/icon/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3688,7 +3688,7 @@
       }
     },
     {
-      "name": "color/icon/warning-subtle",
+      "name": "color/appearance/icon/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3708,7 +3708,7 @@
       }
     },
     {
-      "name": "color/icon/danger-subtle",
+      "name": "color/appearance/icon/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3728,7 +3728,7 @@
       }
     },
     {
-      "name": "color/icon/info-subtle",
+      "name": "color/appearance/icon/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3748,7 +3748,7 @@
       }
     },
     {
-      "name": "color/icon/on-brand",
+      "name": "color/appearance/icon/on-brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3768,7 +3768,7 @@
       }
     },
     {
-      "name": "color/icon/on-success",
+      "name": "color/appearance/icon/on-success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3788,7 +3788,7 @@
       }
     },
     {
-      "name": "color/icon/on-warning",
+      "name": "color/appearance/icon/on-warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3808,7 +3808,7 @@
       }
     },
     {
-      "name": "color/icon/on-danger",
+      "name": "color/appearance/icon/on-danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3828,7 +3828,7 @@
       }
     },
     {
-      "name": "color/icon/on-info",
+      "name": "color/appearance/icon/on-info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3848,7 +3848,7 @@
       }
     },
     {
-      "name": "color/icon/link/default",
+      "name": "color/appearance/icon/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3868,7 +3868,7 @@
       }
     },
     {
-      "name": "color/icon/link/hover",
+      "name": "color/appearance/icon/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3888,7 +3888,7 @@
       }
     },
     {
-      "name": "color/icon/link/visited",
+      "name": "color/appearance/icon/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3908,7 +3908,7 @@
       }
     },
     {
-      "name": "color/icon/link/focused",
+      "name": "color/appearance/icon/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3928,7 +3928,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/primary",
+      "name": "color/appearance/icon/on-inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3948,7 +3948,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/secondary",
+      "name": "color/appearance/icon/on-inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3968,7 +3968,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/tertiary",
+      "name": "color/appearance/icon/on-inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3988,7 +3988,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/brand",
+      "name": "color/appearance/icon/on-inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4008,7 +4008,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/success",
+      "name": "color/appearance/icon/on-inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4028,7 +4028,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/warning",
+      "name": "color/appearance/icon/on-inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4048,7 +4048,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/danger",
+      "name": "color/appearance/icon/on-inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4068,7 +4068,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/info",
+      "name": "color/appearance/icon/on-inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4088,7 +4088,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/brand-subtle",
+      "name": "color/appearance/icon/on-inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4108,7 +4108,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/success-subtle",
+      "name": "color/appearance/icon/on-inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4128,7 +4128,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/warning-subtle",
+      "name": "color/appearance/icon/on-inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4148,7 +4148,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/danger-subtle",
+      "name": "color/appearance/icon/on-inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4168,7 +4168,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/info-subtle",
+      "name": "color/appearance/icon/on-inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4188,7 +4188,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/link/default",
+      "name": "color/appearance/icon/on-inverse/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4208,7 +4208,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/link/hover",
+      "name": "color/appearance/icon/on-inverse/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4228,7 +4228,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/link/visited",
+      "name": "color/appearance/icon/on-inverse/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4248,7 +4248,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/link/focused",
+      "name": "color/appearance/icon/on-inverse/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4268,7 +4268,7 @@
       }
     },
     {
-      "name": "color/border/primary",
+      "name": "color/appearance/border/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4286,7 +4286,7 @@
       }
     },
     {
-      "name": "color/border/secondary",
+      "name": "color/appearance/border/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4304,7 +4304,7 @@
       }
     },
     {
-      "name": "color/border/inverse/default",
+      "name": "color/appearance/border/inverse/default",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4322,7 +4322,7 @@
       }
     },
     {
-      "name": "color/border/inverse/primary",
+      "name": "color/appearance/border/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4340,7 +4340,7 @@
       }
     },
     {
-      "name": "color/border/inverse/secondary",
+      "name": "color/appearance/border/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4358,7 +4358,7 @@
       }
     },
     {
-      "name": "color/border/inverse/brand",
+      "name": "color/appearance/border/inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4376,7 +4376,7 @@
       }
     },
     {
-      "name": "color/border/inverse/success",
+      "name": "color/appearance/border/inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4394,7 +4394,7 @@
       }
     },
     {
-      "name": "color/border/inverse/warning",
+      "name": "color/appearance/border/inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4412,7 +4412,7 @@
       }
     },
     {
-      "name": "color/border/inverse/danger",
+      "name": "color/appearance/border/inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4430,7 +4430,7 @@
       }
     },
     {
-      "name": "color/border/inverse/info",
+      "name": "color/appearance/border/inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4448,7 +4448,7 @@
       }
     },
     {
-      "name": "color/border/inverse/focus",
+      "name": "color/appearance/border/inverse/focus",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4466,7 +4466,7 @@
       }
     },
     {
-      "name": "color/border/brand",
+      "name": "color/appearance/border/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4484,7 +4484,7 @@
       }
     },
     {
-      "name": "color/border/success",
+      "name": "color/appearance/border/success",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4502,7 +4502,7 @@
       }
     },
     {
-      "name": "color/border/warning",
+      "name": "color/appearance/border/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4520,7 +4520,7 @@
       }
     },
     {
-      "name": "color/border/danger",
+      "name": "color/appearance/border/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4538,7 +4538,7 @@
       }
     },
     {
-      "name": "color/border/info",
+      "name": "color/appearance/border/info",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4556,7 +4556,7 @@
       }
     },
     {
-      "name": "color/border/focus",
+      "name": "color/appearance/border/focus",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"

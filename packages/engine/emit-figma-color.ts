@@ -129,7 +129,12 @@ const FIELD_SLOT_SCOPES: Record<string, string[]> = {
 // color.<family>.… → scopes. `interactive` defers to its slot (segment[3]),
 // `disabled` / `field` to their slot (segment[2]).
 const colorScopes = (dotted: string): string[] => {
-  const seg = stripNs(dotted).split('.'); // ['color', family, …]
+  // ['color', family, …] — after #1013 the value tier is `color.appearance.<family>.…`, so the TIER
+  // segment is dropped explicitly rather than left to fall through. Getting this wrong is quiet in
+  // exactly the way the inverse qualifier below is: `seg[1] === 'appearance'` misses `COLOR_SCOPES`
+  // and every one of the 242 variables scopes as FRAME_FILL/SHAPE_FILL via the `??` fallback on the
+  // last line — the whole tier silently mis-scoped, no error, no test that reads a picker.
+  const seg = stripNs(dotted).split('.').filter((s, i) => !(i === 1 && s === 'appearance'));
   // interactive slot = seg[3], except the inverse column nests a slot one deeper (inverse.<slot>.<state>).
   // The qualifier is matched by name, so it moved with the #891 rename (`on-inverse` → `inverse`); a
   // stale spelling here would not throw — it would silently scope the whole inverse column as `fill`,
@@ -212,7 +217,10 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     })),
   };
 
-  const colLeaves = leaves(tree[root].color, `${root}.color`);
+  // #1013: the VALUE tier is `color.appearance.*`, not `color.*`. `color.*` is now the surface ALIAS
+  // tier (`emit-figma-surface.ts`), so walking `tree[root].color` here would pull both tiers into one
+  // collection — 128 alias rows emitted a second time, in five appearance modes, aliasing themselves.
+  const colLeaves = leaves(tree[root].color.appearance, `${root}.color.appearance`);
   // Iterate only the modes THIS brand ships (respects BrandInput.modes opt-out — Pillar 1a).
   // Canonical order: the built-ins in their fixed COLOR_MODES order first, then any user-added
   // custom modes (C1 — the modes in theme.modes that aren't built-ins) in declaration order. For a
@@ -221,7 +229,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   const customModes = theme.modes.filter((m) => !(COLOR_MODES as readonly string[]).includes(m));
   const emittedModes = [...builtinModes, ...customModes];
   const color: FigmaCollectionFile[] = emittedModes.map((mode) => ({
-    $collection: 'color',
+    $collection: 'color.appearance',
     $mode: mode,
     variables: colLeaves.map(([dotted, leaf]) => {
       const ext = leaf.$extensions?.prism3 ?? {};

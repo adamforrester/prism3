@@ -7,6 +7,256 @@
 
 ---
 
+## (2026-08-26) — the tier swap: `color.appearance` holds the values, `color` holds the pointers (#1013)
+
+**STATUS: shipped.** `ENGINE_VERSION` **0.26.0** (rebased past the media veil, which took 0.25.0 —
+see the trap below), `CONTRACT_VERSION` **6.0.0** (a MAJOR — 114 guaranteed paths removed). 114
+artifacts, unchanged in count; **18 deleted explicitly** (below). Gates stay at **45**: `npm run verify`
+→ *45/45 gates reached a verdict in 111s — 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY*.
+`MATERIALIZATION_RENAMES` and `COLLECTION_RENAMES` get their **first real entries**.
+
+**What moved.** The value tier is `color.appearance.*` and the surface-alias tier takes the short name
+`color.*`, in **both** formats. Figma: the `color` collection → `color.appearance` (242 variables, and
+the variables move with it to `color/appearance/*`), the `surface` collection → `color` (128 variables,
+`surface/*` → `color/*`). DTCG: every former `color.<role>` leaf now sits under `color.appearance`, and
+the 128 alias leaves take the short spelling. **Scope is 370 variables per brand, not 128** — Figma
+treats a collection's name and its variables' names as independent facts, and a variable name tracks
+its **DTCG path**, not its collection (`core-palette` holds `palette/*`). That rule is what keeps the
+two formats reconcilable and nothing here bends it.
+
+**No colour value changes anywhere in the corpus.** Every emitted paint is byte-identical to 0.24.0
+under a different name, and the alias tier's second mode points at a name that already existed. Names
+move, values do not — the case the two-version split exists for, taken from the other side.
+
+── WHY THE SHORT NAME GOES TO THE POINTERS ──────────────────────────────────────────────────────
+
+Not aesthetics. A surface projection carrying a **name** is appearance-independent; one carrying a
+**value** is not — measured at 2560/0 against 1050/1510, over 128 alias rows × 4 appearances × 5 corpus brands. The tier a consumer binds should therefore be
+the pointer tier, and the short name is what a consumer binds. `core.appearance` was considered and
+rejected: it puts a mode-varying axis under the namespace reserved for primitives.
+
+── THE THREE PIECES, AND WHY THEY ARE INSEPARABLE ───────────────────────────────────────────────
+
+1. **The emission.** Both collections renamed, all 370 variables per brand renamed, Figma and DTCG.
+2. **The rename record.** Two `MATERIALIZATION_RENAMES` rules and two `COLLECTION_RENAMES` entries —
+   `docs/44` §5 as the spec, and its §8 question 1 is closed by them.
+3. **#1035's pre-pass.** Collection renames hoisted into one topologically-ordered pre-pass that runs
+   before any executor. The atomicity requirement is stated **at the pre-pass itself**, not only here:
+   a half-applied collection rename leaves a file no run of the engine produces, which nothing
+   downstream can recognise.
+
+Shipping 1 without 2 loses the migration; 2 without 3 applies the two renames in an order that fails.
+
+── THE CHAIN THAT IS NOW LEGAL, AND THE CYCLE THAT IS STILL REFUSED ─────────────────────────────
+
+`surface`→`color` alongside `color`→`color.appearance` is a **chain**: order-resolvable, and `topoOrder`
+resolves it (M4a below — reversing the declaration changes nothing, which is the point). `color`→`surface`
+alongside `surface`→`color` is a **cycle**: not migratable under any ordering, because both entries
+report `target-occupied` in both directions, and it needs a two-phase temp name this deliberately does
+not do. `closesLoop` **walks** the edge graph rather than checking one hop — M6 measures what one hop
+buys: the cycle validates clean, all three renames apply, and 26 arms fail (6 engine + 20 plugin).
+
+── COMPOSITION ORDER AT APPLY TIME, WHICH IS NOT OBVIOUS ────────────────────────────────────────
+
+A variable can need **both** a materialization rule and a contract rename. `composeVariableRenames`
+folds them into ONE `{from,to}` per live name — rules first, then the contract row keyed on the rule's
+**image**. Two sequential passes would route through an intermediate name no plan asks for, and the
+failure is quiet in a specific way: `target-not-planned` then `source-absent`, two correct rules
+migrating nothing. M10 is that mutation, and it is why a pure `test.ts` arm had to exist — the plugin
+harness stayed green through it.
+
+── SINGLE-STEP VERSUS TRANSITIVE, THE SAME WORD MEANING TWO THINGS ──────────────────────────────
+
+The accounting's `recollect` must be **single-step**; fix 3's live pre-pass needs **topological order**.
+The single cause of the asymmetry: whether the steps share a mutable subject. Following the accounting's
+recollection to a fixed point sends the alias tier to `color.appearance`, which is not where it went —
+M3 measures the 384 keys **misattributed**, distinguishable from M1's 384 **unaccounted**.
+
+── WHAT THE ACCOUNTING GATE DID, WHICH IS THE GATE WORKING ──────────────────────────────────────
+
+It failed the first run, before the rules existed. With the two real rules:
+`2112 keys → 2112, 1110 removed / 1110 added, 2 rule(s) making 1110 claim(s)`. The contract:
+**714 guaranteed** paths (586 + 242 added − 114 removed), 234 `brandDependent`, `moved=114`. Of the contract's 154
+`color.*` deprecation records, **not one** `path` still resolves and **every** `replacedBy` does —
+which is the shape a deprecation record is supposed to have.
+
+── 114 ARTIFACTS, 18 DELETED, AND WHY THE `ci.yml` PIN DOES NOT MOVE (#1059) ────────────────────
+
+Emitted Figma **filenames follow the collection**, so six files per brand cease to exist
+(`color.{light,dark,hc-light,hc-dark}.json`, `surface.{default,inverse}.json`) and six take their place.
+`out/figma/` holds **three** brands — `aurora`, `nb`, `wendys` — so that is **18 deletions and 18
+additions**, `git rm`'d explicitly because **`regen --check`'s removal arm cannot see them**: it checks
+that committed artifacts match what the engine emits, and a file the engine has stopped emitting is
+simply not asked about. Left alone they would have shipped as stale artifacts under names nothing
+produces. The count is `108 + 3 + 3 = 114` either side, so the pin holds — a **counterfactual worth
+recording**: had the swap changed the file count rather than swapping names one-for-one, the pin would
+have moved and `regen --check` still would not have named the stale files. #1059 is the gap; it is
+**not fixed here**.
+
+── FIVE DOWNSTREAM CLAIMS THE SWAP FALSIFIED ────────────────────────────────────────────────────
+
+All fixed rather than filed, because each is a **gated or shipped surface asserting something about the
+names that moved** — leaving any would ship the swap with a gate reporting agreement it no longer has.
+Three were caught by a gate going red (`consumability`, `lint-paint`, and the media veil's own `test.ts`
+§9c); two were not caught by anything (`axes.ts` reported *agreement*, the studio reported *nothing*),
+which is the more interesting half.
+
+**`packages/tokens/check-consumability.mjs`** asserted "the canonical build shows the DEFAULT page
+background, not dark's" by reading `--<root>-color-background-primary`. That is the ALIAS leaf now, and
+**in CSS an alias leaf is a pointer** — `var(--<root>-color-appearance-background-primary)`, the *same
+string in every appearance build*, because appearance varies one level down. The assertion compared a
+pointer against itself and failed printing two identical strings, which reads as "the overlay is inert"
+rather than "wrong tier asked". Moved to the value tier and **paired** with the property that broke it:
+the alias tier is appearance-invariant, and it points at the value tier rather than carrying a colour of
+its own. Without the pair, a future reader repoints arm 1 at the short name and quietly gets a tautology.
+
+**`components/focus-ring.ts`** had to move `border.inverse` to `color.appearance.border.inverse.focus`,
+because the plain `color.border.inverse.focus` spelling is no longer a name the engine emits — the
+surface tier holds `color.*` and carries no inverse roles. Its `'border'` binding, meanwhile, spells
+`color.border.focus`, which now **is** the alias row, so that one binding became surface-responsive with
+no def change. The def's two keys now sit in visibly different tiers, which is the honest shape of a def
+reaching past the layer it should use, and the header says so. `lint-paint`'s focus-ring census moved
+with the same counts (2 members / 2 assignments, 4 coords / 4 assignments) and was `--accept`ed; no
+other def's census moved.
+
+**`tools/exporter-comparison/axes.ts`** declared the surface axis `absent` from the DTCG projection.
+That was true only while the value tier held the short name: a pointer tier and its targets under one
+name have nothing to project separately. It is **`base-only`** now — a new kind, between `absent` and
+`overlay` — because the `default` member pairs path-for-path while `inverse` still has no overlay file
+(#1027). **The trap, measured:** the naive fix is to swap the key and keep the kind, and it drops **370
+paths per brand instead of 128**, because `compare.ts` applies the drop to a path's FIRST SEGMENT and
+`color` now prefixes `color.appearance.*`. That reports as agreement: **1110 unpaired across three
+brands, silently**. Written at `absentFromProjection`, which now returns an empty set.
+
+**The studio** printed `color.<role>` on all seven colour-pill sites, so **114 of them named a path
+that stops resolving** — the same 114 that appear as `moved` in this PR's own contract diff. `colorPath`
+picks the tier from `surfaceRows`, the one derivation both materialisations read. **A pattern match on
+`inverse` is wrong twice**: it misses `scrim.default` (the one non-inverse role in the value-only set,
+gap disposition `omit`), and it would keep answering confidently the day a role gains a counterpart.
+`./surface-rows` gains an `exports` subpath so the studio can reach it.
+
+**The media veil's `test.ts` §9c** (0.25.0, #1030) read `tree[root].color.veil` in two arms. The swap
+moved that family to `color.appearance.veil` — the veil rows self-alias, so they are in the alias tier
+too, but as **pointers**. Both arms are repointed. The instructive half is that the two arms failed
+*differently*: arm C failed loudly, and **arm B passed vacuously**, because a pointer leaf has no mode
+entries and "every mode entry equals base" is `every` over an empty set. Arm B would have shipped green
+against a tier it was no longer reading. It was found only because arm C failed beside it — this lane's
+second instance of #1078's shape, and the reason that shape is filed rather than noted.
+
+── MUTATION BATTERY (docs/34: not "does the suite go red" but "is my rule among the failures, by name") ──
+
+| # | mutation | result |
+|---|---|---|
+| M1 | rule 2's `domain` → `() => false` | RED — **384 unaccounted removals, named individually** (128 × 3 brands), each as `aurora · color :: surface/background/primary` |
+| M2 | rule 1's `map` → `color/apperance/` | RED — **726 contradicted claims** (242 × 3), every line tagged `[appearance-tier-1013]` |
+| M3 | `recollect` made transitive (a 12-iteration walk) | RED — the same **384** keys, but **misattributed**: `color.appearance :: surface/…` where M1 prints `color :: surface/…`. One hop is right, and a walk is distinguishable from the output alone |
+| M4a | `COLLECTION_RENAMES` reversed | **ALL PASS** — 2621 engine assertions plus the plugin suite. Order-independence is `topoOrder`'s doing, not luck |
+| M4b | M4a + `topoOrder` → identity | RED — **5 engine + 8 plugin**. The plan reports `surface→color:target-occupied` \| `color→color.appearance:migrated`, and the file is still `(color, surface)`: **one refusal applied none of it.** The 3 variable-rename failures are the disarm coupling propagating correctly |
+| M5 | a third entry closing a 3-cycle | RED — 6 engine; the cycle **refused by name** — `collection rename cycle: color → color.appearance closes a loop back to color` |
+| M6 | M5 + `closesLoop` reduced to one hop | RED — **6 engine + 20 plugin**. `closes a loop` appears **0 times**: the cycle validates clean, all three apply (`migrated migrated migrated`), and the file **rotates** to `(surface, color)`. That is the destructive outcome the static refusal exists to prevent |
+| M7 | drop the compose at the `upsertCollection` call site | RED — **11 plugin**; the count arm prints `exactly 242 + 128 … (got 243 + 129)` — the orphaned migration in the arm's own words |
+| M8 | the `rules` argument emptied at that same call site | RED — **7 plugin**, a strict **subset** of M7's. The 4-arm difference is the compose's *other* job — scoping the 160 contract rows to one collection (M7 fed all 160 to every collection: `157 for 37 targets across 40 entries`) |
+| M9 | refusal neuters rows but not rules | RED — **exactly one failure: the disarm arm, by name**, its paired positive still green (`the very same rule DOES move it (color/appearance/text/primary)`) |
+| M10 | `byFrom.get(from)` instead of `byFrom.get(mid)` | RED — **exactly one**: the composition-order arm alone, printing the intermediate spelling it prevents (`color/old→color/appearance/old`) |
+| M11 | the stale axes declaration | RED — **6** (2 per brand × 3), and **both directions**: `UNCLASSIFIED COLLECTION: color.appearance` *and* `STALE AXIS DECLARATION: surface` |
+| M12 | the surface axis classified `absent` | RED — **1110** (370 × 3; aurora prints 372 less its 2 known). Confirms the first-segment hazard drops **both** tiers, not the alias tier alone |
+| M13 | `colorPath` → the pre-swap spelling | **ALL SIX studio gates GREEN.** See below. |
+
+**M9 needed a paired positive**, and that is a repeat: a negative arm alone cannot tell "mutation
+detected" from "check already failing". Second demonstration in this lane. **`Migration.rules` must be
+cleared with `Migration.map`** on refusal, and with the two shipped rules that state is *unreachable*
+(both domains name POST-swap collections) — so the invariant is pinned with a **synthetic** rule, stated
+as synthetic rather than overclaimed.
+
+── WHAT M13 MEANS, AND IT IS NOT A PASS ─────────────────────────────────────────────────────────
+
+Reverting `colorPath` to the pre-swap spelling leaves **all six** studio gates green — `typecheck`,
+`test`, `build`, `test:smoke` (844 assertions), `check:ignore`, `lint:contrast`. The pill paths are
+therefore correct **by construction** — derived from the emitter's own derivation, so they cannot
+disagree with the tree — but **nothing asserts that a pill calls `colorPath` at all**, and a new pill
+site added next week would be wrong and silent. The reason `test:smoke` does not catch it is worth
+naming, because it looks like the gate that should: it compares displayed **values** against the
+resolved theme (#800), and never a displayed **path**. Filed rather than fixed here: one concern per
+PR, and the fix is a gate, not a line.
+
+── OTHER TRAPS FOR WHOEVER RE-VERIFIES ──────────────────────────────────────────────────────────
+
+- **`v(from, to, collection = 'color')` defaults to the ALIAS collection** in `test.ts`'s helper. A
+  value-tier row needs the third argument, or `composeVariableRenames('color.appearance', …)` never
+  sees it and the arm passes for the wrong reason.
+- **`outcomes` is heterogeneous** since #1035, so every count assertion over it filters
+  `kind === 'variable'`.
+- **`every` over an empty array is vacuously true.** The old `projectedButDead` deprecation arm was
+  ALWAYS vacuous. Three unrelated reasons a deprecation projects nothing — root not in
+  `PROJECTED_ROOTS` (3 `motion.easing.*`), tier-only (114), cross-root (0) — plus a clasp that the
+  three account for all 117. Filed as its own shape.
+- **Fan-in is left to `planVariableRenames` deliberately (#1056).** A half-migrated file holding both
+  spellings yields `target-occupied` / `ambiguous-source` and moves **neither**. Group (viii) of
+  `test-write.ts` drives exactly that file.
+- **#1049's second live instance.** Fix 2 moved `planCollectionRename` to source-first, and its header
+  had said to-first is what makes swaps safe. The header changed **with** the code — had it not, the
+  next reader restores to-first on the header's authority. That is #1049's shape, and this is a second
+  and live one.
+- **`ENGINE_VERSION` collided on the rebase and git merged it silently.** This lane and the media veil
+  both wrote `'0.25.0'`; identical strings are not a conflict, so the rebase produced a tree where two
+  changelog entries claimed one version and **nothing failed**. Caught by hand, not by a gate. Bumped to
+  `0.26.0`. The general shape: a version constant is the one field where two lanes independently picking
+  the *same* value is the error, and it is exactly the case three-way merge cannot see.
+- **The accepted contract baseline must be restored from `origin/main` before `--accept`, not accepted
+  in place.** Accepting on top of this branch's own already-accepted baseline yields a spurious
+  6.0.0 → 6.1.0 step. `git show origin/main:packages/engine/schema/token-contract.json > …` then one
+  `--accept` gives the honest MAJOR, 586 → 714.
+- **`git diff --diff-filter=D` reports ZERO deletions for this PR, and the 18 files really are gone.**
+  Rename detection pairs each removed artifact with its replacement — they score `R062`–`R087`, similar
+  enough to pair and different enough to be worth reading — so the deletions appear as `R`, not `D`.
+  Verifying "18 files were deleted" needs `git diff --no-renames --diff-filter=D`, which reports 18
+  against 19 additions; the 19th is `packages/engine/surface-rows.ts`, a source file rather than an
+  artifact, which is why the artifact count is 114 on both sides. A reviewer checking the deletion claim
+  with the obvious command gets a zero that looks like the claim is false.
+- **Three counts in the exporter harness went stale on the rebase and no gate reads them.** The veil
+  added six alias rows, moving 122 → 128 and 358 → 370, and `axes.ts`'s `base-only` note, its
+  `absentFromProjection` trap note (`1074` → `1110`) and `compare.ts`'s drop comment all still carried
+  the pre-veil figures. Corrected here and re-measured against the emission (M12 now prints exactly the
+  number the trap note claims). Worth knowing because these are *claims in prose about measured
+  behaviour*, the category `lint-layout-claims.ts` exists for and does not cover.
+
+── WHAT COULD NOT BE VERIFIED HERE ──────────────────────────────────────────────────────────────
+
+**No gate in this repo opens a Figma file.** The migration path is exercised end-to-end against
+`VariablesShim` — the real pair of executors, the real pre-pass, the real rules — and that is not the
+same as a real file with real bindings. A **successful** migration leaves two collections,
+`color.appearance` (242 variables, all `color/appearance/*`) and `color` (128, all `color/*`), with
+every binding intact. An **orphaned** one leaves 484 variables in `color.appearance` — both spellings,
+half of them bound to nothing. That is the failure to look for, and M7's arm prints its signature
+("243 + 129") because the collection pre-pass without the variable half makes files strictly worse.
+
+── FILED, NOT FIXED ─────────────────────────────────────────────────────────────────────────────
+
+Six findings the lane surfaced and deliberately left, each as its own issue rather than a paragraph
+here — prose in a write-up is not discoverable as work:
+
+- **#1076** — the studio's pills are an ungated shipped claim (M13 above).
+- **#1077** — the alias tier is **never read back**, so the surface axis has been unverified since
+  #993. More consequential after the swap, not less: the tier now holds the short name a consumer binds.
+- **#1078** — `docs/34` candidate shape: `every` over an empty array is vacuously true.
+- **#1079** — `docs/34` candidate shape: a bare negative arm cannot distinguish "mutation detected"
+  from "check already failing". Two instances in this PR.
+- **#1080** — a deprecation record has no **era**, so a vacated-then-refilled name yields a record whose
+  `path` resolves. Zero collisions today, and nothing enforcing that.
+- **#1081** — `lint-paint --accept` says it prints the diff it is about to accept and prints the census
+  table; a moved sha with unchanged counts — the exact failure it catches — is invisible in it.
+
+Also commented on **#1027**: the inverse-band pill reads as a demotion until DTCG has a surface layer.
+
+── SCOPE JUDGEMENTS, STATED ─────────────────────────────────────────────────────────────────────
+
+**In:** wiring the variable-rename apply path (without it the collection pre-pass produces exactly the
+orphaned file above); the four falsified downstream claims above. **Out, deliberately:** the surface
+overlay (→ #1027), the namespace folder, `core-*`→`core.*`, #1040, #1054, #1049, #1050, #1059, and the
+richer "bind the short name, switch the surface mode" pill story, which belongs to #1027.
+
+---
+
 ## (2026-08-26) — The gate-independence sweep: 45 gates, every verdict labeled by its evidence, two new shapes
 
 **STATUS: docs only — `docs/34` (+ shape-index baseline via `--accept`), this entry, and
@@ -38,6 +288,8 @@ first run a **non-mutation** — three plausible greens over an unmutated tree �
 protocol's mandatory diff assertion (docs/34 corollary 2, demonstrated on the auditor).
 
 Issues filed per finding; the ledger in the superpowers note is the replay path for every verdict.
+
+---
 
 ## (2026-08-26) — issue triage: the pile got a pass, not a clean sweep, and the honest scope is stated
 

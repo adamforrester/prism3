@@ -193,9 +193,13 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   const gradients = buildFigmaGradient(theme);
   add('gradient-styles.json', gradients);
   // The surface-context alias layer (#893). Two modes, no colours of its own — every row points into
-  // `color`. Emitted last because it READS the resolved colour set it aliases.
+  // `color.appearance`. Emitted last because it READS the resolved colour set it aliases.
+  //
+  // The filename takes the collection from the file rather than repeating it (#1013): this layer now
+  // holds the name `color`, and a hardcoded `surface.` prefix would have emitted a file whose name
+  // contradicted its own `$collection` — the one field every reader of `out/figma/` keys on.
   const surface = buildFigmaSurface(theme);
-  for (const s of surface) add(`surface.${s.$mode}.json`, s);
+  for (const s of surface) add(`${s.$collection}.${s.$mode}.json`, s);
 
   const summary = `palette ${palette.variables.length} + color ${color.length}×${color[0].variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
   return { artifacts, summary };

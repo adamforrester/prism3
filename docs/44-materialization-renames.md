@@ -393,9 +393,19 @@ pre-pass from §3 — which is theirs, not the mechanism's.
 
 ## 8. Open, and deliberately not decided here
 
-- Whether the `color` collection's 236 variables become `color.appearance/*` at the swap, or keep
-  `color/*` while their collection is renamed (§1). The mechanism handles either; the swap must say
-  which.
-- Whether the three renames land as one migration or three. #1032 argues one, on the grounds that each
-  costs a full-file migration and a manual Figma verification. Nothing measured here contradicts that.
+- ~~Whether the `color` collection's 242 variables become `color.appearance/*` at the swap, or keep
+  `color/*` while their collection is renamed (§1).~~ **Closed by #1013: they become
+  `color/appearance/*`.** The deciding argument is not about the collection at all — a Figma variable
+  name tracks its **DTCG path**, which is the property that keeps the two formats reconcilable
+  (`core-palette` holds `palette/*`, not `core-palette/*`). The DTCG value tier is `color.appearance.*`,
+  so the variables are `color/appearance/*` and the scope of the swap is **~370 variables per brand,
+  not 128** — both collections renamed *and* every variable inside them. §5's two rules are the record;
+  `MATERIALIZATION_RENAMES` now carries its first real entries.
+- Whether the three renames land as one migration or three. #1032 argued one, on the grounds that each
+  costs a full-file migration and a manual Figma verification. **Practice contradicted it**: #1013
+  shipped the swap alone, because it is the only one of the three with a token-model consequence (which
+  tier owns the short name), while the namespace folder and `core-*`→`core.*` are presentation. So a
+  file themed before #1013 faces up to three migrations rather than one, and the cost #1032 named is
+  real and now partly spent. That is an argument for landing the remaining two **together**, not for
+  re-litigating this one.
 - Mode renames (§6.3).

@@ -4,12 +4,15 @@
  *   npx tsx apps/plugin/test-write-surface.ts
  *
  * Drives the real `applySurfacePlan` against the same in-memory `figma.variables` shim the colour
- * harness uses, in the real sequence: `applyWritePlan` first (so the `color` collection exists), then
- * the surface pass. #993's three acceptance criteria are behavioural, and each is asserted as such:
+ * harness uses, in the real sequence: `applyWritePlan` first (so the `color.appearance` collection
+ * exists), then the surface pass. **Since #1013 the collection this executor WRITES is named `color` and
+ * the one it POINTS AT is `color.appearance`** — the two names swapped, the axis did not, so the locals
+ * below are `aliasCol`/`valueCol` rather than the `surfCol`/`colorCol` they were: a variable called
+ * `colorCol` holding the appearance tier is the shape #1049 is about. #993's three acceptance criteria are behavioural, and each is asserted as such:
  *
  *   1. Both modes appear on the collection, named `default` and `inverse`.
- *   2. Switching the mode changes the RESOLVED colour of anything bound to `surface/*`.
- *   3. The aliases resolve to the `color` collection's variables rather than to COPIES.
+ *   2. Switching the mode changes the RESOLVED colour of anything bound to `color/*`.
+ *   3. The aliases resolve to the `color.appearance` collection's variables rather than to COPIES.
  *
  * ── WHY (3) IS THE ONE WORTH A GATE ─────────────────────────────────────────────────────────────
  *
@@ -22,8 +25,8 @@
  * So (3) is asserted three ways, weakest to strongest:
  *   • STRUCTURAL — every stored per-mode value is a `VARIABLE_ALIAS`, and no surface row holds a raw
  *     RGBA. A raw RGBA is the duplicate's signature.
- *   • REFERENTIAL — the alias id belongs to a variable in the `color` collection (never in `surface`
- *     itself, which would resolve and track nothing). EXPECTED comes from the PLAN's target name looked
+ *   • REFERENTIAL — the alias id belongs to a variable in the `color.appearance` collection (never in
+ *     `color` itself, which would resolve and track nothing). EXPECTED comes from the PLAN's target name looked
  *     up among the shim's own colour vars; ACTUAL comes from the id the executor wrote. Per `docs/34`
  *     the two halves are derived independently — reading `applySurfacePlan`'s own lookup for EXPECTED
  *     would make the check agree with itself.
@@ -34,7 +37,7 @@
  *
  * The corpus measures 0 unresolved targets out of 244 per brand, so a suite that only ran the happy
  * path would leave the miss branch unexecuted and report that as a pass (#969). Three hosts drive it
- * deliberately: no `color` collection at all, a `color` collection missing one target, and the healthy
+ * deliberately: no `color.appearance` collection at all, one missing a single target, and the healthy
  * file — asserting in all three that the report matches what is actually in the file.
  *
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
@@ -77,18 +80,18 @@ const SURFACE_MODES = ['default', 'inverse'] as const;
  * from a scan of the thing it describes would classify each new entry itself and report that as a pass.
  */
 const AGREE_IN_LIGHT: Record<string, string> = {
-  'surface/border/brand': 'status border, identical in all four appearance modes',
-  'surface/border/danger': 'status border, identical in all four appearance modes',
-  'surface/border/info': 'status border, identical in all four appearance modes',
-  'surface/border/warning': 'status border, identical in all four appearance modes',
-  'surface/border/focus': 'status border; differs in hc-light/hc-dark',
-  'surface/border/success': 'status border; differs in hc-light/hc-dark',
-  'surface/foreground/brand': 'status ink; differs in hc-light/hc-dark',
-  'surface/foreground/danger': 'status ink; differs in hc-light/hc-dark',
-  'surface/foreground/info': 'status ink; differs in hc-light/hc-dark',
-  'surface/foreground/success': 'status ink; differs in hc-light/hc-dark',
-  'surface/foreground/warning': 'status ink; differs in hc-light/hc-dark',
-  'surface/interactive/neutral/on-fill': 'same-polarity inverse fill (#e8e9ea vs #ccced1), so the ink is constant by design',
+  'color/border/brand': 'status border, identical in all four appearance modes',
+  'color/border/danger': 'status border, identical in all four appearance modes',
+  'color/border/info': 'status border, identical in all four appearance modes',
+  'color/border/warning': 'status border, identical in all four appearance modes',
+  'color/border/focus': 'status border; differs in hc-light/hc-dark',
+  'color/border/success': 'status border; differs in hc-light/hc-dark',
+  'color/foreground/brand': 'status ink; differs in hc-light/hc-dark',
+  'color/foreground/danger': 'status ink; differs in hc-light/hc-dark',
+  'color/foreground/info': 'status ink; differs in hc-light/hc-dark',
+  'color/foreground/success': 'status ink; differs in hc-light/hc-dark',
+  'color/foreground/warning': 'status ink; differs in hc-light/hc-dark',
+  'color/interactive/neutral/on-fill': 'same-polarity inverse fill (#e8e9ea vs #ccced1), so the ink is constant by design',
 };
 
 let failed = 0;
@@ -150,10 +153,10 @@ const r2 = await applySurfacePlan(plan, shim as any);
 
 console.log('plugin SURFACE write-adapter (#993) — executor against in-memory figma.variables shim\n');
 
-const surfCol = shim.collections.find((c) => c.name === 'surface')!;
-const colorCol = shim.collections.find((c) => c.name === 'color')!;
+const aliasCol = shim.collections.find((c) => c.name === 'color')!;
+const valueCol = shim.collections.find((c) => c.name === 'color.appearance')!;
 const byId = new Map(shim.vars.map((v) => [v.id, v]));
-const surfVars = new Map(shim.vars.filter((v) => v.variableCollectionId === surfCol.id).map((v) => [v.name, v]));
+const aliasVars = new Map(shim.vars.filter((v) => v.variableCollectionId === aliasCol.id).map((v) => [v.name, v]));
 const modeId = (c: ShimCollection, name: string): string => c.modes.find((m) => m.name === name)!.modeId;
 
 // The plan is the corpus fact this whole suite is scaled against — 128 rows × 2 modes. (122 before
@@ -163,9 +166,9 @@ ok(plan.create.length === 128 && plan.modes.length === 2 && expectedBound === 25
   `the plan is 128 rows × 2 modes = 256 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
 
 // ---- ACCEPTANCE 1: both modes appear, named `default` and `inverse` -------------------------
-ok(surfCol.modes.map((m) => m.name).join(',') === SURFACE_MODES.join(','),
-  `#993(1) the collection carries exactly the two named modes (${surfCol.modes.map((m) => m.name).join('/')})`);
-ok(surfCol.modes.length === 2, `#993(1) …and no leftover 'Mode 1' beside them (${surfCol.modes.length} modes)`);
+ok(aliasCol.modes.map((m) => m.name).join(',') === SURFACE_MODES.join(','),
+  `#993(1) the collection carries exactly the two named modes (${aliasCol.modes.map((m) => m.name).join('/')})`);
+ok(aliasCol.modes.length === 2, `#993(1) …and no leftover 'Mode 1' beside them (${aliasCol.modes.length} modes)`);
 
 // ---- pass counts + idempotency ---------------------------------------------------------------
 ok(r1.total === plan.create.length && r1.created === plan.create.length,
@@ -179,49 +182,49 @@ ok(r1.misses.length === 0 && r2.misses.length === 0,
 
 // ---- ACCEPTANCE 3, STRUCTURAL: every stored value is an alias, never a literal --------------
 // A raw RGBA left in a surface row IS the duplicate — it renders correctly and tracks nothing.
-const storedValues = [...surfVars.values()].flatMap((v) => SURFACE_MODES.map((m) => v.valuesByMode[modeId(surfCol, m)]));
+const storedValues = [...aliasVars.values()].flatMap((v) => SURFACE_MODES.map((m) => v.valuesByMode[modeId(aliasCol, m)]));
 ok(storedValues.length === expectedBound && storedValues.every(isAlias),
   `#993(3) structural: all ${storedValues.length} stored per-mode values are VARIABLE_ALIAS, none a literal RGBA ` +
   `(${storedValues.filter((v) => !isAlias(v)).length} literals found)`);
 
-// ---- ACCEPTANCE 3, REFERENTIAL: the alias id is a `color` variable, matched to the PLAN -----
-// EXPECTED: the plan's target NAME, resolved among the shim's colour vars by this test's own lookup.
+// ---- ACCEPTANCE 3, REFERENTIAL: the alias id is a `color.appearance` variable, matched to the PLAN --
+// EXPECTED: the plan's target NAME, resolved among the shim's value-tier vars by this test's own lookup.
 // ACTUAL: the id the executor stored. Deriving EXPECTED from the executor's map instead would make
 // this compare the executor against itself (docs/34 shape 1).
-const colorVarsByName = new Map(shim.vars.filter((v) => v.variableCollectionId === colorCol.id).map((v) => [v.name, v]));
+const valueVarsByName = new Map(shim.vars.filter((v) => v.variableCollectionId === valueCol.id).map((v) => [v.name, v]));
 let refMatched = 0;
 const refWrong: string[] = [];
 const intoSurface: string[] = [];
 for (const row of plan.aliases) {
-  const v = surfVars.get(row.name)!;
+  const v = aliasVars.get(row.name)!;
   plan.modes.forEach((m, i) => {
-    const want = colorVarsByName.get(row.targetsByMode[i]!);
-    const got = v.valuesByMode[modeId(surfCol, m)];
+    const want = valueVarsByName.get(row.targetsByMode[i]!);
+    const got = v.valuesByMode[modeId(aliasCol, m)];
     if (isAlias(got) && want && got.id === want.id) refMatched++;
     else refWrong.push(`${row.name} @${m} -> ${row.targetsByMode[i]}`);
-    if (isAlias(got) && byId.get(got.id)?.variableCollectionId === surfCol.id) intoSurface.push(`${row.name} @${m}`);
+    if (isAlias(got) && byId.get(got.id)?.variableCollectionId === aliasCol.id) intoSurface.push(`${row.name} @${m}`);
   });
 }
 ok(refMatched === expectedBound && refWrong.length === 0,
   `#993(3) referential: all ${expectedBound} aliases point at the PLAN's named color variable ` +
   `(${refMatched} matched${refWrong.length ? `, wrong: ${refWrong.slice(0, 3).join(', ')}` : ''})`);
 ok(intoSurface.length === 0,
-  `#993(3) no alias points back into the surface collection itself — that would resolve and track nothing (${intoSurface.length})`);
-ok([...surfVars.values()].every((v) => SURFACE_MODES.every((m) => {
-  const got = v.valuesByMode[modeId(surfCol, m)];
-  return isAlias(got) && byId.get(got.id)?.variableCollectionId === colorCol.id;
-})), '#993(3) referential: every alias target lives in the `color` collection (cross-CALL resolution)');
+  `#993(3) no alias points back into the \`color\` collection itself — that would resolve and track nothing (${intoSurface.length})`);
+ok([...aliasVars.values()].every((v) => SURFACE_MODES.every((m) => {
+  const got = v.valuesByMode[modeId(aliasCol, m)];
+  return isAlias(got) && byId.get(got.id)?.variableCollectionId === valueCol.id;
+})), '#993(3) referential: every alias target lives in the `color.appearance` collection (cross-CALL resolution)');
 
 // ---- ACCEPTANCE 2: switching the mode changes the RESOLVED colour ---------------------------
 // Resolve through the whole chain (surface → color → core-palette) with the APPEARANCE mode held
 // fixed at light, so the only thing varying is the surface mode. That is the designer's actual
 // gesture: same theme, flip the frame's surface mode, the subtree changes.
 const modeFor = new Map<string, string>([
-  [colorCol.id, modeId(colorCol, colorPlan.color.modes[0])],
+  [valueCol.id, modeId(valueCol, colorPlan.color.modes[0])],
   [shim.collections.find((c) => c.name === 'core-palette')!.id, shim.collections.find((c) => c.name === 'core-palette')!.modes[0].modeId],
 ]);
 const resolveIn = (v: ShimVar, surfaceMode: string): string | undefined => {
-  modeFor.set(surfCol.id, modeId(surfCol, surfaceMode));
+  modeFor.set(aliasCol.id, modeId(aliasCol, surfaceMode));
   let cur: ShimVar | undefined = v;
   for (let hop = 0; hop < 8 && cur; hop++) {
     const val = cur.valuesByMode[modeFor.get(cur.variableCollectionId)!];
@@ -235,7 +238,7 @@ const resolveIn = (v: ShimVar, surfaceMode: string): string | undefined => {
 // Every row must resolve to a real colour in both modes — an unresolvable chain is the failure this
 // collection makes possible, so it is asserted before anything is said about the values.
 const rows = plan.aliases.map((row) => {
-  const v = surfVars.get(row.name)!;
+  const v = aliasVars.get(row.name)!;
   return { name: row.name, selfAliased: row.targetsByMode[0] === row.targetsByMode[1], d: resolveIn(v, 'default'), i: resolveIn(v, 'inverse') };
 });
 const changedRows = rows.filter((r) => !r.selfAliased && r.d !== r.i);
@@ -271,9 +274,9 @@ ok(agreedActual.join('|') === agreedExpected.join('|'),
 // an executor that bound both modes of a registered row to the SAME target would pass every colour
 // assertion in this file (the #85 collapse, surviving inside the exemption list — docs/34 shape 15).
 const collapsed = Object.keys(AGREE_IN_LIGHT).filter((name) => {
-  const v = surfVars.get(name)!;
-  const a = v.valuesByMode[modeId(surfCol, 'default')];
-  const b = v.valuesByMode[modeId(surfCol, 'inverse')];
+  const v = aliasVars.get(name)!;
+  const a = v.valuesByMode[modeId(aliasCol, 'default')];
+  const b = v.valuesByMode[modeId(aliasCol, 'inverse')];
   return !(isAlias(a) && isAlias(b) && a.id !== b.id);
 });
 ok(collapsed.length === 0,
@@ -281,14 +284,14 @@ ok(collapsed.length === 0,
   `(${collapsed.length} collapsed${collapsed.length ? ': ' + collapsed.slice(0, 3).join(', ') : ''})`);
 
 // ---- ACCEPTANCE 3, BEHAVIOURAL: the row FOLLOWS its target ---------------------------------
-// The discriminator no copy can fake. Change the target variable in `color` after the write and the
+// The discriminator no copy can fake. Change the target variable in `color.appearance` after the write and the
 // surface row must report the new colour — a duplicate keeps the old one and every other assertion
 // above (structural, referential, both modes differing) would still hold for it.
 const probe = plan.aliases.find((row) => row.targetsByMode[0] !== row.targetsByMode[1])!;
-const probeVar = surfVars.get(probe.name)!;
-const probeTarget = colorVarsByName.get(probe.targetsByMode[0]!)!;
+const probeVar = aliasVars.get(probe.name)!;
+const probeTarget = valueVarsByName.get(probe.targetsByMode[0]!)!;
 const before = resolveIn(probeVar, 'default');
-probeTarget.setValueForMode(modeFor.get(colorCol.id)!, { r: 0.123, g: 0.456, b: 0.789, a: 1 });
+probeTarget.setValueForMode(modeFor.get(valueCol.id)!, { r: 0.123, g: 0.456, b: 0.789, a: 1 });
 const after = resolveIn(probeVar, 'default');
 ok(before !== '0.123,0.456,0.789,1' && after === '0.123,0.456,0.789,1',
   `#993(3) behavioural: repainting '${probe.targetsByMode[0]}' moves '${probe.name}' with it — a pointer, not a copy (${before} → ${after})`);
@@ -299,19 +302,19 @@ ok(resolveIn(probeVar, 'inverse') !== after,
 
 // ---- THE MISS PATH — three hosts, because the healthy path cannot reach it (#969) -----------
 
-// (a) No `color` collection at all. This is the ORDERING failure — surface written before colour.
+// (a) No `color.appearance` collection at all. This is the ORDERING failure — the alias tier written first.
 const noColor = new VariablesShim();
 const mr = await applySurfacePlan(plan, noColor as any);
-ok(mr.misses.length === 1 && mr.misses[0].startsWith('collection:color absent'),
-  `MISS(a) a file with no \`color\` collection reports ONE named miss, not 244 restatements of it (${mr.misses.length}: ${mr.misses[0] ?? 'none'})`);
+ok(mr.misses.length === 1 && mr.misses[0].startsWith('collection:color.appearance absent'),
+  `MISS(a) a file with no \`color.appearance\` collection reports ONE named miss, not 244 restatements of it (${mr.misses.length}: ${mr.misses[0] ?? 'none'})`);
 ok(mr.bound === 0 && mr.total === plan.create.length,
   `MISS(a) …with bound 0 against total ${mr.total}, so the summary shows nothing was wired (bound ${mr.bound})`);
-ok(!noColor.collections.some((c) => c.name === 'color'),
-  'MISS(a) the executor does NOT create an empty `color` collection to resolve against — the absence is diagnosed, not papered over');
-ok(noColor.collections.some((c) => c.name === 'surface'),
+ok(!noColor.collections.some((c) => c.name === 'color.appearance'),
+  'MISS(a) the executor does NOT create an empty `color.appearance` collection to resolve against — the absence is diagnosed, not papered over');
+ok(noColor.collections.some((c) => c.name === 'color'),
   'MISS(a) …but the surface vars ARE written with their literal fallbacks, so the file renders rather than going blank');
-const strandedValues = noColor.vars.filter((v) => v.variableCollectionId === noColor.collections.find((c) => c.name === 'surface')!.id)
-  .flatMap((v) => SURFACE_MODES.map((m) => v.valuesByMode[modeId(noColor.collections.find((c) => c.name === 'surface')!, m)]));
+const strandedValues = noColor.vars.filter((v) => v.variableCollectionId === noColor.collections.find((c) => c.name === 'color')!.id)
+  .flatMap((v) => SURFACE_MODES.map((m) => v.valuesByMode[modeId(noColor.collections.find((c) => c.name === 'color')!, m)]));
 // `every(v => !isAlias(v))` would be the obvious phrasing here and it CANNOT FAIL: an unwritten mode
 // reads back `undefined`, which is not an alias, so deleting pass A entirely satisfies it 244 times over.
 // Found by mutation. Assert what is actually meant — every value is a real RGBA — since the whole point
@@ -320,12 +323,12 @@ ok(strandedValues.length === expectedBound && strandedValues.every(isRgba),
   `MISS(a) …and those fallbacks are real LITERAL COLOURS — which is exactly why the miss report is the only signal a human gets ` +
   `(${strandedValues.filter((v) => !isRgba(v)).length} of ${strandedValues.length} are not an RGBA)`);
 
-// (b) `color` present but missing ONE target. The partial case: 243 bind, 1 is named.
+// (b) `color.appearance` present but missing ONE target. The partial case: 243 bind, 1 is named.
 const partial = new VariablesShim();
 await applyWritePlan(colorPlan, partial as any);
 const victimName = plan.aliases[0].targetsByMode[0]!;
-const pColorCol = partial.collections.find((c) => c.name === 'color')!;
-const victimIdx = partial.vars.findIndex((v) => v.variableCollectionId === pColorCol.id && v.name === victimName);
+const pValueCol = partial.collections.find((c) => c.name === 'color.appearance')!;
+const victimIdx = partial.vars.findIndex((v) => v.variableCollectionId === pValueCol.id && v.name === victimName);
 ok(victimIdx >= 0, `MISS(b) the target to remove exists before removal (${victimName})`);
 partial.vars.splice(victimIdx, 1);
 // (c) The miss is never a throw — stated HERE, before the arms that read the result, and with the call
@@ -347,24 +350,24 @@ ok(pr.bound === expectedBound - expectedMisses.length,
 // ---- #479 orphans: reported, never deleted --------------------------------------------------
 const ghost = new VariablesShim();
 await applyWritePlan(colorPlan, ghost as any);
-const ghostSurf = ghost.createVariableCollection('surface');
-ghost.createVariable('surface/text/on-accent', ghostSurf);   // a plausible pre-rename surface leaf
+const ghostSurf = ghost.createVariableCollection('color');
+ghost.createVariable('color/text/on-accent', ghostSurf);   // a plausible pre-rename surface leaf
 const gr = await applySurfacePlan(plan, ghost as any);
-ok(gr.orphans.includes('surface/text/on-accent'),
+ok(gr.orphans.includes('color/text/on-accent'),
   '#479 a surface variable in the file but not the plan is reported as an orphan');
-ok(ghost.vars.some((v) => v.name === 'surface/text/on-accent'),
+ok(ghost.vars.some((v) => v.name === 'color/text/on-accent'),
   '#479 …and NOT deleted — the write path cannot tell a stale ghost from a variable someone is co-authoring');
 ok(r1.orphans.length === 0,
   '#479 a fresh file reports an empty orphan list rather than omitting the field (checked-and-none)');
 
 // ---- the empty plan writes NOTHING, not an empty collection --------------------------------
 // A theme with no `light` mode makes `buildFigmaSurface` return no files. Without the short-circuit the
-// executor would upsert `surface`, rename its mode to `undefined` and leave a 0-row collection in the
+// executor would upsert `color`, rename its mode to `undefined` and leave a 0-row collection in the
 // designer's file. Asserted because nothing else here would notice: every other host has 128 rows, so
 // the guard's whole domain is excluded from the rest of the suite (docs/34 shape 15 — the same blind
 // spot #913 found in its own nothing-written case).
 const emptyHost = new VariablesShim();
-const er = await applySurfacePlan({ name: 'surface', modes: [], create: [], aliases: [] }, emptyHost as any);
+const er = await applySurfacePlan({ name: 'color', modes: [], create: [], aliases: [] }, emptyHost as any);
 ok(emptyHost.collections.length === 0 && emptyHost.vars.length === 0,
   `an empty plan creates NO collection and NO variables (${emptyHost.collections.length} collections, ${emptyHost.vars.length} vars)`);
 ok(er.total === 0 && er.bound === 0 && er.misses.length === 0,

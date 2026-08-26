@@ -144,6 +144,14 @@ export const focusRing: ComponentDef = {
   // `on-inverse` bindings for exactly this reason and named this def's `color=inverse` as the last
   // instance of the pattern it was leaving.
   //
+  // AFTER #1013 the redundancy is visible in the bindings themselves rather than argued from a
+  // register. `'border'` below spells `color.border.focus`, which now IS the alias row — so that one
+  // binding is surface-responsive with no def change at all. `'border.inverse'` had to move to
+  // `color.appearance.border.inverse.focus`, because the plain `color.border.inverse.focus` spelling is
+  // no longer a name the engine emits: the surface tier holds `color.*` and does not carry inverse
+  // roles. The two keys now sit in visibly different tiers, which is the honest shape of a def that
+  // reaches past the layer it should be using.
+  //
   // WHAT STOPS IT BEING A ONE-LINE DELETION: `color` is this def's ONLY variant axis, and
   // `figmaPropertyErrors` rejects `variantAxes: []` outright (measured, not assumed). So removing the
   // binding un-projects the def — regressing #795 and breaking the five hosts that resolve
@@ -155,7 +163,7 @@ export const focusRing: ComponentDef = {
 
   tokens: {
     'border': 'color.border.focus',
-    'border.inverse': 'color.border.inverse.focus',
+    'border.inverse': 'color.appearance.border.inverse.focus',
     'width': 'focus.ring.width',
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',

@@ -1,9 +1,9 @@
 {
-  "$collection": "color",
+  "$collection": "color.appearance",
   "$mode": "hc-light",
   "variables": [
     {
-      "name": "color/background/primary",
+      "name": "color/appearance/background/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -22,7 +22,7 @@
       }
     },
     {
-      "name": "color/background/secondary",
+      "name": "color/appearance/background/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -41,7 +41,7 @@
       }
     },
     {
-      "name": "color/background/tertiary",
+      "name": "color/appearance/background/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -60,7 +60,7 @@
       }
     },
     {
-      "name": "color/background/inverse/primary",
+      "name": "color/appearance/background/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -79,7 +79,7 @@
       }
     },
     {
-      "name": "color/background/inverse/secondary",
+      "name": "color/appearance/background/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -98,7 +98,7 @@
       }
     },
     {
-      "name": "color/background/inverse/tertiary",
+      "name": "color/appearance/background/inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -117,7 +117,7 @@
       }
     },
     {
-      "name": "color/scrim/default",
+      "name": "color/appearance/scrim/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -136,7 +136,7 @@
       }
     },
     {
-      "name": "color/veil/dark/large",
+      "name": "color/appearance/veil/dark/large",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -147,7 +147,7 @@
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.501960813999176
+        "a": 0.5
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -155,7 +155,7 @@
       }
     },
     {
-      "name": "color/veil/dark/body",
+      "name": "color/appearance/veil/dark/body",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -174,7 +174,7 @@
       }
     },
     {
-      "name": "color/veil/dark/enhanced",
+      "name": "color/appearance/veil/dark/enhanced",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -185,7 +185,7 @@
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.7019608020782471
+        "a": 0.699999988079071
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -193,7 +193,7 @@
       }
     },
     {
-      "name": "color/veil/light/large",
+      "name": "color/appearance/veil/light/large",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -212,7 +212,7 @@
       }
     },
     {
-      "name": "color/veil/light/body",
+      "name": "color/appearance/veil/light/body",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -223,7 +223,7 @@
         "r": 1,
         "g": 1,
         "b": 1,
-        "a": 0.501960813999176
+        "a": 0.5
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -231,7 +231,7 @@
       }
     },
     {
-      "name": "color/veil/light/enhanced",
+      "name": "color/appearance/veil/light/enhanced",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -250,7 +250,7 @@
       }
     },
     {
-      "name": "color/foreground/primary",
+      "name": "color/appearance/foreground/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -270,7 +270,7 @@
       }
     },
     {
-      "name": "color/foreground/secondary",
+      "name": "color/appearance/foreground/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -290,7 +290,7 @@
       }
     },
     {
-      "name": "color/foreground/tertiary",
+      "name": "color/appearance/foreground/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -310,7 +310,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/primary",
+      "name": "color/appearance/foreground/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -330,7 +330,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/secondary",
+      "name": "color/appearance/foreground/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -350,7 +350,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/tertiary",
+      "name": "color/appearance/foreground/inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -370,7 +370,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/brand",
+      "name": "color/appearance/foreground/inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -379,18 +379,18 @@
       ],
       "description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
-        "r": 0.5882353186607361,
-        "g": 0.5803921818733215,
-        "b": 0.8392156958580017,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/foreground/inverse/success",
+      "name": "color/appearance/foreground/inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -399,18 +399,18 @@
       ],
       "description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
-        "r": 0.3803921639919281,
-        "g": 0.6784313917160034,
-        "b": 0.3960784375667572,
+        "r": 0.4117647111415863,
+        "g": 0.6431372761726379,
+        "b": 0.4745098054409027,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/350"
+        "name": "palette/green/350"
       }
     },
     {
-      "name": "color/foreground/inverse/warning",
+      "name": "color/appearance/foreground/inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -419,18 +419,18 @@
       ],
       "description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.5529412031173706,
-        "b": 0.13333334028720856,
+        "r": 0.7803921699523926,
+        "g": 0.5647059082984924,
+        "b": 0.3960784375667572,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/350"
+        "name": "palette/amber/350"
       }
     },
     {
-      "name": "color/foreground/inverse/danger",
+      "name": "color/appearance/foreground/inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -439,18 +439,18 @@
       ],
       "description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/foreground/inverse/info",
+      "name": "color/appearance/foreground/inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -470,7 +470,7 @@
       }
     },
     {
-      "name": "color/foreground/inverse/brand-subtle",
+      "name": "color/appearance/foreground/inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -479,18 +479,18 @@
       ],
       "description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
-        "r": 0.08235294371843338,
-        "g": 0.03529411926865578,
-        "b": 0.24313725531101227,
+        "r": 0.2078431397676468,
+        "g": 0,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/900"
+        "name": "palette/red/900"
       }
     },
     {
-      "name": "color/foreground/inverse/success-subtle",
+      "name": "color/appearance/foreground/inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -500,17 +500,17 @@
       "description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
         "r": 0,
-        "g": 0.11764705926179886,
-        "b": 0.0117647061124444,
+        "g": 0.11372549086809158,
+        "b": 0.03529411926865578,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/900"
+        "name": "palette/green/900"
       }
     },
     {
-      "name": "color/foreground/inverse/warning-subtle",
+      "name": "color/appearance/foreground/inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -519,18 +519,18 @@
       ],
       "description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0.0784313753247261,
+        "r": 0.1568627506494522,
+        "g": 0.06666667014360428,
         "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/900"
+        "name": "palette/amber/900"
       }
     },
     {
-      "name": "color/foreground/inverse/danger-subtle",
+      "name": "color/appearance/foreground/inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -541,16 +541,16 @@
       "value": {
         "r": 0.2078431397676468,
         "g": 0,
-        "b": 0.003921568859368563,
+        "b": 0.01568627543747425,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/900"
+        "name": "palette/red/900"
       }
     },
     {
-      "name": "color/foreground/inverse/info-subtle",
+      "name": "color/appearance/foreground/inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -570,7 +570,7 @@
       }
     },
     {
-      "name": "color/foreground/brand",
+      "name": "color/appearance/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -579,18 +579,18 @@
       ],
       "description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
       "value": {
-        "r": 0.27843138575553894,
-        "g": 0.21568627655506134,
-        "b": 0.6078431606292725,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/foreground/success",
+      "name": "color/appearance/foreground/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -599,18 +599,18 @@
       ],
       "description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
       "value": {
-        "r": 0.10588235408067703,
-        "g": 0.30588236451148987,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3019607961177826,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/700"
+        "name": "palette/green/700"
       }
     },
     {
-      "name": "color/foreground/warning",
+      "name": "color/appearance/foreground/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -619,18 +619,18 @@
       ],
       "description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
       "value": {
-        "r": 0.364705890417099,
-        "g": 0.239215686917305,
+        "r": 0.4117647111415863,
+        "g": 0.21568627655506134,
         "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/700"
+        "name": "palette/amber/700"
       }
     },
     {
-      "name": "color/foreground/info",
+      "name": "color/appearance/foreground/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -650,7 +650,7 @@
       }
     },
     {
-      "name": "color/foreground/brand-subtle",
+      "name": "color/appearance/foreground/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -659,18 +659,18 @@
       ],
       "description": "Subtle brand tint surface — banners, badges, selected rows",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8549019694328308,
-        "b": 0.929411768913269,
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/100"
+        "name": "palette/red/100"
       }
     },
     {
-      "name": "color/foreground/success-subtle",
+      "name": "color/appearance/foreground/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -679,18 +679,18 @@
       ],
       "description": "Subtle success tint surface — banners, badges, selected rows",
       "value": {
-        "r": 0.6705882549285889,
-        "g": 0.9372549057006836,
-        "b": 0.6745098233222961,
+        "r": 0.8117647171020508,
+        "g": 0.8705882430076599,
+        "b": 0.8235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/100"
+        "name": "palette/green/100"
       }
     },
     {
-      "name": "color/foreground/warning-subtle",
+      "name": "color/appearance/foreground/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -699,18 +699,18 @@
       ],
       "description": "Subtle warning tint surface — banners, badges, selected rows",
       "value": {
-        "r": 0.95686274766922,
-        "g": 0.843137264251709,
-        "b": 0.6901960968971252,
+        "r": 0.9137254953384399,
+        "g": 0.8509804010391235,
+        "b": 0.8078431487083435,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/100"
+        "name": "palette/amber/100"
       }
     },
     {
-      "name": "color/foreground/danger-subtle",
+      "name": "color/appearance/foreground/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -721,16 +721,16 @@
       "value": {
         "r": 0.9490196108818054,
         "g": 0.8352941274642944,
-        "b": 0.8235294222831726,
+        "b": 0.8274509906768799,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/100"
+        "name": "palette/red/100"
       }
     },
     {
-      "name": "color/foreground/info-subtle",
+      "name": "color/appearance/foreground/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -750,7 +750,7 @@
       }
     },
     {
-      "name": "color/foreground/danger",
+      "name": "color/appearance/foreground/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -759,18 +759,18 @@
       ],
       "description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/primary/fill/rest",
+      "name": "color/appearance/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -778,18 +778,18 @@
       ],
       "description": "primary interactive fill — rest",
       "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/primary/fill/hover",
+      "name": "color/appearance/interactive/primary/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -797,18 +797,18 @@
       ],
       "description": "primary interactive fill — hover",
       "value": {
-        "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/primary/fill/pressed",
+      "name": "color/appearance/interactive/primary/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -816,18 +816,18 @@
       ],
       "description": "primary interactive fill — pressed",
       "value": {
-        "r": 0,
-        "g": 0.1882352977991104,
-        "b": 0.2705882489681244,
+        "r": 0.3686274588108063,
+        "g": 0,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/800"
+        "name": "palette/red/800"
       }
     },
     {
-      "name": "color/interactive/primary/fill/focused",
+      "name": "color/appearance/interactive/primary/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -835,18 +835,18 @@
       ],
       "description": "primary interactive fill — focused",
       "value": {
-        "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/primary/fill/selected",
+      "name": "color/appearance/interactive/primary/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -854,18 +854,18 @@
       ],
       "description": "primary interactive fill — selected",
       "value": {
-        "r": 0,
-        "g": 0.1882352977991104,
-        "b": 0.2705882489681244,
+        "r": 0.3686274588108063,
+        "g": 0,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/800"
+        "name": "palette/red/800"
       }
     },
     {
-      "name": "color/interactive/primary/on-fill",
+      "name": "color/appearance/interactive/primary/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -885,169 +885,169 @@
       }
     },
     {
-      "name": "color/interactive/primary/text/rest",
+      "name": "color/appearance/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "primary interactive ink — rest (outline / text appearance)",
       "value": {
-        "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/red/650"
       }
     },
     {
-      "name": "color/interactive/primary/text/hover",
+      "name": "color/appearance/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "primary interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/primary/text/pressed",
+      "name": "color/appearance/interactive/primary/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "primary interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/primary/border/rest",
+      "name": "color/appearance/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "primary interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/red/650"
       }
     },
     {
-      "name": "color/interactive/primary/border/hover",
+      "name": "color/appearance/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "primary interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/primary/border/pressed",
+      "name": "color/appearance/interactive/primary/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "primary interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/text/rest",
+      "name": "color/appearance/interactive/primary/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.6313725709915161,
-        "b": 0.7960784435272217,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/text/hover",
+      "name": "color/appearance/interactive/primary/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/text/pressed",
+      "name": "color/appearance/interactive/primary/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/250"
+        "name": "palette/red/250"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/rest",
+      "name": "color/appearance/interactive/primary/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1055,18 +1055,18 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8705882430076599,
-        "b": 0.9137254953384399,
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8274509906768799,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/100"
+        "name": "palette/red/100"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/hover",
+      "name": "color/appearance/interactive/primary/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1074,18 +1074,18 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.9215686321258545,
-        "b": 0.9450980424880981,
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/050"
+        "name": "palette/red/050"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/pressed",
+      "name": "color/appearance/interactive/primary/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1093,18 +1093,18 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.6274510025978088,
-        "g": 0.772549033164978,
-        "b": 0.8627451062202454,
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/200"
+        "name": "palette/red/200"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/focused",
+      "name": "color/appearance/interactive/primary/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1112,18 +1112,18 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8784313797950745,
-        "g": 0.9215686321258545,
-        "b": 0.9450980424880981,
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/050"
+        "name": "palette/red/050"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/fill/selected",
+      "name": "color/appearance/interactive/primary/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1131,18 +1131,18 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.6274510025978088,
-        "g": 0.772549033164978,
-        "b": 0.8627451062202454,
+        "r": 0.9215686321258545,
+        "g": 0.7058823704719543,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/200"
+        "name": "palette/red/200"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/on-fill",
+      "name": "color/appearance/interactive/primary/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1162,61 +1162,61 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/border/rest",
+      "name": "color/appearance/interactive/primary/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.6313725709915161,
-        "b": 0.7960784435272217,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/border/hover",
+      "name": "color/appearance/interactive/primary/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/border/pressed",
+      "name": "color/appearance/interactive/primary/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/250"
+        "name": "palette/red/250"
       }
     },
     {
-      "name": "color/interactive/primary/inverse/overlay/hover",
+      "name": "color/appearance/interactive/primary/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1227,7 +1227,7 @@
         "r": 1,
         "g": 1,
         "b": 1,
-        "a": 0.10196078568696976
+        "a": 0.10000000149011612
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -1235,7 +1235,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/overlay/pressed",
+      "name": "color/appearance/interactive/primary/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1254,7 +1254,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/inverse/overlay/selected",
+      "name": "color/appearance/interactive/primary/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1273,7 +1273,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/overlay/hover",
+      "name": "color/appearance/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1284,7 +1284,7 @@
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.10196078568696976
+        "a": 0.10000000149011612
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -1292,7 +1292,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/overlay/pressed",
+      "name": "color/appearance/interactive/primary/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1311,7 +1311,7 @@
       }
     },
     {
-      "name": "color/interactive/primary/overlay/selected",
+      "name": "color/appearance/interactive/primary/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1330,7 +1330,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/fill/rest",
+      "name": "color/appearance/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1338,18 +1338,18 @@
       ],
       "description": "destructive interactive fill — rest",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/destructive/fill/hover",
+      "name": "color/appearance/interactive/destructive/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1357,18 +1357,18 @@
       ],
       "description": "destructive interactive fill — hover",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/destructive/fill/pressed",
+      "name": "color/appearance/interactive/destructive/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1376,18 +1376,18 @@
       ],
       "description": "destructive interactive fill — pressed",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.05882352963089943,
+        "r": 0.3686274588108063,
+        "g": 0,
         "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/800"
+        "name": "palette/red/800"
       }
     },
     {
-      "name": "color/interactive/destructive/fill/focused",
+      "name": "color/appearance/interactive/destructive/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1395,18 +1395,18 @@
       ],
       "description": "destructive interactive fill — focused",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/destructive/fill/selected",
+      "name": "color/appearance/interactive/destructive/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1414,18 +1414,18 @@
       ],
       "description": "destructive interactive fill — selected",
       "value": {
-        "r": 0.34117648005485535,
-        "g": 0.05882352963089943,
+        "r": 0.3686274588108063,
+        "g": 0,
         "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/800"
+        "name": "palette/red/800"
       }
     },
     {
-      "name": "color/interactive/destructive/on-fill",
+      "name": "color/appearance/interactive/destructive/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1445,169 +1445,169 @@
       }
     },
     {
-      "name": "color/interactive/destructive/text/rest",
+      "name": "color/appearance/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "destructive interactive ink — rest (outline / text appearance)",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
+        "name": "palette/red/650"
       }
     },
     {
-      "name": "color/interactive/destructive/text/hover",
+      "name": "color/appearance/interactive/destructive/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "destructive interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/destructive/text/pressed",
+      "name": "color/appearance/interactive/destructive/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "destructive interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/destructive/border/rest",
+      "name": "color/appearance/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.1764705926179886,
-        "b": 0.15294118225574493,
+        "r": 0.6313725709915161,
+        "g": 0,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
+        "name": "palette/red/650"
       }
     },
     {
-      "name": "color/interactive/destructive/border/hover",
+      "name": "color/appearance/interactive/destructive/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/interactive/destructive/border/pressed",
+      "name": "color/appearance/interactive/destructive/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/text/rest",
+      "name": "color/appearance/interactive/destructive/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/text/hover",
+      "name": "color/appearance/interactive/destructive/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/text/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/250"
+        "name": "palette/red/250"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/rest",
+      "name": "color/appearance/interactive/destructive/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1617,16 +1617,16 @@
       "value": {
         "r": 0.9490196108818054,
         "g": 0.8352941274642944,
-        "b": 0.8235294222831726,
+        "b": 0.8274509906768799,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/100"
+        "name": "palette/red/100"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/hover",
+      "name": "color/appearance/interactive/destructive/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1634,18 +1634,18 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9019607901573181,
-        "b": 0.8901960849761963,
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/050"
+        "name": "palette/red/050"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1653,18 +1653,18 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.9254902005195618,
+        "r": 0.9215686321258545,
         "g": 0.7058823704719543,
-        "b": 0.6745098233222961,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/200"
+        "name": "palette/red/200"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/focused",
+      "name": "color/appearance/interactive/destructive/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1672,18 +1672,18 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.9647058844566345,
-        "g": 0.9019607901573181,
-        "b": 0.8901960849761963,
+        "r": 0.9686274528503418,
+        "g": 0.8980392217636108,
+        "b": 0.8941176533699036,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/050"
+        "name": "palette/red/050"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/fill/selected",
+      "name": "color/appearance/interactive/destructive/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1691,18 +1691,18 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.9254902005195618,
+        "r": 0.9215686321258545,
         "g": 0.7058823704719543,
-        "b": 0.6745098233222961,
+        "b": 0.6941176652908325,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/200"
+        "name": "palette/red/200"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/on-fill",
+      "name": "color/appearance/interactive/destructive/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1722,61 +1722,61 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/border/rest",
+      "name": "color/appearance/interactive/destructive/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8901960849761963,
-        "g": 0.4901960790157318,
-        "b": 0.4470588266849518,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/border/hover",
+      "name": "color/appearance/interactive/destructive/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/border/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/250"
+        "name": "palette/red/250"
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/overlay/hover",
+      "name": "color/appearance/interactive/destructive/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1787,7 +1787,7 @@
         "r": 1,
         "g": 1,
         "b": 1,
-        "a": 0.10196078568696976
+        "a": 0.10000000149011612
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -1795,7 +1795,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/overlay/pressed",
+      "name": "color/appearance/interactive/destructive/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1814,7 +1814,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/inverse/overlay/selected",
+      "name": "color/appearance/interactive/destructive/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1833,7 +1833,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/overlay/hover",
+      "name": "color/appearance/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1844,7 +1844,7 @@
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.10196078568696976
+        "a": 0.10000000149011612
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -1852,7 +1852,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/overlay/pressed",
+      "name": "color/appearance/interactive/destructive/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1871,7 +1871,7 @@
       }
     },
     {
-      "name": "color/interactive/destructive/overlay/selected",
+      "name": "color/appearance/interactive/destructive/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1890,7 +1890,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/rest",
+      "name": "color/appearance/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1898,9 +1898,9 @@
       ],
       "description": "neutral interactive fill — rest",
       "value": {
-        "r": 0.8078431487083435,
+        "r": 0.800000011920929,
         "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
@@ -1909,7 +1909,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/hover",
+      "name": "color/appearance/interactive/neutral/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1917,9 +1917,9 @@
       ],
       "description": "neutral interactive fill — hover",
       "value": {
-        "r": 0.7568627595901489,
+        "r": 0.7450980544090271,
         "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
@@ -1928,7 +1928,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/pressed",
+      "name": "color/appearance/interactive/neutral/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1936,9 +1936,9 @@
       ],
       "description": "neutral interactive fill — pressed",
       "value": {
-        "r": 0.7058823704719543,
+        "r": 0.6941176652908325,
         "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
@@ -1947,7 +1947,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/focused",
+      "name": "color/appearance/interactive/neutral/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1955,9 +1955,9 @@
       ],
       "description": "neutral interactive fill — focused",
       "value": {
-        "r": 0.7568627595901489,
+        "r": 0.7450980544090271,
         "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
@@ -1966,7 +1966,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/fill/selected",
+      "name": "color/appearance/interactive/neutral/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1974,9 +1974,9 @@
       ],
       "description": "neutral interactive fill — selected",
       "value": {
-        "r": 0.7058823704719543,
+        "r": 0.6941176652908325,
         "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
@@ -1985,7 +1985,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/on-fill",
+      "name": "color/appearance/interactive/neutral/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2005,7 +2005,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text/rest",
+      "name": "color/appearance/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2023,7 +2023,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text/hover",
+      "name": "color/appearance/interactive/neutral/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2041,7 +2041,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/text/pressed",
+      "name": "color/appearance/interactive/neutral/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2059,16 +2059,16 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border/rest",
+      "name": "color/appearance/interactive/neutral/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "neutral interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -2077,16 +2077,16 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border/hover",
+      "name": "color/appearance/interactive/neutral/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "neutral interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.3607843220233917,
-        "g": 0.3607843220233917,
-        "b": 0.3803921639919281,
+        "r": 0.33725491166114807,
+        "g": 0.364705890417099,
+        "b": 0.3843137323856354,
         "a": 1
       },
       "alias": {
@@ -2095,16 +2095,16 @@
       }
     },
     {
-      "name": "color/interactive/neutral/border/pressed",
+      "name": "color/appearance/interactive/neutral/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "neutral interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.26274511218070984,
-        "b": 0.27843138575553894,
+        "r": 0.24705882370471954,
+        "g": 0.2666666805744171,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": {
@@ -2113,7 +2113,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/text/rest",
+      "name": "color/appearance/interactive/neutral/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2131,7 +2131,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/text/hover",
+      "name": "color/appearance/interactive/neutral/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2149,7 +2149,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/text/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2167,7 +2167,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/rest",
+      "name": "color/appearance/interactive/neutral/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2175,7 +2175,7 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.9137254953384399,
+        "r": 0.9098039269447327,
         "g": 0.9137254953384399,
         "b": 0.9176470637321472,
         "a": 1
@@ -2186,7 +2186,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/hover",
+      "name": "color/appearance/interactive/neutral/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2194,8 +2194,8 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.8588235378265381,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
         "b": 0.8666666746139526,
         "a": 1
       },
@@ -2205,7 +2205,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2213,9 +2213,9 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8078431487083435,
+        "r": 0.800000011920929,
         "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
@@ -2224,7 +2224,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/focused",
+      "name": "color/appearance/interactive/neutral/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2232,8 +2232,8 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.8588235378265381,
+        "r": 0.8549019694328308,
+        "g": 0.8627451062202454,
         "b": 0.8666666746139526,
         "a": 1
       },
@@ -2243,7 +2243,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/fill/selected",
+      "name": "color/appearance/interactive/neutral/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2251,9 +2251,9 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8078431487083435,
+        "r": 0.800000011920929,
         "g": 0.8078431487083435,
-        "b": 0.8156862854957581,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
@@ -2262,7 +2262,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/on-fill",
+      "name": "color/appearance/interactive/neutral/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2282,16 +2282,16 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/border/rest",
+      "name": "color/appearance/interactive/neutral/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -2300,16 +2300,16 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/border/hover",
+      "name": "color/appearance/interactive/neutral/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.5568627715110779,
-        "b": 0.572549045085907,
+        "r": 0.5372549295425415,
+        "g": 0.5607843399047852,
+        "b": 0.5764706134796143,
         "a": 1
       },
       "alias": {
@@ -2318,16 +2318,16 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/border/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.6549019813537598,
-        "g": 0.6549019813537598,
-        "b": 0.6666666865348816,
+        "r": 0.6392157077789307,
+        "g": 0.658823549747467,
+        "b": 0.6705882549285889,
         "a": 1
       },
       "alias": {
@@ -2336,7 +2336,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/overlay/hover",
+      "name": "color/appearance/interactive/neutral/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2347,7 +2347,7 @@
         "r": 1,
         "g": 1,
         "b": 1,
-        "a": 0.10196078568696976
+        "a": 0.10000000149011612
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -2355,7 +2355,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/overlay/pressed",
+      "name": "color/appearance/interactive/neutral/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2374,7 +2374,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/inverse/overlay/selected",
+      "name": "color/appearance/interactive/neutral/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2393,7 +2393,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/overlay/hover",
+      "name": "color/appearance/interactive/neutral/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2404,7 +2404,7 @@
         "r": 0,
         "g": 0,
         "b": 0,
-        "a": 0.10196078568696976
+        "a": 0.10000000149011612
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
@@ -2412,7 +2412,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/overlay/pressed",
+      "name": "color/appearance/interactive/neutral/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2431,7 +2431,7 @@
       }
     },
     {
-      "name": "color/interactive/neutral/overlay/selected",
+      "name": "color/appearance/interactive/neutral/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2450,7 +2450,7 @@
       }
     },
     {
-      "name": "color/disabled/fill",
+      "name": "color/appearance/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2458,9 +2458,9 @@
       ],
       "description": "Disabled control fill — one muted neutral, any intent",
       "value": {
-        "r": 0.7568627595901489,
+        "r": 0.7450980544090271,
         "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
@@ -2469,7 +2469,7 @@
       }
     },
     {
-      "name": "color/disabled/on-fill",
+      "name": "color/appearance/disabled/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2478,9 +2478,9 @@
       ],
       "description": "Label / icon on a disabled fill — muted but clears 3:1",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.30980393290519714,
-        "b": 0.3294117748737335,
+        "r": 0.29411765933036804,
+        "g": 0.3137255012989044,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
@@ -2489,16 +2489,16 @@
       }
     },
     {
-      "name": "color/disabled/text",
+      "name": "color/appearance/disabled/text",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Disabled text — clears 3:1 (reduced contrast, legible)",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
@@ -2507,7 +2507,7 @@
       }
     },
     {
-      "name": "color/disabled/icon",
+      "name": "color/appearance/disabled/icon",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2516,9 +2516,9 @@
       ],
       "description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
@@ -2527,16 +2527,16 @@
       }
     },
     {
-      "name": "color/disabled/border",
+      "name": "color/appearance/disabled/border",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Disabled control border — muted neutral",
       "value": {
-        "r": 0.7568627595901489,
+        "r": 0.7450980544090271,
         "g": 0.7568627595901489,
-        "b": 0.7647058963775635,
+        "b": 0.7686274647712708,
         "a": 1
       },
       "alias": {
@@ -2545,7 +2545,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/fill",
+      "name": "color/appearance/disabled/inverse/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2553,9 +2553,9 @@
       ],
       "description": "Disabled control fill on an inverse surface — one muted neutral, any intent",
       "value": {
-        "r": 0.1725490242242813,
-        "g": 0.1725490242242813,
-        "b": 0.18431372940540314,
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
         "a": 1
       },
       "alias": {
@@ -2564,7 +2564,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/on-fill",
+      "name": "color/appearance/disabled/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2572,9 +2572,9 @@
       ],
       "description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1",
       "value": {
-        "r": 0.6039215922355652,
-        "g": 0.6039215922355652,
-        "b": 0.6196078658103943,
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
@@ -2583,7 +2583,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/text",
+      "name": "color/appearance/disabled/inverse/text",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2591,9 +2591,9 @@
       ],
       "description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -2602,7 +2602,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/icon",
+      "name": "color/appearance/disabled/inverse/icon",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2610,9 +2610,9 @@
       ],
       "description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -2621,7 +2621,7 @@
       }
     },
     {
-      "name": "color/disabled/inverse/border",
+      "name": "color/appearance/disabled/inverse/border",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2629,9 +2629,9 @@
       ],
       "description": "Disabled control border on an inverse surface — muted neutral",
       "value": {
-        "r": 0.1725490242242813,
-        "g": 0.1725490242242813,
-        "b": 0.18431372940540314,
+        "r": 0.16078431904315948,
+        "g": 0.1764705926179886,
+        "b": 0.1882352977991104,
         "a": 1
       },
       "alias": {
@@ -2640,7 +2640,7 @@
       }
     },
     {
-      "name": "color/field/fill",
+      "name": "color/appearance/field/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2659,16 +2659,16 @@
       }
     },
     {
-      "name": "color/field/border/rest",
+      "name": "color/appearance/field/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -2677,16 +2677,16 @@
       }
     },
     {
-      "name": "color/field/border/hover",
+      "name": "color/appearance/field/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
       "value": {
-        "r": 0.3607843220233917,
-        "g": 0.3607843220233917,
-        "b": 0.3803921639919281,
+        "r": 0.33725491166114807,
+        "g": 0.364705890417099,
+        "b": 0.3843137323856354,
         "a": 1
       },
       "alias": {
@@ -2695,16 +2695,16 @@
       }
     },
     {
-      "name": "color/field/placeholder",
+      "name": "color/appearance/field/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
       "value": {
-        "r": 0.30980393290519714,
-        "g": 0.30980393290519714,
-        "b": 0.3294117748737335,
+        "r": 0.29411765933036804,
+        "g": 0.3137255012989044,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
@@ -2713,7 +2713,7 @@
       }
     },
     {
-      "name": "color/field/inverse/fill",
+      "name": "color/appearance/field/inverse/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2732,16 +2732,16 @@
       }
     },
     {
-      "name": "color/field/inverse/border/rest",
+      "name": "color/appearance/field/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -2750,16 +2750,16 @@
       }
     },
     {
-      "name": "color/field/inverse/border/hover",
+      "name": "color/appearance/field/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
       "value": {
-        "r": 0.5568627715110779,
-        "g": 0.5568627715110779,
-        "b": 0.572549045085907,
+        "r": 0.5372549295425415,
+        "g": 0.5607843399047852,
+        "b": 0.5764706134796143,
         "a": 1
       },
       "alias": {
@@ -2768,16 +2768,16 @@
       }
     },
     {
-      "name": "color/field/inverse/placeholder",
+      "name": "color/appearance/field/inverse/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
       "value": {
-        "r": 0.6039215922355652,
-        "g": 0.6039215922355652,
-        "b": 0.6196078658103943,
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
@@ -2786,7 +2786,7 @@
       }
     },
     {
-      "name": "color/text/primary",
+      "name": "color/appearance/text/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2804,16 +2804,16 @@
       }
     },
     {
-      "name": "color/text/secondary",
+      "name": "color/appearance/text/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Secondary text — 4.5:1 on the floor",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.26274511218070984,
-        "b": 0.27843138575553894,
+        "r": 0.24705882370471954,
+        "g": 0.2666666805744171,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": {
@@ -2822,16 +2822,16 @@
       }
     },
     {
-      "name": "color/text/tertiary",
+      "name": "color/appearance/text/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Tertiary text — 3:1 on the floor",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
@@ -2840,79 +2840,79 @@
       }
     },
     {
-      "name": "color/text/brand",
+      "name": "color/appearance/text/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.239215686917305,
-        "g": 0.1764705926179886,
-        "b": 0.529411792755127,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/text/success",
+      "name": "color/appearance/text/success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.10588235408067703,
-        "g": 0.30588236451148987,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3019607961177826,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/700"
+        "name": "palette/green/700"
       }
     },
     {
-      "name": "color/text/warning",
+      "name": "color/appearance/text/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.364705890417099,
-        "g": 0.239215686917305,
+        "r": 0.4117647111415863,
+        "g": 0.21568627655506134,
         "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/700"
+        "name": "palette/amber/700"
       }
     },
     {
-      "name": "color/text/danger",
+      "name": "color/appearance/text/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/text/info",
+      "name": "color/appearance/text/info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2930,79 +2930,79 @@
       }
     },
     {
-      "name": "color/text/brand-subtle",
+      "name": "color/appearance/text/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted brand text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/text/success-subtle",
+      "name": "color/appearance/text/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted success text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.054901961237192154,
+        "g": 0.5098039507865906,
+        "b": 0.26274511218070984,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "palette/green/500"
       }
     },
     {
-      "name": "color/text/warning-subtle",
+      "name": "color/appearance/text/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted warning text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "palette/amber/500"
       }
     },
     {
-      "name": "color/text/danger-subtle",
+      "name": "color/appearance/text/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted danger text — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
         "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/text/info-subtle",
+      "name": "color/appearance/text/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3020,7 +3020,7 @@
       }
     },
     {
-      "name": "color/text/on-brand",
+      "name": "color/appearance/text/on-brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3038,7 +3038,7 @@
       }
     },
     {
-      "name": "color/text/on-success",
+      "name": "color/appearance/text/on-success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3056,7 +3056,7 @@
       }
     },
     {
-      "name": "color/text/on-warning",
+      "name": "color/appearance/text/on-warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3074,7 +3074,7 @@
       }
     },
     {
-      "name": "color/text/on-danger",
+      "name": "color/appearance/text/on-danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3092,7 +3092,7 @@
       }
     },
     {
-      "name": "color/text/on-info",
+      "name": "color/appearance/text/on-info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3110,79 +3110,79 @@
       }
     },
     {
-      "name": "color/text/link/default",
+      "name": "color/appearance/text/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — default",
       "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/text/link/hover",
+      "name": "color/appearance/text/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/750"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/text/link/visited",
+      "name": "color/appearance/text/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0,
-        "g": 0.1882352977991104,
-        "b": 0.2705882489681244,
+        "r": 0.3686274588108063,
+        "g": 0,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/800"
+        "name": "palette/red/800"
       }
     },
     {
-      "name": "color/text/link/focused",
+      "name": "color/appearance/text/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — focused",
       "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/text/on-inverse/primary",
+      "name": "color/appearance/text/on-inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3200,16 +3200,16 @@
       }
     },
     {
-      "name": "color/text/on-inverse/secondary",
+      "name": "color/appearance/text/on-inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Secondary text — 4.5:1 on the floor",
       "value": {
-        "r": 0.6039215922355652,
-        "g": 0.6039215922355652,
-        "b": 0.6196078658103943,
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
@@ -3218,16 +3218,16 @@
       }
     },
     {
-      "name": "color/text/on-inverse/tertiary",
+      "name": "color/appearance/text/on-inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Tertiary text — 3:1 on the floor",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -3236,79 +3236,79 @@
       }
     },
     {
-      "name": "color/text/on-inverse/brand",
+      "name": "color/appearance/text/on-inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "brand text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.6392157077789307,
-        "g": 0.6352941393852234,
-        "b": 0.8549019694328308,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/text/on-inverse/success",
+      "name": "color/appearance/text/on-inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "success text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.42352941632270813,
-        "g": 0.7333333492279053,
-        "b": 0.43529412150382996,
+        "r": 0.49803921580314636,
+        "g": 0.686274528503418,
+        "b": 0.545098066329956,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/300"
+        "name": "palette/green/300"
       }
     },
     {
-      "name": "color/text/on-inverse/warning",
+      "name": "color/appearance/text/on-inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "warning text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.6000000238418579,
-        "b": 0.16862745583057404,
+        "r": 0.8039215803146362,
+        "g": 0.6235294342041016,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/300"
+        "name": "palette/amber/300"
       }
     },
     {
-      "name": "color/text/on-inverse/danger",
+      "name": "color/appearance/text/on-inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "danger text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/text/on-inverse/info",
+      "name": "color/appearance/text/on-inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3326,79 +3326,79 @@
       }
     },
     {
-      "name": "color/text/on-inverse/brand-subtle",
+      "name": "color/appearance/text/on-inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/text/on-inverse/success-subtle",
+      "name": "color/appearance/text/on-inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.21960784494876862,
+        "g": 0.5529412031173706,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "palette/green/450"
       }
     },
     {
-      "name": "color/text/on-inverse/warning-subtle",
+      "name": "color/appearance/text/on-inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "palette/amber/500"
       }
     },
     {
-      "name": "color/text/on-inverse/danger-subtle",
+      "name": "color/appearance/text/on-inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
         "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/text/on-inverse/info-subtle",
+      "name": "color/appearance/text/on-inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3416,79 +3416,79 @@
       }
     },
     {
-      "name": "color/text/on-inverse/link/default",
+      "name": "color/appearance/text/on-inverse/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — default",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.6313725709915161,
-        "b": 0.7960784435272217,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/text/on-inverse/link/hover",
+      "name": "color/appearance/text/on-inverse/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — hover",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/300"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/text/on-inverse/link/visited",
+      "name": "color/appearance/text/on-inverse/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — visited",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/250"
+        "name": "palette/red/250"
       }
     },
     {
-      "name": "color/text/on-inverse/link/focused",
+      "name": "color/appearance/text/on-inverse/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
       ],
       "description": "Link text — focused",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.6313725709915161,
-        "b": 0.7960784435272217,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/350"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/icon/primary",
+      "name": "color/appearance/icon/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3508,27 +3508,27 @@
       }
     },
     {
-      "name": "color/icon/secondary",
+      "name": "color/appearance/icon/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Secondary icon — 3:1 on the floor",
+      "description": "Secondary icon — 4.5:1 on the floor",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.24705882370471954,
+        "g": 0.2666666805744171,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/550"
+        "name": "palette/neutral/700"
       }
     },
     {
-      "name": "color/icon/tertiary",
+      "name": "color/appearance/icon/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3537,9 +3537,9 @@
       ],
       "description": "Tertiary icon — 3:1 on the floor",
       "value": {
-        "r": 0.40784314274787903,
-        "g": 0.40784314274787903,
-        "b": 0.4274509847164154,
+        "r": 0.38823530077934265,
+        "g": 0.4156862795352936,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
@@ -3548,107 +3548,107 @@
       }
     },
     {
-      "name": "color/icon/brand",
+      "name": "color/appearance/icon/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.3686274588108063,
-        "g": 0.29411765933036804,
-        "b": 0.7647058963775635,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/550"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/icon/success",
+      "name": "color/appearance/icon/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "success icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.18431372940540314,
-        "g": 0.40784314274787903,
-        "b": 0.20000000298023224,
+        "r": 0,
+        "g": 0.3019607961177826,
+        "b": 0.13725490868091583,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/600"
+        "name": "palette/green/700"
       }
     },
     {
-      "name": "color/icon/warning",
+      "name": "color/appearance/icon/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.4941176474094391,
-        "g": 0.32549020648002625,
+        "r": 0.4117647111415863,
+        "g": 0.21568627655506134,
         "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/600"
+        "name": "palette/amber/700"
       }
     },
     {
-      "name": "color/icon/danger",
+      "name": "color/appearance/icon/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0.21568627655506134,
-        "b": 0.1921568661928177,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/600"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/icon/info",
+      "name": "color/appearance/icon/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 3:1 on the floor (neutral.050) and on its own tint",
+      "description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
       "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
+        "r": 0.05098039284348488,
+        "g": 0.27843138575553894,
+        "b": 0.43529412150382996,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/600"
+        "name": "palette/info/700"
       }
     },
     {
-      "name": "color/icon/brand-subtle",
+      "name": "color/appearance/icon/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3657,18 +3657,18 @@
       ],
       "description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/icon/success-subtle",
+      "name": "color/appearance/icon/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3677,18 +3677,18 @@
       ],
       "description": "Muted success icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.054901961237192154,
+        "g": 0.5098039507865906,
+        "b": 0.26274511218070984,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "palette/green/500"
       }
     },
     {
-      "name": "color/icon/warning-subtle",
+      "name": "color/appearance/icon/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3697,18 +3697,18 @@
       ],
       "description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "palette/amber/500"
       }
     },
     {
-      "name": "color/icon/danger-subtle",
+      "name": "color/appearance/icon/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3717,18 +3717,18 @@
       ],
       "description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
         "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/icon/info-subtle",
+      "name": "color/appearance/icon/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3748,7 +3748,7 @@
       }
     },
     {
-      "name": "color/icon/on-brand",
+      "name": "color/appearance/icon/on-brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3768,7 +3768,7 @@
       }
     },
     {
-      "name": "color/icon/on-success",
+      "name": "color/appearance/icon/on-success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3788,7 +3788,7 @@
       }
     },
     {
-      "name": "color/icon/on-warning",
+      "name": "color/appearance/icon/on-warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3808,7 +3808,7 @@
       }
     },
     {
-      "name": "color/icon/on-danger",
+      "name": "color/appearance/icon/on-danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3828,7 +3828,7 @@
       }
     },
     {
-      "name": "color/icon/on-info",
+      "name": "color/appearance/icon/on-info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3848,7 +3848,7 @@
       }
     },
     {
-      "name": "color/icon/link/default",
+      "name": "color/appearance/icon/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3857,18 +3857,18 @@
       ],
       "description": "Link icon — default",
       "value": {
-        "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/550"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/icon/link/hover",
+      "name": "color/appearance/icon/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3877,18 +3877,18 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0,
-        "g": 0.3803921639919281,
-        "b": 0.5333333611488342,
+        "r": 0.45098039507865906,
+        "g": 0,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/600"
+        "name": "palette/red/750"
       }
     },
     {
-      "name": "color/icon/link/visited",
+      "name": "color/appearance/icon/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3897,18 +3897,18 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0,
-        "g": 0.3294117748737335,
-        "b": 0.4627451002597809,
+        "r": 0.3686274588108063,
+        "g": 0,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/650"
+        "name": "palette/red/800"
       }
     },
     {
-      "name": "color/icon/link/focused",
+      "name": "color/appearance/icon/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3917,18 +3917,18 @@
       ],
       "description": "Link icon — focused",
       "value": {
-        "r": 0,
-        "g": 0.4313725531101227,
-        "b": 0.6000000238418579,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/550"
+        "name": "palette/red/700"
       }
     },
     {
-      "name": "color/icon/on-inverse/primary",
+      "name": "color/appearance/icon/on-inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3948,27 +3948,27 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/secondary",
+      "name": "color/appearance/icon/on-inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "Secondary icon — 3:1 on the floor",
+      "description": "Secondary icon — 4.5:1 on the floor",
       "value": {
-        "r": 0.4588235318660736,
-        "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "palette/neutral/350"
       }
     },
     {
-      "name": "color/icon/on-inverse/tertiary",
+      "name": "color/appearance/icon/on-inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3977,9 +3977,9 @@
       ],
       "description": "Tertiary icon — 3:1 on the floor",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -3988,107 +3988,107 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/brand",
+      "name": "color/appearance/icon/on-inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "brand icon — 3:1 on the floor (background.inverse.secondary) and on its own tint",
+      "description": "brand icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.4901960790157318,
-        "g": 0.46666666865348816,
-        "b": 0.8078431487083435,
-        "a": 1
-      },
-      "alias": {
-        "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/450"
-      }
-    },
-    {
-      "name": "color/icon/on-inverse/success",
-      "resolvedType": "COLOR",
-      "scopes": [
-        "FRAME_FILL",
-        "SHAPE_FILL",
-        "STROKE_COLOR"
-      ],
-      "description": "success icon — 3:1 on the floor (background.inverse.secondary) and on its own tint",
-      "value": {
-        "r": 0.3019607961177826,
+        "r": 0.8980392217636108,
         "g": 0.5686274766921997,
-        "b": 0.3176470696926117,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/450"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/icon/on-inverse/warning",
+      "name": "color/appearance/icon/on-inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "warning icon — 3:1 on the floor (background.inverse.secondary) and on its own tint",
+      "description": "success icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.6823529601097107,
-        "g": 0.4627451002597809,
-        "b": 0.05098039284348488,
+        "r": 0.49803921580314636,
+        "g": 0.686274528503418,
+        "b": 0.545098066329956,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/450"
+        "name": "palette/green/300"
       }
     },
     {
-      "name": "color/icon/on-inverse/danger",
+      "name": "color/appearance/icon/on-inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "danger icon — 3:1 on the floor (background.inverse.secondary) and on its own tint",
+      "description": "warning icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.8509804010391235,
-        "g": 0.3333333432674408,
-        "b": 0.2980392277240753,
+        "r": 0.8039215803146362,
+        "g": 0.6235294342041016,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/450"
+        "name": "palette/amber/300"
       }
     },
     {
-      "name": "color/icon/on-inverse/info",
+      "name": "color/appearance/icon/on-inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL",
         "STROKE_COLOR"
       ],
-      "description": "info icon — 3:1 on the floor (background.inverse.secondary) and on its own tint",
+      "description": "danger icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
       "value": {
-        "r": 0.22745098173618317,
-        "g": 0.529411792755127,
-        "b": 0.7647058963775635,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/450"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/icon/on-inverse/brand-subtle",
+      "name": "color/appearance/icon/on-inverse/info",
+      "resolvedType": "COLOR",
+      "scopes": [
+        "FRAME_FILL",
+        "SHAPE_FILL",
+        "STROKE_COLOR"
+      ],
+      "description": "info icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
+      "value": {
+        "r": 0.40784314274787903,
+        "g": 0.6823529601097107,
+        "b": 0.9058823585510254,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "palette/info/300"
+      }
+    },
+    {
+      "name": "color/appearance/icon/on-inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4097,18 +4097,18 @@
       ],
       "description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/icon/on-inverse/success-subtle",
+      "name": "color/appearance/icon/on-inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4117,18 +4117,18 @@
       ],
       "description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.21960784494876862,
+        "g": 0.5529412031173706,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "palette/green/450"
       }
     },
     {
-      "name": "color/icon/on-inverse/warning-subtle",
+      "name": "color/appearance/icon/on-inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4137,18 +4137,18 @@
       ],
       "description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "palette/amber/500"
       }
     },
     {
-      "name": "color/icon/on-inverse/danger-subtle",
+      "name": "color/appearance/icon/on-inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4157,18 +4157,18 @@
       ],
       "description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
         "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/icon/on-inverse/info-subtle",
+      "name": "color/appearance/icon/on-inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4188,7 +4188,7 @@
       }
     },
     {
-      "name": "color/icon/on-inverse/link/default",
+      "name": "color/appearance/icon/on-inverse/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4197,18 +4197,18 @@
       ],
       "description": "Link icon — default",
       "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/500"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/icon/on-inverse/link/hover",
+      "name": "color/appearance/icon/on-inverse/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4217,18 +4217,18 @@
       ],
       "description": "Link icon — hover",
       "value": {
-        "r": 0,
-        "g": 0.5333333611488342,
-        "b": 0.7450980544090271,
+        "r": 0.8980392217636108,
+        "g": 0.5686274766921997,
+        "b": 0.5529412031173706,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/450"
+        "name": "palette/red/300"
       }
     },
     {
-      "name": "color/icon/on-inverse/link/visited",
+      "name": "color/appearance/icon/on-inverse/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4237,18 +4237,18 @@
       ],
       "description": "Link icon — visited",
       "value": {
-        "r": 0.2078431397676468,
-        "g": 0.5843137502670288,
-        "b": 0.7764706015586853,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/400"
+        "name": "palette/red/250"
       }
     },
     {
-      "name": "color/icon/on-inverse/link/focused",
+      "name": "color/appearance/icon/on-inverse/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4257,27 +4257,27 @@
       ],
       "description": "Link icon — focused",
       "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/500"
+        "name": "palette/red/350"
       }
     },
     {
-      "name": "color/border/primary",
+      "name": "color/appearance/border/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Default border — decorative, ~1.4:1",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -4286,16 +4286,16 @@
       }
     },
     {
-      "name": "color/border/secondary",
+      "name": "color/appearance/border/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Stronger border / divider",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.26274511218070984,
-        "b": 0.27843138575553894,
+        "r": 0.24705882370471954,
+        "g": 0.2666666805744171,
+        "b": 0.2862745225429535,
         "a": 1
       },
       "alias": {
@@ -4304,16 +4304,16 @@
       }
     },
     {
-      "name": "color/border/inverse/default",
+      "name": "color/appearance/border/inverse/default",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Border on inverse surfaces",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -4322,16 +4322,16 @@
       }
     },
     {
-      "name": "color/border/inverse/primary",
+      "name": "color/appearance/border/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Default border on an inverse surface — decorative, ~1.4:1",
       "value": {
-        "r": 0.4588235318660736,
+        "r": 0.43921568989753723,
         "g": 0.4627451002597809,
-        "b": 0.47843137383461,
+        "b": 0.48627451062202454,
         "a": 1
       },
       "alias": {
@@ -4340,16 +4340,16 @@
       }
     },
     {
-      "name": "color/border/inverse/secondary",
+      "name": "color/appearance/border/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Stronger border / divider on an inverse surface",
       "value": {
-        "r": 0.7058823704719543,
+        "r": 0.6941176652908325,
         "g": 0.7058823704719543,
-        "b": 0.7137255072593689,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
@@ -4358,79 +4358,79 @@
       }
     },
     {
-      "name": "color/border/inverse/brand",
+      "name": "color/appearance/border/inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/border/inverse/success",
+      "name": "color/appearance/border/inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "success border on an inverse surface — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.21960784494876862,
+        "g": 0.5529412031173706,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "palette/green/450"
       }
     },
     {
-      "name": "color/border/inverse/warning",
+      "name": "color/appearance/border/inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "warning border on an inverse surface — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "palette/amber/500"
       }
     },
     {
-      "name": "color/border/inverse/danger",
+      "name": "color/appearance/border/inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "danger border on an inverse surface — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
         "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/border/inverse/info",
+      "name": "color/appearance/border/inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4448,97 +4448,97 @@
       }
     },
     {
-      "name": "color/border/inverse/focus",
+      "name": "color/appearance/border/inverse/focus",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Focus ring color on inverse surfaces (keyboard focus)",
       "value": {
-        "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/border/brand",
+      "name": "color/appearance/border/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "brand border — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.4470588266849518,
-        "g": 0.4117647111415863,
-        "b": 0.7921568751335144,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/border/success",
+      "name": "color/appearance/border/success",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "success border — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.26274511218070984,
-        "g": 0.5137255191802979,
-        "b": 0.27843138575553894,
+        "r": 0.054901961237192154,
+        "g": 0.5098039507865906,
+        "b": 0.26274511218070984,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "palette/green/500"
       }
     },
     {
-      "name": "color/border/warning",
+      "name": "color/appearance/border/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "warning border — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.6235294342041016,
-        "g": 0.41960784792900085,
-        "b": 0,
+        "r": 0.7019608020782471,
+        "g": 0.3843137323856354,
+        "b": 0.0117647061124444,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "palette/amber/500"
       }
     },
     {
-      "name": "color/border/danger",
+      "name": "color/appearance/border/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "danger border — 3:1 (SC 1.4.11)",
       "value": {
-        "r": 0.7882353067398071,
-        "g": 0.2980392277240753,
+        "r": 0.8352941274642944,
+        "g": 0.239215686917305,
         "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "palette/red/500"
       }
     },
     {
-      "name": "color/border/info",
+      "name": "color/appearance/border/info",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4556,21 +4556,21 @@
       }
     },
     {
-      "name": "color/border/focus",
+      "name": "color/appearance/border/focus",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
       ],
       "description": "Focus ring color (keyboard focus)",
       "value": {
-        "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "r": 0.5411764979362488,
+        "g": 0,
+        "b": 0.0941176488995552,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/accent/700"
+        "name": "palette/red/700"
       }
     }
   ]

@@ -116,9 +116,15 @@ export const buildWritePlan = (
 };
 
 // ---------------------------------------------------------------------------
-// THE SURFACE AXIS (#993 — #893's unbuilt half). The `surface` collection: two modes (`default`,
-// `inverse`) whose every row is an alias into the `color` collection, so switching the mode on a
-// frame flips a whole subtree to its inverse-context values.
+// THE SURFACE AXIS (#993 — #893's unbuilt half). The `color` collection: two modes (`default`,
+// `inverse`) whose every row is an alias into the `color.appearance` collection, so switching the mode
+// on a frame flips a whole subtree to its inverse-context values.
+//
+// It held the name `surface` until #1013 swapped the two tiers. The type below is still `SurfacePlan`
+// and the builder still `buildSurfaceWritePlan`, because SURFACE is what the axis IS — the collection
+// name is what a designer binds, and the tier that gets the short name is the one they should reach
+// for first. Reading the two as interchangeable is the trap #1013 exists to remove: `color` is now a
+// collection of pointers and `color.appearance` the collection of paints.
 //
 // It reuses `ColorCreateRow`/`ColorAliasRow` verbatim rather than declaring its own pair, because it
 // IS a colour collection in the plan's terms — COLOR-typed, literal-per-mode then aliased-per-mode.
@@ -127,8 +133,12 @@ export const buildWritePlan = (
 // resolved against anything this plan describes. See `applySurfacePlan`.
 // ---------------------------------------------------------------------------
 
-/** The `surface` collection's materialisation plan. Same two-pass shape as `plan.color`, named like a
- *  `FloatCollectionPlan` so the executor's collection handling reads the same. */
+/** The surface axis's materialisation plan — the `color` collection since #1013. Same two-pass shape as
+ *  `plan.color`, named like a `FloatCollectionPlan` so the executor's collection handling reads the same.
+ *
+ *  `name` is carried in the plan rather than hardcoded in the executor, which is why the swap costs one
+ *  line here and none there — and why `applySurfacePlan` passes `plan.name` to `upsertCollection`. The
+ *  value-tier executor hardcodes its own name instead, so that one had to be edited. */
 export type SurfacePlan = {
   name: string;
   modes: string[];
@@ -166,7 +176,7 @@ export const buildSurfaceWritePlan = (theme: Theme): SurfacePlan => {
     name: v.name,
     targetsByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
   }));
-  return { name: 'surface', modes, create, aliases };
+  return { name: 'color', modes, create, aliases };
 };
 
 // ---------------------------------------------------------------------------

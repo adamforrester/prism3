@@ -55,9 +55,11 @@ import {
   isTotal,
   keysFromEmittedFile,
   parseVarKey,
+  recollectAll,
   varKey,
   type VarKey,
 } from './materialization-renames';
+import { COLLECTION_RENAMES } from './rename-map';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -193,6 +195,27 @@ for (const path of beforeFiles) {
 }
 const beforeKeys = new Set<VarKey>([...beforeByBrand].flatMap(([b, ks]) => [...ks].map((k) => varKey(b, k))));
 
+// ---- recollect the BEFORE side through the collection renames (#1013) ----------------------------
+//
+// A rule's `map` returns a NAME and never a collection, so a key whose COLLECTION was renamed is beyond
+// the reach of every rule: `color :: color/text/primary` and `color.appearance :: color/appearance/text/primary`
+// share no side of any name-only claim. `recollect` moves each before-side key into the collection its
+// variable now lives in — one hop, for the reason stated at `recollect` — so the rules are asked the only
+// question they can answer.
+//
+// **This does not read the live emitter, which is what the gate's oracle property depends on.**
+// `COLLECTION_RENAMES` is authored data and the keys it is applied to came out of git. And it does not
+// make the gate agree with itself: a wrong or missing collection rename leaves every affected key
+// unaccounted (the domain no longer matches), and a collection rename that agreed with a wrong rule would
+// still be contradicted by the AFTER side, which is the real emission on disk. The emission remains the
+// independent witness for the collection name and the variable name both.
+//
+// The count printed in the report stays the RAW read, deliberately: recollection cannot change it, since
+// two sources landing on one target is `validateRenameMap`'s `duplicate collection target` refusal.
+const beforeRecollected = new Map<string, Set<VarKey>>(
+  [...beforeByBrand].map(([brand, keys]) => [brand, recollectAll(keys, COLLECTION_RENAMES)] as const),
+);
+
 // ---- the floors, before any "every …" claim is made ----------------------------------------------
 
 if (beforeKeys.size < FLOOR_KEYS && beforeFiles.length > 0)
@@ -218,7 +241,7 @@ const brands = [...new Set([...beforeByBrand.keys(), ...afterByBrand.keys()])].s
 const empty = new Set<VarKey>();
 const per = brands.map((brand) => ({
   brand,
-  a: accountFor(beforeByBrand.get(brand) ?? empty, afterByBrand.get(brand) ?? empty, MATERIALIZATION_RENAMES, parseVarKey),
+  a: accountFor(beforeRecollected.get(brand) ?? empty, afterByBrand.get(brand) ?? empty, MATERIALIZATION_RENAMES, parseVarKey),
 }));
 /** Report lines carry the brand; the KEYS the accounting works in do not. */
 const tag = (brand: string, xs: readonly string[]): string[] => xs.map((x) => `${brand} · ${x}`);
@@ -277,5 +300,13 @@ console.log(
   // Said in the SUCCESS line, not only in the header, because this is where a reader meets the rule:
   // an additive change is the common case, and "6 added" sitting in a passing run needs to explain
   // itself or it reads as something the gate failed to notice.
-  + (acct.added.length ? `\n  ${acct.added.length} added and unclaimed — additions need no rule; only a REMOVAL can hide a rename (#1053).` : ''),
+  //
+  // The number is `unaccountedAdditions`, NOT `added`. It read `added` until #1013, which was the same
+  // number while the artifact was empty — with no rules, no addition is any claim's image — and became
+  // wrong the moment two rules landed: it reported 1,074 additions as unclaimed when every one of them
+  // was a rule's claimed image, i.e. it printed the opposite of the fact the reader wants. An addition
+  // that IS a claim's image is the rules working; one that is not is a new token.
+  + (acct.unaccountedAdditions.length
+    ? `\n  ${acct.unaccountedAdditions.length} of the ${acct.added.length} added are no rule's image — additions need no rule; only a REMOVAL can hide a rename (#1053).`
+    : `\n  every one of the ${acct.added.length} added is a rule's claimed image — nothing arrived unexplained.`),
 );

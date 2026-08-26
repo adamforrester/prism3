@@ -89,15 +89,20 @@ export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'surface' | 'none'
  *  `singular` — the axis has one member, so it does not cross as anything.
  *  `absent`   — the axis exists in Figma and has NO DTCG counterpart at all. Distinct from
  *               `singular`: not "one member so nothing to carry" but "deliberately not carried".
- *               Added for `surface` (#893), and the distinction is the point — a reader asking why
- *               the projection has no surface overlays needs to find the answer recorded rather than
- *               inferred from an absence.
+ *               Added for `surface` (#893) and vacated by #1013, which is why the kind is still
+ *               described here rather than deleted: the distinction is what a reader needs when the
+ *               projection has no overlays for an axis and they are asking whether that is a decision.
+ *  `base-only` — the axis's BASE member is carried in the base projection; its other members are not
+ *               carried anywhere yet. Between `absent` and `overlay`, and `surface` moved onto it in
+ *               #1013: the alias tier is now the `color.*` tier in DTCG, so its default member pairs
+ *               path-for-path, while the inverse member still has no overlay file (#1027). Naming it
+ *               is what keeps the two facts separable — carried, and not fully carried.
  *
  *  `baseMember` is the mode whose values the `base` projection carries, or `null` when the axis is
  *  path-carried and no single mode corresponds. This is the load-bearing part: `compare.ts` uses it to
  *  decide WHICH TokenPress mode file wins the union, and that decision moved 228 colors into and out
  *  of the difference report the first time it was made by iteration order instead. */
-export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singular' | 'absent'; baseMember: string | null; why: string }> = {
+export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singular' | 'absent' | 'base-only'; baseMember: string | null; why: string }> = {
   appearance: {
     crossesAs: 'overlay',
     baseMember: 'light',
@@ -114,9 +119,9 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
     why: 'the fluid type-set axis; the projection bakes the desktop end into `base` and carries the min/max pair in `$extensions.prism3.responsive` rather than as a second overlay',
   },
   surface: {
-    crossesAs: 'absent',
+    crossesAs: 'base-only',
     baseMember: 'default',
-    why: 'the alias layer #871 decided (#893). Figma-only BY DESIGN: it stores pointers into `color`, not values, so there is nothing for DTCG to carry that DTCG does not already have — surface context reaches code through the CSS cascade instead (#882), which is a separate build. `default` is the base member: every row\'s `default` mode points at the page token, so a file that never switches the mode behaves exactly as it did before the collection existed',
+    why: 'the alias layer #871 decided (#893), Figma-only until #1013 and no longer. It stores POINTERS into the value tier rather than values, which is why it was classified `absent` for as long as the value tier held the short `color` name: a pointer tier and its targets under one name have nothing to project separately. #1013 gave the pointers the short name (`color.*`) and the values the explicit one (`color.appearance.*`), and with two names the projection carries both — 128 alias paths, pairing path-for-path. What is still not carried is the axis\'s SECOND member: `inverse` has no overlay file (#1027), so surface context still reaches code through the CSS cascade (#882). `default` is the base member: every row\'s `default` mode points at the page token, so a file that never switches the mode behaves exactly as it did before the collection existed',
   },
   none: {
     crossesAs: 'singular',
@@ -142,10 +147,10 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
  */
 export const COLLECTION_AXIS: Record<string, Axis> = {
   // -- multi-mode: the three axes #697 measured -------------------------------------------------
-  color: 'appearance',
+  'color.appearance': 'appearance',
   layout: 'breakpoint',
   'type-sets': 'viewport',
-  surface: 'surface',        // #893 — the alias layer; Figma-only, see AXIS_MODEL.surface
+  color: 'surface',          // #893 — the alias layer, renamed to the short name in #1013
 
   // -- single-mode variable collections ---------------------------------------------------------
   'border-width': 'none',
@@ -184,14 +189,24 @@ export const STYLE_AXIS_AS_NAME: { collection: string; prefix: string; axis: Axi
 
 /**
  * Collections whose axis is declared `absent` — present in Figma, deliberately NOT in the DTCG
- * projection (`surface`, #893). A round-trip through TokenPress reads them out of the Figma files and
- * produces DTCG paths for them, and those paths have no prism3 counterpart BY DESIGN.
+ * projection. **As of #1013 this returns an EMPTY set**, because `surface` was the only axis ever so
+ * classified and the swap gave its tier a DTCG name of its own (`base-only`, above). The mechanism
+ * stays: it is the declared route by which a future Figma-only collection is dropped.
  *
  * The comparison drops them, and it does so FROM THIS DECLARATION rather than from a name list of its
  * own. That is the difference between declaring and exempting: a new Figma-only collection that
  * nobody classifies still fails `classifyCollections` as unclassified, and one classified as any
  * other axis still fails the unpaired arm. Only an explicit `crossesAs: 'absent'` buys the drop, and
  * writing that down is a claim someone made about what the projection carries.
+ *
+ * ── ONE TRAP IF YOU EVER RE-ARM IT ───────────────────────────────────────────────────────────────
+ * `compare.ts` applies this set to a path's FIRST SEGMENT (`k.split('.')[0]`), which was unambiguous
+ * only while every collection's name was also a whole namespace: `surface` dropped `surface.*` and
+ * nothing else. After #1013 the appearance tier lives UNDER the alias tier's name — `color` and
+ * `color.appearance.*` share a first segment — so classifying `color` as `absent` today would drop
+ * 370 paths per brand, not 128, and report it as agreement. Measured: 1110 unpaired across 3 brands.
+ * A future `absent` collection whose name prefixes another's paths needs the drop keyed on the
+ * namespace it projects, not on the collection name.
  */
 export const absentFromProjection = (): Set<string> =>
   new Set(Object.entries(COLLECTION_AXIS).filter(([, ax]) => AXIS_MODEL[ax].crossesAs === 'absent').map(([c]) => c));
