@@ -117,18 +117,32 @@ const afterKeys = new Set<VarKey>([...afterByBrand].flatMap(([b, ks]) => [...ks]
 // is the "cannot run" case, not a fallback to the next candidate: falling through would silently
 // compare against whatever else happened to exist and report on the wrong pair.
 
-const baseCandidates = [
-  process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null,
-  'origin/main',
-  'main',
-].filter((r): r is string => !!r);
+// `GITHUB_BASE_REF` IS AUTHORITATIVE WHEN SET, and does NOT fall through to the ladder below.
+//
+// It is set only on a `pull_request` event, and it names the branch this PR actually targets. If it is
+// set and does not resolve, the check CANNOT RUN — falling back to `origin/main` would compare against
+// a branch that is not this PR's base and report a difference belonging to someone else's work, which
+// is worse than failing because it is a confident answer to the wrong question.
+//
+// Found by exercising this path rather than by reading it: the first implementation had one flat
+// ladder, so an unresolvable `GITHUB_BASE_REF` silently became `origin/main` — and the comment above
+// the ladder already said that was wrong. The comment was right and the code was not.
+const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_REF}` : null;
 
 let baseRef: string | null = null;
 const tried: string[] = [];
-for (const cand of baseCandidates) {
-  const r = git('rev-parse', '--verify', '--quiet', `${cand}^{commit}`);
-  tried.push(`${cand} — ${r.ok ? 'resolves' : 'does not resolve'}`);
-  if (r.ok) { baseRef = cand; break; }
+if (prBase) {
+  const r = git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`);
+  tried.push(`${prBase} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);
+  if (r.ok) baseRef = prBase;
+} else {
+  // No PR context: a local run, or a push build. `origin/main` first because it is what a local clone
+  // tracks; bare `main` for a clone with no remote.
+  for (const cand of ['origin/main', 'main']) {
+    const r = git('rev-parse', '--verify', '--quiet', `${cand}^{commit}`);
+    tried.push(`${cand} — ${r.ok ? 'resolves' : 'does not resolve'}`);
+    if (r.ok) { baseRef = cand; break; }
+  }
 }
 if (!baseRef)
   die([
