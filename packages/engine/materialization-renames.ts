@@ -129,7 +129,8 @@ export type Accounting = {
   claims: Claim[];
   /** A key that left the emission and no rule claimed. The forcing function's own arm. */
   unaccountedRemovals: VarKey[];
-  /** A key that entered the emission and is no claim's image. */
+  /** A key that entered the emission and is no claim's image — i.e. a NEW TOKEN, in the normal case.
+   *  Reported, never a failure: see `isTotal` for why the two directions are not symmetric (#1053). */
   unaccountedAdditions: VarKey[];
   /** A claim the emission contradicts — see `contradiction` for the two ways. */
   contradictedClaims: Array<Claim & { contradiction: string }>;
@@ -263,11 +264,47 @@ export const accountFor = (
   parse: (key: VarKey) => { collection: string; name: string },
 ): Accounting => account(before, after, rules, parse, 'whole-set');
 
-/** TOTAL means: nothing left unclaimed, nothing arrived unexplained, no claim contradicted, no key
- *  claimed twice. Used by both the gate and the tests so "clean" has one definition. */
+/**
+ * TOTAL means: nothing left unclaimed, no claim contradicted, no key claimed twice. Used by both the
+ * gate and the tests so "clean" has one definition.
+ *
+ * ── ADDITIONS ARE NOT A FAILURE, AND THE ASYMMETRY IS THE POINT (#1053) ─────────────────────────
+ *
+ * `unaccountedAdditions` is deliberately **absent** from this conjunction. Removals and additions look
+ * symmetric and are not:
+ *
+ *   - An unclaimed **REMOVAL** might be a silent rename. That is the thing this whole mechanism exists
+ *     to catch: a name vanished, a binding that followed it is now pointing at a variable the engine
+ *     has stopped writing, and nothing else in the repo would notice.
+ *   - An unclaimed **ADDITION** is a new token. **There is nothing it could be hiding.** A rename's
+ *     tell is always on the removal side, because a rename is a name LEAVING; the arrival is what every
+ *     ordinary additive change also does.
+ *
+ * Enumerated rather than asserted — every way an addition could be suspicious is already caught by a
+ * different arm, so this one carried no detection power of its own:
+ *
+ *   · a rename whose removal no rule claims        → `unaccountedRemovals`
+ *   · a rule claiming `A → B` where `A` was never removed (over-claiming)
+ *                                                  → `contradictedClaims` ("still emitted")
+ *   · a rule claiming `A → B` where `B` never appears (broken rule)
+ *                                                  → `contradictedClaims` ("claimed image is not emitted")
+ *
+ * That last one is worth stating because it is easy to believe it moved to check 2's "every image is
+ * emitted" arm. **It did not, and this was measured rather than reasoned.** Check 2 walks the CURRENT
+ * emission and matches rule domains against it; a removed domain member is not in the current emission,
+ * so check 2 never reaches it and never checks its image. Check 1's contradiction arm is the only thing
+ * holding that case. Do not weaken it.
+ *
+ * What the addition arm cost, meanwhile, was every additive change: with the artifact empty, EVERY
+ * added key is unaccounted, so the gate failed any PR that adds a token (#1051 was blocked by it).
+ *
+ * `unaccountedAdditions` is still COMPUTED and still REPORTED — when a run is already failing, naming
+ * the keys that arrived is real diagnostic value, because a mis-mapped rule's contradiction says the
+ * claimed image is missing without saying what appeared instead. Diagnostic value, not detection value;
+ * one belongs in the report and the other in the verdict, and conflating them is what shipped the bug.
+ */
 export const isTotal = (a: Accounting): boolean =>
   a.unaccountedRemovals.length === 0
-  && a.unaccountedAdditions.length === 0
   && a.contradictedClaims.length === 0
   && a.multiplyClaimed.length === 0;
 

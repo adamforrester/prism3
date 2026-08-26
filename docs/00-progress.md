@@ -7,6 +7,99 @@
 
 ---
 
+## (2026-08-26) — the accounting rejects additions, and the same defect was one layer up in its own test (#1053)
+
+**STATUS: shipped.** No version change — a verdict predicate, a report, one test arm and a `docs/44` §5
+revision. Nothing emitted moves. Gates stay at **45**.
+
+**The defect.** `isTotal` required `unaccountedAdditions.length === 0`. With `MATERIALIZATION_RENAMES`
+empty, **every** added key is unclaimed, so `lint-materialization-renames` failed any PR that adds a
+token. #1051 was blocked by it, and every future token addition would have been. #1039 passed CI only
+because it added none.
+
+**It is a SPECIFICATION defect, not an implementation one.** `docs/44` §5 said *"every name that appeared
+must be some claimed name's image"*, and #1039's acceptance criteria restated it verbatim. The gate was
+faithful to the doc. So the doc is corrected in the same PR — leaving it means the next implementer
+rebuilds the bug from the spec, which is precisely how this one arrived.
+
+── THE ASYMMETRY, WHICH IS THE WHOLE FIX ────────────────────────────────────────────────────────
+
+An unclaimed **removal** may be a silent rename: a name left, and a binding that followed it now points
+at a variable the engine has stopped writing. An unclaimed **addition** is a new token, and **there is
+nothing it could be hiding** — a rename's tell is always on the removal side, because a rename is a name
+LEAVING. The arrival is what every ordinary additive change also does.
+
+Enumerated rather than asserted, because "it looks redundant" is not an argument. Every way an addition
+could be suspicious is already caught by a different arm:
+
+| suspicious case | arm that catches it |
+|---|---|
+| a rename whose removal no rule claims | `unaccountedRemovals` |
+| a rule claiming `A → B` where `A` was never removed (over-claiming) | `contradictedClaims` — "still emitted" |
+| a rule claiming `A → B` where `B` never appears (broken rule) | `contradictedClaims` — "claimed image is not emitted" |
+
+So the addition arm had **no detection power of its own** and cost every additive change. It is dropped
+from the verdict and kept in the report: when a run is already failing, naming what arrived is real
+diagnostic value, because a mis-mapped rule's contradiction says its image is missing without saying
+what turned up instead. *Diagnostic value and detection value are different things, and conflating them
+is what shipped the bug.*
+
+── THE THING I WAS TOLD NOT TO ASSUME, AND DID NOT ──────────────────────────────────────────────
+
+In #1048 I moved contradiction coverage to check 2 on the argument that "stale and over-claiming are the
+same predicate at different times". Sound — and this was the second time coverage might quietly move to
+check 2, since check 2 already asserts *"every image is emitted"*.
+
+**Measured, and it is NOT there.** Check 2 walks the CURRENT emission and matches rule domains against
+it. A broken rule's domain member has already LEFT the emission, so check 2 never reaches it and never
+checks its image. The broken-rule case lives solely in check 1's contradiction arm. It now has a test arm
+of its own saying so, because two sound arguments about where coverage went, neither measured, is how a
+gate ends up holding less than everyone believes.
+
+The full before/after coverage matrix is in the PR body. Eight scenarios, both checks, and the two
+matrices are identical except the one row intended to move.
+
+── THE SAME DEFECT, ONE LAYER UP, FOUND BY DOING THE UNBLOCK PROPERLY ───────────────────────────
+
+The brief required running #1051's real branch through the fix rather than a synthetic addition. Doing
+so surfaced that #1051 carries a commit patching **my own test**: `846–964 → 858–976`, because #1030's
+veil leaves moved the non-`color` population that figure is twice.
+
+That assertion pinned a corpus-size literal, so **the gate rejected additive change and so did its own
+test.** Replaced with the relationship it was ever evidence for — the span IS `2 × non-color` at its
+extremes — with the literal reported rather than compared. `docs/44` §5 now records 846–964 as a
+*snapshot at 2,076 keys* rather than as a constant. A figure that moves on every additive change is not
+something a test about renames should fail on.
+
+── THE DOC: ONE REVISION, NOT A THIRD ERRATUM ──────────────────────────────────────────────────
+
+#1047 already carried two `docs/44` figures the build contradicts. Rather than file a third, all three
+are folded into a §5/§6.6/§7 revision and #1047 closes against it: the rule (this PR), the over-claims
+row as a range (423–482, aggregating to 1,368) rather than aurora's bare 463, and `fetch-depth: 0` rather
+than 2 — depth 2 gives `HEAD~1`, the base only on a one-commit branch. **Three errata against one doc is
+worse than one revision**, because the reader of the doc has no way to know the errata exist.
+
+Each correction states its *reason*, not only its rule. A rule without its reason is what gets
+"simplified" back to symmetric by the next person who notices the two arms look alike.
+
+── VERIFICATION ────────────────────────────────────────────────────────────────────────────────
+
+Battery: **ran 7, caught 7** — negative control, the additive unblock, silent rename, removal-and-addition
+together, broken rule, over-claiming rule, and a **deletion control** that confirms the removal arm is
+what catches a silent rename rather than something incidental. That last one is what distinguishes a fix
+from simply deleting the check, which would also have made the gate stop failing.
+
+The unblock is demonstrated on the real branch, not a synthesized one: `claude/media-veil` fails on `main`
+(36 added, 0 removed) and passes rebased onto this fix, 2,076 → 2,112 keys.
+
+`npm run verify` → **45/45 · 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY, in 182s.** Worth recording because
+the brief warned of a 3019s run with 1699s of it in `lint-standalone-floor`: **not reproduced.** That gate
+took **1.8s** here and the slowest was `smoke` at 27.9s. So that remains one observation rather than two,
+and machine contention rather than the subject is still the likeliest reading — but this run is not a
+second report of it.
+
+---
+
 ## (2026-08-26) — the materialization-rename mechanism: fixture and oracle kept apart, and the mutation that found the defect (#1039)
 
 **STATUS: shipped.** No version change — a new pure module, a new gate, test arms and CI wiring; nothing
