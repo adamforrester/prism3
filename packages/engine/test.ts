@@ -11989,6 +11989,41 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(MATERIALIZATION_RENAMES.length === 0,
     `#1039: the artifact ships EMPTY — an entry here takes the rename decision by shipping it into designers' files (\`docs/44\` §8 leaves the \`color.appearance\` question open). Found ${MATERIALIZATION_RENAMES.length}`);
 
+  // ---- #1053: AN ADDITIVE CHANGE IS CLEAN, AND A REMOVAL IS STILL NOT ----
+  //
+  // The regression guard for the defect that blocked #1051: with the artifact empty, every added key is
+  // unclaimed, and the accounting used to call that a failure. It fails ANY PR that adds a token.
+  //
+  // Both directions in one place, because the asymmetry is the fix and a test that only proved
+  // "additions pass" would be satisfied by deleting the whole accounting.
+  {
+    const base = new Set([varKey('color', 'color/a'), varKey('color', 'color/b')]);
+    const added = new Set([...base, varKey('color', 'color/media/veil/soft')]);
+    const withoutA = new Set([varKey('color', 'color/b')]);
+
+    ok(isTotal(accountFor(base, added, [], parseVarKey)),
+      '#1053: an ADDITIVE change with no rules is TOTAL — an unclaimed addition is a new token, and there is nothing it could be hiding');
+    ok(!isTotal(accountFor(base, withoutA, [], parseVarKey)),
+      '#1053: …while an unclaimed REMOVAL is still NOT — that is the silent rename this mechanism exists to catch, and the asymmetry is the whole fix');
+    ok(accountFor(base, added, [], parseVarKey).unaccountedAdditions.length === 1,
+      '#1053: the arriving name is still COUNTED and reportable — diagnostic value, which is why it is dropped from the verdict rather than from the accounting');
+
+    // THE BROKEN-RULE CASE, pinned HERE because it is the one everybody expects to have moved to check
+    // 2 and has not. Check 2 walks the CURRENT emission and matches rule domains against it; a removed
+    // domain member is not in the current emission, so check 2 never reaches it. Measured in #1053.
+    const brokenRule: MaterializationRule = {
+      id: 'test-broken', since: '0.0.0-fixture',
+      why: 'fixture: claims a rename whose image never appears',
+      domain: (c, n) => c === 'color' && n === 'color/a',
+      map: () => 'color/nowhere',
+    };
+    const broken = accountFor(base, withoutA, [brokenRule], parseVarKey);
+    ok(broken.contradictedClaims.length === 1 && /not emitted either/.test(broken.contradictedClaims[0].contradiction),
+      `#1053: a rule whose image never appears is a CONTRADICTED CLAIM in check 1 — not a check-2 arm, because check 2 cannot see a domain member that has already left the emission (got ${broken.contradictedClaims.length})`);
+    ok(!isTotal(broken),
+      '#1053: …and it still fails, so dropping the addition arm did not take the broken-rule case with it');
+  }
+
   // ---- THE TABLE (`docs/44` §5), derived here rather than cited from the doc ----
   //
   // THE SYNTHETIC NAMESPACE IS `zzclient`, AND IT MUST BE ONE NO BRAND USES (`docs/44` §7). Two of the
@@ -12062,8 +12097,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
     return r.unaccountedRemovals.length + r.unaccountedAdditions.length;
   });
-  ok(Math.min(...unaccountedAll) === 846 && Math.max(...unaccountedAll) === 964,
-    `#1039: the under-covering row spans ${Math.min(...unaccountedAll)}–${Math.max(...unaccountedAll)} across brands, matching \`docs/44\` §5's 846–964 — derived here, not cited (${rows.join(' | ')})`);
+  // DERIVED, NOT PINNED (#1053). This asserted the literal `846–964` from `docs/44` §5, and that is a
+  // CORPUS-SIZE pin: the figure is 2 × the non-`color` population, so every token addition moves it.
+  // #1030's veil leaves did exactly that, and #1051 had to carry a commit patching this line — which is
+  // the defect this PR fixes, one layer up. The gate rejected additive change; so did its own test.
+  //
+  // What survives is the RELATIONSHIP, which is what the row was ever evidence for: the corpus-wide
+  // span is the per-brand `2 × nonColor` figures at their extremes, and each of those is already
+  // asserted per brand above. The literal is reported rather than compared, so a reader still sees the
+  // number and `docs/44` still has something to be checked against by eye — without a token addition
+  // failing a test about renames.
+  const spanLo = Math.min(...unaccountedAll);
+  const spanHi = Math.max(...unaccountedAll);
+  const perBrandTwice = brands.map((b) => {
+    const before = emissionOf(b);
+    return [...before].filter((k) => parseVarKey(k).collection !== 'color').length * 2;
+  });
+  ok(spanLo === Math.min(...perBrandTwice) && spanHi === Math.max(...perBrandTwice) && spanLo > 0,
+    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color\` population at its extremes `
+    + `(${perBrandTwice.join(' / ')}) — derived, so a token addition moves the figure without failing a test about renames. `
+    + `\`docs/44\` §5 records 846–964 as the snapshot at 2,076 keys (${rows.join(' | ')})`);
 }
 
 // ------------------------------------------------------------------- report
