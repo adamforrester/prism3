@@ -7,6 +7,127 @@
 
 ---
 
+## (2026-08-26) — the materialization-rename mechanism: fixture and oracle kept apart, and the mutation that found the defect (#1039)
+
+**STATUS: shipped.** No version change — a new pure module, a new gate, test arms and CI wiring; nothing
+emitted moves. Gates go **44 → 45**.
+
+**What this is.** `docs/44` §5 decided that a materialization rename — one the CONTRACT cannot see,
+because a Figma collection name and a namespace folder are not guaranteed paths and never touch
+`DEPRECATIONS` — is recorded as a **rule**, and that the emission diff is what forces the rule to exist.
+This builds it: `MATERIALIZATION_RENAMES` (empty), check 1 as a gate, check 2 in `test.ts`.
+
+**Spelling settled: `MATERIALIZATION_RENAMES`, US**, against the doc's proposed en-GB const. Identifiers
+are exempt from `lint-us-english.ts`, so both spellings pass every gate — *which is exactly why it needed
+deciding rather than defaulting*. What they do not both survive is a grep: a reader searching one
+spelling finds the doc and not the code, and the result does not say the other exists. **An exemption
+from a gate is not an absence of a rule.**
+
+**The numbers are derived here, not cited.** The doc's three-row table is the acceptance criterion, so a
+figure copied forward from it would prove nothing about this code. Independently: 659 / 699 / 718 keys
+per brand, 2,076 total; `color` is 236 in every brand; so the under-covering row is 2 × non-`color` =
+**846 / 926 / 964** and the over-claiming row is non-`color` = **423 / 463 / 482**. Both match. Worth
+recording that **the doc's own presentation is inconsistent**: it gives the first as a range across
+brands (846–964) and the second as a single number (463), which is aurora's — nb is 423 and wendys 482.
+The test asserts the range, which is the honest form.
+
+── THE MUTATION THAT FOUND A REAL DEFECT ────────────────────────────────────────────────────────
+
+**M2 reported 2,076 contradicted claims where the derivation says 1,368.** Not a mis-set expectation —
+the gate was wrong. Its key space was `brand :: collection :: name`, because three brands emit the same
+collection and name for most variables, but a rule's IMAGE key is built from `(collection, mappedName)`
+and carries no brand. Every image lookup missed, so all 708 `color` keys failed their own image test on
+top of the 1,368 genuine contradictions.
+
+The gate now runs the accounting **per brand**, in the `(collection, name)` space the rules are defined
+over, and tags the brand onto report lines only. *A key space that the subject and the oracle do not
+share is a comparison that cannot succeed* — and the arithmetic was close enough to plausible that only
+a derived expectation caught it. This is the argument for deriving the table rather than citing it,
+arriving through the door it was pointed at.
+
+── THE SEPARATION I HAD TO ARGUE FOR RATHER THAN ASSUME ─────────────────────────────────────────
+
+**M3 installed a stale rule and tripped BOTH checks.** The brief said a stale rule should fail check 2,
+not check 1, and my first implementation failed both — because **"stale" and "over-claiming" are the
+same predicate evaluated at different times.** A rule pointing at a name that never moved and a rule
+claiming more than moved are indistinguishable to a whole-set walk.
+
+The fix is not to weaken the whole-set clause — that clause is the entire check. Contradictions are
+gated on **the emission having moved at all**. Check 1 is the forcing function: it needs git and a base
+ref, and a PR that renames nothing should not fail a git-dependent gate for a reason having nothing to
+do with git. Check 2 needs no git and catches staleness unconditionally. *Both firing is not extra
+safety; it is a worse report.* The over-claiming row is unaffected and was re-verified — the `color`-only
+rename leaves 236 removals per brand, so `moved` is true and all 1,368 claims are still contradicted.
+
+── FIXTURE VERSUS ORACLE, AND WHY IT IS TWO CODE PATHS ──────────────────────────────────────────
+
+The hard part of this task is that the artifact ships **empty**, so there is nothing in git for check 1
+to find. `docs/44` solved it by simulating; so does this. But the two must not collapse:
+
+- the **fixture** (`test.ts`) reads the committed corpus off disk and transforms it in memory;
+- the **oracle** (the gate) reads the committed emission at the **merge base** — names produced by a
+  *different revision of the emitter*.
+
+What is SHARED is `accountFor`, because that is the subject under test. What is NOT shared is where
+before-and-after come from. Collapse them and the gate tests its own fixture, and `docs/34` **shape 11**
+walks straight back in: one subject under both sides of the comparison, green while it moves.
+`lint-materialization-renames.ts`'s header says so at the call site, because the refactor that breaks
+this looks like a simplification — the same walk with one fewer subprocess.
+
+The residual is stated rather than implied: the fixture exercises the accounting, not the gate's git
+plumbing. That is exercised by the gate's own clean run (0 removed / 0 added against the merge base,
+reproducing the doc's verification) and by M4.
+
+── `fetch-depth: 0`, NOT `2`, AND THE DOC PROPOSED `2` ──────────────────────────────────────────
+
+`docs/44` §6.6 and #1039 both propose `fetch-depth: 2`. **Depth 2 gives `HEAD~1`, which is the base only
+when the branch is exactly one commit long.** A merge base against `origin/main` needs the branch point,
+an unbounded number of commits back — this branch is five. `0` it is. The doc's figure was written
+before that was measured, and the failure it would have produced is the loud kind rather than the silent
+one, because the gate fails when it cannot find a base.
+
+── THE HAZARD THE BRIEF WARNED ABOUT, WHICH I THEN HIT ──────────────────────────────────────────
+
+*"The restore step is `git checkout -- <path>`, so uncommitted work in a file you are about to mutate is
+destroyed by the RESTORE, not the mutation."* I made the staleness-gating edit, ran the M3 battery over
+it — the measurements were valid, the edit was live — and the battery's own restore then discarded the
+edit. The commit history is what shows this: the fix had to be re-applied and committed before the
+re-run. **A mutation battery is a destructive tool pointed at the working tree, and the danger is not the
+mutation, which you expect, but the cleanup, which you do not.**
+
+── MUTATIONS: SEVEN, EACH BY NAME, THROUGH THE INTENDED ARM ─────────────────────────────────────
+
+M0 negative control — a clean tree with an empty artifact produces no output and no failure. M1
+under-covering rule → unaccounted removals and additions, named individually (2,736 across brands = 846
++ 926 + 964). M2 over-claiming rule → 1,368 contradicted claims. M3 stale rule → check 2 fires and
+**check 1 stays clean**, which is the separation above. M4 no base ref → fails loudly on a genuinely
+shallow clone, with neither `SKIP` nor a clean line in its output. Plus the two in-test contrasts: the
+diff-driven accounting reporting **TOTAL** over M2's identical input, which is the evidence the
+whole-set clause is load-bearing rather than a refinement.
+
+The battery reports `ran N, caught N` before it reports what it found (#1002), and a blank named grep is
+printed as a failed mutation rather than a quiet pass (#986).
+
+**AND AN EIGHTH, FOUND AFTER CI WENT GREEN, BY REFUSING TO ACCEPT GREEN AS THE ANSWER.** The CI job
+passed, but a green job does not say *this gate* found a base ref — so I went to read its output, and the
+retrievable log slice started just after the step. Rather than assume, I exercised the path CI actually
+takes: `GITHUB_BASE_REF`, which nothing local had ever set.
+
+It worked. And the *failure* direction did not: an unresolvable `GITHUB_BASE_REF` fell through to
+`origin/main` and reported clean. `GITHUB_BASE_REF` is set only on a `pull_request` event and names the
+branch the PR targets, so falling back compares against a branch that is not this PR's base and reports a
+difference belonging to someone else's work — **a confident answer to the wrong question, which is worse
+than a failure.** It is now authoritative when set, and unresolvable means cannot-run.
+
+The comment directly above that ladder already said falling through would be wrong. *The comment was
+right and the code was not*, which is the failure mode of writing the reasoning and the implementation in
+one pass: the prose records the intent, the code records what was typed, and nothing compares them.
+
+**Not in scope, and none of it appears in the diff:** the three renames themselves, #1035's pre-pass,
+and #1040's modes and styles.
+
+---
+
 ## (2026-08-25) — The veil is not the scrim, and the free gate that was supposed to prove it does not (#1030)
 
 **STATUS: shipped.** Six new guaranteed paths — `color.veil.{dark,light}.{large,body,enhanced}` —
@@ -131,127 +252,6 @@ of an argument about photographs that no count can check. Updated with the reaso
 number. The `122` in `docs/00-progress.md`'s earlier entries and in `version.ts`'s `0.13.0` entry is
 left alone — both are records of their moment — with the new count stated in the `0.25.0` entry, which
 is where a reader of the old one should be sent.
-
----
-
-## (2026-08-26) — the materialization-rename mechanism: fixture and oracle kept apart, and the mutation that found the defect (#1039)
-
-**STATUS: shipped.** No version change — a new pure module, a new gate, test arms and CI wiring; nothing
-emitted moves. Gates go **44 → 45**.
-
-**What this is.** `docs/44` §5 decided that a materialization rename — one the CONTRACT cannot see,
-because a Figma collection name and a namespace folder are not guaranteed paths and never touch
-`DEPRECATIONS` — is recorded as a **rule**, and that the emission diff is what forces the rule to exist.
-This builds it: `MATERIALIZATION_RENAMES` (empty), check 1 as a gate, check 2 in `test.ts`.
-
-**Spelling settled: `MATERIALIZATION_RENAMES`, US**, against the doc's proposed en-GB const. Identifiers
-are exempt from `lint-us-english.ts`, so both spellings pass every gate — *which is exactly why it needed
-deciding rather than defaulting*. What they do not both survive is a grep: a reader searching one
-spelling finds the doc and not the code, and the result does not say the other exists. **An exemption
-from a gate is not an absence of a rule.**
-
-**The numbers are derived here, not cited.** The doc's three-row table is the acceptance criterion, so a
-figure copied forward from it would prove nothing about this code. Independently: 659 / 699 / 718 keys
-per brand, 2,076 total; `color` is 236 in every brand; so the under-covering row is 2 × non-`color` =
-**846 / 926 / 964** and the over-claiming row is non-`color` = **423 / 463 / 482**. Both match. Worth
-recording that **the doc's own presentation is inconsistent**: it gives the first as a range across
-brands (846–964) and the second as a single number (463), which is aurora's — nb is 423 and wendys 482.
-The test asserts the range, which is the honest form.
-
-── THE MUTATION THAT FOUND A REAL DEFECT ────────────────────────────────────────────────────────
-
-**M2 reported 2,076 contradicted claims where the derivation says 1,368.** Not a mis-set expectation —
-the gate was wrong. Its key space was `brand :: collection :: name`, because three brands emit the same
-collection and name for most variables, but a rule's IMAGE key is built from `(collection, mappedName)`
-and carries no brand. Every image lookup missed, so all 708 `color` keys failed their own image test on
-top of the 1,368 genuine contradictions.
-
-The gate now runs the accounting **per brand**, in the `(collection, name)` space the rules are defined
-over, and tags the brand onto report lines only. *A key space that the subject and the oracle do not
-share is a comparison that cannot succeed* — and the arithmetic was close enough to plausible that only
-a derived expectation caught it. This is the argument for deriving the table rather than citing it,
-arriving through the door it was pointed at.
-
-── THE SEPARATION I HAD TO ARGUE FOR RATHER THAN ASSUME ─────────────────────────────────────────
-
-**M3 installed a stale rule and tripped BOTH checks.** The brief said a stale rule should fail check 2,
-not check 1, and my first implementation failed both — because **"stale" and "over-claiming" are the
-same predicate evaluated at different times.** A rule pointing at a name that never moved and a rule
-claiming more than moved are indistinguishable to a whole-set walk.
-
-The fix is not to weaken the whole-set clause — that clause is the entire check. Contradictions are
-gated on **the emission having moved at all**. Check 1 is the forcing function: it needs git and a base
-ref, and a PR that renames nothing should not fail a git-dependent gate for a reason having nothing to
-do with git. Check 2 needs no git and catches staleness unconditionally. *Both firing is not extra
-safety; it is a worse report.* The over-claiming row is unaffected and was re-verified — the `color`-only
-rename leaves 236 removals per brand, so `moved` is true and all 1,368 claims are still contradicted.
-
-── FIXTURE VERSUS ORACLE, AND WHY IT IS TWO CODE PATHS ──────────────────────────────────────────
-
-The hard part of this task is that the artifact ships **empty**, so there is nothing in git for check 1
-to find. `docs/44` solved it by simulating; so does this. But the two must not collapse:
-
-- the **fixture** (`test.ts`) reads the committed corpus off disk and transforms it in memory;
-- the **oracle** (the gate) reads the committed emission at the **merge base** — names produced by a
-  *different revision of the emitter*.
-
-What is SHARED is `accountFor`, because that is the subject under test. What is NOT shared is where
-before-and-after come from. Collapse them and the gate tests its own fixture, and `docs/34` **shape 11**
-walks straight back in: one subject under both sides of the comparison, green while it moves.
-`lint-materialization-renames.ts`'s header says so at the call site, because the refactor that breaks
-this looks like a simplification — the same walk with one fewer subprocess.
-
-The residual is stated rather than implied: the fixture exercises the accounting, not the gate's git
-plumbing. That is exercised by the gate's own clean run (0 removed / 0 added against the merge base,
-reproducing the doc's verification) and by M4.
-
-── `fetch-depth: 0`, NOT `2`, AND THE DOC PROPOSED `2` ──────────────────────────────────────────
-
-`docs/44` §6.6 and #1039 both propose `fetch-depth: 2`. **Depth 2 gives `HEAD~1`, which is the base only
-when the branch is exactly one commit long.** A merge base against `origin/main` needs the branch point,
-an unbounded number of commits back — this branch is five. `0` it is. The doc's figure was written
-before that was measured, and the failure it would have produced is the loud kind rather than the silent
-one, because the gate fails when it cannot find a base.
-
-── THE HAZARD THE BRIEF WARNED ABOUT, WHICH I THEN HIT ──────────────────────────────────────────
-
-*"The restore step is `git checkout -- <path>`, so uncommitted work in a file you are about to mutate is
-destroyed by the RESTORE, not the mutation."* I made the staleness-gating edit, ran the M3 battery over
-it — the measurements were valid, the edit was live — and the battery's own restore then discarded the
-edit. The commit history is what shows this: the fix had to be re-applied and committed before the
-re-run. **A mutation battery is a destructive tool pointed at the working tree, and the danger is not the
-mutation, which you expect, but the cleanup, which you do not.**
-
-── MUTATIONS: SEVEN, EACH BY NAME, THROUGH THE INTENDED ARM ─────────────────────────────────────
-
-M0 negative control — a clean tree with an empty artifact produces no output and no failure. M1
-under-covering rule → unaccounted removals and additions, named individually (2,736 across brands = 846
-+ 926 + 964). M2 over-claiming rule → 1,368 contradicted claims. M3 stale rule → check 2 fires and
-**check 1 stays clean**, which is the separation above. M4 no base ref → fails loudly on a genuinely
-shallow clone, with neither `SKIP` nor a clean line in its output. Plus the two in-test contrasts: the
-diff-driven accounting reporting **TOTAL** over M2's identical input, which is the evidence the
-whole-set clause is load-bearing rather than a refinement.
-
-The battery reports `ran N, caught N` before it reports what it found (#1002), and a blank named grep is
-printed as a failed mutation rather than a quiet pass (#986).
-
-**AND AN EIGHTH, FOUND AFTER CI WENT GREEN, BY REFUSING TO ACCEPT GREEN AS THE ANSWER.** The CI job
-passed, but a green job does not say *this gate* found a base ref — so I went to read its output, and the
-retrievable log slice started just after the step. Rather than assume, I exercised the path CI actually
-takes: `GITHUB_BASE_REF`, which nothing local had ever set.
-
-It worked. And the *failure* direction did not: an unresolvable `GITHUB_BASE_REF` fell through to
-`origin/main` and reported clean. `GITHUB_BASE_REF` is set only on a `pull_request` event and names the
-branch the PR targets, so falling back compares against a branch that is not this PR's base and reports a
-difference belonging to someone else's work — **a confident answer to the wrong question, which is worse
-than a failure.** It is now authoritative when set, and unresolvable means cannot-run.
-
-The comment directly above that ladder already said falling through would be wrong. *The comment was
-right and the code was not*, which is the failure mode of writing the reasoning and the implementation in
-one pass: the prose records the intent, the code records what was typed, and nothing compares them.
-
-**Not in scope, and none of it appears in the diff:** the three renames themselves, #1035's pre-pass,
-and #1040's modes and styles.
 
 ---
 
