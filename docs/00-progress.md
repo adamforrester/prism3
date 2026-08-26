@@ -12,7 +12,8 @@
 **STATUS: shipped.** `ENGINE_VERSION` **0.26.0** (rebased past the media veil, which took 0.25.0 —
 see the trap below), `CONTRACT_VERSION` **6.0.0** (a MAJOR — 114 guaranteed paths removed). 114
 artifacts, unchanged in count; **18 deleted explicitly** (below). Gates stay at **45**: `npm run verify`
-→ *45/45 gates reached a verdict in 111s — 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY*.
+→ *45/45 gates reached a verdict in 124s — 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY*, re-measured on the
+tree rebased onto `da37a94` (#1058) rather than carried from the previous base.
 `MATERIALIZATION_RENAMES` and `COLLECTION_RENAMES` get their **first real entries**.
 
 **What moved.** The value tier is `color.appearance.*` and the surface-alias tier takes the short name
@@ -150,7 +151,7 @@ second instance of #1078's shape, and the reason that shape is filed rather than
 | M1 | rule 2's `domain` → `() => false` | RED — **384 unaccounted removals, named individually** (128 × 3 brands), each as `aurora · color :: surface/background/primary` |
 | M2 | rule 1's `map` → `color/apperance/` | RED — **726 contradicted claims** (242 × 3), every line tagged `[appearance-tier-1013]` |
 | M3 | `recollect` made transitive (a 12-iteration walk) | RED — the same **384** keys, but **misattributed**: `color.appearance :: surface/…` where M1 prints `color :: surface/…`. One hop is right, and a walk is distinguishable from the output alone |
-| M4a | `COLLECTION_RENAMES` reversed | **ALL PASS** — 2621 engine assertions plus the plugin suite. Order-independence is `topoOrder`'s doing, not luck |
+| M4a | `COLLECTION_RENAMES` reversed | **ALL PASS** — 2622 engine assertions plus the plugin suite. Order-independence is `topoOrder`'s doing, not luck |
 | M4b | M4a + `topoOrder` → identity | RED — **5 engine + 8 plugin**. The plan reports `surface→color:target-occupied` \| `color→color.appearance:migrated`, and the file is still `(color, surface)`: **one refusal applied none of it.** The 3 variable-rename failures are the disarm coupling propagating correctly |
 | M5 | a third entry closing a 3-cycle | RED — 6 engine; the cycle **refused by name** — `collection rename cycle: color → color.appearance closes a loop back to color` |
 | M6 | M5 + `closesLoop` reduced to one hop | RED — **6 engine + 20 plugin**. `closes a loop` appears **0 times**: the cycle validates clean, all three apply (`migrated migrated migrated`), and the file **rotates** to `(surface, color)`. That is the destructive outcome the static refusal exists to prevent |
@@ -171,7 +172,14 @@ as synthetic rather than overclaimed.
 ── WHAT M13 MEANS, AND IT IS NOT A PASS ─────────────────────────────────────────────────────────
 
 Reverting `colorPath` to the pre-swap spelling leaves **all six** studio gates green — `typecheck`,
-`test`, `build`, `test:smoke` (844 assertions), `check:ignore`, `lint:contrast`. The pill paths are
+`test`, `build`, `test:smoke`, `check:ignore`, `lint:contrast`. **Re-measured after the rebase onto
+`3c3852c`, which grew the smoke suite from 844 assertions to 965: still all six green.** The two later
+rebases — onto `d6b74ba` (#1057) and `da37a94` (#1058) — did not re-open the question, and the mutation
+was **not** re-run for them: neither commit touches a studio or smoke file (#1058 is docs plus
+`shape-index.json`), and the suite is still **965** assertions with the engine still **2622**, both
+re-derived on the final base rather than carried. 121 new
+assertions did not close it, which is the useful part — the gap is structural, not a matter of the suite
+being small. The pill paths are
 therefore correct **by construction** — derived from the emitter's own derivation, so they cannot
 disagree with the tree — but **nothing asserts that a pill calls `colorPath` at all**, and a new pill
 site added next week would be wrong and silent. The reason `test:smoke` does not catch it is worth
@@ -179,8 +187,92 @@ naming, because it looks like the gate that should: it compares displayed **valu
 resolved theme (#800), and never a displayed **path**. Filed rather than fixed here: one concern per
 PR, and the fix is a gate, not a line.
 
+── THE ONE REVIEW FINDING, AND WHY THE GATE MATTERED MORE THAN THE VALUE ────────────────────────
+
+Both `COLLECTION_RENAMES` entries shipped reading `since: '0.25.0'` — the version of the concurrent
+media-veil change (#1030), which did not produce this rename. `since` here is an `ENGINE_VERSION`
+answering *"what code produced this file?"*, as the map's own header states, so a wrong one is a false
+provenance record on the only question the field exists to answer, and permanent: nothing later
+recomputes it.
+
+**The value fix is two literals; the finding is the asymmetry.** `MATERIALIZATION_RENAMES` has been
+asserted against exactly this drift since #1039 (`every(r => r.since === ENGINE_VERSION)`), and this map
+was asserted against nothing — so when the `ENGINE_VERSION` rebase collision was repaired by hand, the
+top-level constant moved to `0.26.0` and the two literals did not. It then survived a full `verify`
+(45/45), a mutation battery, and a line-by-line review of the diff. Nothing in this repo could have
+caught it, because the two sibling maps were not held to the same standard — which is the same shape
+#1080 describes one level up (a deprecation record has no era to be checked against).
+
+`test.ts` now carries the mirror arm, mutation-verified in **both** directions:
+
+| # | mutation | result |
+|---|---|---|
+| MA | one entry restamped back to `0.25.0` | RED — **exactly one failure**, mine, by name, printing the offending stamp and the version expected: `got color→color.appearance@0.26.0 \| surface→color@0.25.0, ENGINE_VERSION 0.26.0`. The pre-fix state, reproduced and now caught |
+| MB | `ENGINE_VERSION` → `0.27.0`, map left at `0.26.0` | RED — 3 failures: mine, **plus its now-symmetric `MATERIALIZATION_RENAMES` sibling**, plus an emitted-artifact identity arm. The arm fires when either side moves, not just the map |
+
+**And the arm's failure message is most of the arm.** A tripwire whose easiest green is "restamp the
+entries to today's version" hands the next reader the exact false provenance record it was added to
+prevent — the gate becoming the defect, one bump later. So the message has to say the opposite of what a
+red gate normally implies: *the data is probably right and the arm is probably obsolete.* It states, in
+the failure output itself, that a stamp BELOW the current version is expected once the version moves,
+that the arm cannot distinguish a stale stamp from a correct historical one, and that the decision is by
+hand — did this entry's rename ship in this version, or earlier? The same warning was added to
+`MATERIALIZATION_RENAMES`'s arm, which had the identical hazard and which also did not print the
+`ENGINE_VERSION` it was comparing against, so a reader could not see which of its three properties
+failed. **This is the from-the-inside case of the hazard #1058 names from the outside — a gate's remedy
+text can be load-bearing for a property that is not the gate's own.** Here it is load-bearing for the
+gate's own property, which is the same hazard with the blast radius pointed inward. (#1058 is adding a
+shape to `docs/34` for it; deliberately not cited by number here, since that shape does not exist on this
+branch and `lint-shape-index` is right to refuse a forward reference — it caught this sentence.)
+
+── COULD `DEPRECATIONS` HAVE SERVED AS THE VERSION SET? NO, AND FOR A HARDER REASON ─────────────
+
+Asked in review, since `DEPRECATIONS` entries carry their own `since` values and that is *a* set of
+historical versions even if an incomplete one. **Measured: it is not a weaker check, it is a wrong one.**
+
+`DEPRECATIONS.since` is a **`CONTRACT_VERSION`** — the field's own doc comment says so, and the distinct
+values are `2.0.0, 3.0.0, 4.0.0, 5.0.0, 6.0.0`. `COLLECTION_RENAMES.since` is an **`ENGINE_VERSION`**:
+`0.26.0`. Different numbering spaces, deliberately (`CollectionRename`'s doc comment already states the
+distinction, "unlike `VarRename.since`"). A membership check against that set would therefore fail in
+both directions at once: it would **reject** the correct value (`0.26.0` is not in the set) and
+**accept** a nonsense one (`6.0.0` would pass as an engine version). So the "nothing better exists to key
+on" claim does not rest on one reading of `version.ts` — there is no set of `ENGINE_VERSION`s anywhere in
+the repo to check membership against, and the nearest-looking set is in the wrong units.
+
+That question also surfaced a real defect one layer down, in **this PR's own** `composeVariableRenames`:
+it writes `since: row?.since ?? rule?.since ?? ''`, and those two fallbacks are the two different spaces
+— so a rule-only row (the *common* case for the swap, since tier-only renames project nothing) carries
+an `ENGINE_VERSION` in a field documented as a `CONTRACT_VERSION`. Latent: nothing reads it. **Filed as
+#1084**, not fixed here.
+
+**This PR is what makes #1084 reachable, and that is the part to record.** `composeVariableRenames` does
+not exist on `main`; before the swap there was no code path that could put a `rule?.since` into a
+`VarRename` at all, because there were no rules for it to read. So #1084 is not a pre-existing curiosity
+someone can deprioritize — it is a defect this change surfaced, in a branch that is the swap's own
+*common* case. It stays a separate PR for #801's reason: what provenance a composed row should carry is a
+design call, and a design call taken inside a rename PR inherits the rename's framing.
+
+Two more things worth stating rather than leaving to be rediscovered. **`regen` produces no artifact change**
+from the restamp — the collection `since` reaches no emitted file — so the 114-artifact count, every
+sha, and the contract figures above are untouched by this fix. And the new arm is a **tripwire, not a
+durable rule**: it pins every entry to the *current* `ENGINE_VERSION`, so it fires on the next bump. That
+is correct while the map holds exactly one change's entries, and there is nothing better to key on today
+— `version.ts` has no version history to check membership against. The durable form is #1080.
+
 ── OTHER TRAPS FOR WHOEVER RE-VERIFIES ──────────────────────────────────────────────────────────
 
+- **A sibling artifact's gate is not your artifact's gate.** Two authored maps in one file, one
+  asserted and one not, is how a wrong stamp ships through review. Before adding a record to an
+  authored map, check what the map *next to it* is held to — the asymmetry is invisible from inside
+  either one.
+- **"The rebase produced no conflict" is not "there was no conflict."** Rebasing this branch onto
+  `3c3852c` — which also appends to `docs/00-progress.md` — merged cleanly with **zero** conflict
+  markers, and that is the documented failure mode, not the happy path: an entry can land in the wrong
+  position with nothing to resolve and no gate that cares. Verified deliberately afterward rather than
+  assumed: 250 added lines and **0 deleted**, the incoming commit's own entry still present, this entry
+  still first, `lint-progress-order` green. Also check what the same rebase silently auto-merged —
+  `apps/studio/src/main.ts` was edited by **both** sides here, and `colorPath` surviving intact was a
+  fact to confirm, not to infer from the absence of a conflict.
 - **`v(from, to, collection = 'color')` defaults to the ALIAS collection** in `test.ts`'s helper. A
   value-tier row needs the third argument, or `composeVariableRenames('color.appearance', …)` never
   sees it and the arm passes for the wrong reason.

@@ -283,14 +283,24 @@ export const deriveVariableRenames = (deps: readonly Deprecation[] = DEPRECATION
  * `since` is an **`ENGINE_VERSION`**, not a `CONTRACT_VERSION`: a collection name is a materialisation
  * choice the contract cannot see, so the version that means anything here is the one that answers "what
  * code produced this file?"
+ *
+ * **That stamping is asserted, and only became asserted after it had already gone wrong.** Both entries
+ * first shipped reading `0.25.0` — the version of a different, concurrent change — because
+ * `MATERIALIZATION_RENAMES` was gated against exactly this drift and this map was not. `test.ts` now
+ * carries the mirror arm; it is a tripwire on the next version bump rather than a durable rule, and the
+ * reasoning for why that is the right shape today is at the assertion.
+ *
+ * **When that arm goes red after a version bump, restamping these entries to the new version is the
+ * wrong fix** — it is the false provenance record all over again. The stamps below are historical and
+ * should stay put; the arm is what expires. Its failure message says so at length.
  */
 export const COLLECTION_RENAMES: CollectionRename[] = [
   // The VALUE tier vacates the short name. It keeps every variable and every id; only the collection's
   // own name moves, so a designer's bindings into it are untouched by this entry alone.
-  { from: 'color', to: 'color.appearance', since: '0.25.0' },
+  { from: 'color', to: 'color.appearance', since: '0.26.0' },
   // The ALIAS tier takes it. This is the entry that has to wait: `color` is occupied until the one above
   // has applied, and applying this first leaves `target-occupied` and a half-migrated file.
-  { from: 'surface', to: 'color', since: '0.25.0' },
+  { from: 'surface', to: 'color', since: '0.26.0' },
 ];
 
 /** The map the executor uses. */

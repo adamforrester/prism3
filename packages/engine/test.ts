@@ -12130,6 +12130,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // is not the same statement as "the map is small": it is the statement that a chain is now legal.
   ok(COLLECTION_RENAMES.length === 2 && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0,
     `rename-map: the shipped COLLECTION_RENAMES is a 2-entry CHAIN and validates clean (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
+  // And the entries are STAMPED with the version that made the change. This arm exists because its
+  // ABSENCE was measurable: `MATERIALIZATION_RENAMES` has carried the equivalent since #1039, this map
+  // carried nothing, and both entries duly shipped reading `0.25.0` — the media veil's version, which
+  // did not produce this rename — surviving a rebase and a review of the diff. `since` here answers
+  // "what code produced this file?" (see the map's own header), so a wrong one is not cosmetic: it is a
+  // false provenance record on the only question the field exists to answer, and permanent.
+  //
+  // Two limits, stated because the arm reads stronger than it is. It pins every entry to the CURRENT
+  // version, so it is a TRIPWIRE that fires on the next `ENGINE_VERSION` bump rather than a durable
+  // rule — correct while the map holds exactly one change's entries, and a deliberate prompt to decide
+  // then. **Which is why the failure message spends most of its length refusing the obvious remedy.** A
+  // tripwire whose easiest green is "restamp the entries to today's version" would hand the next reader
+  // the exact false provenance record it was added to prevent — the gate becoming the defect, one bump
+  // later. The message has to say the opposite of what a red gate normally implies: the data is probably
+  // right and the arm is probably obsolete. The durable form is a record checked against an era it names
+  // rather than against today, and
+  // there is nothing to key that on yet: no version history exists in `version.ts` to check membership
+  // against. That is #1080.
+  ok(COLLECTION_RENAMES.every((r) => r.since === ENGINE_VERSION),
+    `rename-map: every COLLECTION_RENAMES entry is stamped with the ENGINE_VERSION that made the change `
+    + `(got ${COLLECTION_RENAMES.map((r) => `${r.from}→${r.to}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
+    + `\n    IF YOU ARE READING THIS AFTER AN \`ENGINE_VERSION\` BUMP, DO NOT RESTAMP THE ENTRIES TO ${ENGINE_VERSION}.`
+    + `\n    \`since\` records the version whose code MADE the rename, not the version in the file today. Moving a`
+    + `\n    historical stamp forward is precisely the false provenance record this arm was added to prevent, so the`
+    + `\n    obvious way to get green here is the one change that reintroduces the defect.`
+    + `\n    This arm cannot tell a STALE stamp from a CORRECT HISTORICAL one. Once ${ENGINE_VERSION} is past these`
+    + `\n    renames, a LOWER stamp is the right answer and this arm is the thing that is obsolete, not the data.`
+    + `\n    Decide by hand: did each entry's rename ship in ${ENGINE_VERSION}? If it did, stamp it ${ENGINE_VERSION}. If it`
+    + `\n    shipped earlier, leave the stamp alone and retire this arm — #1080 is the durable replacement.`);
   ok(cstat(['core-palette', 'color', 'surface'], [...COLLECTION_RENAMES]) === PRE,
     'rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone');
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
@@ -12353,7 +12382,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // becomes the arm that pins WHICH rules, by id. A count would be satisfied by any two rules at all.
   ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013'
       && MATERIALIZATION_RENAMES.every((r) => r.since === ENGINE_VERSION && r.why.length > 120),
-    `#1039/#1013: the artifact ships exactly the two swap rules, stamped with the engine version that made the change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')})`);
+    `#1039/#1013: the artifact ships exactly the two swap rules, stamped with the engine version that made the change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
+    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps, and`
+    + `\n    that each rule carries a real \`why\`. IF THE STAMPS ARE WHAT MOVED, DO NOT RESTAMP THEM TO ${ENGINE_VERSION} —`
+    + `\n    the same warning as the \`COLLECTION_RENAMES\` arm in (f2), stated there in full: \`since\` records the version`
+    + `\n    that MADE the rename, this arm cannot tell a stale stamp from a correct historical one, and after a version`
+    + `\n    bump the arm is what is obsolete rather than the data (#1080).`);
 
   // Each rule's transformation on a LITERAL witness, with both directions of its domain boundary. The
   // negative halves are not padding: each one is a defect that check 2 would report as a wall of noise.
