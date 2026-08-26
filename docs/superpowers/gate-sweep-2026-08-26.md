@@ -19,9 +19,18 @@ a non-mutation this sweep itself produced and caught (M3, first attempt) — lef
 it is what the failure of this discipline looks like, and the diff-assertion that caught it is the
 protocol's answer.
 
-**Baseline:** worktree at 75a3541, `npm run verify` → `45/45 gates reached a verdict in 139s — 45
-PASS · 0 FAIL · 0 SKIP · 0 ADVISORY`; `engine-test` 2567 passed (stable across two runs — the task
-brief said 2572; the delta is a fact about this tree, unexplained rather than smoothed).
+**Baseline:** the sweep ran against 75a3541 — `npm run verify` → `45/45 gates reached a verdict in
+139s — 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY`; `engine-test` **2567** passed (stable across two
+runs). **Rebased onto 3c3852c for review**, where the same list is green and `engine-test` reads
+**2585**. The three figures resolve: 2567 is the swept tree, 2585 is current main, and the brief's
+2572 was neither — established in review, not by this sweep. Every ledger measurement below is
+against the swept tree; re-running one after the rebase may report different counts for the same
+verdict, which is why each row records its own numbers rather than a shared baseline.
+
+**One verdict's basis moved under it.** #1053 changed `lint-materialization-renames`' reporting
+after this sweep's R? row for that gate was written. `keysFromEmittedFile` — the shared reader the
+row is *about* — was untouched, so the shape-17 observation survives; the row is honestly
+**unconfirmed against current main** rather than wrong, and re-reading it is part of #1074.
 
 ## Verdicts, all 45 gates (+ the runner)
 
@@ -107,10 +116,17 @@ recipe recorded, not run) · Findings reference the ledger ids.
 - **8 of 11 plugin test files** (`test-write.ts`, `-surface`, `-readback`, `-persist`, `-float`,
   `-styles`, `-list-fonts`, `-apply-summary`, `-build-telemetry`): not read.
 - **TokenPress's 22 ported test files**: the harness and census were audited; the ported tests were not.
-- **Recipes recorded but not run** (each is in the map with file+edit+expected): M4 (lint-paint
-  checkbox header), M6 (context-nodes vocabulary), M12 (voice README), M16 (GROUND_INPUT), M19
-  (smoke fade re-introduction), M21 (check-ignore out-of-studio input), M22 (contrast/smoke joint
-  hole), M26 (runner import decoupling), M27 (mcp-test frontmatter probe).
+- **Recipes recorded but not run** — all nine are written out in
+  [`gate-sweep-recipes-2026-08-26.md`](gate-sweep-recipes-2026-08-26.md), one section each, with the
+  edit site labeled ANCHOR VERIFIED or ANCHOR UNRESOLVED: M4 (lint-paint checkbox header), M6
+  (context-nodes vocabulary), M12 (voice README), M16 (`GROUND_INPUT`), M19 (smoke fade
+  re-introduction), M21 (check-ignore out-of-studio input), M22 (contrast/smoke joint hole), M26
+  (runner import decoupling), M27 (mcp-test frontmatter probe). Six carry verified anchors; three
+  (M6's edit site, M22's render site, M27's error-construction site) are marked unresolved rather
+  than guessed. Tracked as work in #1074; M16 and M19 are named there by id because they were the
+  two the issue set otherwise did not describe. **An earlier revision of this bullet cited a map
+  that was never committed** — nine dead references, which is CLAUDE.md principle 3's own failure
+  mode inside the note documenting the discipline. Found in review of #1058.
 - **CI-only behaviors** (Vercel deploy path, `build:site`) were reasoned from source only.
 - The five read analyses were produced by parallel agents; every finding they proposed was either
   re-verified here by mutation or is labeled REASONED with its source lines. Two agent predictions
@@ -284,3 +300,21 @@ Properly applied (write-components.ts:1217 `inset = gap + sw` -> `gap - sw`, the
   measurement of the executor it structurally cannot make. VERIFIED-WEAK on the claim; the property is
   soundly delegated (and the delegation works, by name) — the finding is the dead block + false line.
 Restored: clean.
+
+### R1059-b — regen `--check`'s `out/` class, added in review of #1058: VERIFIED-WEAK (the `removed` arm proper)
+Motivated by the reviewer's correction: M13's demonstrated instance was a `SCHEMA_ARTIFACTS` entry,
+compared by fixed-list pairwise byte-equality (`regen.ts:133-135`) which has **no removal concept**,
+while the `removed` arm this sweep named (`:130`) governs `out/` only. So the `out/` class needed its
+own reproduction.
+First attempt was a **mutation artifact**, recorded because it is the sweep's second: `process.exit(0)`
+at emit-figma.ts module scope made `mcp-test` FAIL (34.4s) — not a catch, an importer dying. The
+mutated thing was not the thing that decides.
+Corrected mutation: `emit-figma.ts:232`, inside the `isMain` block — the write loop
+`for (const a of artifacts) writeFileSync(...)` replaced with a no-op, suppressing writes only.
+Observed: **82 committed `out/figma/**` files unemitted**; `regen --check` → `✓ in sync — 114
+committed artifacts byte-match what the engine emits`, with the step log printing
+`emit-figma     (out/figma/**) … ok`; full `npm run verify` → **45/45 PASS · 0 FAIL**.
+Delete census (read-only, same session): `rmSync|unlinkSync|rimraf|rmdirSync` across all nine STEP
+scripts → **0 hits**; the only engine deletes are `regen.ts:142` and `:159`, both restore-path. So
+`after ⊇ before` holds by construction and `:130` is unreachable, not merely unreached.
+Restored: clean. Measured on the rebased tree (3c3852c), where `engine-test` reads 2585.

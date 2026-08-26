@@ -879,6 +879,22 @@ failure remedy and ask what following it does to the property you actually broke
 own arm (the fixes under shapes 15 and 17), and treat a borrowed catch in a mutation table as a
 FAIL for the owning gate, not a pass for the suite.
 
+**And the half of this that is addressed to a gate AUTHOR rather than to a verifier, because
+everything above is written for the person running mutations:** *your gate's remedy text can be
+load-bearing for a property that is not yours.* Every instance above was lent its cover by a
+neighbor whose failure message is **correct for that neighbor** — "update `EXPECTED_ARTIFACTS` here
+AND in ci.yml, same PR" is exactly right about artifact counts, and it is the sentence that deletes
+the prose gates' only scope guard; "npx tsx regen.ts, then commit" is exactly right about drift, and
+it is the sentence that launders a lost a11y contract. Neither author could have known, which is the
+point: a remedy is an instruction to make a red go away, and the reader has no way to tell which
+*other* properties were riding on that red. So when a gate's failure message says *regenerate*,
+*accept*, *re-pin* or *update the number* — anything whose effect is to restore green rather than to
+fix a defect — the message is one line short. Say what the reader should look at **before** doing
+it: `regen --check`'s remedy could add *"if you did not expect this file to move, find out why
+first"*, and the count pin's could add *"a count that dropped means an artifact stopped being
+emitted — confirm that was deliberate before re-pinning."* Cheap to write, and it is the only part
+of this shape a gate author can act on alone.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -986,7 +1002,7 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
-| 2026-08-26 | `regen.ts --check` `removed` arm (gate sweep M13) | 4 | **an emitter disabled entirely — `process.exit(0)` before its only write — and the full 45-gate list PASS**, drift printing "✓ in sync — 114 committed artifacts byte-match what the engine emits" over a file the engine no longer emits. No emitter deletes and `check()` regenerates in place over its own snapshot, so `after ⊇ before` structurally and the stale verdict cannot fire; the corpse keeps the count at 114 so both `EXPECTED_ARTIFACTS` pins stay green. Issue filed |
+| 2026-08-26 | `regen.ts --check` — **two** stopped-emission blind spots, one per artifact class (gate sweep M13 + R1059-b) | 4 | **an emitter disabled and the full 45-gate list PASS, twice.** M13 killed `emit-levers` (a `SCHEMA_ARTIFACTS` entry): those are compared by fixed-list pairwise byte-equality at `:133-135`, which has **no removal concept at all** — a non-writing emitter leaves the live file identical to the snapshot. R1059-b then killed `emit-figma`'s write loop, unemitting **82 committed `out/` files**: that class *does* have a `removed` arm (`:130`), and it did not fire either, because regeneration is **in place** — the stale files are still on disk, so `after ⊇ before`. A delete census over all nine steps (`rmSync\|unlinkSync\|rimraf\|rmdirSync`) returns **zero hits** — the only deletes in the engine are `regen.ts`'s own restore path — so line 130 is **unreachable by construction, not merely unreached**. Both runs print `✓ in sync — 114`, and regen's step log prints `emit-figma (out/figma/**) … ok` for an emitter that emitted nothing. **The first pairing of this row was one mechanism described as the other** — the demonstrated instance was the schema class while the row named the `out/` arm — corrected in review of #1058, which is also why the fix "regenerate into a fresh directory" reaches only half of it. #1059 |
 | 2026-08-26 | `verify.ts` `cmd` vs `ci.yml` `run:` (gate sweep M7) | 5 | `engine-test` repointed to run `mcp-test.ts` — `lint-doc-gates` "✓ clean … both directions" (arm 3 joins on step *names*), runner self-checks green, `verify.ts engine-test` printing PASS in 6s with the 2,567-assertion suite never run. Nothing anywhere compares a gate's command to its CI step's |
 | 2026-08-26 | `lint-glyph-geometry.ts` + `test.ts` glyph pin (gate sweep M1) | 17 | **a checked checkbox rendering a house, 45/45 PASS** — `check`/`home` source outlines swapped, regen moved `icon-glyphs.ts` under both the gate's expected tables and the projector, and the `test.ts` pin imports `ICON_PATHS` from the same ancestor. Nothing holds the vocabulary to the pictures |
 | 2026-08-26 | `lint-overlay-completeness.ts` (gate sweep M2 — the instance that named the shape) | 17 | a dark-shadow value mutated at the ancestor, both committed artifacts regenerated in lockstep, "✓ clean — 2385 varying leaves" counting the change into its own summary, full list 45/45 |
