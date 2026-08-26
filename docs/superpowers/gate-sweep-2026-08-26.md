@@ -294,7 +294,10 @@ mechanism #918 fixed, one literal over. Restored: clean.
 ### M3 — lint-absolute-inset arm C vs plugin ring checker: SPLIT VERDICT (+ an auditor-side non-mutation caught)
 First attempt: sed addressed line 1218 (actual site 1217) — a NON-MUTATION producing three plausible greens;
 caught by the protocol's diff assertion (docs/34 corollary 2, demonstrated on the auditor; recorded, not smoothed).
-Properly applied (write-components.ts:1217 `inset = gap + sw` -> `gap - sw`, the exact #801 arithmetic):
+Properly applied (write-components.ts:1217 `inset = gap + sw` -> `gap - sw`, the exact #801
+arithmetic; **that line number is as measured on the swept tree and has since drifted to `:1220`**
+— `d6b74ba` added three net lines above it, so match on the quoted text, per the recipes file's
+own rule):
 - plugin-test exit 1, ring checker fires BY NAME in the requirement's units: "the visible gap is -2 — ...
   outer edge INSIDE the border it exists to be distinguishable from (#801)" → test-write-components ring
   checker VERIFIED-SOUND.

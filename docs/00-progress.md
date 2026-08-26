@@ -38,6 +38,7 @@ first run a **non-mutation** — three plausible greens over an unmutated tree �
 protocol's mandatory diff assertion (docs/34 corollary 2, demonstrated on the auditor).
 
 Issues filed per finding; the ledger in the superpowers note is the replay path for every verdict.
+
 ## (2026-08-26) — issue triage: the pile got a pass, not a clean sweep, and the honest scope is stated
 
 **STATUS: partial by design.** The lane prompt estimated "roughly fifty" open issues; the real count,

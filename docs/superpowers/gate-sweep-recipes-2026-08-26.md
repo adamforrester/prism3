@@ -193,6 +193,8 @@ while `verify.ts --list` keeps passing in CI on its own step, unaffected.
 **Note:** the mutation is large and easy to get subtly wrong; assert the import is gone *and* that
 `lint-doc-gates` still passes for the right reason before believing the result.
 
+---
+
 ## M27 — mcp-test's frontmatter probe may be reading its own fixture
 
 **Hypothesis (shape 12).** Journey ⑥ asserts `/frontmatter/i` over `JSON.stringify(payload)` while
