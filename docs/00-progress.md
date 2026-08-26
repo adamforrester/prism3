@@ -7,6 +7,214 @@
 
 ---
 
+## (2026-08-26) — 37 refusals nobody lost anything to: the two controls refuted the diagnosis before it was built on (#1087)
+
+**STATUS: shipped.** No version change — a branch reordering and three test arms. Nothing emitted moves.
+Gates stay at **45**; `test.ts` 2622 → **2643**, rebased onto #1082.
+
+**NAMES BELOW ARE POST-#1082 EXCEPT WHERE THE HISTORY IS THE POINT.** This was diagnosed against the
+pre-swap layout, where the mirror group was `color` (fat, 242 names) + `surface` (thin, 128). #1082
+renamed that pair to `color.appearance` (fat) + `color` (thin) while this branch was open. **The
+diagnosis was re-measured on both sides of the rename and did not move**: 80 derived rows,
+`source-absent=43 target-not-planned=37` over an empty file, **0 of 37** resolving anywhere in the
+emission, identical across all three brands — before and after. *The same 37 surviving a full tier
+rename is stronger evidence than either measurement alone*, because a layout-specific cause cannot
+produce identical numbers in two layouts. What moved is only where they sit: `surface` then, `color`
+now.
+
+**THE TWO CONTROLS ARE THE ENTRY.** The brief offered a reading — a per-collection versus emission-wide
+space mismatch — and asked for it to be attacked rather than built on. Both controls refute it, and
+neither needed Figma.
+
+**Control 1 — do the same 37 refuse on `main`?** **Yes.** Identical count on pre-swap `main`, all three
+brands. #1082 was assumed to have caused this by everyone downstream, including the issue. It is
+innocent.
+
+**Control 2 — are all 37 the same kind?** Yes, and **not the kind the summary implied.** The UI string
+truncates after two `color/…` pairs; every refusing row is actually filed under the group's thin tier
+(`surface` pre-#1082, `color` now) rather than the fat one the string implies. And the
+number that decides it: **0 of 37 targets resolve emission-wide.** The offered reading predicts targets
+that resolve globally and miss locally. They miss everywhere, so that is not what this is.
+
+── WHAT IT ACTUALLY IS ─────────────────────────────────────────────────────────────────────────
+
+`MIRRORED_COLLECTIONS` projects every `color` deprecation twice — into both members of the mirror
+group, one of which is a **partial** alias tier carrying **128** of the other's **242** names. The 37 are
+mirror twins whose target the partial member does not hold, and **all 37 have a twin in the other member
+that is planned and does migrate.** Nothing was ever lost; the user was warned about a filter doing its
+job.
+
+The defect is branch ORDER in `planVariableRenames`: `target-not-planned` is tested before
+`source-absent`, so a row with **nothing to migrate** reports as a refusal and `isRefusal()` counts it.
+On a fresh, empty file no source exists by construction — yet 37 came back refused.
+
+**`rename-map.ts`'s own header already described the correct behaviour**: *"the mirror that has no
+counterpart in a given file simply reports `source-absent`, so over-projecting is self-correcting."*
+That is the design. The branch order was not it. Third time this week that a comment was right and the
+code under it was not — the failure mode of writing reasoning and implementation in one pass, where the
+prose records the intent, the code records what was typed, and nothing compares them.
+
+Measured after the reorder: empty file **0 refusals** (was 37), populated-with-new-names **0**, and a
+populated file carrying the OLD names still reports **37 migrated** plus 37 legitimate mirror refusals —
+so this is a reordering rather than a weakening.
+
+── THE GATE HALF, WHICH IS THE CLASS AND NOT THE INSTANCE ──────────────────────────────────────
+
+Every existing arm walks ONE collection's rows. The executor does not: `upsertCollection` filters per
+collection and tests each target against **that** collection's planned names. So the 40 rows in the
+group's other member were checked by nothing **that could see this defect**, and a green suite coexisted
+with 37 runtime refusals. **Emission-wide resolution and
+per-collection planning are two different questions, and the gate was only ever asking the first.**
+
+**That wording is a correction made in review, and the corrected version is the more useful claim.**
+The entry first said those rows were "checked by nothing at all". They were not: arm (c)
+(`test.ts`, still headed *the SURFACE mirror* though #1082 repointed it at `color`) walks exactly these
+rows and asserts *"…resolve to `source-absent`,
+**not a refusal** — over-projecting is self-correcting"* — #1087's property, named, in an arm predating
+the issue. **It cannot fail.** Its `planned` set is `surfDead.map(r => r.to)`, built from the targets of
+the rows under test, so `!want.has(to)` is unreachable and control reaches `source-absent` under either
+branch order. Measured both ways: with the defect live the arm still reports `source-absent=37`, while
+the honest call (`want = []`) reports `target-not-planned=37`.
+
+*A gate that cannot fail is worse than no gate, because its message tells every later reader the
+property is pinned.* `docs/34` shape 1 — the oracle derived from the subject — and the register row this
+PR adds names both shapes for that reason. Arm (c) itself is pre-existing and filed as **#1095**.
+
+The new arm classifies every row in the executor's space — planned / expected-mirror / break — and
+admits a mirror **only** when a counterpart elsewhere in its mirror group is planned. That conjunction is
+what stops the bucket becoming an excuse: a genuinely broken mirror row, whose counterpart is also
+unplanned, is a break and fails.
+
+── THE ARM WAS WRITTEN AGAINST A LAYOUT, AND THE LAYOUT MOVED SEVENTEEN MINUTES LATER ──────────
+
+**#1082 merged while this branch was open, and the arm produced six false-positive failures on the new
+base** — `planned 43, mirror 0, break 37`, all three brands. Review round 2 caught it. Two independent
+defects, and **fixing only the one that was diagnosed leaves all 37 breaks standing**:
+
+**1. Key-is-primary.** The arm read the `MIRRORED_COLLECTIONS` **key** as the primary tier and non-key
+members as mirrors. That was true of the layout it was written against and of nothing else: pre-swap the
+key `color` was the fat tier and the mirror `surface` the thin one, so over-projections landed in a
+non-key member and classified as mirrors. #1082 inverted exactly that pairing — the key `color` **is**
+now the thin tier — so the same 37 legitimate over-projections landed in the key and every one became a
+break. **Which member of a declaration holds the key is not a fact about the tokens**, and an arm that
+reads it as one is pinned to a layout rather than to a property. Acceptability is now a property of the
+**group**: is the counterpart planned anywhere else in it.
+
+**2. Naive re-rooting, which nobody diagnosed and which I found only by disbelieving a measurement.** The
+twin name was built by swapping path segment 0 — correct for a single-segment name like `surface/…`,
+silently wrong for a dotted one. Post-swap it produced `color.appearance/…`, a name no collection has
+ever held, so the twin lookup could never hit. I found it because my own first probe of the review's
+central claim **contradicted the review** — 0 twinned where they measured 37 — and the probe, not the
+review, was wrong, in exactly the way the arm was. *Reproducing a reviewer's number is a test of your
+instrument as much as of their claim; disagreeing with a careful reviewer is a reason to check your
+tooling first.* The dotted-name/slashed-prefix convention is now re-expressed in the arm rather than
+imported from `reRoot`, which would make the oracle a second reading of the subject — `docs/34` shape 1,
+the very thing arm (c) gets wrong.
+
+**The second-way bound carried the same key-is-primary premise**, counting "non-key members". That is why
+the breakage showed as **six** failures and not nine: two counts sharing one wrong premise agree with
+each other perfectly, which is the exact opposite of what a second count is for. It is symmetric now, and
+under the reverted classifier it fires — `0 classified vs 37 eligible`.
+
+Buckets after: **planned 43, mirror 37, break 0**, identical across `nb`/`aurora`/`wendys` — the pre-swap
+split, relocated. Suite **2643 passed, 0 failed**.
+
+── TWO FAILED MUTATIONS, BOTH REAL, AND THE SECOND IS THE INTERESTING ONE ──────────────────────
+
+**M3 — reverting the branch order passed the entire suite.** My own fix had no regression guard: the new
+arm checks the MAP, and a map can be perfect while the planner still reports a no-op as a refusal. Now
+pinned directly — over an empty file every outcome must be `source-absent`, plus the converse.
+
+**M4 — widening the mirror predicate to `true` went undetected.** "Both buckets non-empty" bounds
+nothing: every unplanned row became a mirror, `breaks` went to zero, and the arm passed. And the first
+attempt to demonstrate this was itself wrong — I injected the break into `color`, where a **pre-existing**
+arm caught it, so the mutation proved nothing about the new one. Re-injected into `focus`, which mirrors
+nothing and no old arm covers. The bucket is now counted a second way from `MIRRORED_COLLECTIONS`
+membership alone, knowing nothing about the counterpart lookup, so the two agree only if the predicate is
+really the one stated.
+
+*A mutation that fires through somebody else's arm is not evidence about yours.*
+
+**The recorded limit is narrower than it first read, and review measured the narrowing.** A6's bound is
+that a widened predicate escapes when the break sits inside a grouped collection. The escape needs
+**both** conditions: a grouped-collection break under the *honest* predicate fires A6
+(`37 classified vs 38 eligible`) **and** A7 — 6 failures, three brands, re-measured here rather than
+taken on the reviewer's word. The uncovered case is the conjunction, not the membership. *An
+under-stated bound gets read as a bigger gap than it is,* which is its own kind of inaccurate record.
+
+**Re-run in full after the rebase, because rewritten arms inherit nothing from a previous battery.** M3
+→ 3 failures, the empty-file pin by name, one per brand, and the classifier arms correctly silent. M4 →
+A7 absorbed, **A6 fires by name** (`38 classified vs 37 eligible`), three brands; converse M4b, with A6
+alone neutralized, goes green at 2643/0, so A6 is what bounds it. Two new ones for the two new defects:
+**M5** (revert to key-is-primary) → 9 failures, and **M6** (keep the group fix, restore only the naive
+re-rooting) → 9 failures, with the break message now naming the group it found and could not match. Each
+defect is independently guarded; neither fix alone is sufficient, and the battery says so.
+
+**And a new variant of the cleanup hazard, which cost a run.** I piped the mutation harness through
+`head -8`. `head` closed the pipe, the harness took SIGPIPE **before its restore step**, and the next
+mutation ran on top of the previous one — the contamination was visible only because the break message
+carried M6's signature into M3's output. *`git checkout --` was never the hazard; the hazard is any path
+that skips it,* and a pipe that truncates output truncates cleanup with it. Re-run to a log file, clean
+baseline asserted before each.
+
+── AND THE HAZARD THE BRIEF WARNED ABOUT, WHICH I THEN WALKED INTO ─────────────────────────────
+
+The battery's own `git checkout --` cleanup discarded the uncommitted bucket-bound edit — the third time
+in this session, and the first time after being explicitly warned in the brief. The measurements were
+valid (the edit was live when they ran); the code was gone. Re-applied and committed before re-running.
+**"Commit before every mutation" is not "commit before the first one",** and the danger is never the
+mutation, which you expect — it is the cleanup, which you do not.
+
+── FILED, NOT FIXED ────────────────────────────────────────────────────────────────────────────
+
+**#1091** — 37 of 80 derived rows (46%) can never fire in the collection they are filed under, and
+nothing counts that ratio. The over-projection is deliberate and self-correcting; whether 46% is the
+right shape is undecided. Three options costed there, including why `projectionsOf` cannot simply
+consult the emission.
+
+**One sentence of that filing was wrong, and it was the sentence carrying its priority.** I wrote that
+the namespace work "adds rules to this same mechanism at every-variable width," which would have made
+46% a corpus-width problem. Challenged, checked, false: **the conclusion holds** — `MIRRORED_COLLECTIONS`
+has exactly **two** production references, its definition and `projectionsOf`, which only ever runs over
+`DEPRECATIONS`. Nothing mirrors `MATERIALIZATION_RENAMES`. So the 46% stays at 80 rows and this is
+tidiness, not urgency.
+
+**Then the correction needed a correction, and that is the part worth carrying.** My answer also said
+`MATERIALIZATION_RENAMES` "does not reach the executor at all" and located the risk "at the namespace
+PR". Both were read off `main` — and **#1082 is the wiring**, merged as `45b074c` at 21:26 while this
+branch was still based on `da37a94`: `composeVariableRenames` is exported from
+`packages/engine/rename-map.ts` and called from `apps/plugin/src/write-figma.ts`, inside the
+per-collection upsert, with `migration.pass.rules`. So the moment I described as still ahead had already
+happened in the PR next to mine.
+
+*Cited by symbol and full path rather than by line, deliberately.* An earlier draft said
+`rename-map.ts:472` — true on `main`, and **498 in this very branch**, because the #1087 fix adds a
+comment block above it. A line number in durable prose is correct only against the ref its author had
+checked out, and review found this one two ways at once. The bare filename was the other half of the
+problem: `rename-map.ts` is in `packages/engine/`, `write-figma.ts` is in `apps/plugin/src/`, and
+nothing in the citation said so.
+
+It is clean, for the structural reason and not by luck: `composeVariableRenames` takes `collection` as a
+parameter, filters the contract to it, and emits rows in that same collection — it cannot move a row
+between collections, so it cannot mirror. `MaterializationStep.map` is `(collection, name) => string`,
+and both shipped rules ignore the collection argument outright (`map: (_collection, name) => …`).
+Mirroring would have to be added on purpose. What survives as worth watching is narrower than what I
+first wrote: whether **new** rules or a **widened** composition reintroduce it.
+
+Measured across the two refs, because this changes where the finding lives: the ratio is identical
+(`80` rows, `37` dead, **46%**) and the collection **moves** — `surface` on `main`, `color` on #1082 —
+so every `surface` reference in that issue goes stale when it lands. The count stays at 80 rather than
+exploding because the branch adds a tier-only early return to `projectionsOf`
+(`if (roleOf(from) === roleOf(to)) return []`, absent on the pre-swap `main`) routing #1013's tier-only
+entries to
+`materialization-renames.ts` instead: one Figma operation, one derived record.
+
+*Both failures were the same one twice — forward-looking sentences written from a `main`-only read,
+in an issue whose measured claims all held. The reviewer took the first on my word; the owner caught
+it; the second was underneath it and nobody had flagged it.* **A retraction written the same way as the
+claim inherits its blind spot.**
+
+
 ## (2026-08-26) — the tier swap: `color.appearance` holds the values, `color` holds the pointers (#1013)
 
 **STATUS: shipped.** `ENGINE_VERSION` **0.26.0** (rebased past the media veil, which took 0.25.0 —

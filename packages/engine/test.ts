@@ -11891,6 +11891,172 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const misfiled = colorRows.filter((r) => idx.get(r.to) !== r.collection);
     ok(misfiled.length === 0,
       `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
+
+  // ---- #1087: AN ABSENT SOURCE OUTRANKS AN UNPLANNED TARGET ----
+  //
+  // The precedence inside `planVariableRenames`, pinned directly — the arm below checks the MAP, and a
+  // map can be perfect while the planner still reports a no-op as a refusal. Reverting the branch order
+  // passed the entire suite until this existed (mutation M3), which is the whole reason it does.
+  //
+  // On an EMPTY file nothing can migrate by any ordering, so no outcome may be a REFUSAL. That is the
+  // observed case: a fresh Figma file reported 37 refusals for rows with no source to move.
+  {
+    const rowsFor = (c: string) => map.variables.filter((r) => r.collection === c);
+    const colls = [...new Set(map.variables.map((r) => r.collection))];
+    ok(colls.length >= 2 && rowsFor(colls[0]).length > 0,
+      `rename-map(${brand}) #1087: the map spans ${colls.length} collection(s) with rows to plan — an empty map makes the two arms below vacuous`);
+
+    const onEmpty = colls.flatMap((c) => planVariableRenames([], [...(new Set<string>())], rowsFor(c)));
+    ok(onEmpty.length > 0 && onEmpty.every((o) => o.status === 'source-absent'),
+      `rename-map(${brand}) #1087: over an EMPTY file every outcome is 'source-absent', never a refusal — nothing can migrate when no source exists, and reporting that as 'target-not-planned' is what warned a user about 37 renames that had nothing to move (got ${[...new Set(onEmpty.map((o) => o.status))].join(', ')})`);
+
+    // And the converse, so the fix is a REORDERING rather than a weakening: a source that IS present
+    // with an unplanned target must still refuse.
+    const live = rowsFor(colls[0]);
+    const stillRefuses = planVariableRenames(live.map((r) => r.from), ['a-name-no-row-targets'], live);
+    ok(stillRefuses.length > 0 && stillRefuses.every((o) => o.status === 'target-not-planned'),
+      `rename-map(${brand}) #1087: …while a PRESENT source with an unplanned target still refuses — a variable that exists cannot be renamed to a name the plan does not write (got ${[...new Set(stillRefuses.map((o) => o.status))].join(', ')})`);
+  }
+
+  // ---- #1087: THE MAP, CHECKED IN THE SPACE THE EXECUTOR ACTUALLY APPLIES IT IN ----
+  //
+  // Every arm ABOVE walks ONE collection's rows. The executor does NOT: `upsertCollection` filters per
+  // collection and tests each target against THAT collection's planned names. So 40 rows — the ones in
+  // the OTHER member of the mirror group — were checked by nothing that could see this defect, and a
+  // green suite coexisted with 37 runtime refusals (#1087). Emission-wide resolution and per-collection
+  // planning are two different questions, and the gate was only ever asking the first.
+  //
+  // NAMES IN THIS BLOCK ARE POST-#1082. The defect was found when the mirror group was
+  // `color` (fat, 242) + `surface` (thin, 128) and the 40 unchecked rows were the `surface` ones; the
+  // tier swap renamed the pair to `color.appearance` (fat) + `color` (thin), and the same 40 rows are
+  // now the `color` ones. **The diagnosis was re-measured across the rename and did not move**: 80
+  // derived rows, `source-absent=43 target-not-planned=37` over an empty file, 0 of the 37 resolving
+  // anywhere in the emission, identical across all three brands — before and after. That two
+  // independent layouts produce the same numbers is better evidence than either alone, and it is why
+  // the classifier below asks a question that does not mention a tier by name.
+  //
+  // "NOTHING THAT COULD SEE IT" IS THE CAREFUL WORDING, AND THE CARE IS THE FINDING. An earlier draft
+  // said "checked by nothing at all", and that is false: arm (c) below — still headed `the SURFACE
+  // mirror` though #1082 repointed it at `color` — walks exactly these rows and asserts, in its own
+  // message, *"…resolve to `source-absent`, **not a refusal** — over-projecting is self-correcting"*.
+  // That is #1087's property, named, in an arm that predates the issue.
+  //
+  // It cannot fail. It calls `planVariableRenames([], surfDead.map(r => r.to), surfDead)` — the
+  // `planned` set is built from the TARGETS OF THE ROWS UNDER TEST, so `want.has(to)` is true for every
+  // row, `!want.has(to)` is unreachable, and control falls through to the `source-absent` branch under
+  // EITHER branch order. Measured both ways: with the defect live, the arm as written still reports
+  // `source-absent=37`, while the honest call (`want = []`, an empty file) reports
+  // `target-not-planned=37`.
+  //
+  // So these rows were not bare — they were covered by an assertion that could not fail, whose message
+  // told every subsequent reader the property was pinned. That is a worse state than absence and it is
+  // `docs/34` shape 1 (the oracle derived from the subject). Arm (c) is pre-existing and out of scope
+  // here; it is **#1095**.
+  //
+  // Three buckets, and the classification is the point:
+  //
+  //   · PLANNED   — the target is in its own collection's plan. The row can fire.
+  //   · MIRROR    — a non-primary projection (`MIRRORED_COLLECTIONS`) whose target the partial mirror
+  //                 does not carry, and whose PRIMARY twin is planned. `projectionsOf` over-projects
+  //                 deliberately and says so; this is the over-projection, and it is expected.
+  //   · BREAK     — neither. A row that can never fire and whose real variable is not migrating
+  //                 elsewhere either. This is what nothing was checking.
+  //
+  // A mirror row is admitted ONLY when its primary twin is planned. That conjunction is what stops the
+  // bucket becoming an excuse: a genuinely broken mirror row, whose primary is also unplanned, is a
+  // BREAK and fails here.
+  {
+    const plannedBy = new Map<string, Set<string>>();
+    for (const f of readdirSync(resolve(HERE, `./out/figma/${brand}`))) {
+      const j = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/${f}`), 'utf8'));
+      if (!j.$collection || !Array.isArray(j.variables)) continue;
+      if (!plannedBy.has(j.$collection)) plannedBy.set(j.$collection, new Set<string>());
+      for (const v of j.variables) plannedBy.get(j.$collection)!.add(v.name);
+    }
+    // ACCEPTABILITY IS A PROPERTY OF THE GROUP, NOT OF WHICH MEMBER HOLDS THE KEY — and that is #1082's
+    // lesson rather than a preference. The first version of this arm read the `MIRRORED_COLLECTIONS`
+    // KEY as "the primary" and every non-key member as a mirror. That was true of the layout it was
+    // written against and of nothing else: pre-#1082 the key `color` was the FAT tier (242 names) and
+    // the mirror `surface` the THIN one (128), so over-projections landed in a non-key member and
+    // classified as mirrors. #1082 inverted exactly that — the key `color` IS now the thin tier and
+    // `color.appearance` the fat one — so the same 37 legitimate over-projections landed in the KEY and
+    // every one became a break. Six false-positive failures, one merge later.
+    //
+    // So the question is asked symmetrically: is this row's counterpart planned ANYWHERE ELSE in its
+    // mirror group? A group is every collection one root materialises into, key included; which member
+    // the declaration happens to be keyed by is not a fact about the tokens.
+    const groupOf = (coll: string): string[] => {
+      for (const [key, mirrors] of Object.entries(MIRRORED_COLLECTIONS)) {
+        const members = [...new Set([key, ...mirrors])];
+        if (members.includes(coll)) return members;
+      }
+      return [coll];
+    };
+    // The naming convention, RE-EXPRESSED here rather than imported from the subject: a collection's
+    // DOTTED name is its variables' SLASHED prefix — `color.appearance` holds `color/appearance/<role>`.
+    // Spelling it out is deliberate; `rename-map.ts` has a `reRoot` that says the same thing, and
+    // calling it would make this oracle a second reading of the code under test — `docs/34` shape 1,
+    // which is exactly what arm (c) below does wrong. The first draft instead re-rooted by swapping
+    // path segment 0: correct for a single-segment name like `surface/…`, silently wrong for a dotted
+    // one, and it built `color.appearance/…`, a name no collection has ever held. That is a SECOND
+    // defect the tier swap exposed, independent of the key/mirror inversion above — fixing only the
+    // inversion leaves all 37 breaks standing, because the twin lookup can never hit.
+    const pfx = (coll: string) => `${coll.split('.').join('/')}/`;
+    const breaks: string[] = [];
+    let plannedRows = 0, mirrorRows = 0;
+    for (const r of map.variables) {
+      if (plannedBy.get(r.collection)?.has(r.to)) { plannedRows++; continue; }
+      // The same ROLE, spelled into each of the group's other members.
+      const others = groupOf(r.collection).filter((g) => g !== r.collection);
+      const role = r.to.startsWith(pfx(r.collection)) ? r.to.slice(pfx(r.collection).length) : null;
+      const twin = role === null ? undefined : others.find((g) => plannedBy.get(g)?.has(pfx(g) + role) ?? false);
+      // A row in a collection that mirrors NOTHING has no `others` at all, so it can never land here —
+      // that emptiness is load-bearing rather than defensive: without it the bucket is an escape hatch
+      // that absorbs any unplanned row, and mutation M4 widened it to exactly that.
+      if (twin) { mirrorRows++; continue; }
+      breaks.push(`[${r.collection}] ${r.from} → ${r.to} (not planned in '${r.collection}'${others.length ? `; and no counterpart in its mirror group (${others.join(', ')}) carries it either` : '; and it is not a mirror of any collection'})`);
+    }
+    ok(map.variables.length >= 40,
+      `rename-map(${brand}) #1087: the derived map is populated (${map.variables.length} rows) — every claim below is "every row that …", vacuously true of none`);
+    ok(plannedRows + mirrorRows + breaks.length === map.variables.length && plannedRows > 0 && mirrorRows > 0,
+      `rename-map(${brand}) #1087: every row classifies, and BOTH live buckets are non-empty — planned ${plannedRows}, mirror ${mirrorRows}, break ${breaks.length}. A classifier that put everything in one bucket would make the arm below unfalsifiable`);
+    // THE BUCKET IS BOUNDED, counted a SECOND WAY from `MIRRORED_COLLECTIONS` membership alone.
+    //
+    // "Both buckets non-empty" does not bound anything: mutation M4 replaced the mirror predicate with
+    // `true`, every unplanned row became a mirror, `breaks` went to zero and the arm below passed. A
+    // bucket that can absorb any row is an escape hatch, not a classification. This count knows nothing
+    // about the counterpart lookup — only about GROUP MEMBERSHIP — so the two can only agree if the
+    // predicate is really the one stated: a row in a collection that mirrors NOTHING cannot land here.
+    //
+    // Membership, like the classification above, is symmetric. Counting "non-key members" was the same
+    // key-is-primary assumption in a second place, and it would have gone on agreeing with a
+    // key-reading classifier through #1082 rather than contradicting it — two counts sharing one wrong
+    // premise agree with each other perfectly.
+    const grouped = new Set(Object.entries(MIRRORED_COLLECTIONS).flatMap(([k, ms]) => {
+      const members = [...new Set([k, ...ms])];
+      return members.length > 1 ? members : [];
+    }));
+    const mirrorEligible = map.variables.filter((r) => grouped.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
+    //
+    // ITS BOUND, STATED because the message is scoped precisely and the scope is easy to over-read.
+    // This catches a widened predicate absorbing a break in a collection that mirrors NOTHING (measured:
+    // an injected `focus` break, caught). It does NOT catch one absorbing a break inside a collection
+    // that IS in a mirror group — a fabricated unplanned `color` row under a widened predicate is
+    // absorbed and both arms go silent (review of #1092, probe B3). That is a limit of counting
+    // membership rather than the counterpart, and closing it needs the counterpart test re-expressed
+    // independently, which would be a second copy of the thing under test. Recorded, not papered over.
+    //
+    // AND THE HOLE IS NARROWER THAN THAT SENTENCE ALONE IMPLIES, which is worth saying because an
+    // under-stated bound gets read as a bigger gap than it is. The escape needs BOTH conditions at once:
+    // the widened predicate AND the break sitting inside a grouped collection. Either alone is caught —
+    // a grouped-collection break under the HONEST predicate fires A6 (`37 classified vs 38 eligible`)
+    // AND A7, three brands, 6 failures (review of #1092, probe B7, re-measured here). So the uncovered
+    // case is the conjunction, not the membership.
+    ok(mirrorRows === mirrorEligible,
+      `rename-map(${brand}) #1087: the mirror bucket holds exactly the unplanned rows of a collection in a DECLARED mirror group (${mirrorRows} classified vs ${mirrorEligible} eligible) — counted a second way, so a widened predicate cannot quietly absorb a break in a collection that mirrors nothing`);
+    ok(breaks.length === 0,
+      `rename-map(${brand}) #1087: every derived row's target is planned IN ITS OWN COLLECTION, or is an expected mirror over-projection whose counterpart elsewhere in its mirror group is planned — checked in the executor's space, not emission-wide${breaks.length ? ` — BREAKS: ${breaks.slice(0, 3).join(' · ')}` : ''}`);
+  }
   }
 
   // A cross-root `replacedBy` is a MOVE, not a rename: the variable would have to change collection, and
