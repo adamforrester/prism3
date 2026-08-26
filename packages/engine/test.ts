@@ -38,6 +38,10 @@ import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRename, projectionsOf, PROJECTED_ROOTS, isRefusal, type RenameMap } from './rename-map';
+import {
+  MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
+  type MaterializationRule, type VarKey,
+} from './materialization-renames';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
@@ -12076,6 +12080,150 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   });
   ok(staleExempt.length === 0,
     `#1009 half 1: every admitted row is still centred and still exists — an exemption whose row has moved on is a decision nobody re-argued. Stale: [${staleExempt.join(', ')}]`);
+}
+
+// ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------
+//
+// Two distinct jobs in one block, and they must not be confused with each other:
+//
+//   CHECK 2 (non-staleness, every run, no git) — for every rule, no domain member is still emitted and
+//   every image is emitted. The same invariant the derived-map section above pins, applied to rules. It
+//   cannot force a rule to exist; it stops one rotting into a pointer at nothing after it lands.
+//
+//   THE TABLE (`docs/44` §5) — a SYNTHESIZED before/after pair driven through the same accounting the
+//   gate uses, to show that the whole-set clause is load-bearing rather than decorative.
+//
+// ── FIXTURE VERSUS ORACLE, AND WHY THEY ARE TWO CODE PATHS ────────────────────────────────────────
+//
+// The pair below is a TEST FIXTURE: it reads the committed corpus off disk and applies a transformation
+// in memory. `lint-materialization-renames.ts` reads git — the committed emission at the merge base,
+// names produced by a different revision of the emitter. **Those must not collapse into one path.** If
+// the gate obtained its `from` side the way this fixture does, the gate would be testing its own
+// fixture and `docs/34` shape 11 walks back in: one subject under both sides of the comparison.
+//
+// So the duplication here is deliberate. What is SHARED is `accountFor` — that is the subject under
+// test, and it should be the same code in both. What is NOT shared is where before-and-after come from.
+//
+// The residual, stated rather than implied: this block exercises the accounting, not the gate's git
+// plumbing. The git path is exercised by the gate's own clean run (0 removed / 0 added against the
+// merge base) and by the no-base-ref mutation, which must FAIL rather than skip.
+{
+  const figmaRoot = resolve(HERE, './out/figma');
+  const brands = readdirSync(figmaRoot).sort();
+  ok(brands.length >= 3, `#1039: the corpus emits Figma for ${brands.length} brands (floor 3) — every claim below is "every name that …", vacuously true of none`);
+
+  /** The committed emission for one brand, as `collection :: name` keys. A FIXTURE INPUT — see above. */
+  const emissionOf = (brand: string): Set<VarKey> => {
+    const out = new Set<VarKey>();
+    const dir = resolve(figmaRoot, brand);
+    for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort())
+      for (const k of keysFromEmittedFile(JSON.parse(readFileSync(resolve(dir, f), 'utf8')), `${brand}/${f}`)) out.add(k);
+    return out;
+  };
+
+  // ---- CHECK 2 — non-staleness, over the real emission ----
+  //
+  // Vacuous today (the artifact ships empty) and that is the point of the floor above: with zero rules
+  // these two arms are true of nothing, so the population count is what says the block is wired up.
+  const nbKeys = emissionOf('nb');
+  ok(nbKeys.size > 500, `#1039 check 2: the emission index is populated (${nbKeys.size} nb keys) — an empty one satisfies both arms below`);
+  const stillEmitted: string[] = [];
+  const missingImages: string[] = [];
+  for (const brand of brands) {
+    const keys = emissionOf(brand);
+    for (const key of keys) {
+      const { collection, name } = parseVarKey(key);
+      for (const rule of MATERIALIZATION_RENAMES) {
+        if (!rule.domain(collection, name)) continue;
+        stillEmitted.push(`[${rule.id}] ${brand} ${key} — the rule says this moved, and it is still emitted`);
+        const image = varKey(collection, rule.map(collection, name));
+        if (!keys.has(image)) missingImages.push(`[${rule.id}] ${brand} ${key} → ${image} — the image is not emitted`);
+      }
+    }
+  }
+  ok(stillEmitted.length === 0,
+    `#1039 check 2: no rule's domain member is still emitted — a rule pointing at a live name migrates a variable that never moved. ${stillEmitted.slice(0, 3).join(' · ')}`);
+  ok(missingImages.length === 0,
+    `#1039 check 2: every rule's image IS emitted — a rule pointing at a name nothing emits is `
+    + `\`target-not-planned\` at apply time, i.e. inert and silent. ${missingImages.slice(0, 3).join(' · ')}`);
+  ok(MATERIALIZATION_RENAMES.length === 0,
+    `#1039: the artifact ships EMPTY — an entry here takes the rename decision by shipping it into designers' files (\`docs/44\` §8 leaves the \`color.appearance\` question open). Found ${MATERIALIZATION_RENAMES.length}`);
+
+  // ---- THE TABLE (`docs/44` §5), derived here rather than cited from the doc ----
+  //
+  // THE SYNTHETIC NAMESPACE IS `zzclient`, AND IT MUST BE ONE NO BRAND USES (`docs/44` §7). Two of the
+  // three Figma-emitting brands root at `prism` and one at `nbds`, so a transform hardcoded to `prism/`
+  // would be caught by ONE brand out of three. That margin is too thin to rely on: driving the fixture
+  // with a root outside the corpus makes the check independent of which roots the corpus happens to
+  // contain, rather than a bet on its diversity.
+  const NS = 'zzclient';
+  const nsAll = (_c: string, name: string): string => `${NS}/${name}`;
+  const ruleAll: MaterializationRule = {
+    id: 'fixture-ns-all', since: '0.0.0-fixture',
+    why: 'fixture: every variable moves under a namespace folder — the complete rule',
+    domain: () => true, map: nsAll,
+  };
+  const ruleColorOnly: MaterializationRule = {
+    id: 'fixture-ns-color-only', since: '0.0.0-fixture',
+    why: 'fixture: the under-covering rule — claims only the `color` collection',
+    domain: (c) => c === 'color', map: nsAll,
+  };
+  /** Apply the namespace to a chosen subset of collections — the EMISSION side of the fixture. */
+  const renamed = (keys: ReadonlySet<VarKey>, which: (c: string) => boolean): Set<VarKey> => {
+    const out = new Set<VarKey>();
+    for (const k of keys) {
+      const { collection, name } = parseVarKey(k);
+      out.add(which(collection) ? varKey(collection, nsAll(collection, name)) : k);
+    }
+    return out;
+  };
+
+  const rows: string[] = [];
+  for (const brand of brands) {
+    const before = emissionOf(brand);
+    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color').length;
+
+    // ROW 1 — complete rule, complete rename → TOTAL.
+    const r1 = accountFor(before, renamed(before, () => true), [ruleAll], parseVarKey);
+    ok(isTotal(r1),
+      `#1039 table row 1 (${brand}): a complete rule over a complete rename is TOTAL — ${r1.unaccountedRemovals.length} unaccounted removals, ${r1.unaccountedAdditions.length} additions, ${r1.contradictedClaims.length} contradicted`);
+
+    // ROW 2 — under-covering rule, complete rename → unaccounted, named individually. THE FORCING
+    // FUNCTION FIRING. Both accountings agree here, which is why this row is not the interesting one.
+    const r2 = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
+    const unaccounted2 = r2.unaccountedRemovals.length + r2.unaccountedAdditions.length;
+    ok(unaccounted2 === nonColor * 2 && unaccounted2 > 0,
+      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color\` keys) — the forcing function fires`);
+    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color :: ')),
+      `#1039 table row 2 (${brand}): and names them individually rather than counting them — e.g. ${r2.unaccountedRemovals[0]}`);
+
+    // ROW 3 — OVER-CLAIMING rule, `color`-only rename. The row the whole-set clause exists for.
+    const colorOnlyEmission = renamed(before, (c) => c === 'color');
+    const r3 = accountFor(before, colorOnlyEmission, [ruleAll], parseVarKey);
+    ok(r3.contradictedClaims.length === nonColor && nonColor > 0,
+      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color\` key the rule said moved and did not`);
+
+    // AND THE CONTRAST THAT IS THE EVIDENCE: the diff-driven accounting reports TOTAL on the same input.
+    // Without this the whole-set clause is a sentence in a comment; with it, it is two numbers that
+    // disagree. `docs/44` calls this row "TOTAL — blind".
+    const r3blind = accountForDiffDriven(before, colorOnlyEmission, [ruleAll], parseVarKey);
+    ok(isTotal(r3blind),
+      `#1039 table row 3 (${brand}): …while DIFF-DRIVEN accounting reports TOTAL over the identical input — blind, because a rule claiming a rename that did not happen is never exercised`);
+    ok(r3.contradictedClaims.length > 0 && r3blind.contradictedClaims.length === 0,
+      `#1039 table row 3 (${brand}): whole-set ${r3.contradictedClaims.length} contradicted vs diff-driven ${r3blind.contradictedClaims.length} — THIS is the load-bearing difference, not a refinement of it`);
+
+    rows.push(`${brand}: under-covers ${unaccounted2} unaccounted · over-claims ${r3.contradictedClaims.length} contradicted (diff-driven ${r3blind.contradictedClaims.length})`);
+  }
+  // The doc quotes 846–964 and 463. Asserted as a RANGE over the brands rather than per-brand constants,
+  // because the doc's own presentation is inconsistent and the range is the honest form: 846–964 spans
+  // the three brands, while 463 is aurora's single figure where nb is 423 and wendys 482.
+  const unaccountedAll = brands.map((b) => {
+    const before = emissionOf(b);
+    const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
+    return r.unaccountedRemovals.length + r.unaccountedAdditions.length;
+  });
+  ok(Math.min(...unaccountedAll) === 846 && Math.max(...unaccountedAll) === 964,
+    `#1039: the under-covering row spans ${Math.min(...unaccountedAll)}–${Math.max(...unaccountedAll)} across brands, matching \`docs/44\` §5's 846–964 — derived here, not cited (${rows.join(' | ')})`);
 }
 
 // ------------------------------------------------------------------- report

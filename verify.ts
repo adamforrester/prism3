@@ -363,6 +363,15 @@ export const GATES: Gate[] = [
     precondition: driftCheckPrecondition,
   },
   {
+    // AFTER `drift` deliberately: this reads the emission `regen` writes, so running it against a stale
+    // `out/figma/**` would account for a tree nobody emitted. It does NOT declare `after: ['drift']` —
+    // that field makes a gate DERIVE from another's captured output, and this one runs its own process.
+    // Position in the list is the ordering; the dependency is on regen having run, not on its verdict.
+    id: 'lint-materialization-renames',
+    ciStep: 'A materialization rename is recorded as a rule, and the accounting over it is total',
+    cmd: engine('lint-materialization-renames.ts'),
+  },
+  {
     id: 'drift-coverage',
     ciStep: 'Drift gate still covers the full artifact set',
     after: ['drift'],

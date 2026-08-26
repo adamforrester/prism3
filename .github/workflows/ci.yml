@@ -24,7 +24,24 @@ jobs:
   gates:
     runs-on: ubuntu-latest
     steps:
+      # `fetch-depth: 0` — FULL history, and the depth is load-bearing rather than cautious (#1039).
+      #
+      # The default is a DEPTH-1 shallow clone: one commit, no merge base, no remote branches. Every
+      # git-reading gate in this repo until now used `git ls-files`, which reads the INDEX and needs no
+      # history at all, so the default has never cost anything. `lint-materialization-renames.ts` is the
+      # first that reads git HISTORY — it compares the committed emission at the merge base against the
+      # working tree, and under depth-1 it cannot find a base ref.
+      #
+      # It FAILS in that state rather than skipping, deliberately (`docs/34` shape 9), so the symptom
+      # would be loud. But the failure mode this setting prevents is the quiet one either way: a gate
+      # that passes locally, where history exists, and cannot run where it matters.
+      #
+      # `0` rather than `2`: depth-2 gives HEAD~1, which is the base only when the branch is exactly one
+      # commit long. A merge base against `origin/main` needs the branch point, and that is an unbounded
+      # number of commits back — `docs/44` §6.6 proposed `2` before that was measured.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -60,6 +77,21 @@ jobs:
       # regenerates, byte-compares, restores — so it never leaves the tree dirty.
       - name: Committed artifacts have not drifted
         run: npx --yes tsx@4 packages/engine/regen.ts --check
+
+      # The FORCING FUNCTION for a materialization rename — one the contract cannot see, because the
+      # Figma collection a variable sits in and the namespace folder its name sits under are not
+      # guaranteed paths and never touch `DEPRECATIONS` (#1039, `docs/44` §5). A rule proposes the
+      # PAIRING a diff cannot supply; the diff supplies the COMPULSION a rule cannot.
+      #
+      # Runs after `regen --check` because it reads the emission regen writes, and because the two
+      # guarantees compose: regen proves the committed emission matches the emitter that produced it,
+      # so the merge-base tree is a faithful witness rather than a stale copy.
+      #
+      # THE ONLY GATE IN THIS FILE THAT NEEDS GIT HISTORY — see `fetch-depth: 0` on the checkout above.
+      # It FAILS rather than skips when it cannot find a base ref: a check that downgrades "cannot run"
+      # into "nothing to compare, clean" reports green over the whole corpus it could not see.
+      - name: A materialization rename is recorded as a rule, and the accounting over it is total
+        run: npx --yes tsx@4 packages/engine/lint-materialization-renames.ts
 
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the

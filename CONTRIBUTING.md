@@ -155,6 +155,28 @@ npx tsx packages/engine/lint-ratio-truth.ts          # every reported contrast r
                                                     # counted in its own output — they model `against`
                                                     # in the OPPOSITE direction (the role is the wash,
                                                     # `against` names the ink on top of it)
+npx tsx packages/engine/lint-materialization-renames.ts
+                                                    # a materialization rename — one the CONTRACT
+                                                    # cannot see, because a Figma collection name and
+                                                    # a namespace folder are not guaranteed paths and
+                                                    # never touch DEPRECATIONS — is recorded as a RULE
+                                                    # in MATERIALIZATION_RENAMES, and the accounting
+                                                    # over it is total (#1039, docs/44 §5). A rule
+                                                    # proposes the PAIRING a diff cannot supply; the
+                                                    # diff supplies the COMPULSION a rule cannot.
+                                                    # Every rule is evaluated over the WHOLE
+                                                    # before-set, never over the diff: a rule claiming
+                                                    # a rename that did not happen is never exercised
+                                                    # by a diff-driven walk, so it reports clean.
+                                                    # Measured over the corpus — 1368 contradicted
+                                                    # claims whole-set against TOTAL diff-driven.
+                                                    # The `from` side is the committed emission at the
+                                                    # MERGE BASE: names from a different revision of
+                                                    # the emitter, which is what makes it an oracle
+                                                    # rather than a mirror (docs/34 shape 11). NEEDS
+                                                    # GIT HISTORY — the only gate here that does, hence
+                                                    # fetch-depth: 0 in ci.yml — and it FAILS rather
+                                                    # than skips when it has no base ref
 npx tsx packages/engine/lint-axis-values.ts          # every axis VALUES set is declared in
                                                     # AXIS_VALUE_SETS with a reason, and stands in
                                                     # the relation it declares (#934). `VARIANT_AXES`
