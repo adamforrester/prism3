@@ -801,6 +801,84 @@ a **hand-built asymmetric plan**, because the fix removed the coordinate that ex
 after it, wherever a visual cell exists the spinner takes it and centers nothing. A gate that can only
 be exercised on a shape the fixed code no longer produces still has to be exercised on it.
 
+### 17. Both sides descend from one ancestor: the gate covers the fork down, and counts as if it covered the world
+
+Shape 2's tell is a shared *function*; shape 11's is the gate's own *subject* under two
+implementations. This one has neither: the two sides are genuinely independent of each other —
+different files, different walks, honest re-implementations that a shape-2 audit clears — and both
+descend from one **producer**: a generated module, an imported constant, one in-memory object
+written to both sides in one call. The gate is a real gate on everything *between* the fork and the
+comparison; mutate the projector and it fires by name, which is why the standard independence test
+passes. Everything *above* the fork is ungated: an ancestor mutation moves both sides in lockstep,
+the comparison stays byte-equal, and the gate counts the changed world into its own summary —
+coverage-shaped output over a question it never asked.
+
+Measured instances, one sweep (2026-08-26), each mutation restored after measurement:
+
+- `lint-overlay-completeness.ts` — `expectedLeaves(canonical)` vs `actualLeaves(overlay)`, both
+  projections of the single `built.tree` one `emitTheme` call writes. A dark-shadow value mutation
+  at the ancestor (`theme.ts` inset dark alpha 0.3 → 0.33) regenerated both sides together:
+  `✓ clean — 2385 varying leaves across 12 overlays in 4 brands`, and the **full 45-gate list
+  passed** over the committed mutated state. The gate genuinely covers the projector (#708's guard
+  fails it loudly); its per-mode leaf counts read as coverage of the mode system, which nothing here
+  checks.
+- `lint-glyph-geometry.ts` — `ICON_PATHS`/`ICON_VIEWBOX` sit under BOTH the expected tables and the
+  projector's emission, and the module is **generated** (`emit-icons.ts` ← `icons/*.svg`). Swapping
+  the `<path d>` of `check-line.svg` and `home-line.svg` and regenerating: the gate printed
+  `✓ every member carries its OWN filled outline`, `test.ts`'s glyph pin passed (it imports
+  `ICON_PATHS` from the same regenerated ancestor), and the **full list passed 45/45 — with a
+  checked checkbox rendering a house.** Nothing anywhere holds the glyph vocabulary to the pictures;
+  `emit-icons` asserts file shape, never which picture a path draws.
+- `lint-us-english.ts` + `lint-voice.ts` — `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` (regen.ts) feed
+  both `gated[]` (the scanned set) and `REQUIRED_SURFACES` (the promise list that exists to guard
+  the scanned set). Removing `nb-regression-report.md` from the list shrank scope and promise in
+  lockstep: both gates `✓ clean`, the report's prose unpoliced. The catchers were borrowed (see
+  shape 18).
+
+**Tell:** trace each side upward past its immediate producer and ask where the traces MEET. If they
+meet anywhere below "authored by a human with intent about this property" or "transcribed from an
+external spec," everything above the meet is ungated while the gate's counts imply otherwise. A
+second tell: the gate's summary line *grows* when the ancestor changes — a gate counting its own
+blind spot as throughput. **Fix:** an expectation from above the fork for the ancestor itself — an
+authored baseline, a spec transcription, a hand-written table (shape 11's remedy generalized from
+subjects to data ancestry) — or, where that is not worth the maintenance, one sentence in the gate's
+output stating where its coverage stops, so the summary stops reading as reach.
+
+### 18. The borrowed backstop: the only thing that catches it is another gate's accident, and that gate's remedy deletes the cover
+
+Not a defect in any single gate — a property of the *list*, which is why no individual encounter
+ever named it: it is only visible when you ask, for one mutation, **which gate fired and what its
+failure message tells the reader to do.** Repeatedly in the 2026-08-26 sweep the answer was: not the
+gate that owns the question, but a neighbor that trips on a side effect — and the neighbor's remedy,
+correct for its own property, erases the accidental cover.
+
+- Prose-scope shrink (shape 17 above): neither prose gate fires; `drift-coverage`'s
+  `EXPECTED_ARTIFACTS` pin goes red at 113 — and its failure message instructs *"update the number
+  here AND in ci.yml, same PR."* Followed, the only guard of the prose gates' scope is gone.
+- `text.on-inverse` losing its `min` stamps (`modes.ts`): `lint-ratio-truth` — the gate that owns
+  reported-ratio truth — stays `✓ clean` at 30,456 of a baseline 34,128 rows (its checked set is
+  filtered by the subject's own metadata, shape 15); `test.ts`'s **one** failure is a byte-identity
+  assertion and `regen --check` fires only because `min` is serialized into artifacts. Both name
+  drift; both remedies are "regenerate and commit," which re-greens everything with the a11y
+  contracts gone.
+- An undeclared painted node in every plan: `lint-paint-placement` — whose question is "did paint
+  land on the part the def nominated" — prints its ✓; `lint-paint`'s census fires as `DRIFTED`, a
+  characterization whose documented meaning is *different, not wrong*, and whose remedy is
+  `--accept`.
+- A corpus member deleted from `token-contract.ts`: `--check` exits 1 naming **one added path** —
+  the path only that brand excluded from the intersection — while "corpus: 4 brands" is printed and
+  compared to nothing (the baseline stores 5; `informationalOnly` omits `corpus`). The instructed
+  `--accept` at MINOR rewrites the membership with no signal beyond that one path line.
+
+The register's own earlier sentence — *a drift gate defends the artifact, not the claim* — is this
+shape's first instance; what the sweep adds is that the pattern is systemic, and that it degrades
+the mutation discipline itself: "the suite went red" reads as coverage precisely when the red is
+borrowed. **Tell:** for any mutation you run, ask which gate fired *by name*, then read that gate's
+failure remedy and ask what following it does to the property you actually broke. If the remedy is
+"update the pin / regenerate / accept," the cover was borrowed. **Fix:** give the owning gate its
+own arm (the fixes under shapes 15 and 17), and treat a borrowed catch in a mutation table as a
+FAIL for the owning gate, not a pass for the suite.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -908,6 +986,22 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-26 | `regen.ts --check` `removed` arm (gate sweep M13) | 4 | **an emitter disabled entirely — `process.exit(0)` before its only write — and the full 45-gate list PASS**, drift printing "✓ in sync — 114 committed artifacts byte-match what the engine emits" over a file the engine no longer emits. No emitter deletes and `check()` regenerates in place over its own snapshot, so `after ⊇ before` structurally and the stale verdict cannot fire; the corpse keeps the count at 114 so both `EXPECTED_ARTIFACTS` pins stay green. Issue filed |
+| 2026-08-26 | `verify.ts` `cmd` vs `ci.yml` `run:` (gate sweep M7) | 5 | `engine-test` repointed to run `mcp-test.ts` — `lint-doc-gates` "✓ clean … both directions" (arm 3 joins on step *names*), runner self-checks green, `verify.ts engine-test` printing PASS in 6s with the 2,567-assertion suite never run. Nothing anywhere compares a gate's command to its CI step's |
+| 2026-08-26 | `lint-glyph-geometry.ts` + `test.ts` glyph pin (gate sweep M1) | 17 | **a checked checkbox rendering a house, 45/45 PASS** — `check`/`home` source outlines swapped, regen moved `icon-glyphs.ts` under both the gate's expected tables and the projector, and the `test.ts` pin imports `ICON_PATHS` from the same ancestor. Nothing holds the vocabulary to the pictures |
+| 2026-08-26 | `lint-overlay-completeness.ts` (gate sweep M2 — the instance that named the shape) | 17 | a dark-shadow value mutated at the ancestor, both committed artifacts regenerated in lockstep, "✓ clean — 2385 varying leaves" counting the change into its own summary, full list 45/45 |
+| 2026-08-26 | `lint-us-english.ts` + `lint-voice.ts` promise lists (gate sweep M8) | 17 | `nb-regression-report.md` dropped from `ENGINE_ARTIFACTS`: scanned set and promise list shrank together, both prose gates "✓ clean"; the catchers were the artifact-count pin and `lint-payload-manifest` — borrowed, with remedies that erase the cover (shape 18) |
+| 2026-08-26 | `lint-ratio-truth.ts` row filter (gate sweep M14) | 15, 18 | the `text.on-inverse` family stripped of its `min` stamps: the ratio-truth gate "✓ clean" at 30,456 of 34,128 rows — its checked set is selected by the subject's own metadata — and `test.ts`'s single failure was a byte-identity assertion whose remedy ("regen and commit") would launder the contract loss |
+| 2026-08-26 | `lint-schema-classification.ts` source-text regex (gate sweep M9) | 12 | the `token-contract.json` scope line commented out in `lint-us-english.ts`; the census still listed it "authored, prose-gated in both" — the regex matched the commented-out literal — and no gate anywhere fired while the contract baseline's prose went unscanned |
+| 2026-08-26 | `lint-paint-placement.ts` declared-parts loop (gate sweep M5) | scope, 18 | a synthetic painted `debug-bg` node in every plan root: "✓ paint lands on the part the def nominated" — `compare()` walks declared parts only; the census fired `DRIFTED`, a characterization documented as unable to say *wrong* |
+| 2026-08-26 | `test-smoke.mjs` `op < 0.02` carve-out (gate sweep M18) | 15 | every nav label at `opacity:.011` — fully invisible on screen — and the sweep reporting "14,998 text nodes measured. Lowest rendered contrast anywhere: 3.04:1", exit 0: the carve-out excludes the extreme of the exact class the probe exists for, and the summary asserts the falsehood affirmatively |
+| 2026-08-26 | `test-provenance.ts` (gate sweep M23) | 9 | `ok()` neutered: "✅ ALL PASS — 0 assertions executed", exit 0, the printed count read by nothing — the #659 floor fix stopped at the two engine suites; all five app suites lack it |
+| 2026-08-26 | `test-export-settings.ts` §8 mutation battery (gate sweep M24) | 2 | the shipped `unreachable` rule deleted from `declarationDefects` and the suite printing "✓ MUTANT setting on the unbuilt source only → caught: 'tokenNameCase: unreachable'" — the mutant caught by the battery's local reimplementation while the shipped predicate no longer contains the rule (#387's shape, certified) |
+| 2026-08-26 | `lint-progress-order.ts` live edge (gate sweep M11) | 9 | two dated, out-of-order entries at the TOP of the file in the pre-convention spelling `HEADING_RE` does not match — exit 0, 441 legacy entries keeping the floor satisfied, #931's defect class recurring at the exact position every new entry lands |
+| 2026-08-26 | `lint-skills.ts` file-existence scan (gate sweep M20) | 3 | a cited `apps/studio/does-not-exist.mjs` passing "✓ clean" — the #650 fix's detector matches `\.ts\b` only, and the self-check samples only `.ts` fixtures (#464: the fixture written from the scan's mental model) |
+| 2026-08-26 | `lint-advisory-expiry.ts` `PRISM3_TODAY` (gate sweep M10) | 9 | an expired advisory claim failing by name on the real clock and passing at exit 0 under `PRISM3_TODAY=2026-01-01` with "⚠ INJECTED" printed inside the green log — a verdict-relevant condition reported outside the verdict channel; one `env:` line in ci.yml freezes every window forever, and `lint-doc-gates` parses only `name:`/`run:` |
+| 2026-08-26 | `lint-unclaimed-defaults.ts` `catch { continue }` (gate sweep M17b) | 15 | three whole defs (`radio`, `switch`, `field-message`) failing to project and the gate printing "PASS — every visually-significant property on every built node traces to a decision": the throw-swallow has no exemption list and no verdict, the type floors bound the blindness only when a node TYPE disappears with the defs, and the suite went red elsewhere (`lint-glyph-geometry`) without this gate among the failures |
+| 2026-08-26 | `lint-absolute-inset.ts` arm C `PROBE_PARENTS` (gate sweep M3) | 4 | the #801 arithmetic re-flipped in the executor and the gate printing "✓ … measured as (offset − the inward stroke)": `b.x := -(gap+stroke)` then `seen := -b.x - stroke` is `seen ≡ gap` — an assertion block that cannot fail for any input, whose success line claims a measurement of an executor it never reads. The property is soundly delegated: `test-write-components`' rebuilt ring checker fired by name, in WCAG units |
 | 2026-08-25 `[in review]` | `rename-map.ts`'s collection cycle check and the `test.ts` arm pinning it (#1032) | scope | **two hazards with opposite fixes reported as one sentence, with a passing named arm over the top.** `validateRenameMap` refused any collection whose target was also a source as a "cycle … a swap needs a two-phase temp name", and `test.ts` asserted exactly that with `includes('cycle')` — which passes identically for a **chain** (`surface`→`color` alongside `color`→`color.appearance`). Measured against the real functions: the chain migrates FULLY under one executor order and refuses safely under the other, while a swap returns `target-occupied` in **both** directions and migrates under none. So a chain's fix is an ordered pre-pass and a swap's is a temp name, and a reader handed one message could not tell which they had. `scope`, not a weak comparison, for the `icon` row's reason: **no check's oracle was wrong, because "which of the two shapes is this" was in no check's scope** — the arm asked whether a refusal happened, which is a question both shapes answer yes to. Two things measured while fixing it are worth more than the row: the module header's stated *justification* was also false (it claimed a swap "passes through a state where find-by-name is arbitrary"; `planCollectionRename` tests `have.has(entry.to)` first, so that state is unreachable and the **apply-time** guard, not the static refusal, is what prevents the damage) — a check can be correct while the reason recorded beside it is not, and only the reason is load-bearing for the next author. And the split needs **two negative arms plus a 3-name probe**: without "a chain is not reported as a cycle" and its converse, one sentence mentioning both words satisfies both positive arms, and without `a→b→c→a` a one-hop loop test calls all three entries chains. Found by hand, working through #1032's chain-vs-cycle claim rather than by any gate |
 | 2026-08-24 | #978's P5, override-sweep mutation battery (#984 post-mortem) | signal | a named grep for `"REFUSED this override"` printing **nothing**, reported as caught anyway because the battery's overall count was non-zero — the failures that fired were an unrelated arm's. The guard itself was doubly absent: destroyed by the *next* mutation's `git checkout --` restore (reaching `HEAD`, which predates the guard), and unreachable by the mutation as designed (`OVERRIDE_CASES()` excludes grounds with an input, so the mutation removed the case rather than exercising it). Only the reporting error is general — a non-zero count stood in for the named assertion, which would have produced the same false pass with the guard present and working |
 | 2026-08-23 `[in review]` | `anatomy-figma.ts`'s box paint branch — the whole gate list (#933) | scope | **two configurations of one anatomy, both validating with ZERO errors, one of which paints a control's fill across the entire label row.** The projector's box branch read `p.kind === 'box' && p.role === 'target'`, so `role: 'target'` — *"what does the user click"*, a hit-area and accessibility concept — was deciding *"what carries colour"*. Measured with the coupling restored: `test.ts` **2331 passed / 0 failed**, `lint-paint.ts` **exit 0**, `typecheck-components.ts` **exit 0**. `scope` rather than a weak comparison, for the `icon` row's reason: **no gate's oracle was wrong, because the property was in no gate's scope.** `lint-paint.ts` arm 3 walks every node of every coordinate and flattens the variables into one set — the right question for #784 and it **discards the node** — so "is this binding painted at all" was answered everywhere and "did it land on the part the def nominated" nowhere. The two questions have the same answer in all five anatomies in the corpus (one box, one target, the same part), which is why authoring them apart never happened; a switch is where they come apart, its whole row clickable and its fill on the track. Fixed by a field that says which slots a box paints (`paintSlots`) and by removing `p.role` from the file entirely, plus `lint-paint-placement.ts`. **Two things about the gate are worth more than the row:** it carries a **fixture** because a corpus-only version is shape 15 (comparison right, set excluding the only case that can fail it) and the excluded member is not a member — no def has two boxes, so the fix is to build one, not to relate it; and its load-bearing arm is **metamorphic** rather than an EXPECTED/ACTUAL pair — moving `role: 'target'` between two boxes must not change the placement map *at all* — which is shape 16's remedy applied before the fact, one implementation and two inputs differing in one field. Found by probing the shape a def could not yet hold |

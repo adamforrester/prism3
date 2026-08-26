@@ -7,6 +7,37 @@
 
 ---
 
+## (2026-08-26) — The gate-independence sweep: 45 gates, every verdict labeled by its evidence, two new shapes
+
+**STATUS: docs only — `docs/34` (+ shape-index baseline via `--accept`), this entry, and
+`docs/superpowers/gate-sweep-2026-08-26.md`. No gate behavior changed; find-don't-fix per the brief.**
+
+The first deliberate sweep of the register's question across every gate at once. Method and the
+full per-gate verdict table (verified-by-mutation vs reasoned-by-reading labeled apart, every
+mutation replayable from its ledger row): `docs/superpowers/gate-sweep-2026-08-26.md`. Sixteen
+register rows landed in `docs/34`, and two new shapes:
+
+**Shape 17 (the given shared-ancestor shape, generalized):** both sides of a comparison descending
+from one producer — `lint-overlay-completeness` (the naming instance), `lint-glyph-geometry`
+(swap two source SVGs and a checked checkbox renders a house at **45/45 PASS**), both prose gates
+(regen's artifact lists feed scanned set and promise list together).
+
+**Shape 18 (the sweep's own contribution — visible only when holding all 45 at once):** the
+borrowed backstop. Mutation after mutation, the only red came from a *neighbor* gate tripping on a
+side effect — the artifact-count pin, a census `DRIFTED`, a byte-identity assertion — and that
+neighbor's failure remedy ("update the pin", "regen and commit", "--accept"), correct for its own
+property, deletes the accidental cover.
+
+The two costliest single findings: **drift's `removed` arm is structurally dead** (an emitter
+disabled entirely passed the full 45-gate list at "✓ in sync — 114 committed artifacts"), and
+**nothing compares `verify.ts`'s commands to ci.yml's** (`engine-test` repointed at `mcp-test.ts`
+passes every check both directions — the pre-push instrument can silently not run the unit suite).
+
+One trap this sweep paid for itself, recorded rather than smoothed: an off-by-one sed made M3's
+first run a **non-mutation** — three plausible greens over an unmutated tree — caught by the
+protocol's mandatory diff assertion (docs/34 corollary 2, demonstrated on the auditor).
+
+Issues filed per finding; the ledger in the superpowers note is the replay path for every verdict.
 ## (2026-08-26) — issue triage: the pile got a pass, not a clean sweep, and the honest scope is stated
 
 **STATUS: partial by design.** The lane prompt estimated "roughly fifty" open issues; the real count,
