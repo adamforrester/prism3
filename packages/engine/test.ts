@@ -11892,6 +11892,32 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(misfiled.length === 0,
       `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
 
+  // ---- #1087: AN ABSENT SOURCE OUTRANKS AN UNPLANNED TARGET ----
+  //
+  // The precedence inside `planVariableRenames`, pinned directly — the arm below checks the MAP, and a
+  // map can be perfect while the planner still reports a no-op as a refusal. Reverting the branch order
+  // passed the entire suite until this existed (mutation M3), which is the whole reason it does.
+  //
+  // On an EMPTY file nothing can migrate by any ordering, so no outcome may be a REFUSAL. That is the
+  // observed case: a fresh Figma file reported 37 refusals for rows with no source to move.
+  {
+    const rowsFor = (c: string) => map.variables.filter((r) => r.collection === c);
+    const colls = [...new Set(map.variables.map((r) => r.collection))];
+    ok(colls.length >= 2 && rowsFor(colls[0]).length > 0,
+      `rename-map(${brand}) #1087: the map spans ${colls.length} collection(s) with rows to plan — an empty map makes the two arms below vacuous`);
+
+    const onEmpty = colls.flatMap((c) => planVariableRenames([], [...(new Set<string>())], rowsFor(c)));
+    ok(onEmpty.length > 0 && onEmpty.every((o) => o.status === 'source-absent'),
+      `rename-map(${brand}) #1087: over an EMPTY file every outcome is 'source-absent', never a refusal — nothing can migrate when no source exists, and reporting that as 'target-not-planned' is what warned a user about 37 renames that had nothing to move (got ${[...new Set(onEmpty.map((o) => o.status))].join(', ')})`);
+
+    // And the converse, so the fix is a REORDERING rather than a weakening: a source that IS present
+    // with an unplanned target must still refuse.
+    const live = rowsFor(colls[0]);
+    const stillRefuses = planVariableRenames(live.map((r) => r.from), ['a-name-no-row-targets'], live);
+    ok(stillRefuses.length > 0 && stillRefuses.every((o) => o.status === 'target-not-planned'),
+      `rename-map(${brand}) #1087: …while a PRESENT source with an unplanned target still refuses — a variable that exists cannot be renamed to a name the plan does not write (got ${[...new Set(stillRefuses.map((o) => o.status))].join(', ')})`);
+  }
+
   // ---- #1087: THE MAP, CHECKED IN THE SPACE THE EXECUTOR ACTUALLY APPLIES IT IN ----
   //
   // Every arm above walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
@@ -11935,6 +11961,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // The primary projection of the same contract path: same suffix, rooted at the primary collection.
       const primary = primaryOf(r.collection);
       const twinTo = primary ? [primary, ...r.to.split('/').slice(1)].join('/') : null;
+      // A row in a PRIMARY collection is never a mirror, whatever its twin says — `primaryOf` returns
+      // null for one, and that null is load-bearing rather than defensive: without it the bucket is an
+      // escape hatch that absorbs any unplanned row, and mutation M4 widened it to exactly that.
       if (primary && twinTo && (plannedBy.get(primary)?.has(twinTo) ?? false)) { mirrorRows++; continue; }
       breaks.push(`[${r.collection}] ${r.from} → ${r.to} (not planned in '${r.collection}'${primary ? `; its primary '${primary}' does not carry ${twinTo} either` : '; and it is not a mirror of any collection'})`);
     }
