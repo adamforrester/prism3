@@ -215,9 +215,28 @@ degenerate case, so there is one mechanism and not three.
 
 **Check 1 — totality, at the commit that renames. Needs git; this is the forcing function.** Read the
 committed emission at the merge base and the emission in the working tree. Every name that
-disappeared must be claimed by exactly one rule; every name that appeared must be some claimed name's
-image; and **every rule must be evaluated over the whole before-set, not only over the names that
-moved.** That last clause is not a refinement, it is what makes the check two-sided — measured below.
+disappeared must be claimed by exactly one rule; and **every rule must be evaluated over the whole
+before-set, not only over the names that moved.** That last clause is not a refinement, it is what makes
+the check two-sided — measured below.
+
+> **Corrected 2026-08-26 (#1053).** This paragraph read *"every name that appeared must be some claimed
+> name's image"* and that rule is **wrong**. It was implemented faithfully in #1039 and made the gate
+> fail every PR that adds a token — with the artifact empty, every added key is unclaimed. #1051 was
+> blocked by it.
+>
+> **Removals and additions look symmetric and are not.** An unclaimed **removal** may be a silent
+> rename: a name left, and a binding that followed it now points at a variable the engine has stopped
+> writing. An unclaimed **addition** is a new token, and *there is nothing it could be hiding* — a
+> rename's tell is always on the removal side, because a rename is a name LEAVING. The arrival is what
+> every ordinary additive change also does, so it carries no information.
+>
+> The reason is stated here rather than only the rule, because the two arms look alike and an
+> unexplained asymmetry invites being "simplified" back to symmetric. Enumerated: every way an addition
+> could be suspicious is caught by another arm — a rename whose removal no rule claims is an
+> **unaccounted removal**; a rule claiming `A → B` where `A` was never removed, or where `B` never
+> appears, is a **contradicted claim**. The addition arm had no detection power of its own and cost
+> every additive change. Additions are still counted and reported as diagnostic context; they are not a
+> verdict.
 
 **Check 2 — non-staleness, every run. No git.** For every rule, no domain member is still emitted and
 every image is emitted. This is exactly the invariant `test.ts` already pins on the derived variable
@@ -233,7 +252,13 @@ Figma:
 |---|---|---|---|
 | complete | complete rename | TOTAL | TOTAL |
 | **under-covers** (`color` only) | complete rename | **846–964 unaccounted** | **846–964 unaccounted** |
-| **over-claims** (all) | `color`-only rename | **TOTAL — blind** | **463 contradicted claims** |
+| **over-claims** (all) | `color`-only rename | **TOTAL — blind** | **423–482 contradicted claims** |
+
+Both figures are **ranges across the three brands**, and per brand they are: under-covers 846 / 926 /
+964 (nb / aurora / wendys), over-claims 423 / 463 / 482 — the latter aggregating to **1,368**, which is
+what the gate prints. *(Corrected 2026-08-26, #1047: this row read a bare "463", which is aurora's
+figure alone, sitting in the same column as a range. Derived independently in #1039 from the committed
+emission: 659 / 699 / 718 keys per brand, `color` 236 in every brand.)*
 
 The under-covering row is the forcing function firing: it names the unaccounted removals and additions
 individually (`border-width :: border-width/none` → `border-width :: nbds/border-width/none`), so a
@@ -294,8 +319,11 @@ one that bites.
    `actions/checkout@v4`, which is a depth-1 shallow clone: no merge base, no `HEAD~1`. Every existing
    git-reading gate uses `git ls-files`, which needs no history. So check 1 would pass locally, where
    history exists, and be unable to run in CI — the failure mode where the author sees green for a
-   reason CI does not share. It needs `fetch-depth: 2` (or `0`) added, and the gate must **fail loudly
-   when it cannot find a base ref**, never skip.
+   reason CI does not share. It needs **`fetch-depth: 0`** added, and the gate must **fail loudly when it
+   cannot find a base ref**, never skip. *(Corrected 2026-08-26, #1047: this read "`fetch-depth: 2` (or
+   `0`)". **Depth 2 is not sufficient** — it gives `HEAD~1`, which is the base only on a branch exactly
+   one commit long; a merge base against `origin/main` sits at the branch point, an unbounded number of
+   commits back.)*
 7. **The 659–718 figure is three brands, all engine-generated.** A client file may hold variables the
    engine never emitted. Those are `source-absent`/untouched by construction, but the count is not a
    claim about real files.
@@ -334,7 +362,7 @@ emitted, every image is emitted, plus the two floors. A **floor** is required in
 is the docs/34 shape 9 guard: assert the emission the accounting walks is non-empty (2,076 names
 across three brands today), because a reader that finds nothing accounts for everything.
 
-**`ci.yml`** — `fetch-depth: 2` on the checkout, and CLAUDE.md §4 / `CONTRIBUTING.md` §3 / the PR
+**`ci.yml`** — `fetch-depth: 0` on the checkout (see §6.6 — not `2`), and CLAUDE.md §4 / `CONTRIBUTING.md` §3 / the PR
 template gain the gate, per `lint-doc-gates.ts`.
 
 **The `stripNs` invariant needs a gate, not a comment.** `stripNs` is
