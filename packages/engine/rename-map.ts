@@ -404,8 +404,26 @@ export const planVariableRenames = (
     const at = (r: VarRename, status: RenameStatus): RenameOutcome =>
       ({ kind: 'variable', collection: r.collection, from: r.from, to: r.to, status });
     const live = group.filter((r) => have.has(r.from));
-    if (!want.has(to)) out.push(...group.map((r) => at(r, 'target-not-planned')));
-    else if (live.length === 0) out.push(...group.map((r) => at(r, 'source-absent')));
+    // NO LIVE SOURCE IS TESTED FIRST, and the order is the whole of #1087.
+    //
+    // Reversed — `target-not-planned` first — a row with nothing to migrate is reported as a REFUSAL
+    // rather than as the benign no-op it is, and `isRefusal()` counts it. Measured on `main`: **37 of
+    // the 80 derived rows** came back `target-not-planned` on a FRESH, EMPTY file, where by
+    // construction no source exists and nothing could have been migrated by any ordering. All 37 are
+    // `surface` MIRROR rows whose `color` twin is planned and does migrate, so nothing was ever lost —
+    // the user was warned about a filter doing its job.
+    //
+    // This module's own header already described the correct behaviour: *"the mirror that has no
+    // counterpart in a given file simply reports `source-absent`, so over-projecting is
+    // self-correcting."* That is the design; the branch order was not it. `projectionsOf` over-projects
+    // DELIBERATELY (`MIRRORED_COLLECTIONS`), and this is where the over-projection is supposed to be
+    // absorbed quietly.
+    //
+    // A source that IS present with an unplanned target is still `target-not-planned` — a real refusal,
+    // because a variable exists and cannot be renamed to a name the plan does not write. That case is
+    // untouched, which is what makes this a reordering rather than a weakening.
+    if (live.length === 0) out.push(...group.map((r) => at(r, 'source-absent')));
+    else if (!want.has(to)) out.push(...group.map((r) => at(r, 'target-not-planned')));
     else if (have.has(to)) out.push(...live.map((r) => at(r, 'target-occupied')));
     else if (live.length > 1) out.push(...live.map((r) => at(r, 'ambiguous-source')));
     else out.push(at(live[0], 'migrated'));

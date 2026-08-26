@@ -11891,6 +11891,60 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const misfiled = colorRows.filter((r) => idx.get(r.to) !== r.collection);
     ok(misfiled.length === 0,
       `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
+
+  // ---- #1087: THE MAP, CHECKED IN THE SPACE THE EXECUTOR ACTUALLY APPLIES IT IN ----
+  //
+  // Every arm above walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
+  // executor does NOT: `upsertCollection` filters per collection and tests each target against THAT
+  // collection's planned names. So 37 `surface` rows were checked by nothing at all, and a green suite
+  // coexisted with 37 runtime refusals (#1087). Emission-wide resolution and per-collection planning
+  // are two different questions, and the gate was only ever asking the first.
+  //
+  // Three buckets, and the classification is the point:
+  //
+  //   · PLANNED   — the target is in its own collection's plan. The row can fire.
+  //   · MIRROR    — a non-primary projection (`MIRRORED_COLLECTIONS`) whose target the partial mirror
+  //                 does not carry, and whose PRIMARY twin is planned. `projectionsOf` over-projects
+  //                 deliberately and says so; this is the over-projection, and it is expected.
+  //   · BREAK     — neither. A row that can never fire and whose real variable is not migrating
+  //                 elsewhere either. This is what nothing was checking.
+  //
+  // A mirror row is admitted ONLY when its primary twin is planned. That conjunction is what stops the
+  // bucket becoming an excuse: a genuinely broken mirror row, whose primary is also unplanned, is a
+  // BREAK and fails here.
+  {
+    const plannedBy = new Map<string, Set<string>>();
+    for (const f of readdirSync(resolve(HERE, `./out/figma/${brand}`))) {
+      const j = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/${f}`), 'utf8'));
+      if (!j.$collection || !Array.isArray(j.variables)) continue;
+      if (!plannedBy.has(j.$collection)) plannedBy.set(j.$collection, new Set<string>());
+      for (const v of j.variables) plannedBy.get(j.$collection)!.add(v.name);
+    }
+    // The PRIMARY collection for a mirror row is the `MIRRORED_COLLECTIONS` KEY, not the row's own
+    // root — the row's `to` has already been re-rooted into the mirror, so reading it back asks the
+    // same question twice and every mirror row classifies as a break. (It did, on the first run.)
+    const primaryOf = (coll: string): string | null => {
+      for (const [key, mirrors] of Object.entries(MIRRORED_COLLECTIONS))
+        if (key !== coll && mirrors.includes(coll)) return key;
+      return null;
+    };
+    const breaks: string[] = [];
+    let plannedRows = 0, mirrorRows = 0;
+    for (const r of map.variables) {
+      if (plannedBy.get(r.collection)?.has(r.to)) { plannedRows++; continue; }
+      // The primary projection of the same contract path: same suffix, rooted at the primary collection.
+      const primary = primaryOf(r.collection);
+      const twinTo = primary ? [primary, ...r.to.split('/').slice(1)].join('/') : null;
+      if (primary && twinTo && (plannedBy.get(primary)?.has(twinTo) ?? false)) { mirrorRows++; continue; }
+      breaks.push(`[${r.collection}] ${r.from} → ${r.to} (not planned in '${r.collection}'${primary ? `; its primary '${primary}' does not carry ${twinTo} either` : '; and it is not a mirror of any collection'})`);
+    }
+    ok(map.variables.length >= 40,
+      `rename-map(${brand}) #1087: the derived map is populated (${map.variables.length} rows) — every claim below is "every row that …", vacuously true of none`);
+    ok(plannedRows + mirrorRows + breaks.length === map.variables.length && plannedRows > 0 && mirrorRows > 0,
+      `rename-map(${brand}) #1087: every row classifies, and BOTH live buckets are non-empty — planned ${plannedRows}, mirror ${mirrorRows}, break ${breaks.length}. A classifier that put everything in one bucket would make the arm below unfalsifiable`);
+    ok(breaks.length === 0,
+      `rename-map(${brand}) #1087: every derived row's target is planned IN ITS OWN COLLECTION, or is an expected mirror over-projection whose primary twin is planned — checked in the executor's space, not emission-wide${breaks.length ? ` — BREAKS: ${breaks.slice(0, 3).join(' · ')}` : ''}`);
+  }
   }
 
   // A cross-root `replacedBy` is a MOVE, not a rename: the variable would have to change collection, and
