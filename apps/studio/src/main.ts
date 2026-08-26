@@ -1168,7 +1168,13 @@ const renderPrimitives = (host: PageHost): void => {
   });
   brandSec.append(addButton('+ Add brand color', () => {
     // Materialize on the EDIT (see the note on `list` above) — adding a palette IS an edit, so it is
-    // allowed to move `brandState`, and after this `list` and `arr` are the same array either way.
+    // allowed to move `brandState`. `list` and `arr` are the same array only when the input already had
+    // one; with `brandColors` absent, `list` is the detached `[]` from this render and `arr` is a new
+    // array now on `brandState`. That divergence is unreachable rather than handled: the detached case is
+    // the empty one, so the `forEach` above rendered no rows and nothing holds a reference to `list` —
+    // and `applyFull()` re-renders against the materialized array immediately. An earlier version of this
+    // comment claimed they were the same array either way, which is false in exactly the case the fix
+    // above creates; the reassurance was the wrong shape even though the code is right.
     const arr = brandState.brandColors ?? (brandState.brandColors = []);
     const names = new Set(arr.map((b) => b.name));
     let n = arr.length + 1, nm = `accent${n}`;

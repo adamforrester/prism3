@@ -273,6 +273,9 @@ const SWEEP_FIELD_FLOOR = 250;
  *  labels, a hint and the example rows, and a floor near the real number would fail on wording. */
 const BRANDMENU_FIELD_FLOOR = 3;
 const BRANDMENU_TEXT_FLOOR = 6;
+/** The three by IDENTITY — Name, Namespace, the import textarea. Named because the floor above can only
+ *  say "three of something", and #1031 was a defect in a specific field, not in a quantity of fields. */
+const BRANDMENU_CONTROLS = ['input.bm-in', 'input.bm-in.mono', 'textarea.bm-ta'];
 
 // ---- browser plumbing ------------------------------------------------------------------------
 const browser = await chromium.launch();
@@ -870,8 +873,16 @@ for (const brand of BRANDS) {
       `${where}: the shell resolves a light-only color-scheme (resolved "${resolved}") — the studio paints every surface from light tokens, so opting into dark hands the UA half of a pairing it cannot see`);
     const probe = await page.evaluate(LEGIBILITY_PROBE, '.brandmenu');
     ok(probe.rootFound, `${where}: the popover is mounted and was measured`);
+    // WHICH controls, not how many. A count of three passes the day Namespace stops rendering and some
+    // fourth control appears in its place, while still reading as "Name, Namespace and the textarea were
+    // checked" — CLAUDE.md's rule that a scope must assert each promised surface is REPRESENTED. The
+    // count stays underneath as a non-empty floor, which is a different and weaker claim.
+    const seenCls = new Set(probe.fields.map((r) => r.cls));
+    for (const want of BRANDMENU_CONTROLS) {
+      ok(seenCls.has(want), `${where}: ${want} is mounted and was measured (saw ${[...seenCls].join(', ') || 'no controls at all'})`);
+    }
     ok(probe.fields.length >= BRANDMENU_FIELD_FLOOR,
-      `${where}: measured ${probe.fields.length} form control(s) inside the popover (floor ${BRANDMENU_FIELD_FLOOR} — Name, Namespace, the import textarea)`);
+      `${where}: measured ${probe.fields.length} form control(s) inside the popover (floor ${BRANDMENU_FIELD_FLOOR})`);
     ok(probe.text.length >= BRANDMENU_TEXT_FLOOR,
       `${where}: measured ${probe.text.length} text node(s) inside the popover (floor ${BRANDMENU_TEXT_FLOOR})`);
     menuFields += probe.fields.length;
@@ -906,14 +917,21 @@ console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover
 // of what the copy should say (docs/34 shape 2: an oracle assembled from the subject's own template
 // cannot disagree with it). Swapping the two slots, dropping one, or collapsing them again fails here.
 //
-// WHAT THIS CANNOT REACH, stated rather than implied: the case that actually regressed. `new` only
-// becomes an origin through the plugin branch of `+ New brand` (`PRISM3_HOST === 'figma'`); the web
-// bundle's branch returns to the start moment and never stages a load, so no studio artifact can
-// produce that pair of phrases at all. Same shape as #1031's third finding, on a different property —
-// the plugin-only branches of shared UI are read by nothing — and it belongs with #1041, which already
-// renders `dist/ui.html` and needs assertions rather than a harness. The `new` case here is held by
-// hand measurement on the built plugin bundle and by the type on `where`, not by this gate.
+// SCOPE, and the first version of this paragraph got it wrong in the direction that mattered. It said
+// `new` becomes an origin only through the plugin branch of `+ New brand`, and routed the just-regressed
+// case to #1041 as structurally out of reach. False: the START SCREEN hands `loadBrand` a `{ kind: 'new' }`
+// origin from both "Create theme →" and "Start blank" (`main.ts` 8448/8458), with no host gate on either
+// path, so `provenance.origin.kind === 'new'` is ordinary web-bundle state — and the AT-RISK slot, which
+// is the slot #722 had right and #1033 broke, is reachable here. Scenario B below drives it.
+//
+// What is true is only the narrower claim: no studio artifact can produce the PAIR of `new` phrases,
+// because the arriving side needs `stageLoad(NEW_BRAND(), { kind: 'new' })` and that call really is behind
+// `PRISM3_HOST === 'figma'`. Generalizing from "the arriving slot is plugin-only" to "the `new` case is
+// plugin-only" is the same move this section's own subject makes — reasoning from the new position and
+// losing the old one — and per docs/34 a stated limit wider than the real one reports blindness as a
+// boundary. The arriving `new` label stays held by hand measurement on the built plugin bundle.
 console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
+// A — both slots naming examples, which is the shape most reachable from the start screen.
 {
   const [atRisk, arriving] = BRANDS;                        // loaded first, then replaced by the second
   const { ctx, page, drain } = await openBrand(atRisk);
@@ -938,7 +956,37 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
   const errs = drain();
   ok(errs.length === 0, `overwrite confirm: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
-  console.log(`  "${said}"`);            // what RENDERED, so a red run's log is not the expectation
+  console.log(`  A "${said}"`);          // what RENDERED, so a red run's log is not the expectation
+}
+
+// B — the AT-RISK slot naming `new`. This is the case #1033 regressed and the case the first version of
+// this section claimed no studio artifact could reach: enter through "Start blank" (origin `new`, no host
+// gate), edit, then click an example. Same three steps as A, one different entry path.
+{
+  const arriving = BRANDS[0];
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 1200 } });
+  const page = await ctx.newPage();
+  const drain = watchErrors(page);
+  await page.goto(`${ORIGIN}/index.html`, { waitUntil: 'networkidle' });
+  // `button.start-alt`, not `.start-alt`: the file-upload <label> shares the class, and the bare selector
+  // is a strict-mode violation rather than a wrong click — but only the button carries the `new` origin.
+  await page.locator('button.start-alt').click();          // "Start blank" → loadBrand(NEW_BRAND(), { kind: 'new' })
+  await page.waitForSelector('.stage.active');
+  await page.locator('.brandsel').click();
+  await page.waitForSelector('.brandmenu .bm-in');
+  await page.fill('.brandmenu .bm-in', 'renamed-in-smoke');
+  await page.locator('.brandmenu .bm-item').filter({ hasText: arriving }).first().click();
+  await page.waitForSelector('.brandmenu .bm-confirm');
+
+  const said = (await page.textContent('.brandmenu .bm-confirm')).trim();
+  // "this new brand", not "a new brand": the at-risk brand IS on screen, so the phrase points at it.
+  // Collapsing `originLabel`'s two positions back to one string fails HERE and nowhere else.
+  const want = `Replace the current brand with the ${arriving} example? Your edits to this new brand are not saved anywhere else.`;
+  ok(said === want, `the at-risk slot names a new brand deictically — got "${said}"`);
+  const errs = drain();
+  ok(errs.length === 0, `overwrite confirm (new at risk): 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+  console.log(`  B "${said}"`);
 }
 
 // =============================================================================================

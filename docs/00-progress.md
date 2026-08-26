@@ -414,6 +414,14 @@ every Examples click in a themed file with nothing to lose, which is the "fires 
 clicked through" failure `provenance.ts`'s own header says the dirty check exists to prevent, and it
 also kept #1034's marker permanently off. Materialization moved into the add handler.
 
+One more review nit, and it is a comment rather than code: the add handler's note said `list` and `arr` were
+"the same array either way" after materializing, which is false in exactly the case the fix creates — with
+`brandColors` absent, `list` is the render's detached `[]` and `arr` is a new array now on `brandState`. The
+code is right for a reason the comment did not give: the detached case is the *empty* one, so that render
+drew no rows and nothing holds `list`, and `applyFull()` immediately re-renders against the materialized
+array. Divergence unreachable, not handled — worth saying, because a false reassurance is what a later
+reader trusts instead of re-deriving.
+
 **Correction taken in review, and it is about the instrument, not the answer.** "The four sibling
 materializations" was a sample of **six**. `modeLevers`, `interactivePalettes`, `modeAnchors` and
 `overrides` use `x ?? (x = …)`; `customModes` uses the same form and was missed reading the grep's own
@@ -446,21 +454,30 @@ cards ship and surface in a client Figma session as 'the style guide has invisib
 measures every visible `input`/`textarea`/`select`'s ink **and caret** against its own composited field
 ground, and a new section 4 opens the brand menu on every corpus brand under both emulated color
 schemes, types into the Name field (an empty field renders no glyphs, so a pristine input asserts a
-pairing that is not on screen) and floors the popover's own control and text counts — the count is what
-turns "the sweep was clean" into "the sweep looked here". **951 assertions, up from 942** (946 for #1031's
-two findings, five more for the confirm sentence below); 506 form controls now measured across the 72
-sweep states, 12 inside the popover. **(3) is residual and filed.**
+pairing that is not on screen) and checks the popover's own controls — **by identity first, count second**.
+The count turns "the sweep was clean" into "the sweep looked here", but a count can only say *three of
+something*, and #1031 was a defect in a specific field. So `BRANDMENU_CONTROLS` names the three —
+`input.bm-in`, `input.bm-in.mono`, `textarea.bm-ta` — and asserts each was mounted **and measured**,
+printing what it did see when one is absent; the floor stays behind it as the weaker "and nothing else
+vanished" check. (Held as a review nit: the probe's rows already carried `cls`, so the identity was in hand
+and only the assertion was reading past it. CLAUDE.md's rule is that a gate's scope must assert each
+promised surface is *represented*, never merely count files, and a count of fields is the same shape one
+level down.) **965 assertions, up from 942** (946 for #1031's two findings, then the confirm sentence and
+its second scenario below); 506 form controls now measured across the 72 sweep states, 12 inside the
+popover. **(3) is residual and filed.**
 
-**Mutation-verified, and the fourth mutation is the honest one:**
+**Mutation-verified, and the two rows carrying a NO are the ones worth reading:**
 
 | mutation | caught by name? |
 |---|---|
 | `.bm-in { color: #f4f4f5 }` (near-invisible on `--paper`) | **yes** — 4 popover assertions, naming the class, the typed value, 1.01:1 and the caret |
 | `.num { color: #f0f0f0 }` | **yes** — 6 sweep states, and by the FIELD assertion only; the text walk stayed silent, which is finding 2 demonstrated |
-| Namespace field never appended | **yes** — the popover control floor, 4 states, plus the cross-state total |
+| Namespace field never appended | **yes** — 9 of 965, and now **by class**: *"`input.bm-in.mono` is mounted and was measured (saw `input.bm-in`, `textarea.bm-ta`)"* in all 4 states, the floor and the cross-state total behind it |
+| the two confirm slots swapped at the call site | **yes** — section 5 by name, printing the sentence that rendered |
+| `case 'new'` collapsed back to one string (*the round-1 regression*) | **NO at 951** — typechecked clean, because `where` stays in the signature. **yes at 965**, once scenario B existed: *"the at-risk slot names a new brand deictically — got …a new brand…"* |
 | `color-scheme: light dark` added to `apps/studio/index.html` | **NO — 946/946 passed.** The claim in the first draft of that section's comment was false |
 
-The fourth is why the section reads the way it does. #1031 needs *two* halves — the document opts into
+The last row is why section 4 reads the way it does. #1031 needs *two* halves — the document opts into
 dark **and** a control leaves its `color` to the UA — and the per-control half of this very fix made
 the second half false in the studio, so a ratio assertion under emulated dark now catches the class
 only in combination with a *new* control that omits `color`. That is a real but compound tripwire, and
@@ -483,20 +500,32 @@ rather than a second switch for the reason the original generalization was right
 functions differing in one case drift apart.
 
 A new smoke section 5 reads the sentence — the first assertion of any kind on this string, against a
-**hand-authored** expected sentence rather than one assembled from the app's own template. It catches a
-swapped or dropped slot. It cannot catch the case that actually regressed: `new` becomes an origin only
-through the plugin branch of "+ New brand", so the web bundle cannot produce that pair of phrases at all.
-That is #1031's third finding again, on a different property — **the plugin-only branches of shared UI are
-read by nothing** — and it is now the second defect in this PR to have arrived through that gap. It belongs
-with #1041.
+**hand-authored** expected sentence rather than one assembled from the app's own template. Two scenarios:
+**A** enters through an example and clicks another, so the at-risk slot says "the aurora example"; **B**
+enters through "Start blank", renames, then clicks an example, so the at-risk slot says "this new brand" —
+the case that regressed.
 
-**Both halves of that were mutated, and the second is the one worth reading:** swapping the two slots at
-the call site fails section 5 by name, printing the wrong sentence. Collapsing `new` back to one string —
-*the exact regression this paragraph is about* — **passes 951/951, and typechecks clean**, because `where`
-stays in the signature and no rule notices the body stopped reading it. So the gate covers the shape of the
-sentence and nothing covers the case, which is what the section's comment says rather than leaving a reader
-to assume a new test means a caught bug. The `new` sentence itself is verified by hand on the built plugin
-bundle: two clicks from boot now read *"Replace the current brand with a new brand? Your edits to this new
+**Scenario B exists because the first draft of this paragraph was wrong, and held in review for it.** It
+claimed `new` becomes an origin only through the plugin branch of "+ New brand", and concluded the case was
+structurally out of the studio's reach and therefore belonged with #1041. `new` has **three** producers:
+`main.ts:8448` ("Create theme →") and `main.ts:8458` ("Start blank") both hand `loadBrand` a `{kind:'new'}`
+origin with **no host gate at all**, and `main.ts:7863`'s `stageLoad(NEW_BRAND(), { kind: 'new' })` is the
+one that is plugin-gated. Only the narrower claim is true: no studio artifact can produce the *pair* of
+`new` phrases, because the ARRIVING side needs the gated producer. What was reachable all along — and is
+where the regression rendered — is the at-risk slot alone. The move that produced the error is the same one
+the paragraph above diagnoses in `originLabel`: a true statement about one position ("the arriving slot is
+plugin-only") generalized to the case ("the `new` case is plugin-only"), and it was the generalization that
+routed a six-line assertion to a filed issue.
+
+**Both halves were mutated, and the second is the one worth reading:** swapping the two slots at the call
+site fails section 5 by name, printing the wrong sentence. Collapsing `new` back to one string — *the exact
+regression this paragraph is about* — **passed 951/951 and typechecked clean** before scenario B existed,
+because `where` stays in the signature and no rule notices the body stopped reading it. With scenario B it
+fails by name, at 965 assertions. That is the whole value of having disclosed the failing mutation row
+rather than reporting a green suite: the row that said NO is what made the gap actionable in review.
+
+The plugin's own pairing is still verified by hand on the built plugin bundle, because no gate renders it
+(#1041): two clicks from boot read *"Replace the current brand with a new brand? Your edits to this new
 brand are not saved anywhere else."*, first click loads straight through with no confirm, 0 console errors.
 
 That hand pass turned up one more thing, filed as **#1075**: both `.cur` markers in the menu are computed
