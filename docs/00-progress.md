@@ -99,8 +99,24 @@ mutation, which you expect — it is the cleanup, which you do not.
 
 **#1091** — 37 of 80 derived rows (46%) can never fire in the collection they are filed under, and
 nothing counts that ratio. The over-projection is deliberate and self-correcting; whether 46% is the
-right shape is undecided, and the namespace work multiplies it to corpus width. Three options costed
-there, including why `projectionsOf` cannot simply consult the emission.
+right shape is undecided. Three options costed there, including why `projectionsOf` cannot simply
+consult the emission.
+
+**One sentence of that filing was wrong, and it was the sentence carrying its priority.** I wrote that
+the namespace work "adds rules to this same mechanism at every-variable width," which would have made
+46% a corpus-width problem. Challenged, checked, false: there is **no composition step** —
+`composeVariableRenames` does not exist in the tree — and `MIRRORED_COLLECTIONS` has exactly **one**
+production use, `rename-map.ts` inside `projectionsOf`, which only ever runs over `DEPRECATIONS`.
+`MATERIALIZATION_RENAMES` is a separate map that nothing mirrors and that **does not reach the executor
+at all** — #1039 shipped the mechanism and its checks, not the wiring. So the 46% stays at 80 rows and
+this is tidiness, not urgency. The issue body is corrected and the answer is on the thread.
+
+*The measured claims in that issue all held; the one that failed was the only sentence no command had
+produced.* What survives as worth watching is the consequence rather than the count: because
+`MATERIALIZATION_RENAMES` is unwired, the namespace work **must** add that wiring, and that is the
+moment someone could give materialization rules the mirror treatment by symmetry with the map beside
+them — `MaterializationRule.map` returns a name and never a collection, so mirroring cannot fall out of
+the shape; it would have to be added on purpose.
 
 
 ## (2026-08-26) — the tier swap: `color.appearance` holds the values, `color` holds the pointers (#1013)
