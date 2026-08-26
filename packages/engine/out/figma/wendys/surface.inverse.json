@@ -1953,6 +1953,102 @@
         "type": "VARIABLE_ALIAS",
         "name": "color/text/on-inverse/warning-subtle"
       }
+    },
+    {
+      "name": "surface/veil/dark/body",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "veil.dark.body for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/veil/dark/body"
+      }
+    },
+    {
+      "name": "surface/veil/dark/enhanced",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "veil.dark.enhanced for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/veil/dark/enhanced"
+      }
+    },
+    {
+      "name": "surface/veil/dark/large",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "veil.dark.large for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/veil/dark/large"
+      }
+    },
+    {
+      "name": "surface/veil/light/body",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "veil.light.body for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/veil/light/body"
+      }
+    },
+    {
+      "name": "surface/veil/light/enhanced",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "veil.light.enhanced for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/veil/light/enhanced"
+      }
+    },
+    {
+      "name": "surface/veil/light/large",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "veil.light.large for the inverse surface context — an alias into the color collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "color/veil/light/large"
+      }
     }
   ]
 }

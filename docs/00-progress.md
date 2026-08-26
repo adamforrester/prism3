@@ -221,6 +221,133 @@ and #1040's modes and styles.
 
 ---
 
+## (2026-08-25) — The veil is not the scrim, and the free gate that was supposed to prove it does not (#1030)
+
+**STATUS: shipped.** Six new guaranteed paths — `color.veil.{dark,light}.{large,body,enhanced}` —
+derived, appearance-invariant, and deliberately *not* under `scrim.*`. `color.scrim.default` is
+untouched. `CONTRACT_VERSION` 5.3.0 → 5.4.0 (MINOR, 580 → 586 guaranteed), `ENGINE_VERSION` 0.24.0 →
+0.25.0. Decision record: `docs/20` §8.1, indexed in `docs/42`.
+
+**The framing correction, first, because it changes the answer.** #1030 raises "derived or fixed?" as
+the interesting question and frames six hardcoded alpha steps as *the first colour family here not
+generated against a contrast contract*. That framing does not survive a look at the code it is about.
+The line immediately above where the veil now sits is
+`const scrimStep = hc ? (cfg.family === 'light' ? 60 : 70) : (cfg.family === 'light' ? 40 : 60);`
+with `ratio: 1`, `against: 'self'`, `min: 0` — a hardcoded step per mode and no contrast derivation
+anywhere. So hardcoding the veil would have been *consistent*, not exceptional, and the issue's
+argument for deriving it was resting on a property the neighbour does not have. **It is derived
+anyway**, for a better reason than the one the issue gave: the veil derives more cleanly than most
+roles, because its ground is a constant.
+
+**Why the ground is a constant, and why the invariance follows rather than being asserted.** What a
+veil composites over is a photograph, so the thing to protect against is *the worst pixel it could
+contain*: sRGB white under a dark veil, sRGB black under a light one. The worst pixel and the ink are
+the same extreme, and not by coincidence — the pixel that hurts is the one pulling the composite
+toward the ink, so a dark veil's worst case is white-on-white. Neither extreme is a theme surface, so
+no mode input reaches the derivation and no mode *can* move the result. Both polarities are live in
+every mode, because an image has no polarity the theme can read. This is the first colour family in
+the engine with that property; every other one varies by appearance.
+
+**Minimality is what makes it a derivation.** Clearing a floor is the easy half — 90% clears
+everything. Each rung is therefore the **least** emitted alpha step that clears its floor, and the
+step *below* is asserted to fail. Measured: **dark 50/60/70, light 40/50/60** for 3:1 / 4.5:1 / 7:1.
+The light polarity is lower at every rung because sRGB gamma lifts a black pixel faster than it drops
+a white one — which is why rungs are named by the **floor** (`large`/`body`/`enhanced`), never by
+alpha: named that way, the asymmetry reads as the point instead of as an inconsistency.
+
+**Two measurements the issue asked for, and both changed what shipped.**
+
+- **Prism2's ladder is not inheritable.** It ships 40/60/80 in both polarities. 40% dark measures
+  **2.85:1** against white ink — under every floor — so its bottom rung buys nothing at all. Copying
+  three steps from the reference would have shipped a token whose only honest description is "a wash
+  that does not make text legible".
+- **Prism2 ships ZERO directional veil gradients.** #1030 says "several" and admits it did not count.
+  The only gradient in the entire reference corpus is `nbds.pds.color.gradient.brand.primary`. So
+  `gradient-styles.json` needs no change, the separate-emitter-path worry is moot, and the question
+  "how many directions do we ship" is answered by the count rather than by taste.
+
+**A third measurement, unprompted, that shaped the prose.** The floors assume the **pure** ink. At
+softened ink the margin is spent: rgb(235) on a dark veil still clears (4.82:1), but rgb(30) on a
+light veil drops `body` to **4.19:1**, under 4.5. So each `$description` names its ink explicitly
+("white text" / "black text") rather than claiming the floor for any ink — a claim the engine cannot
+verify is exactly what `docs/voice-standard.md` §2 bans.
+
+**THE TRAP, and the part worth reading if you are re-verifying this.** #1030 nominates
+`lint-overlay-completeness.ts` as "the cheapest real gate available here" — a veil leaf appearing in
+any overlay means something gave it mode variance — and asks for the arm to be confirmed by mutation.
+**The arm does not fire from the producer side, and the gate reports the mutated build as clean.**
+Mutation-tested: give `veil.dark.body` mode variance in `modes.ts` and the gate passes, in *both*
+forms — without a regen and with one — and simply counts the new varying leaf into its own summary
+(2385 → 2393 varying leaves, "✓ clean"). The reason is in the gate's design and is correct for what it
+was built for: it compares the canonical `modes` extension to the emitted overlays, **both committed
+artifacts**, so mode variance genuinely present on both sides *is* agreement. Its arm B does fire by
+name — the mutation that triggers it is on the **artifact** (inject a veil leaf into
+`harbor.hc-dark.overlay.tokens.json` → `EXTRANEOUS in the overlay — 'prism.color.veil.dark.body'`).
+Two different mutations, two different gates, and only one of them is about the veil.
+
+So the invariance is held by a **new `test.ts` §9c**, and the difference is the reason it exists: it
+asserts a *property of one artifact* (every `modes.*.$value` equals base, in every emitted tree)
+rather than an agreement between two, which is the only shape a producer change cannot satisfy by
+moving both sides. Under the same mutation it fails and names the leaf, the brand, the mode and both
+values. The section header says this, so the next reader does not repeat the false expectation.
+Independence per `docs/34` shape 1: §9c states WCAG's 3 / 4.5 / 7 **itself** and imports `VEIL_RUNGS`
+only to check the table against them; `composite`/`contrast` are imported as the *measurement*, never
+as the expected value — the same posture `lint-ratio-truth.ts` takes.
+
+**Decisions, with the cost of the road not taken.**
+
+- **Tier: `color.veil.*`, not `opacity.veil.*`.** The two references disagree and not accidentally
+  (Prism2 `color/surface/scrim/*`, NB `opacity/scrim/{light: 0.6, heavy: 0.8}`). Cost of the
+  alternative: Figma cannot bind an opacity number to a **fill**, so the polarity — the designer's
+  actual choice — would live in no token; and NB's reduced form names *magnitude*, not polarity, so it
+  cannot express the matrix even in principle. Optimized for the designer picking a fill in Figma. The
+  code consumer loses nothing, since the leaf resolves to an `rgba()`.
+- **Not under `scrim.*`, and not called `overlay`.** A scrim is one mode-varying role no designer
+  picks; a veil is six invariant variants a designer picks per image. Together, a picker shows
+  `scrim.default` beside `scrim.dark.40` with nothing but folklore distinguishing their behaviour —
+  membership-by-location, the defect `payload-manifest.json` exists to remove one tier down.
+  `overlay` was unavailable for a different reason: it already names the DTCG base+overlay projection,
+  and the collision would be paid in every filename and every conversation after.
+- **Emitted as `modes.ts` roles with identical mode entries, not as keyless leaves.** Measured before
+  choosing: of nb's 236 colour leaves, 228 vary, 8 are already invariant *with identical mode
+  entries*, and **0** lack a `modes` key. A keyless leaf would have introduced a second shape into the
+  exact extension #708 was about. Carrying the entries also buys `.ai.json`, the Figma `color`
+  collection, the `surface` collection and the inverse register for free.
+- **`against: 'self'`, `ratio: 1`, `min: 0`** — the `putSurf`/`scrim` posture. `lint-ratio-truth.ts`
+  arm A can only recompute against a role or a palette step, and no role names "the worst pixel of an
+  unknown photograph". The contract lives in the `$description` and is re-derived by §9c. Documented
+  at the call site, and filed as a vocabulary gap (below) rather than left as folklore.
+- **`INVERSE_GAPS`: `alias: 'self'`**, because an inverse band does not change the photograph — the
+  same token really is right on both grounds, which is what makes a self-alias correct here rather
+  than a placeholder. The existing `scrim.default` entry's closing clause had to be corrected in the
+  same edit: it named the hero/image dim as "a token that does not exist", which this PR made false.
+
+**Filed rather than folded in** (a note in a PR body is not filing):
+
+- **#1043** — `color.scrim.default`'s four alpha steps have no stated source, and now sit beside a
+  derived family. The live candidate the lane prompt named.
+- **#1044** — whether a component's veil rung escalates in HC. The token value must **not**:
+  escalating collapses the ladder, `body` lands on `enhanced`, and a rung named by its floor becomes a
+  lie. The right response is a component picking a higher rung, which nothing does and nothing forbids.
+- **#1045** — the roles vocabulary cannot express a non-token ground, so six roles with a specific
+  numeric contrast claim declare themselves as having none. Nothing is wrong today; the *reading* is.
+
+**Not folded in:** #940's `LEAF_OK` entry, which this issue unblocks. Its own decision, its own
+reasoning.
+
+**One downstream count moves, and finding it is the argument for hand-written censuses.** Because the
+six roles are registered `alias: 'self'`, `emit-figma-surface.ts` emits them automatically — so the
+`surface` Figma collection goes **122 → 128 rows** and its self-aliased set **10 → 16**. Both numbers
+are written by hand in `apps/plugin/test-write-surface.ts` and both failed, by name, on a run where
+every engine gate was already green. That is the census doing its job: a test that had derived those
+counts from the plan would have absorbed six new rows silently, and the six are only correct because
+of an argument about photographs that no count can check. Updated with the reason, not just the
+number. The `122` in `docs/00-progress.md`'s earlier entries and in `version.ts`'s `0.13.0` entry is
+left alone — both are records of their moment — with the new count stated in the `0.25.0` entry, which
+is where a reader of the old one should be sent.
+
+---
+
 ## (2026-08-25) — `verify` now refuses to run rather than let a fresh container talk a lane into "36/38 is fine" (#935)
 
 **STATUS: shipped.** Three PRs (#883, #910, #929) each hit the same two environment failures on a

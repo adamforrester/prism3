@@ -12,7 +12,7 @@
  * metadata that rots. Keeps tokens.json DTCG-pure (no non-standard sibling keys).
  */
 import { Theme } from './theme';
-import { resolveAllModes } from './modes';
+import { resolveAllModes, VEIL_RUNGS } from './modes';
 
 type AiToken = {
   $description: string;
@@ -59,6 +59,7 @@ const genMeaning = (group: string, variant: string): string => {
   if (group === 'text' || group === 'icon') return 'Content hierarchy / reading emphasis';
   if (group === 'border') return 'Separation / structure';
   if (group === 'scrim') return 'Background dimming / modal focus';
+  if (group === 'veil') return 'Text legibility over a photograph';
   return `${cap(group)} role`;
 };
 // the on-color target an on-* label sits on
@@ -131,6 +132,19 @@ const describe = (group: string, variant: string, state: string | undefined): { 
   }
 
   if (group === 'scrim') return { desc: 'Semi-transparent backdrop behind modals / drawers', when_to_use: 'The dimming layer behind a modal, dialog, or drawer.', avoid_when: 'Do not use as a solid surface or for any opaque element.', paired_with: ['foreground.inverse.primary'] };
+
+  // veil — the media wash (#1030). `variant` is the polarity, `state` the rung. A rung is a contrast
+  // floor, so the guidance is decision-shaped: pick by the text you are placing, then by the image.
+  if (group === 'veil') {
+    const floor = VEIL_RUNGS.find(([r]) => r === state)?.[1];
+    const ink = variant === 'dark' ? 'light' : 'dark';
+    return {
+      desc: `Media veil (${variant}) — ${floor}:1 for ${state === 'large' ? 'large text' : state === 'body' ? 'body text' : 'enhanced contrast'}`,
+      when_to_use: `A wash over a photograph or video so ${ink} text on top clears ${floor}:1 at the image's worst pixel. Pick the polarity from the image (${variant} veil under ${ink} text), then the rung from the text.`,
+      avoid_when: 'Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.',
+      paired_with: [variant === 'dark' ? 'text.on-inverse.primary' : 'text.primary'],
+    };
+  }
 
   // fallback
   return { desc: `${group} ${variant}${st}`, when_to_use: `Use as the ${group} ${variant} role.`, avoid_when: `Do not use outside the ${group} role.` };

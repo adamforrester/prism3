@@ -11,13 +11,13 @@
  *     Each must build and clear EVERY mode contract — the real robustness test.
  * Exits non-zero on any failure.
  */
-import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, RGB } from './color';
+import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
-import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT } from './modes';
+import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
 import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
@@ -4497,6 +4497,162 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     ok(byMode.get('light')?.['background.primary']?.alpha === undefined, 'resolved role: an opaque surface still carries no alpha');
   }
 }
+
+// (9c) THE MEDIA VEIL (#1030) — `color.veil.<polarity>.<rung>`, the wash that buys text legibility
+// over a photograph. Four properties, and each one is a different way the family can go wrong.
+//
+// ── WHY THIS SECTION EXISTS AT ALL, given `lint-overlay-completeness.ts` ────────────────────────
+//
+// That gate holds the invariance from one side: a veil leaf appearing in any mode's overlay means
+// something gave it variance it must not have, and it fires by name. What it CANNOT see is a
+// PRODUCER-side change — give the veil real mode variance in `modes.ts`, run `regen`, and the
+// canonical tree and the overlay move together, so the gate compares two consistent halves and stays
+// green. Arm B below is the arm that catches that, because it asserts a PROPERTY of one artifact
+// (base == every mode entry) rather than an agreement between two.
+//
+// ── THE INDEPENDENCE, stated because it is the whole value of arm A ─────────────────────────────
+//
+// The floors are written here as WCAG's three numbers — 3 (SC 1.4.3 large scale), 4.5 (SC 1.4.3),
+// 7 (SC 1.4.6 enhanced) — and NOT imported from `modes.ts`. `VEIL_RUNGS` is imported only to be
+// checked against them, so renaming a rung or retargeting one in the engine fails here instead of
+// being followed silently (`docs/34` shape 1: an expected value derived from the subject cannot
+// disagree with it). The primitives `composite`/`contrast` ARE imported, the same posture
+// `lint-ratio-truth.ts` takes: they are the measurement, not the expected value.
+{
+  // WCAG's floors, by the rung name each one is the contract for. This table is the second opinion.
+  const WCAG_FLOOR: Record<string, number> = { large: 3, body: 4.5, enhanced: 7 };
+  const WHITE_PX: RGB = { r: 255, g: 255, b: 255 }, BLACK_PX: RGB = { r: 0, g: 0, b: 0 };
+  // The worst pixel and the ink are the SAME extreme — the pixel that hurts is the one pulling the
+  // composite toward the ink — so one value per polarity drives both sides of the measurement.
+  const EXTREME: Record<string, RGB> = { dark: WHITE_PX, light: BLACK_PX };
+  const WASH: Record<string, RGB> = { dark: BLACK_PX, light: WHITE_PX };
+  const worstCase = (polarity: string, alpha: number): number =>
+    contrast(EXTREME[polarity], composite(EXTREME[polarity], WASH[polarity], alpha));
+
+  // The rung table the engine ships must mean what this file says it means.
+  const misnamed = VEIL_RUNGS.filter(([rung, floor]) => WCAG_FLOOR[rung] !== floor).map(([r, f]) => `${r}=${f}`);
+  ok(misnamed.length === 0 && VEIL_RUNGS.length === Object.keys(WCAG_FLOOR).length,
+    `veil: every rung names the WCAG floor it buys (large 3 / body 4.5 / enhanced 7)${misnamed.length ? ` — MISNAMED: ${misnamed.join(', ')}` : ''}`);
+
+  const veilInput = parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input;
+  const veilModes = resolveAllModes(brandTheme(veilInput));
+  const RAMP = [5, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+
+  // ARM A — DERIVED, AND MINIMAL. Clearing the floor is the easy half: 90% clears every floor on both
+  // polarities, so an assertion that stops at "clears" passes for six hardcoded numbers that happen to
+  // be large enough, and reports that as a derivation. What separates a derivation from a lookup is
+  // that the step BELOW fails — so both are asserted, per polarity, per rung.
+  {
+    const light = veilModes.find((m) => m.mode === 'light')!.roles;
+    const paths = Object.keys(light).filter((k) => k.startsWith('veil.'));
+    ok(paths.length === 6, `veil: six leaves — two polarities × three rungs (got ${paths.length}: ${paths.sort().join(', ')})`);
+    const notMinimal: string[] = [], short: string[] = [];
+    for (const polarity of ['dark', 'light']) {
+      for (const rung of Object.keys(WCAG_FLOOR)) {
+        const r = light[`veil.${polarity}.${rung}`];
+        if (!r?.alpha) { short.push(`veil.${polarity}.${rung} (no alpha)`); continue; }
+        const step = Math.round(r.alpha * 100);
+        const floor = WCAG_FLOOR[rung];
+        const got = worstCase(polarity, r.alpha);
+        if (got < floor) short.push(`veil.${polarity}.${rung}: ${step}% measures ${got.toFixed(2)}, below ${floor}`);
+        const below = [...RAMP].reverse().find((s) => s < step);
+        if (below !== undefined && worstCase(polarity, below / 100) >= floor)
+          notMinimal.push(`veil.${polarity}.${rung}: ${step}% but ${below}% also clears ${floor} (${worstCase(polarity, below / 100).toFixed(2)})`);
+      }
+    }
+    ok(short.length === 0,
+      `veil: every rung clears its WCAG floor at the image's WORST pixel${short.length ? ` — SHORT: ${short.join('; ')}` : ' (6 rungs)'}`);
+    ok(notMinimal.length === 0,
+      `veil: every rung is the LEAST ramp step clearing its floor — the step below fails, which is what makes it derived rather than looked up${notMinimal.length ? ` — NOT MINIMAL: ${notMinimal.join('; ')}` : ''}`);
+
+    // The polarity asymmetry is the derivation's signature, not a slip: sRGB gamma lets a white wash
+    // lift a black pixel faster than a black wash drops a white one, so the SAME rung is a lower alpha
+    // on the light side. Pinned because "make the two polarities match" is a tempting tidy-up that
+    // would silently break one of them.
+    const asym = Object.keys(WCAG_FLOOR).filter((rung) =>
+      (light[`veil.light.${rung}`]?.alpha ?? 0) >= (light[`veil.dark.${rung}`]?.alpha ?? 0));
+    ok(asym.length === 0,
+      `veil: the light polarity clears the same floor at a LOWER alpha than the dark one (sRGB gamma)${asym.length ? ` — NOT ASYMMETRIC: ${asym.join(', ')}` : ''}`);
+
+    // And the measurement that decided the ladder: Prism2's weakest step, inherited verbatim, buys
+    // nothing. 40% black over a white pixel is below even the 3:1 large-text floor — so the reference's
+    // 40/60/80 would ship a token whose purpose is contrast for text and which buys none for any text.
+    ok(worstCase('dark', 0.4) < 3,
+      `veil: Prism2's weakest dark step (40%) does NOT clear 3:1 at the worst pixel (${worstCase('dark', 0.4).toFixed(2)}) — why the ladder is derived, not inherited`);
+  }
+
+  // ARM B — APPEARANCE-INVARIANT, as a property of ONE artifact. This is the arm
+  // `lint-overlay-completeness.ts` cannot supply: it compares base to each mode entry inside the same
+  // emitted tree, so a producer change plus `regen` moves BOTH sides into disagreement rather than
+  // into agreement. Read off the committed trees, over every brand in `out/`, so a new brand is
+  // covered without editing this file.
+  {
+    const trees = readdirSync(resolve(HERE, './out'))
+      .map((f) => /^([a-z0-9-]+)\.tokens\.json$/.exec(f)?.[1]).filter((b): b is string => !!b).sort();
+    ok(trees.length >= 3, `veil: found brand trees to check invariance against (${trees.join(', ')})`);
+    const varying: string[] = [], missing: string[] = [];
+    let leaves = 0;
+    for (const brand of trees) {
+      const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+      const veil = tree[root]?.color?.veil;
+      if (!veil) { missing.push(brand); continue; }
+      for (const polarity of ['dark', 'light']) {
+        for (const rung of Object.keys(WCAG_FLOOR)) {
+          const leaf = veil[polarity]?.[rung];
+          if (!leaf) { missing.push(`${brand}:veil.${polarity}.${rung}`); continue; }
+          leaves++;
+          for (const [mode, entry] of Object.entries((leaf.$extensions?.prism3?.modes ?? {}) as Record<string, { $value?: unknown }>))
+            if (JSON.stringify(entry?.$value) !== JSON.stringify(leaf.$value))
+              varying.push(`${brand}/${mode}: veil.${polarity}.${rung} = ${JSON.stringify(entry?.$value)} vs base ${JSON.stringify(leaf.$value)}`);
+        }
+      }
+    }
+    ok(missing.length === 0, `veil: every brand emits all six leaves${missing.length ? ` — MISSING: ${missing.slice(0, 4).join(', ')}` : ` (${leaves} leaves across ${trees.length} brands)`}`);
+    ok(varying.length === 0,
+      'veil: appearance-INVARIANT — every mode entry equals base, because the derivation\'s ground is an ' +
+      'unknown photograph and a photograph has no polarity the theme can read' +
+      (varying.length ? ` — VARIES: ${varying.slice(0, 4).join('; ')}` : ''));
+
+    // ARM C — BOTH POLARITIES LIVE IN EVERY MODE, asserted on the VALUE and not just on presence. The
+    // failure this rules out is the plausible one: a veil whose polarity follows the theme, so that
+    // dark mode's `veil.light.*` quietly resolves to a black wash. Presence alone would not see it.
+    const wrongBase: string[] = [];
+    for (const brand of trees) {
+      const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${brand}.tokens.json`), 'utf8'));
+      const root = Object.keys(tree).find((k) => !k.startsWith('$'))!;
+      const veil = tree[root]?.color?.veil;
+      if (!veil) continue;
+      for (const polarity of ['dark', 'light']) {
+        const want = polarity === 'dark' ? 'black-alpha' : 'white-alpha';
+        for (const rung of Object.keys(WCAG_FLOOR)) {
+          const leaf = veil[polarity]?.[rung];
+          if (!leaf) continue;
+          const values = [leaf.$value, ...Object.values((leaf.$extensions?.prism3?.modes ?? {}) as Record<string, { $value?: string }>).map((e) => e?.$value)];
+          for (const v of values) if (typeof v === 'string' && !v.includes(want)) wrongBase.push(`${brand}: veil.${polarity}.${rung} → ${v}`);
+        }
+      }
+    }
+    ok(wrongBase.length === 0,
+      `veil: each polarity aliases its OWN alpha ramp in every mode — a light veil is white in dark mode too${wrongBase.length ? ` — WRONG BASE: ${wrongBase.slice(0, 4).join(', ')}` : ''}`);
+  }
+
+  // ARM D — THE VEIL IS NOT THE SCRIM, and both halves of that are pinned. The two are one word apart
+  // and behave oppositely, so "unify them" is the most likely future edit here: the veil is invariant
+  // and both-polarity, the scrim varies by mode and is dark-only. Asserting the scrim still VARIES is
+  // the half that would otherwise be lost — a merge that made everything invariant would satisfy arm B
+  // and break the modal backdrop, with nothing naming it.
+  {
+    const byMode = new Map(resolveAllModes(brandTheme({ ...veilInput, modes: ['light', 'dark'] })).map((m) => [m.mode, m.roles]));
+    const l = byMode.get('light')!, d = byMode.get('dark')!;
+    ok(l['scrim.default'].path !== d['scrim.default'].path,
+      `veil/scrim: the scrim still VARIES by mode (${l['scrim.default'].path} → ${d['scrim.default'].path}) — the property the veil deliberately does not have`);
+    ok(!Object.keys(l).some((k) => k.startsWith('scrim.') && k !== 'scrim.default'),
+      'veil/scrim: the veil is NOT a member of `scrim.*` — a picker must not show an invariant selectable variant beside a mode-varying role with only folklore between them');
+    ok(l['veil.dark.body'].path === d['veil.dark.body'].path,
+      'veil/scrim: the veil does not vary by mode, in the same resolved view where the scrim does');
+  }
+}
 // (10) EXAMPLE-BRANDS ARTIFACT (docs/09) — the browser hosts boot from
 // schema/example-brands.json (the design.md parser is pure/portable, but reading the raw
 // examples/*.design.md text off disk needs node:fs, which the sandbox doesn't have). Gate that the
@@ -4974,7 +5130,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // members of each group are engine-invented, exactly like `interactive/`. This is a SUB-family
     // prefix, not `color/text/`: it waives the inverse subtree, where every member is engine-added by
     // construction, and leaves the rest of a family NB really defines fully pinned.
-    const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/', 'color/text/on-inverse/', 'color/icon/on-inverse/'];
+    // `color/veil/` (#1030) is waived by PREFIX rather than by exact name, and that is the rule above
+    // applied rather than relaxed: NB's export defines no `veil` var at all, so the prefix waives
+    // nothing real and the gate keeps its whole point — noticing a spurious var in a family NB DOES
+    // define. That is what separates it from `color/border/inverse/focus` one block down.
+    const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/', 'color/text/on-inverse/', 'color/icon/on-inverse/', 'color/veil/'];
     // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
     // `color/border/inverse/focus` (#573, renamed #891) is the accessibility fix for a ring NB never had: NB's
     // export carries one `color/border/focus`, which measured 2.09:1 on hc-light's inverse surface.

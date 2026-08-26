@@ -61,7 +61,7 @@ const SURFACE_MODES = ['default', 'inverse'] as const;
  * Rows whose two modes alias DIFFERENT variables that nevertheless resolve to the SAME colour in the
  * light appearance mode — so the mode switch is correctly wired and visibly changes nothing there.
  *
- * Measured on nb, not assumed: 100 of the 122 rows change colour, 10 are self-aliased by
+ * Measured on nb, not assumed: 100 of the 128 rows change colour, 16 are self-aliased by
  * `inverse-coverage.ts`'s gap register, and these 12 are the remainder. Two causes, both legitimate:
  *
  *   • STATUS COLOUR, context-independent. A danger border is the same red on a light page and on a
@@ -156,10 +156,11 @@ const byId = new Map(shim.vars.map((v) => [v.id, v]));
 const surfVars = new Map(shim.vars.filter((v) => v.variableCollectionId === surfCol.id).map((v) => [v.name, v]));
 const modeId = (c: ShimCollection, name: string): string => c.modes.find((m) => m.name === name)!.modeId;
 
-// The plan is the corpus fact this whole suite is scaled against — 122 rows × 2 modes.
+// The plan is the corpus fact this whole suite is scaled against — 128 rows × 2 modes. (122 before
+// #1030 added the six `color.veil.*` roles, every one of them self-aliased; see the block above.)
 const expectedBound = plan.create.length * plan.modes.length;
-ok(plan.create.length === 122 && plan.modes.length === 2 && expectedBound === 244,
-  `the plan is 122 rows × 2 modes = 244 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
+ok(plan.create.length === 128 && plan.modes.length === 2 && expectedBound === 256,
+  `the plan is 128 rows × 2 modes = 256 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
 
 // ---- ACCEPTANCE 1: both modes appear, named `default` and `inverse` -------------------------
 ok(surfCol.modes.map((m) => m.name).join(',') === SURFACE_MODES.join(','),
@@ -241,14 +242,14 @@ const changedRows = rows.filter((r) => !r.selfAliased && r.d !== r.i);
 ok(rows.every((r) => r.d !== undefined && r.i !== undefined),
   `#993(2) every one of the ${rows.length} rows resolves to a literal colour in BOTH modes (${rows.filter((r) => !r.d || !r.i).length} dead chains)`);
 
-// The 10 self-aliased rows are the `gapDisposition: 'self'` register in `inverse-coverage.ts` — a role
+// The 16 self-aliased rows are the `gapDisposition: 'self'` register in `inverse-coverage.ts` — a role
 // with no inverse counterpart, where the same token is correct in both modes. They MUST resolve
 // identically; every other row must differ. Asserted in both directions, because "most rows change"
 // would pass an executor that got the self-aliased ones wrong, and "the self ones match" would pass
 // one that collapsed every mode to `default` (the #85 collapse, one tier up).
 const selfRows = rows.filter((r) => r.selfAliased);
 const otherRows = rows.filter((r) => !r.selfAliased);
-ok(selfRows.length === 10, `#993(2) 10 rows are self-aliased by the gap register (got ${selfRows.length})`);
+ok(selfRows.length === 16, `#993(2) 16 rows are self-aliased by the gap register (got ${selfRows.length})`);
 ok(selfRows.every((r) => r.d === r.i),
   `#993(2) …and each resolves to the SAME colour in both modes (${selfRows.filter((r) => r.d !== r.i).length} differ)`);
 ok(changedRows.length === otherRows.length - Object.keys(AGREE_IN_LIGHT).length,
@@ -359,7 +360,7 @@ ok(r1.orphans.length === 0,
 // ---- the empty plan writes NOTHING, not an empty collection --------------------------------
 // A theme with no `light` mode makes `buildFigmaSurface` return no files. Without the short-circuit the
 // executor would upsert `surface`, rename its mode to `undefined` and leave a 0-row collection in the
-// designer's file. Asserted because nothing else here would notice: every other host has 122 rows, so
+// designer's file. Asserted because nothing else here would notice: every other host has 128 rows, so
 // the guard's whole domain is excluded from the rest of the suite (docs/34 shape 15 — the same blind
 // spot #913 found in its own nothing-written case).
 const emptyHost = new VariablesShim();

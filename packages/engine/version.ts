@@ -102,6 +102,28 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.25.0: the media veil — `color.veil.{dark,light}.{large,body,enhanced}`, six roles a designer picks
+ * from when laying text over a photograph (see `CONTRACT_VERSION` 5.4.0 below). Additive; no existing
+ * value or name moves.
+ *
+ * The engine's first APPEARANCE-INVARIANT colour family, and that is a consequence rather than a
+ * choice: the derivation's ground is the worst pixel of an unknown image — sRGB white under a dark
+ * veil, sRGB black under a light one — which is a constant, so no theme input reaches it and no mode
+ * can move the result. Both polarities are therefore live in every mode, because a photograph has no
+ * polarity the theme can read.
+ *
+ * Each rung is the LEAST emitted alpha step clearing its WCAG floor at that worst pixel (3 / 4.5 / 7),
+ * which puts the light polarity a step below the dark one at every rung — sRGB gamma lets a white wash
+ * lift a black pixel faster than a black wash drops a white one. Prism2's 40/60/80 is deliberately NOT
+ * inherited: measured, its weakest dark step buys 2.85:1, below even the 3:1 large-text floor, so the
+ * reference ladder would ship a token whose purpose is contrast for text and which buys none for any
+ * text.
+ *
+ * Two downstream counts move with it, both additive, and named here because 0.13.0 below states the old
+ * one: the `surface` Figma collection goes 122 → 128 rows, and its self-aliased register 10 → 16, since
+ * an inverse band does not change a photograph and so the same token is genuinely right in both modes
+ * (`inverse-coverage.ts`, `alias: 'self'`). (#1030)
+ *
  * 0.24.0: every projected TEXT node now CLAIMS its vertical alignment (#1009 half 2). A new
  * `FigmaNodePlan.textAlignVertical`, defaulted to `CENTER` by the projector and overridable per part via
  * `PartDef.verticalAlign`; both executors write it, and `anatomyErrors` refuses it on any kind but
@@ -453,7 +475,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.24.0';
+export const ENGINE_VERSION = '0.25.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -499,6 +521,27 @@ export const ENGINE_VERSION = '0.24.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 5.4.0: 6 added guaranteed paths, no removal and no retype, so MINOR — `color.veil.{dark,light}.
+ * {large,body,enhanced}`, the media veil: a wash laid over a photograph so text on top clears a stated
+ * contrast floor at the image's worst pixel. Rungs are named by the FLOOR each buys (3 / 4.5 / 7), not
+ * by its alpha, because the alpha differs per polarity and the floor does not. (#1030) (580 → 586)
+ *
+ * ONE PROPERTY HERE IS WORTH PROMISING AND IS NOT VISIBLE IN THE PATH COUNT: these six are the first
+ * colour paths in the contract that carry the SAME value in every mode. Every other colour role varies
+ * by appearance, so a consumer reading a colour token has had to assume mode variance. A veil composites
+ * over an unknown image, and an image has no polarity the theme can read — the derivation's ground is
+ * sRGB white (under a dark veil) or sRGB black (under a light one), a constant rather than a theme
+ * surface — so no mode input reaches the result. The invariance is a consequence of the derivation, not
+ * a convention someone could relax; `test.ts` §9c asserts it per leaf per mode, and any mode variance
+ * that did appear would also surface as an EXTRANEOUS leaf in `lint-overlay-completeness.ts`.
+ *
+ * AND WHY THEY ARE NOT UNDER `scrim.*`, since that is the single most likely future "cleanup". A scrim
+ * is one mode-VARYING role behind a modal (40/60/60/70 by mode) that no designer picks; a veil is six
+ * invariant variants a designer picks per image. Filed together, a picker would show `scrim.default`
+ * beside `scrim.dark.40` with nothing but folklore distinguishing their behaviour — membership-by-
+ * location, which is the defect `payload-manifest.json` exists to remove one tier down. `overlay` was
+ * unavailable for the same class of reason: it already names the DTCG base+overlay projection.
  *
  * 5.3.0: 4 added guaranteed paths, no removal and no retype, so MINOR. Three are the intended ones —
  * `control.size.{sm,md,lg}.dot`, the inner mark of a control that draws one as a filled shape (radio's
@@ -602,7 +645,7 @@ export const ENGINE_VERSION = '0.24.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '5.3.0';
+export const CONTRACT_VERSION = '5.4.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

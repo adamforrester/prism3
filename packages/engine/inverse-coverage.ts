@@ -63,9 +63,24 @@ export const INVERSE_GAPS: InverseGap[] = [
       'UNDECIDED, deliberately, and omitted so it cannot be bound by accident. docs/20 §8 classifies a '
       + 'scrim as a VIEWPORT-level backdrop triggered by a modal opening — one veil over the whole page, '
       + 'including any inverse band — which is a different shape from every other role here and may mean '
-      + 'it has no per-surface variant at all. The alternative reading is the hero/image dim named in the '
-      + 'same paragraph, which IS surface-adjacent but is a token that does not exist. Emitting a value '
-      + 'either way would be inventing the answer; omitting the row makes a consumer who wants one ask.',
+      + 'it has no per-surface variant at all. The hero/image dim named in the same paragraph used to be '
+      + 'the alternative reading; since #1030 it is `color.veil.*`, its own family below, which removes '
+      + 'the ambiguity without deciding this row. Emitting a value either way would still be inventing '
+      + 'the answer; omitting the row makes a consumer who wants one ask.',
+  },
+  {
+    paths: [
+      'color.veil.dark.large', 'color.veil.dark.body', 'color.veil.dark.enhanced',
+      'color.veil.light.large', 'color.veil.light.body', 'color.veil.light.enhanced',
+    ],
+    alias: 'self',
+    reason:
+      'STRUCTURAL, not undecided. A veil composites over a PHOTOGRAPH, and an inverse band does not '
+      + 'change the photograph — so the same token really is the right answer on both grounds, which is '
+      + 'what makes self-aliasing correct here rather than a placeholder. The choice a designer is making '
+      + 'is already carried by the path: `dark` and `light` are both live in every mode because an image '
+      + 'has no polarity the theme can read, so the polarity a surface-context alias would supply is the '
+      + 'one thing the veil must not take from the surface. (#1030)',
   },
 ];
 

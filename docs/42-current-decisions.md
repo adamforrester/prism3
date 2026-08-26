@@ -74,6 +74,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | `against` means one thing; a wash declares that it is one | 2026-08-23 | `docs/20-interactive-color-system.md` §9.6 | #963 |
 | Overriding a ground re-derives its dependents' ratios; their values stay, and say so | 2026-08-23 | `docs/20-interactive-color-system.md` §9.7 | #964 |
 | A materialization rename is recorded as a rule; the emission diff forces the rule to exist | 2026-08-25 | `docs/44-materialization-renames.md` §5 | #1032 |
+| The media veil is its own family, `color.veil.*`, and it is appearance-invariant | 2026-08-25 | `docs/20-interactive-color-system.md` §8.1 | #1030 |
 
 ## Known gaps, named rather than silent
 
