@@ -11920,17 +11920,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // ---- #1087: THE MAP, CHECKED IN THE SPACE THE EXECUTOR ACTUALLY APPLIES IT IN ----
   //
-  // Every arm ABOVE walks `colorRows` — `map.variables.filter(r => r.collection === 'color')`. The
-  // executor does NOT: `upsertCollection` filters per collection and tests each target against THAT
-  // collection's planned names. So the 40 `surface` rows were checked by nothing that could see this
-  // defect, and a green suite coexisted with 37 runtime refusals (#1087). Emission-wide resolution and
-  // per-collection planning are two different questions, and the gate was only ever asking the first.
+  // Every arm ABOVE walks ONE collection's rows. The executor does NOT: `upsertCollection` filters per
+  // collection and tests each target against THAT collection's planned names. So 40 rows — the ones in
+  // the OTHER member of the mirror group — were checked by nothing that could see this defect, and a
+  // green suite coexisted with 37 runtime refusals (#1087). Emission-wide resolution and per-collection
+  // planning are two different questions, and the gate was only ever asking the first.
+  //
+  // NAMES IN THIS BLOCK ARE POST-#1082. The defect was found when the mirror group was
+  // `color` (fat, 242) + `surface` (thin, 128) and the 40 unchecked rows were the `surface` ones; the
+  // tier swap renamed the pair to `color.appearance` (fat) + `color` (thin), and the same 40 rows are
+  // now the `color` ones. **The diagnosis was re-measured across the rename and did not move**: 80
+  // derived rows, `source-absent=43 target-not-planned=37` over an empty file, 0 of the 37 resolving
+  // anywhere in the emission, identical across all three brands — before and after. That two
+  // independent layouts produce the same numbers is better evidence than either alone, and it is why
+  // the classifier below asks a question that does not mention a tier by name.
   //
   // "NOTHING THAT COULD SEE IT" IS THE CAREFUL WORDING, AND THE CARE IS THE FINDING. An earlier draft
-  // said "checked by nothing at all", and that is false: arm (c) below (`the SURFACE mirror`) walks
-  // exactly these rows and asserts, in its own message, *"…resolve to `source-absent`, **not a
-  // refusal** — over-projecting is self-correcting"*. That is #1087's property, named, in an arm that
-  // predates the issue.
+  // said "checked by nothing at all", and that is false: arm (c) below — still headed `the SURFACE
+  // mirror` though #1082 repointed it at `color` — walks exactly these rows and asserts, in its own
+  // message, *"…resolve to `source-absent`, **not a refusal** — over-projecting is self-correcting"*.
+  // That is #1087's property, named, in an arm that predates the issue.
   //
   // It cannot fail. It calls `planVariableRenames([], surfDead.map(r => r.to), surfDead)` — the
   // `planned` set is built from the TARGETS OF THE ROWS UNDER TEST, so `want.has(to)` is true for every
@@ -11967,8 +11976,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // ACCEPTABILITY IS A PROPERTY OF THE GROUP, NOT OF WHICH MEMBER HOLDS THE KEY — and that is #1082's
     // lesson rather than a preference. The first version of this arm read the `MIRRORED_COLLECTIONS`
     // KEY as "the primary" and every non-key member as a mirror. That was true of the layout it was
-    // written against and of nothing else: pre-swap the key `color` was the FAT tier (242 names) and the
-    // mirror `surface` the THIN one (128), so over-projections landed in a non-key member and
+    // written against and of nothing else: pre-#1082 the key `color` was the FAT tier (242 names) and
+    // the mirror `surface` the THIN one (128), so over-projections landed in a non-key member and
     // classified as mirrors. #1082 inverted exactly that — the key `color` IS now the thin tier and
     // `color.appearance` the fat one — so the same 37 legitimate over-projections landed in the KEY and
     // every one became a break. Six false-positive failures, one merge later.
