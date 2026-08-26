@@ -131,7 +131,9 @@ const prBase = process.env.GITHUB_BASE_REF ? `origin/${process.env.GITHUB_BASE_R
 
 let baseRef: string | null = null;
 const tried: string[] = [];
+let baseVia = 'local ladder';
 if (prBase) {
+  baseVia = 'GITHUB_BASE_REF';
   const r = git('rev-parse', '--verify', '--quiet', `${prBase}^{commit}`);
   tried.push(`${prBase} (GITHUB_BASE_REF, authoritative) — ${r.ok ? 'resolves' : 'does not resolve'}`);
   if (r.ok) baseRef = prBase;
@@ -266,7 +268,7 @@ if (!isTotal(acct)) {
 }
 
 console.log(
-  `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}): `
+  `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}): `
   + `${acct.beforeCount} keys → ${acct.afterCount}, ${acct.removed.length} removed / ${acct.added.length} added, `
   + `${MATERIALIZATION_RENAMES.length} rule(s) making ${acct.claims.length} claim(s) over the whole before-set.`,
 );
