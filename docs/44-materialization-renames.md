@@ -256,7 +256,11 @@ Figma:
 
 Both figures are **ranges across the three brands**, and per brand they are: under-covers 846 / 926 /
 964 (nb / aurora / wendys), over-claims 423 / 463 / 482 — the latter aggregating to **1,368**, which is
-what the gate prints. *(Corrected 2026-08-26, #1047: this row read a bare "463", which is aurora's
+what the gate prints. **These are a SNAPSHOT at a corpus of 2,076 keys** — both figures are
+functions of the non-`color` population, so every token addition moves them. `#1030`'s six veil leaves
+already did (846–964 → 858–976). `test.ts` therefore asserts the *relationship* (`2 × non-color` at its
+extremes) and reports the literal, rather than pinning it: a figure that moves on every additive change
+is not something a test about renames should fail on. *(Corrected 2026-08-26, #1047: this row read a bare "463", which is aurora's
 figure alone, sitting in the same column as a range. Derived independently in #1039 from the committed
 emission: 659 / 699 / 718 keys per brand, `color` 236 in every brand.)*
 

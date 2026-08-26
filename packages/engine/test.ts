@@ -12097,8 +12097,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
     return r.unaccountedRemovals.length + r.unaccountedAdditions.length;
   });
-  ok(Math.min(...unaccountedAll) === 846 && Math.max(...unaccountedAll) === 964,
-    `#1039: the under-covering row spans ${Math.min(...unaccountedAll)}–${Math.max(...unaccountedAll)} across brands, matching \`docs/44\` §5's 846–964 — derived here, not cited (${rows.join(' | ')})`);
+  // DERIVED, NOT PINNED (#1053). This asserted the literal `846–964` from `docs/44` §5, and that is a
+  // CORPUS-SIZE pin: the figure is 2 × the non-`color` population, so every token addition moves it.
+  // #1030's veil leaves did exactly that, and #1051 had to carry a commit patching this line — which is
+  // the defect this PR fixes, one layer up. The gate rejected additive change; so did its own test.
+  //
+  // What survives is the RELATIONSHIP, which is what the row was ever evidence for: the corpus-wide
+  // span is the per-brand `2 × nonColor` figures at their extremes, and each of those is already
+  // asserted per brand above. The literal is reported rather than compared, so a reader still sees the
+  // number and `docs/44` still has something to be checked against by eye — without a token addition
+  // failing a test about renames.
+  const spanLo = Math.min(...unaccountedAll);
+  const spanHi = Math.max(...unaccountedAll);
+  const perBrandTwice = brands.map((b) => {
+    const before = emissionOf(b);
+    return [...before].filter((k) => parseVarKey(k).collection !== 'color').length * 2;
+  });
+  ok(spanLo === Math.min(...perBrandTwice) && spanHi === Math.max(...perBrandTwice) && spanLo > 0,
+    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color\` population at its extremes `
+    + `(${perBrandTwice.join(' / ')}) — derived, so a token addition moves the figure without failing a test about renames. `
+    + `\`docs/44\` §5 records 846–964 as the snapshot at 2,076 keys (${rows.join(' | ')})`);
 }
 
 // ------------------------------------------------------------------- report
