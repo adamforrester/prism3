@@ -1137,9 +1137,16 @@ const renderPrimitives = (host: PageHost): void => {
   // That is not cosmetic once a confirm depends on it: #1033's prompt would fire on every Examples click
   // in a themed file with nothing to lose, which is the "fires every time, gets clicked through" failure
   // `provenance.ts`'s header says the dirty check exists to prevent, and it also kept #1034's
-  // already-a-new-brand marker permanently off. The four sibling materializations (`modeLevers`,
-  // `interactivePalettes`, `modeAnchors`, `overrides`) all sit inside edit handlers and are correct;
-  // this was the only one on a render path. Materialization moved to the add handler below.
+  // already-a-new-brand marker permanently off. Materialization moved to the add handler below.
+  //
+  // THE SIBLINGS ARE SIX, and the first count of them was four (corrected in review). `modeLevers`,
+  // `interactivePalettes`, `modeAnchors` and `overrides` use `x ?? (x = …)`; `customModes` uses it too and
+  // was simply missed reading the results; `typography` uses `??=` in `setBrandSize`, which the grep shape
+  // `?? (x = ` cannot match at all. All six are on edit paths — a handler, or a setter only a handler
+  // calls — so the conclusion that the render-path one was unique survives. What does not survive is the
+  // confidence: it came from an instrument blind to a syntactic variant of the idiom it was looking for,
+  // which is the same defect class as the gate rules in docs/34, one layer down in a grep. Search for
+  // BOTH forms. (`setBrandSize`'s own materialization has a separate defect, filed as #1071.)
   const list = brandState.brandColors ?? [];
   list.forEach((bc, i) => {
     const nameEl = el('input', 'pname-input mono') as HTMLInputElement;
@@ -7727,17 +7734,26 @@ const stageLoad = (input: BrandInput, origin: Origin): void => {
  *  when the origin is not `none`) but is answered rather than asserted away, so a later caller
  *  cannot get `undefined` in a sentence.
  *
- *  ONE FUNCTION, TWO GRAMMATICAL POSITIONS (#1033). The confirm now names the origin on both sides of
- *  its sentence — what is arriving ("Replace the current brand with …") and what is at risk ("Your
- *  edits to … are not saved"). Every case reads in both, which is why `new` says "a new brand" rather
- *  than #722's "this new brand": the incoming brand is not a "this" yet. A second near-identical
- *  switch for the other position is the alternative, and two label functions differing in one case is
- *  a drift waiting to happen. */
-const originLabel = (o: Origin): string => {
+ *  TWO POSITIONS, AND ONE CASE THAT CAN TELL THEM APART (#1033, corrected in review). The confirm names
+ *  the origin on both sides of its sentence: what is ARRIVING ("Replace the current brand with …") and
+ *  what is AT RISK ("Your edits to … are not saved"). Four cases are already specific enough to point at
+ *  something on their own — a named example, a quoted filename, the file's own brand — and read the same
+ *  in either slot. `new` is the only anonymous one, and the two slots want opposite things from it:
+ *  arriving, it is "a new brand", because it is not on screen yet and there is nothing to point at; at
+ *  risk, it is "this new brand", because it is precisely the thing the user is looking at.
+ *
+ *  #1033 first collapsed both to "a new brand" so one string could serve both slots. It served neither:
+ *  two clicks from boot read "Replace the current brand with a new brand? Your edits to a new brand are
+ *  not saved anywhere else." — where the second phrase names something other than what it means, and
+ *  reads as though the unsaved edits belong to the brand about to replace them. That was a REGRESSION of
+ *  the slot #722 already had right, introduced by generalizing toward the new one. `where` is a
+ *  parameter rather than a second switch for the reason the generalization was right about: two label
+ *  functions differing in one case drift apart. One switch, and the one case that differs says so. */
+const originLabel = (o: Origin, where: 'arriving' | 'atRisk'): string => {
   switch (o.kind) {
     case 'none': return 'this brand';
     case 'example': return `the ${o.id} example`;
-    case 'new': return 'a new brand';
+    case 'new': return where === 'arriving' ? 'a new brand' : 'this new brand';
     case 'import': return `“${o.label}”`;
     case 'file': return 'this file’s brand';
   }
@@ -7752,7 +7768,7 @@ const renderOverwriteConfirm = (pending: { input: BrandInput; origin: Origin }):
   const box = el('div', 'bm-import');
   // Reaching here MEANS there are edits to lose (`stageLoad` loads straight through when there are
   // not), so the sentence can name what they are edits *to* instead of asserting they exist (#722).
-  box.append(el('p', 'bm-confirm', `Replace the current brand with ${originLabel(pending.origin)}? Your edits to ${originLabel(provenance.origin)} are not saved anywhere else.`));
+  box.append(el('p', 'bm-confirm', `Replace the current brand with ${originLabel(pending.origin, 'arriving')}? Your edits to ${originLabel(provenance.origin, 'atRisk')} are not saved anywhere else.`));
   const row = el('div', 'bm-confirm-row');
   const rep = el('button', 'bm-load', 'Replace brand') as HTMLButtonElement;
   rep.onclick = () => { pendingLoad = null; loadBrand(pending.input, pending.origin); };

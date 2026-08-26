@@ -838,9 +838,11 @@ ok(rampChecks >= 2 * 3 * 6, `${rampChecks} displayed durations compared against 
 // and nowhere else.
 //
 // What none of this can cover is the artifact where the defect actually lived: `apps/plugin/dist/ui.html`,
-// built by another workspace and rendered by no gate at all. Its shell is the one that WAS opted in, and
-// #1031 turned that off — but nothing stops it coming back, and nothing here would see it. Filed as #1041,
-// not papered over.
+// built by another workspace. Its shell is the one that WAS opted in, and #1031 turned that off — but
+// nothing stops it coming back, and nothing here would see it. Filed as #1041, not papered over. Note the
+// correction that issue took in review: `apps/plugin/test-build-verdict.mjs` DOES launch Chromium and
+// navigate to that file, so the gap is an absent assertion inside a harness that already renders the
+// subject, not an absent harness — a smaller and much cheaper thing than "no gate renders it" claimed.
 console.log(`\nBrand-menu popover (#1031)\n${'='.repeat(78)}`);
 
 let menuFields = 0;
@@ -889,6 +891,55 @@ for (const brand of BRANDS) {
 ok(menuFields >= BRANDS.length * 2 * BRANDMENU_FIELD_FLOOR,
   `${menuFields} popover controls measured across ${BRANDS.length} brands × 2 color schemes`);
 console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover controls measured.`);
+
+// =============================================================================================
+// 5. The overwrite-confirm SENTENCE (#1033)
+//
+// The confirm names an origin twice, in two grammatical positions, and until now nothing read it. That
+// is how #1033 shipped a regression into the position #722 already had right: generalizing `originLabel`
+// to serve the arriving slot collapsed the at-risk slot to the same words, and the pair read "Replace
+// the current brand with a new brand? Your edits to a new brand are not saved anywhere else." A human
+// found it. Nothing else could have.
+//
+// The expected sentence below is AUTHORED HERE, not built from anything the app exports — the brand
+// names are corpus data read off the start screen, but the template is a second, independent statement
+// of what the copy should say (docs/34 shape 2: an oracle assembled from the subject's own template
+// cannot disagree with it). Swapping the two slots, dropping one, or collapsing them again fails here.
+//
+// WHAT THIS CANNOT REACH, stated rather than implied: the case that actually regressed. `new` only
+// becomes an origin through the plugin branch of `+ New brand` (`PRISM3_HOST === 'figma'`); the web
+// bundle's branch returns to the start moment and never stages a load, so no studio artifact can
+// produce that pair of phrases at all. Same shape as #1031's third finding, on a different property —
+// the plugin-only branches of shared UI are read by nothing — and it belongs with #1041, which already
+// renders `dist/ui.html` and needs assertions rather than a harness. The `new` case here is held by
+// hand measurement on the built plugin bundle and by the type on `where`, not by this gate.
+console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
+{
+  const [atRisk, arriving] = BRANDS;                        // loaded first, then replaced by the second
+  const { ctx, page, drain } = await openBrand(atRisk);
+  // `openBrand` enters through a start-screen chip, which loads with `{ kind: 'example', id }` — so the
+  // origin is already an example and only an EDIT is missing before the guard has something to protect.
+  await page.locator('.brandsel').click();
+  await page.waitForSelector('.brandmenu .bm-in');
+  await page.fill('.brandmenu .bm-in', 'renamed-in-smoke');
+  await page.locator('.brandmenu .bm-item').filter({ hasText: arriving }).first().click();
+  await page.waitForSelector('.brandmenu .bm-confirm');
+
+  const said = (await page.textContent('.brandmenu .bm-confirm')).trim();
+  const want = `Replace the current brand with the ${arriving} example? Your edits to the ${atRisk} example are not saved anywhere else.`;
+  ok(said === want, `the confirm names the arriving origin and the one at risk, in that order — got "${said}"`);
+  ok(await page.locator('.brandmenu .bm-load').count() === 1, 'the confirm offers one Replace button');
+  ok(await page.locator('.brandmenu .bm-cancel').count() === 1, 'the confirm offers one Cancel button');
+
+  // Cancel keeps the edit. A guard that loses what it was protecting is the failure it exists to stop.
+  await page.locator('.brandmenu .bm-cancel').click();
+  await page.waitForSelector('.brandmenu .bm-confirm', { state: 'detached' });
+  ok(await page.inputValue('.brandmenu .bm-in') === 'renamed-in-smoke', 'Cancel leaves the edit in place');
+  const errs = drain();
+  ok(errs.length === 0, `overwrite confirm: 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+  console.log(`  "${said}"`);            // what RENDERED, so a red run's log is not the expectation
+}
 
 // =============================================================================================
 await browser.close();

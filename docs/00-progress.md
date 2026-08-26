@@ -412,9 +412,20 @@ in-page hook: a `restore-input`-seeded panel read dirty with zero interaction, t
 that one key. Not cosmetic once a confirmation depends on it — #1033's prompt would have fired on
 every Examples click in a themed file with nothing to lose, which is the "fires every time, gets
 clicked through" failure `provenance.ts`'s own header says the dirty check exists to prevent, and it
-also kept #1034's marker permanently off. Materialization moved into the add handler. The four sibling
-materializations (`modeLevers`, `interactivePalettes`, `modeAnchors`, `overrides`) were checked
-individually and all sit inside edit handlers, which is correct; this was the only one on a render path.
+also kept #1034's marker permanently off. Materialization moved into the add handler.
+
+**Correction taken in review, and it is about the instrument, not the answer.** "The four sibling
+materializations" was a sample of **six**. `modeLevers`, `interactivePalettes`, `modeAnchors` and
+`overrides` use `x ?? (x = …)`; `customModes` uses the same form and was missed reading the grep's own
+output; `typography` uses `??=`, inside `setBrandSize`, and the grep shape `?? (x = ` **cannot match it at
+all**. Re-checked individually, all six are on edit paths — a handler, or a setter only a handler calls —
+so the conclusion holds: the render-path one was unique. The confidence did not, because it rested on an
+instrument blind to a syntactic variant of the idiom it was searching for, and "I grepped for it" was
+doing load-bearing work in the write-up. That is the docs/34 family one layer down, in a grep rather than
+a gate: an oracle that cannot see the thing it is asked about reports its blindness as a clean result.
+Search for both forms. `setBrandSize`'s own materialization turned out to carry a separate defect —
+it runs `??=` before the clear path and never prunes it back, against its docstring's claim — filed as
+**#1071**.
 
 **Why the suite missed #1031 — three findings where the lane prompt expected two.** `lint:contrast` is
 correctly silent: it holds token *values*, and every value here is legal — the pairing was UA-supplied.
@@ -429,15 +440,16 @@ cards ship and surface in a client Figma session as 'the style guide has invisib
    Every editable control in the studio was outside the probe's reach, not merely unvisited.
 3. **Artifact.** The suite drives `apps/studio/dist/main.js`, whose shell declares no `color-scheme` at
    all, so the UA resolves light regardless of the OS preference and that artifact **cannot exhibit
-   this class in any scheme**. Only `apps/plugin/dist/ui.html` can, and no gate renders it.
+   this class in any scheme**. Only `apps/plugin/dist/ui.html` can, and nothing asserts legibility over it.
 
 (1) and (2) are closed here: the probe became `LEGIBILITY_PROBE`, returning a second collection that
 measures every visible `input`/`textarea`/`select`'s ink **and caret** against its own composited field
 ground, and a new section 4 opens the brand menu on every corpus brand under both emulated color
 schemes, types into the Name field (an empty field renders no glyphs, so a pristine input asserts a
 pairing that is not on screen) and floors the popover's own control and text counts — the count is what
-turns "the sweep was clean" into "the sweep looked here". 946 assertions, up from 942; 506 form
-controls now measured across the 72 sweep states, 12 inside the popover. **(3) is residual and filed.**
+turns "the sweep was clean" into "the sweep looked here". **951 assertions, up from 942** (946 for #1031's
+two findings, five more for the confirm sentence below); 506 form controls now measured across the 72
+sweep states, 12 inside the popover. **(3) is residual and filed.**
 
 **Mutation-verified, and the fourth mutation is the honest one:**
 
@@ -457,9 +469,54 @@ resolved `color-scheme`, which fails the moment the opt-in appears and is indepe
 stylesheet happens to be inked that week. **Written down because reasoning produced the wrong answer
 here and only mutation produced the right one** — the section's own comment now carries the measurement.
 
-**Filed rather than fixed here.** **#1041** — no rendered-legibility gate exists over
+**The generalization that broke the position it was generalizing from.** Held in review, and worth its own
+paragraph because it is a second prose defect on the same surface, from the fix rather than the bug.
+#1033 needed `originLabel` in a slot it had never served — the ARRIVING brand ("Replace the current brand
+with …") — where #722's "this new brand" is wrong, because the incoming brand is not on screen to point
+at. Collapsing both slots to "a new brand" made one string serve two positions, and it served neither:
+two clicks from boot read *"Replace the current brand with a new brand? Your edits to a new brand are not
+saved anywhere else."*, where the second phrase reads as though the unsaved edits belong to the brand
+about to destroy them. Fixed by giving the two positions what each needs — `originLabel(o, where)`, one
+switch, `new` the only case that answers differently, because it is the only anonymous one; the other four
+name something specific enough to point at on their own and read identically in both slots. A parameter
+rather than a second switch for the reason the original generalization was right about: two label
+functions differing in one case drift apart.
+
+A new smoke section 5 reads the sentence — the first assertion of any kind on this string, against a
+**hand-authored** expected sentence rather than one assembled from the app's own template. It catches a
+swapped or dropped slot. It cannot catch the case that actually regressed: `new` becomes an origin only
+through the plugin branch of "+ New brand", so the web bundle cannot produce that pair of phrases at all.
+That is #1031's third finding again, on a different property — **the plugin-only branches of shared UI are
+read by nothing** — and it is now the second defect in this PR to have arrived through that gap. It belongs
+with #1041.
+
+**Both halves of that were mutated, and the second is the one worth reading:** swapping the two slots at
+the call site fails section 5 by name, printing the wrong sentence. Collapsing `new` back to one string —
+*the exact regression this paragraph is about* — **passes 951/951, and typechecks clean**, because `where`
+stays in the signature and no rule notices the body stopped reading it. So the gate covers the shape of the
+sentence and nothing covers the case, which is what the section's comment says rather than leaving a reader
+to assume a new test means a caught bug. The `new` sentence itself is verified by hand on the built plugin
+bundle: two clicks from boot now read *"Replace the current brand with a new brand? Your edits to this new
+brand are not saved anywhere else."*, first click loads straight through with no confirm, 0 console errors.
+
+That hand pass turned up one more thing, filed as **#1075**: both `.cur` markers in the menu are computed
+at render, and the Name field deliberately skips the re-render (it patches `.bs-name` imperatively instead,
+to keep the caret), so after a rename the "+ New brand" marker still claims the brand is an untouched new
+brand until the menu is reopened. Measured across the three steps — correct on open, stale after the edit,
+correct again after a reopen. Display only: the click path reads live state and correctly raises the
+confirm at the stale step. Adjacent to #1073 but a different mechanism — that one is about which key the
+marker compares, this one about when it is computed.
+
+**Filed rather than fixed here.** **#1041** — nothing asserts rendered legibility over
 `apps/plugin/dist/ui.html`, the only artifact that can exhibit `color-scheme`-derived defects; the
-strengthening above is real for the studio and structurally cannot reach the plugin. **#1042** — the
+strengthening above is real for the studio and structurally cannot reach the plugin. Corrected downward in
+review, and the correction matters: `apps/plugin/test-build-verdict.mjs` already launches Chromium and
+navigates to that exact file, so what is missing is an **assertion inside an existing harness**, not a
+harness — a much cheaper piece of work than "no gate renders it" implied, and this entry said that in its
+first draft. **#1071** — `setBrandSize` materializes `typography` before its clear path and never prunes
+it, against its own docstring. **#1073** — the Examples `.cur` marker matches `brandState.id`, so renaming
+a loaded example un-marks it while the confirm sentence still names the origin correctly; the two answers
+to "which example is this?" diverge. **#1042** — the
 brand-menu popover's tail is unreachable below roughly 835px of panel height (at 480×600: 4 of 9 rows
 visible, 186px of hidden scroll, no scrollbar affordance, "+ New brand" below the fold), degrading as
 `--chrome-h` grows and therefore worst in exactly the themed file the reporter was in. Neither is the
