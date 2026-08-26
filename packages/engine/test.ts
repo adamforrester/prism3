@@ -11971,6 +11971,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `rename-map(${brand}) #1087: the derived map is populated (${map.variables.length} rows) — every claim below is "every row that …", vacuously true of none`);
     ok(plannedRows + mirrorRows + breaks.length === map.variables.length && plannedRows > 0 && mirrorRows > 0,
       `rename-map(${brand}) #1087: every row classifies, and BOTH live buckets are non-empty — planned ${plannedRows}, mirror ${mirrorRows}, break ${breaks.length}. A classifier that put everything in one bucket would make the arm below unfalsifiable`);
+    // THE BUCKET IS BOUNDED, counted a SECOND WAY from `MIRRORED_COLLECTIONS` membership alone.
+    //
+    // "Both buckets non-empty" does not bound anything: mutation M4 replaced the mirror predicate with
+    // `true`, every unplanned row became a mirror, `breaks` went to zero and the arm below passed. A
+    // bucket that can absorb any row is an escape hatch, not a classification. This count knows nothing
+    // about the primary-twin conjunction, so the two can only agree if the predicate is really the one
+    // stated — a row in a collection that mirrors NOTHING can never land here.
+    const declaredMirrors = new Set(Object.entries(MIRRORED_COLLECTIONS).flatMap(([k, ms]) => ms.filter((m) => m !== k)));
+    const mirrorEligible = map.variables.filter((r) => declaredMirrors.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
+    ok(mirrorRows === mirrorEligible,
+      `rename-map(${brand}) #1087: the mirror bucket holds exactly the unplanned rows of a DECLARED mirror collection (${mirrorRows} classified vs ${mirrorEligible} eligible) — counted a second way, so a widened predicate cannot quietly absorb a break in a collection that mirrors nothing`);
     ok(breaks.length === 0,
       `rename-map(${brand}) #1087: every derived row's target is planned IN ITS OWN COLLECTION, or is an expected mirror over-projection whose primary twin is planned — checked in the executor's space, not emission-wide${breaks.length ? ` — BREAKS: ${breaks.slice(0, 3).join(' · ')}` : ''}`);
   }
