@@ -12222,7 +12222,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
     return r.unaccountedRemovals.length + r.unaccountedAdditions.length;
   });
-  ok(Math.min(...unaccountedAll) === 846 && Math.max(...unaccountedAll) === 964,
+  // Bumped from 846-964 to 858-976 by #1030's veil leaves (6 new color.* paths merged onto main after
+  // this pin was authored) — a corpus-size shift, not a defect in the accounting. docs/44 §5's own
+  // 846-964 citation is now stale too but is left for #1039's lane; #1047 already tracks the sibling
+  // over-claiming figure (463) going stale for an unrelated, pre-existing reason.
+  ok(Math.min(...unaccountedAll) === 858 && Math.max(...unaccountedAll) === 976,
     `#1039: the under-covering row spans ${Math.min(...unaccountedAll)}–${Math.max(...unaccountedAll)} across brands, matching \`docs/44\` §5's 846–964 — derived here, not cited (${rows.join(' | ')})`);
 }
 
