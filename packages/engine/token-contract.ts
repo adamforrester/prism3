@@ -14,11 +14,12 @@
  * well-formed promise. What IS well-formed is the INTERSECTION across a corpus chosen to span the
  * ways an input can vary:
  *
- *   nb       — the hand-built legacy system, `nbds.*` dialect, rgb() colour format
- *   aurora   — engine-native brief, extra brand colour, compact density, 3:1 icon contrast
- *   harbor   — engine-native brief, a different lever combination
- *   wendys   — STANDARD dialect (flat `colors:` map classified into anchors), a different typeface
- *   minimal  — the three required fields and nothing else: the sparsest input the engine accepts
+ *   nb            — the hand-built legacy system, `nbds.*` dialect, rgb() colour format
+ *   aurora        — engine-native brief, extra brand colour, compact density, 3:1 icon contrast
+ *   harbor        — engine-native brief, a different lever combination
+ *   wendys        — STANDARD dialect (flat `colors:` map classified into anchors), a different typeface
+ *   minimal       — the three required fields and nothing else: the sparsest input the engine accepts
+ *   minimal-levers— the sparsest input WITH two suppressing levers pulled (#957, see below)
  *
  * Paths are compared BELOW the configurable root, because the root is itself a lever (`nbds` vs
  * `prism`) — comparing with it included yields an empty intersection, which is how this was nearly
@@ -29,6 +30,19 @@
  * removed ZERO paths — every one of the 485 survives the sparsest possible input. `wendys` earns
  * its place by removing exactly one (`font.typeface.inter`, a slug derived from a VALUE), which is
  * precisely the class of path that should not be promised.
+ *
+ * `minimal-levers` earns its place by removing 30, and the reason it was needed is that SPARSE IS NOT
+ * THE SAME AS SUPPRESSED (#957). `minimal` omits every optional field, so every lever takes its
+ * DEFAULT — and a default is a value like any other. Two levers suppress paths when set away from
+ * their default and no other member sets them: `outlineInteraction: 'none'` emits no
+ * `interactive.<c>.overlay.*` at all (27 paths across the value, inverse and surface tiers), and
+ * `typography.displayCeiling: 'sm'` ships no rung above `sm` (3 paths). Those 30 were guaranteed on
+ * the strength of nobody having pulled the lever, which is the same over-claim `minimal` exists to
+ * prevent, one level in. They are `brandDependent` now — still emitted, no longer promised.
+ *
+ * The member is deliberately the sparse input PLUS the two levers, not a sixth rich brand: the point
+ * is to vary exactly the two things, so what drops out is attributable. It adds no path that no
+ * existing member emits, so the demotion is the whole of its effect on the surface.
  *
  * WHY THIS IS NOT PART OF `regen.ts`. The baseline must not be able to regenerate itself. `regen`
  * rewrites every generated artifact and `regen --check` proves the committed copies match; run that
@@ -77,6 +91,18 @@ export const MINIMAL_BRAND: BrandInput = {
   neutral: { hue: 262, chroma: 0.008 },
 } as BrandInput;
 
+/**
+ * The same sparse input with the two SUPPRESSING levers pulled (#957) — see the header. Built off
+ * `MINIMAL_BRAND` rather than authored beside it, so the only difference between the two members is
+ * the two fields named here and a path dropping out is attributable to one of them.
+ */
+export const MINIMAL_LEVERS_BRAND: BrandInput = {
+  ...MINIMAL_BRAND,
+  id: 'minimal-levers',
+  outlineInteraction: 'none',
+  typography: { displayCeiling: 'sm' },
+} as BrandInput;
+
 /** The corpus, in a fixed order so the emitted `corpus` list is deterministic. */
 export const corpus = (): Array<{ id: string; theme: Theme }> => {
   const std = parseStandardDesignMd(readFileSync(resolve(here, 'examples', 'wendys.design.md'), 'utf8'));
@@ -86,6 +112,7 @@ export const corpus = (): Array<{ id: string; theme: Theme }> => {
     { id: 'harbor (engine-native brief)', theme: brandTheme(readBrief('./examples/harbor.design.md')) },
     { id: 'wendys (standard dialect)', theme: brandTheme(standardToBrandInput(std).input) },
     { id: 'minimal (required fields only)', theme: brandTheme(MINIMAL_BRAND) },
+    { id: 'minimal-levers (outlineInteraction none, displayCeiling sm)', theme: brandTheme(MINIMAL_LEVERS_BRAND) },
   ];
 };
 
@@ -145,7 +172,9 @@ const main = (): void => {
 
   const live = buildContract();
   const baseline = readBaseline();
-  const diff = classify(baseline, live.guaranteed);
+  // `live.brandDependent` is passed so a DEMOTION reads as one and a CONDITIONAL migration is not
+  // mistaken for rot — see `classify`. It cannot move the level; both of those are reporting.
+  const diff = classify(baseline, live.guaranteed, DEPRECATIONS, live.brandDependent);
   const clashes = typeClashes();
   const informationalOnly =
     diff.level === 'none' &&
@@ -170,10 +199,16 @@ const main = (): void => {
   }
 
   const report = (): void => {
+    const demoted = new Set(diff.demoted);
     for (const p of diff.removed) {
+      // A demotion has no `replacedBy` to name and must not be reported as though it were missing one:
+      // the path itself is what a brand that does not pull the lever still emits.
+      if (demoted.has(p)) { console.log(`    DEMOTED  ${p}  (still emitted — guaranteed → brand-dependent, no migration applies)`); continue; }
       const m = diff.migrated.find((d) => d.path === p);
       console.log(`    REMOVED  ${p}${m ? `  → ${m.replacedBy} (since ${m.since})` : '  (no deprecation entry — consumers get no migration)'}`);
     }
+    for (const d of diff.conditionalMigrations)
+      console.log(`    CONDITIONAL  ${d.path} → ${d.replacedBy} (brand-dependent — emitted only for brands that do not suppress it)`);
     for (const r of diff.retyped) console.log(`    RETYPED  ${r.path}: ${r.from} → ${r.to}`);
     for (const p of diff.added.slice(0, 20)) console.log(`    ADDED    ${p}`);
     if (diff.added.length > 20) console.log(`    ADDED    … and ${diff.added.length - 20} more`);
