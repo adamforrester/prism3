@@ -143,7 +143,17 @@
  *
  * A minor rather than a major on the ENGINE version, for the same reason 0.26.0 was: `ENGINE_VERSION`
  * answers "what code produced this?" and makes no compatibility promise. The promise is the contract's,
- * and `CONTRACT_VERSION` takes the major (7.0.0 below). (#1097, #1102, #1089, #957)
+ * and `CONTRACT_VERSION` takes the major (7.0.0 below).
+ *
+ * THE NAMESPACE ITSELF CONTRIBUTES NOTHING TO THAT MAJOR, and (1) and (3) above contribute nothing to it
+ * either. Measured both ways: 714 guaranteed paths on the merge base and 684 here, and in BOTH baselines
+ * ZERO carry a brand-namespace root — the contract is "keyed below the configurable root" (its own note),
+ * and the root added by (1) IS that root. (3) renames a COLLECTION, not a token, so its 128 variables keep
+ * their `color/*` names. What takes the major is (2) and #957: 164 paths moving under `core.*`, and 30
+ * paths demoted out of `guaranteed`. Recorded here because a bump credited to the namespace would be a
+ * false provenance record no gate can catch — the version number is the same either way — and because
+ * someone reading 7.0.0 as evidence that renaming a root breaks consumers would design around a cost that
+ * does not exist. (#1097, #1102, #1089, #957)
  *
  * 0.26.0: THE TIER SWAP (#1013). The value tier moves to `color.appearance.*` and the surface alias
  * tier takes the short name `color.*`, in BOTH formats — the Figma `color` collection is renamed
@@ -603,6 +613,19 @@ export const ENGINE_VERSION = '0.27.0';
  * under `core.*` — 164 removed and 164 added — and 30 further paths stop being GUARANTEED without
  * ceasing to be emitted. Both halves are MAJOR, and the second one is why the two are worth separating.
  * (714 → 684)
+ *
+ * THOSE TWO HALVES ARE THE WHOLE ATTRIBUTION. The lane that ships this bump also puts a BRAND NAMESPACE
+ * on every Figma variable (`ENGINE_VERSION` 0.27.0 above), and that change moves the contract by NOTHING.
+ * Measured on both baselines — 714 paths before, 684 after — ZERO carry a brand-namespace root, because
+ * `guaranteed` is keyed BELOW the configurable root (the note at the top of `token-contract.json` says so)
+ * and the namespace IS that root. A brand switching from `prism` to `nbds` re-roots every emitted name and
+ * breaks no reference the contract ever promised.
+ *
+ * Written out because the number cannot carry it. 7.0.0 is 7.0.0 whichever change is credited, so a bump
+ * attributed to the namespace is a false record with no gate able to fire on it — the classic shape being
+ * that the *value* is right and only the *reason* is wrong. And the misreading is costly in a specific
+ * direction: someone taking 7.0.0 as evidence that renaming a root is BREAKING will treat `theme.root` as
+ * frozen, and it is a lever precisely because it is not. (#1097)
  *
  * WHY A TIER AND NOT THREE TOP-LEVEL NAMES. These are the RAW PRIMITIVES the semantic layer is built
  * from, and a consumer reaching one directly is what `eval.ts`'s primitive-leak metric exists to
