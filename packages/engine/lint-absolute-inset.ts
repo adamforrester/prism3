@@ -168,6 +168,19 @@
  * reproduction of #801 against a built file is still unrun.
  */
 
+/**
+ * MUTATION-VERIFIED BY NAME, after #1097 moved the names this gate resolves (see `floatVars`).
+ *
+ *   · `anatomy-figma.ts`'s `absoluteInset: varOf(p.inset)` → a tail that does not exist
+ *       → 42 "is not a FLOAT" failures. The tail lookup still fails on a genuinely absent name;
+ *         it did not become permissive by matching loosely.
+ *   · `button.ts`'s `'ring-offset': 'focus.ring.offset'` → `'focus.ring.offset-field'` (value 0)
+ *       → 9 failures naming the zero gap and WCAG 2.4.11. This is the arm that matters, and it is
+ *         the arm that was DEAD: under the pre-fix lookup the header printed "0 (part × brand) gap
+ *         check(s)" and this mutation would have changed nothing. The vacuity report is what caught
+ *         it — an arm that runs zero checks is not a pass, and the count in the header is there so a
+ *         reader can see the difference between 0 and 42 without running a mutation to find out.
+ */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { componentDefs } from './components/index';
