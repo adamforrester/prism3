@@ -12,5 +12,6 @@
     "types": ["plugin-typings"],
     "lib": ["ES2020"]
   },
-  "include": ["src/main.ts", "src/bridge-main.ts", "src/messages.ts", "src/write-figma.ts", "src/write-components.ts", "src/build-telemetry.ts", "src/read-figma.ts", "src/list-fonts.ts", "src/figma-env.d.ts"]
+  "// #836": "../studio/src/build-identity.ts is named explicitly, not left to be pulled in by main.ts's import: it is the one shared-UI module this context compiles, and naming it is what asserts it stays clean under a lib with no 'dom' — the same guarantee tsconfig.ui.json's explicit includes buy in the other direction.",
+  "include": ["src/main.ts", "src/bridge-main.ts", "src/messages.ts", "src/write-figma.ts", "src/write-components.ts", "src/build-telemetry.ts", "src/read-figma.ts", "src/list-fonts.ts", "src/figma-env.d.ts", "../studio/src/build-identity.ts"]
 }

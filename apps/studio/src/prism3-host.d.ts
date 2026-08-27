@@ -11,14 +11,27 @@
 declare const PRISM3_HOST: 'web' | 'figma';
 
 /**
- * Build identity (#474). The commit the live bundle was built from, or `'local'` when it was not
- * built by the deploy. Every esbuild entry point that bundles `apps/studio/src` MUST define it — a `define`
+ * Build identity (#474, extended #836). Which build is running, in whichever terms the producing entry
+ * can answer it. Every esbuild entry point that bundles `apps/studio/src` MUST define it — a `define`
  * that is merely absent leaves a bare identifier in the output and throws at load, so this is not a
- * value with a fallback; it is a required build input.
+ * value with a fallback; it is a required build input. THREE shapes, one per producer:
+ *
+ *   • a commit SHA                            — `build-site.mjs`, the Vercel deploy
+ *   • `'local'`                               — `apps/studio` dev/build, and `'check'` from
+ *                                               `vercel-ignore-check.mjs`, which never renders
+ *   • `'<ISO seconds> <absolute tree path>'`   — `apps/plugin/build.mjs`
  *
  * It exists because `/dist/main.js` is served from an invariant URL: nothing about the page told you
  * which build you were looking at, so "did it deploy?" could only be answered by rebuilding locally
  * and diffing rendered pixels. That happened, for a change that had in fact shipped correctly.
+ *
+ * The third shape exists because the plugin has the same problem with a different invariant: every
+ * checkout's `dist/` declares the same plugin id, so Figma lists them as one dev plugin. This field was
+ * the literal `'plugin'` until #836 — the same string in every tree, and so no answer at all.
+ *
+ * A STRING RATHER THAN A UNION, because a `define` is a textual substitution and the plugin's value is
+ * only known at build time. Read it through `build-identity.ts`, which parses the three shapes and is
+ * the only place that knows their grammar; nothing else should compare this to a literal.
  */
 declare const PRISM3_BUILD: string;
 

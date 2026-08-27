@@ -119,6 +119,269 @@ visible, and #1093 is open on it; shape 20 explicitly proposes no gate; shape 21
 `lint-advisory-expiry`'s own recall grounds. **A row that also repairs its own motivating defect inherits
 that defect's idea of what was worth measuring** — #801, in the register twice for that reason.
 
+## (2026-08-26) — the plugin now says which tree built it, because the field that could have answered said `plugin` (#836)
+
+**STATUS: shipped.** No `ENGINE_VERSION` or `CONTRACT_VERSION` movement — nothing in
+`packages/engine/` changed and no emitted name or value moved; this is `apps/plugin` +
+`apps/studio` only. 114 artifacts, unchanged. `npm run verify` → **45/45 gates reached a verdict in
+121s — 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY**, re-measured after the THIRD round of review fixes on
+this tree rebased onto `785a368` (#1103); not carried from any earlier run. `test.ts` **2643
+passed**, which is #1087's count and not this PR's doing — nothing here touches the engine.
+
+**What ships.** `apps/plugin/build.mjs` stamps `<ISO seconds> <absolute source tree>` into
+`PRISM3_BUILD` on **both** entries, and the identity surfaces in three places: the rail chip beside
+the engine version (`p3-buildid 08-26 21:55`, full path and the reason in its `title`), a clause on
+**every** theme-write and component-build verdict, and one line in the plugin console at load. The
+readings live in one new module, `apps/studio/src/build-identity.ts` (`parseBuildId`, `buildChip`,
+`buildTitle`, `buildNote`, `appendBuildNote`), with `apps/studio/test-build-identity.ts` — **78
+assertions** — over it. The chip carries its UTC marker (`p3-buildid 08-26 21:55Z`), which is one
+character and is there for a reason recorded below.
+
+**WHICH OF THE THREE CHANNELS ACTUALLY DETECTS, measured, and it is the reverse of how this was
+built.** Three surfaces were shipped in the order the issue implied — chip, verdict, console — and
+#1100's reviewer measured them at the plugin's own `DEFAULT_SIZE` (1280×900) in the built
+`dist/ui.html`. Re-measured here independently, same numbers: the chip's bottom edge is at **978px in
+a 900px viewport — 78px below the fold**, last of 13 rail children in a document with 3191px hidden;
+and on a **clean** run the verdict row renders **no box at all** — `#apply-detail` is in the DOM with
+`textContent === ''`, `offsetWidth/offsetHeight 0`, no client rects — because
+`openDetail = m.ok ? null : 'apply'`. On a failing run it is present and carries the clause.
+
+So on #836's own motivating scenario — success reported while the wrong bundle is loaded — **both
+panel surfaces are unreachable and the boot `console.log` is the entire mechanism.** The other two are
+confirmation, each with one case where it detects: the verdict clause on a **failing** run (and it
+travels with a copied bug report), the chip once you already suspect and scroll. That ranking is now
+written where it will be read before someone acts on it — `apps/plugin/README.md`'s table is ordered
+by detection strength with the geometry beside it, `build-identity.ts`'s header says neither rendering
+is primary, and the comment beside the log line in `main.ts` says so with the numbers and the
+instruction not to optimize the chip on the opposite belief.
+
+**The correction matters more than the measurement.** The fix works; the explanation of *why* it works
+was wrong, and the explanation is the durable artifact — a reader who believes the chip is the detector
+widens the chip's budget and drops the console line as redundant, and the next 2026-08-26 is silent
+again. Nothing asserts the ranking (the geometry is invisible to a pure test, and `test:verdict` composes
+its own summaries), which is filed as **#1107** rather than folded in.
+
+**The incident this is built from, since the issue body predates it.** A lane built the plugin in
+`/tmp/p3-swap` and handed over the manifest path. The owner imported it, emitted, and got pre-swap
+names and pre-veil counts. The natural reading was a broken emission. It was not. The obvious check
+— is that the manifest Figma has? — **cleared**: `/private/tmp/p3-swap/…` is `/tmp/p3-swap/…` on
+macOS. A lane then spent four rebuilds, a differential across three checkouts and two byte-count
+corrections proving the bundle at that path was genuinely correct. It was. Three checkouts each held
+a `dist/`, all declaring plugin id `prism3-theming-plugin`, and Figma was running a **different
+entry** — the shared checkout's bundle, built 08-24 when `ENGINE_VERSION` was 0.21.0. The only thing
+that caught it was the engine-version chip reading `0.21.0`.
+
+**The decision, and four places it diverges from how the issue framed the options.** Built: option
+2's content (the source tree path) plus a build timestamp, on both entries, in the chip and in every
+verdict. Declined: option 1's SHA, and option 3's dev/published gate.
+
+1. **Option 1 is falsified by the repo's shape, not merely weakened by it.** 22 live worktrees the
+   day this landed; a SHA cannot separate two trees on the same commit, and `dist/` is gitignored,
+   so a tree can sit on exactly the right commit carrying a two-day-old bundle. Demonstrated rather
+   than argued — see the two-tree run below, same commit, different identity.
+2. **Option 2's stated cost does not apply here.** The cost was "a developer's local path in a
+   bundle that also ships publicly". `apps/plugin` does not ship publicly (CLAUDE.md names
+   TokenPress as the only public surface) and `dist/` is gitignored, so the path never enters git.
+   That removes **option 3's reason to exist**, which is why the dev/published distinction was not
+   built.
+3. **Option 4's premise is partly wrong.** The chip *was* read on 2026-08-26 — the engine-version
+   field is what broke the case open, so that half of the chip is option 4 already working. It was
+   read late because the *other* field said the literal `plugin`, the same string in every checkout
+   and therefore unfalsifiable, while the field carrying a number answered. So the fix is the chip's
+   **content** first, and placement second. **But "placement second" was decided by argument and is
+   the one thing here the measurement overturned** — see the channel ranking above: at the default
+   window the chip is below the fold and the clean-run clause renders no box, so the console line is
+   the detector and these two are confirmation. Option 4 was right that placement is a real problem;
+   it was answered by adding a third channel that has no placement rather than by moving the chip,
+   and the record now says which one is load-bearing instead of listing three as equals.
+4. **A build timestamp, which none of the four options names on its own.** The tree catches the
+   wrong checkout; the timestamp catches the failure the tree cannot see — the right checkout, never
+   rebuilt — and it makes the mechanism self-testing, because it moves on every build.
+
+**Two trees, same commit — the measurement the SHA option fails.** `/tmp/p3-buildid` and
+`/tmp/p3-buildid-b`, both detached at `bc29b13`, built one second apart:
+`2026-08-26T21:55:28Z /private/tmp/p3-buildid` and `2026-08-26T21:55:29Z /private/tmp/p3-buildid-b`.
+The identity was extracted independently from all four artifacts (`main.js` + `ui.html` in each) —
+agreeing within a tree, differing across. Both `dist/ui.html` files were then served and read in a
+headless browser: chip `p3-buildid 08-26 21:55` / `p3-buildid-b 08-26 21:55`, title carrying the
+whole realpath, `pageErrors: []`, no rail overflow.
+
+**Why the path is stamped as a realpath.** `resolve(root, '../..')` under ESM yields
+`/private/tmp/p3-buildid` on macOS, which is the form **Figma itself** reports for a loaded manifest.
+That is deliberate: it compares directly against what Figma shows, without the `/tmp` vs
+`/private/tmp` detour that made the incident's obvious check look clean.
+
+**Timestamp first, split on the FIRST space.** A path can contain `|`, `@` and spaces — this repo
+has `reference/New Balance/` — so no separator is safe to search for from the right. An ISO
+timestamp cannot contain a space, so splitting on the first one makes the path's own content
+irrelevant to the parse. That ordering is what makes `parseBuildId` a total function instead of a
+heuristic, and M6 below is the mutation that proves it.
+
+**`--watch` had to stop using an esbuild `context`.** A context fixes its `define` at creation, so a
+watcher left running would stamp its own start time into every rebuild for the rest of the day — a
+freshness field that goes stale is worse than none. Watch mode is now a single serialized `fsWatch`
+path over `apps/plugin/src` + `apps/studio/src` (both were already watched, by two mechanisms), with
+one identity composed per rebuild and shared by both bundles.
+
+**The mutation battery, re-run on the shipped tree. Every row fails *by name*, not merely red.**
+
+| | Mutation | Gate that failed, by its own message |
+|---|---|---|
+| M1 | the main entry loses the `PRISM3_BUILD` define | `build.mjs` — `dist/main.js: the build identity … did not reach the bundle` |
+| M2 | the UI entry loses it | `build.mjs` — same assertion, `dist/ui.html` |
+| M3 | the define stays; **every** reader in `main.ts` deleted | `build.mjs` — `dist/main.js: …` (esbuild only substitutes a referenced identifier) |
+| M4 | the producer composes `<path> <timestamp>` | `test-build-identity.ts` §6 — *timestamp-then-space-then-path* |
+| M5 | the append separator becomes a fixed `'. '` | §4 — *no doubled period on any input* |
+| M6 | the parse splits on the **last** space | §1 — *a tree path containing spaces survives the parse whole* |
+| M7 | one verdict site posts via `postToUi` directly | §6 — *every verdict goes through `postVerdict`* |
+| M8 | `BUILT_AT` stops being an ISO string | §6 — *BUILT_AT is an ISO string* |
+| M9 | all 6 sites renamed, so M7's scan passes over nothing | §6 floor — *at least 6 verdicts through `postVerdict` (measured 0)* |
+| M10 | `appendBuildNote` stripped from `postVerdict` — **no verdict carries the identity** | §6 — *postVerdict's own body appends the build note* (added in review; was green before) |
+| M11 | the boot-log reader deleted | §6 — *the boot log reports the identity* (added in review; was green before) |
+| M12 | `appendBuildNote` **commented out** in `postVerdict`, whole-line | §6 — *postVerdict's own body appends the build note* (round 2; was green before) |
+| M13 | same, as a **trailing** `//` comment | §6 — same two assertions (the form a whole-line strip misses) |
+| M14 | same, as a `/* */` **block** comment inside the call | §6 — same two assertions |
+| M15 | the boot log commented out whole-line | §6 — *still has the boot log line* + *the boot log reports the identity* |
+| M16 | `stripComments` made a no-op | §6 SELF_CHECK — *removes a whole-line comment* + the trailing and block rows |
+| M17 | `stripComments` returns `''` (empty corpus) | §6 floor — *at least 6 verdicts through postVerdict (measured 0)*, plus 10 more |
+
+**M3 is the row with a trap in it, and it was found by getting the mutation wrong first.** Deleting
+*one* of the main thread's two readers (`postVerdict` and the boot log) leaves the build **green** —
+one surviving reference is all esbuild needs to substitute. So `assertIdentity` answers "did the
+identity reach the artifact", never "does each surface still report it". `build.mjs`'s header now
+says `every reader` rather than `the code that reads it`, because the weaker sentence read as a
+stronger claim.
+
+**And the repair for that trap was itself wrong, which is the entry's most useful line.** It said the
+second question was answered by §6 — and §6, as first written, asked a **routing** question (every
+verdict goes through `postVerdict`; at least six sites do), which cannot see the routed-to body go
+empty. #1100's reviewer proved it by mutation: strip `appendBuildNote` out of `postVerdict`, deleting
+the identity from **every verdict the panel reports** — this PR's headline promise — and `build`,
+`typecheck`, `test:verdict` and `test-build-identity.ts` were all still green. `test:verdict` cannot
+see it by construction: it drives `dist/ui.html` with summaries it composes itself, so it observes
+what the UI renders and never what the main thread chose to send.
+
+§6 now asserts **each reader by name** — `postVerdict`'s own body appends the note with
+`PRISM3_BUILD`, and the boot log reports `buildNote(PRISM3_BUILD)` — so both of the reviewer's
+mutations fail by name. Two things to carry forward from it. First, the shape: a routing check reads
+like coverage of the thing being routed, and naming it as such is `docs/34`'s most-repeated defect,
+committed here in a PR whose whole subject is a defect that pattern-level work missed. Second, the
+honest residue: these are **source scans**. Nothing executes `postVerdict`, because `main.ts` calls
+`figma.showUI` at import and cannot load under `tsx` — the same reason #474's two `title` strings
+were unassertable until they moved. Behavioral coverage of what the main thread composes needs
+`main.ts` restructured behind a `start(deps)` seam, which is filed as **#1106** and affects every
+message it composes, not only this one.
+
+**AND THE READER ASSERTIONS WERE STILL NOT ENOUGH — third pass on the same seam, which is the shape
+worth carrying forward.** `.includes('appendBuildNote(')` is satisfied by the identifier appearing in a
+**comment** inside the body, and #1100's reviewer supplied the form that matters: not a deletion, but a
+temporary disable nobody re-enabled — `// summary: appendBuildNote(m.summary, PRISM3_BUILD) — disabled
+while debugging`. Measured on exactly that source: **`build`, `typecheck`, `test:verdict` (128/128) and
+`test-build-identity.ts` (70/70) all green with this PR's headline promise deleted.** So the seam took
+three passes: a routing check that could not see the body, a body check that could not see a comment, and
+now a body check on stripped source. Each pass was a real narrowing and none of the first two was
+sufficient, which is the honest version of "closed".
+
+`stripComments` is a character scan tracking quote state, and it deliberately does **not** reuse
+`lint-voice.ts`'s `stripLineComments` — that one blanks only *whole-line* `//` comments and leaves a
+mid-line `//` alone, because its subject is a built bundle where a greedy pass would delete a URL inside a
+string. Both halves of that reasoning invert here: the subject is a small TypeScript source, and a
+whole-line pass misses the trailing-comment form (M13) which is exactly the hole being fixed. Quote
+tracking is what makes the greedy pass safe, so the hazard `stripLineComments`'s header records is handled
+rather than avoided; the residual failure direction is a **loud** one (an odd quote outside a string hides
+a real call, so an assertion fails rather than passes). Six SELF_CHECK assertions pin the stripper on
+synthetic input before it is pointed at a real file, and M16/M17 confirm they fail by name — M17 is the
+one that matters, because a stripper returning `''` would make every scan pass over nothing, and it is the
+§6 floor that catches it (*measured 0*).
+
+**The chip now keeps its `Z`, and the nit that produced it is a better argument than its size suggests.**
+`buildChip` sliced `builtAt` to `MM-DD HH:MM` and cut the UTC marker, so a developer at UTC-5 building at
+21:17 local read `08-27 02:17` — **a staleness indicator dated tomorrow**, inviting the conclusion that the
+chip is broken rather than the bundle. Rendering LOCAL time was the alternative and is declined for two
+reasons: this module's output would depend on the viewer's timezone, so the test's literal expectations
+would only hold in the timezone they were written in; and the `title` and the run report carry UTC, so a
+local-time chip beside a UTC sentence trades one misread for another. Twelve characters of time, not
+eleven, and two assertions on it.
+
+**Re-measured with the marker, and the correction is about which variable to state.** Rail 210px, chip
+field capped at 194px, line-height 17.05px: `p3-buildid 08-26 21:55Z` (23 chars) is **152.3px on one
+line**; one line holds through 29 characters, two from 30 to 58, three at 59; an unbreakable 80-character
+token is three lines at 194px; nothing overflows at any length tried. **The earlier "three lines at 47
+characters" was true of one sampled string and not of the threshold** — the break is decided by the
+tree-name TOKEN, since the time field cannot break and the name only breaks mid-token once it alone
+exceeds 194px. Adding the `Z` moved a 47-character chip from a 35-character name (breaks) to a
+34-character name (fits), so the same total length changed line count with nothing about the layout
+changing. Third correction to the same comment, and the lesson is not "measure again" — it is *state the
+threshold, not the sample*.
+
+**On the freshness gate that was floated: not built, and the reason is not cost.** It would measure
+the wrong quantity (docs/34 shape 16). The 2026-08-26 bundle was *fresh for its own tree*; the defect
+was Figma pointing at a **different** tree, which a check run in the tree you are standing in cannot
+see. It also has no failing corpus in CI, where the checkout is single and always fresh. The
+assertion built instead lives in `build.mjs` and matches what that file already does for four other
+properties of its own output — `dist/` is gitignored, so nothing else can read it back.
+
+**Three traps for whoever re-verifies this.**
+
+1. **Figma's own entry selection is not scriptable, so that one step is hand-verified.** The
+   `figma-console` MCP had no live connection during this work (`probeResult.success: false`, "No
+   active file connected"). Everything else in the chain is automated: the manifest tested was
+   `/tmp/p3-buildid/apps/plugin/manifest.json` → `dist/ui.html`, the identity expected was
+   `p3-buildid 08-26 21:55` with `Built from /private/tmp/p3-buildid at 2026-08-26T21:55:28Z.`, and
+   the two matched. Which entry Figma launches from a list of identically-named dev plugins is the
+   defect itself and cannot be asserted from outside Figma — that is the reason this feature exists,
+   not a gap in the verification.
+2. **`apps/plugin/dist` is inside `lint-us-english.ts`'s scope (#937), so the identity makes a
+   developer's filesystem path into gate-scanned text — and this is a property of the change, not an
+   environment quirk.** A worktree at `/private/tmp/p3-colour-lane` turns that gate **red**, three
+   hits, and its documented remedy (add to `NOT_EN_GB`) cannot hold a per-machine string. **What the
+   payload should carry was therefore decided rather than inherited, against the real gate:**
+
+   | stamped | `lint-us-english` |
+   |---|---|
+   | `/private/tmp/p3-colour-lane` — absolute realpath | **exit 1** |
+   | `p3-colour-lane` — basename only | **exit 1** ← shortening does *not* fix it |
+   | `4f1a9c2` — opaque hash | exit 0 |
+
+   The basename row decides it: the en-GB substring is in the **lane name a developer chose**, not the
+   parent directory, so every human-readable form of "which checkout" carries the same property. A
+   repo-relative path is worse than both — every checkout *is* the repo root, so it is the empty string
+   in all of them and discriminates nothing. Only the hash clears the gate, and it deletes the field's
+   purpose: no `git -C <tree> log -1`, no tree to re-import, nothing comparable by eye against the
+   manifest path Figma reports. **So the path stays**, recorded with these three rows at `TREE`'s own
+   definition in `build.mjs`, and **#1099 is reframed as what it is**: the gate's scope treats a
+   `--define`-substituted provenance token as prose someone wrote. That is a scope decision about the
+   gate — the same distinction `lint-voice.ts` already draws with `stripLineComments` — and it is not a
+   payload to shrink here. CI's checkout path is fixed and unaffected.
+3. **This entry's own placement was not protected by the gate that looks like it protects it — twice,
+   in two rebases, and the two cases behaved differently.** The rebase onto `d4979ae` conflicted on
+   this file alone against an entry also dated `(2026-08-26)`: `lint-progress-order.ts` sorts ties
+   **stably**, so the wrong resolution passes cleanly — the reviewer built it and got *449 dated
+   entries found · clean · exit 0*. The very next rebase, onto `785a368`, conflicted against an entry
+   dated `(2026-08-27)`, where putting this one on top **is** a real ordering violation and the gate
+   does catch it. So the gate's coverage depends on whether the neighbor shares your date, which is
+   not a property you can see from the conflict. Resolve by reading both headings' dates, then grep
+   this heading and confirm by eye; a top-of-file assumption is wrong here — the correct place for a
+   `(2026-08-26)` entry is *below* every `(2026-08-27)` one. Pre-existing gap, filed by the reviewer
+   as **#1104**; deliberately not folded in here.
+
+**Filed, not fixed here (one concern per PR).** **#1098** — per-member build identity in
+`memberStamp` (`apps/plugin/src/write-components.ts`): the define is now available at that call site
+and was deliberately left out, because adding a field changes a **persisted** format and is a
+staleness decision rather than a reporting one, and because `planHalf` reads `split('|')[1]` while a
+filesystem path can itself contain `|`. **#1099** — the US-English scope question above, now carrying
+the three-payload measurement and the two candidate fixes. **#1106** — behavioral coverage of what
+`main.ts` composes, which no source scan can stand in for. **#1107** — nothing asserts the channel
+ranking: the chip's position and the clean-run verdict row are invisible to a pure test, and
+`test:verdict` composes its own summaries, so the record says which channel is load-bearing and nothing
+stops that channel being removed as the redundant one. All four are issues with a repro and options;
+none is a paragraph in a PR body.
+
+**One more measured number was wrong and is corrected in place.** `build-identity.ts`'s header claimed
+a 47-character lane name wraps to four lines. Re-measured in the built panel: 46 characters is two
+lines (34.1px), 47 is **three** (51.1px at a 17.05px line-height), and the chip caps at 194px inside
+the 210px rail with no rail scroll at any length tried. The load-bearing half of that comment held; a
+number in a sentence that says "measured" did not.
 
 ## (2026-08-26) — 37 refusals nobody lost anything to: the two controls refuted the diagnosis before it was built on (#1087)
 
@@ -326,7 +589,6 @@ entries to
 in an issue whose measured claims all held. The reviewer took the first on my word; the owner caught
 it; the second was underneath it and nobody had flagged it.* **A retraction written the same way as the
 claim inherits its blind spot.**
-
 
 ## (2026-08-26) — the tier swap: `color.appearance` holds the values, `color` holds the pointers (#1013)
 
