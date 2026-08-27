@@ -33,6 +33,14 @@
  *                · prism3-only      — a MEMORY, per brand, of the paths currently known to be
  *                  unreachable and WHY. See KNOWN_UNREACHABLE below; the "why" is the gate.
  *
+ *   NAMESPACE    asserted as a RULE, in BOTH of #1097's directions (ARM 2c). Every Figma VARIABLE name
+ *                carries the brand root, so an exporter reading those names back must reproduce it as
+ *                the one rooted top-level group — and a STYLE name deliberately does not, so the
+ *                unrooted groups must hold only types a Figma style can carry (`typography`, `shadow`).
+ *                The root's SPELLING is never asserted: it is a brand's own choice. Read N1–N3 in the
+ *                register below before assuming the unpaired arms would have caught this — measured,
+ *                they report a clean pass under a total namespace loss.
+ *
  *   FLOAT32 LEAK asserted at 0, as a RULE. #703 predicted TokenPress's `roundToPrecision` cleanup
  *                could silently rewrite a value that never carried the artifact. Measured safe for
  *                8-bit-authored color (all 256 channels survive fround-then-4dp), which is what
@@ -140,6 +148,25 @@
  *                                                        not decorative: grid.* stops pairing at all)
  *   D2  delete `color` from `COLLECTION_AXIS`         → ARM 1d, 3 failures   (unclassified ≠ default)
  *   D3  declare a collection nothing emits            → ARM 1d, 3 failures   (stale declaration)
+ *   N1  `nsName` → identity (the root off the FLOAT   → ARM 2c, 39 failures  (partial loss: 16 unrooted
+ *       and font axes' assembled names, #1097)             groups named with their types; colour kept
+ *                                                          its root, so the arm caught HALF a loss)
+ *   N2  `nsName` → identity AND `figName` dropping    → ARM 2c, 3 failures   (total loss — the other half
+ *       the leading dotted segment (both rooting              of the arm, `rooted.length !== 1`)
+ *       sites; the second is the one it is easy to
+ *       miss, since colour names are walked out of
+ *       the tree already rooted)
+ *   N3  revert `unionTokenPress`'s `leaves(…, rootKey)` → ARMs 2a+2b, 4316 failures (the strip is
+ *       to the unstripped call it replaced                    load-bearing, not cosmetic)
+ *
+ * WHY N1/N2 EXIST AT ALL, AND WHAT N2 MEASURED THAT NO PARAGRAPH COULD: under N2's total namespace
+ * loss the UNPAIRED ARMS REPORT A CLEAN PASS — 0 tokenpress-only, 0 unexplained prism3-only, on all
+ * three brands. That is not a prediction, it is the run. Paths are compared with each side's own root
+ * stripped, so a rootless emission reduces to exactly the paths a rooted one does. ARM 2c is therefore
+ * not a redundant restatement of 2a/2b; it is the ONLY arm that can see its subject, which is the
+ * borrowed-backstop shape docs/34 names. N3 is the converse: the strip it depends on is doing real
+ * work, and removing it floods the report with 4316 same-token-different-segment failures rather than
+ * catching anything.
  *
  * WHAT ARM 1b STILL DOES NOT VERIFY, probed after the fact rather than assumed. It compares the two
  * sides' `$type`, so it falsifies a rule's authored `reason` only when the error CHANGES A TYPE —
