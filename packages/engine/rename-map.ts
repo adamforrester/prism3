@@ -162,30 +162,43 @@ export const isRefusal = (s: RenameStatus): boolean =>
  * reports `source-absent`, so over-projecting is self-correcting and under-projecting is not.
  *
  * Since #1013 the two are `color.appearance` (the VALUE tier — 242 roles, one mode per appearance) and
- * `color` (the ALIAS tier — the 128 roles that have an inverse counterpart, two surface modes). They
- * were `color` and `surface`. The measured subset relation is unchanged by the swap: 128 of the 242
- * roles are also alias-tier roles, and every alias-tier role is a value-tier role.
+ * the alias tier — the 128 roles that have an inverse counterpart, two surface modes. They were `color`
+ * and `surface`; #1089 then named the alias tier's axis, so it is `color.surface`. The measured subset
+ * relation is unchanged by either rename: 128 of the 242 roles are also alias-tier roles, and every
+ * alias-tier role is a value-tier role.
  *
  * **The value tier is listed first, and that is not cosmetic.** `color.appearance` is where a renamed
- * role's variable actually lives in every brand; `color` holds it only for the 128. A reader scanning
- * the projections should meet the one that fires first.
+ * role's variable actually lives in every brand; the alias tier holds it only for the 128. A reader
+ * scanning the projections should meet the one that fires first.
  */
-export const MIRRORED_COLLECTIONS: Record<string, readonly string[]> = { color: ['color.appearance', 'color'] };
+export const MIRRORED_COLLECTIONS: Record<string, readonly string[]> = { color: ['color.appearance', 'color.surface'] };
 
 /**
- * Contract roots that are ALSO the name of an emitted Figma variable collection — measured, 9 of the 18
+ * Contract roots that are ALSO the name of an emitted Figma variable collection — measured, 9 of the 16
  * guaranteed roots. Only these project: a deprecation on any other root has no variable to migrate, and
  * emitting an entry for it would produce a map row that can never fire and can never be reported. An
  * entry nothing will ever look at is worse than no entry, because it inflates the map's own count.
  *
- * The other 9 are excluded for three different reasons, and none of them is "we forgot": `palette`,
- * `font`, `dimension` and `type` live in collections named `core-palette` / `core-font` /
- * `core-dimension` / `type-sets`, so projecting them would need a prefix rule that is a guess about a
- * naming convention rather than a fact about the emission; `shadow` materialises as Figma STYLES, where
- * a rename is a different operation on a different API; `motion`, `breakpoint`, `container` and `grid`
- * have no variable counterpart at all (Figma has no easing variable, and the rest are consumed as
- * values, not bound). A deprecation landing on any of them fails the `test.ts` arm that pins the
- * unprojected set by NAME — so it forces the decision rather than skipping it quietly.
+ * The other 7 are excluded for three different reasons, and none of them is "we forgot": `core` and
+ * `type` live in collections whose variables are named after a GROUP inside them (`core` holds
+ * `palette/*`, `dimension/*` and `font/*`; `type-sets` holds `font-fluid/*`), so projecting them would
+ * need a prefix rule that is a guess about a naming convention rather than a fact about the emission;
+ * `shadow` materialises as Figma STYLES, where a rename is a different operation on a different API;
+ * `motion`, `breakpoint`, `container` and `grid` have no variable counterpart at all (Figma has no
+ * easing variable, and the rest are consumed as values, not bound). A deprecation landing on any of them
+ * fails the `test.ts` arm that pins the unprojected set by NAME — so it forces the decision rather than
+ * skipping it quietly.
+ *
+ * ── `core` IS AN EMITTED COLLECTION NAME SINCE #1097, AND IS STILL NOT LISTED ──────────────────────
+ *
+ * The three primitive collections merged into one called `core`, so for the first time the root and a
+ * collection agree — and `reRoot` would spell `core/palette/red/550`, which is exactly what the emission
+ * carries below the brand root. Adding it would nonetheless produce nothing: no deprecation has `core` as
+ * its PATH root. #1102's 164 entries move INTO the tier (`palette.red.550` → `core.palette.red.550`), so
+ * their path root is `palette`/`dimension`/`font`, and a cross-root replacement is refused as a MOVE in
+ * any case. An inert entry is the thing this list exists to avoid, so the decision is recorded here
+ * rather than taken speculatively — and the `test.ts` arm that pins the unprojected set by name is what
+ * forces it to be re-taken the first time a rename lands INSIDE the tier.
  *
  * `test.ts` asserts every root here is genuinely an emitted collection name, against the corpus. That
  * check is the reason this can be an authored list at all: the claim is verified against the emission
@@ -220,12 +233,30 @@ const roleOf = (figmaName: string): string => {
   return seg.slice(tier !== undefined && seg[1] === tier ? 2 : 1).join('/');
 };
 
-/** Spell one role into one collection. The collection name IS the tier prefix, dots to slashes:
- *  `color.appearance` holds `color/appearance/*`, `color` holds `color/*`, `space` holds `space/*`.
- *  `core-palette` holding `palette/*` is the counterexample, and is why `PROJECTED_ROOTS` is a closed
- *  list rather than "every collection". */
+/**
+ * WHERE A COLLECTION'S NAME AND ITS VARIABLES' NAME PREFIX DISAGREE (#1089) — one entry, and it is an
+ * exception to a rule that held for every other projected root.
+ *
+ * `reRoot` below spelled the prefix by splitting the COLLECTION name on dots, which was a fact about the
+ * emission while a collection was named after the tier its variables carry: `color.appearance` holds
+ * `color/appearance/*`, `space` holds `space/*`. #1089 named the alias tier's AXIS instead — the
+ * collection is `color.surface` and its variables kept their `color/*` tails, because no DTCG path moved.
+ *
+ * The derivation would now spell `color/surface/<role>`, a name no brand emits, so all 40 projecting rows
+ * would resolve nowhere — silently, since a row whose target is absent is a reported no-op by design.
+ */
+const NAME_PREFIX: Record<string, readonly string[]> = { 'color.surface': ['color'] };
+
+/** Spell one role into one collection. The collection name is the tier prefix, dots to slashes, EXCEPT
+ *  where `NAME_PREFIX` says otherwise: `color.appearance` holds `color/appearance/*`, `color.surface`
+ *  holds `color/*`, `space` holds `space/*`. `core` holding `palette/*`, `dimension/*` and `font/*` is
+ *  the counterexample that keeps `PROJECTED_ROOTS` a closed list rather than "every collection".
+ *
+ *  The BRAND ROOT is deliberately absent here (#1097). Every emitted name carries it, and these rows do
+ *  not: they are tails, derived from `DEPRECATIONS`, where nothing is brand-specific.
+ *  `composeVariableRenames` is the one layer that puts it on — see its header. */
 const reRoot = (figmaName: string, collection: string): string =>
-  [...collection.split('.'), roleOf(figmaName)].join('/');
+  [...(NAME_PREFIX[collection] ?? collection.split('.')), roleOf(figmaName)].join('/');
 
 /**
  * Every candidate Figma projection of one deprecation: the ROLE, spelled into each collection the root

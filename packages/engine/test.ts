@@ -83,6 +83,25 @@ const NB_ROOT = nbTheme().root;
 /** An nb variable's full emitted name, from its root-relative tail. */
 const nbVar = (tail: string): string => `${NB_ROOT}/${tail}`;
 /**
+ * Each Figma-emitting brand's configured root, keyed by the directory name under `out/figma/`. Same
+ * sourcing rule as `NB_ROOT` above: from the THEME, never from the first segment of an emitted name.
+ *
+ * A missing entry THROWS rather than defaulting, and `tsx` not typechecking this file is why that matters:
+ * an absent root arrives at a rule's `domain` as `undefined`, `!name.startsWith('undefined/')` is true of
+ * every name in the corpus, and the whole emission reads as having moved. A brand emitted with no entry
+ * here is a hole, not a default.
+ */
+const BRAND_ROOTS: Record<string, string> = {
+  nb: NB_ROOT,
+  aurora: brandTheme(exampleBrands()['aurora'] as BrandInput).root,
+  wendys: brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input).root,
+};
+const rootOfBrand = (brand: string): string => {
+  const r = BRAND_ROOTS[brand];
+  if (!r) throw new Error(`no configured root for emitted brand \`${brand}\` — add it to BRAND_ROOTS (from that brand's theme), never read it off the emission`);
+  return r;
+};
+/**
  * The three primitive groups #1102 moved under the `core` DTCG tier. Written out rather than imported
  * from `theme.ts`: this is the list the FIXTURE transform below needs, and importing the emitter's own
  * list would make the transform agree with whatever the emitter does (docs/34).
@@ -11952,26 +11971,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `rename-map: the derivation materialises ${map.variables.length} entries, ${colorRows.length} of them in \`color.appearance\` (floors 80/40) — zero derived entries is the silent failure this whole block exists for`);
 
   for (const [brand, idx] of indexes) {
+    // #1097 — THE MAP'S ROWS ARE TAILS AND THE EMISSION'S NAMES ARE ROOTED, so every lookup below
+    // crosses that boundary and has to say so. `DEPRECATIONS` records paths BELOW the configurable root
+    // (`color.text.primary`, never `prism.color.text.primary`) because the root is a lever, so the
+    // derived rows carry no brand prefix; `composeVariableRenames` is the one layer that adds it, and
+    // this oracle stands where that layer does. Comparing a tail against a rooted index would make
+    // every arm below report its own failure mode — `unresolved` would be 100% and `stale` 0% — which
+    // is precisely the "silent, resolves nowhere" shape the whole block exists to catch, arriving via
+    // the gate instead of the subject.
+    const rooted = (tail: string): string => `${rootOfBrand(brand)}/${tail}`;
     // Direction 1: the map points at something real. A `to` that resolves nowhere is a migration that
     // would rename a live variable to a name the engine has stopped writing — manufacturing an orphan
     // out of a healthy variable, the one way this operation is worse than doing nothing.
-    const unresolved = colorRows.filter((r) => !idx.has(r.to));
+    const unresolved = colorRows.filter((r) => !idx.has(rooted(r.to)));
     ok(unresolved.length === 0,
-      `rename-map(${brand}): every derived \`color.appearance\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => r.to).join(', ')}` : ` (${colorRows.length} entries)`}`);
+      `rename-map(${brand}): every derived \`color.appearance\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => rooted(r.to)).join(', ')}` : ` (${colorRows.length} entries)`}`);
 
     // Direction 2: the map does not point at something LIVE. A `from` still emitted means the entry is
     // stale — the rename never happened, or reverted — and applying it would move a variable the plan
     // is about to write, under the name the plan is writing it under.
-    const stale = map.variables.filter((r) => idx.has(r.from));
+    const stale = map.variables.filter((r) => idx.has(rooted(r.from)));
     ok(stale.length === 0,
-      `rename-map(${brand}): no derived SOURCE is still emitted — a live \`from\` is an entry that would migrate a variable the plan still owns${stale.length ? ` — STALE: ${stale.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
+      `rename-map(${brand}): no derived SOURCE is still emitted — a live \`from\` is an entry that would migrate a variable the plan still owns${stale.length ? ` — STALE: ${stale.slice(0, 3).map((r) => rooted(r.from)).join(', ')}` : ''}`);
 
     // And the entry's claimed collection is where the target actually lives. An entry filed under the
     // wrong collection never fires (the executor filters by collection name) and reports nothing —
     // exactly the shape of a silently inert map.
-    const misfiled = colorRows.filter((r) => idx.get(r.to) !== r.collection);
+    const misfiled = colorRows.filter((r) => idx.get(rooted(r.to)) !== r.collection);
     ok(misfiled.length === 0,
-      `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
+      `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${rooted(r.to)} is in ${idx.get(rooted(r.to))}, entry says ${r.collection}`).join('; ')}` : ''}`);
 
   // ---- #1087: AN ABSENT SOURCE OUTRANKS AN UNPLANNED TARGET ----
   //
@@ -12082,14 +12110,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // one, and it built `color.appearance/…`, a name no collection has ever held. That is a SECOND
     // defect the tier swap exposed, independent of the key/mirror inversion above — fixing only the
     // inversion leaves all 37 breaks standing, because the twin lookup can never hit.
-    const pfx = (coll: string) => `${coll.split('.').join('/')}/`;
+    //
+    // AND SINCE #1089 THE CONVENTION HAS ONE EXCEPTION, restated here for the same reason the rest is:
+    // `color.surface` holds `color/<role>`, not `color/surface/<role>`. #1089 renamed the collection so
+    // both tiers name their axis in the mode picker and deliberately left the VARIABLE names alone, so
+    // no DTCG path moved. Deriving the prefix from the dotted name alone therefore builds
+    // `color/surface/…` — a name no brand emits — and every `color.surface` row's twin lookup misses,
+    // silently, in exactly the manner the paragraph above describes. `rename-map.ts` carries the same
+    // exception in a `NAME_PREFIX` table; this is a hand-written second statement of it, NOT an import.
+    //
+    // #1097 adds the brand root on top. `plannedBy` is read out of the artifacts, so its names are
+    // ROOTED (`nbds/color/appearance/…`); the map's rows are TAILS. The prefix carries the root so the
+    // twin lookup and the plan lookup both happen in the emission's own space.
+    const NAME_PFX: Record<string, string> = { 'color.surface': 'color' };
+    const pfx = (coll: string) => `${rootOfBrand(brand)}/${NAME_PFX[coll] ?? coll.split('.').join('/')}/`;
     const breaks: string[] = [];
     let plannedRows = 0, mirrorRows = 0;
     for (const r of map.variables) {
-      if (plannedBy.get(r.collection)?.has(r.to)) { plannedRows++; continue; }
+      const to = `${rootOfBrand(brand)}/${r.to}`;
+      if (plannedBy.get(r.collection)?.has(to)) { plannedRows++; continue; }
       // The same ROLE, spelled into each of the group's other members.
       const others = groupOf(r.collection).filter((g) => g !== r.collection);
-      const role = r.to.startsWith(pfx(r.collection)) ? r.to.slice(pfx(r.collection).length) : null;
+      const role = to.startsWith(pfx(r.collection)) ? to.slice(pfx(r.collection).length) : null;
       const twin = role === null ? undefined : others.find((g) => plannedBy.get(g)?.has(pfx(g) + role) ?? false);
       // A row in a collection that mirrors NOTHING has no `others` at all, so it can never land here —
       // that emptiness is load-bearing rather than defensive: without it the bucket is an escape hatch
@@ -12117,7 +12159,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const members = [...new Set([k, ...ms])];
       return members.length > 1 ? members : [];
     }));
-    const mirrorEligible = map.variables.filter((r) => grouped.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
+    const mirrorEligible = map.variables.filter((r) => grouped.has(r.collection) && !(plannedBy.get(r.collection)?.has(`${rootOfBrand(brand)}/${r.to}`) ?? false)).length;
     //
     // ITS BOUND, STATED because the message is scoped precisely and the scope is easy to over-read.
     // This catches a widened predicate absorbing a break in a collection that mirrors NOTHING (measured:
@@ -12154,10 +12196,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // directions: a root that is not really a collection name yields entries nothing ever reads, and a
   // missing root yields no entries at all. The first direction is what the domain arm below catches; this
   // is the second, and it is why the list can be authored at all.
+  //
+  // A ROOT IS NOT ALWAYS A COLLECTION NAME, and since #1089 the colour axis is the case that proves it.
+  // `PROJECTED_ROOTS` holds CONTRACT path roots; the colour root materialises into TWO collections
+  // (`color.appearance` and `color.surface`) and into neither one called `color`. So the root is expanded
+  // through `MIRRORED_COLLECTIONS` before the emission is asked about it, and EVERY member must be a
+  // real collection — checking "at least one" would let a mirror pair go half-dead unnoticed, which is
+  // the same silence the arm exists to break, one member in.
   const emittedCollections = new Set(nbIdx.values());
-  const notCollections = PROJECTED_ROOTS.filter((r) => !emittedCollections.has(r));
+  const collectionsOfRoot = (r: string): string[] => [...new Set(MIRRORED_COLLECTIONS[r] ?? [r])];
+  const notCollections = PROJECTED_ROOTS.flatMap((r) => collectionsOfRoot(r).filter((c) => !emittedCollections.has(c)).map((c) => `${r} → ${c}`));
   ok(PROJECTED_ROOTS.length >= 9 && notCollections.length === 0,
-    `rename-map: every projected root is genuinely an emitted collection name (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
+    `rename-map: every projected root materialises into genuinely emitted collection names (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
 
   // ---- (b) the entries with NO Figma counterpart are a stated set, not a silent skip ----
   // A DEPRECATION CAN REACH NO FIGMA VARIABLE FOR THREE UNRELATED REASONS, and the arms below name each
@@ -12171,8 +12221,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // reported 117 and the arm failed on a number — which is the only reason anyone looked. A derivation
   // that had stopped projecting entirely would have satisfied it with every deprecation in the list.
   //
-  //   1. ROOT NOT PROJECTED — `motion.easing.*` (3). `motion` is not in `PROJECTED_ROOTS`: Figma has no
-  //      easing variable, so there is nothing in any file to rename.
+  //   1. ROOT NOT PROJECTED — 167 across four families, and #1102 is why this is now the largest of the
+  //      three. `motion.easing.*` (3) is the original case: `motion` is not in `PROJECTED_ROOTS` because
+  //      Figma has no easing variable, so there is nothing in any file to rename. #1102's core-tier move
+  //      adds `palette.*` (62), `dimension.*` (37) and `font.*` (65) — 164 paths gaining a `core.` tier
+  //      segment — and those reach no Figma rename for a DIFFERENT reason that lands in the same bucket:
+  //      the Figma-side change is the brand namespace plus the `core/` tier on every variable in the
+  //      collection, which is a MATERIALIZATION rename (`namespace-and-core-tier-1097`) and not a
+  //      per-path one. They are ALSO cross-root (`palette` → `core`), so reason 3 would catch them if
+  //      reason 1 did not; the root check fires first, and the families are pinned by name below so
+  //      neither reason can absorb a fourth silently.
   //   2. TIER-ONLY — #1013's moves (114). The contract path moved and the ROLE did not, so there is no
   //      variable rename to derive: the Figma-side change is the tier prefix on every variable in the
   //      collection, which is a MATERIALIZATION rename and lives as a rule in `materialization-renames.ts`.
@@ -12182,25 +12240,41 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // Then the CLASP: the three reasons must account for every non-projecting entry. Without it a fourth
   // reason could appear and be absorbed by whichever arm's count happened to be a floor.
+  //
+  // PER FAMILY, NOT AS A TOTAL. The arm that stood here read `every((d) => d.path.startsWith('motion.easing.'))`
+  // — sound while the bucket held one family, and unmaintainable the moment it held four: the honest
+  // widening is `startsWith` over a union, which is satisfied by ANY distribution summing to 167 and
+  // would let 62 `palette.*` entries quietly become 62 `font.*` ones. So each family carries its own
+  // expected count, and a family the table does not name reports as `UNKNOWN(<path>)` rather than
+  // landing in whichever number happens to be a floor. The total is then a consequence, not the claim.
+  const UNPROJECTED_FAMILIES: Record<string, number> = { 'motion.easing.': 3, 'palette.': 62, 'dimension.': 37, 'font.': 65 };
   const unprojectedRoot = DEPRECATIONS.filter((d) => !PROJECTED_ROOTS.includes(d.path.split('.')[0]));
-  ok(unprojectedRoot.length === 3 && unprojectedRoot.every((d) => d.path.startsWith('motion.easing.'))
+  const famCount = new Map<string, number>();
+  for (const d of unprojectedRoot) {
+    const fam = Object.keys(UNPROJECTED_FAMILIES).find((f) => d.path.startsWith(f)) ?? `UNKNOWN(${d.path})`;
+    famCount.set(fam, (famCount.get(fam) ?? 0) + 1);
+  }
+  const famWrong = [...new Set([...Object.keys(UNPROJECTED_FAMILIES), ...famCount.keys()])]
+    .filter((f) => (UNPROJECTED_FAMILIES[f] ?? 0) !== (famCount.get(f) ?? 0))
+    .map((f) => `${f} expected ${UNPROJECTED_FAMILIES[f] ?? 0}, got ${famCount.get(f) ?? 0}`);
+  ok(unprojectedRoot.length === 167 && famWrong.length === 0
       && unprojectedRoot.every((d) => projectionsOf(d).length === 0),
-    `rename-map: exactly the 3 \`motion.easing.*\` deprecations sit on an unprojected ROOT — Figma has no easing variable, so there is nothing to migrate (got ${unprojectedRoot.length}: ${unprojectedRoot.map((d) => d.path).join(', ')})`);
+    `rename-map: the ${unprojectedRoot.length} deprecations on an unprojected ROOT break down exactly as authored (expected 167 = ${Object.entries(UNPROJECTED_FAMILIES).map(([f, n]) => `${n} ${f}*`).join(' + ')}) — Figma has no easing variable, and the core tier moves by materialization rule rather than per path${famWrong.length ? ` — WRONG: ${famWrong.join('; ')}` : ''}`);
   const tierOnly = DEPRECATIONS.filter((d) => d.replacedBy === `color.appearance.${d.path.slice('color.'.length)}`);
   const tierOnlyProjecting = tierOnly.filter((d) => projectionsOf(d).length > 0);
   ok(tierOnly.length === 114 && tierOnlyProjecting.length === 0,
     `rename-map: all ${tierOnly.length} of #1013's tier-only moves project NOTHING (expected 114) — the contract path moved, the role did not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
   const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
   const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
-  ok(noProjection.length === 117 && unaccounted.length === 0,
-    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 3 unprojected root + 114 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(noProjection.length === 281 && unaccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 167 unprojected root + 114 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
   // least one live variable. Per-ROW this is deliberately false — the mirror over-projects, see (c) — so
   // the claim is per-deprecation, and it is the one whose failure mode is a derivation quietly aiming at
   // names the emission stopped writing.
   const projecting = DEPRECATIONS.filter((d) => projectionsOf(d).length > 0);
-  const projectedButDead = projecting.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(p.to)));
+  const projectedButDead = projecting.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(`${NB_ROOT}/${p.to}`)));
   ok(projecting.length === 40 && projectedButDead.length === 0,
     `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 40)${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
@@ -12222,18 +12296,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // Since #1013 the two collections are `color.appearance` (value) and `color` (alias) — the mirror is the
   // same relation under swapped names, and `MIRRORED_COLLECTIONS` is where that pair is stated once.
-  ok(MIRRORED_COLLECTIONS['color']?.join() === 'color.appearance,color',
+  // #1089 then renamed the alias tier `color.surface`, so BOTH members name their axis in the mode
+  // picker and neither is the bare root any more. The pair is a pair of COLLECTIONS; the KEY stays the
+  // contract root `color`, because that is what a deprecation's path segment 0 says and the lookup in
+  // `projectionsOf` is keyed on it.
+  ok(MIRRORED_COLLECTIONS['color']?.join() === 'color.appearance,color.surface',
     `rename-map: the mirror pair is [value tier, alias tier] in that order — the value tier is listed first because it is the superset, and a reader who takes them the other way round reads the subset relation backwards (got ${MIRRORED_COLLECTIONS['color']?.join() ?? 'nothing'})`);
-  const surfRows = map.variables.filter((r) => r.collection === 'color');
-  const surfLive = surfRows.filter((r) => nbIdx.has(r.to));
+  const surfRows = map.variables.filter((r) => r.collection === 'color.surface');
+  const surfLive = surfRows.filter((r) => nbIdx.has(`${NB_ROOT}/${r.to}`));
   ok(surfLive.length >= 3,
-    `rename-map: the alias-tier mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every alias twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => r.to).join(', ')})` : ''}`);
-  ok(surfLive.every((r) => nbIdx.get(r.to) === 'color'),
-    'rename-map: every live mirror target is emitted into `color`, not read back out of `color.appearance` under a re-rooted name');
+    `rename-map: the alias-tier mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every alias twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => `${NB_ROOT}/${r.to}`).join(', ')})` : ''}`);
+  ok(surfLive.every((r) => nbIdx.get(`${NB_ROOT}/${r.to}`) === 'color.surface'),
+    'rename-map: every live mirror target is emitted into `color.surface`, not read back out of `color.appearance` under a re-rooted name');
   // The mirror over-projects on purpose — most `color` entries have no surface twin — and that is safe
   // ONLY because an absent source is a reported no-op rather than an error. Asserted, because if it
   // ever became an error, over-projection would turn every apply into a wall of false refusals.
-  const surfDead = surfRows.filter((r) => !nbIdx.has(r.to));
+  const surfDead = surfRows.filter((r) => !nbIdx.has(`${NB_ROOT}/${r.to}`));
   ok(surfDead.length > 0 && planVariableRenames([], surfDead.map((r) => r.to), surfDead).every((o) => o.status === 'source-absent'),
     `rename-map: the ${surfDead.length} mirror entries with no live twin resolve to \`source-absent\`, not a refusal — over-projecting is self-correcting, under-projecting is not`);
 
@@ -12242,24 +12320,51 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // collection name is the inert-map failure again: the executor filters by collection, so an entry
   // filed under `colour` is never looked at and never reported.
   const domainTheme = nbTheme();
+  // `color.appearance` is named by hand because `buildWritePlan` is keyed by plan GROUP (`palette`,
+  // `color`) rather than by collection name, so the colour emission's collection is not readable off it.
+  // The palette collection used to be named here too, as `core-palette`; #1097 consolidated the three
+  // `core-*` collections into one `core`, which the float and font plans below already produce — so the
+  // literal came out rather than being updated, and the domain is one line closer to plan-derived.
   const written = new Set<string>([
-    'core-palette', 'color.appearance',
+    'color.appearance',
     buildSurfaceWritePlan(domainTheme).name,
     ...buildFloatWritePlan(domainTheme).map((p) => p.name),
     ...buildFontVarPlan(domainTheme).map((p) => p.name),
   ]);
   ok(written.size >= 10, `rename-map: the plan-derived collection domain is populated (${written.size} collections) — an empty domain would fail every entry rather than checking it`);
+  //
+  // #1097 — ONE `COLLECTION_RENAMES` TARGET IS NOW STALE BY DECISION, and it is NAMED rather than
+  // filtered out by a predicate. `surface` → `color` targets a collection the write plans stopped
+  // producing when #1089 renamed the alias tier `color.surface`, and #1097 deliberately ships no
+  // replacement entry: the owner works from empty files, so there is nothing to migrate, and the
+  // accounting the removals need is carried by `ACCOUNTING_COLLECTION_MOVES` instead.
+  //
+  // A named list, because the two ways to make this arm green are not equivalent. Loosening the
+  // predicate to "ignore any target the plans do not produce" retires the arm — the domain check is
+  // exactly the claim that a map entry cannot name a collection the engine never writes, and a stale
+  // target is that failure, arrived at by decision rather than by typo. A list of ONE fails the moment
+  // a SECOND target goes stale, which is the state that would mean the map has quietly stopped being
+  // applicable at all.
+  //
+  // The residual this accepts is real and filed: applying over a pre-#1097 file leaves the old
+  // `core-*` and `color` collections and every binding on them in place, reported by nothing (#1108 —
+  // the `core-*` → `core` half is a fan-in `validateRenameMap` refuses, which is why it is not a
+  // one-line fix and not in this PR).
+  const STALE_COLLECTION_TARGETS: readonly string[] = ['color'];
   const outsideDomain = [...new Set(map.variables.map((r) => r.collection)), ...map.collections.map((c) => c.to)]
-    .filter((n) => !written.has(n));
+    .filter((n) => !written.has(n) && !STALE_COLLECTION_TARGETS.includes(n));
   ok(outsideDomain.length === 0,
-    `rename-map: every collection the map names is one the write plans actually produce${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+    `rename-map: every collection the map names is one the write plans actually produce, or is a stated stale target (${STALE_COLLECTION_TARGETS.join(', ')})${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+  const staleActual = map.collections.map((cr) => cr.to).filter((n) => !written.has(n));
+  ok(staleActual.join() === STALE_COLLECTION_TARGETS.join(),
+    `rename-map: the stale-target list is EXACTLY the collection-rename targets the plans no longer produce (authored [${STALE_COLLECTION_TARGETS.join(', ')}], measured [${staleActual.join(', ')}]) — so a THIRD entry going stale fails here instead of being absorbed by the exemption above, and a stale target that comes back to life fails too`);
   // `COLLECTION_RENAMES` shipped EMPTY until #1013, because #1013 Q4 — whether the alias layer and the
   // value layer swap names — was an open decision and pre-authoring the entry would have taken it by
   // shipping it into designers' files. #1013 took it, so the arm flips from "there are none" to "there are
   // exactly the two the swap needs", and the domain check above is what makes them checkable rather than
   // asserted: both targets have to be collections the write plans really produce.
-  ok(map.collections.length === 2 && map.collections.every((cr) => written.has(cr.to)),
-    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and both targets are collections the write plans produce (${map.collections.map((cr) => `${cr.from}→${cr.to}`).join(', ')})`);
+  ok(map.collections.length === 2 && map.collections.every((cr) => written.has(cr.to) || STALE_COLLECTION_TARGETS.includes(cr.to)),
+    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and each target is either a collection the write plans produce or a stated stale one (${map.collections.map((cr) => `${cr.from}→${cr.to}${written.has(cr.to) ? '' : ' [stale]'}`).join(', ')})`);
 
   // ---- (e) STATIC refusals: constructed hazards, each by its own name ----
   ok(validateRenameMap(map).length === 0,
@@ -12384,29 +12489,37 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // "what code produced this file?" (see the map's own header), so a wrong one is not cosmetic: it is a
   // false provenance record on the only question the field exists to answer, and permanent.
   //
-  // Two limits, stated because the arm reads stronger than it is. It pins every entry to the CURRENT
-  // version, so it is a TRIPWIRE that fires on the next `ENGINE_VERSION` bump rather than a durable
-  // rule — correct while the map holds exactly one change's entries, and a deliberate prompt to decide
-  // then. **Which is why the failure message spends most of its length refusing the obvious remedy.** A
-  // tripwire whose easiest green is "restamp the entries to today's version" would hand the next reader
-  // the exact false provenance record it was added to prevent — the gate becoming the defect, one bump
-  // later. The message has to say the opposite of what a red gate normally implies: the data is probably
-  // right and the arm is probably obsolete. The durable form is a record checked against an era it names
-  // rather than against today, and
-  // there is nothing to key that on yet: no version history exists in `version.ts` to check membership
-  // against. That is #1080.
-  ok(COLLECTION_RENAMES.every((r) => r.since === ENGINE_VERSION),
-    `rename-map: every COLLECTION_RENAMES entry is stamped with the ENGINE_VERSION that made the change `
-    + `(got ${COLLECTION_RENAMES.map((r) => `${r.from}→${r.to}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
-    + `\n    IF YOU ARE READING THIS AFTER AN \`ENGINE_VERSION\` BUMP, DO NOT RESTAMP THE ENTRIES TO ${ENGINE_VERSION}.`
-    + `\n    \`since\` records the version whose code MADE the rename, not the version in the file today. Moving a`
-    + `\n    historical stamp forward is precisely the false provenance record this arm was added to prevent, so the`
-    + `\n    obvious way to get green here is the one change that reintroduces the defect.`
-    + `\n    This arm cannot tell a STALE stamp from a CORRECT HISTORICAL one. Once ${ENGINE_VERSION} is past these`
-    + `\n    renames, a LOWER stamp is the right answer and this arm is the thing that is obsolete, not the data.`
-    + `\n    Decide by hand: did each entry's rename ship in ${ENGINE_VERSION}? If it did, stamp it ${ENGINE_VERSION}. If it`
-    + `\n    shipped earlier, leave the stamp alone and retire this arm — #1080 is the durable replacement.`);
-  ok(cstat(['core-palette', 'color', 'surface'], [...COLLECTION_RENAMES]) === PRE,
+  // THE TRIPWIRE FIRED, AND #1097 IS WHERE IT WAS ANSWERED — so read the arm below against the note it
+  // replaced rather than as a fresh one. The previous form was `every((r) => r.since === ENGINE_VERSION)`,
+  // and its own failure message spent nine lines saying what to do when it went red: *"IF YOU ARE READING
+  // THIS AFTER AN `ENGINE_VERSION` BUMP, DO NOT RESTAMP THE ENTRIES … a LOWER stamp is the right answer
+  // and this arm is the thing that is obsolete, not the data."* #1097 bumped `ENGINE_VERSION` to `0.27.0`,
+  // both entries still correctly read `0.26.0` — #1013's version, which is the code that made these two
+  // renames — and the arm went red on exactly the shape it predicted.
+  //
+  // So it is retired the way it asked to be: as a RECORD CHECKED AGAINST AN ERA IT NAMES. The table below
+  // is authored per entry, keyed by the rename itself, and holds the version whose code made it. It no
+  // longer moves when `ENGINE_VERSION` moves, which is the whole difference — a new entry has to be added
+  // by hand with its own era, and restamping an existing one is now a visible edit to an expectation
+  // rather than the easiest way to a green run. #1080 (a version history in `version.ts` to check
+  // membership against) would let this be derived instead of authored; until then, authored is the form
+  // that does not decay, and the same treatment is applied to `MATERIALIZATION_RENAMES` above.
+  const EXPECTED_COLLECTION_SINCE: Record<string, string> = {
+    'color→color.appearance': '0.26.0',
+    'surface→color': '0.26.0',
+  };
+  const sinceWrong = COLLECTION_RENAMES
+    .filter((r) => EXPECTED_COLLECTION_SINCE[`${r.from}→${r.to}`] !== r.since)
+    .map((r) => `${r.from}→${r.to} authored ${EXPECTED_COLLECTION_SINCE[`${r.from}→${r.to}`] ?? '(not in the table)'}, got ${r.since}`);
+  ok(sinceWrong.length === 0 && Object.keys(EXPECTED_COLLECTION_SINCE).length === COLLECTION_RENAMES.length,
+    `rename-map: every COLLECTION_RENAMES entry is stamped with the version whose code MADE the rename `
+    + `(${COLLECTION_RENAMES.map((r) => `${r.from}→${r.to}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately not the oracle).`
+    + `${sinceWrong.length ? `\n    WRONG: ${sinceWrong.join('; ')}` : ''}`
+    + `\n    A NEW ENTRY FAILS HERE UNTIL IT IS ADDED TO \`EXPECTED_COLLECTION_SINCE\` WITH ITS OWN ERA — that is the`
+    + `\n    prompt, not an obstacle. Do NOT restamp an existing entry to today's version to get green: \`since\``
+    + `\n    records the version whose code made the rename, not the version in the file today, and moving a`
+    + `\n    historical stamp forward is the false provenance record this arm exists to prevent.`);
+  ok(cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES]) === PRE,
     'rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone');
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
       && !isRefusal('migrated') && !isRefusal('source-absent'),
@@ -12419,24 +12532,39 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // name, and the folding is the point rather than a convenience: run as two passes, a name matched by
   // both would route through an INTERMEDIATE spelling no plan asks for, and the two correct rules would
   // migrate nothing between them — `target-not-planned` on the first, `source-absent` on the second.
+  //
+  // #1097 — THE ROOT IS A PARAMETER, AND IT IS SYNTHETIC HERE ON PURPOSE. `composeVariableRenames` is the
+  // one layer that knows the brand root: the contract rows it looks up are TAILS, the rules take the root
+  // as an argument, and the composed `to` is a fully rooted name. Every arm below drives it with a root
+  // that appears nowhere in the corpus, so a read path that spelled `prism/` or `nbds/` literally would
+  // fail here while passing under a real brand — the Prism2 bug's exact signature, and the reason the
+  // expectations below carry `zzcompose/` rather than a brand's own prefix.
+  const CROOT = 'zzcompose';
   const comp = (collection: string, existing: string[], contract: ReturnType<typeof v>[] = []): string =>
-    composeVariableRenames(collection, existing, contract, MATERIALIZATION_RENAMES)
+    composeVariableRenames(collection, existing, contract, MATERIALIZATION_RENAMES, CROOT)
       .map((r) => `${r.from}→${r.to}`).sort().join(' | ');
-  ok(comp('color.appearance', ['color/background/primary']) === 'color/background/primary→color/appearance/background/primary',
+  ok(comp('color.appearance', ['color/background/primary']) === `color/background/primary→${CROOT}/color/appearance/background/primary`,
     'rename-map: a pre-#1013 value-tier name in the value-tier collection composes to one row under the tier rule — this is the row that turns 242 orphans into 242 migrations');
-  ok(comp('color', ['surface/border/brand']) === 'surface/border/brand→color/border/brand',
+  ok(comp('color.surface', ['surface/border/brand']) === `surface/border/brand→${CROOT}/color/border/brand`,
     'rename-map: and the alias tier composes under its own rule, in its own collection — the two rules are keyed to the collection they run in, so neither can reach into the other');
-  ok(comp('color.appearance', ['color/appearance/background/primary']) === '',
-    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding');
-  ok(comp('color', ['color/background/primary']) === '',
-    'rename-map: a value-tier SPELLING sitting in the alias collection is left alone — the tier rule tests the collection, not just the prefix, which is what keeps the post-swap `color` collection out of its reach');
+  ok(comp('color.appearance', [`${CROOT}/color/appearance/background/primary`]) === '',
+    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding. Post-#1097 "already migrated" means ROOTED: the namespace rule is the last hop of the chain, so a name that has the root has been all the way through');
+  // AND THE TIER-ONLY HALF OF THAT, WHICH #1097 WOULD OTHERWISE HAVE HIDDEN. Before the namespace rule
+  // existed, `color/appearance/background/primary` in its own collection was a complete no-op and the arm
+  // above said so. Now it is NOT: it still needs the root, so it composes to one hop rather than none.
+  // Kept as its own arm because the difference is the whole of what #1097 does to an existing file, and
+  // folding it into the arm above would have deleted the observation.
+  ok(comp('color.appearance', ['color/appearance/background/primary']) === `color/appearance/background/primary→${CROOT}/color/appearance/background/primary`,
+    'rename-map: a name already in the right TIER but with no ROOT still composes — one hop, the namespace only. This is the #1097 migration on a file that is otherwise current, and it is the arm that would go silent if the namespace rule stopped firing on already-tiered names');
+  ok(comp('color.surface', ['color/background/primary']) === `color/background/primary→${CROOT}/color/background/primary`,
+    'rename-map: a value-tier SPELLING sitting in the alias collection is left alone BY THE TIER RULES — the tier rule tests the collection, not just the prefix, which is what keeps the post-swap alias collection out of its reach. It still takes the namespace, because #1097 applies to every name in every collection and a rule that exempted this one would leave an un-rooted variable behind');
   // THE COMPOSITION-ORDER ARM. A contract row keyed on the POST-rule spelling must be reached by the
   // name that only becomes that spelling once the rule has run. One row, one hop, and the intermediate
   // name appears nowhere in the output.
   const composed = composeVariableRenames('color.appearance', ['color/old'],
-    [v('color/appearance/old', 'color/appearance/new', 'color.appearance')], MATERIALIZATION_RENAMES);
-  ok(composed.length === 1 && composed[0].from === 'color/old' && composed[0].to === 'color/appearance/new'
-      && composed.every((r) => r.to !== 'color/appearance/old'),
+    [v('color/appearance/old', 'color/appearance/new', 'color.appearance')], MATERIALIZATION_RENAMES, CROOT);
+  ok(composed.length === 1 && composed[0].from === 'color/old' && composed[0].to === `${CROOT}/color/appearance/new`
+      && composed.every((r) => r.to !== 'color/appearance/old' && r.to !== `${CROOT}/color/appearance/old`),
     `rename-map: rule THEN contract, folded into one hop (${composed.map((r) => `${r.from}→${r.to}`).join(', ') || 'NOTHING'}) — the intermediate spelling is never written, because nothing plans it and a variable renamed to an unplanned name is an orphan manufactured out of a healthy one`);
   // And the shipped configuration cannot get into the state where that folding is ambiguous, because the
   // two sources are disjoint: every contract row for a mirrored collection is keyed on a POST-swap name,
@@ -12444,11 +12572,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // this is the precondition, and it is the thing that would quietly stop being true.
   const shipped = renameMap().variables;
   const valueRows = shipped.filter((r) => r.collection === 'color.appearance');
-  const aliasRowsHere = shipped.filter((r) => r.collection === 'color');
+  const aliasRowsHere = shipped.filter((r) => r.collection === 'color.surface');
   ok(valueRows.length > 0 && valueRows.every((r) => r.from.startsWith('color/appearance/'))
       && aliasRowsHere.length > 0 && aliasRowsHere.every((r) => !r.from.startsWith('surface/')),
     `rename-map: the shipped contract rows (${valueRows.length} value-tier, ${aliasRowsHere.length} alias-tier) are keyed on POST-swap names, exactly the domain the two rules exclude — so no live name is claimed by both, and the fold has one answer`);
-  ok(comp('color.appearance', [], [v('color/appearance/a', 'color/appearance/b', 'color.appearance')]) === 'color/appearance/a→color/appearance/b',
+  ok(comp('color.appearance', [], [v('color/appearance/a', 'color/appearance/b', 'color.appearance')]) === `${CROOT}/color/appearance/a→${CROOT}/color/appearance/b`,
     'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
 }
 
@@ -12588,25 +12716,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(brands.length >= 3, `#1039: the corpus emits Figma for ${brands.length} brands (floor 3) — every claim below is "every name that …", vacuously true of none`);
 
   // #1097 — THE ACCOUNTING IS PER-BRAND BECAUSE THE ROOT IS. Every rule's `domain` and `map` take the
-  // brand root as an argument rather than spelling one, so every call site below has to supply it, and
-  // this is where it comes from: the THEME, which is where the root is configured. Reading it off the
-  // first segment of an emitted name would take it from the artifact the accounting is comparing —
-  // `docs/34` shape 11, and the rule would then agree with whatever the emitter wrote.
-  //
-  // A missing entry THROWS rather than defaulting. `tsx` does not typecheck this file, so an absent root
-  // arrives at `domain` as `undefined` and `!name.startsWith('undefined/')` is true of every name in the
-  // corpus — the whole emission reads as having moved, which is how the un-threaded version of this
-  // block failed loudly. A brand emitted with no entry here is a hole, not a default.
-  const ROOT_OF: Record<string, string> = {
-    nb: nbTheme().root,
-    aurora: brandTheme(exampleBrands()['aurora'] as BrandInput).root,
-    wendys: brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input).root,
-  };
-  const rootOf = (brand: string): string => {
-    const r = ROOT_OF[brand];
-    if (!r) throw new Error(`#1039: no configured root for emitted brand \`${brand}\` — add it to ROOT_OF (from that brand's theme), never read it off the emission`);
-    return r;
-  };
+  // brand root as an argument rather than spelling one, so every call site below has to supply it.
+  // `BRAND_ROOTS` at the top of this file is where it comes from, and its header carries the reasoning:
+  // the THEME, never the first segment of an emitted name, which is the artifact under comparison.
+  const rootOf = rootOfBrand;
   const distinctRoots = [...new Set(brands.map(rootOf))].sort();
   ok(distinctRoots.length >= 2,
     `#1039: the corpus spans ${distinctRoots.length} distinct roots (${distinctRoots.join(', ')}) — floor 2, because with one root everywhere a read path that hardcoded it would pass every arm below`);

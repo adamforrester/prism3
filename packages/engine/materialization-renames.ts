@@ -172,7 +172,14 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
       + '`color/text/primary`. The axis is still surface (two modes, `default` and `inverse`) — what moved '
       + 'is which of the two tiers a designer reaches by default, which is the point of #1013 rather than '
       + 'a side effect of it.',
-    domain: (collection, name) => collection === 'color' && name.startsWith('surface/'),
+    // #1089 RENAMED THE COLLECTION THIS RULE RUNS IN, AND THE DOMAIN NAMES THE LIVE NAME, NOT THE
+    // HISTORICAL ONE. `materialize` is always called with the collection the write plan is about to use,
+    // so a domain keyed on `color` — what the alias tier was called between #1013 and #1089 — matches
+    // nothing the engine writes and the rule is unreachable: a pre-#1013 `surface/*` name would compose
+    // to nothing, be planned under no name, and the variable would be left behind silently. `since` is a
+    // different question and correctly still reads `0.26.0`: the RENAME this rule performs shipped then,
+    // and only the collection it is looked up under has moved since.
+    domain: (collection, name) => collection === 'color.surface' && name.startsWith('surface/'),
     map: (_collection, name) => `color/${name.slice('surface/'.length)}`,
   },
   {
