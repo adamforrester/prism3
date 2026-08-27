@@ -7,10 +7,15 @@
  * core, real executor.
  *
  * Faithful to the materialisation contract (docs/10 §3):
- *   1. `core-palette` — one Default mode, literal RGBA, primitives hidden from publishing.
- *   2. `color` create — rename mode[0] + add the rest; every var gets a literal per-mode
+ *   1. `core`'s palette slice — one Default mode, literal RGBA, primitives hidden from publishing.
+ *   2. `color.appearance` create — rename mode[0] + add the rest; every var gets a literal per-mode
  *      fallback value (pass A: every alias TARGET exists before any alias binds).
- *   3. `color` aliases — bind each mode to its OWN target (pass B — the collapse-guard).
+ *   3. `color.appearance` aliases — bind each mode to its OWN target (pass B — the collapse-guard).
+ *
+ * A COLLECTION IS NO LONGER ONE PLAN'S TO OWN (#1097). `core` holds the palette, dimension and font
+ * primitives, written by three different executors in three separate calls. So `upsertCollection` scopes
+ * itself to the SLICE a plan owns — see the reasoning there; without it every legitimate rename in `core`
+ * is refused as un-planned and the other two groups' variables report as orphans.
  *
  * IDEMPOTENT: find-by-name → update in place. Re-running on a themed file mutates the existing
  * collections/variables rather than duplicating them (so the designer can re-apply after a knob
@@ -38,6 +43,8 @@ import {
   type RenameMap, type RenameOutcome, type MaterializationStep,
 } from '@prism3/engine/rename-map';
 import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
+import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
+import { coreGroupOf, ownedCoreGroup } from '@prism3/engine/figma-names';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -86,9 +93,10 @@ export type ApplyResult = {
   bound: number;
   /** unresolved bindings: a colour var or its alias target that wasn't found (should be empty). */
   misses: string[];
-  /** Per-collection variables present in the file but absent from the plan — reported, never deleted
-   *  (#479). This is the pair the live drift was measured on: `core-palette` 222 vs a 122-row plan,
-   *  `color` carrying flat leaves at paths that became stateful groups. See `orphansOf`. */
+  /** Per-AXIS variables present in the file but absent from the plan — reported, never deleted (#479).
+   *  This is the pair the live drift was measured on: the palette primitives read 222 against a 122-row
+   *  plan, `color` carrying flat leaves at paths that became stateful groups. `name` is an axis key
+   *  (`core/palette`), not always a collection name, since #1097. See `orphansOf`. */
   orphans: { name: string; names: string[] }[];
 };
 
@@ -99,8 +107,9 @@ export type ApplyResult = {
  * The write path is create-or-update-by-name, which is idempotent for adds and edits and structurally
  * blind to a RENAME: the new name is created and the old one is simply never touched again. So every
  * rename in the engine's history is still sitting in any file written before it. Measured live in Prism
- * Test File v2 — `core-palette` read 222 against a 122-row plan (a whole pre-rename palette generation),
- * and `color/interactive` read 69 against 63 (flat leaves left behind when they became stateful slots).
+ * Test File v2 — the palette primitives read 222 against a 122-row plan (a whole pre-rename palette
+ * generation), and `color/interactive` read 69 against 63 (flat leaves left behind when they became
+ * stateful slots).
  *
  * **Reporting is the whole change here, and the restraint is deliberate.** Deleting a variable a
  * designer may have bound to a layer is destructive and unrecoverable from the engine's side, and this
@@ -116,6 +125,18 @@ export type ApplyResult = {
 export const orphansOf = (existing: Iterable<string>, planned: Iterable<string>): string[] => {
   const keep = new Set(planned);
   return [...existing].filter((n) => !keep.has(n)).sort();
+};
+
+/**
+ * The AXIS a plan owns, as the label its orphan report carries (#1097).
+ *
+ * `core` is written by three executors, so a report labelled `core` from any one of them reads as a
+ * statement about all 199 variables in it when it is a statement about 38. The label names the slice:
+ * `core/dimension`. Non-merged collections are unchanged — `space` is still `space`.
+ */
+const axisLabel = (collection: string, planned: readonly string[]): string => {
+  const group = ownedCoreGroup(planned);
+  return group === null ? collection : `${collection}/${group}`;
 };
 
 /**
@@ -209,7 +230,7 @@ export const beginMigration = async (
 // Idempotent get-or-create for a collection by name (find-by-name → reuse). Scopes the returned
 // var index to that collection so a name collision across collections can't cross-wire.
 //
-// `migration` is where a rename becomes a MIGRATION rather than an orphan (#1013) — the VARIABLE half
+// `pass` is where a rename becomes a MIGRATION rather than an orphan (#1013) — the VARIABLE half
 // of it. The COLLECTION half moved to `beginMigration` in #1035, because a chain's correct order is a
 // property of the whole map and this function is handed one name at a time; read the reasoning there
 // before moving it back. By the time this runs, the collection this `name` refers to already carries
@@ -218,33 +239,50 @@ export const beginMigration = async (
 //
 // The one ordering left here is still not something a caller can get wrong, because it is not exposed:
 // the variable renames land after `byName` is built and before any caller's create loop reads it.
-// `planned` is carried in the same object as the pass so a caller cannot supply one without the other —
-// passing the pass alone would silently make every entry `target-not-planned`.
+//
+// ── `planned` IS REQUIRED, AND IT ALSO DECIDES WHAT THIS CALL OWNS (#1097) ────────────────────────
+//
+// It used to ride along with the migration, so that a caller could not pass the pass without it. That
+// pairing is now unnecessary, because `planned` is load-bearing for every caller whether or not it
+// migrates: it names the slice of the collection this plan OWNS.
+//
+// `core` holds the palette, dimension and font primitives, and three separate executors write them.
+// Un-scoped, each call would see the other two groups' 77–160 variables as names it did not plan — which
+// `planVariableRenames` reads as `target-not-planned` (refusing every legitimate rename in the tier) and
+// the callers' `orphansOf` reads as drift (reporting 77–160 ghosts against a file that matches the plan
+// exactly). `ownedCoreGroup` derives the slice from the plan's own rows, which is what ownership means
+// here rather than a guess about it, and it is positional — no brand root is spelled.
+//
+// The residual gap is stated rather than defended: a `core` variable in a group NO plan owns is invisible
+// to all three orphan reports, because each one only looks at its own slice. Filed as its own issue; the
+// alternative is a cross-executor planned-union, which is a wider change than this lane.
 const upsertCollection = async (
   vars: VariablesApi,
   name: string,
-  migration?: { pass: Migration; planned: readonly string[] },
+  planned: readonly string[],
+  pass?: Migration,
 ): Promise<{ collection: VarCollection; byName: Map<string, Variable> }> => {
   const collections = await vars.getLocalVariableCollectionsAsync();
   const collection =
     collections.find((c) => c.name === name) ??
     vars.createVariableCollection(name);
+  const owns = ownedCoreGroup(planned);
   // NB: fetch ALL local variables (no type filter) — `getLocalVariablesAsync('COLOR')` returns ONLY
   // COLOR-typed vars, which would make `byName` empty for a FLOAT collection and break idempotency
   // (re-apply would re-create every FLOAT var → duplicates). We scope by `variableCollectionId`
   // anyway, so the unfiltered fetch is correct for both the colour and FLOAT (#146) executors.
   const byName = new Map(
     (await vars.getLocalVariablesAsync())
-      .filter((v) => v.variableCollectionId === collection.id)
+      .filter((v) => v.variableCollectionId === collection.id && (owns === null || coreGroupOf(v.name) === owns))
       .map((v) => [v.name, v] as const),
   );
-  if (migration) {
+  if (pass) {
     // The CONTRACT rows and the MATERIALIZATION rules, composed into one list per live name, so a
     // variable needing both moves in a single step rather than through an intermediate name no plan
     // asks for. `composeVariableRenames` carries the reasoning and the fixed order.
-    const rows = composeVariableRenames(name, byName.keys(), migration.pass.map.variables, migration.pass.rules);
-    const outcomes = planVariableRenames(byName.keys(), migration.planned, rows);
-    migration.pass.outcomes.push(...outcomes);
+    const rows = composeVariableRenames(name, byName.keys(), pass.map.variables, pass.rules);
+    const outcomes = planVariableRenames(byName.keys(), planned, rows);
+    pass.outcomes.push(...outcomes);
     for (const o of outcomes) {
       if (o.status !== 'migrated') continue;
       const v = byName.get(o.from)!;
@@ -261,8 +299,12 @@ const upsertCollection = async (
  * palette first (the colour aliases target it), then the two-pass colour write.
  */
 export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: Migration): Promise<ApplyResult> => {
-  // ---- pass 1: core-palette (one Default mode, literal RGBA, hidden primitives) ----
-  const pal = await upsertCollection(vars, 'core-palette', mig && { pass: mig, planned: plan.palette.map((r) => r.name) });
+  // ---- pass 1: `core`'s palette slice (one Default mode, literal RGBA, hidden primitives) ----
+  // The collection is `core` since #1097 — the label comes from the engine's own emission constant, so a
+  // future collection rename does not need an edit here. The palette SLICE of it is derived from the
+  // planned names inside `upsertCollection`.
+  const paletteNames = plan.palette.map((r) => r.name);
+  const pal = await upsertCollection(vars, CORE_COLLECTION, paletteNames, mig);
   // Snapshot AFTER the migration pass, deliberately: a variable that was MIGRATED now carries a
   // planned name and is no longer drift. `orphans` keeps meaning "what we could not explain";
   // `Migration.outcomes` is "what we moved". Overlapping the two would double-report every rename.
@@ -284,7 +326,7 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   // `applySurfacePlan`. Hardcoded here rather than read off the plan because `plan.color` carries no
   // name — see `SurfacePlan.name` in `write-plan.ts` for the other half of that asymmetry.
   const { modes, create, aliases } = plan.color;
-  const col = await upsertCollection(vars, 'color.appearance', mig && { pass: mig, planned: create.map((r) => r.name) });
+  const col = await upsertCollection(vars, 'color.appearance', create.map((r) => r.name), mig);
   const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
   // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
   col.collection.renameMode(col.collection.modes[0].modeId, modes[0]);
@@ -303,8 +345,8 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
   }
 
   // ---- pass 3: color aliases (bind PER MODE — each mode to its OWN target) ----
-  // Alias TARGETS are palette primitives (in core-palette), so resolve against BOTH collections'
-  // vars, not just the colour collection — mirrors the CLI pass's unscoped global name map.
+  // Alias TARGETS are palette primitives (in `core`), so resolve against BOTH collections' vars, not
+  // just the colour collection — mirrors the CLI pass's unscoped global name map.
   const targetByName = new Map<string, Variable>([...pal.byName, ...col.byName]);
   let bound = 0;
   const misses: string[] = [];
@@ -328,10 +370,13 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     colorCreated,
     bound,
     misses,
-    // Both collections, even when clean — an empty `names` is a positive statement that the file
-    // matches the plan, and a caller can tell "checked, none" from "never checked".
+    // Both axes, even when clean — an empty `names` is a positive statement that the file matches the
+    // plan, and a caller can tell "checked, none" from "never checked". `core/palette` is an AXIS key
+    // (#1097): the label a designer reads has to say which slice of `core` was checked, because the other
+    // two slices are checked by other executors and "core: 0 orphans" from one of them would read as a
+    // statement about all 199 variables in it.
     orphans: [
-      { name: 'core-palette', names: orphansOf(palPreExisting, plan.palette.map((r) => r.name)) },
+      { name: `${CORE_COLLECTION}/palette`, names: orphansOf(palPreExisting, paletteNames) },
       { name: 'color.appearance', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
     ],
   };
@@ -433,7 +478,7 @@ export const applySurfacePlan = async (
   // ---- pass A: create/update every row with its literal per-mode fallback colour ----
   // The surface half of the mirror (#1013): a renamed contract path carries a second Figma name here,
   // and an appearance-only migration would leave this one orphaned without saying so.
-  const surf = await upsertCollection(vars, plan.name, mig && { pass: mig, planned: plan.create.map((r) => r.name) });
+  const surf = await upsertCollection(vars, plan.name, plan.create.map((r) => r.name), mig);
   const preExisting = [...surf.byName.keys()];   // snapshot before creates (and after migration)
   surf.collection.renameMode(surf.collection.modes[0].modeId, plan.modes[0]);
   const modeIds: Record<string, string> = { [plan.modes[0]]: surf.collection.modes[0].modeId };
@@ -488,7 +533,7 @@ export type FloatApplyResult = {
 };
 
 /**
- * Materialise the FLOAT-variable axes into `figma.variables` (#146) — `core-dimension`, `space`,
+ * Materialise the FLOAT-variable axes into `figma.variables` (#146) — `core/dimension`, `space`,
  * `radius`, `size`, `border-width`, `focus`, `opacity`, and `layout`. Runs the SAME two-pass shape
  * as the colour `applyWritePlan`, generalised over N collections:
  *   • pass A — per collection: upsert, set up its modes (rename mode[0], add/reuse the rest by name),
@@ -511,7 +556,7 @@ export const applyFloatPlan = async (
 
   // ---- pass A: create/update every FLOAT var in every collection (literal per-mode values) ----
   for (const p of plans) {
-    const { collection, byName } = await upsertCollection(vars, p.name, mig && { pass: mig, planned: p.create.map((r) => r.name) });
+    const { collection, byName } = await upsertCollection(vars, p.name, p.create.map((r) => r.name), mig);
     const preExisting = [...byName.keys()];   // snapshot before creates — see applyVarCollectionPlan
     // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
     collection.renameMode(collection.modes[0].modeId, p.modes[0]);
@@ -531,7 +576,8 @@ export const applyFloatPlan = async (
       v.hiddenFromPublishing = row.hidden;
       p.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
     }
-    collections.push({ name: p.name, total: p.create.length, created, orphans: orphansOf(preExisting, p.create.map((r) => r.name)) });
+    const createNames = p.create.map((r) => r.name);
+    collections.push({ name: axisLabel(p.name, createNames), total: p.create.length, created, orphans: orphansOf(preExisting, createNames) });
     // Fold this collection's vars into the global map (alias targets span collections).
     for (const [name, v] of byName) byNameGlobal.set(name, v);
   }
@@ -558,7 +604,7 @@ export const applyFloatPlan = async (
   return { collections, bound, misses };
 };
 
-/** What the var-collection executor did (#237 — `core-font`/`type-sets`). */
+/** What the var-collection executor did (#237 — `core/font`/`type-sets`). */
 export type VarCollectionApplyResult = {
   collections: { name: string; total: number; created: number; orphans: string[] }[];
   bound: number;      // weight-role → font/weight/N aliases written
@@ -585,7 +631,7 @@ export type VarCollectionApplyResult = {
  *
  * Scoped to THIS executor deliberately. Every variable a text style can bind (`fontFamily` →
  * `font/family/*`, `fontSize` → `font/size/*`, `fontWeight` → `font/weight-role/*`) lives in
- * `core-font` or `type-sets`, which are exactly the collections this function's callers write. The
+ * `core/font` or `type-sets`, which are exactly the collections this function's callers write. The
  * colour and FLOAT executors have no such dependency, so wrapping them too would be defending against
  * a mechanism that cannot reach them.
  */
@@ -604,12 +650,12 @@ const setSurviving = (
 };
 
 /**
- * Materialise mixed-type variable collections into `figma.variables` (#237 — `core-font` STRING family
+ * Materialise mixed-type variable collections into `figma.variables` (#237 — `core/font` STRING family
  * + FLOAT size/weight + FLOAT weight-role aliased, per-mode; `type-sets` FLOAT mobile/desktop). Same
  * two-pass shape as `applyFloatPlan`, but each row carries its own `resolvedType` (STRING vs FLOAT) and
  * a string|number literal, and the alias target lives per-row (`aliasByMode`) rather than a separate
  * array. Pass A creates/updates every var (literal per-mode); pass B binds the per-mode aliases against
- * ONE global name→Variable map (weight-role → `font/weight/N`, both in `core-font`). Idempotent
+ * ONE global name→Variable map (weight-role → `font/weight/N`, both in `core/font`). Idempotent
  * find-by-name.
  */
 export const applyVarCollectionPlan = async (
@@ -625,7 +671,7 @@ export const applyVarCollectionPlan = async (
 
   // ---- pass A: create/update every var (STRING or FLOAT) with its literal per-mode value ----
   for (const p of plans) {
-    const { collection, byName } = await upsertCollection(vars, p.name, mig && { pass: mig, planned: p.rows.map((r) => r.name) });
+    const { collection, byName } = await upsertCollection(vars, p.name, p.rows.map((r) => r.name), mig);
     // Snapshot BEFORE the row loop — `byName` gains every var this pass creates, and a set read after
     // the fact would be existing+created, which still happens to give the right answer today only
     // because created names are by definition planned. Snapshotting says what we mean.
@@ -647,7 +693,8 @@ export const applyVarCollectionPlan = async (
       v.hiddenFromPublishing = row.hidden;
       p.modes.forEach((m, i) => setSurviving(v!, modeIds[m], m, row.valuesByMode[i], refused));
     }
-    collections.push({ name: p.name, total: p.rows.length, created, orphans: orphansOf(preExisting, p.rows.map((r) => r.name)) });
+    const rowNames = p.rows.map((r) => r.name);
+    collections.push({ name: axisLabel(p.name, rowNames), total: p.rows.length, created, orphans: orphansOf(preExisting, rowNames) });
     for (const [name, v] of byName) byNameGlobal.set(name, v);
   }
 

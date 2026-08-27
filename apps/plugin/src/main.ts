@@ -120,7 +120,7 @@ void (async (): Promise<void> => {
 /**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
- * the theme changed (#110). Idempotent find-by-name; colour axis (`core-palette` + `color`).
+ * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color.appearance`).
  */
 const applyTheme = async (input: BrandInput): Promise<void> => {
   try {
@@ -145,19 +145,20 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // `surface → color` are a chain, and an executor that renamed its own collection on the way past
     // would apply half of it. The atomicity obligation is stated at `beginMigration`.
     const mig = await beginMigration(figma.variables);
-    // Colour axis (#108): core-palette + color.appearance, per-mode alias-bound.
+    // Colour axis (#108): the `core` palette slice + color.appearance, per-mode alias-bound.
     const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables, mig);
     // SURFACE axis (#993): the `default`/`inverse` alias layer, written into the collection now named
     // `color` (#1013). MUST run after the line above — every row is a pointer into `color.appearance`,
     // resolved by NAME out of the file, so the targets have to be there already. An unresolved one is
     // reported in `misses`, never thrown.
-    const sf = await applySurfacePlan(buildSurfaceWritePlan(theme), figma.variables, mig);
-    // FLOAT axes (#146): core-dimension/space/radius/size/border-width/focus/opacity + layout.
+    const surfacePlan = buildSurfaceWritePlan(theme);
+    const sf = await applySurfacePlan(surfacePlan, figma.variables, mig);
+    // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
     const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables, mig);
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
     // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
     const s = await applyStylesPlan(buildStylesPlan(theme), figma);
-    // TYPOGRAPHY (#237): core-font/type-sets variables first (bound targets must exist), then Text
+    // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
     // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
     const tv = await applyVarCollectionPlan(buildFontVarPlan(theme), figma.variables, mig);
     const textApi = {
@@ -197,10 +198,11 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // every prior run reported success.
     const allOrphans = [
       ...r.orphans,
-      // `color` and not `surface` since #1013 — the surface ALIAS tier is what this collection now is,
-      // and the label is what a designer reads in the summary, so a stale one names a collection their
-      // file does not contain.
-      { name: 'color', names: sf.orphans },
+      // Read off the PLAN, not spelled (#1089): the label is what a designer reads in the summary, so a
+      // stale one names a collection their file does not contain — which is exactly what happened when
+      // this said `surface` after #1013 renamed it to `color`, and would have happened again now that
+      // #1089 has renamed it to `color.surface`. The plan is the only thing that knows.
+      { name: surfacePlan.name, names: sf.orphans },
       ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
       ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
     ].filter((o) => o.names.length);
