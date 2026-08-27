@@ -380,10 +380,14 @@ for (const b of brands) {
   // (e) Figma slots are scoped by SLOT (fill→paint, text→TEXT_FILL, border→STROKE_COLOR).
   const { color } = buildFigmaColor(nbTheme());
   const byName = new Map<string, any>(color.find((c) => c.$mode === 'light')!.variables.map((v: any) => [v.name, v]));
-  // Names carry the `color/appearance/` tier prefix since #1013. Spelled out per call rather than
-  // built from a constant: a missing name returns `null` here, so a stale prefix reads as "scopes are
-  // null" on all twelve at once — and a prefix derived from the emitter could not report that at all.
-  const scopeOf = (n: string) => JSON.stringify(byName.get(n)?.scopes ?? null);
+  // Names carry the `color/appearance/` tier prefix since #1013 and the brand namespace since #1097.
+  // The TIER is spelled out per call rather than built from a constant: a missing name returns `null`
+  // here, so a stale prefix reads as "scopes are null" on all twelve at once — and a prefix derived from
+  // the emitter could not report that at all. The NAMESPACE is added once, by `nbVar`, because it is the
+  // one segment that is brand-specific rather than structural: writing `nbds/` twelve times would make
+  // this block the thing that has to be edited when a brand renames its root, which is the mistake
+  // #1097 exists to stop the READ paths making.
+  const scopeOf = (n: string) => JSON.stringify(byName.get(nbVar(n))?.scopes ?? null);
   const scopeBad: string[] = [];
   if (scopeOf('color/appearance/interactive/primary/text/rest') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text/rest');
   // Every border STATE must carry the stroke scope, not just the one that used to be the whole slot
@@ -5626,6 +5630,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   }
   ok(missingTargets.length === 0, 'figma dims: every alias resolves within the emitted collections' + (missingTargets.length ? ` — ${missingTargets.slice(0, 3).join(', ')}` : ''));
 
+  // (c2) #1097 — every emitted name AND every alias target carries this brand's namespace. Stated over
+  // the geometric axis specifically because it is the one with no fixtures: the colour and typography
+  // blocks would catch a dropped namespace as a fixture mismatch, and nothing here would. `(c)` above is
+  // not that arm — it compares the emission against itself, so a wholesale un-namespacing of both sides
+  // resolves perfectly.
+  const unrooted: string[] = [];
+  for (const c of allDimColls) for (const v of c.variables) {
+    if (!v.name.startsWith(nbVar(''))) unrooted.push(`${c.$collection}:${v.name}`);
+    if (v.alias && !v.alias.name.startsWith(nbVar(''))) unrooted.push(`${c.$collection}:${v.name} → ${v.alias.name}`);
+  }
+  ok(unrooted.length === 0, `figma dims: every variable name and alias target carries the brand namespace \`${nbVar('')}\` (#1097)` + (unrooted.length ? ` — ${unrooted.slice(0, 3).join(', ')}` : ''));
+
   // (d) Scopes narrow correctly per family — the picker in Figma should only
   // show `space/*` under GAP contexts, `radius/*` under CORNER_RADIUS, etc.
   // `dimension` (ref-tier primitive) keeps its broad scope so, if a component
@@ -5657,10 +5673,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const isPadding = v.name.includes('/padding-');
     if (isHeight) {
       if (JSON.stringify(v.scopes) !== JSON.stringify(['WIDTH_HEIGHT'])) sizeBad.push(`${v.name}:scope=${v.scopes.join(',')}`);
-      if (v.alias && !v.alias.name.startsWith('dimension/')) sizeBad.push(`${v.name}:alias=${v.alias.name} (want dimension/*)`);
+      // #1097/#1102: the alias target is the FULL emitted name, so the expected prefix carries the brand
+      // namespace and the `core` tier. `nbVar` supplies the root; `core/` is written out, because this arm
+      // is what says the component tier reaches the PRIMITIVE tier and not some other `dimension` group.
+      if (v.alias && !v.alias.name.startsWith(nbVar('core/dimension/'))) sizeBad.push(`${v.name}:alias=${v.alias.name} (want ${nbVar('core/dimension/')}*)`);
     } else if (isPadding) {
       if (JSON.stringify(v.scopes) !== JSON.stringify(['GAP'])) sizeBad.push(`${v.name}:scope=${v.scopes.join(',')}`);
-      if (v.alias && !v.alias.name.startsWith('space/')) sizeBad.push(`${v.name}:alias=${v.alias.name} (want space/*)`);
+      // `space` is NOT a core group — it stays at the root, one tier up from `dimension`. That asymmetry
+      // is the thing worth pinning: writing `nbVar('core/space/')` here would be wrong and would pass, so
+      // the two branches disagreeing on the tier is deliberate, not a copy-paste slip.
+      if (v.alias && !v.alias.name.startsWith(nbVar('space/'))) sizeBad.push(`${v.name}:alias=${v.alias.name} (want ${nbVar('space/')}*)`);
     }
   }
   ok(sizeBad.length === 0, 'figma size: heights alias dimension/* (WIDTH_HEIGHT); paddings alias space/* (GAP) — component tier composes shared primitives' + (sizeBad.length ? ` — ${sizeBad.slice(0, 3).join('; ')}` : ''));
@@ -5672,15 +5694,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(opBad.length === 0, `figma opacity: every value is a number in [0,100] (PERCENT for Figma OPACITY scope)` + (opBad.length ? ` — ${opBad.slice(0, 3).map((v) => `${v.name}=${v.value}`).join(', ')}` : ''));
   const opMismatch: string[] = [];
   for (const v of dims.opacity.variables) {
-    const key = v.name.split('/')[1];
+    // The step is the LAST segment, not `split('/')[1]` — which was the step until #1097 put the brand
+    // namespace in front of it and made index 1 the family. Worth spelling out because of HOW that broke:
+    // the lookup returned `undefined`, `dtcg * 100` was `NaN`, and `NaN > 0` is false, so every row
+    // "matched" and this arm went green on an emission it was no longer reading. A missing key is now a
+    // reported mismatch instead.
+    const key = v.name.split('/').pop()!;
     const dtcg = brand.opacity[key]?.$value as number;
+    if (typeof dtcg !== 'number') { opMismatch.push(`${v.name}: no DTCG \`opacity.${key}\` — the step is not where this arm looked`); continue; }
     if (Math.abs((v.value as number) - Math.round(dtcg * 100)) > 0) opMismatch.push(`${v.name}: ${v.value} ≠ ${Math.round(dtcg * 100)} (DTCG ${dtcg} × 100)`);
   }
   ok(opMismatch.length === 0, `figma opacity: every emitted value = DTCG fraction × 100` + (opMismatch.length ? ` — ${opMismatch.slice(0, 3).join(', ')}` : ''));
 
   // (g) focus does NOT include the strokeStyle leaf (no Figma variable primitive
   // for strokeStyle — 'solid' stays a code-side literal).
-  const hasStrokeStyle = dims.focus.variables.some((v) => v.name === 'focus/ring/style');
+  // A NEGATIVE arm compared against a literal name is the one shape #1097 can silently retire: the
+  // namespace made `focus/ring/style` a name the emission cannot produce, so `some` was false for the
+  // wrong reason and the arm passed without testing anything. Rooted, it can fail again.
+  const hasStrokeStyle = dims.focus.variables.some((v) => v.name === nbVar('focus/ring/style'));
   ok(!hasStrokeStyle, `figma focus: strokeStyle leaf skipped (no Figma primitive for strokeStyle; the 'solid' literal stays code-side)`);
 
   // (h) Every dims var carries a non-empty description from the DTCG tree — the
@@ -6015,10 +6046,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // (d) Scopes narrow correctly per family. grid/columns is ALL_SCOPES (no
   // narrow scope fits a count); grid/{gutter,margin} → GAP (matches space);
   // container/{max,narrow} + breakpoint/* → WIDTH_HEIGHT.
+  // #1097 — every name below is matched ROOTED. The `return []` fall-through is why that matters here
+  // rather than being bookkeeping: an unrooted literal matches nothing, every row falls through to the
+  // empty expectation, and the arm then asserts "these variables have no scopes" — which is false for
+  // all ten and so does still go red, but reporting the wrong defect. The three arms further down are
+  // the ones that would have gone SILENT.
   const scopeFor = (name: string): string[] => {
-    if (name === 'grid/columns') return ['ALL_SCOPES'];
-    if (name === 'grid/gutter' || name === 'grid/margin') return ['GAP'];
-    if (name.startsWith('container/') || name.startsWith('breakpoint/')) return ['WIDTH_HEIGHT'];
+    if (name === nbVar('grid/columns')) return ['ALL_SCOPES'];
+    if (name === nbVar('grid/gutter') || name === nbVar('grid/margin')) return ['GAP'];
+    if (name.startsWith(nbVar('container/')) || name.startsWith(nbVar('breakpoint/'))) return ['WIDTH_HEIGHT'];
     return [];
   };
   const scopeMismatch: string[] = [];
@@ -6034,19 +6070,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
   const aliasBad: string[] = [];
   for (const l of layout) for (const v of l.variables) {
-    if (v.name === 'grid/gutter' || v.name === 'grid/margin') {
+    if (v.name === nbVar('grid/gutter') || v.name === nbVar('grid/margin')) {
       if (!v.alias) { aliasBad.push(`${l.$mode}:${v.name} has no alias`); continue; }
-      if (!v.alias.name.startsWith('space/')) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (want space/*)`);
+      if (!v.alias.name.startsWith(nbVar('space/'))) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (want ${nbVar('space/')}*)`);
       if (!spaceNames.has(v.alias.name)) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (not in space collection)`);
     }
   }
-  ok(aliasBad.length === 0, 'figma layout: grid/gutter + grid/margin alias into space/* (per-mode) and every target resolves' + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join('; ')}` : ''));
+  const aliasRowsSeen = layout.flatMap((l) => l.variables.filter((v) => v.name === nbVar('grid/gutter') || v.name === nbVar('grid/margin'))).length;
+  ok(aliasBad.length === 0 && aliasRowsSeen === layout.length * 2,
+    `figma layout: grid/gutter + grid/margin alias into ${nbVar('space/')}* (per-mode) and every target resolves (${aliasRowsSeen}/${layout.length * 2} rows selected)`
+      + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join('; ')}` : ''));
 
   // (f) grid/columns is a plain FLOAT (no alias — it's a count, not a
   // dimension). columns matches the DTCG's per-breakpoint value.
   const colsBad: string[] = [];
   for (const l of layout) {
-    const cols = l.variables.find((v) => v.name === 'grid/columns');
+    const cols = l.variables.find((v) => v.name === nbVar('grid/columns'));
     if (!cols) { colsBad.push(`${l.$mode}: no grid/columns`); continue; }
     if (cols.alias !== null) colsBad.push(`${l.$mode}: grid/columns has alias (want plain FLOAT)`);
     const dtcg = brand.grid[l.$mode].columns.$value;
@@ -6057,9 +6096,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // (g) container/max + container/narrow are viewport-invariant — SAME value
   // in every mode. Same for breakpoint/* (min-width thresholds are constants;
   // the breakpoint COLUMN varies, but each named breakpoint's px is fixed).
+  // The `undefined` guard is #1097's doing and is the point of this shape: an unrooted name found
+  // nothing in any mode, `vals` was five `undefined`s, `distinct.size` was 1, and "invariant across
+  // modes" passed on a variable that was not there at all. Absence is now the first thing reported.
   const invariantBad: string[] = [];
-  for (const name of ['container/max', 'container/narrow', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl']) {
+  for (const name of ['container/max', 'container/narrow', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl'].map(nbVar)) {
     const vals = layout.map((l) => l.variables.find((v) => v.name === name)?.value);
+    if (vals.some((x) => x === undefined)) { invariantBad.push(`${name} is absent from ${vals.filter((x) => x === undefined).length}/${layout.length} modes`); continue; }
     const distinct = new Set(vals);
     if (distinct.size !== 1) invariantBad.push(`${name} varies across modes: ${[...distinct].join(',')}`);
   }
@@ -6070,7 +6113,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // as focus.ring.style in the dims axis. This is a load-bearing skip: it
   // documents the intentional omission so a future contributor doesn't add it
   // back by mistake.
-  const hasFluid = layout.some((l) => l.variables.some((v) => v.name === 'container/fluid'));
+  // Rooted for the same reason as the dims axis's `focus/ring/style` arm: a negative assertion against a
+  // name the emission can no longer spell passes without testing the skip.
+  const hasFluid = layout.some((l) => l.variables.some((v) => v.name === nbVar('container/fluid')));
   ok(!hasFluid, `figma layout: container/fluid (100%) is intentionally skipped (no Figma primitive for percentage-of-parent; stays code-side)`);
 
   // (i) A variable count sanity — the exact shape a Figma-MCP materialiser
@@ -6094,7 +6139,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(gridKeys.length === 6 && gridKeys[0] === 'xs', `CR-08: aurora ships 6 breakpoints starting at xs (got [${gridKeys.join(',')}])`);
   ok(layout.length === 6 && layout.map((l) => l.$mode).join(',') === gridKeys.join(','), `CR-08: aurora emits a layout mode per breakpoint incl. the base xs (got [${layout.map((l) => l.$mode).join(',')}])`);
   const xs = layout.find((l) => l.$mode === 'xs');
-  const xsCols = xs?.variables.find((v) => v.name === 'grid/columns');
+  // Rooted at AURORA's own root, read from the theme — not `NB_ROOT`, and not the first segment of an
+  // emitted name. This is the arm the corpus-wide default would hide: aurora and nb sit at different
+  // roots, so a hardcoded `nbds/` here would fail while a hardcoded `prism/` would pass, and only one of
+  // those two mistakes is visible from this block.
+  const xsCols = xs?.variables.find((v) => v.name === `${aurora.root}/grid/columns`);
   ok(!!xsCols && xsCols.value === brand.grid.xs.columns.$value, `CR-08: the xs grid carries aurora's base column count (${brand.grid.xs.columns.$value}), not dropped`);
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
   const dangling = layout.flatMap((l) => l.variables.filter((v) => v.alias && !spaceNames.has(v.alias.name)).map((v) => `${l.$mode}:${v.name}`));
