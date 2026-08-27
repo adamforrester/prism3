@@ -6761,12 +6761,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // output" — and until now it was not callable from that surface.
   const scored = JSON.parse(callTool('score_consumption', {
     brand,
-    refs: ['color.text.primary', '{prism.color.background.primary}', 'palette.primary.600', 'color.nope.missing'],
+    // `core.palette.primary.600` since #1102 — the primitive-leak probe must reference a path that EXISTS,
+    // or it lands in `invented` and this block's three arms all report the wrong thing. That is what
+    // happened when the tier moved: `palette.primary.600` resolved to nothing, `primitiveLeaks` went empty
+    // and `invented` went to 2, so the leak arm failed rather than passing on a ref that no longer probes
+    // anything. `color.nope.missing` is the ref that is SUPPOSED to be invented, and it stays untouched.
+    refs: ['color.text.primary', '{prism.color.background.primary}', 'core.palette.primary.600', 'color.nope.missing'],
     pairs: [{ fg: 'color.text.primary', bg: 'color.background.primary' }, { fg: 'color.text.tertiary', bg: 'color.background.primary', kind: 'ui' }],
   }).content[0].text);
   ok(scored.consumption.invented.length === 1 && scored.consumption.invented[0] === 'color.nope.missing',
     'MCP: score_consumption catches an invented token ref');
-  ok(scored.consumption.primitiveLeaks.length === 1 && scored.consumption.primitiveLeaks[0] === 'palette.primary.600',
+  ok(scored.consumption.primitiveLeaks.length === 1 && scored.consumption.primitiveLeaks[0] === 'core.palette.primary.600',
     'MCP: score_consumption catches a reach past the semantic layer into a raw primitive');
   // Non-vacuous: brace syntax and a root-qualified path must BOTH be accepted, or the two valid refs
   // above would have been miscounted as invented and the assertion would pass for the wrong reason.
