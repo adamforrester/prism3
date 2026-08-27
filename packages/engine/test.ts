@@ -49,6 +49,7 @@ import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from '.
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
+import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
@@ -7314,10 +7315,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // Effect styles live in a THIRD namespace (`setEffectStyleIdAsync`). Read into their own set —
     // see below for the assertion that a merged set would have let through.
     const emittedEffects = new Set<string>();
+    // #1097 — `emitted` HOLDS TAILS, `emittedStyles`/`emittedEffects` HOLD NAMES, and the asymmetry is the
+    // artifact's own: a variable is emitted as `nbds/size/md/gap`, a style as `label/md/emphasis` with no
+    // namespace and no tier. A plan's bound variable names are root-relative (see `figmaVarName`), so the
+    // comparison space for variables is tail space and for styles it is name space.
+    //
+    // `tailOf` is imported from `figma-names.ts` rather than restated, and here that is the RIGHT call
+    // even though this file otherwise re-expresses what it checks by hand: the thing under test is the
+    // ANATOMY PROJECTION, not the name-splitting, and `tailOf` has its own gates. What must not be
+    // imported is a ROOT — and it is not: `tailOf` is positional, so this comparison would hold for a
+    // brand whose namespace nobody here has spelled.
+    //
+    // A dropped namespace fails this arm rather than sneaking through, which is worth being sure of:
+    // `tailOf('size/md/gap')` on an un-namespaced emission returns `md/gap`, so the plan's `size/md/gap`
+    // finds nothing and every binding reports MISSING.
     for (const f of readdirSync(resolve(HERE, 'out/figma/nb'))) {
       if (!f.endsWith('.json')) continue;
       const j = JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
-      for (const v of j.variables ?? []) emitted.add(v.name);
+      for (const v of j.variables ?? []) emitted.add(tailOf(v.name));
       for (const s of j.styles ?? []) (f.startsWith('shadow') ? emittedEffects : emittedStyles).add(s.name);
     }
     ok(emitted.size > 0 && emittedStyles.size > 0, `anatomy: read the emitted Figma names (${emitted.size} variables, ${emittedStyles.size} styles)`);
@@ -7855,6 +7870,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
      *  measuring the case that shipped. The `insetValue` override is how the unequal cases get tested. */
     const RING_GAP = 2;
     const RING_STROKE = 2;
+    /** The brand namespace every variable in the stubbed file carries (#1097) — and DELIBERATELY a root
+     *  no brand in the corpus emits.
+     *
+     *  A real Figma file holds `nbds/size/md/gap`; a plan binds `size/md/gap`, because a plan is a
+     *  function of the def alone and knows no brand (see `figmaVarName`). The two spaces meet in the
+     *  executors, which key the live variables by TAIL. Rooting the stub is therefore what makes this
+     *  block model a real file at all — before #1097 the stub's names WERE the plan's names, and the
+     *  lookup could not be wrong.
+     *
+     *  `zzstub` rather than `nbds` or `prism` is the whole return on it: every one of the ~25 paste
+     *  assertions below becomes a statement that the binding works for a namespace nobody has spelled,
+     *  and both executors are driven through it (the paste payload and, at the parity gate,
+     *  `applyComponentPlan`). An executor that sliced a literal prefix — Prism2's actual bug, hardcoded
+     *  `pds/` — resolves nothing here and this block goes red, where a fixture rooted at the brand under
+     *  test would have passed. The `varValue`/`resolved`/`varOverrides` keys stay ROOT-RELATIVE: they are
+     *  the plan's space, and rooting them too would just re-introduce the coincidence. */
+    const STUB_ROOT = 'zzstub';
     // The stub is built by its OWN function rather than inline in `runPayload` for one reason: the
     // parity gate at the end of this block drives the PLUGIN executor (`applyComponentPlan`) against
     // the same host model the paste payload runs on. Two executors compared against two different
@@ -7892,7 +7924,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           : name === 'focus/ring/width' ? RING_STROKE
           : name === 'focus/ring/offset' ? RING_GAP
           : 2;
-      const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
+      // `name` is ROOTED, everything else keyed root-relative — see `STUB_ROOT`. The id stays
+      // root-relative because it is the stub's own handle, not something Figma's naming applies to.
+      const mkVar = (name: string) => ({ id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
       // read-back is meant to report.
@@ -10226,7 +10260,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // The component tier is the reason this pass exists (#327 binds it), so name it explicitly
   // rather than trusting the axis-coverage check to imply it.
-  for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'])
+  // Rooted (#1097). `includes` on a quoted string is a substring test, so an unrooted `"size/md/gap"`
+  // matches nothing in a payload full of `"nbds/size/md/gap"` and these four arms would report the
+  // component tier missing — the right verdict for the wrong reason. Note the direction that does NOT
+  // work: dropping the quotes to make the test root-agnostic would match the rooted name as a substring
+  // and pass whatever the prefix turned out to be, including a doubled one.
+  for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'].map(nbVar))
     ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
 
   // Payload budget — the reason the colour lane is split across three passes in the first place.

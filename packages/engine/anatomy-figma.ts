@@ -424,9 +424,32 @@ export type AnatomyPlan = {
   footprintVaries: string[];
 };
 
-/** Root-relative token ref → the emitted Figma variable name. The emitters slash-path the same
- *  dotted path, so this is the whole mapping — but it is stated once, here, rather than inlined
- *  at each call site where a drift would be invisible. */
+/**
+ * Root-relative token ref → the emitted Figma variable name, MINUS THE BRAND ROOT. The emitters
+ * slash-path the same dotted path, so this is the whole mapping — but it is stated once, here, rather
+ * than inlined at each call site where a drift would be invisible.
+ *
+ * THE ROOT IS NOT PART OF IT, AND THAT IS A DESIGN DECISION #1097 FORCED RATHER THAN AN OMISSION.
+ *
+ * Since #1097 every emitted variable is named `<root>/<tail>`, so this function no longer returns a name
+ * a Figma file carries: it returns the TAIL. The alternative was to thread the brand root through
+ * `figmaAnatomyPlan` and `figmaAnatomySet`, and the reason not to is that a PLAN IS BRAND-AGNOSTIC —
+ * `figmaAnatomySet(button)` is one answer for every brand, which is why seven gates, the studio's
+ * member-count read and the plugin's set enumeration can call it with a def and nothing else. Rooting
+ * the plan would make each of them ask "whose brand?" about a question that does not have a brand in it.
+ *
+ * So the root enters where a plan MEETS A FILE, and there are exactly three such places:
+ *
+ *   1. `PAYLOAD_PREAMBLE`'s `byName` — the CLI paste path, keyed by tail off the live variables.
+ *   2. `apps/plugin/src/write-components.ts`'s `byName` — the plugin executor, the same way.
+ *   3. `planBindingErrors`'s `emitted` — the offline gate, whose caller reads `out/figma/<brand>/*.json`
+ *      and must key it by tail to match.
+ *
+ * All three go through `tailOf`'s positional split rather than stripping a named prefix, so none of them
+ * spells a root and all three work for a client namespace we have never seen. If a fourth appears, it
+ * belongs on this list; a consumer that compares a plan name against a ROOTED name will find nothing and
+ * report every binding missing, which is at least loud.
+ */
 export const figmaVarName = (ref: string): string => ref.replace(/\./g, '/');
 
 /** Composite type ref → the emitted Figma TEXT STYLE name. Note the asymmetry with
@@ -1777,7 +1800,20 @@ export const stripPayloadComments = (js: string): string =>
  * pass every offline check while pasting subtly different JS. One string, one set of gates.
  */
 const PAYLOAD_PREAMBLE = `const vars=await figma.variables.getLocalVariablesAsync();
-const byName=new Map(vars.map(v=>[v.name,v]));
+// KEYED BY TAIL, NOT BY NAME (#1097). A plan's bound names are root-relative (see \`figmaVarName\`), and
+// every variable in the file is \`<root>/<tail>\`, so the map has to meet the plan in tail space. The split
+// is POSITIONAL — it drops the first segment whatever that brand called it — because a reader that spelled
+// a root would work for the brand it was written against and silently bind nothing for a client's own
+// namespace, which is Prism2's \`pds/\` bug arriving in a new decade. \`figma-names.ts\`'s \`tailOf\` is the
+// same three lines; it cannot be imported into a generated payload string, so this is a second spelling
+// by necessity rather than by choice.
+//
+// A tail COLLISION means the file holds two brands' variables under one tail (a shared library plus a
+// local set), and it is reported rather than resolved: last-write-wins would bind the wrong brand's
+// variable, which paints and looks right.
+const seenTail=new Map();
+const byName=new Map();
+for(const v of vars){const t=v.name.split('/').slice(1).join('/');if(!t)continue;if(seenTail.has(t))seenTail.get(t).push(v.name);else seenTail.set(t,[v.name]);byName.set(t,v);}
 const styles=await figma.getLocalTextStylesAsync();
 const styleByName=new Map(styles.map(s=>[s.name,s]));
 const effects=await figma.getLocalEffectStylesAsync();
@@ -1797,7 +1833,8 @@ const setByName=new Map(compSets.map(s=>[s.name,s]));
 // anatomy-figma.ts, called by both executors — which is what stops the wording drifting.
 const nestVariantMatch=${nestVariantMatchSrc()};
 const nestVariantMissAdvice=${nestVariantMissAdviceSrc()};
-const misses=[];`;
+const misses=[];
+for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS variable tail '+t+' — the file carries it under '+names.length+' brand roots ('+names.join(', ')+'), so a plan binding it cannot say which; remove or relink one of the sets');`;
 
 /**
  * The recursive node builder, also shared. Every hard-won detail lives in here — the unlock before

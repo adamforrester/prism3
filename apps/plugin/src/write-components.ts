@@ -57,6 +57,7 @@
 import { planSetLayout, nestMissAdvice, nestVariantMatch, nestVariantMissAdvice, planComponentName, planStamp } from '@prism3/engine/anatomy-figma';
 import type { AnatomyPlan, FigmaNodePlan } from '@prism3/engine/anatomy-figma';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+import { tailOf } from '@prism3/engine/figma-names';
 import { NS } from './persist-figma';
 import type { PartialWriteFacts } from './apply-summary';
 
@@ -882,7 +883,29 @@ const writeComponentSet = async (
 
   // Four namespaces, four name→object maps. Unfiltered variable fetch, the #146 lesson: a
   // type-filtered call returns only that type, and a plan binds FLOAT dimensions and COLOR paints.
-  const byName = new Map((await api.variables.getLocalVariablesAsync()).map((v) => [v.name, v] as const));
+  //
+  // THE VARIABLE MAP IS KEYED BY TAIL, THE OTHER THREE BY NAME (#1097), and the asymmetry is real rather
+  // than an inconsistency to tidy. Variables carry the brand namespace (`nbds/size/md/gap`); styles do
+  // not (`label/md/emphasis` — a style drops both the root and the tier), and a component's name is not
+  // a token path at all. A plan's bound variable names are root-relative — see `figmaVarName` for why the
+  // plan stays brand-agnostic — so this is the place the two spaces meet on the plugin side.
+  //
+  // `tailOf` is imported rather than spelled: unlike the CLI's generated payload, this file can import,
+  // and `figma-names.ts` exists precisely so no read path spells a root. A collision means the file holds
+  // two brands under one tail; reported, not resolved, because binding the wrong brand's variable paints
+  // and looks correct.
+  const localVars = await api.variables.getLocalVariablesAsync();
+  const byName = new Map<string, (typeof localVars)[number]>();
+  const tailOwners = new Map<string, string[]>();
+  for (const v of localVars) {
+    const t = tailOf(v.name);
+    if (!t) continue; // a variable with no root segment at all cannot satisfy a plan binding
+    tailOwners.set(t, [...(tailOwners.get(t) ?? []), v.name]);
+    byName.set(t, v);
+  }
+  for (const [t, names] of tailOwners)
+    if (names.length > 1)
+      misses.push(`AMBIGUOUS variable tail ${t} — the file carries it under ${names.length} brand roots (${names.join(', ')}), so a plan binding it cannot say which; remove or relink one of the sets`);
   const styleByName = new Map((await api.getLocalTextStylesAsync()).map((s) => [s.name, s] as const));
   const effectByName = new Map((await api.getLocalEffectStylesAsync()).map((s) => [s.name, s] as const));
   await api.loadAllPagesAsync();
