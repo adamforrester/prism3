@@ -196,5 +196,133 @@ const bverdict = verifyStylesReadback(brokenSnap, expectDark, expectGradients);
 ok(!bverdict.checks.gradientStopsBound && bverdict.details.unboundStops.length === 1 && !bverdict.ok,
   `an unbound stop fails the verdict and is named (${bverdict.details.unboundStops[0] ?? 'none'})`);
 
+// ═══ THE NAMESPACE, AS A DIFFERENTIAL ROUND-TRIP (#1097) ══════════════════════════════════════════
+//
+// THE TWO INDEPENDENT THINGS ARE THE TWO RUNS. One brand is emitted TWICE — once under its own root,
+// once under a root no corpus brand uses — both written by the real executors and read back through the
+// real `readFigmaVariables`. The claim is then a comparison between two measurements, not against an
+// expected value anybody authored: after removing the leading segment, the two read-backs must be
+// IDENTICAL. If they are, the read path cannot distinguish one root from another, which is the whole
+// content of the change.
+//
+// WHY THIS AND NOT THE `zzstub` ROOT IN `test.ts`. That stub proves a synthetic root works INSIDE A STUB,
+// and it earns its keep. It is not this: it fixes one root and asserts about it, so the day someone
+// changes it for an unrelated reason the namespace proof silently disappears and no gate reports the
+// loss (`docs/34`'s borrowed-backstop shape — an arm pointed at data that no longer carries the hazard).
+// A differential has no such anchor. It compares two runs to each other, so it stays a namespace proof
+// for as long as the two roots differ, whatever they are.
+//
+// THE REACHABILITY ARM IS LOAD-BEARING and comes first. "Identical after stripping the first segment" is
+// also satisfied by an engine that emits NO root at all — both runs would be identical before stripping
+// too, and the gate would pass while proving nothing. So the raw names are asserted to DIFFER, and each
+// run's names to begin with its OWN root, before the agreement is asserted at all.
+const NATIVE_ROOT = 'prism';      // aurora's own — the engine default
+const FOREIGN_ROOT = 'zzclient';  // no corpus brand uses it; a read path that spells a root fails here
+const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
+
+/** Strip the leading segment. A local re-implementation ON PURPOSE: `tailOf` is part of the subject
+ *  (`write-components.ts` resolves bindings through it), so an oracle built from it would compare the
+ *  read path against itself. Four lines of `split` owe nothing to the engine. */
+const dropRoot = (n: string): string => n.split('/').slice(1).join('/');
+
+/** Write colour + FLOAT + styles for one root and read the whole thing back through the real executor. */
+const emitAndRead = async (root: string) => {
+  const theme = brandTheme({ ...auroraInput, root });
+  const vars = new VariablesShim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: shim satisfies VariablesApi
+  const vapi = vars as any;
+  await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), vapi);
+  await applyFloatPlan(buildFloatWritePlan(theme), vapi);
+  const styles = new StylesShimBound(vars);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await applyStylesPlan(buildStylesPlan(theme), styles as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return readFigmaVariables(vapi, styles as any);
+};
+
+const runNative = await emitAndRead(NATIVE_ROOT);
+const runForeign = await emitAndRead(FOREIGN_ROOT);
+
+/** Every variable name a snapshot carries, in a stable order. */
+const varNamesOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string[] => [
+  ...s.palette.map((v) => v.name),
+  ...s.color.map((v) => v.name),
+  ...Object.keys(s.float ?? {}).sort().flatMap((k) => s.float![k].map((v) => v.name)),
+].sort();
+
+const nativeNames = varNamesOf(runNative);
+const foreignNames = varNamesOf(runForeign);
+
+// (0) REACHABILITY — the two runs really are two different files, and each is rooted at its own root.
+ok(nativeNames.length > 0 && foreignNames.length === nativeNames.length,
+  `#1097 differential reachable: both runs read back the same ${nativeNames.length} variables`);
+ok(nativeNames.every((n) => n.startsWith(`${NATIVE_ROOT}/`)) && foreignNames.every((n) => n.startsWith(`${FOREIGN_ROOT}/`)),
+  `#1097 differential reachable: every name in run A starts \`${NATIVE_ROOT}/\` and every name in run B starts \`${FOREIGN_ROOT}/\` — so the root really moved`);
+ok(nativeNames.join('\n') !== foreignNames.join('\n'),
+  '#1097 differential reachable: ...and the two raw name sets therefore DIFFER — the agreement below is not the trivial one an unrooted emission would satisfy');
+
+// (1) THE AGREEMENT — every variable name matches once the leading segment is gone.
+const nameDiff = nativeNames
+  .map((n, i) => [dropRoot(n), dropRoot(foreignNames[i])] as const)
+  .filter(([a, b]) => a !== b)
+  .map(([a, b]) => `${a} ≠ ${b}`);
+ok(nameDiff.length === 0,
+  `#1097 the two runs' variable names are IDENTICAL modulo the leading segment (${nativeNames.length} names${nameDiff.length ? `, ${nameDiff.length} differ: ${nameDiff.slice(0, 3).join('; ')}` : ''})`);
+
+// (2) ALIAS TARGETS TOO — a name that round-trips while its POINTERS keep a root would render correctly
+// and be broken the moment a brand changed root. Read out of `valuesByMode`, where the reader resolves
+// an id back to a name, so this crosses the same boundary the real read does.
+type Binding = { row: string; mode: string; target: string };
+const aliasTargetsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): Binding[] => {
+  const out: Binding[] = [];
+  // `palette` rows are single-value primitives and carry no `valuesByMode` at all, so the guard is real
+  // rather than defensive — reading them raw is what threw the first time this ran.
+  const rows = [...s.color, ...Object.keys(s.float ?? {}).sort().flatMap((k) => s.float![k])];
+  for (const v of rows)
+    for (const m of Object.keys(v.valuesByMode ?? {}).sort()) {
+      const val = v.valuesByMode[m];
+      if (val && typeof val === 'object' && 'alias' in val && typeof val.alias === 'string') out.push({ row: v.name, mode: m, target: val.alias });
+    }
+  return out.sort((a, b) => `${a.row}@${a.mode}`.localeCompare(`${b.row}@${b.mode}`));
+};
+const nativeAliases = aliasTargetsOf(runNative);
+const foreignAliases = aliasTargetsOf(runForeign);
+const stripped = (b: Binding): string => `${dropRoot(b.row)} @${b.mode} -> ${dropRoot(b.target)}`;
+const aliasDiff = nativeAliases
+  .map((b, i) => [stripped(b), foreignAliases[i] ? stripped(foreignAliases[i]) : 'ABSENT'] as const)
+  .filter(([a, b]) => a !== b)
+  .map(([a, b]) => `${a} ≠ ${b}`);
+ok(nativeAliases.length > 0 && nativeAliases.length === foreignAliases.length && aliasDiff.length === 0,
+  `#1097 every alias TARGET agrees modulo the root as well (${nativeAliases.length} bindings${aliasDiff.length ? `, ${aliasDiff.length} differ: ${aliasDiff.slice(0, 3).join('; ')}` : ''})`);
+ok(nativeAliases.every((b) => b.target.startsWith(`${NATIVE_ROOT}/`)) && foreignAliases.every((b) => b.target.startsWith(`${FOREIGN_ROOT}/`)),
+  `#1097 ...and not one target in the foreign run still points at a \`${NATIVE_ROOT}/\` name — a hard-coded default leaks HERE, in the pointer, long before it shows in a variable name`);
+
+// (3) COLLECTIONS AND MODES CARRY NO ROOT AT ALL, so they must match with NOTHING stripped. A collection
+// is an axis, not a token, and the mode picker is where a designer would see a namespace they never asked
+// for. Compared raw on purpose — stripping first would hide a root that had leaked in.
+const collOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string =>
+  s.collections.map((c) => `${c.name}[${[...c.modes].sort().join(',')}]`).sort().join(' | ');
+ok(collOf(runNative) === collOf(runForeign) && collOf(runNative).indexOf(NATIVE_ROOT) < 0,
+  `#1097 collections and their modes are byte-identical across the two roots, and carry no root themselves (${runNative.collections.length} collections)`);
+
+// (4) THE STYLES EXCEPTION, stated as a gate rather than only in prose. A text/effect/paint STYLE name
+// drops the root AND the tier — `shadow/md`, not `<root>/shadow/md` — because Figma's style tree is what
+// a designer browses by hand. So style names must match RAW between the two runs, and the assertion is
+// here rather than in a doc because "a variable's name is its DTCG path" generalised to styles is the
+// wrong sentence and this is the only place both are in hand at once.
+const styleNamesOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string =>
+  [...(s.styles?.effects ?? []), ...(s.styles?.paints ?? [])].sort().join(' | ');
+ok(styleNamesOf(runNative).length > 0 && styleNamesOf(runNative) === styleNamesOf(runForeign)
+  && styleNamesOf(runForeign).indexOf(`${FOREIGN_ROOT}/`) < 0,
+  `#1097 STYLE names are unrooted and identical across both runs — the stated exception (${(runNative.styles?.effects.length ?? 0) + (runNative.styles?.paints.length ?? 0)} styles)`);
+// ...while the gradient stops those styles bind to are VARIABLES, so they do carry the root. Asserted in
+// the same breath because the exception is easy to over-apply: the style name is unrooted, its bindings
+// are not, and one file holds both.
+const stopsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string[] =>
+  Object.values(s.styles?.gradientStopBindings ?? {}).flat().filter((n): n is string => typeof n === 'string');
+ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWith(`${FOREIGN_ROOT}/`))
+  && stopsOf(runNative).map(dropRoot).join('|') === stopsOf(runForeign).map(dropRoot).join('|'),
+  `#1097 ...but a gradient stop binds a VARIABLE, so it IS rooted — and agrees modulo the root (${stopsOf(runForeign).length} stops)`);
+
 console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
