@@ -5238,13 +5238,45 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // engine uses to build these names — importing the emission's own de-tiering would put one subject
     // under both sides of the comparison (`docs/34` shape 11). A hand-typed prefix swap is a second
     // expression of the change; the arm below is what stops it from being a silent no-op.
-    const deTier = (n: string): string =>
-      n.startsWith('color/appearance/') ? `color/${n.slice('color/appearance/'.length)}` : n;
+    // ── AND #1097/#1102 ADD TWO MORE SEGMENTS TO THE SAME TRANSLATION ───────────────────────────────
+    //
+    // The emitted name is now `nbds/color/appearance/<role>` and, in the palette file,
+    // `nbds/core/palette/<step>`. Same situation as the tier and the same answer — the relation is stated
+    // here, not written into the fixture.
+    //
+    // BUT THE DIRECTION IS A TRAP, AND THIS IS WHERE IT BITES. Translating the ENGINE'S name backwards
+    // means stripping a prefix, and a strip is satisfied by a name that never had it: an emitter that
+    // forgot the namespace entirely would emit `color/background/primary`, the strip would be a no-op, and
+    // the fixture would match exactly. So each strip has an arm ABOVE it asserting the prefix is REALLY
+    // there on every row of this file, and the strip is only sound because of it. (`nbFixName`, used by the
+    // typography blocks, takes the other route and builds the fixture's name FORWARD, which needs no such
+    // precondition. Both are used here: forward where the fixture side is simple, checked-then-stripped
+    // where the engine side carries three separate translations that would each need their own forward
+    // spelling.)
+    //
+    // Every prefix below is a LITERAL. Not `NB_ROOT`-plus-`CORE_TIER` imported from `theme.ts`, not
+    // `roleOf` from `rename-map.ts`: importing the emission's own segments would put one subject under both
+    // sides of the comparison (`docs/34` shape 11), and the arms above would then pass for whatever the
+    // emitter currently spells.
+    const rootedRows = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/`)).length;
+    ok(rootedRows === out.variables.length,
+      `figma ${key}: every emitted variable carries the brand namespace \`${NB_ROOT}/\` (#1097) (${rootedRows}/${out.variables.length}) — checked BEFORE it is stripped, because stripping a prefix that is absent is a no-op and an emitter that dropped the namespace would match this fixture perfectly`);
+    if (key === 'palette') {
+      const coreRows = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/core/palette/`)).length;
+      ok(coreRows === out.variables.length,
+        `figma ${key}: every emitted palette variable sits under #1102's \`core\` tier (${coreRows}/${out.variables.length}) — same reason as the namespace arm above: the tier is asserted, then removed`);
+    }
     if (key !== 'palette') {
-      const tiered = out.variables.filter((v: any) => v.name.startsWith('color/appearance/')).length;
+      const tiered = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/color/appearance/`)).length;
       ok(tiered === out.variables.length,
         `figma ${key}: every emitted value-tier variable carries #1013's \`color/appearance/\` prefix (${tiered}/${out.variables.length}) — an untiered row would make the de-tiering above inert for it, and the fixture match would then be an accident rather than a translation`);
     }
+    /** An emitted name (or alias target) in the FIXTURE's space: namespace off, `core` tier off, value tier de-prefixed. */
+    const deTier = (n: string): string => {
+      let t = n.startsWith(`${NB_ROOT}/`) ? n.slice(`${NB_ROOT}/`.length) : n;
+      if (t.startsWith('core/')) t = t.slice('core/'.length);
+      return t.startsWith('color/appearance/') ? `color/${t.slice('color/appearance/'.length)}` : t;
+    };
     const outByName = new Map<string, any>(out.variables.map((v: any) => [deTier(v.name), v]));
     ok(outByName.size === out.variables.length,
       `figma ${key}: de-tiering collides with nothing (${outByName.size} keys from ${out.variables.length} rows) — two rows landing on one key would silently drop one from every check below`);
@@ -5338,11 +5370,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const known = NB_KNOWN_DIVERGENCES.find((d) => d.mode === modeOf && d.name === name);
       if (known) {
         hit.add(`${known.mode}|${known.name}`);
-        if ((fv.alias?.name ?? null) !== known.nb || (ov.alias?.name ?? null) !== known.engine)
-          aliasBad.push(`${name} [divergence CHANGED: recorded ${known.nb}→${known.engine}, got ${fv.alias?.name}→${ov.alias?.name}]`);
+        // The emitted ALIAS TARGET is a variable name too, so it goes through the same translation — the
+        // divergence table records `palette/red/450`, the emission now says `nbds/core/palette/red/450`.
+        if ((fv.alias?.name ?? null) !== known.nb || (ov.alias ? deTier(ov.alias.name) : null) !== known.engine)
+          aliasBad.push(`${name} [divergence CHANGED: recorded ${known.nb}→${known.engine}, got ${fv.alias?.name}→${ov.alias ? deTier(ov.alias.name) : null}]`);
         continue; // the value differs *because* the alias does — one finding, not two
       }
-      if ((fv.alias?.name ?? null) !== (ov.alias?.name ?? null)) aliasBad.push(name);
+      if ((fv.alias?.name ?? null) !== (ov.alias ? deTier(ov.alias.name) : null)) aliasBad.push(name);
       for (const ch of ['r', 'g', 'b', 'a']) if (Math.abs((fv.value?.[ch] ?? 0) - (ov.value?.[ch] ?? 0)) > 1e-5) valBad.push(`${name}.${ch}`);
     }
     // Stale entries are as much a bug as missing ones: a waiver that no longer applies is a claim
