@@ -159,8 +159,8 @@ const ghostCol = ghostShim.createVariableCollection('color.appearance');
 // stylistic. `upsertCollection` narrows `core` to the SLICE the calling plan owns (`coreGroupOf`), because
 // three executors write into one collection now — so an un-rooted `palette/accent/550` is in no core group,
 // is filtered out of `byName`, and is invisible to the orphan report AND to the migration pass. That hole is
-// real and is filed rather than asserted here; what this arm is about is a stale leaf inside a slice the
-// plan DOES own, which is the drift a designer actually accumulates.
+// real and is **#1109**, not asserted here; what this arm is about is a stale leaf inside a slice the plan
+// DOES own, which is the drift a designer actually accumulates.
 ghostShim.createVariable(nbVar('core/palette/accent/550'), ghostPal);   // pre-rename palette generation
 ghostShim.createVariable('color/appearance/interactive/primary/text', ghostCol);  // flat leaf, now a group
 const ghostNames = [nbVar('core/palette/accent/550'), 'color/appearance/interactive/primary/text'];

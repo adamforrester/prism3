@@ -259,9 +259,11 @@ export const beginMigration = async (
 // exactly). `ownedCoreGroup` derives the slice from the plan's own rows, which is what ownership means
 // here rather than a guess about it, and it is positional — no brand root is spelled.
 //
-// The residual gap is stated rather than defended: a `core` variable in a group NO plan owns is invisible
-// to all three orphan reports, because each one only looks at its own slice. Filed as its own issue; the
-// alternative is a cross-executor planned-union, which is a wider change than this lane.
+// The residual gap is stated rather than defended, and it is **#1109**: a `core` variable in a group NO
+// plan owns is filtered out of `byName` before it can be seen, so it is invisible to all three orphan
+// reports AND to the migration pass. Two ways to land there — a pre-#1097 un-rooted name (`palette/x` is
+// in no group, since `coreGroupOf` reads the segment after the root) and a group the engine has stopped
+// emitting. The alternative is a cross-executor planned-union, which is a wider change than this lane.
 const upsertCollection = async (
   vars: VariablesApi,
   name: string,
