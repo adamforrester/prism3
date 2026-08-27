@@ -50,6 +50,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import {
+  ACCOUNTING_COLLECTION_MOVES,
   MATERIALIZATION_RENAMES,
   accountFor,
   isTotal,
@@ -59,7 +60,6 @@ import {
   varKey,
   type VarKey,
 } from './materialization-renames';
-import { COLLECTION_RENAMES } from './rename-map';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -204,16 +204,25 @@ const beforeKeys = new Set<VarKey>([...beforeByBrand].flatMap(([b, ks]) => [...k
 // question they can answer.
 //
 // **This does not read the live emitter, which is what the gate's oracle property depends on.**
-// `COLLECTION_RENAMES` is authored data and the keys it is applied to came out of git. And it does not
-// make the gate agree with itself: a wrong or missing collection rename leaves every affected key
-// unaccounted (the domain no longer matches), and a collection rename that agreed with a wrong rule would
+// `ACCOUNTING_COLLECTION_MOVES` is authored data and the keys it is applied to came out of git. And it does
+// not make the gate agree with itself: a wrong or missing collection move leaves every affected key
+// unaccounted (the domain no longer matches), and a collection move that agreed with a wrong rule would
 // still be contradicted by the AFTER side, which is the real emission on disk. The emission remains the
 // independent witness for the collection name and the variable name both.
 //
-// The count printed in the report stays the RAW read, deliberately: recollection cannot change it, since
-// two sources landing on one target is `validateRenameMap`'s `duplicate collection target` refusal.
+// **The list is `ACCOUNTING_COLLECTION_MOVES` and not `COLLECTION_RENAMES` (#1097)** — the two are relative
+// to different points in time and disagree about what a `color` collection at this base means. That module
+// carries the full argument; the short form is that a migration list is relative to whenever each rename
+// shipped and this one is relative to the merge base, which is one commit.
+//
+// The count printed in the report stays the RAW read. Recollection cannot change it here, but the reason is
+// no longer `validateRenameMap`'s `duplicate collection target` refusal — that check never sees this list,
+// and this list DOES land three sources on one target (`core-*` → `core`). It is that the three sources'
+// names are disjoint (`palette/*`, `dimension/*`, `font/*`), so no two keys collapse onto one. `recollectAll`
+// returns a Set, so if a future entry did collapse two keys the count would drop rather than double-count —
+// and the dropped key would then read as an unaccounted removal, which is loud.
 const beforeRecollected = new Map<string, Set<VarKey>>(
-  [...beforeByBrand].map(([brand, keys]) => [brand, recollectAll(keys, COLLECTION_RENAMES)] as const),
+  [...beforeByBrand].map(([brand, keys]) => [brand, recollectAll(keys, ACCOUNTING_COLLECTION_MOVES)] as const),
 );
 
 // ---- the floors, before any "every …" claim is made ----------------------------------------------
@@ -237,12 +246,62 @@ if (afterKeys.size < FLOOR_KEYS)
 // as accounted for by another brand's survival. `parseVarKey` splits on the FIRST separator, so the
 // collection-and-name remainder reaches the rules exactly as `materialization-renames.ts` defines it.
 
+// ---- the brand ROOT, from the DTCG tree and NEVER from the Figma emission (#1097) ----------------
+//
+// A rule's `domain` and `map` both need the brand's `theme.root`: since #1097 it is the first segment of
+// every emitted variable name, and no read path may spell it (Prism2 hardcoded `pds/` and the bug was
+// invisible in testing). It is read from `out/<brand>.tokens.json`'s single top-level key — the brand's
+// declared namespace, in a different artifact, produced from the theme rather than from a variable name.
+//
+// **Not from `out/figma/**`, which is this comparison's AFTER side.** Deriving the root from there would
+// define `!name.startsWith(root + '/')` in terms of the very names the domain is being asked about: the rule
+// would claim exactly the keys lacking whatever prefix the emission happens to carry, and the accounting
+// would go total against ANY emission. That is `docs/34` shape 11, one directory away from the version this
+// module's header already warns about.
+//
+// A brand with a Figma emission and no DTCG tree is a "cannot run", not a skip — including the case where a
+// brand was deleted on this branch. Every one of its keys is a removal needing a claim, and no claim can be
+// made without a root, so the honest outcome is to say the gate could not answer.
+const rootOfBrand = (brand: string): string => {
+  const rel = `packages/engine/out/${brand}.tokens.json`;
+  let tree: Record<string, unknown>;
+  try { tree = JSON.parse(readFileSync(resolve(repo, rel), 'utf8')) as Record<string, unknown>; }
+  catch (e) {
+    return die([
+      `could not read ${rel} — this check CANNOT RUN for brand \`${brand}\`.`,
+      `    ${(e as Error).message}`,
+      '',
+      '  The rules need the brand\'s `theme.root` (#1097), and it is taken from the DTCG tree rather than',
+      '  from the Figma emission the accounting is checking. Did `regen` run? If the brand was deleted, its',
+      '  variables are all removals and no rule can claim them without a root — say so rather than skip.',
+    ]);
+  }
+  const roots = Object.keys(tree).filter((k) => !k.startsWith('$'));
+  if (roots.length !== 1)
+    die([
+      `${rel} has ${roots.length} top-level keys, expected exactly 1 — this check CANNOT RUN for brand \`${brand}\`.`,
+      `    got: ${roots.join(', ') || '(none)'}`,
+      '  A brand tree is rooted at its own namespace and nothing else, which is what makes that key the root.',
+    ]);
+  return roots[0];
+};
+
 const brands = [...new Set([...beforeByBrand.keys(), ...afterByBrand.keys()])].sort();
 const empty = new Set<VarKey>();
-const per = brands.map((brand) => ({
-  brand,
-  a: accountFor(beforeRecollected.get(brand) ?? empty, afterByBrand.get(brand) ?? empty, MATERIALIZATION_RENAMES, parseVarKey),
-}));
+const per = brands.map((brand) => {
+  const root = rootOfBrand(brand);
+  return {
+    brand,
+    root,
+    a: accountFor(
+      beforeRecollected.get(brand) ?? empty,
+      afterByBrand.get(brand) ?? empty,
+      MATERIALIZATION_RENAMES,
+      parseVarKey,
+      root,
+    ),
+  };
+});
 /** Report lines carry the brand; the KEYS the accounting works in do not. */
 const tag = (brand: string, xs: readonly string[]): string[] => xs.map((x) => `${brand} · ${x}`);
 const acct = {
@@ -269,6 +328,10 @@ if (!isTotal(acct)) {
   const out: string[] = [
     `the emission moved and ${MATERIALIZATION_RENAMES.length} rule(s) do not account for it.`,
     `    base ${base.slice(0, 8)} (${baseRef}) · ${acct.beforeCount} keys → working tree · ${acct.afterCount} keys`,
+    // The roots are printed because a wrong one changes every claim silently: with the root mis-read, the
+    // #1097 rule's domain matches every live name and the report fills with contradictions that have
+    // nothing to do with the diff. Seeing `nb@nbds` rules that out in one glance.
+    `    brand roots (from the DTCG trees, not the emission): ${per.map((p) => `${p.brand}@${p.root}`).join(' · ')}`,
     `    ${acct.removed.length} removed · ${acct.added.length} added · ${acct.claims.length} claim(s) evaluated over the whole before-set`,
     '',
     ...listing('UNACCOUNTED REMOVALS — a name left the emission and no rule claimed it', acct.unaccountedRemovals),
@@ -294,7 +357,8 @@ if (!isTotal(acct)) {
 }
 
 console.log(
-  `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}): `
+  `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}), `
+  + `roots ${per.map((p) => `${p.brand}@${p.root}`).join(' · ')}: `
   + `${acct.beforeCount} keys → ${acct.afterCount}, ${acct.removed.length} removed / ${acct.added.length} added, `
   + `${MATERIALIZATION_RENAMES.length} rule(s) making ${acct.claims.length} claim(s) over the whole before-set.`
   // Said in the SUCCESS line, not only in the header, because this is where a reader meets the rule:

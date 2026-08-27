@@ -453,8 +453,53 @@ export const planVariableRenames = (
 export type MaterializationStep = {
   id: string;
   since: string;
-  domain: (collection: string, name: string) => boolean;
-  map: (collection: string, name: string) => string;
+  domain: (collection: string, name: string, root: string) => boolean;
+  map: (collection: string, name: string, root: string) => string;
+};
+
+/**
+ * Carry one live name through the materialization rules until none of them claims it (#1097).
+ *
+ * ── A CHAIN, WHERE THE ACCOUNTING IS SINGLE-APPLICATION, AND THE ASYMMETRY IS THE POINT ────────────
+ *
+ * `accountFor` asks each rule about each key ONCE and fails a key two rules both claim, because a claim is
+ * a PAIRING and two pairings for one name is an ambiguity, not a composition. That is right for a record
+ * of one commit's diff: the merge base is a single point in time and every key moved once.
+ *
+ * A designer's file is not a single point in time. It can sit two eras back — `surface/text/primary` in a
+ * pre-#1013 file has to reach `<root>/color/text/primary`, which is #1013's rule and then #1097's. Applying
+ * only the first match would leave `color/text/primary`, an un-namespaced name no plan contains, so
+ * `planVariableRenames` would report `target-not-planned` and migrate nothing — a correct record and a
+ * refused migration, which is the failure this function exists to avoid.
+ *
+ * Exactly the same shape as `recollect` versus `planCollectionRenames`, one layer down and in the same
+ * direction: the side that reads a snapshot is single-step, the side that walks a live file composes.
+ *
+ * Terminating because every rule's domain excludes its own image — #1013's two by an explicit
+ * `!startsWith` clause, #1097's because a rooted name is already rooted. The cap and the self-map guard are
+ * belt-and-braces for a future rule that forgets: a malformed rule stops the walk instead of spinning, and
+ * the name it stopped at then fails `planVariableRenames` visibly.
+ *
+ * `since` is the LAST rule applied — the most recent materialisation the name passed through, which is what
+ * a reader of the outcome wants when a name crossed two eras.
+ */
+const materialize = (
+  collection: string,
+  name: string,
+  root: string,
+  rules: readonly MaterializationStep[],
+): { name: string; since: string } => {
+  let cur = name;
+  let since = '';
+  for (let i = 0; i <= rules.length; i++) {
+    const rule = rules.find((r) => r.domain(collection, cur, root));
+    if (!rule) break;
+    const next = rule.map(collection, cur, root);
+    if (next === cur) break;                     // a rule that maps its own domain member to itself
+    cur = next;
+    since = rule.since;
+  }
+  return { name: cur, since };
 };
 
 /**
@@ -475,6 +520,14 @@ export type MaterializationStep = {
  * side in the CURRENT materialisation (`color/appearance/<role>`), because that is what the emission
  * writes today. So a contract row can only be matched after the materialization step has carried the
  * live name into today's spelling.
+ *
+ * ── AND WHERE THE BRAND ROOT ENTERS (#1097) ───────────────────────────────────────────────────────
+ *
+ * Every emitted name now begins with the brand's `theme.root`, and the contract rows do not carry it —
+ * they are TAILS, because `projectionsOf` derives them from `DEPRECATIONS`, where nothing is
+ * brand-specific. So this function is the single place the root is put on and taken off: the
+ * materialization walk produces a rooted name, the contract lookup happens on its tail, and the row's
+ * target is rooted again on the way out. One layer knows the root, and it is the layer #1097 says owns it.
  *
  * ── WHY EVERY CONTRACT ROW STILL PASSES THROUGH ──────────────────────────────────────────────────
  *
@@ -500,21 +553,37 @@ export const composeVariableRenames = (
   existing: Iterable<string>,
   contract: readonly VarRename[],
   rules: readonly MaterializationStep[],
+  /** The brand's `theme.root` — the first segment of every name the engine emits since #1097. REQUIRED
+   *  and undefaulted: a wrong root makes every row's target un-plannable, and there is no value that is
+   *  right for more than one brand. `write-figma.ts` derives it from the write plan's own rows. */
+  root: string,
 ): VarRename[] => {
   const rows = contract.filter((r) => r.collection === collection);
   const byFrom = new Map(rows.map((r) => [r.from, r] as const));
   const out: VarRename[] = [];
   const consumed = new Set<string>();
+  const prefix = `${root}/`;
   for (const from of existing) {
-    const rule = rules.find((r) => r.domain(collection, from));
-    const mid = rule ? rule.map(collection, from) : from;
-    const row = byFrom.get(mid);
-    const to = row?.to ?? mid;
+    const mid = materialize(collection, from, root, rules);
+    // THE CONTRACT ROWS ARE TAILS, AND THE ROOT IS ADDED HERE (#1097).
+    //
+    // `projectionsOf` spells `color/appearance/<role>` — the DTCG path below the brand root, with slashes.
+    // It has no brand in scope and should not: the root is a MATERIALISATION fact, which is the whole thesis
+    // of #1097, so it enters at the materialisation layer rather than in the contract projection. Threading
+    // a root through `renameMap()` instead would put a brand-specific value inside the derivation from
+    // `DEPRECATIONS`, where nothing is brand-specific.
+    const tail = mid.name.startsWith(prefix) ? mid.name.slice(prefix.length) : mid.name;
+    const row = byFrom.get(tail);
+    const to = row ? `${prefix}${row.to}` : mid.name;
     if (to === from) continue;
-    consumed.add(mid);
-    out.push({ collection, from, to, since: row?.since ?? rule?.since ?? '' });
+    consumed.add(tail);
+    out.push({ collection, from, to, since: row?.since ?? mid.since });
   }
-  for (const r of rows) if (!consumed.has(r.from)) out.push(r);
+  // Rooted on the way out too, so `planVariableRenames` reports `source-absent` against a name spelled the
+  // way the file spells names. An un-rooted `from` here would be absent from EVERY file rather than from
+  // this one, which is a different fact wearing the same report line.
+  for (const r of rows)
+    if (!consumed.has(r.from)) out.push({ ...r, from: `${prefix}${r.from}`, to: `${prefix}${r.to}` });
   return out;
 };
 

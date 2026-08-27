@@ -44,7 +44,7 @@ import {
 } from '@prism3/engine/rename-map';
 import { MATERIALIZATION_RENAMES } from '@prism3/engine/materialization-renames';
 import { CORE_COLLECTION } from '@prism3/engine/emit-figma-color';
-import { coreGroupOf, ownedCoreGroup } from '@prism3/engine/figma-names';
+import { coreGroupOf, ownedCoreGroup, rootOf } from '@prism3/engine/figma-names';
 
 /** The minimal `figma.variables` surface the executor needs. Declaring it as a port (rather than
  *  reaching for the global `figma`) is what lets the Node harness drive `applyWritePlan` with a
@@ -276,11 +276,20 @@ const upsertCollection = async (
       .filter((v) => v.variableCollectionId === collection.id && (owns === null || coreGroupOf(v.name) === owns))
       .map((v) => [v.name, v] as const),
   );
-  if (pass) {
+  // THE BRAND ROOT, FROM THE PLAN (#1097). The rules and the contract rows both need it, and the plan is
+  // the one thing in scope that carries it: every planned name is `<root>/…`, so the first segment of any of
+  // them IS the root. Positional — no prefix is spelled here, which is the property `test-namespace.ts`
+  // gates behaviourally for a client namespace we have never seen.
+  //
+  // An EMPTY plan has no root to read, and a wrong root would send every rename to `<empty>/name`. There is
+  // also nothing for a migration to land on: every target would be un-planned. So the rename pass is skipped
+  // rather than run against a guess — the write itself is unaffected.
+  const root = planned.length ? rootOf(planned[0]) : '';
+  if (pass && root) {
     // The CONTRACT rows and the MATERIALIZATION rules, composed into one list per live name, so a
     // variable needing both moves in a single step rather than through an intermediate name no plan
     // asks for. `composeVariableRenames` carries the reasoning and the fixed order.
-    const rows = composeVariableRenames(name, byName.keys(), pass.map.variables, pass.rules);
+    const rows = composeVariableRenames(name, byName.keys(), pass.map.variables, pass.rules, root);
     const outcomes = planVariableRenames(byName.keys(), planned, rows);
     pass.outcomes.push(...outcomes);
     for (const o of outcomes) {
