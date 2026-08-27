@@ -161,6 +161,137 @@ visible, and #1093 is open on it; shape 20 explicitly proposes no gate; shape 21
 `lint-advisory-expiry`'s own recall grounds. **A row that also repairs its own motivating defect inherits
 that defect's idea of what was worth measuring** — #801, in the register twice for that reason.
 
+## (2026-08-26) — the brand namespace on every Figma variable, and the three claims it made checkable (#1097, #1102, #1108)
+
+Every Figma variable name now carries the brand root as its first segment — `nbds/core/palette/red/550`,
+`prism/color/text/primary`, `prism/font-fluid/display/sm` — and the three `core-*` primitive collections
+became ONE collection named `core`, with the group moved into the variable name. Measured on the committed
+emission: **13 collections, 671 / 711 / 730 variables** (nb / aurora / wendys), corpus **2,112**. Per
+collection: `core` 199 / 238 / 258, `color.appearance` 242 across 4 mode files, `color.surface` 128 across 2.
+
+### The read path never spells the root, and that is the whole design
+
+`theme.root` is a brand lever (`input.root ?? 'prism'`, `nbds` for NB). So a read path that spells `prism/`
+works for three of four corpus brands and silently fails the fourth — the failure mode this lane exists to
+make impossible. `figma-names.ts` therefore reads names POSITIONALLY (`rootOf`/`tailOf`/`coreGroupOf`/
+`inAxis`), and **a plan stays brand-agnostic**: plan binding names are root-RELATIVE, and the root enters at
+exactly three plan-meets-file boundaries — `PAYLOAD_PREAMBLE`'s `byName`, `write-components.ts`'s `byName`,
+and `planBindingErrors`'s `emitted` — all three keyed by TAIL, with `AMBIGUOUS variable tail` reported on
+collision. **Styles are the stated exception**: a text/effect/paint STYLE name carries neither root nor tier
+(`display/sm/strong`, `shadow/md`), because Figma renders style names in one flat picker with no collection to
+disambiguate them, so a root there is noise a designer reads on every use. A gradient **stop** binds a
+**variable**, so the stop *is* rooted. Recorded in `emit-figma.ts`'s header and `docs/10`'s new banner.
+
+### The collection fan-in has no migration path, and the reason is in the typings
+
+`COLLECTION_RENAMES` cannot express three collections folding into one, and #1108 is the right outcome rather
+than a deferral: **`Variable.variableCollectionId` is `readonly`** (`@figma/plugin-typings/plugin-api.d.ts:11454`).
+A collection fan-in is therefore not a rename at all — no API moves a variable between collections — so the
+fan-in applies to fresh emission only. That citation now sits in the rule artifact, not just in the issue,
+so someone reading the rule sees why there is no migration path instead of assuming one was forgotten. The
+live consequence is asserted rather than the arm deleted.
+
+**One map entry changed.** `color → color.appearance` is unchanged; `surface → color` became
+`surface → color.surface`. Same source, new target, not a fan-in, and it removes the chain entirely — neither
+target is anyone's source now, which is simpler than what main held. `validateRenameMap` accepts it.
+**`color → color.surface` is deliberately NOT the entry**, and the duplicate-source refusal is only the
+surface reason: `color` names the VALUE tier before #1082 and the POINTER tier after, and this map has no
+era, so one entry cannot mean the pre-#1082 `color` while another means the post-#1082 one. `surface` only
+ever named the alias tier, so it is the source that is unambiguous across both eras.
+
+### 7.0.0 is the right version; crediting it to the namespace would have been a false record
+
+Measured directly from `schema/token-contract.json` on both baselines: **714 guaranteed paths on the merge
+base, 684 here, and in BOTH of them ZERO carry a brand-namespace root.** The contract is "keyed below the
+configurable root" — its own note — and the root this lane adds IS that root. So **the namespace contributes
+nothing to the major**, and neither does #1089's collection rename (a collection is not a token; its 128
+variables keep their `color/*` names). What takes the major is the core tier — 164 paths moving under
+`core.*`, 164 new deprecations — and #957's 30-path demotion out of `guaranteed`.
+
+This is written out in `version.ts` in full because **the number cannot carry it**: 7.0.0 is 7.0.0 whichever
+change is credited, so a bump attributed to the namespace is a false provenance record that no gate can fire
+on — the value is right and only the reason is wrong, which is the shape nothing catches. And the misreading
+is costly in a specific direction: someone reading 7.0.0 as evidence that renaming a root BREAKS consumers
+will treat `theme.root` as frozen, and it is a lever precisely because it is not.
+
+### The artifact count did not move — and it had to be DERIVED to know that
+
+**114, unchanged**, and the three sites (`CLAUDE.md:44`, `ci.yml:274-275`, `verify.ts:326`) need no edit.
+The lane's own brief expected it to move, because 15 Figma files were `git rm`'d and 15 added; `git ls-tree -r`
+on both refs shows **108 in `out/` either way** — the 15 out and 15 in are the same 15 files renamed. Plus 3
+`SCHEMA_ARTIFACTS` + 3 `ENGINE_ARTIFACTS` = 114.
+
+**#1059 is why reading this off `regen` would not have answered it.** `regen --check` never clears `out/`, so
+`after` is a superset of `before` by construction and the removal arm is unreachable — a deleted artifact
+reads as present. The count was derived instead: `rm -rf packages/engine/out && regen`, which emitted exactly
+108 files into a CLEARED directory, byte-identical to the committed 108 (`git status` clean afterwards).
+`verify.ts:326` is the site a local run hits first and the one most often missed.
+
+### The behavioural gate is a differential, and the rooted stub does not substitute for it
+
+`test.ts`'s stub is rooted at a synthetic `zzstub` and that is worth keeping, but **it is not the behavioural
+gate and must not be reported as one**: it fixes one root and asserts about it, so the day someone changes it
+for an unrelated reason the namespace proof silently disappears and nothing reports the loss — `docs/34`'s
+borrowed-backstop shape.
+
+The gate is a **differential round-trip** in `apps/plugin/test-readback.ts`, which drives the real executors.
+One brand (aurora) is emitted TWICE — once under its own `prism`, once under a deliberately foreign
+`zzclient` — colour + FLOAT + styles written by `applyWritePlan`/`applyFloatPlan`/`applyStylesPlan`, both read
+back through the real `readFigmaVariables`, and the two runs compared to each other. **The two independent
+things are THE TWO RUNS**, not an authored expected value: 533 variables and 1,049 bindings agree modulo the
+leading segment, 11 collections and their modes agree raw, 16 style names are unrooted and identical, and 4
+gradient stops are rooted and agree modulo the root.
+
+**The reachability arms come first and are load-bearing.** "Identical after stripping the first segment" is
+also satisfied by an engine that emits NO root at all, so the raw name sets are asserted to DIFFER and each
+run's names to begin with its OWN root before any agreement is asserted.
+
+**Mutation-verified by name, twice, because the two mutations fail different arms.** (1) `inPalette(v.name)`
+→ a literal `v.name.startsWith('prism/core/palette/')` in `read-figma.ts`: the differential fails and names
+162 palette names present under one root and absent under the other. (2) The colour alias resolution
+normalised to the default root: **the agreement arm still PASSES**, and that is the finding — a defect applied
+symmetrically to both runs leaves them agreeing with each other, so a differential is structurally blind to
+it. Only the leak arm ("no `prism/` survives in the foreign run") catches it. The two halves are not
+redundant; delete either and a real regression ships. Both mutations are recorded in the file.
+
+The first mutation also exposed a weakness in the gate itself: it failed by **crashing**, because the
+name comparison zipped two lists by index and a real regression does not preserve length. A gate that dies
+in a stack trace has still failed the suite but has stopped saying WHY, and the label is the whole value of
+failing by name. Both comparisons are now symmetric differences that report the diff. Found by running the
+mutation, not by reasoning about it.
+
+### Traps for whoever re-verifies this
+
+- **FILE STEM ≠ COLLECTION NAME ≠ VARIABLE PREFIX ≠ AXIS KEY.** Four different strings, and every one of the
+  five suite failures in this lane was an instance. Three files (`core.palette.json`, `core.dimension.json`,
+  `core.font.json`) emit ONE `core` collection; `color.surface` holds `color/*` variables; the read-back
+  snapshot keys FLOAT by AXIS (`core/dimension`), whose `axisSource().collection` is `core`, whose variables
+  are `<root>/core/dimension/*`. A test that "looks up the collection" using the axis key finds nothing.
+- **Which brand drives which block decides which root is spelled.** `test-write-typography.ts` has NB driving
+  the variable block (`nbds/`) and aurora driving the #680 fixtures (`prism/`) — in one file. A read path that
+  hard-coded either root would pass half of it. Three arms failed exactly this way when they were rooted at
+  `prism/` on the assumption the file had one brand.
+- **`verifyStylesReadback` decides bound-ness via `inCoreGroup`**, so the broken-snapshot arm's injected stop
+  must be spelled ROOTED. Unrooted, both stops read as unbound and the arm fails for the wrong reason.
+- **`test-write-components.ts`'s shim roots the variable NAMES but not the ids.** The names are rooted at
+  `zzclient` — foreign on purpose, because `prism/` cannot tell tail-keyed resolution apart from a read path
+  that happens to recognise the engine's own default — while the ids stay unrooted because downstream
+  assertions read `V:<name>` back out of `boundVariables`.
+- **`token-contract.json`'s `guaranteed` is an object and `brandDependent` is an ARRAY.** `Object.keys()` on
+  the latter yields indices, which measured the demotion as 0 before it measured as 30.
+- **`git ls-files --with-tree=<ref>` returns a UNION of index and tree**, which reported 123 files for main's
+  `out/` and a false "the count moved". `git ls-tree -r --name-only <ref>` is the one that answers it.
+- **This entry's placement was chosen, not checked.** #1104 records that `lint-progress-order` sorts by date
+  with ties stable, so a same-day entry can be ordered wrongly and the gate still exits 0. A green run has not
+  verified where this sits among the other 2026-08-26 entries.
+
+### Filed, not fixed
+
+- **A core-collection variable that is un-rooted or in an unowned group is invisible** to `byName`, to every
+  orphan report, and to the migration pass (`write-figma.ts:255`) — the second direction the read-backs cannot
+  see. Filed against #1097/#1108 rather than recorded here, because a deferral written only into a progress
+  entry is not filed: it has no label, no lane, and strands the defect for whoever reads this next.
+
 ## (2026-08-26) — the plugin now says which tree built it, because the field that could have answered said `plugin` (#836)
 
 **STATUS: shipped.** No `ENGINE_VERSION` or `CONTRACT_VERSION` movement — nothing in
