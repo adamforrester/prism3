@@ -102,6 +102,8 @@ type Page = { children: Node[] };
  *  last part is not cosmetic: equal values would let the executor bind the wrong variable and still
  *  measure right. Same function the engine's stub uses, so the two paths measure identically. */
 const varValue = (name: string): number => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
+/** The brand root the shim's FILE carries (#1097) — see `mkVar`. Foreign on purpose. */
+const SHIM_ROOT = 'zzclient';
 
 /** The two halves of a focus ring's coordinate: the visible GAP the brand asks for and the width of the
  *  stroke the ring draws INSIDE its own bounds. Both are `focus.ring.*` values and both are 2 in every
@@ -255,7 +257,22 @@ const makeShim = (opts: ShimOpts = {}) => {
       : name === 'focus/ring/width' ? SHIM_STROKE
       : name === 'focus/ring/offset' ? SHIM_GAP
       : SHIM_GAP;
-  const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }) });
+  /**
+   * THE FILE'S VARIABLES ARE ROOTED; THE PLAN'S BINDING NAMES ARE NOT (#1097). A plan is brand-agnostic
+   * — `figmaVarName` keeps it that way deliberately — so `applyComponentPlan` resolves a binding by
+   * TAIL, via `figma-names.ts`'s `tailOf`. That is the only reason one plan can bind into a `prism/` file
+   * and an `nbds/` one.
+   *
+   * So the shim presents `<root>/size/md/gap` while `opts.vars` holds the plan's `size/md/gap`, and the
+   * root is `zzclient` — DELIBERATELY FOREIGN, a root no corpus brand uses. `prism/` would work here and
+   * prove less: it cannot tell tail-keyed resolution apart from a read path that happens to recognise the
+   * engine's own default. A foreign root fails on anything that spells one.
+   *
+   * The ID stays keyed on the UNROOTED name, because the assertions downstream read `V:<name>` back out
+   * of `boundVariables` and compare it against what the PLAN asked for. Rooting the id too would just
+   * re-add the root on both sides of every one of those comparisons and cancel out.
+   */
+  const mkVar = (name: string) => ({ id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolvedValue(name) }) });
 
   const mkNode = (type: string): Node => {
     const node: Node = {
