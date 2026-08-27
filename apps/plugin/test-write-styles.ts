@@ -125,7 +125,13 @@ ok(lightShim.effectStyles.some((s) => s.name.startsWith('shadow/')) && !lightShi
 // plan that dropped them (no aliases -> nothing to bind -> 0 misses -> "pass"), which is exactly the
 // pre-#236 behavior this issue exists to change. So pin the input before asserting on the output.
 ok(planAliases.length > 0, `the plan carries palette aliases on its stops (${planAliases.length} distinct)`);
-ok(planAliases.every((a) => a.startsWith('palette/')), `every carried alias is a palette/* name (e.g. ${planAliases[0]})`);
+// The stop alias names a VARIABLE, so post-#1097 it carries the brand root AND #1102's `core` tier:
+// `prism/core/palette/primary/600`, not `palette/primary/600`. This is the one place a STYLE touches a
+// rooted name — the style's own name drops both segments, its stop's binding target cannot, because the
+// target has to be findable in the file. Aurora is engine-native, so the prefix is SPELLED here rather
+// than read back off `theme.root`: a root that silently stopped being applied has to fail somewhere, and
+// an assertion built from the value under test would agree with whatever the emitter currently produces.
+ok(planAliases.every((a) => a.startsWith('prism/core/palette/')), `every carried alias is a rooted, core-tier palette name (e.g. ${planAliases[0]})`);
 
 const totalAliasStops = plan.paints.reduce((n, p) => n + p.stops.filter((s) => s.alias).length, 0);
 ok(r1.paints.bound === totalAliasStops && r1.paints.bound > 0,
@@ -166,7 +172,7 @@ const bareShim = new StylesShim([]);            // no palette variables in this 
 const bare = await applyStylesPlan(barePlan, bareShim as any);
 ok(bare.paints.bound === 0 && bare.misses.length === totalAliasStops,
   `missing palette: 0 bound, every target reported as a miss (${bare.misses.length}/${totalAliasStops})`);
-ok(bare.misses.every((m) => m.startsWith('palette/')), 'each miss names the palette variable it wanted');
+ok(bare.misses.every((m) => m.startsWith('prism/core/palette/')), 'each miss names the rooted palette variable it wanted — the name a designer would search for in the file, not a tail they would not find');
 // `!st.boundVariables` would be the wrong test: Figma normalises an unbound stop to an EMPTY
 // `boundVariables: {}`, so the container is always truthy live. Unbound means no `.color` target.
 ok(bareShim.paintStyles.length === barePlan.paints.length
