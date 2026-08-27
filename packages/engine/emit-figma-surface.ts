@@ -94,17 +94,21 @@ export const buildFigmaSurface = (theme: Theme): FigmaCollectionFile[] => {
   const rows = surfaceRows(theme);
 
   return SURFACE_MODES.map((mode): FigmaCollectionFile => ({
-    $collection: 'color',
+    // `color.surface` rather than `color` (#1089/#1097). The two tiers are two entries in the same
+    // picker, and only one of them named its axis: `color.appearance` said which axis it switches on
+    // and `color` said nothing, so the pair read as "the appearance one, and the default one" rather
+    // than as two axes. The variables inside keep their `color/*` names — the DTCG path does not move.
+    $collection: 'color.surface',
     $mode: mode,
     variables: rows.map((r): FigmaVar => {
       const target = mode === 'default' ? r.default : r.inverse;
       const resolved = light.roles[target];
       return {
-        // `figName` strips the leading namespace segment, so a bare role key would lose its FAMILY
-        // (`background.primary` → `primary`). The role is prefixed with the tier it belongs to, which
-        // is also what keeps the Figma name tracking the DTCG path: this row IS `color.<role>` in the
-        // tree, and the appearance target IS `color.appearance.<target>`.
-        name: `color/${figName(`color.${r.role}`)}`,
+        // Built from the row's DTCG path, in full, because that is what the name IS: this row is
+        // `<root>.color.<role>` in the tree and its target is `<root>.color.appearance.<target>`.
+        // Before #1097 both were assembled by hand from a `figName` call that discarded the root —
+        // which meant the leading `color/` here was replacing a segment `figName` had just removed.
+        name: figName(`${theme.root}.color.${r.role}`),
         resolvedType: 'COLOR',
         // ALL_SCOPES: the row stands in for whatever its target is scoped to, and a surface-context
         // binding is applied at the layer rather than picked per slot. Narrowing here would be a
@@ -112,7 +116,7 @@ export const buildFigmaSurface = (theme: Theme): FigmaCollectionFile[] => {
         scopes: [],
         description: `${r.role} for the ${mode} surface context — an alias into the color.appearance collection${r.default === r.inverse ? ' (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)' : ''}`,
         value: parseColor(resolved?.hex ?? '#000000'),
-        alias: { type: 'VARIABLE_ALIAS', name: `color/appearance/${figName(`color.${target}`)}` },
+        alias: { type: 'VARIABLE_ALIAS', name: figName(`${theme.root}.color.appearance.${target}`) },
       };
     }),
   }));

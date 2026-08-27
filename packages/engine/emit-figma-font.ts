@@ -19,7 +19,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, subNode, deref } from './tree';
-import { desc } from './emit-figma-color';
+import { desc, nsName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaResolvedType, FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 // Named-instance derivation for fontStyle (fix #5). Numeric weight → the family's
@@ -71,6 +71,10 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
   const weightRolesByMode = theme.typography.weightRolesByMode ?? {};
   const fontModes = [...new Set([...Object.keys(familiesByMode), ...Object.keys(weightRolesByMode)])];
 
+  /** Every name in this collection is assembled from keys rather than walked, so the namespace goes
+   *  on explicitly (#1097). Bound once here because `varsFor` builds five of them. */
+  const ns = (name: string): string => nsName(root, name);
+
   const varsFor = (mode: string): FigmaVar[] => {
     const variables: FigmaVar[] = [];
     // font/family/* — STRING PRIMITIVES (ref tier). Primary face is the bound value; full
@@ -95,7 +99,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
       const ov = mode === 'Default' ? undefined : (leaf.$extensions?.prism3?.modes as any)?.[mode];
       const stack: string[] = faceStack(ov ?? leaf);
       variables.push({
-        name: `font/family/${familyRole}`,
+        name: ns(`font/family/${familyRole}`),
         resolvedType: 'STRING',
         scopes: ['FONT_FAMILY'],
         description: [stackDescription(stack), desc(leaf)].filter(Boolean).join(' \u2014 '),
@@ -109,7 +113,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
     for (const key of Object.keys(font.size)) {
       const leaf = font.size[key];
       variables.push({
-        name: `font/size/${key}`,
+        name: ns(`font/size/${key}`),
         resolvedType: 'FLOAT',
         scopes: ['FONT_SIZE'],
         description: desc(leaf),
@@ -125,7 +129,7 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
     for (const key of Object.keys(font.weight)) {
       const leaf = font.weight[key];
       variables.push({
-        name: `font/weight/${key}`,
+        name: ns(`font/weight/${key}`),
         resolvedType: 'FLOAT',
         scopes: ['FONT_WEIGHT'],
         description: desc(leaf),
@@ -143,20 +147,20 @@ export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
       const ov = mode === 'Default' ? undefined : (leaf.$extensions?.prism3?.modes as any)?.[mode];
       const numeric = ov ? (ov.weight as number) : (leaf.$extensions?.prism3?.numeric as number);
       variables.push({
-        name: `font/weight-role/${roleKey}`,
+        name: ns(`font/weight-role/${roleKey}`),
         resolvedType: 'FLOAT',
         scopes: ['FONT_WEIGHT'],
         description: desc(leaf),
         value: numeric,
-        alias: { type: 'VARIABLE_ALIAS', name: `font/weight/${numeric}` },
+        alias: { type: 'VARIABLE_ALIAS', name: ns(`font/weight/${numeric}`) },
       });
     }
     return variables;
   };
 
   return [
-    { $collection: 'core-font', $mode: 'Default', variables: varsFor('Default') },
-    ...fontModes.map((mode) => ({ $collection: 'core-font' as const, $mode: mode, variables: varsFor(mode) })),
+    { $collection: CORE_COLLECTION, $mode: 'Default', variables: varsFor('Default') },
+    ...fontModes.map((mode) => ({ $collection: CORE_COLLECTION, $mode: mode, variables: varsFor(mode) })),
   ];
 };
 
@@ -197,7 +201,7 @@ export const buildFigmaFontFluid = (theme: Theme): FigmaCollectionFile[] => {
     $collection: 'type-sets',
     $mode: mode,
     variables: rows.map((r) => ({
-      name: `font-fluid/${r.name}`,
+      name: nsName(root, `font-fluid/${r.name}`),
       resolvedType: 'FLOAT' as const,
       scopes: ['FONT_SIZE'],
       description: r.description,
@@ -246,12 +250,13 @@ const familyCategoryFromAlias = (aliasStr: string): string => {
   const m = /font\.family\.([^.}]+)\}?$/.exec(aliasStr);
   return m ? m[1] : 'body';
 };
-// Resolve a composite's size — bound to `font/<size>` (static) or
-// `font-fluid/<path>` (fluid). Returns { variable, collection } for the bind.
-const sizeBinding = (compositePath: string, sizeAlias: string, fluid: boolean): { variable: string; collection: 'core-font' | 'type-sets' } => {
-  if (fluid) return { variable: `font-fluid/${compositePath}`, collection: 'type-sets' };
+// Resolve a composite's size — bound to `<root>/font/size/<n>` (static) or `<root>/font-fluid/<path>`
+// (fluid). Returns { variable, collection } for the bind. The VARIABLE name carries the brand
+// namespace (#1097) even though the enclosing style's name does not: a bind names a variable.
+const sizeBinding = (root: string, compositePath: string, sizeAlias: string, fluid: boolean): { variable: string; collection: typeof CORE_COLLECTION | 'type-sets' } => {
+  if (fluid) return { variable: nsName(root, `font-fluid/${compositePath}`), collection: 'type-sets' };
   const m = /font\.size\.([^.}]+)\}?$/.exec(sizeAlias);
-  return { variable: `font/size/${m ? m[1] : ''}`, collection: 'core-font' };
+  return { variable: nsName(root, `font/size/${m ? m[1] : ''}`), collection: CORE_COLLECTION };
 };
 const weightRoleFromAlias = (aliasStr: string): string => {
   const m = /font\.weight-role\.([^.}]+)\}?$/.exec(aliasStr);
@@ -295,7 +300,7 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
     const italic = !!ext.italic || v.fontStyle === 'italic';
     const styleName = fontStyleName(isMonoCategory(font, familyCategory), numeric, italic);
     const fluid: boolean = !!ext.responsive?.fluid;
-    const sb = sizeBinding(path, v.fontSize, fluid);
+    const sb = sizeBinding(root, path, v.fontSize, fluid);
     // Line-height: PERCENT = unitless × 100 (fix 3a). Unbound — Figma has no
     // unitless line-height primitive, but PERCENT is mode/size-independent so
     // this bake is invariant across desktop/mobile fluid modes.
@@ -320,13 +325,13 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
       name: compositeToStyleName(path),
       description,
       properties: {
-        fontFamily: { bound: true, variable: `font/family/${familyCategory}`, collection: 'core-font', resolvedType: 'STRING' },
+        fontFamily: { bound: true, variable: nsName(root, `font/family/${familyCategory}`), collection: CORE_COLLECTION, resolvedType: 'STRING' },
         // fontStyle baked — derived from weight-role (+ italic modifier) via the
         // named-instance table (e.g. Bold, Bold Italic); the plugin write lane
         // resolves this guess against the family's real styles (see fontStyleName).
         fontStyle: { bound: false, value: styleName },
         fontSize: { bound: true, variable: sb.variable, collection: sb.collection, resolvedType: 'FLOAT' },
-        fontWeight: { bound: true, variable: `font/weight-role/${weightRole}`, collection: 'core-font', resolvedType: 'FLOAT' },
+        fontWeight: { bound: true, variable: nsName(root, `font/weight-role/${weightRole}`), collection: CORE_COLLECTION, resolvedType: 'FLOAT' },
         lineHeight: { bound: false, value: { unit: 'PERCENT', value: Math.round(lhMult * 100) } },
         letterSpacing: { bound: false, value: { unit: 'PERCENT', value: Math.round(lsEm * 10000) / 100 } },
         textCase: { bindable: false, value: textCase },

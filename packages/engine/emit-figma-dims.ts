@@ -20,7 +20,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, at } from './tree';
-import { figName, desc } from './emit-figma-color';
+import { figName, desc, nsName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 /** Numeric px from a `12px` or `"{alias}"` value. For alias targets we resolve via
@@ -37,7 +37,8 @@ const pxFromValue = (tree: any, v: unknown): number => {
   }
   return 0;
 };
-/** DTCG alias `{nbds.dimension.8}` → Figma name `dimension/8`. Uses figName. */
+/** DTCG alias `{nbds.dimension.8}` → Figma name `nbds/dimension/8`. Uses `figName`, so the brand
+ *  namespace comes along on its own (#1097) — the alias string already carries the root. */
 const aliasFigName = (aliasStr: string): string => {
   const m = /^\{(.+)\}$/.exec(String(aliasStr));
   return m ? figName(m[1]) : '';
@@ -108,6 +109,10 @@ const SIZE_PADDING_SCOPES = ['GAP'];
 export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
+  /** Every name here is assembled from keys rather than walked out of the tree, so the brand namespace
+   *  goes on explicitly (#1097). The ALIAS targets need no help — `aliasFigName` reads a dotted path
+   *  that already carries the root. */
+  const ns = (name: string): string => nsName(root, name);
   const brand = tree[root];
 
   // dimension primitives — REF TIER. Value is the numeric px; no alias.
@@ -117,7 +122,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // component author needs a raw primitive for a bespoke case, the picker
   // guidance is still correct.
   const dimVars: FigmaVar[] = Object.keys(brand.dimension).map((key) => ({
-    name: `dimension/${key}`,
+    name: ns(`dimension/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: DIMENSION_SCOPES,
     description: desc(brand.dimension[key]),
@@ -136,7 +141,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     const leaf = brand.space[key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
-      name: `space/${key}`,
+      name: ns(`space/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: SPACE_SCOPES,
       description: desc(leaf),
@@ -169,7 +174,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       const source: any = override ?? leaf;
       const isAlias = typeof source.$value === 'string' && /^\{.+\}$/.test(source.$value);
       return {
-        name: `radius/${key}`,
+        name: ns(`radius/${key}`),
         resolvedType: 'FLOAT' as const,
         scopes: RADIUS_SCOPES,
         description: desc(leaf),
@@ -192,7 +197,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       sizeVars.push({
-        name: `size/${t}/${prop}`,
+        name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
         scopes: prop === 'height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
         description: desc(leaf),
@@ -209,7 +214,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     const leaf = brand.icon.size[key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
-      name: `icon/size/${key}`,
+      name: ns(`icon/size/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: SIZE_HEIGHT_SCOPES,
       description: desc(leaf),
@@ -231,7 +236,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       controlVars.push({
-        name: `control/size/${rung}/${field}`,
+        name: ns(`control/size/${rung}/${field}`),
         resolvedType: 'FLOAT',
         scopes: SIZE_HEIGHT_SCOPES,
         description: desc(leaf),
@@ -245,7 +250,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     const leaf = brand['border-width'][key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
-      name: `border-width/${key}`,
+      name: ns(`border-width/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: BORDER_WIDTH_SCOPES,
       description: desc(leaf),
@@ -263,7 +268,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     if (leaf.$type !== 'dimension') continue; // skip strokeStyle
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     focusVars.push({
-      name: `focus/ring/${key}`,
+      name: ns(`focus/ring/${key}`),
       resolvedType: 'FLOAT',
       scopes: FOCUS_SCOPES,
       description: desc(leaf),
@@ -283,7 +288,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // picker with its OPACITY scope, matching the sidecar (`consume: Consumable`),
   // eval (excluded from PRIMITIVE_TIERS), and the prism3-consume skill.
   const opacityVars: FigmaVar[] = Object.keys(brand.opacity).map((key) => ({
-    name: `opacity/${key}`,
+    name: ns(`opacity/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: OPACITY_SCOPES,
     description: desc(brand.opacity[key]),
@@ -293,7 +298,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
 
   const c = (name: string, variables: FigmaVar[]): FigmaCollectionFile => ({ $collection: name, $mode: 'Default', variables });
   return {
-    dimension: c('core-dimension', dimVars),
+    dimension: c(CORE_COLLECTION, dimVars),
     space: c('space', spaceVars),
     radius: radiusFiles,
     size: c('size', sizeVars),
@@ -336,6 +341,7 @@ const LAYOUT_BREAKPOINT_SCOPES = ['WIDTH_HEIGHT']; // min-width threshold
 export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
+  const ns = (name: string): string => nsName(root, name);
   const brand = tree[root];
   const bpNode = brand.breakpoint;
   const gridNode = brand.grid;
@@ -357,7 +363,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     for (const bpKey of Object.keys(bpNode)) {
       const leaf = bpNode[bpKey];
       variables.push({
-        name: `breakpoint/${bpKey}`,
+        name: ns(`breakpoint/${bpKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_BREAKPOINT_SCOPES,
         description: desc(leaf),
@@ -369,7 +375,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     // grid/* — per-mode. columns is a plain FLOAT; gutter/margin alias space/*.
     const g = gridNode[mode];
     variables.push({
-      name: 'grid/columns',
+      name: ns('grid/columns'),
       resolvedType: 'FLOAT',
       scopes: LAYOUT_COLUMNS_SCOPES,
       description: desc(g.columns),
@@ -380,7 +386,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
       const leaf = g[key];
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       variables.push({
-        name: `grid/${key}`,
+        name: ns(`grid/${key}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_GAP_SCOPES,
         description: desc(leaf),
@@ -393,7 +399,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     for (const cKey of ['max', 'narrow'] as const) {
       const leaf = containerNode[cKey];
       variables.push({
-        name: `container/${cKey}`,
+        name: ns(`container/${cKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_CONTAINER_SCOPES,
         description: desc(leaf),

@@ -153,8 +153,9 @@ export type FigmaPaintStyle = {
 };
 export type FigmaPaintStylesFile = { $collection: 'gradient-styles'; styles: FigmaPaintStyle[] };
 
-/** Resolve `{prism.palette.primary.600}` → Figma name `palette/primary/600` and
- *  the leaf's resolved {r,g,b,a}. */
+/** Resolve `{prism.palette.primary.600}` → Figma name `prism/palette/primary/600` and the leaf's
+ *  resolved {r,g,b,a}. The STYLE's own name carries no namespace (#1097) but the variable it BINDS
+ *  does — a style is a Figma style, the thing it points at is a variable. */
 const stopFromAlias = (tree: any, aliasStr: string, position: number): FigmaPaintStop => {
   const m = /^\{(.+)\}$/.exec(aliasStr);
   const path = m ? m[1] : '';
