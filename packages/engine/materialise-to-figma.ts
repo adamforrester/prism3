@@ -63,6 +63,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import type { FigmaCollectionFile } from './emit-figma';
+import { CORE_COLLECTION } from './emit-figma';
 import { buildWritePlan, floatPlanFor, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, TextStylePlan } from './write-plan';
 import type { FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
@@ -121,7 +122,7 @@ const colourModes = (brand: string): string[] =>
 // aliases / hidden flags — they can't drift.
 const planFor = (brand: string): WritePlan =>
   buildWritePlan({
-    palette: load(brand, 'core-palette.json'),
+    palette: load(brand, 'core.palette.json'),
     color: colourModes(brand).map((m) => load(brand, `color.appearance.${m}.json`)),
   });
 
@@ -140,28 +141,34 @@ const planFor = (brand: string): WritePlan =>
 // plugin path uses, so the two still can't drift.
 //
 // Order matters for the same reason it does in colour: a collection whose aliases point at
-// `core-dimension` / `space` can only bind once those variables exist.
-const FLOAT_AXES: { collection: string; modes: string[] | null }[] = [
-  { collection: 'core-dimension', modes: null },
-  { collection: 'space', modes: null },
-  { collection: 'radius', modes: ['Default', 'wireframe'] }, // per-mode only for a wireframe brand
-  { collection: 'size', modes: null },
-  { collection: 'icon', modes: null },
-  { collection: 'control', modes: null },
-  { collection: 'border-width', modes: null },
-  { collection: 'focus', modes: null },
-  { collection: 'opacity', modes: null },
-  { collection: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
+// the `core` dimension primitives / `space` can only bind once those variables exist.
+//
+// `stem` is the FILE stem, not the collection (#1097). The dimension primitives now live in the one
+// `core` collection alongside palette and font, so `core.dimension.json` declares
+// `$collection: 'core'` and the two names have diverged. Every axis is keyed on the stem because that
+// is what this shell can find on disk, and the collection is read back off the loaded artifact — so a
+// future collection rename needs no edit here and cannot leave a stale literal behind.
+const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
+  { stem: 'core.dimension', modes: null },
+  { stem: 'space', modes: null },
+  { stem: 'radius', modes: ['Default', 'wireframe'] }, // per-mode only for a wireframe brand
+  { stem: 'size', modes: null },
+  { stem: 'icon', modes: null },
+  { stem: 'control', modes: null },
+  { stem: 'border-width', modes: null },
+  { stem: 'focus', modes: null },
+  { stem: 'opacity', modes: null },
+  { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
 ];
 
-/** The files backing one float axis, in mode order. A single-mode axis is `<name>.json`; a
- *  multi-mode axis is `<name>.<mode>.json` — except radius, which emits the single-file form when
+/** The files backing one float axis, in mode order. A single-mode axis is `<stem>.json`; a
+ *  multi-mode axis is `<stem>.<mode>.json` — except radius, which emits the single-file form when
  *  the brand hasn't opted into wireframe (docs/11 Pillar 1b), so BOTH shapes are probed. */
-const floatFiles = (brand: string, axis: { collection: string; modes: string[] | null }): string[] => {
+const floatFiles = (brand: string, axis: { stem: string; modes: string[] | null }): string[] => {
   const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
-  const single = `${axis.collection}.json`;
+  const single = `${axis.stem}.json`;
   if (!axis.modes) return existsSync(at(single)) ? [single] : [];
-  const perMode = axis.modes.map((m) => `${axis.collection}.${m}.json`).filter((f) => existsSync(at(f)));
+  const perMode = axis.modes.map((m) => `${axis.stem}.${m}.json`).filter((f) => existsSync(at(f)));
   if (perMode.length) return perMode;
   return existsSync(at(single)) ? [single] : [];
 };
@@ -169,7 +176,10 @@ const floatFiles = (brand: string, axis: { collection: string; modes: string[] |
 const floatPlans = (brand: string): FloatCollectionPlan[] =>
   FLOAT_AXES.map((axis) => ({ axis, files: floatFiles(brand, axis) }))
     .filter(({ files }) => files.length > 0)
-    .map(({ axis, files }) => floatPlanFor(axis.collection, files.map((f) => load(brand, f))));
+    .map(({ files }) => {
+      const loaded = files.map((f) => load(brand, f));
+      return floatPlanFor(loaded[0].$collection, loaded);
+    });
 
 /** Exported so the suite can assert the paste path covers every axis the plugin path writes —
  *  the drift check that would have caught this gap when it opened. */
@@ -191,15 +201,20 @@ export const floatCollections = (brand: string): string[] => floatPlans(brand).m
 // `font-fluid/*` to already exist. `styles` is independent (Effect/Paint styles bind no variables),
 // so its position is a convention.
 
-/** `core-font` emits one file per mode (Phase D — same convention as `radius`), so BOTH the
- *  single-file `core-font.json` and the per-mode `core-font.<mode>.json` shapes are probed. A brand
- *  with no per-mode typography emits only the former. */
+/** The font primitives emit one file per mode (Phase D — same convention as `radius`), so BOTH the
+ *  single-file `core.font.json` and the per-mode `core.font.<mode>.json` shapes are probed. A brand
+ *  with no per-mode typography emits only the former.
+ *
+ *  The FILE STEM and the COLLECTION are two different names since #1097: the stem is
+ *  `core.<group>` (one file per group, so a reader of `out/figma/**` can still find the font
+ *  primitives by name) while every one of them declares `$collection: 'core'`. Nothing here spells
+ *  the collection — it is read back off the loaded file, below. */
 const fontFiles = (brand: string): { font: FigmaCollectionFile[]; fluid: FigmaCollectionFile[] } => {
   const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
-  const single = 'core-font.json';
+  const single = 'core.font.json';
   // Mode names aren't known ahead of time here (they're the brand's appearance modes), so read the
   // per-mode files by the same MODE_ORDER the colour lane uses, then fall back to the single file.
-  const perMode = MODE_ORDER.map((m) => `core-font.${m}.json`).filter((f) => existsSync(at(f)));
+  const perMode = MODE_ORDER.map((m) => `core.font.${m}.json`).filter((f) => existsSync(at(f)));
   const font = perMode.length ? perMode : existsSync(at(single)) ? [single] : [];
   const fluid = FONT_FLUID_MODES.map((m) => `type-sets.${m}.json`).filter((f) => existsSync(at(f)));
   return { font: font.map((f) => load(brand, f)), fluid: fluid.map((f) => load(brand, f)) };
