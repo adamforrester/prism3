@@ -9,7 +9,8 @@
  *
  * This module holds:
  *   • `buildFigmaDims(theme)` — the nine FLOAT primitive/semantic collections
- *     (`core-dimension`/`space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/`opacity`),
+ *     (the `core` primitive collection, holding `core/dimension/*` since #1097, plus
+ *     `space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/`opacity`),
  *   • `buildFigmaLayout(theme)` — the `layout` collection with one mode per breakpoint,
  *   • their local helpers (`pxFromValue`/`aliasFigName`), scope maps, and `LAYOUT_MODES`.
  *

@@ -10,9 +10,10 @@
  *
  * This layer used to be called `surface` and the value layer `color`. #1013 swapped them, in both
  * formats: the value layer is now `color.appearance` (Figma collection and DTCG tier alike) and this
- * one is `color`. The names now say which layer a designer is meant to reach for — the two-tier rule
- * the rest of the emission already follows, where `core-palette` sits below `color` rather than
- * beside it.
+ * one is `color` — spelled `color.surface` as a Figma collection since #1089, though the DTCG tier and
+ * the variable prefix are both still `color/*`; see line 97. The names now say which layer a designer is
+ * meant to reach for — the two-tier rule the rest of the emission already follows, where the `core`
+ * primitives sit below `color` rather than beside it.
  *
  * The consequence is the whole reason the swap was worth a MAJOR: **a component def that binds
  * `color.<role>` is surface-responsive with no def change at all**, because the name it already

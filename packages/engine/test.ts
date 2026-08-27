@@ -5291,11 +5291,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // scopes, and — the load-bearing property — every semantic aliases the SAME palette
 // variable by name in every mode (0 broken/mismatched). Values compared to float32
 // tolerance (Figma stores colour as float32; the importer's rounding differs by ~5e-7).
-// NB (#66): the byte-repro is on variable NAMES / scopes / aliases / values — NOT the
-// `$collection` label. The emitter now labels the primitives `core-palette` / `core-font`
-// / `type-sets` (#66), while the frozen fixture keeps the pre-rename labels; the fixture is
-// the Token Press byte-repro target and stays put until Token Press confirms the new labels
-// (#67). The load-bearing contract (names/aliases/values) is unchanged, which is what this gates.
+// NB (#66, #1097): the byte-repro is on variable NAMES / scopes / aliases / values — NOT the
+// `$collection` label. The emitter labels the one primitive collection `core` (#1097 folded #66's
+// three `core-*` collections into it) plus `type-sets`, while the frozen fixture keeps the
+// pre-rename labels; the fixture is the Token Press byte-repro target and stays put until Token
+// Press confirms the new labels (#67). The NAMES are no longer unchanged either — #1097 roots them
+// and #1102 tiers them — so what this gates is the contract modulo a translation stated in full
+// below, never written into the fixture.
 {
   const FIXDIR = resolve(HERE, './fixtures/figma/nb');
   const { palette, color } = buildFigmaColor(nbTheme());

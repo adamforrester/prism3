@@ -1,24 +1,45 @@
 /**
  * emit-figma.ts — I/O shell: the DTCG token tree → a Figma import artifact (docs/10).
  *
- * COLLECTION NAMING (#66, 2026-07-05): the PRIMITIVE collections carry a `core-` prefix so a
- * designer scans primitives-vs-semantics at a glance in Figma's collection list —
- * `core-palette` / `core-dimension` / `core-font`, and `type-sets` (the responsive fluid-size
- * collection, ex-`font-fluid`). This is a **collection-label** convention only: the DTCG token
- * tree, the `<root>.*` namespace, and — crucially — the Figma VARIABLE NAMES are unchanged. Every
- * variable name still mirrors its DTCG path (`palette/red/550`, `font/family/display`,
- * `font-fluid/…`), so the `variableId` round-trip and every cross-collection alias resolve
- * exactly as before. Semantic collections keep their bare names (`color`, `space`, `radius`,
- * `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`). See docs/00 + issue #66/#67 (Token Press).
+ * COLLECTION NAMING — CURRENT (#1097, #1089), superseding #66.
+ *
+ * ONE primitive collection, named `core`. The three `core-`prefixed collections #66 introduced
+ * (`core-palette` / `core-dimension` / `core-font`) held one tier between them, so they are now a
+ * single `core` collection whose variables carry the group as a name segment: `core/palette/…`,
+ * `core/dimension/…`, `core/font/…`. Note the three EMITTED FILES keep their own stems
+ * (`core.palette.json`, `core.dimension.json`, `core.font.json`) — a file stem, a collection name and
+ * a variable prefix are three different strings here, and conflating them is the standing trap.
+ *
+ * EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT as its first segment: `<root>/core/palette/red/550`,
+ * `<root>/color/text/primary`, `<root>/font-fluid/display/sm`. #66's claim that variable names were
+ * unchanged is no longer true of the current emission, and it is the sentence most likely to mislead
+ * someone reading the old paragraph, so it is called out here rather than quietly dropped. The root is
+ * `theme.root` (`prism` by default, `nbds` for NB) — brand-specific, which is why no read path spells
+ * it and `figma-names.ts` reads names POSITIONALLY instead.
+ *
+ * STYLES ARE THE EXCEPTION, deliberately: a text/effect/paint STYLE name carries neither the root nor
+ * the tier (`display/sm/strong`, `shadow/md`, `gradient/brand`). Figma renders style names in a flat,
+ * user-facing picker with no collection to disambiguate them, so a root there is noise a designer reads
+ * on every use. A gradient STOP, though, binds a VARIABLE, so the stop IS rooted.
+ *
+ * SEMANTIC COLLECTIONS keep bare names (`space`, `radius`, `size`, `icon`, `control`, `border-width`,
+ * `focus`, `opacity`, `layout`, `type-sets`) — except colour, split by #1089 into `color.appearance`
+ * (the appearance-moded semantics) and `color.surface` (the surface-moded ones). `font-fluid/*` remains
+ * a live VARIABLE prefix inside `type-sets`; only the COLLECTION of that name is gone.
+ *
+ * See docs/00 + issue #66/#67 (Token Press), #1089, #1097, #1102.
  *
  * Axes shipped:
- *   • COLOUR — `core-palette` primitives (Default mode) + `color` semantics (4 modes),
- *     every semantic a VARIABLE_ALIAS into a `palette/…` variable. Byte-reproduces
- *     `fixtures/figma/nb/{palette,color.<mode>}.json` (variable names/scopes/aliases/values).
- *   • TYPOGRAPHY — `core-font` primitives (family STRING + size/weight FLOAT + weight-role
+ *   • COLOUR — `core` primitives (Default mode) + `color.appearance` semantics (4 modes),
+ *     every semantic a VARIABLE_ALIAS into a `<root>/core/palette/…` variable. Byte-reproduces
+ *     `fixtures/figma/nb/{palette,color.<mode>}.json` (variable names/scopes/aliases/values) —
+ *     modulo the root and the two tier prefixes, which `test.ts` states as a LITERAL translation on
+ *     the engine's side and asserts are present BEFORE stripping them, since stripping an absent
+ *     prefix is a no-op an emitter that dropped the namespace would satisfy.
+ *   • TYPOGRAPHY — `core` font primitives (family STRING + size/weight FLOAT + weight-role
  *     FLOAT aliased) + `type-sets` (per-mode FLOATs for the fluid composites) +
  *     text styles for every composite, applying the six §4 fixes: (1) no wrapper
- *     `text/` prefix; (2) prescribed collection names (`core-font`, `type-sets`);
+ *     `text/` prefix; (2) prescribed collection names (`core`, `type-sets`);
  *     (3a) lineHeight baked as PERCENT (unitless × 100 — mode/size-independent);
  *     (3b) letterSpacing baked as PERCENT (em × 100 — this PR bakes; a follow-up
  *     lands bindable tracking FLOATs); (4) primary family bound + full stack in

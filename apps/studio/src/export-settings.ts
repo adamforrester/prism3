@@ -62,7 +62,8 @@ export type ExportSource =
   /** The engine-generated token tree — the only source that exists today, in either host. */
   | 'generated'
   /** The Figma file's own variables. #584's territory and UNBUILT: `readFigmaVariables` reads only
-   *  `core-palette` + `color` to feed `verifyReadback`, so there is no general variables export. */
+   *  the `core` primitives + `color.appearance` to feed `verifyReadback`, so there is no general
+   *  variables export. */
   | 'file-variables';
 
 export const ALL_SOURCES: readonly ExportSource[] = ['generated', 'file-variables'];

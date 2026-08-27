@@ -7,7 +7,8 @@
  * `emit-figma.ts` re-exports everything here, so every `from './emit-figma'` importer + the
  * `npx tsx packages/engine/emit-figma.ts` CLI are unchanged.
  *
- * Emits: `core-font` (per-mode: family STRING + size/weight FLOAT + weight-role FLOAT aliased),
+ * Emits: the font third of the `core` collection (per-mode: family STRING + size/weight FLOAT +
+ * weight-role FLOAT aliased — `core-font` until #1097 folded the three primitive collections into one),
  * `type-sets` (per-composite fluid FLOAT, mobile/desktop), and Text Styles (one per composite).
  *
  * The family-role → typeface-primitive retiering (#269/#276) is a DTCG-tree change ONLY: the emitted
@@ -55,8 +56,8 @@ export const fontStyleName = (mono: boolean, numericWeight: number, italic = fal
  *  description, only the primary face is bound as the value). */
 const stackDescription = (stack: string[]): string => `stack: ${stack.join(', ')}`;
 
-// `core-font` is now a PER-MODE collection (Phase D — same convention as `radius`): a customizable
-// mode that overrides the font FAMILY (`font/family/*`) or WEIGHT (`font/weight-role/*`) via
+// The font primitives are a PER-MODE collection (Phase D — same convention as `radius`): a customizable
+// mode that overrides the font FAMILY (`core/font/family/*`) or WEIGHT (`core/font/weight-role/*`) via
 // `modeLevers` gets its own mode file. A brand with no per-mode typography returns a single
 // `[{$mode:'Default',…}]` entry — byte-identical to the pre-D world. Each mode file carries the FULL
 // variable set (family/size/weight/weight-role); a variable with no override for a mode falls through
