@@ -76,6 +76,16 @@ reads as present. The count was derived instead: `rm -rf packages/engine/out && 
 108 files into a CLEARED directory, byte-identical to the committed 108 (`git status` clean afterwards).
 `verify.ts:326` is the site a local run hits first and the one most often missed.
 
+**AND THAT DERIVATION COVERED 108 OF THE 114, WHICH IS WORTH STATING BECAUSE THE FIRST WRITE-UP DID NOT.**
+Clearing `out/` says nothing about the six artifacts that live outside it — `schema/lever-manifest.json`,
+`schema/preview-spec.json`, `schema/example-brands.json`, `modes-report.md`, `nb-regression-report.md`,
+`icon-glyphs.ts` — and "114, derived" read as if all 114 had been re-emitted from nothing. A reviewer caught
+the gap. The six were then measured the same way rather than argued: **all six deleted, `regen` re-emitted
+every one, `git status` clean afterwards** — so each of the 6 is regenerable from source, `icon-glyphs.ts`
+included, which is the one that looks like a source file and is not. 114 = 108 + 6, both halves now measured
+by deletion-and-regen. #1059's hole is unchanged by this: `regen` **emits** all 114, and `regen --check`
+still cannot report one *missing*.
+
 ### The behavioural gate is a differential, and the rooted stub does not substitute for it
 
 `test.ts`'s stub is rooted at a synthetic `zzstub` and that is worth keeping, but **it is not the behavioural
@@ -223,10 +233,50 @@ is caught by nothing" — a gate hole that does not exist. #986's rule is exactl
 **a blank named grep is a failed mutation, not a quiet pass.** What actually protects against it is not a
 better pattern but refusing to grade a mutation without reading the exit status and the tail.
 
+### The Figma acceptance test passed, on ONE brand, and found the thing no count could
+
+Run in a real, empty Figma file. **aurora: PASSED.** 13 collections, 711 variables, `core` 238,
+`color.appearance` 242, `color.surface` 128 — every predicted number reproduced. The namespace is confirmed
+on every variable across three collections including **cross-collection aliases** (`prism/border-width/*`
+resolving to `prism/core/dimension/*`, which is the case a per-collection root would break); the `core`
+fan-in is confirmed with palette and dimension living in one rooted collection; styles are unrooted as
+stated; the surface flip works.
+
+**The scope is aurora and only aurora, and the reason is an intersection, not an oversight.** The plugin
+offers `{aurora, harbor}`; the committed emissions are `{nb, aurora, wendys}`. Their intersection is
+`{aurora}`, so nb and wendys are verified by **derivation from committed emission** — a real check, and a
+weaker claim than "opened in Figma and counted". A three-brand table printed under a manual-verification
+heading reads as three brands checked by hand, which is why the PR body now says which is which. harbor is
+the other half of that intersection and has no emission at all: **#1119**.
+
+**The finding was not a count.** The plugin wrote fewer text styles than aurora declares, reported success,
+and logged nothing. Cause confirmed by experiment rather than inferred — swapping `title` / `display` /
+`eyebrow` from **Clash** (not installed) to **Inter** (installed) made all three populate, so it is an
+unavailable font family, not a write failure. The defect is the **silence**: a designer without the brand's
+display font gets a quietly incomplete style set with no signal anywhere, and every check they could run
+agrees with it. Same family as #870 (a completed build that never reached a visible verdict) and #864 (four
+empty artboards every gate passed). Filed as **#1118**. It also qualifies this entry's own numbers: the
+text-style row (38 / 37 / 38) was verified only **after** substituting an available family.
+
+### The register that names the plan-meets-file boundaries said "exactly three" for the whole lane
+
+`anatomy-figma.ts`'s `figmaVarName` header enumerates every place the brand root enters, and its own last
+paragraph says a fourth belongs on the list. It said **three** through all of #1097 — while
+`lint-absolute-inset.ts`'s `floatVars`, the fourth, was keyed by full emitted name against a root-relative
+plan name, missing on every lookup, running **zero** gap checks and printing a pass. Corrected at the site,
+with the fourth entry and with what went wrong recorded next to it, because the shape is the point: **an
+enumeration that is authoritative for the reader and unenforced against the codebase can be wrong for an
+entire lane with nothing reporting it** — `docs/34` shape 19 (#1049), landing in the exact boundary this lane
+discovered a fourth of. The paragraph's promise ("which is at least loud") was also false as written: a
+consumer that misses every lookup is loud only if it counts what it *did* resolve, which is precisely what
+the gate's vacuity report does and what caught this.
+
 ### Filed, not fixed
 
-Four issues, each filed rather than written up here, because a deferral recorded only in a progress entry
-has no label and no lane and strands the defect for whoever reads this next:
+**Eight issues**, each filed rather than written up here, because a deferral recorded only in a progress entry
+has no label and no lane and strands the defect for whoever reads this next. The first four are cited **in the
+code at their sites** — that was true of #1109 alone on first review, and one of a reviewer's seven items was
+that a filed issue nobody can find from the code is barely filed:
 
 - **#1109** — a core-collection variable that is un-rooted or in a group no plan owns is invisible to
   `byName`, to every orphan report, and to the migration pass (`write-figma.ts:255`): the second direction
@@ -234,13 +284,41 @@ has no label and no lane and strands the defect for whoever reads this next:
   paragraph. (#1097, #1108)
 - **#1111** — the glyph-geometry mutation record pins an ABSOLUTE `test.ts` assertion count (2274) in two
   places; the suite reports 2696. Prose, so no gate can see it drift, and every assertion added anywhere
-  invalidates it. The record needs the named arm that fails, not a total.
-- **#1112** — no corpus brand sets `outlineInteraction: 'solid-tint'`, so no committed artifact carries a
-  single `subtle-fill` role and every emission-scoped gate passes without ever seeing the family. The same
-  borrowed-backstop shape as ARM 2c above, at corpus scale.
-- **#1113** — `build.mjs` justifies five build-time assertions with "`dist/` is invisible to lint", which
-  #937 made false: `lint-us-english` walks `apps/plugin/dist` and names both files. The conclusion still
-  holds, the reason has narrowed, and the narrower reason is what stops the next reader over-applying it.
+  invalidates it. The record needs the named arm that fails, not a total. Cited at `CONTRIBUTING.md:559`
+  and `pull_request_template.md:56`; the third occurrence, in this document's 2026-08-21 entry, is left
+  alone — a progress entry describes the repo as it was, the same exemption `lint-advisory-expiry` grants it.
+- **#1112** — no brand sets `outlineInteraction: 'solid-tint'`, so no committed artifact carries a single
+  `subtle-fill` role and every emission-scoped gate passes without ever seeing the family. The same
+  borrowed-backstop shape as ARM 2c above, at corpus scale. Cited at all four `modes.ts` sites — named by
+  what they are rather than by line, per #1111 and #1120's own lesson: `outlineFillFamily`'s header, its
+  `subtle-fill` switch arm, the overlay branch's opt-out sentence, and the `solid-tint` branch itself. The
+  distinction the citations make, because it is the whole finding: `test.ts` **does** reach
+  the family, by constructing the theme itself; the exhaustive switch in `outlineFillFamily` makes a missing
+  method a compile error and says nothing about a method no brand exercises.
+- **#1113** — `apps/plugin/build.mjs` justifies five build-time assertions with "`dist/` is invisible to
+  lint", which #937 made false: `lint-us-english` walks `apps/plugin/dist` and names both files. The
+  conclusion still holds, the reason has narrowed, and the narrower reason is what stops the next reader
+  over-applying it. Cited at all three live sites (`assertIdentity`'s header, the `</script>` assertion in
+  `buildUiHtml`, and the `node:` grep in `buildMain`) — and the sharpest part is that the **same file already
+  states the correction**, forty lines up: the `#1099` block exists *because* that gate scans this bundle.
+  One file, two statements, disagreeing about whether `dist/` is linted.
+
+Four more from the acceptance test and the review, none of them touching emission and all pre-existing or
+out of scope:
+
+- **#1118** — the plugin does not report the styles it could not create; a partial style write is
+  indistinguishable from a complete one. Confirmed by experiment today, per the section above.
+- **#1119** — harbor is emittable from the plugin and has no committed Figma emission, so no expected counts
+  exist for it in any table, gate, or reviewer derivation. Whether harbor gains an emission or the example
+  set becomes the corpus set is deliberately left undecided.
+- **#1120** — `write-plan.ts:158` says the surface plan is 122/122; it is **128**/128, measured on both sides
+  of this branch (`color.surface.default.json` at HEAD and `color.default.json` at the base both hold 128).
+  #1111's class again: an absolute count in prose no gate reads.
+- **#1121** — the exporter-comparison gate reads **committed** `out/`, so mutating a source without `regen`
+  in between is a non-mutation and it passes silently. A second agent on this branch hit it on the first
+  attempt, and the false conclusion it invites — "this gate cannot see my change" — is the one that gets an
+  arm deleted. Belongs in that gate's own header, next to the note about running it after the TokenPress
+  build. Same family as #1059: a check whose subject is not what the mutator changed.
 
 ## (2026-08-27) — `CLAUDE.md` names the count sites instead of restating the count (#1110)
 

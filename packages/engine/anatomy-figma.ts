@@ -438,17 +438,28 @@ export type AnatomyPlan = {
  * member-count read and the plugin's set enumeration can call it with a def and nothing else. Rooting
  * the plan would make each of them ask "whose brand?" about a question that does not have a brand in it.
  *
- * So the root enters where a plan MEETS A FILE, and there are exactly three such places:
+ * So the root enters where a plan MEETS A FILE, and there are exactly FOUR such places:
  *
  *   1. `PAYLOAD_PREAMBLE`'s `byName` — the CLI paste path, keyed by tail off the live variables.
  *   2. `apps/plugin/src/write-components.ts`'s `byName` — the plugin executor, the same way.
  *   3. `planBindingErrors`'s `emitted` — the offline gate, whose caller reads `out/figma/<brand>/*.json`
  *      and must key it by tail to match.
+ *   4. `lint-absolute-inset.ts`'s `floatVars` — the gap gate, which resolves a def's `inset`/`strokeInset`
+ *      refs against the FLOATs in a brand's committed export, and so keys that export by tail too.
  *
- * All three go through `tailOf`'s positional split rather than stripping a named prefix, so none of them
- * spells a root and all three work for a client namespace we have never seen. If a fourth appears, it
+ * The fourth is the one this list got wrong, and the way it went wrong is the reason the list exists. It
+ * said "exactly three" through the whole of #1097 while `floatVars` was keyed by FULL emitted name against
+ * a root-relative plan name — so every lookup missed, the gap arm ran **zero** checks, and the gate printed
+ * a pass. Not a loud failure: a silent one, of exactly the shape the last paragraph promises cannot happen.
+ * What caught it was the gate's own vacuity report (it now runs 42 gap checks), not the count of failures,
+ * and not this comment. An enumeration that is authoritative for the reader and unenforced against the
+ * codebase can be wrong for a whole lane without anything noticing — #1049's shape.
+ *
+ * All four go through `tailOf`'s positional split rather than stripping a named prefix, so none of them
+ * spells a root and all four work for a client namespace we have never seen. If a fifth appears, it
  * belongs on this list; a consumer that compares a plan name against a ROOTED name will find nothing and
- * report every binding missing, which is at least loud.
+ * report every binding missing — which is loud only if that consumer counts what it *did* resolve, which
+ * is the lesson of the fourth.
  */
 export const figmaVarName = (ref: string): string => ref.replace(/\./g, '/');
 

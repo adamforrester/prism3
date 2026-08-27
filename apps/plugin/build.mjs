@@ -70,7 +70,17 @@ const buildId = () => {
 
 /**
  * Assert the identity REACHED the artifact — the same reason every other assertion in this file exists:
- * `dist/` is gitignored, so a regression here is invisible to typecheck, to lint and to every source grep.
+ * `dist/` is gitignored, so a regression here is invisible to typecheck and to every source grep.
+ *
+ * "AND TO LINT" WAS TRUE WHEN WRITTEN AND #937 MADE IT FALSE — #1113. `lint-us-english.ts` scans
+ * `apps/plugin/dist/main.js` and `ui.html` directly, which is the whole premise of the block at line 45
+ * above: that gate is why an absolute realpath in this bundle is a scope question at all. Two statements
+ * in one file disagree about whether `dist/` is linted, and the correction is the one 40 lines up. The
+ * assertions here are still justified — typecheck and grep genuinely cannot see the concatenated output,
+ * and the US-English gate reads PROSE, not structure, so it would not catch a lost iife wrapper — but the
+ * justification is narrower than the sentence claims, and a narrower reason stated as a broader one is
+ * how a later reader concludes no gate covers this directory. Three sites carry the stale clause (here,
+ * and the two below); all three are cited.
  *
  * This is not a tautology. The expected value is composed above from `import.meta.url` and the clock; the
  * subject is esbuild's output. And esbuild only substitutes an identifier the entry actually REFERENCES,
@@ -153,8 +163,9 @@ const buildUiHtml = async (id) => {
     () => `<script>${js}</script>`,
   );
   // Assert what the corruption above violated, because nothing else can see it: `dist/` is a
-  // gitignored artifact, so the bug lived only in the concatenated output — invisible to typecheck,
-  // to lint, and to every source grep. A blank panel in Figma is now a failed build instead.
+  // gitignored artifact, so the bug lived only in the concatenated output — invisible to typecheck
+  // and to every source grep. ("and to lint" is stale here too — #937 put this exact file in
+  // `lint-us-english.ts`'s scope; #1113.) A blank panel in Figma is now a failed build instead.
   const closers = html.split('</script>').length - 1;
   if (closers !== 1) {
     throw new Error(
@@ -178,7 +189,8 @@ const buildMain = async (id) => {
   // node: builtins and a regression breaks the plugin at LOAD — not at typecheck, not at build time.
   // This build script asserted four other properties of what it wrote (the version stamp, the iife
   // wrapper, the jszip shim, the single `</script>`) for exactly that reason: `dist/` is gitignored, so
-  // a regression there is invisible to typecheck, to lint and to every source grep. This one property
+  // a regression there is invisible to typecheck and to every source grep — the third and last site of
+  // the stale "and to lint" clause (#1113; #937 linted this directory). This one property
   // was the exception, and the gap was not academic — #804 imported `componentDefs` into the main
   // thread, which pulled `icon-button.ts`'s `$description` prose into the bundle, and one clause read
   // "…reaches a Figma node: the engine…". Local `npm run -w @prism3/plugin build` passed; CI failed.

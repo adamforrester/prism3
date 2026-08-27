@@ -182,6 +182,13 @@ export type ModeResult = { mode: ModeName; surface: RGB; roles: Record<string, R
  * is no longer on the band — it is on a page-tuned tint, and ink chosen for the band is measured
  * against the wrong thing. Consumers need to know which case they are in; `family` alone cannot
  * tell them.
+ *
+ * NO BRAND SETS `solid-tint`, so the `subtle-fill` row below reaches no committed artifact and every
+ * EMISSION-SCOPED gate passes without seeing the family — #1112. `test.ts` reaches it synthetically
+ * (it constructs the theme itself), which is what the family has instead of corpus coverage, and the
+ * distinction is the finding: the exhaustive switch makes a MISSING method a compile error and does
+ * nothing about a method no brand exercises. That is the weaker of the two guarantees, and the one in
+ * force for `subtle-fill`.
  */
 export const outlineFillFamily = (
   method: Theme['outlineInteraction'],
@@ -1035,7 +1042,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // alpha ramp (darken in light, lighten in dark). The composited RESULT is contrast-gated
   // (§13): text.primary must stay ≥ AA on the page once the overlay sits on it — a real
   // contract that fails on too-heavy a wash (notably a lightening overlay in dark mode).
-  // `solid-tint` (opaque foreground.<color>-subtle) and `none` opt out — no overlay tokens.
+  // `solid-tint` (opaque foreground.<color>-subtle) and `none` opt out — no overlay tokens. `none` is
+  // exercised by the `minimal-levers` corpus member; `solid-tint` is set by NO brand anywhere (#1112),
+  // so this branch is the only one a brand with a committed Figma emission takes.
   // This branch deliberately tests the LEVER, not `outlineFillFamily`. Routing it through the helper
   // was tried and reverted: it makes the emitter and the helper agree by construction, and (10h) —
   // the gate that exists to catch them disagreeing — becomes unfalsifiable. Measured: with the
@@ -1104,7 +1113,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     }
   }
 
-  // `solid-tint` — the OPAQUE sibling of the overlay wash (#288). Same three states, same consumers,
+  // `solid-tint` — the OPAQUE sibling of the overlay wash (#288). NO BRAND SETS IT (#1112), so nothing
+  // below this line reaches a committed artifact and no emission-scoped gate sees the family; the
+  // measurements quoted in this comment were taken by constructing the theme, not by reading `out/`.
+  // Same three states, same consumers,
   // but a real palette step instead of a translucent neutral: the outline/text control's hover fill is
   // a tint of ITS OWN column's palette, so a destructive outline hovers red-tinted rather than grey.
   //
@@ -1132,6 +1144,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // shape the rest of this file uses, rather than trusting two example brands to generalise.
   // Tests the lever directly, for the reason spelled out at the `overlay-neutral` branch above.
   if (theme.outlineInteraction === 'solid-tint') {
+    // Reachable only from a hand-constructed theme — see #1112 above. A change inside this branch is
+    // invisible to `regen --check`, to `nb-regression`, and to every gate that reads `out/`.
+    //
     // Nominal: one subtle step for hover, one further for pressed/selected — the same "comes forward"
     // progression the fill and ink states use.
     const NOMINAL: [string, number][] = cfg.family === 'light'

@@ -559,6 +559,10 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # test.ts at 2274 passed / 0 failed (its sample
                                                     # member IS check), and fill="none" everywhere
                                                     # leaves every area and count check green.
+                                                    # 2274 is an ABSOLUTE count and is already stale
+                                                    # (the suite reports 2696), pinned in two places
+                                                    # no gate reads — #1111. The mutation's finding
+                                                    # is "the suite did not move", not the number.
                                                     # MUST_COVER and DUPLICATE_SHAPES are AUTHORED, both
                                                     # directions, same argument as ZERO_OK: three
                                                     # -fill files draw their -line sibling (a pure
