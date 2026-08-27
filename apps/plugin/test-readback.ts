@@ -72,8 +72,8 @@ const verdict = verifyReadback(snap);
 console.log('plugin read-back (#109) — write → read → verify round-trip on the shim\n');
 
 // snapshot round-trips the plan
-ok(snap.collections.some((c) => c.name === 'core-palette') && snap.collections.some((c) => c.name === 'color.appearance'),
-  'snapshot carries both collections (core-palette + color.appearance)');
+ok(snap.collections.some((c) => c.name === 'core') && snap.collections.some((c) => c.name === 'color.appearance'),
+  'snapshot carries both collections (core + color.appearance)');
 ok(snap.palette.length === plan.palette.length,
   `palette round-trips: ${snap.palette.length}/${plan.palette.length} primitives`);
 ok(snap.color.length === plan.color.create.length,
@@ -99,7 +99,7 @@ ok(verdict.ok, 'verifyReadback: contract holds on the written file' + (verdict.o
 ok(verdict.checks.modesDistinct, `collapse-guard: background/primary distinct per mode (${Object.values(verdict.details.backgroundPrimaryByMode).join(' / ')})`);
 ok(verdict.checks.aliasesResolve && verdict.details.danglingAliases.length === 0, 'every alias resolves — 0 dangling');
 ok(verdict.checks.slotScopes && verdict.checks.fieldFamilyPresent, 'slot scopes + field family match the contract');
-ok(verdict.checks.primitivesHidden, 'core-palette primitives hidden from publishing');
+ok(verdict.checks.primitivesHidden, 'core-tier palette primitives hidden from publishing');
 
 // FLOAT axes (#146) — write the geometric collections into the SAME shim, read them back, verify.
 const nbTheme = nbThemeFrom(nbMeasured);
@@ -107,11 +107,15 @@ await applyFloatPlan(buildFloatWritePlan(nbTheme), api);
 const snap2 = await readFigmaVariables(api);
 const fverdict = verifyFloatReadback(snap2, nbTheme.modes.includes('wireframe'));
 
-ok(!!snap2.float && ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'].every((n) => !!snap2.float![n]),
-  'snapshot carries the FLOAT collections after the float write');
+// Keyed by AXIS, which is a third thing again: the axis is `core/dimension`, the COLLECTION it lives in
+// is `core` (shared with `core/palette` and `core/font` since #1097), and the variables inside are
+// `<root>/core/dimension/*`. Three different strings for one thing, so the axis key is written out here
+// rather than reused from the collection list above.
+ok(!!snap2.float && ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'].every((n) => !!snap2.float![n]),
+  'snapshot carries the FLOAT axes after the float write');
 ok(fverdict.ok, 'verifyFloatReadback: contract holds' + (fverdict.ok ? '' : ` — ${Object.entries(fverdict.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
 ok(fverdict.checks.aliasesResolve && fverdict.details.danglingAliases.length === 0, 'every FLOAT alias resolves — 0 dangling');
-ok(fverdict.checks.dimensionsHidden, 'core-dimension primitives hidden from publishing');
+ok(fverdict.checks.dimensionsHidden, 'core-tier dimension primitives hidden from publishing');
 ok(fverdict.checks.collectionsPresent, 'all expected FLOAT collections present in the read-back');
 
 // STYLE axes (shadow/gradient lane) — write Effect + Paint Styles into a styles shim, read the names
@@ -183,7 +187,10 @@ ok(sverdict.details.unboundStops.length === 0, `no unbound stops reported (${sve
 // one stop's binding knocked out: the check flips and the offending stop is named.
 const brokenSnap = {
   ...snap3,
-  styles: { ...snap3.styles!, gradientStopBindings: { ...stopBindings, 'gradient/hero': [null, 'palette/primary/600'] } },
+  // The surviving stop is spelled ROOTED (`prism/core/palette/...`), because `inCoreGroup` is what
+  // decides bound-ness and an unrooted name fails it — which would make BOTH stops unbound and this arm
+  // fail for the wrong reason. Exactly one knocked-out stop is what it is trying to detect.
+  styles: { ...snap3.styles!, gradientStopBindings: { ...stopBindings, 'gradient/hero': [null, 'prism/core/palette/primary/600'] } },
 };
 const bverdict = verifyStylesReadback(brokenSnap, expectDark, expectGradients);
 ok(!bverdict.checks.gradientStopsBound && bverdict.details.unboundStops.length === 1 && !bverdict.ok,
