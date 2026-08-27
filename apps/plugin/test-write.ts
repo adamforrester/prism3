@@ -342,14 +342,20 @@ ok(child.variableCollectionId === legacy.id && crShim.vars.some((v) => v.id === 
   '#1013 collection rename: the child variable kept its id, its name and its parent — a collection rename is ONE write, not 200');
 ok(crRes.misses.length === 0, '#1013 collection rename: the write itself is unaffected');
 
-// (v) #1035 — THE SHIPPED CHAIN, ON A PRE-#1013 FILE. This is the migration the owner will run: a file
+// (v) #1035 — THE SHIPPED MAP, ON A PRE-#1013 FILE. This is the migration the owner will run: a file
 // written before the swap carries `color` (the value tier) and `surface` (the alias tier), and both must
 // end up under their new names with their ids — and therefore every binding a designer made — intact.
 //
-// The ORDER is the whole arm. `color → color.appearance` must land before `surface → color`, or the
-// short name is occupied by the alias tier when the value tier reaches for it and one of the two is
-// refused. Nothing in the map's array order says so: reversing `COLLECTION_RENAMES` must not change this
-// result, which is what `planCollectionRenames`'s topological sort buys and what this arm holds it to.
+// **This block used to be about ORDER, and since #1097 it is not.** The map's two entries were a chain
+// (`color → color.appearance` alongside `surface → color`), so the value tier had to vacate the short
+// name before the alias tier could take it; #1097 retargeted the second entry to `surface →
+// color.surface` — because the old target had drifted behind #1089's collection rename and was stranding
+// designers' variables — and neither target is an entry's source any longer. There is no order left to
+// get wrong here.
+//
+// The ordering guarantee itself is unchanged and still needs a failing arm, so it is exercised on an
+// AUTHORED chain immediately below rather than on the shipped map. Pointing an ordering arm at data that
+// no longer contains the shape is `docs/34`'s borrowed-backstop: it passes, and it proves nothing.
 const chainShim = new VariablesShim();
 const oldValue = chainShim.createVariableCollection('color');
 const oldAlias = chainShim.createVariableCollection('surface');
@@ -362,12 +368,35 @@ ok(chainCols.length === 2 && chainCols.every((o) => o.status === 'migrated'),
   `#1035 both entries of the shipped chain migrate on a pre-#1013 file (${chainCols.map((o) => `${o.from}→${o.to}:${o.status}`).join(' ')})`);
 ok(chainShim.collections.find((c) => c.name === 'color.appearance')?.id === oldValue.id,
   '#1035 the VALUE tier is now `color.appearance` and it is the ORIGINAL `color` collection, by id — its variables and their bindings came with it');
-ok(chainShim.collections.find((c) => c.name === 'color')?.id === oldAlias.id,
-  '#1035 and the short name `color` is now the ORIGINAL `surface` collection, by id — the swap moved two collections, it did not create a third');
-ok(chainShim.collections.length === 2 && !chainShim.collections.some((c) => c.name === 'surface'),
-  `#1035 exactly two collections afterwards and no \`surface\` left behind (${chainShim.collections.map((c) => c.name).join(', ')}) — an out-of-order pass leaves both tiers merged into one`);
+ok(chainShim.collections.find((c) => c.name === 'color.surface')?.id === oldAlias.id,
+  '#1035 and `color.surface` is the ORIGINAL `surface` collection, by id — the swap moved two collections, it did not create a third');
+ok(chainShim.collections.length === 2
+  && !chainShim.collections.some((c) => c.name === 'surface' || c.name === 'color'),
+  `#1035 exactly two collections afterwards, with neither pre-#1013 name left behind (${chainShim.collections.map((c) => c.name).join(', ')}) — a stale rename target leaves the originals in place AND a fresh collection beside them, which is exactly how #1108 happened`);
 ok(valueChild.variableCollectionId === oldValue.id && aliasChild.variableCollectionId === oldAlias.id,
   '#1035 every child stayed in its own collection — a collection rename touches the collection, never its variables');
+
+// AND THE ORDERING GUARANTEE, THROUGH THE EXECUTOR, ON AN AUTHORED CHAIN. `beginMigration` is given the
+// map the engine shipped between #1013 and #1097, in BOTH array orders. Written out here rather than
+// imported: it is no longer live data, and the point of the arm is that array order cannot reach the
+// result. Without the topological sort, `surface → color` lands first, the short name is occupied when
+// the value tier reaches for it, and one of the two is refused.
+const CHAIN_MAP = [
+  { from: 'color', to: 'color.appearance', since: '0.26.0' },
+  { from: 'surface', to: 'color', since: '0.26.0' },
+];
+for (const order of [CHAIN_MAP, [...CHAIN_MAP].reverse()]) {
+  const ordShim = new VariablesShim();
+  const ordValue = ordShim.createVariableCollection('color');
+  const ordAlias = ordShim.createVariableCollection('surface');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const ordPass = await beginMigration(ordShim as any, { collections: order, variables: [] }, []);
+  const label = order.map((c) => c.from).join(',');
+  ok(ordPass.refusals.length === 0
+    && ordShim.collections.find((c) => c.name === 'color.appearance')?.id === ordValue.id
+    && ordShim.collections.find((c) => c.name === 'color')?.id === ordAlias.id,
+    `#1035 an authored CHAIN migrates completely through the executor with the array written [${label}] — the order is computed from the dependencies, so both spellings of the same map give the same file${ordPass.refusals.length ? ` (REFUSED: ${ordPass.refusals[0]})` : ''}`);
+}
 
 // AND THE ALREADY-MIGRATED FILE MUST NOT REFUSE. Re-running on the file above is the second-apply case a
 // designer hits by pressing the button twice, and it is the one the pre-#1013 target-first ordering got
@@ -478,47 +507,58 @@ const swapRes = await applyWritePlan(plan, swapShim as any, swapPass);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const swapSurf = await applySurfacePlan(surfacePlan, swapShim as any, swapPass);
 const swapValueCol = swapShim.collections.find((c) => c.name === 'color.appearance')!;
+const swapAliasCol = swapShim.collections.find((c) => c.name === 'color.surface')!;
 const inValue = swapShim.vars.filter((v) => v.variableCollectionId === swapValueCol.id);
+const inAlias = swapShim.vars.filter((v) => v.variableCollectionId === swapAliasCol.id);
 
+// ── THE ALIAS TIER MIGRATES AGAIN, AND IT DID NOT WHEN THIS BLOCK WAS FIRST WRITTEN (#1108) ───────
+//
+// It broke here, in this block, and the break was in the map rather than in the executors: from #1089
+// until #1097 `COLLECTION_RENAMES` sent the alias tier to `color`, the name its collection carried
+// between #1013 and #1089. The plan writes `color.surface`. So the pre-pass renamed the designer's
+// `surface` collection to `color`, `applySurfacePlan` created a FRESH `color.surface` beside it, and
+// every variable and binding in the original was stranded in a collection nothing walks — reported by
+// nothing, because each executor only walks the collection it wrote.
+//
+// #1097 retargets the entry to `surface` → `color.surface` and both tiers migrate end to end again. Two
+// things came out of that worth keeping in view here: the entry's `since` stays `0.26.0` (the version
+// that retired the NAME `surface`, not the version that fixed where it points), and the retarget also
+// removed the map's only chain, so `planCollectionRenames`'s ordering is now covered by a fixture in
+// `packages/engine/test.ts` rather than by this data.
+//
+// **What is still not migratable is the `core-*` → `core` fan-in, and that is not the same defect.**
+// Three collections onto one is refused statically by `validateRenameMap`, and underneath that Figma has
+// no operation to perform at all: `Variable.variableCollectionId` is `readonly`
+// (`@figma/plugin-typings/plugin-api.d.ts:11454`), so no rename can re-parent a variable. A designer's
+// pre-#1097 `core-palette`/`core-dimension`/`core-font` collections stay put beside a fresh `core`,
+// reported by nothing. That half of #1108 is accepted, and `packages/engine/test.ts` asserts it by name
+// so a green suite records the hole instead of implying coverage.
 ok(swapValueChild.name === nbVar('color/appearance/background/primary') && swapValueChild.variableCollectionId === swapValue.id,
   `#1013 the value-tier variable was RENAMED IN PLACE — same id, new name (${swapValueChild.name}) — so every binding a designer made against it still resolves`);
-// THE COUNT IS THE ARM. Migrated: 242. Orphaned-and-recreated: 243, with the extra one holding the live
-// bindings and no plan row left to keep it alive.
-ok(inValue.length === plan.color.create.length,
-  `#1013 exactly ${plan.color.create.length} variables in the value tier afterwards (got ${inValue.length}) — a collection pre-pass with no variable half leaves ONE MORE: the designer's original, orphaned beside a fresh create`);
-ok(swapRes.orphans.every((o) => o.names.length === 0),
-  '#1013 and the value executor reports no orphan — its half of the migration is total, not partial-with-a-report');
+ok(swapAliasChild.name === nbVar('color/background/primary') && swapAliasChild.variableCollectionId === swapAlias.id,
+  `#1013 and the alias-tier variable took the tail the value tier vacated (${swapAliasChild.name}), also by id — the two rules fired in two different collections, each keyed to its tier's NEW name`);
+// THE COUNT IS THE ARM. Migrated: 242 + 128. Orphaned-and-recreated: 243 + 129, with the extra one in
+// each holding the live bindings and no plan row left to keep it alive.
+ok(inValue.length === plan.color.create.length && inAlias.length === surfacePlan.create.length,
+  `#1013 exactly ${plan.color.create.length} + ${surfacePlan.create.length} variables afterwards (got ${inValue.length} + ${inAlias.length}) — a collection pre-pass with no variable half leaves ONE MORE in each: the designer's original, orphaned beside a fresh create`);
+// AND NEITHER PRE-#1013 NAME SURVIVES, which is the arm that would have caught the stranding on its own.
+// A rename target that has drifted behind a plan's collection name leaves the designer's collection AND a
+// fresh one — and every count above still passes, because the fresh collection holds exactly the planned
+// rows. `core` is here legitimately: `applyWritePlan` writes the palette primitives too, so the count is
+// not the check. The check is that no collection is still called `color` or `surface`, and that the two
+// colour collections are the designer's originals by id.
+ok(!swapShim.collections.some((c) => c.name === 'color' || c.name === 'surface')
+  && swapValueCol.id === swapValue.id && swapAliasCol.id === swapAlias.id,
+  `#1108 both of the designer's collections were renamed IN PLACE, by id, and no pre-#1013 name is left behind (${swapShim.collections.map((c) => c.name).join(', ')}) — a leftover \`surface\` beside a fresh \`color.surface\` is the stranding, and every count in this block passes through it`);
+ok(swapRes.orphans.every((o) => o.names.length === 0) && swapSurf.orphans.length === 0,
+  '#1013 and neither executor reports an orphan — the migration is total, not partial-with-a-report');
 const swapMoved = swapPass.outcomes.filter((o) => o.kind === 'variable' && o.status === 'migrated');
-ok(swapMoved.length === 1
-  && swapMoved[0].from === 'color/background/primary' && swapMoved[0].to === nbVar('color/appearance/background/primary'),
-  `#1013 the value-tier move is REPORTED by name (${swapMoved.map((o) => `${o.from}→${o.to}`).join(', ') || 'NOTHING MOVED'}) — and only it, so a rule that over-reached would show up as a second`);
+ok(swapMoved.length === 2
+  && swapMoved.some((o) => o.from === 'color/background/primary' && o.to === nbVar('color/appearance/background/primary'))
+  && swapMoved.some((o) => o.from === 'surface/background/primary' && o.to === nbVar('color/background/primary')),
+  `#1013 both moves are REPORTED by name, one per rule (${swapMoved.map((o) => `${o.from}→${o.to}`).join(', ')}) — and only those two, so a rule that over-reached would show up as a third`);
 ok(swapRes.misses.length === 0 && swapSurf.misses.length === 0,
   '#1013 and the writes themselves are unaffected — zero unresolved bindings across both tiers');
-
-// ---- AND THE ALIAS TIER DOES **NOT** MIGRATE — #1108, DELIBERATELY ACCEPTED ---------------------
-// This half of the arm used to assert the mirror of the value tier: `surface/background/primary` taking
-// the short name `color` the value tier vacated. It no longer does, and the reason is #1097's third
-// change rather than a regression in the machinery above.
-//
-// `COLLECTION_RENAMES` ships `surface` → `color`, which was the alias tier's name between #1013 and
-// #1089. #1097 renamed that collection to `color.surface`, and ships NO collection entries — a recorded
-// decision, because `core-palette`/`core-dimension`/`core-font` → `core` is a three-way FAN-IN that
-// `validateRenameMap` refuses and that Figma has no rename for. So the pre-pass moves the designer's
-// `surface` collection to `color`, `applySurfacePlan` writes a FRESH `color.surface` beside it, and the
-// designer's variables and their bindings are stranded in a collection nothing owns.
-//
-// Asserted rather than deleted, and asserted at its sharpest point — that NOTHING REPORTS IT. When #1108
-// lands, these three arms go red and whoever fixes it has to come here and say what the new behaviour is.
-// A deleted arm would have left a green suite over a stranded file.
-ok(swapAliasChild.name === 'surface/background/primary' && swapAliasChild.variableCollectionId === swapAlias.id,
-  `#1108 the alias-tier variable did NOT move (${swapAliasChild.name}) — the shipped collection entry targets \`color\`, the plan writes \`color.surface\`, and the rule keyed to \`color.surface\` never sees a file that still says \`surface\``);
-const strandedCol = swapShim.collections.find((c) => c.name === 'color')!;
-const freshSurfaceCol = swapShim.collections.find((c) => c.name === 'color.surface')!;
-ok(strandedCol?.id === swapAlias.id && freshSurfaceCol && freshSurfaceCol.id !== swapAlias.id
-  && swapShim.vars.filter((v) => v.variableCollectionId === freshSurfaceCol.id).length === surfacePlan.create.length,
-  `#1108 the engine wrote a FRESH \`color.surface\` (${swapShim.vars.filter((v) => v.variableCollectionId === freshSurfaceCol?.id).length}/${surfacePlan.create.length} rows) beside the designer's stranded one — two collections where a migration would have left one`);
-ok(swapSurf.orphans.length === 0,
-  '#1108 and NOTHING reports the stranding: the surface executor only walks the collection it wrote, so the stranded variable is in no orphan report, in no outcome, and in no summary a designer reads');
 
 // AND A COLLECTION REFUSAL MUST DISARM THE RULES, not only the rows. Synthetic, and deliberately so:
 // the two SHIPPED rules cannot reach this state, because both of their domains name a POST-swap

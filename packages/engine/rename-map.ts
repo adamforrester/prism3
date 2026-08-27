@@ -39,8 +39,11 @@
  * **invisible to `DEPRECATIONS`** — the Figma collection name is a materialisation choice, not a
  * contract path — so `COLLECTION_RENAMES` is *authored*, and stays small for the same reason: it can
  * only ever hold the handful of names the engine itself chose. #1013 gave it its first two entries
- * (`color` → `color.appearance` and `surface` → `color`), which between them are a CHAIN — so the
- * paragraphs below are about what the map actually holds rather than about a hypothetical.
+ * (`color` → `color.appearance` and `surface` → `color`), which between them were a CHAIN. **#1097
+ * retargeted the second to `surface` → `color.surface` and the chain is gone** — neither target is any
+ * entry's source now, so the map holds no ordering question at all. The ordering machinery below stays,
+ * and its coverage moved to a fixture in the same change; the paragraphs are about a shape the map HELD,
+ * which is worth knowing precisely because the next entry could reintroduce it.
  *
  * Ordering is the sharp difference, and since #1013 it is a GUARANTEE rather than a coincidence. A
  * collection rename must run **before** the find-by-name lookup it exists to fix, or
@@ -75,6 +78,12 @@
  * other, so it was a different problem with a different fix — and #1013 is that fix. See
  * `planCollectionRenames`.
  *
+ * **Since #1097 no shipped entry exercises that ordering, and that is a coverage fact worth stating
+ * where the code is.** The chain arms in `test.ts` drive an authored pair, not `COLLECTION_RENAMES`; one
+ * of them was pointed at the live map and went from proving the sort to proving nothing the moment the
+ * chain left the data, silently. If a future entry reintroduces a chain, the fixture is already there —
+ * do not delete it on the grounds that the map is simple today.
+ *
  * ## When the map is wrong
  *
  * Every hazard resolves to *refuse and report*, never to a partial write, and the split between
@@ -85,7 +94,8 @@
  *     variable chains statically is what makes the variable apply pass order-independent — no group's
  *     target can be another group's source, so outcomes don't depend on iteration order. A COLLECTION
  *     chain is no longer refused: `planCollectionRenames` orders it, which is the ordering guarantee
- *     `upsertCollection` was never in a position to give (#1035).
+ *     `upsertCollection` was never in a position to give (#1035). The shipped map stopped holding one at
+ *     #1097; the guarantee is unchanged.
  *   - **apply-time** (`planVariableRenames`): `from` absent (`source-absent` — the *normal* case, a
  *     fresh file or one already migrated); `to` already held by a different variable
  *     (`target-occupied` — merging would lose one side's bindings); fan-**in** with more than one
@@ -324,6 +334,12 @@ export const deriveVariableRenames = (deps: readonly Deprecation[] = DEPRECATION
  * **When that arm goes red after a version bump, restamping these entries to the new version is the
  * wrong fix** — it is the false provenance record all over again. The stamps below are historical and
  * should stay put; the arm is what expires. Its failure message says so at length.
+ *
+ * **And a retarget is not a restamp.** #1097 moved the alias-tier entry's TARGET and left its `since` at
+ * `0.26.0`, because the field answers when the SOURCE name was retired — `surface` stopped being a
+ * collection the engine writes when #1013's code shipped — not when the entry was last edited. The arm
+ * went red on the changed key, which is what it is for; the fix was a new key in its table, not a new
+ * version on the data.
  */
 export const COLLECTION_RENAMES: CollectionRename[] = [
   // The VALUE tier vacates the short name. It keeps every variable and every id; only the collection's
@@ -669,13 +685,20 @@ const topoOrder = (renames: readonly CollectionRename[]): CollectionRename[] => 
  *
  * ── WHY THE ORDER IS COMPUTED AND NOT AUTHORED ──────────────────────────────────────────────────
  *
- * `topoOrder` puts an entry after any entry whose source is this entry's target. For
- * `COLLECTION_RENAMES` that is `color → color.appearance` before `surface → color`, whichever order the
- * array is written in. Before #1035 the apply order was the executor's sequence of `upsertCollection`
- * calls — which happened to be the right one, for a reason documented as being about alias resolution,
- * with nothing anywhere recording that a migration depended on it (docs/44 §3).
+ * `topoOrder` puts an entry after any entry whose source is this entry's target. For the map as #1013
+ * shipped it that was `color → color.appearance` before `surface → color`, whichever order the array is
+ * written in. Before #1035 the apply order was the executor's sequence of `upsertCollection` calls —
+ * which happened to be the right one, for a reason documented as being about alias resolution, with
+ * nothing anywhere recording that a migration depended on it (docs/44 §3).
  *
  * ── THE THREE STATES, AND THE ONE THAT LOOKS LIKE A CONFLICT ─────────────────────────────────────
+ *
+ * **#1097 retargeted the alias entry to `color.surface`, so the shipped map no longer produces any of
+ * this: no source is another entry's target, `topoOrder` has nothing to reorder, and the
+ * `targets.has(entry.from)` branch below is unreachable from `COLLECTION_RENAMES` alone.** The branch
+ * and this table both stay — the state is reachable from any future chain, and the `test.ts` arms that
+ * cover it drive an authored pair rather than the live map, deliberately. Read the rest of this section
+ * as the shape the mechanism handles, not as a description of today's data.
  *
  * A file sits somewhere on the chain, and the middle name is present in two of the three states:
  *
@@ -708,6 +731,10 @@ export const planCollectionRenames = (
     // why the paragraph vouching for that order had to be rewritten in the same change as this line.
     if (!have.has(entry.from)) { out.push(at('source-absent')); continue; }
     if (have.has(entry.to)) {
+      // `targets.has(entry.from)`: this entry's source is another entry's TARGET, so its presence beside
+      // our own target means we already applied and the `from` we can see is the other entry's product —
+      // not a conflict. Unreachable from `COLLECTION_RENAMES` since #1097 removed the chain, and kept for
+      // the next one; the arms that exercise it use an authored chain, not the shipped map.
       out.push(at(targets.has(entry.from) ? 'source-absent' : 'target-occupied'));
       continue;
     }

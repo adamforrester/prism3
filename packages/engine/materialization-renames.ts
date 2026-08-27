@@ -469,7 +469,7 @@ export type CollectionMove = { from: string; to: string };
  * one was safe until #1013 and unsafe after it:
  *
  *   · `COLLECTION_RENAMES` is a MIGRATION list. Each entry is relative to whenever that rename shipped,
- *     and it is applied to a designer's file, which may sit anywhere on the chain. It holds
+ *     and it is applied to a designer's file, which may sit anywhere in that history. It holds
  *     `color → color.appearance`, because a PRE-#1013 file's `color` is the value tier.
  *   · this list is an ACCOUNTING list. Every entry is relative to the MERGE BASE, which is a single
  *     commit, and it is applied to names read out of git at that commit. A POST-#1013 base's `color` is
@@ -480,9 +480,23 @@ export type CollectionMove = { from: string; to: string };
  * all 128 alias-tier keys per brand, reported as unaccounted removals against rules that are correct.
  * `test.ts` asserts no `from` appears twice here, because that ambiguity is the whole reason this exists.
  *
- * The lane that added the `core` entries deliberately shipped **no `COLLECTION_RENAMES` entries at all**:
- * the collections were merged for owners who work from an empty file, so there is nothing to migrate. The
- * accounting still needs to know where the keys went, and that need is what this list serves — it forces
+ * The lane that added the `core` entries ships **no `COLLECTION_RENAMES` entry for them, and cannot** — the
+ * three-into-one shape is the reason, not a decision that could have gone the other way:
+ *
+ *   · `validateRenameMap` refuses `duplicate collection target`, so three sources onto one `core` is a
+ *     static refusal before any write.
+ *   · and underneath that, Figma has no operation to perform. `Variable.variableCollectionId` is
+ *     `readonly` (`@figma/plugin-typings/plugin-api.d.ts:11454`), so a variable cannot be moved between
+ *     collections at all — a collection rename preserves every child, and there is no second write that
+ *     re-parents one. A fan-in is not a rename with an awkward validator; it is not a rename.
+ *
+ * **Recorded here rather than only in the issue, because a reader of this list will otherwise assume the
+ * missing entry was forgotten** and add it, at which point the map stops validating and the reason has to
+ * be rediscovered. The consequence for a designer's pre-#1097 file is real and accepted: the `core-*`
+ * collections and every binding on them stay put beside a fresh `core`, reported by nothing (#1108).
+ * `test.ts` asserts both halves — that this list reaches the fan-in and that `COLLECTION_RENAMES` cannot.
+ *
+ * The accounting still needs to know where the keys went, and that need is what this list serves — it forces
  * no Figma operation and never reaches a designer's file.
  *
  * ── STALE ENTRIES GO INERT RATHER THAN WRONG, WHICH IS WHY THIS IS APPEND-ONLY ──────────────────────
@@ -520,12 +534,17 @@ export const ACCOUNTING_COLLECTION_MOVES: readonly CollectionMove[] = [
  *
  * ── SINGLE-STEP, AND THE TRANSITIVE VERSION IS WRONG RATHER THAN JUST SLOWER ─────────────────────
  *
- * `COLLECTION_RENAMES` holds a CHAIN: `surface → color` alongside `color → color.appearance`. Following
- * it to a fixed point would send `surface :: surface/text/primary` to `color.appearance`, which is not
- * where that variable went — it went to `color`, one hop. The two entries describe two different
- * collections moving at the same moment, not one collection moving twice. A `while` loop here would
- * misattribute all 128 alias-tier keys per brand, and the accounting would then report them as
- * unaccounted removals against rules that are correct.
+ * `COLLECTION_RENAMES` held a CHAIN from #1013 until #1097: `surface → color` alongside
+ * `color → color.appearance`. Following it to a fixed point would send `surface :: surface/text/primary`
+ * to `color.appearance`, which is not where that variable went — it went to `color`, one hop. The two
+ * entries described two different collections moving at the same moment, not one collection moving twice.
+ * A `while` loop here would misattribute all 128 alias-tier keys per brand, and the accounting would then
+ * report them as unaccounted removals against rules that are correct.
+ *
+ * **#1097 retargeted that entry to `surface → color.surface`, so the shipped map no longer holds a chain
+ * and this hazard is no longer reachable from production data.** The rule is unchanged and the arm in
+ * `test.ts` now drives a CHAIN FIXTURE instead — because pointed at the live map it passed while proving
+ * nothing, which is `docs/34`'s borrowed-backstop shape and was caught in exactly that state.
  *
  * **This is the exact inverse of the apply side, and the asymmetry is the point.**
  * `planCollectionRenames` DOES need topological order, because it walks one live name set and each rename

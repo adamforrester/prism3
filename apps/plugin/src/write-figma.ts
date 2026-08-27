@@ -173,11 +173,17 @@ export type Migration = {
  *
  * They used to live inside `upsertCollection`, which is handed ONE target name at a time. That was
  * correct while `COLLECTION_RENAMES` held one entry and became wrong the moment #1013 gave it two:
- * `color → color.appearance` and `surface → color` are a CHAIN, and a chain's correct order is a
+ * `color → color.appearance` and `surface → color` were a CHAIN, and a chain's correct order is a
  * property of the whole map, not of any single entry. Applied in the order the executors happen to ask
  * for their collections, `surface → color` lands first, `color` is then occupied by the surface tier,
  * and the value tier's own rename is refused — half-applied, with the two tiers' variables merged into
  * one collection and no way back. `planCollectionRenames` computes the order.
+ *
+ * **#1097 retargeted the second entry to `surface → color.surface`, so the shipped map is no longer a
+ * chain — and the pre-pass is still the right place for it.** The reason it moved out of
+ * `upsertCollection` was never only the chain: this function is also where atomicity lives (below), and
+ * that obligation is independent of how many entries the map holds. A future entry can reintroduce a
+ * chain without any change here, which is the property worth having.
  *
  * **ATOMICITY IS THIS FUNCTION'S OBLIGATION, and it is what makes "refused, not half-applied" true
  * rather than aspirational.** `planCollectionRenames` is pure — it plans the whole ordered sequence
