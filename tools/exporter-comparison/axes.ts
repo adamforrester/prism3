@@ -133,11 +133,16 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
 /**
  * THE DECLARATION. Every collection prism3 emits, and what its modes mean.
  *
- * Keys are `$collection` labels as written by `emit-figma.ts`, which are also the filename stems. A
- * collection missing from this table FAILS (see `classifyCollections`) — it is not assumed `'none'`,
- * even though 14 of the 18 entries are `'none'` and a default would be right 14 times out of 18.
- * Being right 14 times out of 18 by accident is the failure mode, not the success case: the 15th is
- * a new mode-varying collection, which is exactly when the guess is both wrong and silent.
+ * Keys are `$collection` labels as written by `emit-figma.ts`. **They are NO LONGER the filename
+ * stems (#1097):** `core.palette.json`, `core.dimension.json` and `core.font.json` are three files
+ * that all declare `$collection: 'core'`. So this table is keyed on what `censusFromEmission` reads
+ * out of each file, never on the name of the file it read it from — and there is one `core` entry for
+ * the three former `core-*` collections, not three.
+ *
+ * A collection missing from this table FAILS (see `classifyCollections`) — it is not assumed
+ * `'none'`, even though 12 of the 16 entries are `'none'` and a default would be right 12 times out
+ * of 16. Being right 12 times out of 16 by accident is the failure mode, not the success case: the
+ * 13th is a new mode-varying collection, which is exactly when the guess is both wrong and silent.
  *
  * The three style collections carry NO modes at all (`text-styles`, `shadow-styles`,
  * `gradient-styles` have no `$mode` key), because Figma styles cannot have modes. That is not the
@@ -150,13 +155,15 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   'color.appearance': 'appearance',
   layout: 'breakpoint',
   'type-sets': 'viewport',
-  color: 'surface',          // #893 — the alias layer, renamed to the short name in #1013
+  'color.surface': 'surface', // #893 — the alias layer; short name in #1013, `.surface` in #1089
 
   // -- single-mode variable collections ---------------------------------------------------------
   'border-width': 'none',
-  'core-dimension': 'none',
-  'core-font': 'none',
-  'core-palette': 'none',
+  // The merged primitive collection (#1097) — `palette/*`, `dimension/*` and `font/*` under one
+  // `core`, arriving from three separate files that each declare it. One mode, `Default`, for all
+  // three groups; if a brand ever gives one group a second mode the whole collection gains it, and
+  // this entry's `none` becomes wrong for reasons no file stem would show.
+  core: 'none',
   control: 'none',
   focus: 'none',
   icon: 'none',
@@ -223,18 +230,24 @@ export type UnclassifiedCollection = { collection: string; modes: string[] };
  * `shadow-styles` and `gradient-styles` permanently outside the declaration's reach, which is where
  * the appearance-axis-as-a-name case lives. A style collection appears here with an EMPTY mode list,
  * which is the honest reading: Figma styles cannot have modes at all.
+ *
+ * MODES ARE A SET, not a list of what the files said (#1097). Several files can now declare the same
+ * collection — `core.palette.json` / `core.dimension.json` / `core.font.json` all say `core` — and
+ * each declares its own `$mode`. Pushing three `Default`s would make `core` read as a THREE-mode
+ * collection, which `axesRepresentedIn` (`modes.length > 1`) then counts as a represented axis: #697's
+ * measured 3 becoming 4, from a merge that added no mode to anything. A Figma collection has one mode
+ * list, so the union is both the honest reading and the correct one.
  */
 export const censusFromEmission = (dir: string): Record<string, string[]> => {
-  const out: Record<string, string[]> = {};
+  const out: Record<string, Set<string>> = {};
   for (const f of readdirSync(dir).filter((n) => n.endsWith('.json')).sort()) {
     const file = JSON.parse(readFileSync(join(dir, f), 'utf8')) as { $collection?: string; $mode?: string };
     if (!file.$collection) continue;
-    const modes = out[file.$collection] ?? [];
-    if (file.$mode) modes.push(file.$mode);
+    const modes = out[file.$collection] ?? new Set<string>();
+    if (file.$mode) modes.add(file.$mode);
     out[file.$collection] = modes;
   }
-  for (const k of Object.keys(out)) out[k].sort();
-  return out;
+  return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, [...v].sort()]));
 };
 
 export type AxisClassification = {

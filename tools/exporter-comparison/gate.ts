@@ -232,7 +232,10 @@ const KNOWN_UNREACHABLE: Record<string, { path: string; why: string; owner: stri
 const discoverBrands = (): string[] => {
   if (!existsSync(FIGMA_OUT)) return [];
   return readdirSync(FIGMA_OUT, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && existsSync(join(FIGMA_OUT, e.name, 'core-palette.json')))
+    // `core.palette.json` since #1097 — the FILE STEM, which is no longer the collection name (three
+    // stems now declare `core`). A sentinel file rather than "any directory": an empty or half-written
+    // brand directory must not be discovered as a brand and then pass every arm vacuously.
+    .filter((e) => e.isDirectory() && existsSync(join(FIGMA_OUT, e.name, 'core.palette.json')))
     .map((e) => e.name)
     .sort();
 };

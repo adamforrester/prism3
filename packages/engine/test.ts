@@ -44,7 +44,7 @@ import {
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
-import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
+import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
@@ -6534,10 +6534,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const { tree } = buildTree(theme);
   const paths = [...tokenPaths(tree, 'prism')];
   const semantic = paths.find((p) => !isPrimitiveRef(p))!;   // a real semantic leaf (color.*/space.* …)
-  const primitive = paths.find((p) => isPrimitiveRef(p))!;   // a real primitive leaf (palette.*/dimension.*/font.*)
+  const primitive = paths.find((p) => isPrimitiveRef(p))!;   // a real primitive leaf (core.palette.* …)
   ok(paths.length > 100 && !!semantic && !!primitive, `eval: tokenPaths enumerates the tree's leaves (${paths.length}) incl. semantic + primitive tiers`);
-  ok(PRIMITIVE_TIERS.has('palette') && PRIMITIVE_TIERS.has('dimension') && PRIMITIVE_TIERS.has('font') && !PRIMITIVE_TIERS.has('color'),
-    'eval: primitive tiers = palette/dimension/font (the core-* grouping); color is semantic');
+  // The declared group list, checked against the tree's ACTUAL `core` children rather than restated
+  // (#1102). `PRIMITIVE_GROUPS` is prose the eval metric does not dispatch on, so nothing else would
+  // notice it going stale — a fourth group under `core` must show up here as a named failure.
+  {
+    const coreGroups = new Set(paths.filter(isPrimitiveRef).map((p) => p.split('.')[1]));
+    ok([...coreGroups].sort().join(',') === [...PRIMITIVE_GROUPS].sort().join(','),
+      `eval: the \`${PRIMITIVE_TIER}\` tier's groups are exactly the declared primitives (${[...coreGroups].sort().join(', ')})`);
+  }
+  ok(!isPrimitiveRef('color.background.primary') && !isPrimitiveRef('opacity.disabled'),
+    'eval: color is semantic and opacity is directly consumable (#79) — neither is a primitive ref');
 
   // all-semantic output → 0 invented, 0 leak
   const clean = scoreConsumption([semantic, semantic], tree, 'prism');

@@ -294,7 +294,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // primitives (palette/dimension/font), there is no semantic layer to reach for
   // instead, so it is NOT hidden from publishing — it stays visible in the library
   // picker with its OPACITY scope, matching the sidecar (`consume: Consumable`),
-  // eval (excluded from PRIMITIVE_TIERS), and the prism3-consume skill.
+  // eval (excluded from PRIMITIVE_GROUPS), and the prism3-consume skill.
   const opacityVars: FigmaVar[] = Object.keys(brand.opacity).map((key) => ({
     name: ns(`opacity/${key}`),
     resolvedType: 'FLOAT' as const,

@@ -10,8 +10,8 @@
  *   • invented-token rate — refs to token paths that DON'T exist in the tree (the hallucination
  *                           metric; ds-brain's "invented-component rate" adapted to tokens, docs/13).
  *   • primitive-leak rate — valid refs that reach PAST the semantic layer into a raw primitive
- *                           tier (`palette` / `dimension` / `font` — exactly the `core-*` tiers).
- *                           A consumer should reach for `color.interactive.primary.fill.rest`, not `palette.primary.600`.
+ *                           tier (`core.palette` / `core.dimension` / `core.font` — exactly the Figma `core` collection's groups).
+ *                           A consumer should reach for `color.interactive.primary.fill.rest`, not `core.palette.primary.600`.
  *   • contract-compliance — for the fg/bg colour PAIRS an agent's output pairs, resolve both per
  *                           mode and check the contrast clears the pair's floor (text 4.5 / ui + large
  *                           text 3). Reuses `resolveAllModes` + `contrast` — the docs/04 differentiator
@@ -27,9 +27,23 @@
 import { resolveAllModes } from './modes';
 import { contrast, hexToRgb } from './color';
 
-/** Token tiers a consumer should NOT reference directly — the raw primitives the semantic
- *  layer is built from. Matches the `core-palette` / `core-dimension` / `core-font` grouping. */
-export const PRIMITIVE_TIERS = new Set(['palette', 'dimension', 'font']);
+/**
+ * The ONE tier a consumer should not reference directly — the raw primitives the semantic layer is
+ * built from. A single segment since #1102: `core.palette.*`, `core.dimension.*`, `core.font.*`.
+ *
+ * It used to be three top-level names, and the change is what makes `isPrimitiveRef` a one-segment
+ * test rather than a membership test. That is deliberately the WEAKER-LOOKING check and the stronger
+ * one: a fourth primitive group added under `core` is flagged automatically, where a group list would
+ * have had to be remembered and would have failed silently — scoring a raw primitive as a clean
+ * semantic ref, which is the one answer this metric exists to prevent.
+ */
+export const PRIMITIVE_TIER = 'core';
+
+/** The groups the primitive tier holds, DECLARED. Not what `isPrimitiveRef` dispatches on (see
+ *  above) — it is the claim `test.ts` checks against the built tree's actual `core` children, so
+ *  "palette/dimension/font are the primitives" is verified rather than remembered. `opacity` is
+ *  pointedly not among them: it is directly consumable (#79), with no semantic layer to reach for. */
+export const PRIMITIVE_GROUPS = new Set(['palette', 'dimension', 'font']);
 
 export type ConsumptionScore = {
   total: number;              // token refs examined
@@ -62,8 +76,8 @@ export const tokenPaths = (tree: any, root: string): Set<string> => {
   return paths;
 };
 
-/** True if a root-relative token path reaches into a raw primitive tier (palette/dimension/font). */
-export const isPrimitiveRef = (path: string): boolean => PRIMITIVE_TIERS.has(path.split('.')[0]);
+/** True if a root-relative token path reaches into the raw primitive tier (`core.palette.*` etc.). */
+export const isPrimitiveRef = (path: string): boolean => path.split('.')[0] === PRIMITIVE_TIER;
 
 /**
  * Score the token refs an agent's output uses against the generated tree. `refs` are token
