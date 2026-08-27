@@ -40,7 +40,7 @@ import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, MIRRORED_COLLECTIONS, type RenameMap } from './rename-map';
 import {
   MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
-  recollect, recollectAll,
+  recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
@@ -12587,6 +12587,30 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const brands = readdirSync(figmaRoot).sort();
   ok(brands.length >= 3, `#1039: the corpus emits Figma for ${brands.length} brands (floor 3) — every claim below is "every name that …", vacuously true of none`);
 
+  // #1097 — THE ACCOUNTING IS PER-BRAND BECAUSE THE ROOT IS. Every rule's `domain` and `map` take the
+  // brand root as an argument rather than spelling one, so every call site below has to supply it, and
+  // this is where it comes from: the THEME, which is where the root is configured. Reading it off the
+  // first segment of an emitted name would take it from the artifact the accounting is comparing —
+  // `docs/34` shape 11, and the rule would then agree with whatever the emitter wrote.
+  //
+  // A missing entry THROWS rather than defaulting. `tsx` does not typecheck this file, so an absent root
+  // arrives at `domain` as `undefined` and `!name.startsWith('undefined/')` is true of every name in the
+  // corpus — the whole emission reads as having moved, which is how the un-threaded version of this
+  // block failed loudly. A brand emitted with no entry here is a hole, not a default.
+  const ROOT_OF: Record<string, string> = {
+    nb: nbTheme().root,
+    aurora: brandTheme(exampleBrands()['aurora'] as BrandInput).root,
+    wendys: brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input).root,
+  };
+  const rootOf = (brand: string): string => {
+    const r = ROOT_OF[brand];
+    if (!r) throw new Error(`#1039: no configured root for emitted brand \`${brand}\` — add it to ROOT_OF (from that brand's theme), never read it off the emission`);
+    return r;
+  };
+  const distinctRoots = [...new Set(brands.map(rootOf))].sort();
+  ok(distinctRoots.length >= 2,
+    `#1039: the corpus spans ${distinctRoots.length} distinct roots (${distinctRoots.join(', ')}) — floor 2, because with one root everywhere a read path that hardcoded it would pass every arm below`);
+
   /** The committed emission for one brand, as `collection :: name` keys. A FIXTURE INPUT — see above. */
   const emissionOf = (brand: string): Set<VarKey> => {
     const out = new Set<VarKey>();
@@ -12606,12 +12630,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const missingImages: string[] = [];
   for (const brand of brands) {
     const keys = emissionOf(brand);
+    const root = rootOf(brand);
     for (const key of keys) {
       const { collection, name } = parseVarKey(key);
       for (const rule of MATERIALIZATION_RENAMES) {
-        if (!rule.domain(collection, name)) continue;
+        if (!rule.domain(collection, name, root)) continue;
         stillEmitted.push(`[${rule.id}] ${brand} ${key} — the rule says this moved, and it is still emitted`);
-        const image = varKey(collection, rule.map(collection, name));
+        const image = varKey(collection, rule.map(collection, name, root));
         if (!keys.has(image)) missingImages.push(`[${rule.id}] ${brand} ${key} → ${image} — the image is not emitted`);
       }
     }
@@ -12627,14 +12652,27 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the value tier's variables would move to `color/appearance/*` or keep `color/*` under a renamed
   // collection. #1013 decided it — both, and both halves of the record — so the arm that pinned "empty"
   // becomes the arm that pins WHICH rules, by id. A count would be satisfied by any two rules at all.
-  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013'
-      && MATERIALIZATION_RENAMES.every((r) => r.since === ENGINE_VERSION && r.why.length > 120),
-    `#1039/#1013: the artifact ships exactly the two swap rules, stamped with the engine version that made the change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
-    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps, and`
-    + `\n    that each rule carries a real \`why\`. IF THE STAMPS ARE WHAT MOVED, DO NOT RESTAMP THEM TO ${ENGINE_VERSION} —`
-    + `\n    the same warning as the \`COLLECTION_RENAMES\` arm in (f2), stated there in full: \`since\` records the version`
-    + `\n    that MADE the rename, this arm cannot tell a stale stamp from a correct historical one, and after a version`
-    + `\n    bump the arm is what is obsolete rather than the data (#1080).`);
+  //
+  // THE STAMPS ARE LITERALS, ONE PER RULE, AND NOT `=== ENGINE_VERSION` (#1080). `since` records the
+  // version that MADE the rename. A uniform comparison against the live `ENGINE_VERSION` held only while
+  // every rule in the artifact happened to have shipped in the same release: the next bump makes every
+  // historical stamp unequal, and the arm then demands they be restamped — erasing the record it exists to
+  // hold. #1097 is the PR that ends that coincidence, by adding the first rule at a later version than the
+  // two already here, so the comparison is per-rule from here on. IF A STAMP IS WHAT MOVED, DO NOT
+  // RESTAMP IT: this arm cannot tell a stale stamp from a correct historical one, and after a version bump
+  // the arm is what is obsolete rather than the data.
+  const EXPECTED_SINCE: Record<string, string> = {
+    'appearance-tier-1013': '0.26.0',
+    'surface-to-color-1013': '0.26.0',
+    'namespace-and-core-tier-1097': '0.27.0',
+  };
+  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013 | namespace-and-core-tier-1097'
+      && MATERIALIZATION_RENAMES.every((r) => r.since === EXPECTED_SINCE[r.id] && r.why.length > 120),
+    `#1039/#1013/#1097: the artifact ships exactly the three rules, each stamped with the version that made ITS change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately NOT what the stamps are compared to).`
+    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps against`
+    + `\n    the literal table beside this arm, and that each rule carries a real \`why\`. #1097 is one rule and not two`
+    + `\n    (namespace + \`core\` tier) because \`multiplyClaimed\` FAILS a key two rules both claim, and every name the`
+    + `\n    tier moves is a name the namespace moves as well — see the rule's own \`why\`.`);
 
   // Each rule's transformation on a LITERAL witness, with both directions of its domain boundary. The
   // negative halves are not padding: each one is a defect that check 2 would report as a wall of noise.
@@ -12647,31 +12685,87 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //     writes `color/*` into the very collection it reads `surface/*` from.
   //   · and neither may reach across into the other's collection, which is what keeps them disjoint and
   //     `multiplyClaimed` empty — asserted over the real corpus in the end-to-end arm below.
-  const ruleApply = (id: string, collection: string, name: string): string | null => {
+  //
+  //   · rule 3 (#1097) must not match its own image either, and its image is where the namespace makes
+  //     this sharper than the other two: applied twice, `prism/color/text/primary` becomes
+  //     `prism/prism/color/text/primary`, which is what a plugin re-running against a file it already
+  //     wrote would produce. The `!startsWith(`${root}/`)` domain is the whole of the idempotence.
+  //
+  // THE ROOT IS A PARAMETER OF THE WITNESSES TOO, and it is `zzwitness` — a root no brand uses, same
+  // reasoning as the table's `zzclient` below (`docs/44` §7). The two #1013 rules predate #1097 and must
+  // IGNORE it: the names they were written against carried no root at all. Passing a root they should not
+  // consult, and asserting the same images as before, is what says so.
+  const WROOT = 'zzwitness';
+  const ruleApply = (id: string, collection: string, name: string, root: string): string | null => {
     const r = MATERIALIZATION_RENAMES.find((x) => x.id === id);
     if (!r) return null;
-    return r.domain(collection, name) ? r.map(collection, name) : null;
+    return r.domain(collection, name, root) ? r.map(collection, name, root) : null;
   };
-  ok(ruleApply('appearance-tier-1013', 'color.appearance', 'color/text/primary') === 'color/appearance/text/primary'
-      && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary') === null
-      && ruleApply('appearance-tier-1013', 'color', 'color/text/primary') === null,
-    '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved');
-  ok(ruleApply('surface-to-color-1013', 'color', 'surface/text/primary') === 'color/text/primary'
-      && ruleApply('surface-to-color-1013', 'color', 'color/text/primary') === null
-      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary') === null,
+  ok(ruleApply('appearance-tier-1013', 'color.appearance', 'color/text/primary', WROOT) === 'color/appearance/text/primary'
+      && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary', WROOT) === null
+      && ruleApply('appearance-tier-1013', 'color', 'color/text/primary', WROOT) === null,
+    '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved. Given a `root` it must not consult, its images are unchanged');
+  ok(ruleApply('surface-to-color-1013', 'color', 'surface/text/primary', WROOT) === 'color/text/primary'
+      && ruleApply('surface-to-color-1013', 'color', 'color/text/primary', WROOT) === null
+      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary', WROOT) === null,
     '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies — and does not re-match what it just wrote');
 
-  // ---- #1013 END-TO-END: an AUTHORED before-set against the REAL emission ----
+  // #1097's witnesses. FOUR properties, and the two negative ones are where the single-rule design is
+  // load-bearing rather than convenient:
   //
-  // WHERE THE TWO SIDES COME FROM IS THE WHOLE POINT (`docs/34` shape 11). The before-set below is typed
-  // out by hand in the PRE-#1013 spelling — `color :: color/background/primary`, `surface ::
-  // surface/background/primary`, verifiable against `git show origin/main:…`. The after-set is `nbKeys`,
-  // the emitter's real current output. So the rules have to bridge a hand-written past to a generated
-  // present, and nothing on either side was produced by the thing under test.
+  //   · a semantic name takes the root and nothing else — no `core` tier, because `color` is not a
+  //     primitive group.
+  //   · a primitive name takes the root AND the tier, in one image. Two rules producing this jointly
+  //     would both claim the key and `multiplyClaimed` would fail it.
+  //   · `font-fluid/*` must NOT go under `core`, and it is the trap: the tier list is matched on the
+  //     WHOLE first segment, so a `startsWith('font')` spelling would sweep the 11 type-set variables
+  //     into `core/font-fluid/*` — a collection they are not in and a DTCG path that does not exist.
+  //   · and an already-rooted name is outside the domain, which is idempotence stated as a rule rather
+  //     than as a behaviour of the plugin (`apps/plugin/test-namespace.ts` states the behaviour).
+  const R3 = 'namespace-and-core-tier-1097';
+  ok(ruleApply(R3, 'color.surface', 'color/text/primary', WROOT) === 'zzwitness/color/text/primary'
+      && ruleApply(R3, 'core', 'palette/red/550', WROOT) === 'zzwitness/core/palette/red/550'
+      && ruleApply(R3, 'core', 'dimension/0', WROOT) === 'zzwitness/core/dimension/0'
+      && ruleApply(R3, 'core', 'font/family/display', WROOT) === 'zzwitness/core/font/family/display',
+    '#1097 rule 3: every name takes the brand root, and the three primitive groups take the `core` tier in the SAME image — one rule, because two would both claim the key and `multiplyClaimed` refuses that');
+  ok(ruleApply(R3, 'type-sets', 'font-fluid/display/sm/strong', WROOT) === 'zzwitness/font-fluid/display/sm/strong'
+      && ruleApply(R3, 'color.surface', 'zzwitness/color/text/primary', WROOT) === null
+      && ruleApply(R3, 'core', 'zzwitness/core/palette/red/550', WROOT) === null,
+    '#1097 rule 3: `font-fluid/*` is NOT a `core` group (whole-segment match, not a prefix), and an already-rooted name is outside the domain — the rule is idempotent by construction');
+
+  // ---- END-TO-END, ONE HOP AT A TIME (#1013, then #1097) ----
   //
+  // WHERE THE TWO SIDES COME FROM IS THE WHOLE POINT (`docs/34` shape 11). Every before-set below is typed
+  // out by hand, in the spelling of a specific past merge base and verifiable against `git show <ref>:…`.
   // The tempting version — build the before-set by inverting the rules over the current emission — is
   // vacuous: it agrees with the rules by construction and reports TOTAL whatever they say.
+  //
+  // ── WHY THIS IS TWO FIXTURES AND NOT ONE (#1097) ─────────────────────────────────────────────────
+  //
+  // It was one, and one was correct while the artifact held one hop's worth of rules. The accounting asks
+  // each rule about each before-key INDEPENDENTLY — rules are never composed — and `multiplyClaimed` FAILS
+  // a key more than one rule claims. So a before-set old enough to need two hops is not a harder version of
+  // the same question; it is a question this mechanism is built to refuse, and refusing it is correct: two
+  // rules claiming one key is exactly the ambiguity that would misattribute a migration.
+  //
+  // A pre-#1013 name like `color/background/primary` carries no brand root, so #1097's rule claims it too,
+  // on top of #1013's. That is asserted below rather than avoided, because "the fixture was split for a
+  // reason" is worth more as a number than as this paragraph.
+  //
+  // What each fixture is for, then:
+  //
+  //   A — the #1013 hop. Both sides hand-written, rules restricted to the two `-1013` ids. It keeps the
+  //       historical record exercised: the two rules, `COLLECTION_RENAMES`' one-hop recollection, and the
+  //       drop-one forcing function, all against the spelling that shipped.
+  //   B — the #1097 hop. Before-set hand-written in the POST-#1013, PRE-#1097 spelling; after-set is
+  //       `nbKeys`, the emitter's real current output. This is the fixture that bridges a hand-written past
+  //       to a generated present, and it runs all THREE rules — so "only #1097's rule claims here" is a
+  //       measured property of the rule set rather than a restriction the fixture imposed.
   {
+    const era1013 = MATERIALIZATION_RENAMES.filter((r) => r.id.endsWith('-1013'));
+    ok(era1013.length === 2,
+      `#1013: the fixture below runs ${era1013.length} rules (expected the 2 \`-1013\` ids) — the filter is by id and not by count, so a third rule joining that era is included rather than silently dropped`);
+
     const before = new Set<VarKey>([
       varKey('color', 'color/background/primary'),
       varKey('color', 'color/background/inverse/primary'),
@@ -12687,16 +12781,33 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ].sort().join(' | '),
       `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
 
-    const acct = accountFor(recollected, nbKeys, MATERIALIZATION_RENAMES, parseVarKey);
+    // The post-#1013, pre-#1097 emission for these four, hand-written: the value tier prefixed, the alias
+    // tier's `surface/` traded for `color/`, both in the collection the recollection just put them in.
+    const after1013 = new Set<VarKey>([
+      varKey('color.appearance', 'color/appearance/background/primary'),
+      varKey('color.appearance', 'color/appearance/background/inverse/primary'),
+      varKey('color', 'color/background/primary'),
+      varKey('color', 'color/border/brand'),
+    ]);
+    // The root is the one the corpus does not use: these rules must not consult it, and the images asserted
+    // through `isTotal` are the same either way only if that holds.
+    const acct = accountFor(recollected, after1013, era1013, parseVarKey, WROOT);
     ok(isTotal(acct) && acct.claims.length === 4 && acct.removed.length === 4,
       `#1013: the two rules account for the swap end-to-end — 4 hand-written pre-swap keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
+
+    // AND THE REASON THE FIXTURE IS RESTRICTED, AS A NUMBER. Run the same hop with all three rules and
+    // every key is claimed twice — #1097's rule matches any name without a root, and a pre-#1013 name has
+    // none. This is the mechanism working: composing two hops is what it refuses to do.
+    const twoHop = accountFor(recollected, after1013, MATERIALIZATION_RENAMES, parseVarKey, WROOT);
+    ok(!isTotal(twoHop) && twoHop.multiplyClaimed.length === 4,
+      `#1097: a TWO-HOP before-set is refused rather than accounted — ${twoHop.multiplyClaimed.length} of the 4 keys are claimed by both eras' rules (expected 4). Two rules claiming one key is the ambiguity that would misattribute a migration, so the fixtures are per-hop`);
 
     // THE FORCING FUNCTION, on the real rules rather than on a fixture pair: drop either rule and the keys
     // it covered are reported as unaccounted removals BY NAME. This is the arm that fails if a later
     // simplification decides one rule is enough.
-    for (const dropped of MATERIALIZATION_RENAMES) {
-      const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
-      const partial = accountFor(recollected, nbKeys, kept, parseVarKey);
+    for (const dropped of era1013) {
+      const kept = era1013.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(recollected, after1013, kept, parseVarKey, WROOT);
       ok(!isTotal(partial) && partial.unaccountedRemovals.length === 2,
         `#1013: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
     }
@@ -12711,9 +12822,92 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       for (let i = 0; i < COLLECTION_RENAMES.length; i++) cur = recollect(cur, COLLECTION_RENAMES);
       return cur;
     }));
-    const misattributed = accountFor(transitive, nbKeys, MATERIALIZATION_RENAMES, parseVarKey);
+    const misattributed = accountFor(transitive, after1013, era1013, parseVarKey, WROOT);
     ok(!isTotal(misattributed) && misattributed.unaccountedRemovals.some((k) => k === varKey('color.appearance', 'surface/background/primary')),
       `#1013: a TRANSITIVE recollection misattributes the alias tier to \`color.appearance\` and the accounting refuses it — one hop is correct, a fixed point is wrong (${misattributed.unaccountedRemovals.join(' · ') || 'NOTHING'})`);
+  }
+
+  // ---- FIXTURE B: THE #1097 HOP — a hand-written pre-#1097 base against the REAL emission ----
+  //
+  // Seven keys, chosen so each one is a different way the rule has to behave, and every one of them is a
+  // name `git show <pre-#1097 ref>:packages/engine/out/figma/nb/…` still holds:
+  //
+  //   · a value-tier name, already `color/appearance/*` from #1013 — root only, no tier.
+  //   · an alias-tier name in the `color` collection that #1089 renamed to `color.surface` — the
+  //     COLLECTION moved and the NAME took a root, and the recollection is what lets one rule see both.
+  //   · one name from each of the three merged primitive collections — root AND `core` tier, one image.
+  //   · a name in a collection that did not move at all (`radius`) — root only, and it is the arm that
+  //     fails if the rule is ever narrowed to the collections this PR touched.
+  //   · `font-fluid/*`, which starts with `font` and must NOT be swept under `core` (see the witnesses).
+  //
+  // `ACCOUNTING_COLLECTION_MOVES` is the recollection map here, NOT `COLLECTION_RENAMES` — the two are
+  // relative to different points in time and that module's header is where the distinction is argued. This
+  // is the fixture that would catch them being merged: `COLLECTION_RENAMES` sends `color` to
+  // `color.appearance`, and a post-#1013 base's `color` is the alias tier, so all 128 of its keys would
+  // read as unaccounted removals against a rule that is correct.
+  {
+    const before = new Set<VarKey>([
+      varKey('color.appearance', 'color/appearance/background/primary'),
+      varKey('color', 'color/background/primary'),
+      varKey('core-palette', 'palette/white'),
+      varKey('core-dimension', 'dimension/0'),
+      varKey('core-font', 'font/family/display'),
+      varKey('radius', 'radius/none'),
+      varKey('type-sets', 'font-fluid/display/sm/strong'),
+    ]);
+    const recollected = recollectAll(before, ACCOUNTING_COLLECTION_MOVES);
+    ok([...recollected].sort().join(' | ') === [
+      varKey('color.appearance', 'color/appearance/background/primary'),
+      varKey('color.surface', 'color/background/primary'),
+      varKey('core', 'palette/white'),
+      varKey('core', 'dimension/0'),
+      varKey('core', 'font/family/display'),
+      varKey('radius', 'radius/none'),
+      varKey('type-sets', 'font-fluid/display/sm/strong'),
+    ].sort().join(' | '),
+      `#1097: the accounting's collection moves merge the three \`core-*\` collections into one and name the alias tier's axis — ONE HOP each, and \`radius\`/\`type-sets\`/\`color.appearance\` are left alone (got ${[...recollected].sort().join(' | ')})`);
+
+    const NB = rootOf('nb');
+    const acct = accountFor(recollected, nbKeys, MATERIALIZATION_RENAMES, parseVarKey, NB);
+    ok(isTotal(acct) && acct.claims.length === 7 && acct.removed.length === 7 && acct.multiplyClaimed.length === 0,
+      `#1097: one rule accounts for the whole rename against the REAL nb emission — 7 hand-written pre-#1097 keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed. The after-set is what the emitter wrote, so a rule that agrees with itself and not with the emission fails here`);
+
+    // PER-RULE, NOT UNIFORM, and the asymmetry is the assertion. Dropping #1097's rule leaves all seven
+    // unaccounted; dropping either #1013 rule changes NOTHING, because this hop is not theirs. A uniform
+    // "drop one → 2 unaccounted" expectation of the kind fixture A carries would be wrong here, and wrong
+    // in the direction that hides things: it would pass on a rule set where the wrong rule did the work.
+    for (const dropped of MATERIALIZATION_RENAMES) {
+      const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(recollected, nbKeys, kept, parseVarKey, NB);
+      const mine = dropped.id === 'namespace-and-core-tier-1097';
+      ok(mine ? (!isTotal(partial) && partial.unaccountedRemovals.length === 7) : isTotal(partial),
+        `#1097: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} of the 7 keys unaccounted (expected ${mine ? 7 : 0}) — ${mine ? `named individually: ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}` : 'this hop is not that rule\'s, so removing it must change nothing — an arm that went red here would mean the wrong rule is doing the work'}`);
+    }
+
+    // THE COLLECTION-MOVE HALF, dropped one entry at a time — each entry is load-bearing or it is
+    // decoration, and one arm per entry is what tells them apart.
+    //
+    // IT FAILS AS A CONTRADICTED CLAIM, NOT AS AN UNACCOUNTED REMOVAL, and the distinction is worth
+    // pinning rather than papering over with `!isTotal`. A rule's `map` returns the NAME only (deliberately
+    // — see `MaterializationRule`), so the key keeps whichever collection the recollection left it in. With
+    // the move dropped, #1097's rule still claims `core-palette :: palette/white` and still produces the
+    // right name — but under the wrong collection, so the image is a key nothing emits. That is exactly the
+    // `target-not-planned` shape: a rule whose image resolves nowhere, which is inert at apply time.
+    for (const move of ACCOUNTING_COLLECTION_MOVES) {
+      const kept = ACCOUNTING_COLLECTION_MOVES.filter((m) => m.from !== move.from);
+      const partial = accountFor(recollectAll(before, kept), nbKeys, MATERIALIZATION_RENAMES, parseVarKey, NB);
+      ok(!isTotal(partial) && partial.contradictedClaims.length === 1 && partial.unaccountedRemovals.length === 0
+          && /not emitted/.test(partial.contradictedClaims[0]?.contradiction ?? ''),
+        `#1097: dropping the \`${move.from} → ${move.to}\` collection move contradicts ${partial.contradictedClaims.length} claim (expected 1, and 0 unaccounted removals — got ${partial.unaccountedRemovals.length}): `
+        + `${partial.contradictedClaims.map((c) => `${c.from} → ${c.to}: ${c.contradiction}`).join(' · ') || 'NOTHING, so the entry is decoration'}`);
+    }
+    // …and no `from` twice, which is the one way this list fails SILENTLY. `recollect` takes the FIRST
+    // match, so a duplicate `from` makes the answer depend on array order — see that list's header for the
+    // 128-keys-per-brand misattribution it would cause. Nothing above can see it: the fixture would still
+    // pass under whichever entry happened to come first.
+    const froms = ACCOUNTING_COLLECTION_MOVES.map((m) => m.from);
+    ok(new Set(froms).size === froms.length,
+      `#1097: no collection appears twice as a \`from\` in ACCOUNTING_COLLECTION_MOVES (${froms.join(', ')}) — \`recollect\` is single-step and first-match, so a duplicate makes the answer depend on array order`);
   }
 
   // ---- #1053: AN ADDITIVE CHANGE IS CLEAN, AND A REMOVAL IS STILL NOT ----
@@ -12728,11 +12922,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const added = new Set([...base, varKey('color', 'color/media/veil/soft')]);
     const withoutA = new Set([varKey('color', 'color/b')]);
 
-    ok(isTotal(accountFor(base, added, [], parseVarKey)),
+    ok(isTotal(accountFor(base, added, [], parseVarKey, WROOT)),
       '#1053: an ADDITIVE change with no rules is TOTAL — an unclaimed addition is a new token, and there is nothing it could be hiding');
-    ok(!isTotal(accountFor(base, withoutA, [], parseVarKey)),
+    ok(!isTotal(accountFor(base, withoutA, [], parseVarKey, WROOT)),
       '#1053: …while an unclaimed REMOVAL is still NOT — that is the silent rename this mechanism exists to catch, and the asymmetry is the whole fix');
-    ok(accountFor(base, added, [], parseVarKey).unaccountedAdditions.length === 1,
+    ok(accountFor(base, added, [], parseVarKey, WROOT).unaccountedAdditions.length === 1,
       '#1053: the arriving name is still COUNTED and reportable — diagnostic value, which is why it is dropped from the verdict rather than from the accounting');
 
     // THE BROKEN-RULE CASE, pinned HERE because it is the one everybody expects to have moved to check
@@ -12744,7 +12938,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       domain: (c, n) => c === 'color' && n === 'color/a',
       map: () => 'color/nowhere',
     };
-    const broken = accountFor(base, withoutA, [brokenRule], parseVarKey);
+    const broken = accountFor(base, withoutA, [brokenRule], parseVarKey, WROOT);
     ok(broken.contradictedClaims.length === 1 && /not emitted either/.test(broken.contradictedClaims[0].contradiction),
       `#1053: a rule whose image never appears is a CONTRADICTED CLAIM in check 1 — not a check-2 arm, because check 2 cannot see a domain member that has already left the emission (got ${broken.contradictedClaims.length})`);
     ok(!isTotal(broken),
@@ -12767,8 +12961,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   };
   const ruleColorOnly: MaterializationRule = {
     id: 'fixture-ns-color-only', since: '0.0.0-fixture',
-    why: 'fixture: the under-covering rule — claims only the `color` collection',
-    domain: (c) => c === 'color', map: nsAll,
+    // `color.surface` since #1089, and it has to be a collection the emission ACTUALLY HAS. Left as
+    // `color` this rule matched nothing, `renamed(before, c => c === 'color')` renamed nothing, and rows 2
+    // and 3 both went quiet: row 3's contradiction arm is gated on the emission having moved, so a rule
+    // that claims everything over an emission that moved nowhere reports ZERO contradictions. The
+    // over-claiming row — the one the whole-set clause exists for — would have passed by claiming nothing.
+    why: 'fixture: the under-covering rule — claims only the `color.surface` collection',
+    domain: (c) => c === 'color.surface', map: nsAll,
   };
   /** Apply the namespace to a chosen subset of collections — the EMISSION side of the fixture. */
   const renamed = (keys: ReadonlySet<VarKey>, which: (c: string) => boolean): Set<VarKey> => {
@@ -12783,32 +12982,32 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const rows: string[] = [];
   for (const brand of brands) {
     const before = emissionOf(brand);
-    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color').length;
+    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color.surface').length;
 
     // ROW 1 — complete rule, complete rename → TOTAL.
-    const r1 = accountFor(before, renamed(before, () => true), [ruleAll], parseVarKey);
+    const r1 = accountFor(before, renamed(before, () => true), [ruleAll], parseVarKey, rootOf(brand));
     ok(isTotal(r1),
       `#1039 table row 1 (${brand}): a complete rule over a complete rename is TOTAL — ${r1.unaccountedRemovals.length} unaccounted removals, ${r1.unaccountedAdditions.length} additions, ${r1.contradictedClaims.length} contradicted`);
 
     // ROW 2 — under-covering rule, complete rename → unaccounted, named individually. THE FORCING
     // FUNCTION FIRING. Both accountings agree here, which is why this row is not the interesting one.
-    const r2 = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
+    const r2 = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey, rootOf(brand));
     const unaccounted2 = r2.unaccountedRemovals.length + r2.unaccountedAdditions.length;
     ok(unaccounted2 === nonColor * 2 && unaccounted2 > 0,
-      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color\` keys) — the forcing function fires`);
-    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color :: ')),
+      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color.surface\` keys) — the forcing function fires`);
+    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color.surface :: ')),
       `#1039 table row 2 (${brand}): and names them individually rather than counting them — e.g. ${r2.unaccountedRemovals[0]}`);
 
     // ROW 3 — OVER-CLAIMING rule, `color`-only rename. The row the whole-set clause exists for.
-    const colorOnlyEmission = renamed(before, (c) => c === 'color');
-    const r3 = accountFor(before, colorOnlyEmission, [ruleAll], parseVarKey);
+    const colorOnlyEmission = renamed(before, (c) => c === 'color.surface');
+    const r3 = accountFor(before, colorOnlyEmission, [ruleAll], parseVarKey, rootOf(brand));
     ok(r3.contradictedClaims.length === nonColor && nonColor > 0,
-      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color\` key the rule said moved and did not`);
+      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color.surface\` key the rule said moved and did not`);
 
     // AND THE CONTRAST THAT IS THE EVIDENCE: the diff-driven accounting reports TOTAL on the same input.
     // Without this the whole-set clause is a sentence in a comment; with it, it is two numbers that
     // disagree. `docs/44` calls this row "TOTAL — blind".
-    const r3blind = accountForDiffDriven(before, colorOnlyEmission, [ruleAll], parseVarKey);
+    const r3blind = accountForDiffDriven(before, colorOnlyEmission, [ruleAll], parseVarKey, rootOf(brand));
     ok(isTotal(r3blind),
       `#1039 table row 3 (${brand}): …while DIFF-DRIVEN accounting reports TOTAL over the identical input — blind, because a rule claiming a rename that did not happen is never exercised`);
     ok(r3.contradictedClaims.length > 0 && r3blind.contradictedClaims.length === 0,
@@ -12821,7 +13020,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the three brands, while 463 is aurora's single figure where nb is 423 and wendys 482.
   const unaccountedAll = brands.map((b) => {
     const before = emissionOf(b);
-    const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
+    const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey, rootOf(b));
     return r.unaccountedRemovals.length + r.unaccountedAdditions.length;
   });
   // DERIVED, NOT PINNED (#1053). This asserted the literal `846–964` from `docs/44` §5, and that is a
@@ -12838,10 +13037,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const spanHi = Math.max(...unaccountedAll);
   const perBrandTwice = brands.map((b) => {
     const before = emissionOf(b);
-    return [...before].filter((k) => parseVarKey(k).collection !== 'color').length * 2;
+    return [...before].filter((k) => parseVarKey(k).collection !== 'color.surface').length * 2;
   });
   ok(spanLo === Math.min(...perBrandTwice) && spanHi === Math.max(...perBrandTwice) && spanLo > 0,
-    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color\` population at its extremes `
+    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color.surface\` population at its extremes `
     + `(${perBrandTwice.join(' / ')}) — derived, so a token addition moves the figure without failing a test about renames. `
     + `\`docs/44\` §5 records 846–964 as the snapshot at 2,076 keys (${rows.join(' | ')})`);
 }
