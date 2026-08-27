@@ -74,6 +74,35 @@ import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 
+// #1097 — every emitted Figma variable name begins with the BRAND'S OWN ROOT, so an arm that looks a
+// variable up by name needs the root rather than a spelled prefix. Taken from the theme, which is where
+// the root is configured, and never from `out/figma/**`, which is the side under test. Spelling `nbds/`
+// here would still pass for the two corpus brands rooted at `prism` and would hide exactly the defect
+// #1097's read paths were rebuilt to avoid — see `materialization-renames.ts`'s `root` note.
+const NB_ROOT = nbTheme().root;
+/** An nb variable's full emitted name, from its root-relative tail. */
+const nbVar = (tail: string): string => `${NB_ROOT}/${tail}`;
+/**
+ * The three primitive groups #1102 moved under the `core` DTCG tier. Written out rather than imported
+ * from `theme.ts`: this is the list the FIXTURE transform below needs, and importing the emitter's own
+ * list would make the transform agree with whatever the emitter does (docs/34).
+ */
+const CORE_GROUPS = new Set(['palette', 'dimension', 'font']);
+/**
+ * A pre-#1097 fixture variable name mapped to the name the engine emits today.
+ *
+ * The fixtures under `fixtures/figma/nb/` are frozen at the shape of the real NB Figma export
+ * (normalised of its `pds/` prefix) and are deliberately NOT rewritten by a rename — their
+ * `$collection` fields still read `font`/`font-fluid`, from before #66 renamed those collections. So
+ * the transform is stated HERE, by hand, in exactly the two segments #1097/#1102 added: the brand
+ * root, and the `core` tier over the three primitive groups.
+ *
+ * It ADDS rather than strips, and that direction is the point. Stripping `${root}/` off the emitted
+ * name would let an emitter that forgot the `core` tier still match the fixture — a false pass.
+ * Building the expected name forwards means a missing root OR a missing tier is a mismatch.
+ */
+const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) ? `core/${n}` : n);
+
 let pass = 0; const fails: string[] = [];
 const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(msg); };
 const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
@@ -792,7 +821,7 @@ for (const b of brands) {
         // The WRAPPED shape (`{ $value, px, note }`) is the one the overlay projector reads — #708 was
         // two shapes for one concept and 28 mode-varying shadows dropped from every overlay.
         const want = EXPECTED_CONTROL.compact[rung][field];
-        if (mods.dark.px !== want || mods.dark.$value !== `{prism.dimension.${want}}`) wrong.push(`${rung}.${field} ${JSON.stringify(mods.dark.$value)}/${mods.dark.px} ≠ ${want}`);
+        if (mods.dark.px !== want || mods.dark.$value !== `{prism.core.dimension.${want}}`) wrong.push(`${rung}.${field} ${JSON.stringify(mods.dark.$value)}/${mods.dark.px} ≠ ${want}`);
       }
     ok(missing.length === 0, '#900 a `modeLevers.density` mode re-derives the control box, so it moves with the row it sits in (#708: the box must not keep the baseline dimension)'
       + (missing.length ? ` — NO OVERRIDE: ${missing.join(', ')}` : ''));
@@ -1065,12 +1094,12 @@ for (const b of brands) {
   const plan = buildWritePlan(buildFigmaColor(nbTheme()));
   const { modes, create, aliases } = plan.color;
   ok(modes.length === 4, `write-plan: nb plan carries 4 colour modes (${modes.join('/')})`);
-  ok(plan.palette.length > 0 && plan.palette.every((r) => r.hidden), 'write-plan: every core-palette primitive is hidden from publishing');
+  ok(plan.palette.length > 0 && plan.palette.every((r) => r.hidden), 'write-plan: every `core` palette primitive is hidden from publishing');
   ok(plan.palette.every((r) => r.scopes.length > 0 && r.value && typeof r.value.r === 'number'), 'write-plan: palette rows carry scopes + a literal RGBA value');
   ok(create.length > 0 && create.every((r) => r.valuesByMode.length === modes.length), 'write-plan: every colour create-row carries one literal value per mode');
   ok(aliases.length === create.length && aliases.every((r) => r.targetsByMode.length === modes.length), 'write-plan: every colour alias-row carries one target per mode (parallel to create-rows)');
   ok(aliases.some((r) => new Set(r.targetsByMode).size > 1), 'write-plan: alias rows carry distinct per-mode targets (collapse-proof at the plan level)');
-  const bgp = aliases.find((r) => r.name === 'color/appearance/background/primary');
+  const bgp = aliases.find((r) => r.name === nbVar('color/appearance/background/primary'));
   ok(!!bgp && new Set(bgp!.targetsByMode).size > 1, 'write-plan: background/primary binds a different palette step per mode (plan-level collapse-guard probe)');
 }
 
@@ -1084,7 +1113,7 @@ for (const b of brands) {
   // per-mode value is the alias target NAME from the plan.
   const snapFrom = (aliasRowsIn: typeof plan.color.aliases): ReadbackSnapshot => ({
     collections: [
-      { name: 'core-palette', modes: ['Default'] },
+      { name: 'core', modes: ['Default'] },
       // The VALUE tier's collection, `color.appearance` since #1013. `read-back.ts` looks the appearance
       // modes up BY THIS NAME, so a snapshot still saying `color` reports zero modes and `modesDistinct`
       // goes false — the collapse guard failing for a reason that has nothing to do with a collapse.
@@ -1106,7 +1135,7 @@ for (const b of brands) {
   ok(good.checks.aliasesResolve && good.details.danglingAliases.length === 0, 'read-back: every alias target resolves (0 dangling)');
   ok(good.checks.slotScopes && good.checks.fieldFamilyPresent, 'read-back: slot scopes + field family match the contract');
   ok(good.checks.retiredRolesAbsent && good.checks.renamedRolesAbsent && good.checks.bareDangerPresent, 'read-back: retired/renamed roles absent, bare foreground/danger present');
-  ok(good.checks.primitivesHidden, 'read-back: core-palette primitives hidden from publishing');
+  ok(good.checks.primitivesHidden, 'read-back: `core` palette primitives hidden from publishing');
 
   // NEGATIVE: collapse every mode of background/primary to a single target → modesDistinct must fail.
   //
@@ -1168,15 +1197,23 @@ for (const b of brands) {
 // the plan (0 dangling — the executor binds against one global name map), opacity must be 0–100 (the
 // Figma OPACITY-percent convention), and a wireframe brand must add a distinct `wireframe` radius mode.
 {
-  const auroraFloat = buildFloatWritePlan(brandTheme(exampleBrands()['aurora'] as BrandInput));
+  const auroraTheme = brandTheme(exampleBrands()['aurora'] as BrandInput);
+  const auroraFloat = buildFloatWritePlan(auroraTheme);
+  // Aurora's root — `prism`, where nb's is `nbds`. Read off the theme for the reason `NB_ROOT` is, and
+  // used here rather than `NB_ROOT` because this block's plans are aurora's: a cross-brand prefix would
+  // make every alias arm below vacuous.
+  const aRoot = auroraTheme.root;
   const names = auroraFloat.map((c) => c.name);
-  const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+  // Nine collections, ten axes: #1097 merged `core-palette`/`core-dimension`/`core-font` into ONE `core`
+  // collection, so `core/dimension` is a SLICE of a collection rather than a collection of its own. The
+  // count moves 10 → 9 for that reason and no other.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
     `float-plan: ten collections present (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
-  ok(auroraFloat.find((c) => c.name === 'core-dimension')!.modes.join(',') === 'Default',
-    'float-plan: core-dimension is single Default mode');
+  ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
+    'float-plan: the `core` collection is single Default mode');
   const layout = auroraFloat.find((c) => c.name === 'layout')!;
   ok(layout.modes.length >= 4 && layout.create.length > 0,
     `float-plan: layout carries one mode per breakpoint (${layout.modes.join('/')})`);
@@ -1190,21 +1227,21 @@ for (const b of brands) {
         if (t && !allNames.has(t)) danglers.push(`${a.name} -> ${t}`);
   ok(danglers.length === 0, `float-plan: every cross-collection alias resolves (0 dangling)${danglers.length ? ' — ' + danglers.slice(0, 3).join(', ') : ''}`);
 
-  // space aliases dimension; core-dimension + opacity are primitives (no aliases).
+  // space aliases dimension; the `core` dimension slice + opacity are primitives (no aliases).
   const space = auroraFloat.find((c) => c.name === 'space')!;
-  ok(space.aliases.every((a) => a.targetsByMode.every((t) => t === null || t.startsWith('dimension/'))),
-    'float-plan: space vars alias core-dimension primitives');
-  ok(auroraFloat.find((c) => c.name === 'core-dimension')!.aliases.every((a) => a.targetsByMode.every((t) => t === null)),
-    'float-plan: core-dimension primitives carry no aliases');
+  ok(space.aliases.every((a) => a.targetsByMode.every((t) => t === null || t.startsWith(`${aRoot}/core/dimension/`))),
+    'float-plan: space vars alias the `core` dimension primitives, under the brand root');
+  ok(auroraFloat.find((c) => c.name === 'core')!.aliases.every((a) => a.targetsByMode.every((t) => t === null)),
+    'float-plan: `core` primitives carry no aliases');
 
   // opacity values are 0–100 (Figma OPACITY percent), not the DTCG 0–1 fraction.
   const opVals = auroraFloat.find((c) => c.name === 'opacity')!.create.flatMap((r) => r.valuesByMode);
   ok(opVals.length > 0 && opVals.every((n) => n >= 0 && n <= 100) && opVals.some((n) => n > 1),
     `float-plan: opacity is 0–100 percent (max ${Math.max(...opVals)})`);
 
-  // core-dimension primitives hidden from publishing; opacity NOT hidden (#79 — directly consumable).
-  ok(auroraFloat.find((c) => c.name === 'core-dimension')!.create.every((r) => r.hidden),
-    'float-plan: core-dimension primitives hidden from publishing');
+  // `core` primitives hidden from publishing; opacity NOT hidden (#79 — directly consumable).
+  ok(auroraFloat.find((c) => c.name === 'core')!.create.every((r) => r.hidden),
+    'float-plan: `core` primitives hidden from publishing');
   ok(auroraFloat.find((c) => c.name === 'opacity')!.create.every((r) => !r.hidden),
     'float-plan: opacity NOT hidden (directly consumable)');
 
@@ -1213,8 +1250,8 @@ for (const b of brands) {
   const wfRadius = wfFloat.find((c) => c.name === 'radius')!;
   const wfIdx = wfRadius.modes.indexOf('wireframe');
   ok(wfIdx > 0 && wfRadius.modes.includes('Default'), `float-plan: wireframe brand adds a wireframe radius mode (${wfRadius.modes.join('/')})`);
-  ok(wfRadius.aliases.length > 0 && wfRadius.aliases.every((a) => a.targetsByMode[wfIdx] === 'dimension/0'),
-    'float-plan: every radius aliases dimension/0 in the wireframe mode (sharp corners)');
+  ok(wfRadius.aliases.length > 0 && wfRadius.aliases.every((a) => a.targetsByMode[wfIdx] === `${aRoot}/core/dimension/0`),
+    'float-plan: every radius aliases core/dimension/0 in the wireframe mode (sharp corners)');
 
   // verifyFloatReadback guard: a colour-only snapshot (no `float`) is NOT a float failure; a dangling
   // FLOAT alias IS caught. (The full write→read→verify round-trip is covered in apps/plugin/test-readback.)
@@ -1224,8 +1261,11 @@ for (const b of brands) {
     collections: [{ name: 'space', modes: ['Default'] }],
     palette: [], color: [],
     float: {
-      'core-dimension': [{ name: 'dimension/0', scopes: ['GAP'], hidden: true, valuesByMode: { Default: 0 } }],
-      space: [{ name: 'space/100', scopes: ['GAP'], hidden: false, valuesByMode: { Default: { alias: 'dimension/NOPE' } } }],
+      // AXIS KEYS, not collection names — `core/dimension` is one slice of the merged `core` collection
+      // (#1097). The variable names carry a root because a real read does; `zzclient` rather than a
+      // corpus brand's, so an axis key accidentally spelled as a prefix of a name cannot match.
+      'core/dimension': [{ name: 'zzclient/core/dimension/0', scopes: ['GAP'], hidden: true, valuesByMode: { Default: 0 } }],
+      space: [{ name: 'zzclient/space/100', scopes: ['GAP'], hidden: false, valuesByMode: { Default: { alias: 'zzclient/core/dimension/NOPE' } } }],
       radius: [], size: [], 'border-width': [], focus: [], opacity: [],
     },
   }, false);
@@ -1272,26 +1312,30 @@ for (const b of brands) {
     'styles: a light-only brand emits shadow/* but NO shadow-dark/*');
 }
 
-// TYPOGRAPHY WRITE PLANS (#237): core-font/type-sets VARIABLE plan + the Text Style plan.
+// TYPOGRAPHY WRITE PLANS (#237): the `core` font slice + `type-sets` VARIABLE plan + the Text Style plan.
 {
   const nb = nbTheme();
   const fontVars = buildFontVarPlan(nb);
-  const coreFont = fontVars.find((c) => c.name === 'core-font')!;
+  // `core`, not `core-font`: #1097 merged the three primitive collections, so the typography primitives
+  // and the dimension primitives now share ONE collection and `core/font` is a slice of it. The plan
+  // still carries two entries because `type-sets` is a collection of its own.
+  const coreFont = fontVars.find((c) => c.name === 'core')!;
   const typeSets = fontVars.find((c) => c.name === 'type-sets')!;
-  ok(!!coreFont && !!typeSets && fontVars.length === 2, 'font-plan: two collections — core-font + type-sets');
+  ok(!!coreFont && !!typeSets && fontVars.length === 2, 'font-plan: two collections — `core` + type-sets');
 
-  // core-font mixes STRING (family) + FLOAT (size/weight/weight-role); families are STRING with string values.
-  const familyRows = coreFont.rows.filter((r) => r.name.startsWith('font/family/'));
+  // The `core` font slice mixes STRING (family) + FLOAT (size/weight/weight-role); families are STRING
+  // with string values.
+  const familyRows = coreFont.rows.filter((r) => r.name.startsWith(nbVar('core/font/family/')));
   ok(familyRows.length > 0 && familyRows.every((r) => r.resolvedType === 'STRING' && typeof r.valuesByMode[0] === 'string'),
-    'font-plan: font/family/* rows are STRING with a string face value');
-  ok(coreFont.rows.some((r) => r.name.startsWith('font/size/') && r.resolvedType === 'FLOAT'), 'font-plan: font/size/* rows are FLOAT');
+    'font-plan: core/font/family/* rows are STRING with a string face value');
+  ok(coreFont.rows.some((r) => r.name.startsWith(nbVar('core/font/size/')) && r.resolvedType === 'FLOAT'), 'font-plan: core/font/size/* rows are FLOAT');
 
-  // weight-role rows alias font/weight/N (within core-font — resolves against the same collection).
-  const wr = coreFont.rows.filter((r) => r.name.startsWith('font/weight-role/'));
+  // weight-role rows alias font/weight/N (within `core` — resolves against the same collection).
+  const wr = coreFont.rows.filter((r) => r.name.startsWith(nbVar('core/font/weight-role/')));
   const coreNames = new Set(coreFont.rows.map((r) => r.name));
   const wrDangling = wr.flatMap((r) => r.aliasByMode.filter((a): a is string => !!a)).filter((t) => !coreNames.has(t));
-  ok(wr.length > 0 && wr.every((r) => r.aliasByMode.every((a) => a === null || a.startsWith('font/weight/'))) && wrDangling.length === 0,
-    'font-plan: weight-role rows alias font/weight/N, all resolving within core-font');
+  ok(wr.length > 0 && wr.every((r) => r.aliasByMode.every((a) => a === null || a.startsWith(nbVar('core/font/weight/')))) && wrDangling.length === 0,
+    'font-plan: weight-role rows alias core/font/weight/N, all resolving within the `core` collection');
 
   // type-sets is FLOAT, mobile/desktop.
   ok(typeSets.modes.join(',') === 'mobile,desktop' && typeSets.rows.every((r) => r.resolvedType === 'FLOAT'),
@@ -1302,10 +1346,10 @@ for (const b of brands) {
   ok(ts.length > 0, `font-plan: text-style plan has rows (${ts.length})`);
   const tbad: string[] = [];
   for (const r of ts) {
-    if (!r.fontFamilyVar.startsWith('font/family/')) tbad.push(`${r.name}: familyVar`);
+    if (!r.fontFamilyVar.startsWith(nbVar('core/font/family/'))) tbad.push(`${r.name}: familyVar`);
     if (!r.fontFamilyPrimary) tbad.push(`${r.name}: no primary face`);
-    if (!(r.fontSizeCollection === 'core-font' || r.fontSizeCollection === 'type-sets')) tbad.push(`${r.name}: sizeColl`);
-    if (!r.fontWeightVar.startsWith('font/weight-role/')) tbad.push(`${r.name}: weightVar`);
+    if (!(r.fontSizeCollection === 'core' || r.fontSizeCollection === 'type-sets')) tbad.push(`${r.name}: sizeColl`);
+    if (!r.fontWeightVar.startsWith(nbVar('core/font/weight-role/'))) tbad.push(`${r.name}: weightVar`);
     if (!r.fontStyle) tbad.push(`${r.name}: no fontStyle`);
     if (typeof r.lineHeightPct !== 'number') tbad.push(`${r.name}: lineHeight`);
   }
@@ -1322,16 +1366,19 @@ for (const b of brands) {
   ok(verifyTypographyReadback({ collections: [], palette: [], color: [] }).ok, 'verifyTypographyReadback: typography-absent snapshot passes (not a failure)');
   const goodTypo = verifyTypographyReadback({
     collections: [], palette: [], color: [],
-    font: { 'core-font': [
-      { name: 'font/weight/700', scopes: [], hidden: true, valuesByMode: { Default: 700 } },
-      { name: 'font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'font/weight/700' } } },
+    // AXIS KEY `core/font` — one slice of the merged `core` collection (#1097) — and rooted names, as a
+    // real read yields. `zzclient` because it is a root no corpus brand uses: the verdict must resolve
+    // an alias by full name, so a reader that stripped roots would pass this and must not.
+    font: { 'core/font': [
+      { name: 'zzclient/core/font/weight/700', scopes: [], hidden: true, valuesByMode: { Default: 700 } },
+      { name: 'zzclient/core/font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'zzclient/core/font/weight/700' } } },
     ] },
     textStyles: ['body/md/default'],
   });
-  ok(goodTypo.ok, 'verifyTypographyReadback: well-formed core-font + text style passes');
+  ok(goodTypo.ok, 'verifyTypographyReadback: well-formed `core/font` axis + text style passes');
   const danglingTypo = verifyTypographyReadback({
     collections: [], palette: [], color: [],
-    font: { 'core-font': [{ name: 'font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'font/weight/999' } } }] },
+    font: { 'core/font': [{ name: 'zzclient/core/font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'zzclient/core/font/weight/999' } } }] },
     textStyles: ['x'],
   });
   ok(!danglingTypo.ok && !danglingTypo.checks.weightAliasesResolve, 'verifyTypographyReadback: a dangling weight-role alias fails (negative)');
@@ -1943,7 +1990,7 @@ for (const b of brands) {
   const withOv = { ...base, overrides: { dark: { [roleKey]: { palette: 'primary', step: overStep } } } } as unknown as BrandInput;
   const baseNode = nodeAt(buildTree(brandTheme(base)).tree[root]);
   const ovNode = nodeAt(buildTree(brandTheme(withOv)).tree[root]);
-  ok(ovNode.$extensions.prism3.modes.dark.$value === `{${root}.palette.primary.${overStep}}`,
+  ok(ovNode.$extensions.prism3.modes.dark.$value === `{${root}.core.palette.primary.${overStep}}`,
     `A1(a): dark override → primary.${overStep} in $extensions.prism3.modes.dark (got ${ovNode.$extensions.prism3.modes.dark.$value})`);
   ok(ovNode.$value === baseNode.$value, `A1(a): light canonical $value unchanged by the dark override (${ovNode.$value})`);
   ok(baseNode.$extensions.prism3.modes.dark.$value !== ovNode.$extensions.prism3.modes.dark.$value,
@@ -2048,7 +2095,7 @@ for (const b of brands) {
   // (b) an override on the custom mode DEVIATES it while its base (dark) stays unchanged.
   const deviated = { ...withCustom, overrides: { 'marketing-dark': { [roleKey]: { palette: 'primary', step: '750' } } } } as unknown as BrandInput;
   const mdD = modeOf(deviated, 'marketing-dark'), dkD = modeOf(deviated, 'dark');
-  ok(mdD!.roles[roleKey].path === `${root}.palette.primary.750`, `C1(b): a custom-mode override repoints marketing-dark (${mdD!.roles[roleKey].path})`);
+  ok(mdD!.roles[roleKey].path === `${root}.core.palette.primary.750`, `C1(b): a custom-mode override repoints marketing-dark (${mdD!.roles[roleKey].path})`);
   ok(dkD!.roles[roleKey].path === dk!.roles[roleKey].path, 'C1(b): the base dark mode is untouched by the custom-mode override');
   // and a per-mode interactive anchor on the custom mode also deviates it.
   const anchored = { ...withCustom, modeAnchors: { 'marketing-dark': { primary: 100 } } } as unknown as BrandInput;
@@ -2058,7 +2105,7 @@ for (const b of brands) {
   // (c) buildTree emits the custom value under $extensions.prism3.modes['marketing-dark']; light $value unchanged.
   const baseTree = nodeAt(buildTree(brandTheme(base)).tree[root]);
   const custTree = nodeAt(buildTree(brandTheme(deviated)).tree[root]);
-  ok(custTree.$extensions.prism3.modes['marketing-dark']?.$value === `{${root}.palette.primary.750}`,
+  ok(custTree.$extensions.prism3.modes['marketing-dark']?.$value === `{${root}.core.palette.primary.750}`,
     `C1(c): buildTree emits the custom mode under $extensions.prism3.modes['marketing-dark'] (${custTree.$extensions.prism3.modes['marketing-dark']?.$value})`);
   ok(custTree.$value === baseTree.$value, `C1(c): light canonical $value is unchanged by the custom mode (${custTree.$value})`);
 
@@ -2141,7 +2188,7 @@ for (const b of brands) {
   const sharpDark = { ...base, modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput;
   const baseRadius = buildTree(brandTheme(base)).tree[root].radius;
   const dRadius = buildTree(brandTheme(sharpDark)).tree[root].radius;
-  ok(baseRadius.md.px !== 0 && dRadius.md.$extensions.prism3.modes.dark.$value === `{${root}.dimension.0}`,
+  ok(baseRadius.md.px !== 0 && dRadius.md.$extensions.prism3.modes.dark.$value === `{${root}.core.dimension.0}`,
     `D(a): dark radius:0 → radius.md carries a modes.dark override aliasing dimension.0 (got ${dRadius.md.$extensions.prism3.modes?.dark?.$value})`);
   ok(dRadius.md.$extensions.prism3.modes.dark.px === 0, 'D(a): the dark override records px 0');
   ok(dRadius.md.$value === baseRadius.md.$value, `D(a): light canonical radius.md $value is unchanged by the dark lever (${dRadius.md.$value})`);
@@ -2162,7 +2209,7 @@ for (const b of brands) {
   const figRadius = buildFigmaDims(brandTheme(sharpDark)).radius;
   const figDark = figRadius.find((f) => f.$mode === 'dark');
   const figMd = figDark?.variables.find((v) => v.name === 'radius/md');
-  ok(!!figDark && figMd?.value === 0 && figMd?.alias?.name === 'dimension/0',
+  ok(!!figDark && figMd?.value === 0 && figMd?.alias?.name === `${root}/core/dimension/0`,
     `D(b): buildFigmaDims emits a dark radius file with radius/md → dimension/0 (value ${figMd?.value})`);
 
   // (c) validation throws — generate-only mode (hc-light/wireframe), a mode not generated, out-of-range.
@@ -2247,26 +2294,26 @@ for (const b of brands) {
   // (a) family.display carries a modes.dark override that RE-POINTS the role to a different
   //     typeface primitive (#269) rather than re-valuing it — the alias-preserving shape. The
   //     overridden face is unioned into the typeface set, so the alias always lands on a real leaf.
-  const famDark = pmTree.font.family.display.$extensions.prism3.modes?.dark;
-  ok(!!famDark && famDark.$value === `{${root}.font.typeface.georgia}` && famDark.face === 'Georgia',
+  const famDark = pmTree.core.font.family.display.$extensions.prism3.modes?.dark;
+  ok(!!famDark && famDark.$value === `{${root}.core.font.typeface.georgia}` && famDark.face === 'Georgia',
     `D-typo(a): dark family override RE-POINTS family.display to the georgia typeface (got ${famDark?.$value})`);
-  ok(!!pmTree.font.typeface.georgia, 'D-typo(a): a per-mode-only face is unioned into the typeface primitives so its alias resolves');
-  ok(pmTree.font.family.display.$value === baseTree.font.family.display.$value,
-    `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.font.family.display.$value})`);
-  ok(pmTree.font.family.body.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden category (body) carries no modes override');
+  ok(!!pmTree.core.font.typeface.georgia, 'D-typo(a): a per-mode-only face is unioned into the typeface primitives so its alias resolves');
+  ok(pmTree.core.font.family.display.$value === baseTree.core.font.family.display.$value,
+    `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.core.font.family.display.$value})`);
+  ok(pmTree.core.font.family.body.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden category (body) carries no modes override');
   // #415 — the sibling that USED to move with it. display/title/label/eyebrow all sat on the old
   // `display` family role, so a per-mode `families.display` dragged all four; category-keyed, it moves
   // exactly the one named. This is the whole reason the per-mode familyMap lever (#390) could retire.
-  ok(pmTree.font.family.title.$extensions.prism3.modes === undefined,
+  ok(pmTree.core.font.family.title.$extensions.prism3.modes === undefined,
     '[#415] a per-mode families.display moves ONLY display — title, its old role-mate, is untouched');
 
   // (b) weight-role.strong carries a modes.dark override aliasing font.weight.500; light stays 700.
-  const wrDark = pmTree.font['weight-role'].strong.$extensions.prism3.modes?.dark;
-  ok(!!wrDark && wrDark.$value === `{${root}.font.weight.500}` && wrDark.weight === 500,
+  const wrDark = pmTree.core.font['weight-role'].strong.$extensions.prism3.modes?.dark;
+  ok(!!wrDark && wrDark.$value === `{${root}.core.font.weight.500}` && wrDark.weight === 500,
     `D-typo(b): dark weight override → weight-role.strong modes.dark aliases font.weight.500 (got ${wrDark?.$value})`);
-  ok(pmTree.font['weight-role'].strong.$value === baseTree.font['weight-role'].strong.$value,
-    `D-typo(b): light canonical weight-role.strong $value is unchanged (${pmTree.font['weight-role'].strong.$value})`);
-  ok(!!pmTree.font.weight['500'], 'D-typo(b): the font.weight.500 primitive EXISTS (weightsRef union) so the per-mode alias resolves — 500 is role-owned by nothing, so this fails if the union is dropped');
+  ok(pmTree.core.font['weight-role'].strong.$value === baseTree.core.font['weight-role'].strong.$value,
+    `D-typo(b): light canonical weight-role.strong $value is unchanged (${pmTree.core.font['weight-role'].strong.$value})`);
+  ok(!!pmTree.core.font.weight['500'], 'D-typo(b): the font.weight.500 primitive EXISTS (weightsRef union) so the per-mode alias resolves — 500 is role-owned by nothing, so this fails if the union is dropped');
 
   // (c) a composite that binds display + strong is UNCHANGED — it just aliases the primitives, so the
   //     per-mode value is inherited via the alias, not stamped on the composite (the composite SET is fixed).
@@ -2276,17 +2323,17 @@ for (const b of brands) {
   // (d) every DTCG alias resolves — incl. the per-mode weight override alias (walked from modes.<m>.$value).
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `D-typo(d): all ${built.stats.aliases} aliases resolve` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 3).map((b: any) => b.ref).join(',')}` : ''));
 
-  // (e) the Figma font emit produces a `dark` core-font mode file with the family/weight overrides
+  // (e) the Figma font emit produces a `dark` `core` mode file with the family/weight overrides
   //     materialised; the Default (light) file keeps the canonical weight-role numeric.
   const fontFiles = buildFigmaFont(brandTheme(perMode));
   const darkFile = fontFiles.find((f) => f.$mode === 'dark');
-  const figFamDark = darkFile?.variables.find((v) => v.name === 'font/family/display');
-  const figWrDark = darkFile?.variables.find((v) => v.name === 'font/weight-role/strong');
-  const defWr = fontFiles.find((f) => f.$mode === 'Default')?.variables.find((v) => v.name === 'font/weight-role/strong');
-  ok(fontFiles.length === 2 && !!darkFile, `D-typo(e): buildFigmaFont emits Default + dark core-font files (${fontFiles.map((f) => f.$mode).join(',')})`);
-  ok(figFamDark?.value === 'Georgia', `D-typo(e): dark font/family/display bound to Georgia (${figFamDark?.value})`);
-  ok(figWrDark?.value === 500 && figWrDark?.alias?.name === 'font/weight/500', `D-typo(e): dark font/weight-role/strong → font/weight/500 (value ${figWrDark?.value})`);
-  ok(defWr?.value === 700 && defWr?.alias?.name === 'font/weight/700', `D-typo(e): Default (light) font/weight-role/strong stays 700 (${defWr?.value})`);
+  const figFamDark = darkFile?.variables.find((v) => v.name === `${root}/core/font/family/display`);
+  const figWrDark = darkFile?.variables.find((v) => v.name === `${root}/core/font/weight-role/strong`);
+  const defWr = fontFiles.find((f) => f.$mode === 'Default')?.variables.find((v) => v.name === `${root}/core/font/weight-role/strong`);
+  ok(fontFiles.length === 2 && !!darkFile, `D-typo(e): buildFigmaFont emits Default + dark \`core\` files (${fontFiles.map((f) => f.$mode).join(',')})`);
+  ok(figFamDark?.value === 'Georgia', `D-typo(e): dark core/font/family/display bound to Georgia (${figFamDark?.value})`);
+  ok(figWrDark?.value === 500 && figWrDark?.alias?.name === `${root}/core/font/weight/500`, `D-typo(e): dark core/font/weight-role/strong → core/font/weight/500 (value ${figWrDark?.value})`);
+  ok(defWr?.value === 700 && defWr?.alias?.name === `${root}/core/font/weight/700`, `D-typo(e): Default (light) core/font/weight-role/strong stays 700 (${defWr?.value})`);
 
   // (f) validation throws — families/weights on a generate-only mode (hc-light), on an un-generated
   //     mode, and a weight outside [100, 900].
@@ -2332,38 +2379,38 @@ for (const b of brands) {
   //     the LADDER STEP is mode-invariant. Under the old single tier the adjective WAS the primitive, so
   //     this assertion had to read `line-height.normal`; now the primitive is the numeric step and the
   //     adjective is a semantic role above it. The rule is unchanged — a mode never re-values a step.
-  const lhStep = (v: number) => pmTree.font['line-height'][lineHeightStepKey(v)];
-  const lsStep = (v: number) => pmTree.font['letter-spacing'][letterSpacingStepKey(v)];
-  ok(Object.values(pmTree.font['line-height']).every((n: any) => n.$extensions.prism3.modes === undefined),
+  const lhStep = (v: number) => pmTree.core.font['line-height'][lineHeightStepKey(v)];
+  const lsStep = (v: number) => pmTree.core.font['letter-spacing'][letterSpacingStepKey(v)];
+  ok(Object.values(pmTree.core.font['line-height']).every((n: any) => n.$extensions.prism3.modes === undefined),
     'D-lhls(a): NO line-height ladder step carries a per-mode override — every step is a primitive (#296)');
-  ok(lhStep(1.5).$value === baseTree.font['line-height'][lineHeightStepKey(1.5)].$value,
+  ok(lhStep(1.5).$value === baseTree.core.font['line-height'][lineHeightStepKey(1.5)].$value,
     'D-lhls(a): the 1.5 step is mode-invariant');
-  ok(lhStep(1.65).$value === baseTree.font['line-height'][lineHeightStepKey(1.65)].$value,
+  ok(lhStep(1.65).$value === baseTree.core.font['line-height'][lineHeightStepKey(1.65)].$value,
     'D-lhls(a): the step the mode re-points TO is also unchanged');
 
   // (b) same for letter-spacing.
-  ok(Object.values(pmTree.font['letter-spacing']).every((n: any) => n.$extensions.prism3.modes === undefined),
+  ok(Object.values(pmTree.core.font['letter-spacing']).every((n: any) => n.$extensions.prism3.modes === undefined),
     'D-lhls(b): NO letter-spacing ladder step carries a per-mode override (#296)');
-  ok(lsStep(0).$value === baseTree.font['letter-spacing'][letterSpacingStepKey(0)].$value,
+  ok(lsStep(0).$value === baseTree.core.font['letter-spacing'][letterSpacingStepKey(0)].$value,
     'D-lhls(b): the 0em step is mode-invariant');
 
   // (c) #377 — the per-mode change now lives on the semantic ROLE, stated ONCE, instead of being fanned
   //     onto all 38 composites. That is the whole reason the tier exists.
-  const lhRole = pmTree.font['line-height-role'].normal;
+  const lhRole = pmTree.core.font['line-height-role'].normal;
   const roleDark = lhRole.$extensions.prism3.modes?.dark;
   ok(!!roleDark, 'D-lhls(c): the line-height ROLE carries the modes.dark override (#377 — stated once)');
-  ok(roleDark?.$value === `{${root}.font.line-height.${lineHeightStepKey(1.65)}}`,
+  ok(roleDark?.$value === `{${root}.core.font.line-height.${lineHeightStepKey(1.65)}}`,
     `D-lhls(c): dark re-points the role at the 1.65 step (got ${roleDark?.$value})`);
-  ok(lhRole.$value === `{${root}.font.line-height.${lineHeightStepKey(1.5)}}`,
+  ok(lhRole.$value === `{${root}.core.font.line-height.${lineHeightStepKey(1.5)}}`,
     'D-lhls(c): the role\'s light canonical value still points at the 1.5 step');
-  ok(pmTree.font['letter-spacing-role'].normal.$extensions.prism3.modes?.dark?.$value
-      === `{${root}.font.letter-spacing.${letterSpacingStepKey(0.02)}}`,
+  ok(pmTree.core.font['letter-spacing-role'].normal.$extensions.prism3.modes?.dark?.$value
+      === `{${root}.core.font.letter-spacing.${letterSpacingStepKey(0.02)}}`,
     'D-lhls(c): the tracking role re-points at the 0.02em step in dark');
 
   // (c2) …and the composite is now CLEAN: it aliases the role and carries no leading/tracking variant
   //      of its own. This is the assertion that proves the fan-out is gone rather than duplicated.
   const bodyMd = pmTree.type.body.md.default;
-  ok(bodyMd.$value.lineHeight === `{${root}.font.line-height-role.normal}`,
+  ok(bodyMd.$value.lineHeight === `{${root}.core.font.line-height-role.normal}`,
     'D-lhls(c2): the composite aliases the semantic ROLE, not the primitive');
   const cDark = bodyMd.$extensions.prism3.modes?.dark;
   ok(cDark?.$value?.lineHeight === undefined && cDark?.$value?.letterSpacing === undefined,
@@ -2412,8 +2459,8 @@ for (const b of brands) {
   // #377 — assert on the ROLE now, which is where a real override would land. Checking the step would
   // pass vacuously (a step never carries modes), so this had to move with the tier or it would have
   // become a test that cannot fail.
-  ok(equalTree.font['line-height-role'].normal.$extensions.prism3.modes === undefined
-      && equalTree.font['letter-spacing-role'].normal.$extensions.prism3.modes === undefined,
+  ok(equalTree.core.font['line-height-role'].normal.$extensions.prism3.modes === undefined
+      && equalTree.core.font['letter-spacing-role'].normal.$extensions.prism3.modes === undefined,
     'D-lhls(i): a per-mode LH/LS equal to the light value attaches no role override (no-diff suppression)');
 
   // (j) byte-identical guard — a modeLevers entry with no LH/LS lever adds nothing at all (absent feature).
@@ -3160,8 +3207,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     // Emission: fontSize re-points, and the mode carries its own responsive pair.
     const leaf = (tree: any, path: string) => path.split('.').reduce((o, k) => o?.[k], tree);
     const em = leaf(buildTree(t1).tree, 'prism.type.title.2xl.strong');
-    ok(em.$extensions.prism3.modes.dark.$value.fontSize === '{prism.font.size.36}', '[#328] emitted dark $value.fontSize aliases the re-sized ladder step');
-    ok(em.$value.fontSize === '{prism.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
+    ok(em.$extensions.prism3.modes.dark.$value.fontSize === '{prism.core.font.size.36}', '[#328] emitted dark $value.fontSize aliases the re-sized ladder step');
+    ok(em.$value.fontSize === '{prism.core.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
     ok(em.$extensions.prism3.modes.dark.responsive?.max?.px === 36 && em.$extensions.prism3.modes.dark.responsive?.min?.px === 32,
       '[#328] the emitted per-mode responsive pair is the RECOMPUTED one (32→36), not the inherited 36→40');
     // The fidelity gate DOES reach into `$extensions.prism3.modes.<m>.$value` — hardened in #301 for
@@ -3183,15 +3230,15 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const bothT = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
     const bothTree = buildTree(bothT).tree;
     const bl = leaf(bothTree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
-    ok(bl.$value.fontSize === '{prism.font.size.36}',
+    ok(bl.$value.fontSize === '{prism.core.font.size.36}',
       '[#328] the per-mode SIZE still re-points on the composite — size is per-composite by contract');
     // A mode variant is a FULL-value snapshot (`{ ...value, ...parts }`), so `lineHeight` is present by
     // spread. The real proof the fan-out is gone is that it is UNCHANGED from light — the composite was
     // not re-pointed; the role beneath it was.
-    ok(bl.$value.lineHeight === '{prism.font.line-height-role.snug}',
+    ok(bl.$value.lineHeight === '{prism.core.font.line-height-role.snug}',
       '[#377] the composite\'s per-mode lineHeight is IDENTICAL to light — no fan-out, the role carries the change');
-    ok(leaf(bothTree, 'prism.font.line-height-role.snug').$extensions.prism3.modes.dark.$value
-        === `{prism.font.line-height.${lineHeightStepKey(1.65)}}`,
+    ok(leaf(bothTree, 'prism.core.font.line-height-role.snug').$extensions.prism3.modes.dark.$value
+        === `{prism.core.font.line-height.${lineHeightStepKey(1.65)}}`,
       '[#377] the leading re-point lives on the role, stated once, and title.2xl inherits it');
 
     // Validation THROWS — never drops. A silently ignored per-mode request is only visible in one mode.
@@ -3232,21 +3279,21 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
     const mk = (families: any, ty: any = {}) => brandTheme({ ...fmBase, typography: ty, modeLevers: { dark: { families } } } as any);
     const leaf = (tree: any, path: string) => path.split('.').reduce((o: any, k: string) => o?.[k], tree);
-    const modesOf = (t: any, cat: string) => leaf(buildTree(t).tree, `prism.font.family.${cat}`).$extensions.prism3.modes;
+    const modesOf = (t: any, cat: string) => leaf(buildTree(t).tree, `prism.core.font.family.${cat}`).$extensions.prism3.modes;
 
     // THE WHOLE POINT: dark moves title onto Georgia and NOTHING else moves.
     const t1 = mk({ title: 'Georgia' });
-    ok(modesOf(t1, 'title')?.dark?.$value === '{prism.font.typeface.georgia}',
+    ok(modesOf(t1, 'title')?.dark?.$value === '{prism.core.font.typeface.georgia}',
       `[#415] per-mode families: dark title RE-POINTS to the georgia typeface (got ${modesOf(t1, 'title')?.dark?.$value})`);
-    ok(leaf(buildTree(t1).tree, 'prism.font.family.title').$value === '{prism.font.typeface.inter}',
+    ok(leaf(buildTree(t1).tree, 'prism.core.font.family.title').$value === '{prism.core.font.typeface.inter}',
       '[#415] the light/canonical binding is untouched — a mode re-points the alias, it never re-values it');
     ok(modesOf(t1, 'display') === undefined,
       '[#415] display — title’s mate on the old `display` role — does NOT move (the coupling that made #390 necessary)');
     // The negative above is only worth something if display CAN be moved from here; otherwise it would
     // pass structurally rather than behaviorally, which is how a test quietly stops testing.
-    ok(modesOf(mk({ title: 'Georgia', display: 'Georgia' }), 'display')?.dark?.$value === '{prism.font.typeface.georgia}',
+    ok(modesOf(mk({ title: 'Georgia', display: 'Georgia' }), 'display')?.dark?.$value === '{prism.core.font.typeface.georgia}',
       '[#415] …and display DOES move when it is named — the sibling assertion above is behavioral, not vacuous');
-    ok(!!leaf(buildTree(t1).tree, 'prism.font.typeface.georgia'),
+    ok(!!leaf(buildTree(t1).tree, 'prism.core.font.typeface.georgia'),
       '[#415] a per-mode-only face is unioned into the typeface primitives so its alias lands on a real leaf');
 
     // Emission — #415’s real dividend over #390. The COMPOSITES are byte-identical to a brand with
@@ -3421,8 +3468,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const t = tBrand('fam', { families: { display: 'Poppins', body: 'Inter', code: 'Fira Code' } });
   const { tree } = buildTree(t);
   const root = Object.keys(tree)[0];
-  const fam = (tree[root] as any).font.family;
-  const tf = (tree[root] as any).font.typeface;
+  const fam = (tree[root] as any).core.font.family;
+  const tf = (tree[root] as any).core.font.typeface;
 
   // tier 1 — a primitive per distinct face, slugged from its own name.
   ok(!!tf.poppins && !!tf.inter && !!tf['fira-code'], 'a typeface primitive is emitted per face, slugged from the face name');
@@ -3431,12 +3478,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(Array.isArray(fb) && fb.length > 0 && !fb.includes('Inter'), 'the fallback tail lives on the TYPEFACE, primary excluded');
 
   // tier 2 — one semantic per CATEGORY (#415), each aliasing a primitive; none carries a literal face.
-  ok(fam.body.$value === `{${root}.font.typeface.inter}`, 'a category semantic aliases its typeface primitive');
-  ok(fam.display.$value === `{${root}.font.typeface.poppins}`, 'each category aliases the face it binds');
-  ok(fam.body.$extensions.prism3.aliasOf === `${root}.font.typeface.inter`, 'the semantic records aliasOf, like every other semantic');
+  ok(fam.body.$value === `{${root}.core.font.typeface.inter}`, 'a category semantic aliases its typeface primitive');
+  ok(fam.display.$value === `{${root}.core.font.typeface.poppins}`, 'each category aliases the face it binds');
+  ok(fam.body.$extensions.prism3.aliasOf === `${root}.core.font.typeface.inter`, 'the semantic records aliasOf, like every other semantic');
   // Unset categories take the default face rather than disappearing — the tier is complete by
   // construction, so every composite has a `font.family.<its group>` to point at.
-  ok(Object.keys(fam).length === 7 && fam.caption.$value === `{${root}.font.typeface.inter}`,
+  ok(Object.keys(fam).length === 7 && fam.caption.$value === `{${root}.core.font.typeface.inter}`,
     `[#415] every category gets a semantic; an unset one (caption) takes the default face (${Object.keys(fam).join('/')})`);
 
   // the invariant that matters downstream: resolution is unchanged.
@@ -3446,13 +3493,13 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // two categories on ONE face share a single primitive (variable ORs across them).
   const shared = buildTree(tBrand('shared', { families: { display: 'Inter', body: 'Inter' } })).tree;
   const sroot = Object.keys(shared)[0];
-  const stf = (shared[sroot] as any).font.typeface;
-  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).font.family.display.$value === (shared[sroot] as any).font.family.body.$value,
+  const stf = (shared[sroot] as any).core.font.typeface;
+  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).core.font.family.display.$value === (shared[sroot] as any).core.font.family.body.$value,
     'two categories bound to the same face share one typeface primitive');
 
   // Figma family variable: value = primary, description still leads with the FULL stack.
-  const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith('font/family/'));
-  const textVar = figFam.find((v) => v.name === 'font/family/body')!;
+  const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith(`${root}/core/font/family/`));
+  const textVar = figFam.find((v) => v.name === `${root}/core/font/family/body`)!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
 }
@@ -3553,8 +3600,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!staged.typography.families.some((f: any) => f.stack[0] === 'Fraunces'), 'a staged face binds no family role — staging is not binding');
   ok(buildTree(staged).tree[Object.keys(buildTree(staged).tree)[0]] !== undefined, 'a brand with a staged face still builds a tree');
   const stagedRoot = Object.keys(buildTree(staged).tree)[0];
-  ok(!!(buildTree(staged).tree[stagedRoot] as any).font.typeface.fraunces, 'the staged face reaches the emitted tree as font.typeface.fraunces');
-  ok(!(buildTree(staged).tree[stagedRoot] as any).font.family.fraunces, 'a staged face emits NO family semantic leaf (nothing binds it)');
+  ok(!!(buildTree(staged).tree[stagedRoot] as any).core.font.typeface.fraunces, 'the staged face reaches the emitted tree as core.font.typeface.fraunces');
+  ok(!(buildTree(staged).tree[stagedRoot] as any).core.font.family.fraunces, 'a staged face emits NO family semantic leaf (nothing binds it)');
 
   // Existing brands must be untouched: same list, same ORDER, which is why the library appends last.
   ok(JSON.stringify(bare.typography.typefaces) === JSON.stringify(tBrand('lib-none2', { families: { body: 'Inter' }, typefaceLibrary: [] }).typography.typefaces),
@@ -3607,7 +3654,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!noCode.typography.typefaces.some((t: any) => t.slug === 'jetbrains-mono'), 'no code binding ⇒ no orphan mono typeface primitive');
   const noCodeTree = buildTree(noCode).tree;
   const nmRoot = Object.keys(noCodeTree)[0];
-  ok(!(noCodeTree[nmRoot] as any).font.family.code, 'no code binding emits no font.family.code leaf');
+  ok(!(noCodeTree[nmRoot] as any).core.font.family.code, 'no code binding emits no core.font.family.code leaf');
   ok(!(noCodeTree[nmRoot] as any).type?.code, 'no code binding emits no type.code composites');
   // The carve-out is deliberate and enforced, not a happy accident of `code` being last in the list.
   const thrN = (g: string) => { try { tBrand('null-' + g, { families: { [g]: null } }); return false; } catch { return true; } };
@@ -3676,14 +3723,14 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // `true` → exactly one default brand gradient (primary.600→primary.350, linear).
   const def = grBrand('gr-true', true).gradient.gradients;
   ok(def.length === 1 && def[0].name === 'brand' && def[0].kind === 'linear', '`gradients: true` ships one default linear brand gradient');
-  ok(def[0].stops.length === 2 && def[0].stops[0].aliasOf === 'prism.palette.primary.600' && def[0].stops[1].aliasOf === 'prism.palette.primary.350', 'default gradient stops alias primary.600 → primary.350');
+  ok(def[0].stops.length === 2 && def[0].stops[0].aliasOf === 'prism.core.palette.primary.600' && def[0].stops[1].aliasOf === 'prism.core.palette.primary.350', 'default gradient stops alias primary.600 → primary.350');
   // explicit array: linear + radial, cross-palette, stop colours alias the ramp.
   const ex = grBrand('gr-ex', [
     { name: 'brand', kind: 'linear', angle: 135, stops: [{ palette: 'primary', step: 600, position: 0 }, { palette: 'accent', step: 500, position: 1 }] },
     { name: 'glow', kind: 'radial', center: [0.5, 0.4], shape: 'circle', stops: [{ palette: 'accent', step: 400, position: 0 }, { palette: 'accent', step: 700, position: 1 }] },
   ]).gradient.gradients;
   ok(ex.length === 2 && ex[0].kind === 'linear' && ex[1].kind === 'radial', 'explicit array → both linear + radial kinds');
-  ok(ex.every((g) => g.stops.every((s) => s.aliasOf.startsWith('prism.palette.'))), 'every gradient stop aliases the colour ramp (never raw hex)');
+  ok(ex.every((g) => g.stops.every((s) => s.aliasOf.startsWith('prism.core.palette.'))), 'every gradient stop aliases the colour ramp (never raw hex)');
   // stops sorted ascending by position; positions in [0,1].
   ok(ex.every((g) => g.stops.every((s, i) => i === 0 || s.position >= g.stops[i - 1].position)), 'stops are ordered ascending by position');
   ok(ex.every((g) => g.stops.every((s) => s.position >= 0 && s.position <= 1)), 'stop positions are within [0,1]');
@@ -5314,7 +5361,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // faces NB binds keep their variable IDs; only the four genuinely-new variables get fresh ones.
   const font = buildFigmaFont(theme)[0];
   const fontFix = JSON.parse(readFileSync(resolve(FIXDIR, 'font.json'), 'utf8'));
-  const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [v.name, v]));
+  const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [nbFixName(v.name), v]));
   const emitByName = new Map<string, any>(font.variables.map((v: any) => [v.name, v]));
   const missingF = [...fontByName.keys()].filter((n) => !emitByName.has(n));
   const extraF = [...emitByName.keys()].filter((n) => !fontByName.has(n));
@@ -5331,8 +5378,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if (fv.resolvedType !== ov.resolvedType) badFT.push(name);
     if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) badFS.push(name);
     if (fv.value !== ov.value) badFV.push(name);
-    if ((fv.alias?.name ?? null) !== (ov.alias?.name ?? null)) badFA.push(name);
-    if (name.startsWith('font/family/') && !ov.description.startsWith(fv.description)) badFD.push(name);
+    if ((fv.alias ? nbFixName(fv.alias.name) : null) !== (ov.alias?.name ?? null)) badFA.push(name);
+    if (name.startsWith(nbVar('core/font/family/')) && !ov.description.startsWith(fv.description)) badFD.push(name);
   }
   ok(badFT.length === 0, 'figma font: resolvedType matches fixture' + (badFT.length ? ` — ${badFT.slice(0, 3).join(',')}` : ''));
   ok(badFS.length === 0, 'figma font: scopes match fixture' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
@@ -5345,7 +5392,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   for (const mode of FONT_FLUID_MODES) {
     const emitted = fluid.find((f) => f.$mode === mode)!;
     const fx = JSON.parse(readFileSync(resolve(FIXDIR, `font-fluid.${mode}.json`), 'utf8'));
-    const fxByName = new Map<string, any>(fx.variables.map((v: any) => [v.name, v]));
+    const fxByName = new Map<string, any>(fx.variables.map((v: any) => [nbFixName(v.name), v]));
     const outByName = new Map<string, any>(emitted.variables.map((v: any) => [v.name, v]));
     const missing = [...fxByName.keys()].filter((n) => !outByName.has(n));
     const extra = [...outByName.keys()].filter((n) => !fxByName.has(n));
@@ -5382,20 +5429,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const upperMismatch: string[] = [], decoMismatch: string[] = [];
   for (const s of ts.styles) {
     const p = s.properties;
-    // fix #2 — collection is the typography primitive `core-font` (renamed from `font`, #66) or
-    // `type-sets` (renamed from `font-fluid`) for the fluid composites. The bound VARIABLE names
-    // still mirror the DTCG paths (`font/…`, `font-fluid/…`) — the rename is a collection label only.
+    // fix #2 — collection is `core` (the merged primitive collection, #1097 — it was `core-font`,
+    // itself renamed from `font` by #66) or `type-sets` (renamed from `font-fluid`) for the fluid
+    // composites. The bound VARIABLE names mirror the DTCG path, which now carries both the brand
+    // root and the `core` tier — the STYLE name still carries neither, and that asymmetry is the
+    // stated exception (docs/10): a variable is its DTCG path with slashes, a style is not.
     const fx = expectedByCorrectedName.get(s.name);
     if (!fx) continue;
-    if (!(p.fontFamily as any).bound || (p.fontFamily as any).collection !== 'core-font') collBad.push(`${s.name}:family`);
-    if (!(p.fontSize as any).bound || !['core-font', 'type-sets'].includes((p.fontSize as any).collection)) collBad.push(`${s.name}:size`);
-    if (!(p.fontWeight as any).bound || (p.fontWeight as any).collection !== 'core-font') collBad.push(`${s.name}:weight`);
+    if (!(p.fontFamily as any).bound || (p.fontFamily as any).collection !== 'core') collBad.push(`${s.name}:family`);
+    if (!(p.fontSize as any).bound || !['core', 'type-sets'].includes((p.fontSize as any).collection)) collBad.push(`${s.name}:size`);
+    if (!(p.fontWeight as any).bound || (p.fontWeight as any).collection !== 'core') collBad.push(`${s.name}:weight`);
     // The pre-fix fixture bound fontSize to the same collection the corrected
     // emit chooses (font-fluid for fluid composites, font for static) — that
     // structure survives the fixes. Verify same binding target.
-    if ((p.fontSize as any).variable !== fx.properties.fontSize.variable) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${fx.properties.fontSize.variable}`);
-    if ((p.fontWeight as any).variable !== fx.properties.fontWeight.variable) weightBind.push(`${s.name}: ${(p.fontWeight as any).variable} ≠ ${fx.properties.fontWeight.variable}`);
-    if ((p.fontFamily as any).variable !== fx.properties.fontFamily.variable) famBad.push(`${s.name}: ${(p.fontFamily as any).variable} ≠ ${fx.properties.fontFamily.variable}`);
+    if ((p.fontSize as any).variable !== nbFixName(fx.properties.fontSize.variable)) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${nbFixName(fx.properties.fontSize.variable)}`);
+    if ((p.fontWeight as any).variable !== nbFixName(fx.properties.fontWeight.variable)) weightBind.push(`${s.name}: ${(p.fontWeight as any).variable} ≠ ${nbFixName(fx.properties.fontWeight.variable)}`);
+    if ((p.fontFamily as any).variable !== nbFixName(fx.properties.fontFamily.variable)) famBad.push(`${s.name}: ${(p.fontFamily as any).variable} ≠ ${nbFixName(fx.properties.fontFamily.variable)}`);
 
     // fix #3a — lineHeight PERCENT, matches fontSize×multiplier / fontSize×100.
     const lh = (p.lineHeight as any).value;
@@ -5426,10 +5475,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if ((p.textCase as any).value !== fx.properties.textCase.value) upperMismatch.push(`${s.name}: ${(p.textCase as any).value} ≠ ${fx.properties.textCase.value}`);
     if ((p.textDecoration as any).value !== fx.properties.textDecoration.value) decoMismatch.push(`${s.name}: ${(p.textDecoration as any).value} ≠ ${fx.properties.textDecoration.value}`);
   }
-  ok(collBad.length === 0, 'figma text-styles: fix #2 — every bound property uses the prescribed collection (core-font / type-sets)' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
-  ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds font/family/<category> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
-  ok(sizeBind.length === 0, 'figma text-styles: fontSize binds the same var as the fixture (font/<size> or font-fluid/<path>)' + (sizeBind.length ? ` — ${sizeBind.slice(0, 3).join('; ')}` : ''));
-  ok(weightBind.length === 0, 'figma text-styles: fontWeight binds font/weight-role/<role>' + (weightBind.length ? ` — ${weightBind.slice(0, 3).join('; ')}` : ''));
+  ok(collBad.length === 0, 'figma text-styles: fix #2 — every bound property uses the prescribed collection (`core` / type-sets)' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
+  ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds <root>/core/font/family/<category> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
+  ok(sizeBind.length === 0, 'figma text-styles: fontSize binds the same var as the fixture (core/font/size/<n> or font-fluid/<path>, both rooted)' + (sizeBind.length ? ` — ${sizeBind.slice(0, 3).join('; ')}` : ''));
+  ok(weightBind.length === 0, 'figma text-styles: fontWeight binds <root>/core/font/weight-role/<role>' + (weightBind.length ? ` — ${weightBind.slice(0, 3).join('; ')}` : ''));
   ok(lhWrong.length === 0, 'figma text-styles: fix #3a — lineHeight baked as PERCENT (unit=PERCENT, value = round(multiplier×100))' + (lhWrong.length ? ` — ${lhWrong.slice(0, 3).join('; ')}` : ''));
   ok(lsWrong.length === 0, 'figma text-styles: fix #3b — letterSpacing baked as PERCENT (unit=PERCENT, value = em×100)' + (lsWrong.length ? ` — ${lsWrong.slice(0, 3).join('; ')}` : ''));
   ok(styleWrong.length === 0, 'figma text-styles: fix #5 — fontStyle derived from weight-role via the named-instance table' + (styleWrong.length ? ` — ${styleWrong.slice(0, 3).join('; ')}` : ''));
@@ -5479,7 +5528,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // strokeStyle leaf (`focus.ring.style: 'solid'`) is intentionally skipped —
   // Figma has no strokeStyle variable primitive.
   const expected = {
-    dimension: Object.keys(brand.dimension).length,
+    dimension: Object.keys(brand.core.dimension).length,
     space: Object.keys(brand.space).length,
     radius: Object.keys(brand.radius).length,
     // Counted from the tree, not `× <n> props per t-shirt`: that constant silently went stale the
@@ -5775,7 +5824,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // reaches the DTCG tree: the pinned hex lands at that step under <root>.palette.neutral
   const ntree = buildTree(pinnedTheme).tree as any;
-  ok(ntree.prism.palette.neutral[pinnedStep.key].$value === pinnedStep.hex, 'pin-a-neutral: the pinned grey flows through to the DTCG neutral primitive');
+  ok(ntree.prism.core.palette.neutral[pinnedStep.key].$value === pinnedStep.hex, 'pin-a-neutral: the pinned grey flows through to the DTCG neutral primitive');
 
   // schema accepts a pinned neutral
   ok(validateBrandInput({ ...input, neutral: { ...input.neutral, anchor: grey } }).length === 0, 'pin-a-neutral: schema accepts neutral.anchor');
@@ -6045,9 +6094,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // (e) every emitted color file's per-role value comes from the RIGHT mode extension
   // (not a silent light fallback). For [light, dark]: the dark file's interactive.primary.fill.rest
   // value must equal the dark extension's alias target, not the light $value.
-  const ldTree = (buildTree(ld).tree as any)[Object.keys(buildTree(ld).tree)[0]];
+  const ldBuilt = buildTree(ld);
+  const ldRoot = Object.keys(ldBuilt.tree)[0];
+  const ldTree = (ldBuilt.tree as any)[ldRoot];
   const darkFile = ldColor.find((f) => f.$mode === 'dark')!;
-  const darkAction = darkFile.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
+  // Rooted since #1097 — and the root comes off the TREE, not spelled `prism/`, because this brand's
+  // root is a default that a brief can move.
+  const darkAction = darkFile.variables.find((v) => v.name === `${ldRoot}/color/appearance/interactive/primary/fill/rest`)!;
   const darkExtAlias = ldTree.color.appearance.interactive.primary.fill.rest.$extensions.prism3.modes.dark.$value.replace(/^\{|\}$/g, '');
   ok(darkAction.alias?.name === figName(darkExtAlias),
     `emit-figma mode opt-out: dark file's color/interactive/primary/fill/rest alias is the DARK extension target, not a light fallback (got ${darkAction.alias?.name}, want ${figName(darkExtAlias)})`);
@@ -6227,7 +6280,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const mismatchedAliases: string[] = [];
   for (const v of wfMode.variables) {
     // trace the DTCG leaf back for this Figma name (color/<family>/…)
-    const dtcgPath = v.name.split('/').slice(1); // drop the 'color' segment
+    // Drop the brand ROOT and the `color` segment — two, not one, since #1097 put the namespace on
+    // every variable name. Slicing one would leave `color` on the front and `node?.[seg]` would go
+    // undefined on the first hop, so every role would `continue` and both assertions below would pass
+    // over an empty list.
+    const dtcgPath = v.name.split('/').slice(2);
     let node: any = wfTree.color;
     for (const seg of dtcgPath) node = node?.[seg];
     if (!node) continue;
@@ -6235,7 +6292,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if (typeof ext !== 'string') continue; // some roles may keep the light value in wireframe (already-neutral); accept whatever the tree emits
     const wantName = figName(ext.replace(/^\{|\}$/g, ''));
     if (v.alias?.name !== wantName) mismatchedAliases.push(`${v.name} → ${v.alias?.name} (want ${wantName})`);
-    if (v.alias && !v.alias.name.startsWith('palette/neutral/') && !v.alias.name.startsWith('palette/white') && !v.alias.name.startsWith('palette/black')) {
+    const neutralPrefix = `${wf.root}/core/palette/`;
+    if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`)) {
       // Wireframe is a greyscale mode — every chromatic role should route to the neutral
       // ramp (or pure white/black for those specific primitive roles).
       nonNeutralAliases.push(`${v.name} → ${v.alias.name}`);
@@ -6249,8 +6307,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // in the light file uses the accent palette; wireframe collapses to neutral). Structural
   // proof the value shipped alongside the alias is the neutral colour, not the light
   // chromatic one.
-  const wfAction = wfMode.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
-  const lightAction = wfColor.find((c) => c.$mode === 'light')!.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
+  const actionName = `${wf.root}/color/appearance/interactive/primary/fill/rest`;
+  const wfAction = wfMode.variables.find((v) => v.name === actionName)!;
+  const lightAction = wfColor.find((c) => c.$mode === 'light')!.variables.find((v) => v.name === actionName)!;
   const rgbDist = Math.abs((wfAction.value as any).r - (wfAction.value as any).g)
                 + Math.abs((wfAction.value as any).g - (wfAction.value as any).b);
   const lightRgbDist = Math.abs((lightAction.value as any).r - (lightAction.value as any).g)
@@ -6295,7 +6354,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     } else {
       // Non-zero radius must alias dimension/0 (value 0) in the wireframe mode.
       if (wfVar.value !== 0) wfAliasBad.push(`${wfVar.name}: non-zero-radius should be 0 in wireframe (got ${wfVar.value})`);
-      if (wfVar.alias?.name !== 'dimension/0') wfAliasBad.push(`${wfVar.name}: alias=${wfVar.alias?.name} (want dimension/0)`);
+      const wantZero = `${wf.root}/core/dimension/0`;
+      if (wfVar.alias?.name !== wantZero) wfAliasBad.push(`${wfVar.name}: alias=${wfVar.alias?.name} (want ${wantZero})`);
     }
   }
   ok(wfAliasBad.length === 0, `emit-figma wireframe: every non-zero radius aliases dimension/0 in wireframe mode; radius.none stays 0` + (wfAliasBad.length ? ` — ${wfAliasBad.slice(0, 3).join('; ')}` : ''));
@@ -6363,7 +6423,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the pre-M-09 unconditional-alias code would emit off a non-brace value.
   const emptyNamed = dims.space.variables.filter((v) => v.alias && !v.alias.name);
   ok(emptyNamed.length === 0, `M-09: no space var ships an empty-named alias (got ${emptyNamed.length})`);
-  ok(dims.space.variables.every((v) => v.alias && v.alias.name.startsWith('dimension/')), 'M-09: every space var aliases a dimension/* primitive');
+  ok(dims.space.variables.every((v) => v.alias && v.alias.name.startsWith(nbVar('core/dimension/'))), 'M-09: every space var aliases a <root>/core/dimension/* primitive');
 
   // The invariant the guard enforces: a space alias is either null or a NON-EMPTY
   // VARIABLE_ALIAS — never the `{ name: '' }` dangling binding. This is the same shape
@@ -6678,7 +6738,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 //
 // (b) SEMANTIC + DIRECTLY-CONSUMABLE TIER stays visible. `color/*`, `space`,
 //     `radius`, `size`, `border-width`, `focus`, `opacity` (#79 — consumable, no
-//     semantic layer to prefer), `font-fluid`, `font/weight-role/*`, `layout` all
+//     semantic layer to prefer), `font-fluid`, `core/font/weight-role/*`, `layout` all
 //     keep their role-family scopes and carry no `hiddenFromPublishing` field
 //     (JSON stays clean — bytes are unchanged modulo the new descriptions).
 //
@@ -6702,9 +6762,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const primitiveGroups: Array<{ tag: string; vars: any[]; expectScopes: string[] }> = [
     { tag: 'palette', vars: palette.variables, expectScopes: ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'] },
     { tag: 'dimension', vars: dims.dimension.variables, expectScopes: ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'] },
-    { tag: 'font/family', vars: font.variables.filter((v) => v.name.startsWith('font/family/')), expectScopes: ['FONT_FAMILY'] },
-    { tag: 'font/size', vars: font.variables.filter((v) => v.name.startsWith('font/size/')), expectScopes: ['FONT_SIZE'] },
-    { tag: 'font/weight', vars: font.variables.filter((v) => v.name.startsWith('font/weight/')), expectScopes: ['FONT_WEIGHT'] },
+    // Rooted + `core`-tiered since #1097/#1102. A bare `font/family/` prefix would now match nothing
+    // and every assertion below it would pass over an EMPTY array — the vacuous-filter shape, not a
+    // failure. `nbVar` derives the root from the theme, so it cannot drift from the emitter.
+    { tag: 'core/font/family', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/'))), expectScopes: ['FONT_FAMILY'] },
+    { tag: 'core/font/size', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/size/'))), expectScopes: ['FONT_SIZE'] },
+    { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: ['FONT_WEIGHT'] },
   ];
   const notHidden: string[] = [];
   const wrongScope: string[] = [];
@@ -6729,7 +6792,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     { tag: 'focus', vars: dims.focus.variables },
     { tag: 'opacity', vars: dims.opacity.variables },
     { tag: 'font-fluid', vars: fluid.flatMap((c) => c.variables) },
-    { tag: 'font/weight-role', vars: font.variables.filter((v) => v.name.startsWith('font/weight-role/')) },
+    { tag: 'core/font/weight-role', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight-role/'))) },
     { tag: 'layout', vars: layout.flatMap((c) => c.variables) },
   ];
   const wronglyHidden: string[] = [];
@@ -6754,18 +6817,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const { tree } = buildTree(theme);
   const R = Object.keys(tree)[0];
   const spotChecks: Array<[string, any, string]> = [
-    ['palette/red/550', tree[R].palette.red['550'], palette.variables.find((v) => v.name === 'palette/red/550')!.description],
-    ['color/appearance/background/primary', tree[R].color.appearance.background.primary, color[0].variables.find((v) => v.name === 'color/appearance/background/primary')!.description],
-    ['space/100', tree[R].space['100'], dims.space.variables.find((v) => v.name === 'space/100')!.description],
-    ['radius/md', tree[R].radius.md, dims.radius[0].variables.find((v) => v.name === 'radius/md')!.description],
-    ['opacity/50', tree[R].opacity['50'], dims.opacity.variables.find((v) => v.name === 'opacity/50')!.description],
-    ['font/size/16', tree[R].font.size['16'], font.variables.find((v) => v.name === 'font/size/16')!.description],
-    ['font/weight/400', tree[R].font.weight['400'], font.variables.find((v) => v.name === 'font/weight/400')!.description],
+    // The label stays the root-relative tail (it is what the message reads); the LOOKUP is by the
+    // full emitted name, which now carries the brand root on every variable (#1097).
+    ['core/palette/red/550', tree[R].core.palette.red['550'], palette.variables.find((v) => v.name === nbVar('core/palette/red/550'))!.description],
+    ['color/appearance/background/primary', tree[R].color.appearance.background.primary, color[0].variables.find((v) => v.name === nbVar('color/appearance/background/primary'))!.description],
+    ['space/100', tree[R].space['100'], dims.space.variables.find((v) => v.name === nbVar('space/100'))!.description],
+    ['radius/md', tree[R].radius.md, dims.radius[0].variables.find((v) => v.name === nbVar('radius/md'))!.description],
+    ['opacity/50', tree[R].opacity['50'], dims.opacity.variables.find((v) => v.name === nbVar('opacity/50'))!.description],
+    ['core/font/size/16', tree[R].core.font.size['16'], font.variables.find((v) => v.name === nbVar('core/font/size/16'))!.description],
+    ['core/font/weight/400', tree[R].core.font.weight['400'], font.variables.find((v) => v.name === nbVar('core/font/weight/400'))!.description],
   ];
   const descMismatch: string[] = [];
   for (const [name, leaf, actual] of spotChecks) {
     // family carries the stack line FIRST, then the description; other tokens are exact.
-    if (name.startsWith('font/family/')) continue;
+    if (name.startsWith('core/font/family/')) continue;
     if (actual !== String(leaf.$description ?? '')) descMismatch.push(name);
   }
   ok(descMismatch.length === 0, 'figma descriptions: spot-check across axes matches the DTCG $description verbatim' + (descMismatch.length ? ` — ${descMismatch.slice(0, 3).join(', ')}` : ''));
@@ -6773,14 +6838,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // font/family descriptions: still lead with the stack (fix #4 preserved),
   // AND the DTCG $description is threaded onto the end.
   const familyFusion: string[] = [];
-  for (const v of font.variables.filter((v) => v.name.startsWith('font/family/'))) {
-    const role = v.name.split('/')[2];
-    const leaf = tree[R].font.family[role];
+  for (const v of font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/')))) {
+    const role = v.name.split('/').pop()!;
+    const leaf = tree[R].core.font.family[role];
     const stackFirst = /^stack: [^—]+/.test(v.description);
     const carriesDtcg = v.description.includes(String(leaf.$description ?? ''));
     if (!stackFirst || !carriesDtcg) familyFusion.push(v.name);
   }
-  ok(familyFusion.length === 0, 'figma font/family: description leads with the stack (fix #4) AND ends with the DTCG $description' + (familyFusion.length ? ` — ${familyFusion.slice(0, 3).join(', ')}` : ''));
+  ok(familyFusion.length === 0, 'figma core/font/family: description leads with the stack (fix #4) AND ends with the DTCG $description' + (familyFusion.length ? ` — ${familyFusion.slice(0, 3).join(', ')}` : ''));
 
   // Drift fence: same brand emits deterministically. Regenerate twice; the
   // sorted-keys JSON MUST be byte-identical. Catches accidental
@@ -10063,15 +10128,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const verify = passJs('nb', 'verify');
   ok(verify.includes('pruneReport') && verify.includes('orphanReason') && verify.includes('const orphans='),
     'materialise: verify pass embeds the #479 prune-report + reason classifier');
-  ok(verify.includes("findCol('core-palette')"),
-    'materialise: verify pass reads back core-palette too, not just color — #479 measured its drift as 222 vs a 122-row plan');
+  ok(verify.includes('findCol("core")'),
+    'materialise: verify pass reads back the `core` collection too, not just color — #479 measured its drift as 222 vs a 122-row plan');
 
   // The embedded PLANNED_PALETTE / PLANNED_COLOR arrays must be the REAL plan for this brand, not a
   // stale or partial one — parse them out of the payload and compare to `planFor`'s own output via
   // the public plan-building path (buildWritePlan over the emitted files), the same equality style
   // the typography block below uses for font/style/text-style plans.
   const plan = buildWritePlan({
-    palette: JSON.parse(readFileSync(resolve(HERE, 'out/figma/nb/core-palette.json'), 'utf8')),
+    palette: JSON.parse(readFileSync(resolve(HERE, 'out/figma/nb/core.palette.json'), 'utf8')),
     color: ['light', 'dark', 'hc-light', 'hc-dark'].map((m) => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/color.appearance.${m}.json`), 'utf8'))),
   });
   const paletteMatch = verify.match(/const PLANNED_PALETTE=(\[.*?\]);/);
@@ -10095,7 +10160,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // ------------------------------- materialise-to-figma: the TYPOGRAPHY + STYLE paste paths (#464)
 // The same gap #342 closed for floats, for the last three axes. The plugin has written all five
 // since #237; the paste path — the only one an MCP-driven session can use — had colour and floats,
-// so `core-font`, `type-sets`, 38 Text Styles and 14 Effect Styles were unreachable over MCP. An
+// so the `core` font slice, `type-sets`, 38 Text Styles and 14 Effect Styles were unreachable over MCP. An
 // agent could theme a file and get every colour and dimension and no typography at all.
 //
 // The load-bearing assertion is not "the passes exist" but "the file-read plan EQUALS the
@@ -10113,7 +10178,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // PLAN EQUALITY — the file-read reshapes against the theme-built ones, per axis. `nb` is the
   // fixture both paths can build, so this is a true equality rather than a shape comparison.
   const rd = (f: string): unknown => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
-  const coreFont = rd('core-font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
+  const coreFont = rd('core.font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
   const fluidFiles = ['mobile', 'desktop'].map((m) => rd(`type-sets.${m}.json`) as typeof coreFont);
   ok(JSON.stringify(fontVarPlanFrom([coreFont], fluidFiles)) === JSON.stringify(buildFontVarPlan(t)),
     'materialise: the file-read font plan is IDENTICAL to the theme-built font plan (the two write paths cannot drift)');
@@ -10126,7 +10191,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const textStyles = passJs('nb', 'text-styles');
   const styles = passJs('nb', 'styles');
 
-  // `core-font` mixes STRING (family) and FLOAT (size/weight) in ONE collection — the reason this
+  // The `core` collection mixes STRING (family) and FLOAT (size/weight/palette-adjacent) in ONE
+  // collection — the reason this
   // pass carries a per-row type code where `dims-create` hardcodes 'FLOAT'. A family var created as
   // FLOAT accepts no string value and fails only when a Text Style tries to bind it, so both codes
   // must reach the payload, and the decode must THROW on an unknown one rather than default.
@@ -10134,7 +10200,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(/,"s",/.test(fontVars) && /,"f",/.test(fontVars), 'materialise: font-vars rows use both type codes');
   ok(/throw new Error\('unknown scope code/.test(fontVars), 'materialise: an unknown font scope code THROWS at paste time (never silently decodes to undefined)');
   // This is the assertion that caught FONT_FAMILY having no code at all — it's a STRING scope, so the
-  // FLOAT map (built for the dims lane) never needed one, and `core-font` is the only collection that
+  // FLOAT map (built for the dims lane) never needed one, and `core` is the only collection that
   // mixes the two. Every family var would have pasted with `scopes: [undefined]`.
   ok(!/"[a-z*]*\?[a-z*]*",/.test(fontVars), 'materialise: every font scope encodes to a known code (no `?` in the payload)');
   // The decode map is a bijection or it silently mis-scopes: two scopes sharing a letter means one
@@ -10149,7 +10215,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const fontCreated = new Set<string>();
   for (const m of fontVars.matchAll(/\["([a-z0-9/\-.]+)","[sf]"/g)) fontCreated.add(m[1]);
   const fontTargets = new Set<string>();
-  for (const m of fontVars.matchAll(/,\["(font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
+  // Rooted + `core`-tiered since #1097/#1102 — the leading `[a-z0-9/\-.]*` is the brand root, which is
+  // a lever, so the pattern must not spell one. A pattern anchored at `font/weight/` would match
+  // NOTHING here and `fontTargets.size === 5` would be the only thing that noticed.
+  for (const m of fontVars.matchAll(/,\["([a-z0-9/\-.]*core\/font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
   ok(fontCreated.size === 50, `materialise: font-vars creates all 50 typography variables (${fontCreated.size})`);
   ok(fontTargets.size === 5 && [...fontTargets].every((x) => fontCreated.has(x)),
     `materialise: every weight-role alias target is created by the same pass (${fontTargets.size} roles)`);
@@ -10440,7 +10509,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // ---- figmaArtifacts: the per-mode FILENAME conventions regen cannot see ------------------------
 // `regen --check` proves this extraction is byte-identical, but only over nb/aurora/wendys — and all
 // three take the SINGLE-FILE branch of both conditionals. So the byte proof covers half of each `if`,
-// and the per-mode halves (`core-font.<mode>.json`, `radius.<mode>.json`) had no coverage at all.
+// and the per-mode halves (`core.font.<mode>.json`, `radius.<mode>.json`) had no coverage at all.
 //
 // That asymmetry is the point worth keeping: a corpus proves what the corpus contains. These two
 // conventions exist so a brand NOT using the feature stays byte-identical to the pre-feature world,
@@ -10451,14 +10520,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const pathsOf = (input: unknown): string[] => figmaArtifacts(brandTheme(input as never)).artifacts.map((a) => a.path);
 
   const plain = pathsOf(base);
-  ok(plain.filter((p) => /^core-font\./.test(p)).join() === 'core-font.json',
-    'figmaArtifacts: a brand with no per-mode typography emits ONE core-font.json (pre-Phase-D byte shape)');
+  // `core.font.*`, not `core-font.*` (#1097): the three primitive collections merged, and the FILE
+  // STEM follows the collection plus its group — `core.font.json`, `core.palette.json`,
+  // `core.dimension.json` all declare `$collection: 'core'`. The dot is now a stem separator here as
+  // well as a mode separator, which is why the per-mode arm below matches THREE segments.
+  ok(plain.filter((p) => /^core\.font\./.test(p)).join() === 'core.font.json',
+    'figmaArtifacts: a brand with no per-mode typography emits ONE core.font.json (pre-Phase-D byte shape)');
   ok(plain.filter((p) => /^radius\./.test(p)).join() === 'radius.json',
     'figmaArtifacts: a non-wireframe brand emits ONE radius.json (pre-Pillar-1b byte shape)');
 
   const perModeFont = pathsOf({ ...base, families: { body: 'Inter', display: 'Inter' }, modeLevers: { dark: { families: { body: 'Georgia' } } } });
-  ok(perModeFont.filter((p) => /^core-font\./.test(p)).sort().join() === 'core-font.Default.json,core-font.dark.json',
-    'figmaArtifacts: a per-mode FAMILY override switches core-font to per-mode filenames');
+  ok(perModeFont.filter((p) => /^core\.font\./.test(p)).sort().join() === 'core.font.Default.json,core.font.dark.json',
+    'figmaArtifacts: a per-mode FAMILY override switches core.font to per-mode filenames');
 
   const wire = pathsOf({ ...base, modes: ['light', 'dark', 'wireframe'] });
   ok(wire.filter((p) => /^radius\./.test(p)).sort().join() === 'radius.Default.json,radius.wireframe.json',

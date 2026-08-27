@@ -177,7 +177,13 @@ export const buildSurfaceWritePlan = (theme: Theme): SurfacePlan => {
     name: v.name,
     targetsByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
   }));
-  return { name: 'color', modes, create, aliases };
+  // Off the FILE, not spelled here (#1097/#1089, same reason as `buildFloatWritePlan`). #1089 renamed
+  // this collection `color.surface` and a literal at this line would have been the second place its
+  // name is stated — the one the emitter can move out from under. It is `plan.name` the executor
+  // upserts, so a stale literal writes 128 correct pointers into a collection nobody binds, with no
+  // gate reading a collection label. That is not hypothetical: the literal was `'color'` here while
+  // the emitter had already moved to `color.surface`.
+  return { name: files[0].$collection, modes, create, aliases };
 };
 
 // ---------------------------------------------------------------------------
