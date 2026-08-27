@@ -7,6 +7,119 @@
 
 ---
 
+## (2026-08-27) — Three findings, one family, three shapes: `docs/34` gains 19, 20 and 21 (#1049, #1093, #1103)
+
+**STATUS: docs only.** `docs/34` (+ the `shape-index` baseline via `--accept`), this entry, and one new
+issue. No gate behavior changed, nothing fixed — find-don't-fix, per the brief.
+
+Gates stay at **45**; `test.ts` **2643 passed, 0 failed**, unchanged, which is the right result for a
+docs-only change and is stated because a moved count here would mean something went wrong.
+
+── THE QUESTION WAS NOT "ARE THESE RELATED" ────────────────────────────────────────────────────
+
+Three findings from one week look like one family: a comment disagreeing with the code written beside it
+(#1049, four instances), a mutation that fires through somebody else's arm (#1093, three), and a measured
+document's one unmeasured sentence (#1103, four — filed by this lane so there was a number to cite rather
+than a forward reference). The common thread is real: **rigour is not uniform inside an artifact, and the
+weak part is camouflaged by the strong parts around it** rather than absent.
+
+**The question was whether a row at that altitude tells anyone what to do differently, and the answer is
+no.** It says the weak part exists. It does not say which part, or what to do. So: **three shapes and a
+short section saying why they are not one**, which is the outcome the brief named as the better one if it
+came out that way.
+
+Two things decided it, neither of them taste. Review of #1058 made this exact critique of **shape 18** —
+that its author-facing half restated this page's central rule and only one sentence in it was genuinely
+new. Applied to my own findings, it cuts the same way. And the file's own preamble already states the
+criterion: *"they are all the same rule; the reason to enumerate them is that the **tell** differs."*
+Three tells, three remedies, three entries.
+
+**The nearest shared question is "what produced this?"** — and it covers 20 and 21 squarely while covering
+only half of 19. For a mutation that fired through a neighbor's arm the question is not provenance but
+**necessity**: *would anything else have caught this*. A unifying question that fits two of three is an
+argument for three rows, not for one, and that is in the file rather than only here.
+
+── WHAT EACH ONE ADDS THAT THE CENTRAL RULE DOES NOT ───────────────────────────────────────────
+
+**Shape 19 — the auditor, not the audited.** `docs/34`'s central test is *confirm your gate is among the
+failures, by name*. Four ways a mutation defeats it: it did not apply (#1058's off-by-one `sed`, three
+plausible greens); it applied without producing the claimed state (#1055 — `color` is emitted per mode, so
+dropping a name from one mode file is not a removal); it produced the state and something **else** caught
+it (#1092's first M4); and it applied on top of the previous one (this session — a battery piped through
+`head -8` took **SIGPIPE before its restore step**).
+
+The third is the interesting one, and the reason is a distinction I had to work out rather than assume:
+in that M4 the new arm **did** fire, alongside the pre-existing one. So the central rule was *satisfied*
+and the mutation still proved nothing. **"Was my arm among the failures" is a question about sufficiency;
+what was in doubt was necessity.** The converse mutation — neutralize only that arm and confirm the run
+goes green — is the assertion that answers it, and #1092 ran it as M4b for exactly this reason.
+
+**Shape 20 — the scope stretch is stated rather than hidden.** There is no gate in a comment-versus-code
+disagreement and nothing *could* compare the two, because a comment is not executable. It earns a number
+because its effect on a reader is identical to every shape above it: a statement that reads as evidence.
+And #1049 asked a question this had to answer rather than dodge — **same-pass and stale are two shapes,
+not one**, because the detection stories do not overlap. A stale comment is findable by asking what
+changed since it was written; a same-pass comment has blame identical to the code it misdescribes, so that
+question returns nothing. #1021 is the staleness kind by its own words (*"true when written, falsified by
+#920"*). The three adjacent issues #1049 names are **not** classified, because I did not re-read them, and
+guessing would be shape 21 happening inside the row that defines it.
+
+**Shape 21 — and the part worth carrying is what it is NOT.** The forward-claim problem is already solved
+and already has a documented position: `tools/forward-claim-check` and `lint-advisory-expiry` handle claims
+that were **true when written and decayed**. All four instances here were **false on the day they were
+written**, so no staleness detector can see any of them — camouflage is the mechanism, not decay. Ten
+minutes looking back turned up two instances beyond my own, and they are the load-bearing ones because
+**their own authors caught them**: the forward-claim harness header arguing from unmeasured recall alone,
+and CLAUDE.md's `npm ci` reasoning whose second half was *"inherited, not measured, so it was measured."*
+That sentence, generalized, is the fix: **name what produced each load-bearing claim; the ones that answer
+"nothing" are the exposure.** It re-verifies nothing, so it costs nothing.
+
+── AND THE CORRECTION I KEPT VISIBLE, BECAUSE IT IS THE INSTANCE ───────────────────────────────
+
+My first framing of #1103 was that the unmeasured claim tends to be the **forward-looking** one, since
+measurement is about the present and priority is about the future. Instances 1 and 2 fit. **3 and 4 do
+not** — both are claims about the present. So the forward-looking version is a sub-case, and the framing
+that survives all four is the broader one.
+
+*That first framing was itself an unmeasured generalization from two instances, made while writing up the
+shape it is an instance of.* It is in the issue and in the shape rather than quietly replaced, because a
+shape about unbacked claims whose own statement was an unbacked claim is the most useful thing this lane
+produced.
+
+── THE ACCEPT, AND WHY ITS FRICTION IS THE POINT ───────────────────────────────────────────────
+
+`lint-shape-index` refused all three additions by name before `--accept` ratified them — *"that friction
+is the point: it is the moment the append-only rule gets applied."* Append-only held: 1–18 byte-identical,
+19–21 appended, no retitles. Citations 303 across 49 files, all resolving. **No shape number was cited
+before it existed** — #1103 was filed first for exactly that reason, after #1058 was caught citing "shape
+18" before `docs/34` defined it and the gate correctly refused the forward reference.
+
+── A TRAP FOR THE NEXT SHAPE AUTHOR, FOUND BY WALKING INTO IT ──────────────────────────────────
+
+**A `docs/34` shape TITLE is shipped text; the document holding it is not.** `docs/34` is outside
+`lint-us-english`'s scope, and `docs/34` prose carries en-GB spellings today (*behaviour*, in the very
+sentence this week's #1092 quoted). But `--accept` copies the title verbatim into
+`packages/engine/schema/shape-index.json`, which **is** a scanned surface — so shape 21's first title,
+carrying *rigour*, passed every docs-facing check and failed the build one gate later.
+
+Caught by `lint-us-english` naming the file and line, which is the gate working exactly as its scope
+argument says it should: *source greps miss what ships.* Here the same rule ran in an unexpected
+direction — the source is a document nobody spell-checks, and it ships by being copied.
+
+Retitled in the document **and hand-edited in the baseline**, rather than re-accepted. `--accept` refuses
+a retitle by design, and rightly: that refusal protects *published* numbers. Shape 21 had never left this
+branch, so editing the authored baseline is what an authored baseline is for — but it is worth being
+explicit that this is the one case where hand-editing it is correct, so nobody reads the precedent wider
+than it goes.
+
+── NOT FIXED, DELIBERATELY ─────────────────────────────────────────────────────────────────────
+
+Nothing here repairs a gate. Registering shape 19 makes the absence of a shared battery helper more
+visible, and #1093 is open on it; shape 20 explicitly proposes no gate; shape 21 argues against one on
+`lint-advisory-expiry`'s own recall grounds. **A row that also repairs its own motivating defect inherits
+that defect's idea of what was worth measuring** — #801, in the register twice for that reason.
+
+
 ## (2026-08-26) — 37 refusals nobody lost anything to: the two controls refuted the diagnosis before it was built on (#1087)
 
 **STATUS: shipped.** No version change — a branch reordering and three test arms. Nothing emitted moves.

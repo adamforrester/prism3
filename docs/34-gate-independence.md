@@ -895,6 +895,157 @@ first"*, and the count pin's could add *"a count that dropped means an artifact 
 emitted — confirm that was deliberate before re-pinning."* Cheap to write, and it is the only part
 of this shape a gate author can act on alone.
 
+### 19. The mutation is not self-verifying: a red suite looks the same whether or not the mutation happened
+
+Every shape above is about the audited. This one is about the **auditor** — the mutation itself, the
+instrument every claim of independence on this page rests on. The precedent for turning the file on its
+own method is #1058's M3, which was caught by the protocol rather than by the result.
+
+`docs/34`'s central test is *mutate the subject and confirm your gate is among the failures, by name.*
+Three lanes followed it and still built conclusions on mutations that had not done what their authors
+believed (#1093). **The exit code is not the evidence**, and the four ways it lies are different from
+each other:
+
+- **It did not apply.** #1058's off-by-one `sed` produced **three plausible greens** — a mutation that
+  edits nothing produces a passing suite that reads exactly like a gate correctly declining to fire.
+  Caught only by the protocol's mandatory "assert the diff is non-empty" step.
+- **It applied, and did not produce the state it claims.** #1055 dropped a name from one `color` mode
+  file to simulate a removal — but `color` is emitted **per mode**, so the `(collection, name)` key
+  survived and no removal ever existed. A second probe's synthetic addition crashed an unrelated alias
+  test. Both would have filled a coverage table with rows that looked rigorous and measured nothing.
+- **It produced the state, and something else caught it.** #1092's first M4 injected a break into
+  `color`, where a **pre-existing** arm covered it. The suite went red, and the new arm fired too — so
+  the central test was *satisfied* and the mutation still proved nothing, because the pre-existing arm
+  would have caught it either way. **This is the one the central rule looks like it covers and does
+  not:** "was my arm among the failures" is a question about sufficiency, and the thing in doubt is
+  **necessity**.
+- **It applied, and so did the previous one.** #1092 again: piping the battery through `head -8` closed
+  the pipe, the harness took SIGPIPE **before its restore step**, and the next mutation ran on top of
+  the last. The contamination was visible only because a failure message carried the wrong mutation's
+  signature. A harness whose cleanup is a later line of the same script has no cleanup on any path that
+  exits early.
+
+**Tell:** you are about to write a row into a mutation table and the only evidence behind it is the exit
+code. Also: any harness where cleanup is a step rather than a trap.
+
+**Fix:** three assertions, in order, before the result is allowed into a table. **(1)** The diff landed —
+non-empty, and the anchor matched. **(2)** The state the mutation claims now exists, measured directly:
+not "I edited the file" but "the key is absent" / "the target resolves nowhere". **(3)** For an arm the
+PR is *introducing*, the converse — neutralize **only** that arm, with the defect still live, and confirm
+the run goes green. (3) is the expensive one and is what separates "my arm fired" from "my arm is why".
+Its cost is the reason to scope it to new arms rather than to every mutation.
+
+**And the honest limit:** (2) is the one that does not generalize. The claimed state differs per mutation,
+so there is nothing to put in a shared helper — which is also why all three instances were caught by an
+author being suspicious of their own tool at the moment they most wanted it to work, and why that is not
+a mechanism. #1093 is open on whether any of this can be mechanized.
+
+### 20. The comment and the code were written in one pass: the prose records the intent, the code records what was typed
+
+**Scope note first, because this one stretches the file's subject and should say so.** There is no gate
+here and no collapsed comparison — a comment is not executable, so nothing *could* compare the two. It
+earns a number because its effect on a reader is identical to every shape above: a statement that reads
+as evidence a property holds, sitting next to code that does not hold it.
+
+Four instances, all from one week (#1049):
+
+- **#1048** — `lint-materialization-renames`'s base-ref ladder fell through an unresolvable
+  `GITHUB_BASE_REF` to `origin/main` and reported clean against a branch that is not the PR's base.
+  **The comment directly above the ladder already said falling through would be wrong.**
+- **`planCollectionRename`'s header** said target-first ordering is what makes swaps safe; #1082 moved
+  the code to source-first and the header had to move with it.
+- **`rename-map.ts`'s module header** said *"the mirror that has no counterpart in a given file simply
+  reports `source-absent`, so over-projecting is self-correcting"* — an accurate description of the
+  design, while the branch order beneath it reported exactly those rows as refusals (#1092).
+- **#1071** — `setBrandSize`'s docstring claims the opposite of what the code does.
+
+**It is worse for a reader than a stale comment, and that is why it is not folded into the staleness
+shapes.** A stale comment was true once; the code moved and the prose did not. This one was **never
+true**. And its effect is not neutral: the comment tells you what to expect, so you read the code and
+see what you were told. *A defect an accurate comment would surface is one an aspirational comment
+actively hides.*
+
+**#1049 asks whether this and comment-staleness are one shape or two. Two** — because the detection
+stories do not overlap. A stale comment is findable by asking *what changed since this was written*,
+which is a question with a mechanical answer (`git log -L`). A same-pass comment is invisible to that
+question entirely: nothing changed, and the comment and the code have identical blame. #1021 is the
+staleness kind by its own words — *"true when written, falsified by #920"* — and belongs on the other
+side of the line. The three adjacent issues #1049 names (#952, #975, #968) are not classified here; I
+did not re-read them, and guessing which side they fall on would be this page's own shape 21.
+
+**Tell:** a diff in which a comment stating an intent and the code implementing it are **both new**.
+
+**Fix:** a distinct reading pass at review, not better authorship. Read the comment as a **claim**, then
+check the code against it — deliberately, and separately from reading the code, because reading them
+together is what produces the defect in the first place. The reviewer inherits the author's expectation
+otherwise. There is no gate to build here and this row does not propose one.
+
+### 21. The one claim no command produced, camouflaged by the measured claims around it
+
+In an artifact where most claims are measured, the unmeasured one is **harder** to see than it would be
+somewhere nothing is measured, because the rigour around it is what a reader calibrates on. Nobody
+re-derives the sixth figure in a document that has just given them five correct ones (#1103).
+
+Four instances, and the last two are the load-bearing ones:
+
+- **#1091** — every number measured (80 / 40 / 3 / 37, 128 against 242) and one sentence not: that the
+  namespace work *"adds rules to this same mechanism at every-variable width"*. It was false, it was the
+  issue's **entire priority argument**, and it was caught by an owner challenge rather than by any
+  process.
+- **The commit retracting that sentence** carried a new one of the same kind — `MATERIALIZATION_RENAMES`
+  "does not reach the executor at all" — true of `main`, false of the branch about to merge. *A
+  retraction written the same way as the claim inherits its blind spot.*
+- **`tools/forward-claim-check`'s header** argued the case against gating from unmeasured recall alone,
+  leaving a future reader with a good recall number free to conclude the case was complete. The second
+  and stronger leg — asymmetric error costs — was simply never written. Caught by its author on re-read.
+- **CLAUDE.md's `npm ci` over `install`** had a stated reason and an unstated half: that `ci` is safe in
+  the tree shape that made `install` destructive. That half was **inherited, not measured** — so it was
+  measured, and the mechanism turned out to be the finding.
+
+**This is not the forward-claim problem, and conflating them wastes the work already done.**
+`tools/forward-claim-check` and `lint-advisory-expiry` handle claims that were **true when written and
+decayed** — time is the mechanism, and `lint-advisory-expiry`'s header sets out at length why the general
+case is a recall problem rather than a gate. All four above were **false on the day they were written**.
+A staleness detector cannot see any of them, because none of them was ever true.
+
+**Tell:** a load-bearing sentence in a document whose neighbors all carry figures, and it carries none.
+
+**Fix, and it is the fourth instance's own sentence generalized:** for each load-bearing claim, name
+**what produced it** — a measurement, a citation, a read of the code, or nothing. Not "is it true";
+*what process yielded it*. The claims that answer "nothing" are the exposure, and listing them costs
+nothing because it re-verifies nothing. The two instances their own authors caught were both caught
+exactly this way.
+
+**Not a gate**, for `lint-advisory-expiry`'s reason: nobody can enumerate the phrasings of "load-bearing
+claim", so nothing can block a merge on it. And **not "write fewer unmeasured sentences"**, which is
+advice and would report clean forever.
+
+**One correction kept visible, because it is the useful part.** The first framing of this was that the
+unmeasured claim tends to be the **forward-looking** one, since measurement is about the present and
+priority is about the future. Instances 1 and 2 fit; **3 and 4 do not** — both are claims about the
+present. So the forward-looking version is a sub-case, and the framing that survives all four is the
+broader one above. The first framing was itself an unmeasured generalization from two instances, made
+while writing up the shape it is an instance of.
+
+### Why 19, 20 and 21 are one family and still three shapes
+
+They share a real thread: **rigour is not uniform inside an artifact, and the weak part is camouflaged by
+the strong parts around it** rather than absent. A battery that proves three things and assumes the
+fourth; code whose comment is the one unchecked assertion about it; a document of measurements with one
+sentence nobody produced.
+
+**That thread is true and it is not a shape, because a row stated at that altitude does not tell anyone
+what to do differently.** It says the weak part exists; it does not say which part, or what to do about
+it. Review of #1058 made this exact critique of shape 18 — that its author-facing half restated this
+page's central rule and only one sentence in it was new — and the same standard applied here cuts the
+same way. Three tells, three remedies, three entries, which is also what the preamble to this list says
+the numbering is for: *they are all the same rule; the reason to enumerate them is that the tell differs.*
+
+The nearest thing to a shared, portable question is **"what produced this?"** — and it covers 20 and 21
+squarely while covering only half of 19: for a mutation that fired through a neighbor's arm the question
+is not provenance but **necessity**, *would anything else have caught this*. A unifying question that
+fits two of three is the argument for three rows, not for one.
+
 ## Two adjacent failure modes, for completeness
 
 They are not independence failures, but they arrive in the same reviews and one is usually mistaken
@@ -1002,6 +1153,9 @@ the third: a trap correctly diagnosed, fixed in one place, and left standing in 
 
 | date | where | shape | what passed green |
 |---|---|---|---|
+| 2026-08-27 | the MUTATION BATTERIES themselves — three lanes, one week (#1093) | 19 | **Three plausible greens from a mutation that edited nothing** (#1058's off-by-one `sed`), a coverage table about to be filled from a probe that produced no removal at all (#1055 — `color` is emitted per mode, so dropping a name from one mode file leaves the `(collection, name)` key intact), and a mutation that **exited 1 while proving nothing about the arm under test** (#1092's first M4 — injected into `color`, where a pre-existing arm covered it, so both arms fired and the central rule was satisfied). A fourth, found writing this up: a battery piped through `head -8` took **SIGPIPE before its restore step**, so the next mutation ran on top of the last, visible only because a failure message carried the wrong signature. *The exit code is not the evidence.* The central rule asks whether your arm fired — sufficiency; three of these four are about **necessity and premise**, which it does not ask. Each was caught by an author being suspicious of their own tool at the moment they most wanted it to work, which is not a mechanism. #1093 is open on whether any of it can be mechanized |
+| 2026-08-27 | comments and the code beneath them, written in one pass — four instances (#1049) | 20 | **A base-ref ladder falling through to `origin/main` and reporting clean against a branch that is not the PR's base** (#1048), with the comment directly above it already saying that falling through would be wrong. Three more of the identical shape: `planCollectionRename`'s header on ordering, moved by #1082 and needing the header moved with it; `rename-map.ts`'s module header, correct about `source-absent` while the branch order beneath reported those rows as refusals (#1092 — also registered above under shapes 15 and 1, from the gate side); and #1071's `setBrandSize` docstring claiming the opposite of its code. Distinct from comment STALENESS, which #1049 asked about and this PR answers: a stale comment was true once and is findable by asking what changed; a same-pass comment was **never** true and has blame identical to the code it misdescribes. *A defect an accurate comment would surface is one an aspirational comment actively hides.* No gate is proposed — a comment is not executable |
+| 2026-08-27 | measured artifacts with one unmeasured sentence — four instances (#1103) | 21 | **An issue whose every number was measured and whose one unmeasured sentence was its entire priority argument** (#1091), false, caught by an owner challenge rather than by any process. **The commit retracting it carried a new one of the same kind** — true of `main`, false of the branch about to merge. Two more, both caught by their own authors, which is why the remedy is known: `tools/forward-claim-check`'s header argued the case against gating from unmeasured recall alone and omitted the stronger leg entirely; CLAUDE.md's `npm ci` reasoning had an **inherited, not measured** half, *so it was measured*. Explicitly NOT the forward-claim problem — that machinery handles claims that were true and decayed, and all four here were false the day they were written, so no staleness detector can see them. **Fix:** name what produced each load-bearing claim; the ones that answer *nothing* are the exposure. Not a gate, for `lint-advisory-expiry`'s own recall reason |
 | 2026-08-26 | `test.ts` #1087 mirror classifier vs `MIRRORED_COLLECTIONS` (found by review at the merge of #1082) | 10, 8 | **Six false-positive failures one merge after the arm shipped green — `planned 43, mirror 0, break 37`, three brands.** The arm asked whether an over-projection's twin was planned in *the `MIRRORED_COLLECTIONS` KEY*, treating the key as the primary tier. That was never the rule; it was an incidental property of the layout the arm was written against, where the key `color` was the fat tier (242 names) and the mirror `surface` the thin one (128). #1082 inverted the pairing — the key `color` **is** the thin tier now — and 37 legitimate over-projections became breaks. **Shape 10**: the oracle measured today's arrangement (*which member holds the key*) instead of the rule (*is the counterpart planned anywhere in the group*). **Shape 8** is why it showed as six failures and not nine: the second-way bound, written to be independent, counted "non-key members" — the same premise in a second place, so the two counts agreed with each other perfectly while both were wrong. *Two counts sharing one premise are one count.* A second defect rode along and was diagnosed by nobody: the twin name was built by swapping path segment 0, correct for `surface/…` and silently wrong for a dotted `color.appearance`, so fixing only the key reading leaves all 37 breaks standing. Both are now guarded independently (M5, M6 — 9 failures each). **Tell:** the gate names a member of a declaration rather than a relation between members |
 | 2026-08-26 | `test.ts` rename-map arms vs `upsertCollection`'s per-collection filter (#1087) | 15, 1 | **37 runtime rename refusals on a fresh Figma file, with 45/45 PASS.** Every rename-map arm walked `colorRows` — `map.variables.filter(r => r.collection === 'color')` — while the executor filters per collection and tests each target against *that* collection's planned names, so the 40 `surface` rows were outside the checked set (**shape 15**). The instance underneath was branch order in `planVariableRenames`: `target-not-planned` tested before `source-absent`, so rows with no source to move reported as refusals on a file where none could exist. And the reason it survived is **shape 1**: arm (c) (*the SURFACE mirror*) walks exactly those rows and asserts the property by name — *"…resolve to `source-absent`, **not a refusal**"* — but builds its `planned` set from `surfDead.map(r => r.to)`, the targets of the rows under test, so `!want.has(to)` is unreachable and it passes under either branch order. Measured both ways: defect live, arm as written `source-absent=37`; honest call (`want = []`) `target-not-planned=37`. *A covering assertion that cannot fail is worse than none — its message tells every later reader the property is pinned.* Arm (c) is #1095. Names here are pre-#1082: the mirror group was `color`+`surface` then and is `color.appearance`+`color` now, and the diagnosis was re-measured across the rename unchanged — 80 rows, `source-absent=43 target-not-planned=37`, 0 of 37 resolving emission-wide, all three brands, both layouts |
 | 2026-08-26 | `regen.ts --check` — **two** stopped-emission blind spots, one per artifact class (gate sweep M13 + R1059-b) | 4 | **an emitter disabled and the full 45-gate list PASS, twice.** M13 killed `emit-levers` (a `SCHEMA_ARTIFACTS` entry): those are compared by fixed-list pairwise byte-equality at `:133-135`, which has **no removal concept at all** — a non-writing emitter leaves the live file identical to the snapshot. R1059-b then killed `emit-figma`'s write loop, unemitting **82 committed `out/` files**: that class *does* have a `removed` arm (`:130`), and it did not fire either, because regeneration is **in place** — the stale files are still on disk, so `after ⊇ before`. A delete census over all nine steps (`rmSync\|unlinkSync\|rimraf\|rmdirSync`) returns **zero hits** — the only deletes in the engine are `regen.ts`'s own restore path — so line 130 is **unreachable by construction, not merely unreached**. Both runs print `✓ in sync — 114`, and regen's step log prints `emit-figma (out/figma/**) … ok` for an emitter that emitted nothing. **The first pairing of this row was one mechanism described as the other** — the demonstrated instance was the schema class while the row named the `out/` arm — corrected in review of #1058, which is also why the fix "regenerate into a fresh directory" reaches only half of it. #1059 |
