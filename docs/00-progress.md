@@ -7,6 +7,32 @@
 
 ---
 
+## (2026-08-27) — the same count-site fix in `.claude/commands/review-pr.md` (#1116)
+
+**STATUS: shipped, prose only.** One file, two sentences. No gate, no code. Gates stay at **45**.
+
+#1114 removed the artifact-count numeral from `CLAUDE.md`; the cloud reviewer found the identical defect
+in the file **every reviewing lane loads before judging whether a PR is clean**, and filed #1116. Both
+sites stated **104** where `verify.ts` and `ci.yml` hold 114, and the first added *"`ci.yml` asserts that
+number"* — **a stale figure carrying false corroboration**, which is worse than a bare stale figure
+because it tells the reader the number was checked.
+
+The consequence is specific to this file's reader: a reviewer who believes the expected count is 104
+either raises a false drift finding against a correct PR, or waves through a real count change on the
+belief that the number was always going to look wrong.
+
+**#1114's remedy applied rather than a new one, and worded to match it** — name the site, restate no
+number, so the sentence is true at every ref. Two files disagreeing about how to express the same thing
+is how the next drift starts.
+
+**Two further stale copies were checked and deliberately left**, recorded so a later sweep does not
+re-litigate them. `apps/studio/test-export-settings.ts:73` is a passing aside about *coverage*, not a
+figure anyone checks against. And `packages/engine/lint-paint.ts:10` quotes 104 inside a **dated citation
+of #758's acceptance criterion, in a passage whose whole point is that the criterion was wrong** —
+correct as a quotation, and *falsifying the record would be worse than the stale number*. A numeral
+inside a quotation is not a site; it is evidence.
+
+
 ## (2026-08-27) — `CLAUDE.md` names the count sites instead of restating the count (#1110)
 
 **STATUS: shipped, prose only.** One sentence in `CLAUDE.md`, and this entry. No gate, no hook, no code.
