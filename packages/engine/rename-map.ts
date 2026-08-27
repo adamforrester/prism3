@@ -329,9 +329,28 @@ export const COLLECTION_RENAMES: CollectionRename[] = [
   // The VALUE tier vacates the short name. It keeps every variable and every id; only the collection's
   // own name moves, so a designer's bindings into it are untouched by this entry alone.
   { from: 'color', to: 'color.appearance', since: '0.26.0' },
-  // The ALIAS tier takes it. This is the entry that has to wait: `color` is occupied until the one above
-  // has applied, and applying this first leaves `target-occupied` and a half-migrated file.
-  { from: 'surface', to: 'color', since: '0.26.0' },
+  // The ALIAS tier follows the name #1089 gave it. **This entry's target moved with #1097, and the
+  // rewrite is deliberate rather than a restamp** (contrast the `since` note above, which says a
+  // historical stamp must stay put — that is about the VERSION field, not about a target that is now
+  // simply wrong).
+  //
+  // It read `surface → color` from #1013 until #1089 renamed the alias tier's collection to
+  // `color.surface`, so both tiers name their axis in the mode picker. From that moment the entry
+  // pointed at a collection nothing writes: the pre-pass moved the designer's `surface` collection to
+  // `color`, `applySurfacePlan` created a FRESH `color.surface` beside it, and every variable and every
+  // binding in the original was stranded in a collection nothing owns — reported by nothing, because
+  // each executor only walks the collection it wrote. `apps/plugin/test-write.ts`'s (vii) block found it
+  // and #1108 recorded it.
+  //
+  // Retargeting is the whole fix, and it also removes the CHAIN this map used to carry: neither
+  // `color.appearance` nor `color.surface` is anyone's source, so no ordering question arises and
+  // `closesLoop` above has nothing to walk. Simpler than what it replaces.
+  //
+  // **`color → color.surface` is NOT the entry, and the reason is not just the duplicate-source
+  // refusal.** `color` names the VALUE tier before #1082 and the POINTER tier after it, and this map has
+  // no era: one entry cannot mean "the pre-#1082 `color`" while another means the post-#1082 one. The
+  // source that is unambiguous across both eras is `surface`, which only ever named the alias tier.
+  { from: 'surface', to: 'color.surface', since: '0.26.0' },
 ];
 
 /** The map the executor uses. */

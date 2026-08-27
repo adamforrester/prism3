@@ -12576,38 +12576,40 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ]);
   ok(written.size >= 10, `rename-map: the plan-derived collection domain is populated (${written.size} collections) — an empty domain would fail every entry rather than checking it`);
   //
-  // #1097 — ONE `COLLECTION_RENAMES` TARGET IS NOW STALE BY DECISION, and it is NAMED rather than
-  // filtered out by a predicate. `surface` → `color` targets a collection the write plans stopped
-  // producing when #1089 renamed the alias tier `color.surface`, and #1097 deliberately ships no
-  // replacement entry: the owner works from empty files, so there is nothing to migrate, and the
-  // accounting the removals need is carried by `ACCOUNTING_COLLECTION_MOVES` instead.
+  // #1097 — EVERY `COLLECTION_RENAMES` TARGET IS A COLLECTION THE PLANS PRODUCE, AND FOR ONE OF THEM
+  // THAT IS NEW. The exemption list below is EMPTY, and it is kept at zero length rather than deleted.
   //
-  // A named list, because the two ways to make this arm green are not equivalent. Loosening the
-  // predicate to "ignore any target the plans do not produce" retires the arm — the domain check is
-  // exactly the claim that a map entry cannot name a collection the engine never writes, and a stale
-  // target is that failure, arrived at by decision rather than by typo. A list of ONE fails the moment
-  // a SECOND target goes stale, which is the state that would mean the map has quietly stopped being
-  // applicable at all.
+  // `surface` → `color` shipped with #1013 and went stale the moment #1089 renamed the alias tier's
+  // collection to `color.surface`: from then until #1097 the entry named a collection no write plan
+  // produced, so the pre-pass moved a designer's `surface` collection to `color`, `applySurfacePlan`
+  // created a fresh `color.surface` beside it, and every variable and binding in the original was
+  // stranded where nothing walks (#1108 found it, `apps/plugin/test-write.ts`'s (vii) block reproduced
+  // it). #1097 retargets the entry to `surface` → `color.surface`, which is the whole fix.
   //
-  // The residual this accepts is real and filed: applying over a pre-#1097 file leaves the old
-  // `core-*` and `color` collections and every binding on them in place, reported by nothing (#1108 —
-  // the `core-*` → `core` half is a fan-in `validateRenameMap` refuses, which is why it is not a
-  // one-line fix and not in this PR).
-  const STALE_COLLECTION_TARGETS: readonly string[] = ['color'];
+  // **The list stays, at zero, because an empty exemption and a deleted exemption are different gates.**
+  // Empty says "measured: nothing is exempt" and fails the moment a target goes stale again. Deleted
+  // says nothing, and the next author to let a rename target drift ahead of a collection name gets the
+  // same silent stranding with no arm to catch it. That drift is the defect class, not the instance.
+  //
+  // What #1097 still does NOT migrate is the `core-*` → `core` fan-in, and that is not a stale target —
+  // there is no entry at all, because `validateRenameMap` refuses three sources onto one target and
+  // Figma's `Variable.variableCollectionId` is `readonly` (`@figma/plugin-typings/plugin-api.d.ts:11454`),
+  // so no sequence of renames can merge collections. #1108 records it; it is not a one-line fix.
+  const STALE_COLLECTION_TARGETS: readonly string[] = [];
   const outsideDomain = [...new Set(map.variables.map((r) => r.collection)), ...map.collections.map((c) => c.to)]
     .filter((n) => !written.has(n) && !STALE_COLLECTION_TARGETS.includes(n));
   ok(outsideDomain.length === 0,
-    `rename-map: every collection the map names is one the write plans actually produce, or is a stated stale target (${STALE_COLLECTION_TARGETS.join(', ')})${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+    `rename-map: every collection the map names is one the write plans actually produce${STALE_COLLECTION_TARGETS.length ? `, or is a stated stale target (${STALE_COLLECTION_TARGETS.join(', ')})` : ' — with NO stated exemptions'}${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
   const staleActual = map.collections.map((cr) => cr.to).filter((n) => !written.has(n));
   ok(staleActual.join() === STALE_COLLECTION_TARGETS.join(),
-    `rename-map: the stale-target list is EXACTLY the collection-rename targets the plans no longer produce (authored [${STALE_COLLECTION_TARGETS.join(', ')}], measured [${staleActual.join(', ')}]) — so a THIRD entry going stale fails here instead of being absorbed by the exemption above, and a stale target that comes back to life fails too`);
+    `rename-map: the stale-target list is EXACTLY the collection-rename targets the plans no longer produce (authored [${STALE_COLLECTION_TARGETS.join(', ')}], measured [${staleActual.join(', ')}]) — so a target going stale fails here instead of being absorbed by the exemption above, and a stale target that comes back to life fails too`);
   // `COLLECTION_RENAMES` shipped EMPTY until #1013, because #1013 Q4 — whether the alias layer and the
   // value layer swap names — was an open decision and pre-authoring the entry would have taken it by
   // shipping it into designers' files. #1013 took it, so the arm flips from "there are none" to "there are
   // exactly the two the swap needs", and the domain check above is what makes them checkable rather than
-  // asserted: both targets have to be collections the write plans really produce.
-  ok(map.collections.length === 2 && map.collections.every((cr) => written.has(cr.to) || STALE_COLLECTION_TARGETS.includes(cr.to)),
-    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and each target is either a collection the write plans produce or a stated stale one (${map.collections.map((cr) => `${cr.from}→${cr.to}${written.has(cr.to) ? '' : ' [stale]'}`).join(', ')})`);
+  // asserted: both targets have to be collections the write plans really produce. Since #1097 they both do.
+  ok(map.collections.length === 2 && map.collections.every((cr) => written.has(cr.to)),
+    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and every target is a collection the write plans produce (${map.collections.map((cr) => `${cr.from}→${cr.to}${written.has(cr.to) ? '' : ' [STALE]'}`).join(', ')})`);
 
   // ---- (e) STATIC refusals: constructed hazards, each by its own name ----
   ok(validateRenameMap(map).length === 0,
@@ -12700,9 +12702,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'rename-map: a file holding none of the sources reports every entry rather than omitting it — the planner has no null outcome, because "not applicable" and "checked, nothing to do" are the same fact and only one of them is reportable');
 
   // ---- (f2) THE CHAIN, and the ORDER IS COMPUTED (#1035) ----
-  // The shipped map's two entries are a chain: `color` must vacate the short name before `surface` can
-  // take it. Every arm below drives the SAME two entries against a different file state, which is the
-  // only way to tell an ordering that works from one that happened to be written down correctly.
+  // A chain: `color` must vacate the short name before `surface` can take it. Every arm below drives the
+  // SAME two entries against a different file state, which is the only way to tell an ordering that works
+  // from one that happened to be written down correctly.
+  //
+  // **These entries are a FIXTURE, and since #1097 that is the only place a chain exists.** They were the
+  // shipped map from #1013 until #1097 retargeted the alias tier to the name #1089 gave its collection
+  // (`surface` → `color.surface`), which removed the chain: neither target is anyone's source any more.
+  // The fixture stays and is now load-bearing in a way it was not before — it is the whole of the
+  // coverage on `planCollectionRenames`'s topological sort. Deleting it because "the map has no chain"
+  // would delete the ordering guarantee's only test while leaving the ordering code in place, and the
+  // arm below is what makes that visible rather than silent.
   const chainRenames = [c('surface', 'color'), c('color', 'color.appearance')];
   const PRE = 'color→color.appearance:migrated | surface→color:migrated';
   ok(cstat(['color', 'surface'], chainRenames) === PRE,
@@ -12721,10 +12731,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'rename-map: ALREADY migrated → both entries source-absent, no refusal. `color` and `color.appearance` both present is the NORMAL post-swap file, and reading it as `target-occupied` is the defect #1035 fixed');
   ok(cstat(['color.appearance', 'color', 'surface'], chainRenames) === 'color→color.appearance:source-absent | surface→color:target-occupied',
     'rename-map: migrated BUT still carrying a stray `surface` → target-occupied, refusing to merge the leftover into the live alias tier — the one state where a refusal is the right answer');
-  // The shipped map is that chain, and validates clean. The chain refusal was DELETED in #1035, so this
-  // is not the same statement as "the map is small": it is the statement that a chain is now legal.
-  ok(COLLECTION_RENAMES.length === 2 && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0,
-    `rename-map: the shipped COLLECTION_RENAMES is a 2-entry CHAIN and validates clean (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
+  // THE SHIPPED MAP IS NOT A CHAIN, AND SAYING SO IS THE POINT. It was one from #1013 to #1097; the
+  // retarget in #1097 made both targets terminal. Asserted as an explicit NOT rather than left to the
+  // clean-validation arm, because "validates clean" is true of a chain too — the two statements are not
+  // interchangeable, and the one that would rot silently is this one.
+  const shippedTargets = COLLECTION_RENAMES.map((x) => x.to);
+  const shippedSources = new Set(COLLECTION_RENAMES.map((x) => x.from));
+  ok(COLLECTION_RENAMES.length === 2
+    && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0
+    && !shippedTargets.some((t) => shippedSources.has(t)),
+    `rename-map: the shipped COLLECTION_RENAMES is 2 entries, validates clean, and holds NO chain — no target is another entry's source, so there is no ordering question left in the map itself (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
   // And the entries are STAMPED with the version that made the change. This arm exists because its
   // ABSENCE was measurable: `MATERIALIZATION_RENAMES` has carried the equivalent since #1039, this map
   // carried nothing, and both entries duly shipped reading `0.25.0` — the media veil's version, which
@@ -12747,9 +12763,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // rather than the easiest way to a green run. #1080 (a version history in `version.ts` to check
   // membership against) would let this be derived instead of authored; until then, authored is the form
   // that does not decay, and the same treatment is applied to `MATERIALIZATION_RENAMES` above.
+  //
+  // **#1097 CHANGED A KEY AND NOT AN ERA, AND THE DIFFERENCE IS THE WHOLE POINT OF THE TABLE.** The
+  // alias-tier entry's TARGET moved (`surface` → `color` became `surface` → `color.surface`), so its key
+  // here moved with it and the arm went red on a rename it had never been told about — correct behaviour,
+  // and the second time this table has caught an edit rather than a bump. Its `since` stays `0.26.0`:
+  // `surface` stopped being a collection the engine writes when #1013's code shipped, and #1097 corrected
+  // where that retired name POINTS, not when it died. Moving the stamp to `0.27.0` would be the false
+  // provenance record in its subtler form — right that something changed in #1097, wrong about what the
+  // field answers.
   const EXPECTED_COLLECTION_SINCE: Record<string, string> = {
     'color→color.appearance': '0.26.0',
-    'surface→color': '0.26.0',
+    'surface→color.surface': '0.26.0',
   };
   const sinceWrong = COLLECTION_RENAMES
     .filter((r) => EXPECTED_COLLECTION_SINCE[`${r.from}→${r.to}`] !== r.since)
@@ -12762,8 +12787,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     + `\n    prompt, not an obstacle. Do NOT restamp an existing entry to today's version to get green: \`since\``
     + `\n    records the version whose code made the rename, not the version in the file today, and moving a`
     + `\n    historical stamp forward is the false provenance record this arm exists to prevent.`);
-  ok(cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES]) === PRE,
-    'rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone');
+  // The SHIPPED entries against a pre-#1013 file. Its expectation is spelled out here rather than reusing
+  // `PRE` above, because #1097 moved the alias target and the two are no longer the same string: the
+  // fixture is a chain, the shipped map is not. Sharing one literal would have made this arm agree with
+  // the fixture by construction and hidden exactly that difference.
+  ok(cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES])
+      === 'color→color.appearance:migrated | surface→color.surface:migrated',
+    `rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone (${cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES])})`);
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
       && !isRefusal('migrated') && !isRefusal('source-absent'),
     'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
@@ -13138,35 +13168,30 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ]);
     const recollected = recollectAll(before, COLLECTION_RENAMES);
     ok([...recollected].sort().join(' | ') === [
-      varKey('color', 'surface/background/primary'),
-      varKey('color', 'surface/border/brand'),
-      varKey('color.appearance', 'color/background/inverse/primary'),
-      varKey('color.appearance', 'color/background/primary'),
-    ].sort().join(' | '),
-      `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
-
-    // ── AND REACHING TODAY'S RULE DOMAIN FROM THE #1013 ERA TAKES BOTH RECORDS (#1089, #1097) ──────────
-    //
-    // `COLLECTION_RENAMES` sends the alias tier to `color`, which is what it was called between #1013 and
-    // #1089. `surface-to-color-1013`'s domain now names `color.surface`, because `materialize` is called
-    // with the collection the write plan is about to use and that is the LIVE name (see the rule's own
-    // header). So a #1013-era key needs the second hop before the rule that performs #1013's rename can
-    // see it, and `ACCOUNTING_COLLECTION_MOVES` is where that hop is recorded.
-    //
-    // The composition is asserted in BOTH directions below, because the gap between them is a real defect
-    // rather than bookkeeping: `ACCOUNTING_COLLECTION_MOVES` exists for the accounting only, and the APPLY
-    // path has no equivalent — #1097 ships no `COLLECTION_RENAMES` entry for `color` → `color.surface`, so
-    // a designer's pre-#1013 file gets as far as a `color` collection and stops there, with its variables
-    // and bindings stranded and nothing reporting it. That is #1108, and the second arm below is its
-    // number: two keys unaccounted, by name.
-    const inLiveCollections = recollectAll(recollected, ACCOUNTING_COLLECTION_MOVES);
-    ok([...inLiveCollections].sort().join(' | ') === [
       varKey('color.surface', 'surface/background/primary'),
       varKey('color.surface', 'surface/border/brand'),
       varKey('color.appearance', 'color/background/inverse/primary'),
       varKey('color.appearance', 'color/background/primary'),
     ].sort().join(' | '),
-      `#1097: and the second hop puts the alias tier in \`color.surface\`, where the rule that renames it now lives — the value tier was already in its final collection and must NOT move again (got ${[...inLiveCollections].sort().join(' | ')})`);
+      `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
+
+    // ── ONE HOP REACHES TODAY'S RULE DOMAIN, AND THAT IS WHAT #1097 CHANGED (#1089, #1097) ────────────
+    //
+    // `surface-to-color-1013`'s domain names `color.surface`, because `materialize` is called with the
+    // collection the write plan is about to use and that is the LIVE name (see the rule's own header).
+    // Between #1089 and #1097 `COLLECTION_RENAMES` sent the alias tier to `color` — the name it carried
+    // from #1013 to #1089 — so a #1013-era key could not reach that domain at all: the migration stopped
+    // one collection short, `applySurfacePlan` created a fresh `color.surface` beside it, and the
+    // designer's variables and bindings were stranded with nothing reporting it (#1108's finding).
+    // Retargeting the entry to `surface` → `color.surface` closes it in one hop.
+    //
+    // So the second record is now a NO-OP for the colour tiers, and that is asserted rather than assumed:
+    // an identity, not a re-statement of the expectation above. The reason `ACCOUNTING_COLLECTION_MOVES`
+    // still exists is the OTHER move it carries — `core-palette`/`core-dimension`/`core-font` → `core` —
+    // which no migration list can hold, and the arms below are about exactly that.
+    const inLiveCollections = recollectAll(recollected, ACCOUNTING_COLLECTION_MOVES);
+    ok([...inLiveCollections].sort().join(' | ') === [...recollected].sort().join(' | '),
+      `#1097: the accounting's collection moves are a NO-OP once the migration list reaches \`color.surface\` directly — both tiers were already in their final collection after one hop, and re-applying must not move either again (got ${[...inLiveCollections].sort().join(' | ')})`);
 
     // The post-#1013, pre-#1097 emission for these four, hand-written: the value tier prefixed, the alias
     // tier's `surface/` traded for `color/`, both in the collection the two recollections just put them in.
@@ -13182,14 +13207,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(isTotal(acct) && acct.claims.length === 4 && acct.removed.length === 4,
       `#1013: the two rules account for the swap end-to-end — 4 hand-written pre-swap keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
 
-    // THE SECOND HOP IS LOAD-BEARING, as a number rather than as the paragraph above. Stop after
-    // `COLLECTION_RENAMES` and the alias tier sits in a collection no rule names, so both of its keys are
-    // unaccounted removals against a rule set that is correct — the accounting reporting the migration
-    // path's gap, which is what it is for.
-    const oneRecordOnly = accountFor(recollected, after1013, era1013, parseVarKey, WROOT);
-    ok(!isTotal(oneRecordOnly) && oneRecordOnly.unaccountedRemovals.length === 2
-        && oneRecordOnly.unaccountedRemovals.every((k) => k.startsWith('color :: ')),
-      `#1108: WITHOUT the \`color\` → \`color.surface\` hop the alias tier lands in a collection no rule claims — ${oneRecordOnly.unaccountedRemovals.length} unaccounted (expected 2), named: ${oneRecordOnly.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}. The apply path has exactly this gap and no equivalent second record`);
+    // ── THE GAP THAT REMAINS, AND IT IS THE CORE FAN-IN — NOT THE COLOUR TIERS (#1108) ────────────────
+    //
+    // The two lists are still not interchangeable, and this is where the difference is a number rather
+    // than a paragraph. `ACCOUNTING_COLLECTION_MOVES` lands three primitive collections on one `core`;
+    // `COLLECTION_RENAMES` cannot hold that entry and never will, for two independent reasons:
+    // `validateRenameMap` refuses three sources onto one target, and Figma's
+    // `Variable.variableCollectionId` is `readonly` (`@figma/plugin-typings/plugin-api.d.ts:11454`), so no
+    // sequence of renames can move a variable between collections at all. A fan-in is not a rename.
+    //
+    // The consequence for a designer's pre-#1097 file: the `core-*` collections and every binding on them
+    // stay exactly where they are, beside a fresh `core`, reported by nothing. #1108, deliberately
+    // accepted, and asserted here so a green suite records it instead of implying coverage.
+    const coreBefore = new Set<VarKey>([
+      varKey('core-palette', 'palette/red/550'),
+      varKey('core-dimension', 'dimension/0'),
+    ]);
+    ok([...recollectAll(coreBefore, COLLECTION_RENAMES)].sort().join(' | ') === [...coreBefore].sort().join(' | '),
+      `#1108: the MIGRATION list cannot reach the core fan-in — a pre-#1097 file's \`core-*\` keys come back unchanged (got ${[...recollectAll(coreBefore, COLLECTION_RENAMES)].sort().join(' | ')}), because a readonly \`variableCollectionId\` admits no move and \`validateRenameMap\` refuses the duplicate target`);
+    ok([...recollectAll(coreBefore, ACCOUNTING_COLLECTION_MOVES)].sort().join(' | ') === [
+      varKey('core', 'dimension/0'),
+      varKey('core', 'palette/red/550'),
+    ].sort().join(' | '),
+      `#1108: while the ACCOUNTING list does reach it — which is the whole reason the two lists are separate rather than one (got ${[...recollectAll(coreBefore, ACCOUNTING_COLLECTION_MOVES)].sort().join(' | ')})`);
 
     // AND THE REASON THE FIXTURE IS RESTRICTED, AS A NUMBER. Run the same hop with all three rules and
     // every key is claimed twice — #1097's rule matches any name without a root, and a pre-#1013 name has
@@ -13208,14 +13248,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `#1013: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
     }
 
-    // AND THE RECOLLECTION'S SINGLE-STEP CLAIM, as a failure rather than as a comment. `COLLECTION_RENAMES`
-    // is a chain, so following it to a fixed point sends the alias tier to `color.appearance` — where that
-    // variable never went. The misattributed keys then match no rule (rule 1 wants a `color/` name) and
-    // read as unaccounted removals against rules that are correct. See `recollect`'s header for why the
-    // apply side needs the opposite treatment.
+    // AND THE RECOLLECTION'S SINGLE-STEP CLAIM, as a failure rather than as a comment. Follow a CHAIN to a
+    // fixed point and the alias tier lands in `color.appearance` — where that variable never went. The
+    // misattributed keys then match no rule (rule 1 wants a `color/` name) and read as unaccounted removals
+    // against rules that are correct. See `recollect`'s header for why the apply side needs the opposite
+    // treatment.
+    //
+    // **The chain is a FIXTURE here, and it is the map #1097 replaced.** `COLLECTION_RENAMES` was
+    // `surface → color` alongside `color → color.appearance` until #1097 retargeted the first to
+    // `color.surface`, which removed the chain — so driving this arm off the shipped map now makes
+    // transitivity a no-op and the arm passes vacuously, reporting `NOTHING`. That is what it did on the
+    // first run of this change. `recollectAll`'s one-hop contract is unchanged and still worth a failing
+    // arm, so the hazard is spelled out here instead of borrowed from data that no longer contains it —
+    // `docs/34`'s borrowed-backstop shape, caught in the act.
+    const CHAIN_FIXTURE: readonly { from: string; to: string }[] = [
+      { from: 'surface', to: 'color' },
+      { from: 'color', to: 'color.appearance' },
+    ];
     const transitive = new Set([...before].map((k) => {
       let cur = k;
-      for (let i = 0; i < COLLECTION_RENAMES.length; i++) cur = recollect(cur, COLLECTION_RENAMES);
+      for (let i = 0; i < CHAIN_FIXTURE.length; i++) cur = recollect(cur, CHAIN_FIXTURE);
       return cur;
     }));
     const misattributed = accountFor(transitive, after1013, era1013, parseVarKey, WROOT);
