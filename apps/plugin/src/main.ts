@@ -20,9 +20,10 @@
  */
 import { applyHeadline, APPLY_FAILED_HEADLINE, componentHeadline, staleNote, partialWriteHeadline, partialWriteNote } from './apply-summary';
 import { ENGINE_VERSION } from '@prism3/engine/version';
+import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
-import type { UiToMain } from './messages';
+import type { MainToUi, UiToMain } from './messages';
 import { applyWritePlan, applySurfacePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { applyStylesPlan } from './write-styles';
@@ -59,6 +60,43 @@ const clampSize = (w: number, h: number): { width: number; height: number } => (
 });
 
 figma.showUI(__html__, { ...DEFAULT_SIZE, themeColors: true });
+
+/**
+ * WHICH BUILD IS RUNNING, ON EVERY WRITE VERDICT (#836).
+ *
+ * Every checkout of this repo builds a `dist/` declaring plugin id `prism3-theming-plugin`, so Figma
+ * lists them as one dev plugin and the imported entry is not visible from inside the plugin. On
+ * 2026-08-26 the panel emitted from a two-day-old bundle in a third checkout and reported a clean run;
+ * the wrong output was read as a broken emitter, and it took four rebuilds and a three-way byte
+ * differential before the rail's engine-version chip settled it. `build.mjs` now stamps the source tree
+ * and the build time into both bundles, and this is where the run report says so.
+ *
+ * ONE FUNCTION RATHER THAN SIX `appendBuildNote(...)` CALL SITES, because the property that matters is
+ * that no terminal verdict can omit it. A seventh verdict added later goes through here or it does not
+ * compile against `postVerdict`'s parameter; six hand-written appends would have let it through silently.
+ *
+ * `seed-info` deliberately does NOT go through this. That message reports what the FILE already holds,
+ * written by whichever build wrote it, and stamping this build's identity onto it would attribute a
+ * previous build's variables to this one — the precise confusion #836 is about, inverted.
+ */
+const postVerdict = (m: Extract<MainToUi, { type: 'apply-result' | 'component-result' }>): void =>
+  postToUi({ ...m, summary: appendBuildNote(m.summary, PRISM3_BUILD) });
+
+// THE PRIMARY CHANNEL — measured, not assumed, and this ordering is the opposite of how #836 framed it.
+//
+// At this file's own `DEFAULT_SIZE` (1280×900) the rail's build chip sits 78px BELOW the fold, last of
+// 13 rail children in a document with 3191px hidden; and on a CLEAN run the verdict row renders no box
+// at all — `#apply-detail` exists with `textContent === ''`, because `openDetail = m.ok ? null : 'apply'`.
+// So on the exact 2026-08-26 shape — a run that reports success while emitting from the wrong bundle —
+// neither panel surface says anything, and this line is the only one that does. It is also the channel
+// three lanes were actually reading that afternoon: build output and the Figma console, while proving a
+// bundle correct that was never the one running.
+//
+// The other two are confirmation, and each has a case where it detects: the verdict clause is visible
+// and carries the identity on a FAILING run, and the chip settles it once you already suspect a mismatch
+// and scroll. Neither is a substitute for this line. Do not "optimize" the chip on the belief that it is
+// the detector — measure the window first (`docs/00-progress.md`, 2026-08-26, and #1107).
+console.log(`[prism3 #836] ${buildNote(PRISM3_BUILD) ?? `PRISM3_BUILD is '${PRISM3_BUILD}' — no source tree in it.`}`);
 
 /** Reopen at the size the designer last dragged to (#144). `clientStorage` is async and `showUI`
  *  is not, so the window opens at the default and resizes a tick later — the alternative (awaiting
@@ -218,9 +256,9 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // load-bearing. Only misses and skipped fonts reach the headline; #479's orphan count deliberately
     // does not, because the pill has a 24-char budget and three warning axes will not fit in it. The
     // orphans are still readable — they are in `summary`, which now has somewhere to be shown.
-    postToUi({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary });
+    postVerdict({ type: 'apply-result', ok: misses === 0, headline: applyHeadline(misses, ts.skipped.length), summary });
   } catch (e) {
-    postToUi({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` });
+    postVerdict({ type: 'apply-result', ok: false, headline: APPLY_FAILED_HEADLINE, summary: `write failed: ${(e as Error).message}` });
   }
 };
 
@@ -318,7 +356,9 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // that misses means the two sides disagree about the catalogue — which the designer has to be told,
       // because the alternative is a pill that stays at "Building…" forever. Named ids in the message so
       // the disagreement is diagnosable from the pill alone.
-      postToUi({
+      // "this build knows …" was already the sentence here, and until #836 nothing said WHICH build that
+      // was — the disagreement is between two bundles, so naming only one side of it is half a diagnosis.
+      postVerdict({
         type: 'component-result', ok: false, headline: '✗ unknown def',
         summary: `no component def with id '${defId}' — this build knows ${componentDefs.map((d) => d.id).join(', ')}`,
       });
@@ -338,7 +378,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // The reason is the def's string unedited: whoever declared the ceiling wrote the sentence for this
     // moment, and paraphrasing it here would be a second copy to keep true.
     if (def.figmaProperties?.notStandalone) {
-      postToUi({
+      postVerdict({
         type: 'component-result', ok: false, headline: '✗ not buildable on its own',
         summary: def.figmaProperties.notStandalone,
       });
@@ -399,7 +439,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // the STALE lines are in `misses` and are not counted in `skipped`, so the equality already fails.
       // Stated rather than left to be re-derived, because it is the one place where the right behaviour
       // comes out of an expression that does not mention the new field.
-      postToUi({
+      postVerdict({
         type: 'component-result',
         ok: r.set !== null && r.misses.length === r.skipped,
         headline: componentHeadline(r.added, r.skipped, r.misses.length - r.skipped - r.stale, r.stale),
@@ -449,7 +489,7 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // facts to the host's own error rather than throwing a wrapper, so nothing about this line's
       // reporting of the failure depends on the marking having worked.
       const partial = partialWriteOf(e);
-      postToUi({
+      postVerdict({
         type: 'component-result', ok: false,
         headline: partial ? partialWriteHeadline(partial) : APPLY_FAILED_HEADLINE,
         summary: `component build failed: ${(e as Error).message}${partial ? partialWriteNote(partial) : ''}`,

@@ -37,6 +37,7 @@ import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
 import { hostCommit } from './write-adapter';
+import { buildChip, buildTitle } from './build-identity';
 import { persistInput, restoreInput } from './persist-local';
 import {
   provenanceOf, noOrigin, needsOverwriteConfirm, isDirty, isUnrecoverable, joinSeed, withRecovered,
@@ -8571,11 +8572,15 @@ const build = (): void => {
   // reported missing and took a local rebuild plus a pixel measurement to clear. Engine version
   // answers "what code produced these tokens"; the commit answers "is this deploy current", and only
   // the second one was ever in doubt. Selectable, because the first thing anyone does is paste it.
+  //
+  // The two readings moved to `build-identity.ts` in #836, unchanged for the web and extended for the
+  // plugin, where the field used to be the literal `plugin` in every checkout. That made this the one
+  // chip that could have said which tree Figma was running and did not — and it was the OTHER field,
+  // `engine 0.21.0`, that eventually caught it on 2026-08-26. Both sentences below are now asserted in
+  // `test-build-identity.ts`; inline in this file they were unreachable by any test.
   const stamp = el('p', 'rail-build');
-  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', PRISM3_BUILD));
-  stamp.title = PRISM3_BUILD === 'local'
-    ? 'Built outside the deploy — no commit to report.'
-    : `Deployed from commit ${PRISM3_BUILD}.`;
+  stamp.append(el('span', undefined, `engine ${ENGINE_VERSION}`), el('span', 'rail-build-b', buildChip(PRISM3_BUILD)));
+  stamp.title = buildTitle(PRISM3_BUILD);
   rail.append(stamp);
   shell.append(rail);
 

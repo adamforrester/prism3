@@ -214,3 +214,42 @@ So `() => \`<script>${js}</script>\`` is load-bearing — **do not collapse it b
 string**; it looks identical and is not. The build asserts exactly one `</script>` and that the dev-only
 module tag did not survive, because `dist/` is a gitignored artifact no other gate reads back: without
 that assertion, this is invisible until you open Figma.
+
+## Which build is running (#836)
+
+Every checkout of this repo builds a `dist/` under the **same plugin id** (`prism3-theming-plugin`), so
+Figma lists them all as one dev plugin and gives you no way to tell which one it launched. With worktrees
+in normal use, that regularly means several importable entries and no visible difference between them.
+
+`build.mjs` stamps `<ISO seconds> <absolute source tree>` into **both** bundles, and it shows up in three
+places — **listed in the order they actually detect a mismatch, which is not the order you would guess:**
+
+| Where | Reads | What it catches |
+|---|---|---|
+| **The plugin console, once at load** | `[prism3 #836] Built from /private/tmp/p3-buildid at …` | **Everything, including the clean run.** The only channel that reports before you suspect anything |
+| Every theme-write and component-build verdict | `… 4 misses. Built from /private/tmp/p3-buildid at 2026-08-26T21:55:28Z.` | A **failing** run, where the detail row is open. Also travels with a copied bug report |
+| The rail chip, beside the engine version | `p3-buildid 08-26 21:55Z` — hover for the full path and the reason | Confirmation, once you already suspect a mismatch and scroll to it |
+
+**Measured at the plugin's own default window** (1280×900, `main.ts`'s `DEFAULT_SIZE`): the chip's bottom
+edge is at 978px — **78px below the fold**, last of 13 rail children in a document with 3191px hidden. And
+on a clean run the verdict row renders no box at all: `#apply-detail` is in the DOM with `textContent`
+empty, because `openDetail = m.ok ? null : 'apply'`. So in #836's own motivating scenario — a run that
+reports success while emitting from the wrong bundle — **both panel surfaces are unreachable and the
+console line is the whole mechanism.** Neither of the other two is a substitute for it, and the chip is
+not the thing to optimize on the assumption that it is doing the detecting (#1107).
+
+**Read the tree before diagnosing anything else.** On 2026-08-26 an afternoon went into a wrong emission
+that was blamed on the emitter: the manifest path was checked and came back **correct**, and four
+rebuilds and a three-way byte differential proved the bundle at that path was correct too. Figma was
+running a *third* checkout's `dist/`, built two days earlier. The path is stamped as the resolved
+realpath (`/private/tmp/…` on macOS), which is the form Figma itself reports — so it compares directly
+against the manifest path without the `/tmp` vs `/private/tmp` detour that made that check look clean.
+
+Two fields rather than one, because they catch different failures. The tree catches the wrong checkout;
+the **build time** catches the right checkout never rebuilt, which the tree cannot see — `dist/` is
+gitignored, so no `git pull` or branch switch touches what Figma runs. That is the failure mode the
+section above is about, now visible from inside the panel instead of only in this README.
+
+Not a commit SHA: two worktrees on the same commit is a normal state here and a SHA cannot separate
+them. The path makes the commit derivable (`git -C <tree> log -1`); the commit does not make the path
+derivable, and the path is the half you can act on.

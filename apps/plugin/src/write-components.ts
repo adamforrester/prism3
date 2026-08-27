@@ -484,14 +484,22 @@ const realYield: YieldFn = () => new Promise<void>((resolve) => { setTimeout(res
  * NO BUILD IDENTITY IN IT YET, and this is the honest boundary rather than a gap I am papering over.
  * A plan stamp cannot see a change that lives only in this file: 7 of the 22 commits touching the
  * component pipeline since 2026-07-01 changed `write-components.ts` alone and moved no plan bytes. The
- * field that would close that is the bundle's identity, and it is not available here — `build.mjs`
- * defines `PRISM3_BUILD` only for the entry that bundles `studio/src`, and `tsconfig.main.json` does not
- * include the declaration, so naming it in this context is a bare identifier that throws at load. #836
- * scoped adding that define as its own remaining work — its last comment (2026-08-24) says explicitly
- * that landing the plan-stamp half (#827) "narrows this issue, it does not close it" — but #836 was
- * closed the next day with no commit adding the define. So this gap is real and **currently untracked**,
- * not merely unlanded: were it built, it would go here as a third field, still unread by the comparison
- * for the same reason the engine version is.
+ * field that would close that is the bundle's identity.
+ *
+ * WHAT #836 CHANGED, AND WHAT IT DID NOT. This paragraph used to say the identity was not AVAILABLE here
+ * — `build.mjs` defined `PRISM3_BUILD` only for the entry bundling `studio/src`, and naming it in this
+ * context was a bare identifier that throws at load. That is no longer true: #836 defines it on both
+ * entries and declares it in `figma-env.d.ts`, so `PRISM3_BUILD` is a legal reference on this line today.
+ * What #836 deliberately did NOT do is put it in the stamp. Adding a third field changes a format already
+ * persisted on every member in every themed file, and the question of what a per-member build identity
+ * should be compared against — nothing, like the engine version? or something? — is a staleness decision,
+ * not a reporting one. #836 answered "which build is running", which is a live question about a process;
+ * this is "which build wrote this node", a durable question about a file. Filed as **#1098** rather than
+ * carried here, because a note in a comment is not a tracked piece of work. Were it added it would go
+ * here as a third field, still unread by the comparison for the same reason the engine version is —
+ * `planHalf` reads the segment between the first and second `|`, so a third field appended after it would
+ * not move the comparison. It would, though, break the separator's premise below: a filesystem path CAN
+ * contain a `|`, which is the first thing that design has to answer and a second reason not to guess here.
  *
  * `|` as the separator because neither field can contain one: a semver is `[0-9.]` and a plan stamp is
  * 16 hex characters. A JSON blob would be the general answer and buys nothing at 26 bytes.

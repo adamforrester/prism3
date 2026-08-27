@@ -313,7 +313,10 @@ body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-fo
 .rail-note{color:var(--muted);font-size:12px;line-height:1.6;margin:22px 8px 0;padding-top:20px;border-top:1px solid var(--line)}
 /* Build identity (#474) — quiet by default, legible when you go looking for it. */
 .rail-build{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;color:var(--faint);font-size:11px;margin:12px 8px 0;user-select:text}
-.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted)}
+/* `overflow-wrap:anywhere` because since #836 this field holds a checkout's directory name, not a fixed
+   literal — `p3-buildid` fits the 210px rail and a longer branch name does not, and a flex item's default
+   `min-width:auto` lets an unbreakable token overflow the rail rather than wrap inside it. */
+.rail-build-b{font-family:var(--mono,ui-monospace,SFMono-Regular,Menlo,monospace);color:var(--muted);overflow-wrap:anywhere}
 
 .hero{padding:6px 0 4px}
 .hero h1{margin:0;font-size:40px;font-weight:660;letter-spacing:-0.03em;line-height:1.08}
