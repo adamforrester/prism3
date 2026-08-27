@@ -5,11 +5,18 @@
  *   npx tsx apps/plugin/test-write-float.ts
  *
  * Same shim shape as `test-write.ts`, widened for FLOAT vars (numeric per-mode values). Asserts the
- * ten FLOAT collections (`core-dimension`/`space`/`radius`/`size`/`icon`/`control`/`border-width`/
- * `focus`/`opacity`/`layout`) materialise: all vars created, cross-collection aliases bound (space→dimension, size→…,
- * layout grid→space) with ZERO misses, opacity stored as 0–100, `core-dimension` primitives hidden,
+ * ten FLOAT collections (`core`/`space`/`radius`/`size`/`icon`/`control`/`border-width`/
+ * `focus`/`opacity`/`layout`) materialise: all vars created, cross-collection aliases bound (space→core, size→…,
+ * layout grid→space) with ZERO misses, opacity stored as 0–100, the `core` primitives hidden,
  * and a re-run is idempotent (+0 created, no duplicates). Also drives a wireframe brand to prove the
- * two-mode `radius` collection (every radius aliases `dimension/0` in the wireframe mode).
+ * two-mode `radius` collection (every radius aliases `core/dimension/0` in the wireframe mode).
+ *
+ * Every variable name here carries the BRAND ROOT as its first segment (#1097), and aurora is an
+ * engine-native brand, so the expected names are written out with the `prism/` root SPELLED — a literal,
+ * not `theme.root` read back. The point is that the executor is being held to a name the test author
+ * wrote down, so a root that silently stopped being applied fails here rather than agreeing with itself.
+ * The three primitive groups also now share ONE `core` collection, which is why the dimension primitives
+ * are looked up under `core` and not under a `core-dimension` that no longer exists.
  *
  * Mirrors the engine suite's dependency-free `ok(...)` style; exits non-zero on any failure.
  */
@@ -70,7 +77,7 @@ const r2 = await run();
 console.log('plugin FLOAT write-adapter (#146) — executor against in-memory figma.variables shim\n');
 
 // collections present — the ten FLOAT axes
-const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
 ok(EXPECTED.every((n) => shim.collections.some((c) => c.name === n)),
   `all ten FLOAT collections created: ${EXPECTED.join(', ')}`);
 
@@ -88,15 +95,15 @@ ok(r1.bound === expectedBound && r2.bound === expectedBound, `every FLOAT alias 
 ok(r1.misses.length === 0 && r2.misses.length === 0,
   `zero unresolved bindings${r1.misses.length ? ' — ' + r1.misses.slice(0, 3).join(',') : ''}`);
 
-// cross-collection alias: space/* aliases a core-dimension var (resolved to a different collection)
-const dimCol = shim.collections.find((c) => c.name === 'core-dimension')!;
+// cross-collection alias: space/* aliases a `core` dimension var (resolved to a different collection)
+const dimCol = shim.collections.find((c) => c.name === 'core')!;
 const spaceCol = shim.collections.find((c) => c.name === 'space')!;
 const byId = new Map(shim.vars.map((v) => [v.id, v]));
 const aSpace = shim.vars.find((v) => v.variableCollectionId === spaceCol.id && Object.values(v.valuesByMode).some((val) => typeof val === 'object' && 'type' in val))!;
 const spaceTargetVal = aSpace && Object.values(aSpace.valuesByMode)[0];
 const spaceTarget = spaceTargetVal && typeof spaceTargetVal === 'object' && 'type' in spaceTargetVal ? byId.get(spaceTargetVal.id) : undefined;
-ok(!!spaceTarget && spaceTarget.variableCollectionId === dimCol.id && spaceTarget.name.startsWith('dimension/'),
-  `space var aliases a core-dimension primitive across collections (${aSpace?.name} -> ${spaceTarget?.name})`);
+ok(!!spaceTarget && spaceTarget.variableCollectionId === dimCol.id && spaceTarget.name.startsWith('prism/core/dimension/'),
+  `space var aliases a rooted core-tier dimension primitive across collections (${aSpace?.name} -> ${spaceTarget?.name})`);
 
 // opacity stored as 0–100 (Figma OPACITY scope percent), not 0–1
 const opCol = shim.collections.find((c) => c.name === 'opacity')!;
@@ -104,10 +111,10 @@ const opVals = shim.vars.filter((v) => v.variableCollectionId === opCol.id).flat
 ok(opVals.length > 0 && opVals.every((n) => n >= 0 && n <= 100) && opVals.some((n) => n > 1),
   `opacity values are 0–100 percent (max ${Math.max(...opVals)})`);
 
-// core-dimension primitives hidden from publishing + scoped
+// the `core` primitives hidden from publishing + scoped
 const dimVars = shim.vars.filter((v) => v.variableCollectionId === dimCol.id);
 ok(dimVars.length > 0 && dimVars.every((v) => v.hiddenFromPublishing && v.scopes.length > 0),
-  'every core-dimension primitive hidden from publishing + scoped');
+  'every `core` primitive hidden from publishing + scoped');
 
 // layout carries one mode per breakpoint the brand ships (aurora: xs..2xl = 6)
 const layoutCol = shim.collections.find((c) => c.name === 'layout')!;
@@ -129,9 +136,9 @@ const radiusVars = wfShim.vars.filter((v) => v.variableCollectionId === wfRadius
 const allWireToDim0 = radiusVars.every((v) => {
   const val = v.valuesByMode[wfMode.modeId];
   if (typeof val !== 'object' || !('type' in val)) return false;
-  return wfById.get(val.id)?.name === 'dimension/0';
+  return wfById.get(val.id)?.name === 'prism/core/dimension/0';
 });
-ok(radiusVars.length > 0 && allWireToDim0, 'wireframe mode: every radius aliases dimension/0 (sharp corners)');
+ok(radiusVars.length > 0 && allWireToDim0, 'wireframe mode: every radius aliases prism/core/dimension/0 (sharp corners)');
 
 console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
