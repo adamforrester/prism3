@@ -143,7 +143,7 @@ const readPrism3 = (brand: string) => {
  *  the measured behavior before it could be trusted to extend it. What changed is that a brand adding
  *  a mode-varying collection now gets the right answer from the declaration instead of a set that
  *  silently omits it. */
-const unionTokenPress = (out: TokenPressOutput, baseDirs: Set<string>) => {
+const unionTokenPress = (out: TokenPressOutput, baseDirs: Set<string>, rootKey: string) => {
   const union = new Map<string, Leaf>();
   const perFile = new Map<string, Map<string, Leaf>>();
   /** `divergent` distinguishes a real resolution hazard (the files disagree, so merge order decides
@@ -159,9 +159,20 @@ const unionTokenPress = (out: TokenPressOutput, baseDirs: Set<string>) => {
   );
 
   for (const path of ordered) {
-    // No key stripped: TokenPress adds a root only when `options.namespace` is set, and the default
-    // DTCG options this harness runs under do not set one.
-    const l = leaves(out.files.get(path));
+    // THE SAME KEY prism3's side strips, and the premise here changed under #1097. TokenPress adds a
+    // root of its OWN only when `options.namespace` is set, and the default options this harness runs
+    // under still do not set one — that part of the old comment is unchanged and remains true. What
+    // changed is that the root now arrives through the DATA rather than the option: prism3 emits
+    // `prism/space/100` as the Figma variable name, TokenPress derives its DTCG path from that name,
+    // so the brand namespace comes back out the far side as a real top-level group. Leaving it on
+    // reported 746 prism3-only / 711 tokenpress-only paths for aurora — the same tokens, unpaired on
+    // one segment, which measures the normalizer exactly as the header warns.
+    //
+    // Stripping prism3's OWN root here, not any first segment, is what keeps this honest: if
+    // TokenPress ever produced a different top-level key, `leaves` finds no such key and walks the
+    // tree unchanged, so the path stays rooted and shows up as unpaired instead of being quietly
+    // truncated to agree. The namespace surviving the round trip is reported under STRUCTURE.
+    const l = leaves(out.files.get(path), rootKey);
     perFile.set(path, l);
     for (const [p, leaf] of l) {
       owner.set(p, [...(owner.get(p) ?? []), path]);
@@ -666,7 +677,7 @@ const RENAME_RULES: {
     // prism3 has no `font-fluid.*` path at all: the same fact lives in the composite's `fontSize`
     // reference and in `$extensions.prism3.responsive.{min,max}.ref`. So this pairs the prism3
     // composite against ONE FIELD of it, and the type expectation comes from that field's referent
-    // (`font.size.48` -> `dimension`, all 11 per brand, in all three brands).
+    // (`core.font.size.48` -> `dimension`, all 11 per brand, in all three brands).
     //
     // It keeps `duplicate: true` because it still re-pairs a prism3 path the `typography` rule already
     // claimed — which is right, and is the part of the old reasoning that survived: one prism3 token
@@ -803,11 +814,17 @@ const explainViaModeOverlay = (
 /** Prism3 paths the FIGMA EMISSION never carries, so no exporter reading a Figma file could produce
  *  them. Reported as a bound on the round-trip rather than as a TokenPress gap — measured against the
  *  emission's own variable names, which contain 0 matches for each of these prefixes. */
+//
+//  THE PREFIXES ARE DTCG PATHS ON PRISM3'S SIDE, so #1102's `core` tier moved three of them: the font
+//  primitives are now `core.font.*`, not `font.*`. A prefix that no longer matches anything does not
+//  go quiet here — the paths it used to explain reappear as unexplained failures, which is how these
+//  were found (29 on aurora, 28 on nb, 29 on wendys). `motion.` is unchanged: motion is not a core
+//  primitive tier and did not move.
 const NOT_IN_EMISSION = [
   { prefix: 'motion.', why: 'no motion collection is emitted at all (Figma has no duration/easing variable type)' },
-  { prefix: 'font.line-height', why: 'line-height reaches Figma only inside a text style, never as its own variable' },
-  { prefix: 'font.letter-spacing', why: 'letter-spacing reaches Figma only inside a text style, never as its own variable' },
-  { prefix: 'font.typeface.', why: 'the typeface primitive tier is collapsed: the emission writes the resolved face onto `font/family/*`' },
+  { prefix: 'core.font.line-height', why: 'line-height reaches Figma only inside a text style, never as its own variable' },
+  { prefix: 'core.font.letter-spacing', why: 'letter-spacing reaches Figma only inside a text style, never as its own variable' },
+  { prefix: 'core.font.typeface.', why: 'the typeface primitive tier is collapsed: the emission writes the resolved face onto `<root>/core/font/family/*`' },
   {
     prefix: 'container.fluid',
     why: 'value is `100%` — Figma FLOAT variables are unitless numbers, so a percentage has no representation and the emission omits the token',
@@ -1119,6 +1136,13 @@ export type BrandReport = {
   structure: {
     prism3Root: string;
     tokenpressRoot: string;
+    /** The raw top-level group names TokenPress produced, for `gate.ts`'s namespace arm to assert on.
+     *  Exposed as data and not only as the `tokenpressRoot` prose, because a gate keyed on a prose
+     *  string inherits every proxy in it — the #729 shape. */
+    tokenpressRootKeys: string[];
+    /** The same groups with the `$type`s found under each, so the namespace arm can tell the rooted
+     *  variable group from the unrooted STYLE groups without an allowlist of style names (#1097). */
+    tokenpressRootGroups: { key: string; types: string[] }[];
     prism3Files: string[];
     tokenpressFiles: string[];
     tokenpressDirs: string[];
@@ -1137,8 +1161,10 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
   // correspond to prism3's `base` follows from the axis of each collection, and getting that wrong
   // moves hundreds of paths into the difference report (see `unionTokenPress`).
   const classification = classifyCollections(censusFromEmission(join(OUT, 'figma', brand)));
-  const { union, collisions } = unionTokenPress(out, classification.baseDirs);
+  // Read prism3 FIRST: its root key is what the TokenPress union must strip too, now that the
+  // namespace travels through the Figma variable name (#1097) rather than a TokenPress option.
   const p3 = readPrism3(brand);
+  const { union, collisions } = unionTokenPress(out, classification.baseDirs, p3.rootKey);
 
   // Drop the Figma-only collections before pairing (#893). TokenPress reads every Figma collection,
   // so a collection prism3 deliberately keeps OUT of the DTCG projection comes back as tokenpress-only
@@ -1177,6 +1203,21 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
     for (const k of Object.keys(tree ?? {})) if (!k.startsWith('$')) tpRootKeys.add(k);
   }
 
+  // Every top-level group TokenPress produced, with the `$type`s underneath it, read UNSTRIPPED so the
+  // first segment is still there. This is the raw material for the namespace arm: #1097 roots every
+  // VARIABLE name and deliberately does NOT root a STYLE name, so the honest expectation is not "one
+  // group" — it is "the rooted group, plus groups that hold nothing but style-shaped types". Which
+  // types those are is the GATE's expectation to author; this side only measures what is there.
+  const tpRootTypes = new Map<string, Set<string>>();
+  for (const f of out.order) {
+    for (const [path, leaf] of leaves(out.files.get(f))) {
+      const k = path.split('.')[0];
+      const set = tpRootTypes.get(k) ?? new Set<string>();
+      set.add(leaf.type);
+      tpRootTypes.set(k, set);
+    }
+  }
+
   const prism3Overlays: Record<string, number> = {};
   for (const [mode, l] of p3.overlays) prism3Overlays[mode] = l.size;
 
@@ -1213,7 +1254,17 @@ export const analyze = async (brand: string): Promise<BrandReport> => {
     values,
     structure: {
       prism3Root: p3.rootKey,
-      tokenpressRoot: `${tpRootKeys.size} top-level group(s), no brand namespace: ${[...tpRootKeys].sort().slice(0, 12).join(', ')}`,
+      // DERIVED, not asserted in prose. Before #1097 this line read "no brand namespace" as a fixed
+      // string; the namespace now travels in the Figma variable name, so TokenPress reproduces it and
+      // the honest report is which of the two it found.
+      tokenpressRoot:
+        tpRootKeys.size === 1 && tpRootKeys.has(p3.rootKey)
+          ? `1 top-level group, and it is prism3's own brand namespace \`${p3.rootKey}\` — carried through Figma in the variable name (#1097), not set via options.namespace`
+          : `${tpRootKeys.size} top-level group(s), no brand namespace: ${[...tpRootKeys].sort().slice(0, 12).join(', ')}`,
+      tokenpressRootKeys: [...tpRootKeys].sort(),
+      tokenpressRootGroups: [...tpRootTypes]
+        .map(([key, types]) => ({ key, types: [...types].sort() }))
+        .sort((a, b) => a.key.localeCompare(b.key)),
       prism3Files: [
         `${brand}.tokens.json (canonical)`,
         `${brand}.base.tokens.json`,
@@ -1418,7 +1469,7 @@ const VERDICTS: Verdict[] = [
     category: 3,
     verdict: 'EXPECTED',
     claim:
-      'ALIASES FLATTEN TO LITERALS wherever the tier they pointed at was not emitted: prism3 keeps `font.family.display = {…font.typeface.inter}`, TokenPress has `"Inter"`, because `font.typeface.*` never reached Figma (see PATHS). The reference is not dropped — its target ceased to exist, so there was nothing left to reference',
+      'ALIASES FLATTEN TO LITERALS wherever the tier they pointed at was not emitted: prism3 keeps `core.font.family.display = {…core.font.typeface.inter}`, TokenPress has `"Inter"`, because `core.font.typeface.*` never reached Figma (see PATHS). The reference is not dropped — its target ceased to exist, so there was nothing left to reference',
     source: 'follows from the typeface-tier collapse already recorded under PATHS',
     when: (r) => countKind(r, 'alias-vs-literal') > 0,
   },

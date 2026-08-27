@@ -362,6 +362,58 @@ const main = async (): Promise<void> => {
       `unpaired: ${r.paths.unpairedPrism3.length} prism3-only (${known.length} known) / ${r.paths.unpairedTokenPress.length} tokenpress-only`
     );
 
+    // ---- ARM 2c: the brand namespace survives the round trip, a RULE (#1097) --------------------
+    // THIS ARM EXISTS BECAUSE ARM 2a AND 2b CANNOT SEE ITS SUBJECT, and that is a consequence of a
+    // change made in the same PR. Paths are compared with each side's own root stripped (see
+    // `unionTokenPress`), so once prism3's namespace is off BOTH sides, a namespace that never reached
+    // Figma at all pairs perfectly: prism3's `prism.space.100` and a rootless `space/100` both reduce
+    // to `space.100`. The paths arms would report 0 and mean nothing by it.
+    //
+    // Before the strip was added they DID go red on a missing namespace — but only as a side effect,
+    // and the same sensitivity fired on a CORRECT emission (746 prism3-only / 711 tokenpress-only on
+    // aurora, the same tokens unpaired on one segment). A backstop that cannot tell the hazard from
+    // the healthy case is not a backstop; docs/34 calls this the borrowed one. So the claim gets an
+    // arm that states it.
+    //
+    // Independence: `prism3Root` is read off the DTCG projection's own top-level key, `rootKeys` off
+    // the trees TokenPress built from the FIGMA emission. Two artifacts, two emitters, neither
+    // authored from the other — the only way they agree is if the root really did travel through the
+    // Figma variable name. Note what is NOT asserted: the root's spelling. `prism`/`nbds`/`wendys` is
+    // a brand's own choice and naming it here would make this gate brand-specific (#1097's rule).
+    // WHICH TYPES A FIGMA STYLE CAN CARRY — this gate's own expectation, authored here and not imported
+    // from either exporter. prism3 emits exactly two style channels (text styles -> `typography`,
+    // effect styles -> `shadow`); a Figma style cannot hold a dimension, a color or a number, so an
+    // unrooted group carrying one of those is a VARIABLE that lost its root, which is the failure.
+    const STYLE_TYPES = new Set(['typography', 'shadow']);
+    const rooted = r.structure.tokenpressRootGroups.filter((g) => g.key === r.structure.prism3Root);
+    const unrooted = r.structure.tokenpressRootGroups.filter((g) => g.key !== r.structure.prism3Root);
+
+    if (rooted.length !== 1) {
+      failures.push(
+        `[${brand}] NAMESPACE LOST IN THE ROUND TRIP: prism3's DTCG root is \`${r.structure.prism3Root}\`, and ` +
+          `NO top-level group TokenPress produced carries it. It found: ${r.structure.tokenpressRootKeys.slice(0, 8).join(', ')}. ` +
+          'Since #1097 every Figma VARIABLE name begins with the brand root, so an exporter reading those ' +
+          'names back must reproduce it as a top-level group. Either the emission stopped rooting its ' +
+          'variable names, or something re-rooted them on the way through. The unpaired-path arms CANNOT ' +
+          'catch this — they compare with each side\'s root stripped — so this arm is the only one that does.'
+      );
+    }
+    for (const g of unrooted) {
+      const nonStyle = g.types.filter((t) => !STYLE_TYPES.has(t));
+      if (nonStyle.length) {
+        failures.push(
+          `[${brand}] UNROOTED VARIABLE GROUP: TokenPress produced a top-level group \`${g.key}\` that is not ` +
+            `the brand root \`${r.structure.prism3Root}\` and holds \`${nonStyle.join(', ')}\` — types a Figma STYLE ` +
+            'cannot carry, so these came from VARIABLES whose names lost their root. #1097 drops the root from ' +
+            'style names ONLY (a style is picked from a flat list, a variable is found by full name).'
+        );
+      }
+    }
+    lines.push(
+      `namespace: ${rooted.length === 1 ? `\`${r.structure.prism3Root}\` round-trips` : 'LOST'}` +
+        `${unrooted.length ? ` + ${unrooted.length} unrooted style group(s): ${unrooted.map((g) => g.key).join('/')}` : ''}`
+    );
+
     // ---- ARM 3: the float32 cleanup did not leak, a RULE at 0 ----------------------------------
     const leaks = r.values.filter((v) => v.float32 === 'leak');
     for (const v of leaks) {
