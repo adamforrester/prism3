@@ -52,6 +52,20 @@
  * most-repeated defect shape in this repo's history. Each assertion prints its own name so a mutation
  * test can grep for THAT arm rather than for a failure count (#986).
  *
+ * ── MUTATION-VERIFIED BY NAME (#1097) ───────────────────────────────────────────────────────────────
+ *
+ *   M1  `byName`'s key in `write-components.ts` from `tailOf(v.name)` back to a root-spelling
+ *       `v.name.startsWith('prism/') ? tailOf(v.name) : v.name`
+ *                                                → A1 unclaimed-property, 9563 pairs / 59 groups
+ *   M2  `mkVar` handing back the plan name unrooted, i.e. reverting this file's `SHIM_ROOT`
+ *                                                → A1 unclaimed-property, 9563 pairs / 59 groups
+ *
+ * The two mutations are the two sides of one boundary — a rooted file meeting a root-relative plan — and
+ * they are indistinguishable in the output, which is the point worth recording: 9563 is what this gate
+ * says when the executor cannot resolve ANY plan binding, so read it as "the boundary broke", never as
+ * "the executor forgot 9563 decisions". M2 was not authored as a test; it was the state of this file for
+ * the length of the #1097 lane, and the gate is how it was found.
+ *
  * ── WHAT THIS SHIM CANNOT SEE, stated rather than implied ───────────────────────────────────────────
  *
  *   · `createNodeFromSvg` here returns an artboard frame holding ONE vector, because that is the shape
