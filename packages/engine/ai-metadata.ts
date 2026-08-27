@@ -11,7 +11,7 @@
  * point: contract-true metadata that regenerates, vs the field's hand-authored
  * metadata that rots. Keeps tokens.json DTCG-pure (no non-standard sibling keys).
  */
-import { Theme } from './theme';
+import { Theme, CORE_TIER } from './theme';
 import { resolveAllModes, VEIL_RUNGS } from './modes';
 
 type AiToken = {
@@ -381,11 +381,11 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
   for (const c of theme.typography.composites) {
     const d = TYPE_DESC[c.group];
     const resolves: Record<string, string> = {
-      fontFamily: `{${root}.font.family.${c.group}}`,   // #415 — a composite's family IS its category
-      fontSize: `{${root}.font.size.${c.sizePx}}`,
-      fontWeight: `{${root}.font.weight-role.${c.weightRole}}`,
-      lineHeight: `{${root}.font.line-height.${c.lineHeight}}`,
-      letterSpacing: `{${root}.font.letter-spacing.${c.tracking}}`,
+      fontFamily: `{${root}.${CORE_TIER}.font.family.${c.group}}`,   // #415 — a composite's family IS its category
+      fontSize: `{${root}.${CORE_TIER}.font.size.${c.sizePx}}`,
+      fontWeight: `{${root}.${CORE_TIER}.font.weight-role.${c.weightRole}}`,
+      lineHeight: `{${root}.${CORE_TIER}.font.line-height.${c.lineHeight}}`,
+      letterSpacing: `{${root}.${CORE_TIER}.font.letter-spacing.${c.tracking}}`,
     };
     if (c.italic) resolves.fontStyle = 'italic';
     if (c.textCase !== 'none') resolves.textCase = c.textCase;
@@ -406,7 +406,7 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
       meaning: `Function-named weight → ${w.value} — white-label-stable (the role is the contract; each brand maps the numeric).`,
       when_to_use: `Reference ${key} (not the numeric) so a brand weight re-map reflows every consumer at once.`,
       avoid_when: `Do not hard-code the numeric (${w.value}); reference the role.`,
-      resolves_to: `{${root}.font.weight.${w.value}}`,
+      resolves_to: `{${root}.${CORE_TIER}.font.weight.${w.value}}`,
     };
     const usedBy = (aliasedBy[key] ?? []).filter((p) => p.startsWith('type.'));
     if (usedBy.length) entry.used_by = usedBy;                      // which composites carry this role

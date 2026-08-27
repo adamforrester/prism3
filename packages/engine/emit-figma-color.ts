@@ -15,7 +15,7 @@
  *
  * PURE — no `node:*`, no `figma.*`, no I/O. Depends only on the pure `theme`/`tree` core.
  */
-import { Theme } from './theme';
+import { Theme, CORE_TIER } from './theme';
 import { buildTree, at } from './tree';
 
 export type FigmaColor = { r: number; g: number; b: number; a: number };
@@ -161,6 +161,11 @@ const PALETTE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR']
  * type distinction where the tier distinction belongs. `core-font` already mixed STRING with FLOAT in
  * one collection, so the split was not even a type boundary.
  *
+ * It is spelled the same as the DTCG tier (`CORE_TIER`, #1102) and is deliberately NOT the same
+ * constant. A Figma collection label and a DTCG path segment are independent by construction — that
+ * independence is exactly why `core-palette` could hold `palette/*` for a year — and tying them would
+ * make a future collection rename silently move 164 token paths.
+ *
  * Named here because this module owns the shared emission helpers; the migration record states the
  * three old names LITERALLY (`materialization-renames.ts`) and must not import this.
  */
@@ -196,6 +201,18 @@ export const figName = (dotted: string): string => dotted.replace(/\./g, '/');
  * a weaker and truer claim than "every name is its DTCG path".
  */
 export const nsName = (root: string, name: string): string => `${root}/${name}`;
+
+/**
+ * The same, for a name in the PRIMITIVE tier — `<root>/core/<name>` (#1102).
+ *
+ * `dimension/8` and `font/size/16` are assembled from keys like every other FLOAT name, but their DTCG
+ * paths gained a `core` level, so their Figma names have to gain the matching segment or the two stop
+ * agreeing. Kept as its own function rather than a `core/` string typed at each of the ~18 call sites:
+ * the sites that need it and the sites that must NOT (`space/*`, `radius/*`, `font-fluid/*` — semantic
+ * or non-DTCG) are distinguished by which helper they call, which is checkable by reading, where a
+ * literal prefix would be checkable only by knowing the tier of every group by heart.
+ */
+export const coreName = (root: string, name: string): string => nsName(root, `${CORE_TIER}/${name}`);
 
 /** DTCG colour `$value` ("rgb(247, 229, 228)" / "rgba(0,0,0,0.6)" / "#f7e5e4") → Figma
  *  {r,g,b,a} 0–1. Figma stores colour as float32, so round each channel with fround. */
@@ -245,7 +262,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     // Scopes stay at the four color fill/stroke targets so, if a component
     // author does need to bind a raw primitive for a bespoke case, the
     // picker guidance is still correct per role family.
-    variables: leaves(tree[root].palette, `${root}.palette`).map(([dotted, leaf]) => ({
+    variables: leaves(tree[root].core.palette, `${root}.${CORE_TIER}.palette`).map(([dotted, leaf]) => ({
       name: figName(dotted),
       resolvedType: 'COLOR',
       scopes: PALETTE_SCOPES,

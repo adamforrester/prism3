@@ -7,8 +7,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/display",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -17,14 +17,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/display/sm/strong",
+          "variable": "nbds/font-fluid/display/sm/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -57,8 +57,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/display",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -67,14 +67,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/display/md/strong",
+          "variable": "nbds/font-fluid/display/md/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -107,8 +107,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/display",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -117,14 +117,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/display/lg/strong",
+          "variable": "nbds/font-fluid/display/lg/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -157,8 +157,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/display",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -167,14 +167,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/display/xl/strong",
+          "variable": "nbds/font-fluid/display/xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -207,8 +207,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/display",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -217,14 +217,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/display/2xl/strong",
+          "variable": "nbds/font-fluid/display/2xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -257,8 +257,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/display",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/display",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -267,14 +267,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/display/3xl/strong",
+          "variable": "nbds/font-fluid/display/3xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -307,8 +307,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/title",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/title",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -317,14 +317,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/18",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/18",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -357,8 +357,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/title",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/title",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -367,14 +367,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/20",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/20",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -407,8 +407,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/title",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/title",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -417,14 +417,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/title/md/strong",
+          "variable": "nbds/font-fluid/title/md/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -457,8 +457,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/title",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/title",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -467,14 +467,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/title/lg/strong",
+          "variable": "nbds/font-fluid/title/lg/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -507,8 +507,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/title",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/title",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -517,14 +517,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/title/xl/strong",
+          "variable": "nbds/font-fluid/title/xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -557,8 +557,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/title",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/title",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -567,14 +567,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/title/2xl/strong",
+          "variable": "nbds/font-fluid/title/2xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -607,8 +607,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -617,14 +617,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -657,8 +657,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -667,14 +667,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -707,8 +707,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -717,14 +717,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -757,8 +757,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -767,14 +767,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -807,8 +807,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -817,14 +817,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/16",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/16",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -857,8 +857,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -867,14 +867,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/16",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/16",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -907,8 +907,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -917,14 +917,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/16",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/16",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -957,8 +957,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -967,14 +967,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/16",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/16",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1007,8 +1007,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1017,14 +1017,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/18",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/18",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1057,8 +1057,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1067,14 +1067,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/18",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/18",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1107,8 +1107,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1117,14 +1117,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/18",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/18",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1157,8 +1157,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/body",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/body",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1167,14 +1167,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/18",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/18",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1207,8 +1207,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/label",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/label",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1217,14 +1217,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/12",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/emphasis",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/emphasis",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1257,8 +1257,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/label",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/label",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1267,14 +1267,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/emphasis",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/emphasis",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1307,8 +1307,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1317,14 +1317,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/11",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/11",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1357,8 +1357,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1367,14 +1367,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/11",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/11",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1407,8 +1407,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1417,14 +1417,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/11",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/11",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1457,8 +1457,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1467,14 +1467,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/11",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/11",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1507,8 +1507,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1517,14 +1517,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/12",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1557,8 +1557,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1567,14 +1567,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/12",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1607,8 +1607,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1617,14 +1617,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/12",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1657,8 +1657,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/caption",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/caption",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1667,14 +1667,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/12",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/strong",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/strong",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1707,8 +1707,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/eyebrow",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/eyebrow",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1717,14 +1717,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/12",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/12",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/emphasis",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/emphasis",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1757,8 +1757,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/eyebrow",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/eyebrow",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1767,14 +1767,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/emphasis",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/emphasis",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1807,8 +1807,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/eyebrow",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/eyebrow",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1817,14 +1817,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font-fluid/eyebrow/lg/emphasis",
+          "variable": "nbds/font-fluid/eyebrow/lg/emphasis",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/emphasis",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/emphasis",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {
@@ -1857,8 +1857,8 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "font/family/code",
-          "collection": "core-font",
+          "variable": "nbds/core/font/family/code",
+          "collection": "core",
           "resolvedType": "STRING"
         },
         "fontStyle": {
@@ -1867,14 +1867,14 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "font/size/14",
-          "collection": "core-font",
+          "variable": "nbds/core/font/size/14",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "font/weight-role/default",
-          "collection": "core-font",
+          "variable": "nbds/core/font/weight-role/default",
+          "collection": "core",
           "resolvedType": "FLOAT"
         },
         "lineHeight": {

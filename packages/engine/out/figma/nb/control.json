@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "control/size/sm/height",
+      "name": "nbds/control/size/sm/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -12,11 +12,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/16"
+        "name": "nbds/core/dimension/16"
       }
     },
     {
-      "name": "control/size/sm/width",
+      "name": "nbds/control/size/sm/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -25,11 +25,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/32"
+        "name": "nbds/core/dimension/32"
       }
     },
     {
-      "name": "control/size/sm/dot",
+      "name": "nbds/control/size/sm/dot",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -38,11 +38,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/8"
+        "name": "nbds/core/dimension/8"
       }
     },
     {
-      "name": "control/size/md/height",
+      "name": "nbds/control/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -51,11 +51,11 @@
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/20"
+        "name": "nbds/core/dimension/20"
       }
     },
     {
-      "name": "control/size/md/width",
+      "name": "nbds/control/size/md/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -64,11 +64,11 @@
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/40"
+        "name": "nbds/core/dimension/40"
       }
     },
     {
-      "name": "control/size/md/dot",
+      "name": "nbds/control/size/md/dot",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -77,11 +77,11 @@
       "value": 10,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/10"
+        "name": "nbds/core/dimension/10"
       }
     },
     {
-      "name": "control/size/lg/height",
+      "name": "nbds/control/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -90,11 +90,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/24"
+        "name": "nbds/core/dimension/24"
       }
     },
     {
-      "name": "control/size/lg/width",
+      "name": "nbds/control/size/lg/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -103,11 +103,11 @@
       "value": 48,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/48"
+        "name": "nbds/core/dimension/48"
       }
     },
     {
-      "name": "control/size/lg/dot",
+      "name": "nbds/control/size/lg/dot",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -116,7 +116,7 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/12"
+        "name": "nbds/core/dimension/12"
       }
     }
   ]

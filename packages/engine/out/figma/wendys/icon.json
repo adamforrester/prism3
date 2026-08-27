@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "icon/size/xs",
+      "name": "prism/icon/size/xs",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -12,11 +12,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/16"
+        "name": "prism/core/dimension/16"
       }
     },
     {
-      "name": "icon/size/sm",
+      "name": "prism/icon/size/sm",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -25,11 +25,11 @@
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/20"
+        "name": "prism/core/dimension/20"
       }
     },
     {
-      "name": "icon/size/md",
+      "name": "prism/icon/size/md",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -38,11 +38,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/24"
+        "name": "prism/core/dimension/24"
       }
     },
     {
-      "name": "icon/size/lg",
+      "name": "prism/icon/size/lg",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -51,11 +51,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/32"
+        "name": "prism/core/dimension/32"
       }
     },
     {
-      "name": "icon/size/xl",
+      "name": "prism/icon/size/xl",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -64,7 +64,7 @@
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/40"
+        "name": "prism/core/dimension/40"
       }
     }
   ]

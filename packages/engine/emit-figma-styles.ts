@@ -153,9 +153,11 @@ export type FigmaPaintStyle = {
 };
 export type FigmaPaintStylesFile = { $collection: 'gradient-styles'; styles: FigmaPaintStyle[] };
 
-/** Resolve `{prism.palette.primary.600}` → Figma name `prism/palette/primary/600` and the leaf's
- *  resolved {r,g,b,a}. The STYLE's own name carries no namespace (#1097) but the variable it BINDS
- *  does — a style is a Figma style, the thing it points at is a variable. */
+/** Resolve `{prism.core.palette.primary.600}` → Figma name `prism/core/palette/primary/600` and the
+ *  leaf's resolved {r,g,b,a}. The STYLE's own name carries no namespace (#1097) but the variable it
+ *  BINDS does — a style is a Figma style, the thing it points at is a variable. And because the bind
+ *  comes from the DTCG alias, the `core` tier (#1102) arrives here for free: `figName` is a separator
+ *  swap over whatever path the tree already holds, so no site here names the tier. */
 const stopFromAlias = (tree: any, aliasStr: string, position: number): FigmaPaintStop => {
   const m = /^\{(.+)\}$/.exec(aliasStr);
   const path = m ? m[1] : '';

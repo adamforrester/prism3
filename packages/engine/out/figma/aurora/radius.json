@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "radius/none",
+      "name": "prism/radius/none",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -12,11 +12,11 @@
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/0"
+        "name": "prism/core/dimension/0"
       }
     },
     {
-      "name": "radius/sm",
+      "name": "prism/radius/sm",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -25,11 +25,11 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/4"
+        "name": "prism/core/dimension/4"
       }
     },
     {
-      "name": "radius/md",
+      "name": "prism/radius/md",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -38,11 +38,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/8"
+        "name": "prism/core/dimension/8"
       }
     },
     {
-      "name": "radius/lg",
+      "name": "prism/radius/lg",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -51,11 +51,11 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/12"
+        "name": "prism/core/dimension/12"
       }
     },
     {
-      "name": "radius/round",
+      "name": "prism/radius/round",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -64,7 +64,7 @@
       "value": 128,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/128"
+        "name": "prism/core/dimension/128"
       }
     }
   ]

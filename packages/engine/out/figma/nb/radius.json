@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "radius/none",
+      "name": "nbds/radius/none",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -12,11 +12,11 @@
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/0"
+        "name": "nbds/core/dimension/0"
       }
     },
     {
-      "name": "radius/sm",
+      "name": "nbds/radius/sm",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -25,11 +25,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/2"
+        "name": "nbds/core/dimension/2"
       }
     },
     {
-      "name": "radius/md",
+      "name": "nbds/radius/md",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -38,11 +38,11 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/4"
+        "name": "nbds/core/dimension/4"
       }
     },
     {
-      "name": "radius/lg",
+      "name": "nbds/radius/lg",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -51,11 +51,11 @@
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/6"
+        "name": "nbds/core/dimension/6"
       }
     },
     {
-      "name": "radius/round",
+      "name": "nbds/radius/round",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -64,7 +64,7 @@
       "value": 128,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/128"
+        "name": "nbds/core/dimension/128"
       }
     }
   ]

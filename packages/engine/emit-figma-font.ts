@@ -19,7 +19,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, subNode, deref } from './tree';
-import { desc, nsName, CORE_COLLECTION } from './emit-figma-color';
+import { desc, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaResolvedType, FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 // Named-instance derivation for fontStyle (fix #5). Numeric weight → the family's
@@ -66,14 +66,15 @@ const stackDescription = (stack: string[]): string => `stack: ${stack.join(', ')
 export const buildFigmaFont = (theme: Theme): FigmaCollectionFile[] => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
-  const font = tree[root].font;
+  const font = tree[root].core.font;
   const familiesByMode = theme.typography.familiesByMode ?? {};
   const weightRolesByMode = theme.typography.weightRolesByMode ?? {};
   const fontModes = [...new Set([...Object.keys(familiesByMode), ...Object.keys(weightRolesByMode)])];
 
-  /** Every name in this collection is assembled from keys rather than walked, so the namespace goes
-   *  on explicitly (#1097). Bound once here because `varsFor` builds five of them. */
-  const ns = (name: string): string => nsName(root, name);
+  /** Every name in this collection is assembled from keys rather than walked, so the namespace and the
+   *  primitive tier go on explicitly (#1097 + #1102) — `<root>/core/font/size/16` for the DTCG path
+   *  `<root>.core.font.size.16`. Bound once here because `varsFor` builds five of them. */
+  const ns = (name: string): string => coreName(root, name);
 
   const varsFor = (mode: string): FigmaVar[] => {
     const variables: FigmaVar[] = [];
@@ -256,7 +257,7 @@ const familyCategoryFromAlias = (aliasStr: string): string => {
 const sizeBinding = (root: string, compositePath: string, sizeAlias: string, fluid: boolean): { variable: string; collection: typeof CORE_COLLECTION | 'type-sets' } => {
   if (fluid) return { variable: nsName(root, `font-fluid/${compositePath}`), collection: 'type-sets' };
   const m = /font\.size\.([^.}]+)\}?$/.exec(sizeAlias);
-  return { variable: nsName(root, `font/size/${m ? m[1] : ''}`), collection: CORE_COLLECTION };
+  return { variable: coreName(root, `font/size/${m ? m[1] : ''}`), collection: CORE_COLLECTION };
 };
 const weightRoleFromAlias = (aliasStr: string): string => {
   const m = /font\.weight-role\.([^.}]+)\}?$/.exec(aliasStr);
@@ -288,7 +289,7 @@ const numericWeightForRole = (fontNode: any, role: string): number => {
 export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
-  const font = tree[root].font;
+  const font = tree[root].core.font;
   const composites = collectComposites(tree[root].type, '');
 
   const styles: FigmaTextStyle[] = composites.map(({ path, leaf }) => {
@@ -325,13 +326,13 @@ export const buildFigmaTextStyles = (theme: Theme): FigmaTextStylesFile => {
       name: compositeToStyleName(path),
       description,
       properties: {
-        fontFamily: { bound: true, variable: nsName(root, `font/family/${familyCategory}`), collection: CORE_COLLECTION, resolvedType: 'STRING' },
+        fontFamily: { bound: true, variable: coreName(root, `font/family/${familyCategory}`), collection: CORE_COLLECTION, resolvedType: 'STRING' },
         // fontStyle baked — derived from weight-role (+ italic modifier) via the
         // named-instance table (e.g. Bold, Bold Italic); the plugin write lane
         // resolves this guess against the family's real styles (see fontStyleName).
         fontStyle: { bound: false, value: styleName },
         fontSize: { bound: true, variable: sb.variable, collection: sb.collection, resolvedType: 'FLOAT' },
-        fontWeight: { bound: true, variable: nsName(root, `font/weight-role/${weightRole}`), collection: CORE_COLLECTION, resolvedType: 'FLOAT' },
+        fontWeight: { bound: true, variable: coreName(root, `font/weight-role/${weightRole}`), collection: CORE_COLLECTION, resolvedType: 'FLOAT' },
         lineHeight: { bound: false, value: { unit: 'PERCENT', value: Math.round(lhMult * 100) } },
         letterSpacing: { bound: false, value: { unit: 'PERCENT', value: Math.round(lsEm * 10000) / 100 } },
         textCase: { bindable: false, value: textCase },

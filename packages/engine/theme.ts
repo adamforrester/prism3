@@ -165,11 +165,32 @@ export type InteractivePalette = { name: string; palette: string; anchorStep?: n
    *  this wrong the first time. */
   anchorPinned?: boolean };
 
+/**
+ * THE PRIMITIVE TIER'S OWN PATH SEGMENT (#1102).
+ *
+ * `palette.*`, `dimension.*` and `font.*` sit one level down, under `<root>.core.*`, so the tier a
+ * path belongs to is legible from the path itself — `prism.core.palette.red.550` says "primitive"
+ * where `prism.palette.red.550` left the reader to know it. That legibility was already bought for
+ * the designer (the Figma `core` collection, #1097); this buys the same thing for the developer
+ * reading the JSON, and it is the reason the two halves land in one emission: a Figma variable's name
+ * IS its DTCG path, so this move renames the same variables #1097 renames.
+ *
+ * Spelled once, here, because `theme.namespace` (the colour-primitive root every resolved role path
+ * is built from — see `modes.ts`) and `tree.ts`'s group nesting have to agree; they were two
+ * literals before, and a tier that existed in one and not the other would emit ~2,900 aliases
+ * pointing at paths no longer in the tree.
+ *
+ * Deliberately NOT reachable from `materialization-renames.ts` — the migration record states the
+ * transformation as a second, literal expression (`docs/34` shape 11), so importing this constant
+ * there would delete the check it is the subject of.
+ */
+export const CORE_TIER = 'core';
+
 /** Everything the emitter and the modes engine need to be brand-agnostic. */
 export type Theme = {
   id: string;
   root: string;                      // 'nbds' | 'prism' (brand root namespace)
-  namespace: string;                 // '<root>.palette' — the colour PRIMITIVE root (ramps live here; the semantic role layer is emitted under '<root>.color')
+  namespace: string;                 // '<root>.core.palette' — the colour PRIMITIVE root (ramps live here; the semantic role layer is emitted under '<root>.color')
   colorFormat: 'rgb' | 'hex';
   modes: ModeName[];                 // the appearance modes to generate (light always present; customs appended last)
   // User-added custom modes (C1) — each `{ name, base }` clones a customizable built-in (light/dark)
@@ -319,7 +340,7 @@ const statusRamp = (hue: number, chroma: number): Step[] =>
 export type BrandInput = {
   id: string;
   /** The single, mode-invariant token namespace. Every token emits under `<root>.*`
-   *  (colour primitives at `<root>.palette`, semantic roles at `<root>.color`).
+   *  (colour primitives at `<root>.core.palette`, semantic roles at `<root>.color`).
    *  Per-engagement/brand; defaults to the placeholder 'prism'. One segment only —
    *  no dots (two-segment namespaces are intentionally unsupported). A namespace is
    *  always present today; a future "no namespace" mode would flatten it at the emit
@@ -1625,7 +1646,7 @@ const buildGradient = (spec: BrandInput['gradients'], palettes: PaletteBuild[], 
       .slice().sort((a, b) => a.position - b.position)
       .map((st) => {
         const s = stepOf(st.palette, st.step);
-        return { aliasOf: `${root}.palette.${st.palette}.${s.key}`, position: st.position, rgb: s.rgb, hex: s.hex, oklch: s.oklch };
+        return { aliasOf: `${root}.${CORE_TIER}.palette.${st.palette}.${s.key}`, position: st.position, rgb: s.rgb, hex: s.hex, oklch: s.oklch };
       });
     // Pre-sample the curve at N evenly-spaced positions (the chosen interpolation
     // space), output sRGB — the baked stops Figma needs (it can't interpolate OKLCH).
@@ -2392,7 +2413,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   notes.push(`neutral interactive emphasis: '${neutralEmphasis}'${neutralEmphasis === 'strong' ? ' — bold near-black/white neutral fill' : ' (light-gray, default)'}; inverse surface-context: always generated (#895 removed the lever)`);
 
   return {
-    id: input.id, root, namespace: `${root}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
+    id: input.id, root, namespace: `${root}.${CORE_TIER}.palette`, colorFormat: 'hex', modes: modesAll, palettes, roleToPalette, notes,
     ...(customModes.length ? { customModes } : {}),
     ...(Object.keys(radiusByMode).length || Object.keys(familiesByMode).length || Object.keys(weightRolesByMode).length || Object.keys(lineHeightRepointByMode).length || Object.keys(letterSpacingRepointByMode).length || Object.keys(motionByMode).length || Object.keys(easingRolesByMode).length || Object.keys(shadowByMode).length || Object.keys(sizesByMode).length ? { modeLevers } : {}),
     roleAnchorStep: { brand: anchorStep, neutral: 500, success: 500, warning: 500, danger: 500, info: 500, action: actionAnchorStep },
@@ -2451,7 +2472,7 @@ export const nbThemeFrom = (s: NbMeasured): Theme => {
   // a 720px layout outlier.
   const dims = buildDims(baseUnit, 8, 'comfortable', 1, baseMd, [720]);
   return {
-    id: 'nb', root: 'nbds', namespace: 'nbds.palette', colorFormat: 'rgb', modes: ALL_MODES, palettes,
+    id: 'nb', root: 'nbds', namespace: `nbds.${CORE_TIER}.palette`, colorFormat: 'rgb', modes: ALL_MODES, palettes,
     roleToPalette: { brand: 'red', neutral: 'neutral', success: 'green', warning: 'amber', danger: 'red', info: 'info', action: 'red' },
     roleAnchorStep: { brand: 550, neutral: 500, success: 500, warning: 500, danger: 550, info: 500, action: 550 },
     disabledStrategy: 'reduced', disabledMin: 3, iconContrast: 'text', outlineInteraction: 'overlay-neutral',

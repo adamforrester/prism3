@@ -20,7 +20,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, at } from './tree';
-import { figName, desc, nsName, CORE_COLLECTION } from './emit-figma-color';
+import { figName, desc, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 /** Numeric px from a `12px` or `"{alias}"` value. For alias targets we resolve via
@@ -37,8 +37,10 @@ const pxFromValue = (tree: any, v: unknown): number => {
   }
   return 0;
 };
-/** DTCG alias `{nbds.dimension.8}` → Figma name `nbds/dimension/8`. Uses `figName`, so the brand
- *  namespace comes along on its own (#1097) — the alias string already carries the root. */
+/** DTCG alias `{nbds.core.dimension.8}` → Figma name `nbds/core/dimension/8`. Uses `figName`, so the
+ *  brand namespace AND the primitive tier come along on their own (#1097, #1102) — the alias string
+ *  already carries both, which is why every `alias:` site below needs no help while the `name:` sites,
+ *  assembled from bare keys, each have to say which tier they are in. */
 const aliasFigName = (aliasStr: string): string => {
   const m = /^\{(.+)\}$/.exec(String(aliasStr));
   return m ? figName(m[1]) : '';
@@ -111,8 +113,14 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   const root = Object.keys(tree)[0];
   /** Every name here is assembled from keys rather than walked out of the tree, so the brand namespace
    *  goes on explicitly (#1097). The ALIAS targets need no help — `aliasFigName` reads a dotted path
-   *  that already carries the root. */
+   *  that already carries the root.
+   *
+   *  TWO helpers, because this builder spans both tiers: `dimension/*` is a PRIMITIVE and carries the
+   *  `core` segment (#1102), while `space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/
+   *  `opacity` are semantics that alias into it and stay at the top level. Every `name:` below picks
+   *  one, so the tier is visible at the call site rather than inferred from the group's key. */
   const ns = (name: string): string => nsName(root, name);
+  const coreDim = (name: string): string => coreName(root, name);
   const brand = tree[root];
 
   // dimension primitives — REF TIER. Value is the numeric px; no alias.
@@ -121,12 +129,12 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // alias into this scale). Scopes stay at the four dim targets so, if a
   // component author needs a raw primitive for a bespoke case, the picker
   // guidance is still correct.
-  const dimVars: FigmaVar[] = Object.keys(brand.dimension).map((key) => ({
-    name: ns(`dimension/${key}`),
+  const dimVars: FigmaVar[] = Object.keys(brand.core.dimension).map((key) => ({
+    name: coreDim(`dimension/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: DIMENSION_SCOPES,
-    description: desc(brand.dimension[key]),
-    value: pxFromValue(tree, brand.dimension[key].$value),
+    description: desc(brand.core.dimension[key]),
+    value: pxFromValue(tree, brand.core.dimension[key].$value),
     alias: null,
     hiddenFromPublishing: true,
   }));
@@ -152,7 +160,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
 
   // Radius is the FIRST non-colour/shadow axis to be MODE-VARYING (docs/11 Pillar 1b).
   // When the brand opts into `wireframe`, non-zero radius leaves carry a
-  // `$extensions.prism3.modes.wireframe → {root.dimension.0}` override in the DTCG tree
+  // `$extensions.prism3.modes.wireframe → {root.core.dimension.0}` override in the DTCG tree
   // (tree.ts:340–346) — the same per-mode override shape colour/shadow use. Materialise
   // that here as a wireframe MODE on the `radius` variable collection: in the wireframe
   // mode file every non-zero radius var aliases `dimension/0`; radius.none stays 0 with

@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "size/xs/height",
+      "name": "prism/size/xs/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -12,11 +12,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/32"
+        "name": "prism/core/dimension/32"
       }
     },
     {
-      "name": "size/xs/padding-x",
+      "name": "prism/size/xs/padding-x",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -25,11 +25,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/100"
+        "name": "prism/space/100"
       }
     },
     {
-      "name": "size/xs/padding-x-visual",
+      "name": "prism/size/xs/padding-x-visual",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -38,11 +38,11 @@
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/075"
+        "name": "prism/space/075"
       }
     },
     {
-      "name": "size/xs/padding-y",
+      "name": "prism/size/xs/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -51,11 +51,11 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/050"
+        "name": "prism/space/050"
       }
     },
     {
-      "name": "size/xs/gap",
+      "name": "prism/size/xs/gap",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -64,11 +64,11 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/050"
+        "name": "prism/space/050"
       }
     },
     {
-      "name": "size/sm/height",
+      "name": "prism/size/sm/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -77,11 +77,11 @@
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/40"
+        "name": "prism/core/dimension/40"
       }
     },
     {
-      "name": "size/sm/padding-x",
+      "name": "prism/size/sm/padding-x",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -90,11 +90,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/200"
+        "name": "prism/space/200"
       }
     },
     {
-      "name": "size/sm/padding-x-visual",
+      "name": "prism/size/sm/padding-x-visual",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -103,11 +103,11 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/150"
+        "name": "prism/space/150"
       }
     },
     {
-      "name": "size/sm/padding-y",
+      "name": "prism/size/sm/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -116,11 +116,11 @@
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/075"
+        "name": "prism/space/075"
       }
     },
     {
-      "name": "size/sm/gap",
+      "name": "prism/size/sm/gap",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -129,11 +129,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/100"
+        "name": "prism/space/100"
       }
     },
     {
-      "name": "size/md/height",
+      "name": "prism/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -142,11 +142,11 @@
       "value": 48,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/48"
+        "name": "prism/core/dimension/48"
       }
     },
     {
-      "name": "size/md/padding-x",
+      "name": "prism/size/md/padding-x",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -155,11 +155,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/200"
+        "name": "prism/space/200"
       }
     },
     {
-      "name": "size/md/padding-x-visual",
+      "name": "prism/size/md/padding-x-visual",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -168,11 +168,11 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/150"
+        "name": "prism/space/150"
       }
     },
     {
-      "name": "size/md/padding-y",
+      "name": "prism/size/md/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -181,11 +181,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/100"
+        "name": "prism/space/100"
       }
     },
     {
-      "name": "size/md/gap",
+      "name": "prism/size/md/gap",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -194,11 +194,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/100"
+        "name": "prism/space/100"
       }
     },
     {
-      "name": "size/lg/height",
+      "name": "prism/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -207,11 +207,11 @@
       "value": 56,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/56"
+        "name": "prism/core/dimension/56"
       }
     },
     {
-      "name": "size/lg/padding-x",
+      "name": "prism/size/lg/padding-x",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -220,11 +220,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/300"
+        "name": "prism/space/300"
       }
     },
     {
-      "name": "size/lg/padding-x-visual",
+      "name": "prism/size/lg/padding-x-visual",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -233,11 +233,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/200"
+        "name": "prism/space/200"
       }
     },
     {
-      "name": "size/lg/padding-y",
+      "name": "prism/size/lg/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -246,11 +246,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/100"
+        "name": "prism/space/100"
       }
     },
     {
-      "name": "size/lg/gap",
+      "name": "prism/size/lg/gap",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -259,11 +259,11 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/150"
+        "name": "prism/space/150"
       }
     },
     {
-      "name": "size/xl/height",
+      "name": "prism/size/xl/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -272,11 +272,11 @@
       "value": 64,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/64"
+        "name": "prism/core/dimension/64"
       }
     },
     {
-      "name": "size/xl/padding-x",
+      "name": "prism/size/xl/padding-x",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -285,11 +285,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/300"
+        "name": "prism/space/300"
       }
     },
     {
-      "name": "size/xl/padding-x-visual",
+      "name": "prism/size/xl/padding-x-visual",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -298,11 +298,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/200"
+        "name": "prism/space/200"
       }
     },
     {
-      "name": "size/xl/padding-y",
+      "name": "prism/size/xl/padding-y",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -311,11 +311,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/200"
+        "name": "prism/space/200"
       }
     },
     {
-      "name": "size/xl/gap",
+      "name": "prism/size/xl/gap",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -324,7 +324,7 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "space/150"
+        "name": "prism/space/150"
       }
     }
   ]

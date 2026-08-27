@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "focus/ring/width",
+      "name": "nbds/focus/ring/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -12,11 +12,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/2"
+        "name": "nbds/core/dimension/2"
       }
     },
     {
-      "name": "focus/ring/offset",
+      "name": "nbds/focus/ring/offset",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -25,11 +25,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/2"
+        "name": "nbds/core/dimension/2"
       }
     },
     {
-      "name": "focus/ring/offset-field",
+      "name": "nbds/focus/ring/offset-field",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -38,7 +38,7 @@
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/0"
+        "name": "nbds/core/dimension/0"
       }
     }
   ]
