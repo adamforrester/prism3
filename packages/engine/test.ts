@@ -5734,8 +5734,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const aliasBad: string[] = [];
   for (const s of auroraGradient.styles) for (const stop of s.stops) {
     if (!stop.alias) { aliasBad.push(`${s.name}: stop@${stop.position} has no alias`); continue; }
-    // Resolve `palette/primary/600` → the DTCG path `<root>.palette.primary.600` → leaf must exist.
-    const path = `${Object.keys(auroraTree)[0]}.${stop.alias.replace(/\//g, '.')}`;
+    // Resolve `<root>/core/palette/primary/600` → the DTCG path `<root>.core.palette.primary.600` → leaf
+    // must exist. Since #1097 the alias is ALREADY rooted, so the root is checked rather than prepended —
+    // prepending it builds a doubled root and reports every stop as broken (see the generalise block's
+    // copy of this for the full note).
+    if (!stop.alias.startsWith(`${Object.keys(auroraTree)[0]}/`)) { aliasBad.push(`${s.name}: alias ${stop.alias} is not rooted at ${Object.keys(auroraTree)[0]}/`); continue; }
+    const path = stop.alias.replace(/\//g, '.');
     const leaf = path.split('.').reduce((n: any, seg) => n?.[seg], auroraTree);
     if (!leaf || leaf.$type !== 'color') aliasBad.push(`${s.name}: alias ${stop.alias} does not resolve`);
   }
@@ -5755,12 +5759,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // default: no root → the 'prism' placeholder, byte-identical world (asserted in block 3)
   const def = brandTheme(input);
-  ok(def.root === 'prism' && def.namespace === 'prism.palette', 'namespace: omitted root defaults to the prism placeholder');
+  // `namespace` is the colour-PRIMITIVE root, and #1102 put the `core` tier between the brand root and it:
+  // `prism.core.palette`, not `prism.palette`. Spelled as a LITERAL rather than built from `CORE_TIER`,
+  // because importing the constant would make this a second reading of the code under test — the tier
+  // segment could then be renamed in `theme.ts` and both sides would agree (`docs/34` shape 1).
+  ok(def.root === 'prism' && def.namespace === 'prism.core.palette', 'namespace: omitted root defaults to the prism placeholder, and the primitive root sits under the `core` tier');
   ok(Object.keys(buildTree(def).tree)[0] === 'prism', 'namespace: default tree is rooted at prism');
 
   // custom: re-home under 'acme'
   const custom = brandTheme({ ...input, root: 'acme' });
-  ok(custom.root === 'acme' && custom.namespace === 'acme.palette', 'namespace: custom root sets root + <root>.palette');
+  ok(custom.root === 'acme' && custom.namespace === 'acme.core.palette', 'namespace: custom root sets root + <root>.core.palette — the tier is fixed, the root is the lever');
   const ctree = buildTree(custom).tree;
   ok(Object.keys(ctree)[0] === 'acme' && !('prism' in ctree), 'namespace: custom tree is rooted at acme, no prism key');
 
@@ -6132,9 +6140,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // isn't asserting fixture byte-identity (no fixtures for these brands — §2 only
 // freezes NB colour + typography); the gate is that (a) every axis produces
 // output with the right shape, (b) every alias resolves WITHIN each brand's
-// own emitted collections, (c) the namespace transform (figName) strips
-// whichever root the brand carries — aurora=prism (default), wendys=prism
-// (default), NB=nbds — with no leakage across brands, and (d) the aurora
+// own emitted collections, (c) since #1097 the namespace transform CARRIES the
+// brand's own root — aurora=prism (default), wendys=prism (default), NB=nbds —
+// exactly once and with no other brand's root anywhere, and (d) the aurora
 // gradient axis actually ships alias-driven stops that resolve to palette leaves
 // in the aurora tree (the alias-driven Paint Style form parked in the shadow +
 // gradient PR now materialises through the generalise pass).
@@ -6146,7 +6154,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Each brand runs through every axis. We assert structural claims uniformly:
   // - palette + color(×4 modes when default) shape correct
   // - every alias in EACH brand's emitted collections resolves WITHIN that brand
-  // - namespace lever holds — figName strips the brand's own root exactly once
+  // - namespace lever holds — figName carries the brand's own root exactly once
   // - every axis produces non-empty output where it should (gradient is opt-in;
   //   aurora HAS gradients, wendys does not)
   for (const [id, theme] of [['aurora', auroraTheme], ['wendys', wendysTheme]] as const) {
@@ -6198,11 +6206,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     }
     ok(layoutAliasBad.length === 0, `figma generalise (${id}): every layout grid alias resolves within THIS brand's space collection` + (layoutAliasBad.length ? ` — ${layoutAliasBad.slice(0, 3).join(', ')}` : ''));
 
-    // (e) NAMESPACE strip — Figma variable names carry no brand prefix. figName
-    // strips exactly one root segment; walking every emitted name proves the
-    // transform is idempotent regardless of what root the brand carries. NB
-    // uses `nbds`; aurora + wendys both default to `prism` (no leakage back
-    // into the emitted names).
+    // (e) THE NAMESPACE, AND #1097 INVERTED THIS ARM. It used to read "no brand prefix": `figName` stripped
+    // exactly one root segment and this walked every emitted name asserting none of `prism/`, `nbds/` or
+    // `acme/` survived. #1097 made the namespace the point — a Figma variable now spells its DTCG path in
+    // full, root included — so the same walk asks the opposite question, and it is the STRONGER one: the
+    // old form was satisfied by an emitter that dropped the root, and by one that never had it.
+    //
+    // Two halves, and the second is where the idempotence lives. Every name must start with THIS brand's
+    // own root, read off the theme rather than spelled — `prism` is a default a brief can move, and a
+    // literal here would pass for the two brands that take the default and be wrong for the one that does
+    // not, which is the Prism2 hardcoded-`pds/` bug in a gate instead of in a read path. Then no name's
+    // TAIL may start with a root segment: that catches a DOUBLED root (`prism/prism/color/…`, what a
+    // second pass over its own output produces) and cross-brand leakage in one predicate, and neither is
+    // visible to a check that only looks at segment 0.
     const allEmittedNames: string[] = [
       ...palette.variables.map((v) => v.name),
       ...color.flatMap((c) => c.variables.map((v) => v.name)),
@@ -6211,8 +6227,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ...font.variables.map((v) => v.name),
       ...fluid.flatMap((f) => f.variables.map((v) => v.name)),
     ];
-    const namespaceLeaks = allEmittedNames.filter((n) => n.startsWith('prism/') || n.startsWith('nbds/') || n.startsWith('acme/'));
-    ok(namespaceLeaks.length === 0, `figma generalise (${id}): no brand-namespace leakage in emitted variable names (${allEmittedNames.length} names checked)` + (namespaceLeaks.length ? ` — LEAKS: ${namespaceLeaks.slice(0, 3).join(', ')}` : ''));
+    const KNOWN_ROOTS = ['prism', 'nbds', 'acme'];
+    const unrooted = allEmittedNames.filter((n) => !n.startsWith(`${theme.root}/`));
+    ok(allEmittedNames.length > 500 && unrooted.length === 0,
+      `figma generalise (${id}): every one of the ${allEmittedNames.length} emitted variable names carries this brand's own root \`${theme.root}/\` (#1097)` + (unrooted.length ? ` — UNROOTED: ${unrooted.slice(0, 3).join(', ')}` : ''));
+    const doubled = allEmittedNames.filter((n) => KNOWN_ROOTS.some((r) => n.slice(`${theme.root}/`.length).startsWith(`${r}/`)));
+    ok(doubled.length === 0,
+      `figma generalise (${id}): and NOTHING carries a second root segment after the first — a doubled \`${theme.root}/${theme.root}/\` is what a pass over its own output produces, and another brand's root there is leakage (${allEmittedNames.length} names checked)` + (doubled.length ? ` — DOUBLED: ${doubled.slice(0, 3).join(', ')}` : ''));
   }
 
   // (f) AURORA GRADIENTS — the alias-driven Paint Style form. Aurora opts in
@@ -6223,10 +6244,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(auroraGradient.styles.length > 0, `figma generalise (aurora): gradient axis emits ≥1 style (got ${auroraGradient.styles.length})`);
   const auroraTree = buildTree(auroraTheme).tree as any;
   const auroraRoot = Object.keys(auroraTree)[0];
+  // #1097 — THE STOP ALIAS IS A FULLY ROOTED FIGMA VARIABLE NAME NOW (`prism/core/palette/primary/600`),
+  // so the tree root is CHECKED here rather than prepended. Prepending it, which is what this did while
+  // aliases were root-less, builds `prism.prism.core.palette.…` and every stop reports "does not resolve"
+  // — the same red for a genuinely broken alias as for a correct one, which is worse than either.
   const stopAliasBad: string[] = [];
   for (const s of auroraGradient.styles) for (const stop of s.stops) {
     if (!stop.alias) { stopAliasBad.push(`${s.name}@${stop.position} has no alias`); continue; }
-    const dottedPath = `${auroraRoot}.${stop.alias.replace(/\//g, '.')}`;
+    if (!stop.alias.startsWith(`${auroraRoot}/`)) { stopAliasBad.push(`${s.name}@${stop.position} → ${stop.alias} is not rooted at ${auroraRoot}/`); continue; }
+    const dottedPath = stop.alias.replace(/\//g, '.');
     const leaf = dottedPath.split('.').reduce((n: any, seg) => n?.[seg], auroraTree);
     if (!leaf || leaf.$type !== 'color') stopAliasBad.push(`${s.name}@${stop.position} → ${stop.alias} does not resolve to a colour leaf`);
   }
@@ -10395,7 +10421,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // first cut of this intersected paths WITH the configurable root included (`nbds.*` vs `prism.*`)
   // and returned 0, which would have made every assertion below vacuously true.
   ok(guaranteedCount > 400, `contract: the guaranteed surface is non-empty and substantial (${guaranteedCount} paths — a root-prefix bug here yields 0)`);
-  ok(live.corpus.length === 5, `contract: the corpus spans both dialects, the legacy fixture and the minimal input (${live.corpus.length} brands)`);
+  // SIX since #1102's contract accept, which added `minimal-levers` — the sparse input WITH the two
+  // suppressing levers pulled. It is the member that separates SPARSE from SUPPRESSED: `minimal` omits
+  // every optional field, so every lever takes its default, and a default is a value like any other.
+  ok(live.corpus.length === 6, `contract: the corpus spans both dialects, the legacy fixture, the minimal input and the minimal input with the suppressing levers pulled (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -11565,7 +11594,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 5 && px.every((b) => b.px === 16),
+    ok(px.length === 6 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
