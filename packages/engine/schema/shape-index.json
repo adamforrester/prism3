@@ -1,5 +1,5 @@
 {
-  "$comment": "AUTHORED BASELINE — the number-to-title binding for docs/34-gate-independence.md's sub-shapes. Not a regen artifact, for the reason in lint-shape-index.ts's header: regenerated from the document, it would rewrite itself to agree with a renumber and report that as a pass. Append with `npx tsx packages/engine/lint-shape-index.ts --accept`, which appends only and refuses to rewrite an existing binding. Changing a binding is a HAND edit, and the PR that makes it owes the ~58 citations an update.",
+  "$comment": "AUTHORED BASELINE \u2014 the number-to-title binding for docs/34-gate-independence.md's sub-shapes. Not a regen artifact, for the reason in lint-shape-index.ts's header: regenerated from the document, it would rewrite itself to agree with a renumber and report that as a pass. Append with `npx tsx packages/engine/lint-shape-index.ts --accept`, which appends only and refuses to rewrite an existing binding. Changing a binding is a HAND edit, and the PR that makes it owes the ~58 citations an update.",
   "policy": "append-only",
   "document": "docs/34-gate-independence.md",
   "shapes": [
@@ -74,6 +74,18 @@
     {
       "n": 18,
       "title": "The borrowed backstop: the only thing that catches it is another gate's accident, and that gate's remedy deletes the cover"
+    },
+    {
+      "n": 19,
+      "title": "The mutation is not self-verifying: a red suite looks the same whether or not the mutation happened"
+    },
+    {
+      "n": 20,
+      "title": "The comment and the code were written in one pass: the prose records the intent, the code records what was typed"
+    },
+    {
+      "n": 21,
+      "title": "The one claim no command produced, camouflaged by the measured claims around it"
     }
   ]
 }
