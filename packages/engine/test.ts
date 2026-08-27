@@ -1072,7 +1072,10 @@ for (const b of brands) {
   // pointer — so a probe left on the old spelling would not go quiet here (these rows are value-tier only)
   // but would silently become the wrong claim the moment anyone widened the row source: the alias tier has
   // two modes on the SURFACE axis, and "distinct per mode" there means something else entirely.
-  const bg = rows.find(([n]) => n === 'color/appearance/background/primary');
+  // #1097 adds the brand namespace on top of that, and the probe spells it via `nbVar` — these rows are
+  // emitted names, not plan names. A probe left unrooted selects nothing, `!!bg` is false, and the arm goes
+  // red rather than quiet, which is the only reason it is safe to write as a `find`.
+  const bg = rows.find(([n]) => n === nbVar('color/appearance/background/primary'));
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
 }
 
@@ -1168,8 +1171,13 @@ for (const b of brands) {
   // and the NEGATIVE arm passed — for a reason having nothing to do with collapsing anything. Only the
   // paired POSITIVE arm going red said so. A negative arm alone cannot tell "the mutation was detected"
   // from "the check was already failing", which is why the two are written together here.
+  //
+  // #1097 is the same trap one segment further out: the plan's rows are ROOTED, so an unrooted name here
+  // selects no row, collapses nothing, and the negative arm fails — which is what it did, and which is the
+  // paired design working rather than a new defect. `nbVar` because a mutation that matches nothing is
+  // indistinguishable from a guard that does not bite.
   const collapsed = plan.color.aliases.map((r) =>
-    r.name === 'color/appearance/background/primary' ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
+    r.name === nbVar('color/appearance/background/primary') ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
   const bad = verifyReadback(snapFrom(collapsed));
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
@@ -2096,7 +2104,9 @@ for (const b of brands) {
   ok(!failThrew, 'A1(b): a contrast-failing override does NOT throw (WARN, not block)');
   ok(darkRes && Array.isArray(darkRes.warnings) && darkRes.warnings.some((w: any) => w.role === roleKey && w.ratio < w.min),
     'A1(b): the failing override is recorded in ModeResult.warnings (ratio < min)');
-  ok(darkRes && darkRes.roles[roleKey].path === `${root}.palette.primary.${failStep}`,
+  // `core.palette`, not `palette` — #1102 moved the primitive tier under `core` in DTCG too, so a role's
+  // resolved path gains the segment. The sibling arm in (a) above already spells it that way.
+  ok(darkRes && darkRes.roles[roleKey].path === `${root}.core.palette.primary.${failStep}`,
     'A1(b): the failing override still emits — the role is repointed despite the warning');
   ok(!threw(() => buildTree(brandTheme(failing))), 'A1(b): buildTree emits a contrast-failing override without throwing');
 
@@ -2299,7 +2309,10 @@ for (const b of brands) {
   // (b) the Figma radius emit produces a dark radius mode/file with the override materialised.
   const figRadius = buildFigmaDims(brandTheme(sharpDark)).radius;
   const figDark = figRadius.find((f) => f.$mode === 'dark');
-  const figMd = figDark?.variables.find((v) => v.name === 'radius/md');
+  // ROOTED (#1097) — this is an emitted Figma variable, and the alias target on the next line has carried
+  // the root for as long as this arm has existed, so an unrooted lookup here would have been the only half
+  // of the pair not in the file's own space.
+  const figMd = figDark?.variables.find((v) => v.name === `${root}/radius/md`);
   ok(!!figDark && figMd?.value === 0 && figMd?.alias?.name === `${root}/core/dimension/0`,
     `D(b): buildFigmaDims emits a dark radius file with radius/md → dimension/0 (value ${figMd?.value})`);
 
@@ -6064,7 +6077,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const act = wfTree.color.appearance.interactive.primary.fill.rest;
   ok(actionPal !== neutralPal && act.$value.includes(`.${actionPal}.`), 'wireframe: light $value stays the chromatic (accent) pick');
   ok(act.$extensions.prism3.modes.wireframe.$value.includes(`.${neutralPal}.`), 'wireframe: the wireframe override remaps a chromatic role → neutral (greyscale)');
-  ok(wfTree.radius.md.$extensions.prism3.modes?.wireframe?.$value === `{${R}.dimension.0}`, 'wireframe: radius.md carries a wireframe → dimension.0 override');
+  // `core.dimension.0` since #1102 — the DTCG primitive tier moved under `core`.
+  ok(wfTree.radius.md.$extensions.prism3.modes?.wireframe?.$value === `{${R}.core.dimension.0}`, 'wireframe: radius.md carries a wireframe → dimension.0 override');
   ok(!wfTree.radius.none.$extensions?.prism3?.modes, 'wireframe: radius.none (already 0) carries no redundant override');
   const wfMode = wfBuilt.modes.find((m) => m.mode === 'wireframe')!;
   const wfChecks = Object.values(wfMode.roles).filter((r) => r.min > 0);
@@ -9827,7 +9841,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // variable the anatomy plan binds must appear in the payload that would be pasted.
     const dimsCreate = passJs('nb', 'dims-create');
     const wanted = [...new Set(button.variants.size.flatMap((s) => planBoundVars(figmaAnatomyPlan(button, s, { leading: true, trailing: true }).root)))];
-    const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${v}"`));
+    // TWO SPACES, ONE COMPARISON (#1097). `wanted` is root-relative — a plan binds `size/md/gap` and
+    // knows no brand — while the payload creates the name Figma will hold, `nbds/core/dimension/0` and
+    // `nbds/size/md/gap`. `nbFixName` is the fixture's own hand-written translation (root on, `core/` for
+    // a core group), not something imported from the emitter, so a wrong translation on either side shows
+    // up here rather than cancelling out. The QUOTES stay: dropping them to be root-agnostic would let
+    // any prefix satisfy the substring test, including a doubled one.
+    const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${nbFixName(v)}"`));
     ok(unreachable.length === 0, `anatomy: every variable the plan binds is in the dims-create payload${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${wanted.length} vars)`}`);
     ok(passOrder().indexOf('dims-create') < passOrder().indexOf('dims-aliases'), 'materialise: dims-create is pasted before dims-aliases (a target must exist before it can be bound)');
   }
