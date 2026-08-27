@@ -285,6 +285,28 @@ mutation, not by reasoning about it.
   with ties stable, so a same-day entry can be ordered wrongly and the gate still exits 0. A green run has not
   verified where this sits among the other 2026-08-26 entries.
 
+### The mutation battery on the rule, and the one that looked like a hole
+
+Four mutations, each restored before the next, each checked by NAME rather than by "the suite went red":
+
+- **Hardcode the root in the rule's domain** (`!name.startsWith('prism/')`). Nine arms fail, and two of them
+  are the right two: `#1097 rule 3 … an already-rooted name is outside the domain — the rule is idempotent by
+  construction`, and `#1039 check 2` naming **nb** specifically (`nbds/border-width/none`) while aurora and
+  wendys pass. Note the accounting gate PASSES this one, and correctly: the domain question is about the
+  AFTER set, and the accounting only ever asks it about pre-#1097 names. The idempotence property is gated in
+  `test.ts`, which is where it belongs.
+- **Drop the `core` half of the map** → 695 unaccounted, named per brand and per collection.
+- **Drop `{ from: 'core-palette', to: 'core' }` from `ACCOUNTING_COLLECTION_MOVES`** → the gate reports every
+  palette key as a contradicted claim ("gone, but its claimed image … is not emitted either"), which is the
+  right diagnosis: the rule fired, the recollection did not.
+- **Drop the whole rule** → **2,112 unaccounted removals, 0 claims evaluated** — the whole corpus.
+
+**One near-miss worth recording, because it cost a false conclusion.** The first run of mutation 1 was graded
+with `grep -c "✗"`, and the engine suite prints `❌`. It reported zero, and I read that as "hardcoding the root
+is caught by nothing" — a gate hole that does not exist. #986's rule is exactly this and it still caught me:
+**a blank named grep is a failed mutation, not a quiet pass.** What actually protects against it is not a
+better pattern but refusing to grade a mutation without reading the exit status and the tail.
+
 ### Filed, not fixed
 
 - **A core-collection variable that is un-rooted or in an unowned group is invisible** to `byName`, to every
