@@ -1460,26 +1460,45 @@ for (const b of brands) {
         for (const p of guaranteedInv) if (!emitted.has(p)) removable.add(p);
       }
     }
-    // The 9 known-removable, and why each is here rather than fixed: `outlineInteraction` opts out of
-    // overlay tokens by design. Listed literally so the exemption is a claim about specific paths.
+    // KNOWN IS NOW EMPTY, AND THAT IS THE FIX THIS ARM ASKED FOR (#957, landing with #1102).
     //
-    // `color.appearance.*` since #1013: the overlays are appearance-varying paint, so they moved to the
-    // VALUE tier with the rest of it. What did not move is the SWEPT count — 113 guaranteed inverse paths
-    // before the swap and 113 after — and that is the useful reading of this arm during a rename: the tier
-    // moved, and no inverse path was added or lost on the way. The arm reported the change in both
-    // directions (4 newly removable under the new spelling, 4 no-longer-removable under the old), which is
-    // what an EQUALITY assertion buys over `unexpected.length === 0`: a subset check would have accepted
-    // the stale list silently, since nothing under the old spelling is removable any more.
-    const KNOWN = (['primary', 'neutral', 'destructive'] as const)
-      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.interactive.${c}.inverse.overlay.${s}`))
-      .sort();
+    // It used to hold 9 paths — `interactive.<c>.inverse.overlay.{hover,pressed,selected}` — with the note
+    // that "the honest fix is almost certainly to demote those paths to `brandDependent` (the contract is
+    // wrong, not the lever)". That demotion has now happened, so the paths are no longer in
+    // `readBaseline().guaranteed`, `guaranteedInv` never offers them, and the equality assertion fired
+    // exactly as designed: it reported all 9 as `fixed` and said "tighten KNOWN". This is that tightening,
+    // and it is worth recording that the tripwire worked rather than quietly editing the list.
+    //
+    // An empty `KNOWN` keeps both halves of the equality doing work — `unexpected` still fails the day a
+    // NEW lever starts gating a guaranteed inverse path, which is the arm's real purpose. What an empty
+    // list DOES lose is its own non-vacuity: `unexpected.length === 0` is trivially true if the sweep
+    // finds nothing because it swept nothing. So the sweep's width is a separate arm, and the demotion is
+    // asserted rather than assumed — otherwise "no lever removes a guaranteed inverse path" would also be
+    // satisfiable by demoting every inverse path there is.
+    //
+    // The SWEPT count is 104, down from 113, and the arithmetic is the whole story: 113 − 9 demoted. It
+    // survived #1013's tier rename unchanged at 113, which was that rename's useful reading here.
+    const KNOWN: string[] = [];
     const got = [...removable].sort();
     const unexpected = got.filter((p) => !KNOWN.includes(p));
     const fixed = KNOWN.filter((p) => !got.includes(p));
     ok(unexpected.length === 0 && fixed.length === 0,
-      `inverse: no lever removes a guaranteed inverse path beyond outlineInteraction's ${KNOWN.length} overlays (swept ${guaranteedInv.length} guaranteed inverse paths)` +
+      `inverse: no lever removes a guaranteed inverse path (${KNOWN.length} known exemptions; swept ${guaranteedInv.length} guaranteed inverse paths)` +
       (unexpected.length ? ` — NEWLY REMOVABLE: ${unexpected.slice(0, 4).join(', ')}` : '') +
       (fixed.length ? ` — no longer removable, tighten KNOWN: ${fixed.slice(0, 4).join(', ')}` : ''));
+    ok(guaranteedInv.length >= 100 && leverManifest.length > 20,
+      `inverse: the lever sweep is wide enough for the arm above to mean anything (${guaranteedInv.length} guaranteed inverse paths × ${leverManifest.length} levers) — a floor, because an empty sweep satisfies "nothing is removable"`);
+    // #957's demotion, stated as the claim it is: these 9 are STILL EMITTED for a brand that does not pull
+    // `outlineInteraction`, and are simply no longer promised. Read off the baseline's `brandDependent`,
+    // which is where the demotion has to land for the arm above to be honest — if they had been DELETED
+    // instead, `KNOWN: []` would pass for the wrong reason and nothing here would notice.
+    const demotedOverlays = (['primary', 'neutral', 'destructive'] as const)
+      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.interactive.${c}.inverse.overlay.${s}`)).sort();
+    const bd = new Set(readBaseline().brandDependent);
+    const notDemoted = demotedOverlays.filter((p) => !bd.has(p));
+    ok(notDemoted.length === 0,
+      `inverse: the ${demotedOverlays.length} overlay paths this arm used to exempt are brand-DEPENDENT now, not gone (#957)` +
+      (notDemoted.length ? ` — MISSING from brandDependent: ${notDemoted.slice(0, 4).join(', ')}` : ''));
   }
 
   // (a3) THE COVERAGE REGISTER, both directions (#892 step 5 / #893). Every semantic colour role
@@ -1553,11 +1572,43 @@ for (const b of brands) {
       // name set) instead of trusting it: if the row sets ever diverge, the next arm names the brand.
       const perBrand = corpus().map(({ id, theme: t }) => ({ id, paths: new Set(surfaceRows(t).map((r) => `color.${r.role}`)) }));
       ok(perBrand.length > 1, `surface: the corpus offers ${perBrand.length} brands to intersect — one brand would make the intersection a restatement of that brand`);
-      const rowPaths = new Set([...perBrand[0].paths].filter((p) => perBrand.every((b) => b.paths.has(p))));
-      ok(rowPaths.size > 0, `surface: surfaceRows() yielded ${rowPaths.size} rows shared by every brand — an empty layer would make every def binding read as unaliased`);
-      const diverged = perBrand.filter((b) => b.paths.size !== rowPaths.size).map((b) => `${b.id} (${b.paths.size} rows vs ${rowPaths.size} shared)`);
+      const allRowPaths = new Set(perBrand.flatMap((b) => [...b.paths]));
+      const shared = new Set([...allRowPaths].filter((p) => perBrand.every((b) => b.paths.has(p))));
+
+      // SUPPRESSED IS NOT DIVERGED (#957/#1102, and `token-contract.ts`'s "sparse is not the same as
+      // suppressed" one level along). The corpus gained `minimal-levers`, which pulls
+      // `outlineInteraction: 'none'` — a lever whose entire declared purpose is to emit no overlay tokens.
+      // So the intersection is now 9 rows short of every other member's set, and reading that as
+      // divergence would be reading a lever working as a corpus that disagrees.
+      //
+      // Two things must not be lost to that concession, so each is its own arm. First, the difference has
+      // to be EXACTLY these 9 paths — a row set drifting for any other reason still fails. Second, exactly
+      // ONE member may be short, and by exactly the recorded set: loosening this to "ignore any missing
+      // overlay row" would let a second lever start gating rows unnoticed, which is the whole failure mode.
+      //
+      // The list is written out here rather than derived from the lever, from `INVERSE_GAPS`, or from the
+      // short member's own diff. Derived from any of those it would agree with whatever suppression is
+      // happening and could not report a new one (`docs/34` shape 1).
+      const LEVER_SUPPRESSED_ROWS = (['primary', 'neutral', 'destructive'] as const)
+        .flatMap((c) => ['hover', 'pressed', 'selected'].map((st) => `color.interactive.${c}.overlay.${st}`)).sort();
+      const suppressed = new Set(LEVER_SUPPRESSED_ROWS);
+      const missingPer = perBrand.map((b) => ({ id: b.id, missing: [...allRowPaths].filter((p) => !b.paths.has(p)).sort() }));
+      const diverged = missingPer
+        .filter((b) => b.missing.some((p) => !suppressed.has(p)))
+        .map((b) => `${b.id} (${b.missing.filter((p) => !suppressed.has(p)).join(', ')})`);
       ok(diverged.length === 0,
-        `surface: every brand's alias layer carries the same rows, which is what lets one register cover the corpus${diverged.length ? ` — DIVERGED: ${diverged.join('; ')}` : ''}`);
+        `surface: every brand's alias layer carries the same rows except where a named lever suppresses them, which is what lets one register cover the corpus${diverged.length ? ` — DIVERGED: ${diverged.join('; ')}` : ''}`);
+      const short = missingPer.filter((b) => b.missing.length > 0);
+      ok(short.length === 1 && short[0].missing.join('|') === LEVER_SUPPRESSED_ROWS.join('|'),
+        `surface: the row-set difference is attributable to ONE corpus member and to exactly the ${LEVER_SUPPRESSED_ROWS.length} rows \`outlineInteraction: 'none'\` suppresses (${short.length} member(s) short: ${short.map((b) => `${b.id}×${b.missing.length}`).join(', ') || 'none'})`);
+
+      // The register's denominator, and it FAILS CLOSED on purpose. Given the two arms above this equals
+      // the union — but written as `shared ∪ suppressed` rather than as the union, a row that drops out for
+      // an UNEXPLAINED reason is not in it, so a def binding that row is reported as unregistered rather
+      // than waved through. Spelling it `allRowPaths` would invert that.
+      const rowPaths = new Set([...shared, ...LEVER_SUPPRESSED_ROWS].filter((p) => allRowPaths.has(p)));
+      ok(rowPaths.size > 0 && shared.size > 0,
+        `surface: surfaceRows() yielded ${rowPaths.size} rows every brand carries or a named lever removes (${shared.size} shared by all ${perBrand.length}) — an empty layer would make every def binding read as unaliased`);
 
       const outside = [...bound.keys()].filter((p) => !rowPaths.has(p)).sort();
       const unregistered = outside.filter((p) => !UNALIASED_PATHS.has(p));
@@ -1719,14 +1770,24 @@ for (const b of brands) {
     // The brands with a committed Figma emission — `regen`'s emit-figma step writes these three; a
     // brand absent here is not a silent skip, the count below is asserted.
     // #1013 swapped the two collections' names, so both filenames here moved: this layer is now
-    // `color.<surface-mode>.json` and the value tier it aliases is `color.appearance.<mode>.json`.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.inverse.json`)));
+    // `color.surface.<surface-mode>.json` and the value tier it aliases is `color.appearance.<mode>.json`.
+    // (#1089 renamed the alias tier's COLLECTION `color` → `color.surface`, and an artifact filename
+    // follows its collection name, so the stem gained a segment a second time. The `existsSync` filter is
+    // why this must be got right rather than merely fixed: a stale filename makes `figmaBrands` EMPTY and
+    // every per-brand arm below simply does not run. The floor arm on the next line is the only thing
+    // between that and a green suite — it is not decoration.)
+    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.surface.inverse.json`)));
     ok(figmaBrands.length >= 3, `surface: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
       const colorVars = new Set<string>(
         JSON.parse(readFileSync(resolve(dir, 'color.appearance.light.json'), 'utf8')).variables.map((v: any) => v.name));
-      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `color.${m}.json`), 'utf8')));
+      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `color.surface.${m}.json`), 'utf8')));
+      // #1097 — the register's paths are DTCG paths below the root (`color.background.primary`), and the
+      // emitted names are rooted Figma names. `srfName` is the one place that boundary is crossed for this
+      // block, and the root comes from the brand's theme via `rootOfBrand`, never from a name in the file.
+      const srfName = (dtcgPath: string): string =>
+        `${rootOfBrand(brand)}/color/${dtcgPath.replace(/^color\./, '').replace(/\./g, '/')}`;
 
       // THE DEAD POINTER — the failure #893 says the whole sequencing exists to prevent. An alias at
       // a name no variable carries pastes clean into Figma and resolves to nothing at bind time.
@@ -1746,13 +1807,12 @@ for (const b of brands) {
       // were emitted as a self-alias anyway, the distinction the register exists to preserve would be
       // gone from the artifact and a deliberate gap would read exactly like a filled one.
       const omitted = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'omit');
-      const leaked = omitted.filter((g) => names[0].has(`color/${g.replace(/^color\./, '').replace(/\./g, '/')}`));
+      const leaked = omitted.filter((g) => names[0].has(srfName(g)));
       ok(leaked.length === 0,
         `surface(${brand}): a gap dispositioned 'omit' emits NO row${leaked.length ? ` — LEAKED: ${leaked.join(', ')}` : ` (${omitted.length} omitted)`}`);
 
       // And the converse: a gap dispositioned `self` must be present, with both modes on one target.
-      const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self')
-        .map((g) => `color/${g.replace(/^color\./, '').replace(/\./g, '/')}`);
+      const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self').map(srfName);
       const missingSelf = selfs.filter((n) => !names[0].has(n));
       const notSelfAliased = selfs.filter((n) => {
         const d = files[0].variables.find((v: any) => v.name === n);
@@ -1772,8 +1832,15 @@ for (const b of brands) {
     // hand-authored client brand (#893, the Mistica case).
     {
       const rowSets = figmaBrands.map((b) =>
-        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.inverse.json`), 'utf8'))
-          .variables.map((v: any) => `${v.name}→${v.alias?.name}`).sort().join('|'));
+        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.surface.inverse.json`), 'utf8'))
+          // #1097 — the ROW SET is compared across brands, and every name in it now begins with that
+          // brand's own root, so comparing the raw names would report three-way divergence on nothing but
+          // the namespace. The root is stripped, per brand, with its own configured value; a name that
+          // does NOT carry it survives with the root attached and so still diverges, which is the
+          // behaviour wanted — this de-roots what is there, it does not assume it.
+          .variables.map((v: any) => [v.name, v.alias?.name]
+            .map((n: string | undefined) => (n ?? 'NO ALIAS').replace(new RegExp(`^${rootOfBrand(b)}/`), ''))
+            .join('→')).sort().join('|'));
       // `rowSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
       // under a stack trace that named this line instead — the diagnosis pointing at the wrong file.
