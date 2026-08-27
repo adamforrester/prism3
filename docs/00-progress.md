@@ -65,7 +65,11 @@ will treat `theme.root` as frozen, and it is a lever precisely because it is not
 
 ### The artifact count did not move — and it had to be DERIVED to know that
 
-**114, unchanged**, and the three sites (`CLAUDE.md:44`, `ci.yml:274-275`, `verify.ts:326`) need no edit.
+**114, unchanged**, and no count site needs an edit. There are **two** of them as of the rebase onto
+`origin/main`: `EXPECTED_ARTIFACTS` in `verify.ts` and the same number in `ci.yml`. `CLAUDE.md` was the third
+until #1114 landed mid-review and made it name the sites instead of restating the count — so the earlier
+draft of this paragraph, which cited `CLAUDE.md:44` as a site, is now wrong about the repo and right about
+the history. Which is #1114's own argument, arriving one entry below this one.
 The lane's own brief expected it to move, because 15 Figma files were `git rm`'d and 15 added; `git ls-tree -r`
 on both refs shows **108 in `out/` either way** — the 15 out and 15 in are the same 15 files renamed. Plus 3
 `SCHEMA_ARTIFACTS` + 3 `ENGINE_ARTIFACTS` = 114.
