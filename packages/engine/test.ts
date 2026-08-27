@@ -12818,10 +12818,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary', WROOT) === null
       && ruleApply('appearance-tier-1013', 'color', 'color/text/primary', WROOT) === null,
     '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved. Given a `root` it must not consult, its images are unchanged');
-  ok(ruleApply('surface-to-color-1013', 'color', 'surface/text/primary', WROOT) === 'color/text/primary'
-      && ruleApply('surface-to-color-1013', 'color', 'color/text/primary', WROOT) === null
-      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary', WROOT) === null,
-    '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies — and does not re-match what it just wrote');
+  // Rule 2's COLLECTION is `color.surface`, not `color`, and the mismatch between that and the rule's own
+  // id is deliberate. The rule performs #1013's rename (`surface/text/primary` → `color/text/primary`) and
+  // is stamped `0.26.0` for it; #1089 then renamed the collection it runs in, and `materialize` is always
+  // called with the collection the write plan is about to use — so the domain names the LIVE collection
+  // while the id and `since` name the change. Keyed on the historical `color` the rule is unreachable and
+  // a pre-#1013 `surface/*` variable is left behind in silence, which is the third arm below stated in
+  // reverse: `color.appearance` is not the collection, and neither is `color` any more.
+  ok(ruleApply('surface-to-color-1013', 'color.surface', 'surface/text/primary', WROOT) === 'color/text/primary'
+      && ruleApply('surface-to-color-1013', 'color.surface', 'color/text/primary', WROOT) === null
+      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary', WROOT) === null
+      && ruleApply('surface-to-color-1013', 'color', 'surface/text/primary', WROOT) === null,
+    '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies (`color.surface` since #1089) — and does not re-match what it just wrote, nor reach the value tier, nor the bare `color` name no collection holds any more');
 
   // #1097's witnesses. FOUR properties, and the two negative ones are where the single-rule design is
   // load-bearing rather than convenient:
@@ -12894,24 +12902,56 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ].sort().join(' | '),
       `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
 
+    // ── AND REACHING TODAY'S RULE DOMAIN FROM THE #1013 ERA TAKES BOTH RECORDS (#1089, #1097) ──────────
+    //
+    // `COLLECTION_RENAMES` sends the alias tier to `color`, which is what it was called between #1013 and
+    // #1089. `surface-to-color-1013`'s domain now names `color.surface`, because `materialize` is called
+    // with the collection the write plan is about to use and that is the LIVE name (see the rule's own
+    // header). So a #1013-era key needs the second hop before the rule that performs #1013's rename can
+    // see it, and `ACCOUNTING_COLLECTION_MOVES` is where that hop is recorded.
+    //
+    // The composition is asserted in BOTH directions below, because the gap between them is a real defect
+    // rather than bookkeeping: `ACCOUNTING_COLLECTION_MOVES` exists for the accounting only, and the APPLY
+    // path has no equivalent — #1097 ships no `COLLECTION_RENAMES` entry for `color` → `color.surface`, so
+    // a designer's pre-#1013 file gets as far as a `color` collection and stops there, with its variables
+    // and bindings stranded and nothing reporting it. That is #1108, and the second arm below is its
+    // number: two keys unaccounted, by name.
+    const inLiveCollections = recollectAll(recollected, ACCOUNTING_COLLECTION_MOVES);
+    ok([...inLiveCollections].sort().join(' | ') === [
+      varKey('color.surface', 'surface/background/primary'),
+      varKey('color.surface', 'surface/border/brand'),
+      varKey('color.appearance', 'color/background/inverse/primary'),
+      varKey('color.appearance', 'color/background/primary'),
+    ].sort().join(' | '),
+      `#1097: and the second hop puts the alias tier in \`color.surface\`, where the rule that renames it now lives — the value tier was already in its final collection and must NOT move again (got ${[...inLiveCollections].sort().join(' | ')})`);
+
     // The post-#1013, pre-#1097 emission for these four, hand-written: the value tier prefixed, the alias
-    // tier's `surface/` traded for `color/`, both in the collection the recollection just put them in.
+    // tier's `surface/` traded for `color/`, both in the collection the two recollections just put them in.
     const after1013 = new Set<VarKey>([
       varKey('color.appearance', 'color/appearance/background/primary'),
       varKey('color.appearance', 'color/appearance/background/inverse/primary'),
-      varKey('color', 'color/background/primary'),
-      varKey('color', 'color/border/brand'),
+      varKey('color.surface', 'color/background/primary'),
+      varKey('color.surface', 'color/border/brand'),
     ]);
     // The root is the one the corpus does not use: these rules must not consult it, and the images asserted
     // through `isTotal` are the same either way only if that holds.
-    const acct = accountFor(recollected, after1013, era1013, parseVarKey, WROOT);
+    const acct = accountFor(inLiveCollections, after1013, era1013, parseVarKey, WROOT);
     ok(isTotal(acct) && acct.claims.length === 4 && acct.removed.length === 4,
       `#1013: the two rules account for the swap end-to-end — 4 hand-written pre-swap keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
+
+    // THE SECOND HOP IS LOAD-BEARING, as a number rather than as the paragraph above. Stop after
+    // `COLLECTION_RENAMES` and the alias tier sits in a collection no rule names, so both of its keys are
+    // unaccounted removals against a rule set that is correct — the accounting reporting the migration
+    // path's gap, which is what it is for.
+    const oneRecordOnly = accountFor(recollected, after1013, era1013, parseVarKey, WROOT);
+    ok(!isTotal(oneRecordOnly) && oneRecordOnly.unaccountedRemovals.length === 2
+        && oneRecordOnly.unaccountedRemovals.every((k) => k.startsWith('color :: ')),
+      `#1108: WITHOUT the \`color\` → \`color.surface\` hop the alias tier lands in a collection no rule claims — ${oneRecordOnly.unaccountedRemovals.length} unaccounted (expected 2), named: ${oneRecordOnly.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}. The apply path has exactly this gap and no equivalent second record`);
 
     // AND THE REASON THE FIXTURE IS RESTRICTED, AS A NUMBER. Run the same hop with all three rules and
     // every key is claimed twice — #1097's rule matches any name without a root, and a pre-#1013 name has
     // none. This is the mechanism working: composing two hops is what it refuses to do.
-    const twoHop = accountFor(recollected, after1013, MATERIALIZATION_RENAMES, parseVarKey, WROOT);
+    const twoHop = accountFor(inLiveCollections, after1013, MATERIALIZATION_RENAMES, parseVarKey, WROOT);
     ok(!isTotal(twoHop) && twoHop.multiplyClaimed.length === 4,
       `#1097: a TWO-HOP before-set is refused rather than accounted — ${twoHop.multiplyClaimed.length} of the 4 keys are claimed by both eras' rules (expected 4). Two rules claiming one key is the ambiguity that would misattribute a migration, so the fixtures are per-hop`);
 
@@ -12920,7 +12960,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // simplification decides one rule is enough.
     for (const dropped of era1013) {
       const kept = era1013.filter((r) => r.id !== dropped.id);
-      const partial = accountFor(recollected, after1013, kept, parseVarKey, WROOT);
+      const partial = accountFor(inLiveCollections, after1013, kept, parseVarKey, WROOT);
       ok(!isTotal(partial) && partial.unaccountedRemovals.length === 2,
         `#1013: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
     }
