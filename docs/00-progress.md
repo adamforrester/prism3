@@ -7,6 +7,82 @@
 
 ---
 
+## (2026-08-27) — A session-start check that fetches, so a stale `CLAUDE.md` says so (#1110)
+
+**STATUS: shipped.** A third `SessionStart` hook, a mutation battery under `tools/`, and this entry.
+**No gate, no CI step** — deliberately, and the reason is the whole design. Gates stay at **45**;
+`npm run verify` 45/45. Harness: **40 assertions, 0 fail** (`sh tools/claude-md-freshness/mutations.sh`).
+
+**The negative result comes first, because it disqualifies the obvious implementation.** #1110 measured
+that at `57b6bc7` all three artifact-count sites read **105** — agreeing, and all wrong; `main` said 114.
+A stale checkout is **internally consistent**, so a cross-site gate reports clean, correctly and about
+the wrong world. `docs/34` **shape 17**: both sides descend from one producer — the checkout — so the
+ancestor mutation moves them in lockstep and the comparison stays byte-equal. Nothing running inside the
+tree can see this, which is why this ships as a report and not as a gate. The harness reproduces the
+result rather than citing it: its `NEG` arm asserts that in the stale world it builds, `git diff
+origin/main -- CLAUDE.md` and `git status --porcelain` are both **empty**.
+
+**Why it fetches is NOT the reason it looks like.** The tempting rationale — *a local ref is derived from
+the subject* — is false here, and #1110 corrected it: worktrees share the parent clone's refs, so
+`origin/main` reads identically in all of them. The real defect is that **the local ref's freshness is
+unowned** — "you are up to date with `origin/main`" can be true while `origin/main` is six days old, and
+that failure is silent and indistinguishable from correct. A stale oracle does not go quiet; it produces
+a confident all-clear.
+
+**So the oracle is a SHA from `ls-remote`, never the `origin/main` ref**, and that is a stronger choice
+than "fetch first, then read the ref" for two reasons found while building it. A fetch exiting 0 does not
+promise `refs/remotes/origin/main` moved — the update is an opportunistic side effect holding a lock
+shared with every other worktree and concurrent session, so losing that race leaves a **stale oracle
+behind a successful fetch**, the exact failure this detects, reproduced inside the detector. And the SHA
+makes the oracle falsifiable in the output: *"differs from `origin/main`"* is uncheckable six days later,
+*"differs from `2d14b5c`"* is not. The fetch therefore exists only to bring objects, is skipped when they
+are present, and is fatal only if they are still missing — which also makes a lost ref-lock race free.
+
+**Three outcomes, never two.** CANNOT DETERMINE never collapses into UP TO DATE, in three arms: no
+`origin` remote, an unreachable one, and a remote with no `main`. Each says so out loud, carries the
+underlying git error, and opens with *"This is NOT an all-clear."* Severity is split rather than
+flattened: differs **and** behind is somebody else's committed change you have not pulled; differs and
+**not** behind is your own edit. An unknown commit distance takes the loud branch, because "not behind"
+is a claim and the only thing measured at that point is that the bytes differ.
+
+**The measurements.** `M1` — a tree at `main` carrying the old instruction bytes is named as differing.
+`M2` — the check mutated to drop the fetch and read the local ref **goes silent** over a world the real
+check calls stale; that inversion is the arm that matters, since a naive implementation passes it by
+firing. `M3` — all three environment arms report CANNOT DETERMINE and none says "match origin/main".
+Two more, taken because a claim in the header had nothing else backing it: **scope hardcoded** to the
+root path (rather than derived from both trees) fails `CONTROL` and `REAL` by name, 38/40 with the
+control at 40/40; and **8 concurrent `git fetch origin main`** in one clone — the collision with the
+behind-count co-tenant, which also fetches — exited **0 of 8** non-zero, so git serializes on the ref
+lock. Every number in the hook's header is from these runs; none is reasoned.
+
+**Two traps recorded rather than fixed silently.** The first draft of the harness shared one stale clone
+between arms, and **running the real check fetches** — which moved that clone's `origin/main` and repaired
+the stale world for every later arm. M2 then read a repaired ref and *fired*, which reads as *the fetch
+does not matter*, out of an arm that looked green. Each arm now asserts its own precondition. Second: the
+mutant's "makes no network call" self-check scanned raw text and reported an `ls-remote` that only exists
+in the subject's **header prose** — comment lines are stripped first now.
+
+**It fired on the real thing on the first try.** Run in the shared checkout, one commit behind `main`, it
+reported STALE and printed a diff whose removed line is *"`regen --check` should report **114**
+artifacts; `ci.yml` asserts that number"* — the exact sentence the entry below deleted, because it was
+the vector for the incident.
+
+**Ceilings, stated in the output because that is where a reader looks.** It answers whether `CLAUDE.md`
+is CURRENT, never whether it is CORRECT — all three sites agreeing on a wrong number in `main` passes it
+untouched, so #1110 §1's cross-site gate stays a live, orthogonal recommendation. **Nothing enforces that
+it ran**, and no version of a startup hook removes that; the one thing done about it is that the CURRENT
+outcome still emits its single line into context, so *no message* means the hook did not run rather than
+"it passed". Scope is files named `CLAUDE.md` at any depth, **derived** from the union of both trees so no
+list rots — a stale `docs/`, skill or command file is invisible, and widening that is a decision. It
+prints the diff rather than a verdict (a boolean seen firing once gets skipped), capped at 60 lines with
+the dropped count and the command to see the rest, asserted by the `TRUNC` arm.
+
+**Filed, not folded in:** #1123 — the harness asserts and exits non-zero, so it is gate-shaped and would
+run in CI perfectly well (local `file://` git, no network); wiring it is a separate decision than #1110's
+*"no gate, no CI step."*
+
+---
+
 ## (2026-08-27) — the brand namespace on every Figma variable, and the three claims it made checkable (#1097, #1102, #1108)
 
 Every Figma variable name now carries the brand root as its first segment — `nbds/core/palette/red/550`,
