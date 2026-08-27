@@ -1,5 +1,41 @@
 # 10 — Figma materialization (the `emit-figma` contract)
 
+> **⚠️ SUPERSEDING BANNER — the namespace + the one `core` collection (#1097/#1102/#1089, 2026-08-26).**
+> Read this before the #66 banner below it, which it corrects on the one point that matters most.
+>
+> **Every Figma VARIABLE name now carries the brand root as its first segment** — `nbds/core/palette/red/550`,
+> `prism/color/text/primary`, `prism/font-fluid/display/sm`. The root is `theme.root` (`prism` by default,
+> `nbds` for NB), so it is brand-specific: **no read path spells it.** `packages/engine/figma-names.ts` reads
+> names POSITIONALLY (`rootOf`/`tailOf`/`coreGroupOf`/`inAxis`) and the plan layer stays root-RELATIVE, the
+> root entering at exactly three plan-meets-file boundaries, all keyed by TAIL. The #66 banner's claim that
+> "the Figma **variable names** … are unchanged" was true of #66 and is **no longer true of the emission** —
+> that sentence is the one most likely to mislead, which is why this banner leads with it.
+>
+> **STYLES ARE THE EXCEPTION, deliberately.** A text/effect/paint STYLE name carries neither the root nor the
+> tier: `display/sm/strong`, `shadow/md`, `gradient/brand`. Figma renders style names in one flat, user-facing
+> picker with no collection to disambiguate them, so a root there is noise a designer reads on every use.
+> A gradient **STOP** binds a **VARIABLE**, so the stop *is* rooted (`prism/core/palette/primary/600`).
+>
+> **ONE primitive collection, named `core`.** #66's three (`core-palette`/`core-dimension`/`core-font`) held one
+> tier between them, so they are now a single `core` collection and the group moved into the variable name:
+> `core/palette/…`, `core/dimension/…`, `core/font/…`. Three EMITTED FILES still have their own stems
+> (`core.palette.json`, `core.dimension.json`, `core.font.json`) — **file stem ≠ collection name ≠ variable
+> prefix ≠ axis key** is the standing trap in this area, and all four are different strings here. There is no
+> migration path from the three old collections to `core`: `Variable.variableCollectionId` is `readonly`
+> (`@figma/plugin-typings/plugin-api.d.ts:11454`), so the fan-in applies to fresh emission only (#1108).
+>
+> **The colour semantics are two collections** since #1089: `color.appearance` (appearance-moded) and
+> `color.surface` (surface-moded). Both hold `color/*` variables — a collection name and a variable prefix are
+> independent here too. `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`; only the COLLECTION
+> of that name is gone.
+>
+> **When reading the tables and prose below**, translate `core-palette`/`core-dimension`/`core-font` → `core`,
+> `color` → `color.appearance`, and add the `<root>/` prefix to every variable name. The `fixtures/figma/nb`
+> byte-repro target keeps the OLD labels AND the unrooted, untiered names on purpose: it is the frozen real
+> Token Press export, and `test.ts` states the translation on the ENGINE's side, asserting each prefix is
+> present *before* stripping it — a strip is satisfied by a name that never had the prefix, so an emitter that
+> dropped the namespace would match the fixture perfectly.
+
 > **⚠️ Collection rename (#66, 2026-07-05, generator thread while the emitter thread was paused):**
 > the PRIMITIVE collections are now `core-`-prefixed for at-a-glance scannability in Figma's
 > collection list — **`palette` → `core-palette`**, **`dimension` → `core-dimension`**, **`font` →

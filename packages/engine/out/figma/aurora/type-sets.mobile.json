@@ -3,7 +3,7 @@
   "$mode": "mobile",
   "variables": [
     {
-      "name": "font-fluid/display/sm/strong",
+      "name": "prism/font-fluid/display/sm/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -13,7 +13,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/display/md/strong",
+      "name": "prism/font-fluid/display/md/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -23,7 +23,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/display/lg/strong",
+      "name": "prism/font-fluid/display/lg/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -33,7 +33,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/display/xl/strong",
+      "name": "prism/font-fluid/display/xl/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -43,7 +43,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/title/sm/strong",
+      "name": "prism/font-fluid/title/sm/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -53,7 +53,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/title/md/strong",
+      "name": "prism/font-fluid/title/md/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -63,7 +63,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/title/lg/strong",
+      "name": "prism/font-fluid/title/lg/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -73,7 +73,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/title/xl/strong",
+      "name": "prism/font-fluid/title/xl/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -83,7 +83,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/title/2xl/strong",
+      "name": "prism/font-fluid/title/2xl/strong",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -93,7 +93,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/eyebrow/md/emphasis",
+      "name": "prism/font-fluid/eyebrow/md/emphasis",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"
@@ -103,7 +103,7 @@
       "alias": null
     },
     {
-      "name": "font-fluid/eyebrow/lg/emphasis",
+      "name": "prism/font-fluid/eyebrow/lg/emphasis",
       "resolvedType": "FLOAT",
       "scopes": [
         "FONT_SIZE"

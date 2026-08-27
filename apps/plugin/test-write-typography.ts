@@ -1,6 +1,6 @@
 /**
- * Plugin TYPOGRAPHY write-adapter test (#237) — drives the REAL `applyVarCollectionPlan` (core-font/
- * type-sets variables) + `applyTextStylePlan` (Text Styles) executors against in-memory shims, with
+ * Plugin TYPOGRAPHY write-adapter test (#237) — drives the REAL `applyVarCollectionPlan` (`core`/
+ * `type-sets` variables) + `applyTextStylePlan` (Text Styles) executors against in-memory shims, with
  * no live Figma.
  *
  *   npx tsx apps/plugin/test-write-typography.ts
@@ -11,6 +11,17 @@
  * reason (never a throw that aborts the write). Asserts: font vars created (STRING family + FLOAT
  * size/weight), weight-role aliases bound (0 misses), text styles created + fontFamily/fontSize/
  * fontWeight bound, an unavailable font skipped-with-reason, and idempotent re-apply (+0).
+ *
+ * BOTH SIDES OF THE #1097 NAMESPACE MEET IN THIS FILE, which is why the expected names below are written
+ * out rather than derived. A VARIABLE carries the brand root and, for the three primitive groups, the
+ * `core` tier: `prism/core/font/family/display`. A TEXT STYLE carries NEITHER — it stays
+ * `display/sm/strong`, dropping the root AND the tier, because Figma's style tree is what a designer
+ * browses by hand. So the same rung is spelled two ways on purpose, and a reader who generalises from one
+ * to the other gets a name Figma does not have. `font-fluid/*` also stays OUT of `core` (it is a computed
+ * tier, not a primitive) and lands in `type-sets` rooted but untiered. And the root spelled depends on
+ * WHICH BRAND drives the block: the variable block below is NB's, so it is `nbds/`, while the #680
+ * fixtures further down are aurora's and so are `prism/`. That the two differ in one file is the whole
+ * content of #1097 — a read path that hard-coded either one would pass half this file.
  *
  * Mirrors the other shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
  */
@@ -165,13 +176,19 @@ const vr2 = await applyVarCollectionPlan(varPlan, vApi); // idempotency
 console.log('plugin TYPOGRAPHY write-adapter (#237) — executors against in-memory shims\n');
 
 // --- font variables ---
-const coreFont = vShim.collections.find((c) => c.name === 'core-font')!;
+const coreFont = vShim.collections.find((c) => c.name === 'core')!;
 const typeSets = vShim.collections.find((c) => c.name === 'type-sets')!;
-ok(!!coreFont && !!typeSets, 'both font collections created: core-font + type-sets');
-const familyVars = vShim.vars.filter((v) => v.name.startsWith('font/family/'));
+ok(!!coreFont && !!typeSets, 'both font collections created: core + type-sets');
+const familyVars = vShim.vars.filter((v) => v.name.startsWith('nbds/core/font/family/'));
 ok(familyVars.length > 0 && familyVars.every((v) => v.resolvedType === 'STRING' && typeof Object.values(v.valuesByMode)[0] === 'string'),
-  'font/family/* created as STRING vars with string values');
-ok(vShim.vars.some((v) => v.name.startsWith('font/size/') && v.resolvedType === 'FLOAT'), 'font/size/* created as FLOAT vars');
+  'nbds/core/font/family/* created as STRING vars with string values');
+ok(vShim.vars.some((v) => v.name.startsWith('nbds/core/font/size/') && v.resolvedType === 'FLOAT'), 'nbds/core/font/size/* created as FLOAT vars');
+// The computed tier is the one that must NOT have moved under `core`: it is emitted into `type-sets` and
+// rooted, but untiered. Pinned next to its primitive sibling because "everything font-ish went under
+// core" is the plausible wrong reading of the change above, and nothing else here would catch it.
+ok(vShim.vars.filter((v) => v.variableCollectionId === typeSets.id).length > 0
+  && vShim.vars.filter((v) => v.variableCollectionId === typeSets.id).every((v) => v.name.startsWith('nbds/font-fluid/')),
+  'nbds/font-fluid/* stays OUT of the core tier — rooted, in type-sets, not under nbds/core/');
 ok(vr1.bound > 0 && vr1.misses.length === 0, `weight-role aliases bound (${vr1.bound}), 0 misses`);
 const firstCreated = vr1.collections.reduce((n, c) => n + c.created, 0);
 const secondCreated = vr2.collections.reduce((n, c) => n + c.created, 0);
@@ -338,7 +355,7 @@ const auroraOnly = auroraFaces.filter((f) => !harborFaces.some((h) => fontKey(h)
 ok(auroraOnly.length > 0,
   `#680 reachable: aurora names ${auroraOnly.length} face(s) harbor does not — ${auroraOnly.map(fontKey).join(', ')}. That difference is the reported failure`);
 const auroraDeps = dependentsOf(auroraTheme);
-const displayFamilyVar = 'font/family/display';
+const displayFamilyVar = 'prism/core/font/family/display';
 ok(auroraDeps.has(displayFamilyVar) && auroraVarPlan.flatMap((c) => c.rows).some((r) => r.name === displayFamilyVar),
   `#680 reachable: ${displayFamilyVar} is BOTH a row the writer sets and a variable a text style resolves through (${fontKey(auroraDeps.get(displayFamilyVar)!)})`);
 
@@ -347,7 +364,7 @@ ok(auroraDeps.has(displayFamilyVar) && auroraVarPlan.flatMap((c) => c.rows).some
 const armed = new FontSession();
 armed.dependents = auroraDeps;
 const probe = new VariablesShim(armed);
-const probeVar = probe.createVariable(displayFamilyVar, probe.createVariableCollection('core-font'), 'STRING');
+const probeVar = probe.createVariable(displayFamilyVar, probe.createVariableCollection('core'), 'STRING');
 let probeThrew = '';
 try { probeVar.setValueForMode('m0', 'Clash Display'); } catch (e) { probeThrew = (e as Error).message; }
 ok(probeThrew.indexOf('unloaded font') >= 0 && probeThrew.indexOf(auroraDeps.get(displayFamilyVar)!.family) >= 0,
@@ -399,10 +416,10 @@ ok(wrote.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
   `#680 every one of aurora's ${auroraFontVarRows} font variables is still CREATED despite the refusals — the write steps over the refused value, it does not stop`);
 // `bound` must not count a binding the host rejected — a summary claiming bindings the file does not
 // carry is worse than one reporting fewer. The refusals above land on `font/family/*` rows, which carry no
-// alias, so this needs its OWN fixture: text styles bind `fontWeight` to `font/weight-role/*`, and those
+// alias, so this needs its OWN fixture: text styles bind `fontWeight` to `core/font/weight-role/*`, and those
 // are exactly the aliased rows. Keyed there, the refusal reaches pass B.
 const aliasedRows = auroraVarPlan.flatMap((c) => c.rows).filter((r) => r.aliasByMode.some(Boolean));
-ok(aliasedRows.length > 0 && aliasedRows.every((r) => r.name.startsWith('font/weight-role/')),
+ok(aliasedRows.length > 0 && aliasedRows.every((r) => r.name.startsWith('prism/core/font/weight-role/')),
   `#680 reachable: the ${aliasedRows.length} aliased rows are the weight-roles a text style's fontWeight binds to — so a refusal CAN land on an alias write, which is what the next assertion needs`);
 const aliasSession = new FontSession();
 // Every weight-role bound to a face nothing loaded — the pass-B write is refused, not the pass-A one.

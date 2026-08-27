@@ -1,9 +1,9 @@
 {
-  "$collection": "core-palette",
+  "$collection": "core",
   "$mode": "Default",
   "variables": [
     {
-      "name": "palette/white",
+      "name": "nbds/core/palette/white",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -22,7 +22,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black",
+      "name": "nbds/core/palette/black",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -41,7 +41,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/100",
+      "name": "nbds/core/palette/red/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -60,7 +60,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/150",
+      "name": "nbds/core/palette/red/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -79,7 +79,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/200",
+      "name": "nbds/core/palette/red/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -98,7 +98,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/250",
+      "name": "nbds/core/palette/red/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -117,7 +117,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/300",
+      "name": "nbds/core/palette/red/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -136,7 +136,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/350",
+      "name": "nbds/core/palette/red/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -155,7 +155,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/400",
+      "name": "nbds/core/palette/red/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -174,7 +174,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/450",
+      "name": "nbds/core/palette/red/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -193,7 +193,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/500",
+      "name": "nbds/core/palette/red/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -212,7 +212,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/550",
+      "name": "nbds/core/palette/red/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -231,7 +231,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/600",
+      "name": "nbds/core/palette/red/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -250,7 +250,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/650",
+      "name": "nbds/core/palette/red/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -269,7 +269,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/700",
+      "name": "nbds/core/palette/red/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -288,7 +288,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/750",
+      "name": "nbds/core/palette/red/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -307,7 +307,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/800",
+      "name": "nbds/core/palette/red/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -326,7 +326,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/850",
+      "name": "nbds/core/palette/red/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -345,7 +345,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/900",
+      "name": "nbds/core/palette/red/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -364,7 +364,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/950",
+      "name": "nbds/core/palette/red/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -383,7 +383,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/025",
+      "name": "nbds/core/palette/red/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -402,7 +402,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/red/050",
+      "name": "nbds/core/palette/red/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -421,7 +421,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/100",
+      "name": "nbds/core/palette/green/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -440,7 +440,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/150",
+      "name": "nbds/core/palette/green/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -459,7 +459,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/200",
+      "name": "nbds/core/palette/green/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -478,7 +478,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/250",
+      "name": "nbds/core/palette/green/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -497,7 +497,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/300",
+      "name": "nbds/core/palette/green/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -516,7 +516,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/350",
+      "name": "nbds/core/palette/green/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -535,7 +535,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/400",
+      "name": "nbds/core/palette/green/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -554,7 +554,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/450",
+      "name": "nbds/core/palette/green/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -573,7 +573,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/500",
+      "name": "nbds/core/palette/green/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -592,7 +592,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/550",
+      "name": "nbds/core/palette/green/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -611,7 +611,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/600",
+      "name": "nbds/core/palette/green/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -630,7 +630,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/650",
+      "name": "nbds/core/palette/green/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -649,7 +649,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/700",
+      "name": "nbds/core/palette/green/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -668,7 +668,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/750",
+      "name": "nbds/core/palette/green/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -687,7 +687,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/800",
+      "name": "nbds/core/palette/green/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -706,7 +706,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/850",
+      "name": "nbds/core/palette/green/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -725,7 +725,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/900",
+      "name": "nbds/core/palette/green/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -744,7 +744,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/950",
+      "name": "nbds/core/palette/green/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -763,7 +763,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/025",
+      "name": "nbds/core/palette/green/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -782,7 +782,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/green/050",
+      "name": "nbds/core/palette/green/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -801,7 +801,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/100",
+      "name": "nbds/core/palette/amber/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -820,7 +820,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/150",
+      "name": "nbds/core/palette/amber/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -839,7 +839,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/200",
+      "name": "nbds/core/palette/amber/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -858,7 +858,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/250",
+      "name": "nbds/core/palette/amber/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -877,7 +877,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/300",
+      "name": "nbds/core/palette/amber/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -896,7 +896,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/350",
+      "name": "nbds/core/palette/amber/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -915,7 +915,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/400",
+      "name": "nbds/core/palette/amber/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -934,7 +934,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/450",
+      "name": "nbds/core/palette/amber/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -953,7 +953,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/500",
+      "name": "nbds/core/palette/amber/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -972,7 +972,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/550",
+      "name": "nbds/core/palette/amber/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -991,7 +991,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/600",
+      "name": "nbds/core/palette/amber/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1010,7 +1010,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/650",
+      "name": "nbds/core/palette/amber/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1029,7 +1029,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/700",
+      "name": "nbds/core/palette/amber/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1048,7 +1048,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/750",
+      "name": "nbds/core/palette/amber/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1067,7 +1067,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/800",
+      "name": "nbds/core/palette/amber/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1086,7 +1086,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/850",
+      "name": "nbds/core/palette/amber/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1105,7 +1105,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/900",
+      "name": "nbds/core/palette/amber/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1124,7 +1124,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/950",
+      "name": "nbds/core/palette/amber/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1143,7 +1143,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/025",
+      "name": "nbds/core/palette/amber/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1162,7 +1162,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/amber/050",
+      "name": "nbds/core/palette/amber/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1181,7 +1181,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/100",
+      "name": "nbds/core/palette/neutral/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1200,7 +1200,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/150",
+      "name": "nbds/core/palette/neutral/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1219,7 +1219,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/200",
+      "name": "nbds/core/palette/neutral/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1238,7 +1238,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/250",
+      "name": "nbds/core/palette/neutral/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1257,7 +1257,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/300",
+      "name": "nbds/core/palette/neutral/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1276,7 +1276,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/350",
+      "name": "nbds/core/palette/neutral/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1295,7 +1295,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/400",
+      "name": "nbds/core/palette/neutral/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1314,7 +1314,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/450",
+      "name": "nbds/core/palette/neutral/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1333,7 +1333,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/500",
+      "name": "nbds/core/palette/neutral/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1352,7 +1352,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/550",
+      "name": "nbds/core/palette/neutral/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1371,7 +1371,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/600",
+      "name": "nbds/core/palette/neutral/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1390,7 +1390,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/650",
+      "name": "nbds/core/palette/neutral/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1409,7 +1409,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/700",
+      "name": "nbds/core/palette/neutral/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1428,7 +1428,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/750",
+      "name": "nbds/core/palette/neutral/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1447,7 +1447,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/800",
+      "name": "nbds/core/palette/neutral/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1466,7 +1466,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/850",
+      "name": "nbds/core/palette/neutral/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1485,7 +1485,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/900",
+      "name": "nbds/core/palette/neutral/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1504,7 +1504,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/950",
+      "name": "nbds/core/palette/neutral/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1523,7 +1523,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/025",
+      "name": "nbds/core/palette/neutral/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1542,7 +1542,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/neutral/050",
+      "name": "nbds/core/palette/neutral/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1561,7 +1561,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/100",
+      "name": "nbds/core/palette/info/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1580,7 +1580,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/150",
+      "name": "nbds/core/palette/info/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1599,7 +1599,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/200",
+      "name": "nbds/core/palette/info/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1618,7 +1618,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/250",
+      "name": "nbds/core/palette/info/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1637,7 +1637,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/300",
+      "name": "nbds/core/palette/info/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1656,7 +1656,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/350",
+      "name": "nbds/core/palette/info/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1675,7 +1675,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/400",
+      "name": "nbds/core/palette/info/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1694,7 +1694,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/450",
+      "name": "nbds/core/palette/info/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1713,7 +1713,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/500",
+      "name": "nbds/core/palette/info/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1732,7 +1732,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/550",
+      "name": "nbds/core/palette/info/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1751,7 +1751,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/600",
+      "name": "nbds/core/palette/info/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1770,7 +1770,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/650",
+      "name": "nbds/core/palette/info/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1789,7 +1789,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/700",
+      "name": "nbds/core/palette/info/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1808,7 +1808,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/750",
+      "name": "nbds/core/palette/info/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1827,7 +1827,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/800",
+      "name": "nbds/core/palette/info/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1846,7 +1846,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/850",
+      "name": "nbds/core/palette/info/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1865,7 +1865,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/900",
+      "name": "nbds/core/palette/info/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1884,7 +1884,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/950",
+      "name": "nbds/core/palette/info/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1903,7 +1903,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/025",
+      "name": "nbds/core/palette/info/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1922,7 +1922,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/info/050",
+      "name": "nbds/core/palette/info/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1941,7 +1941,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/5",
+      "name": "nbds/core/palette/black-alpha/5",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1960,7 +1960,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/10",
+      "name": "nbds/core/palette/black-alpha/10",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1979,7 +1979,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/20",
+      "name": "nbds/core/palette/black-alpha/20",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1998,7 +1998,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/30",
+      "name": "nbds/core/palette/black-alpha/30",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2017,7 +2017,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/40",
+      "name": "nbds/core/palette/black-alpha/40",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2036,7 +2036,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/50",
+      "name": "nbds/core/palette/black-alpha/50",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2055,7 +2055,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/60",
+      "name": "nbds/core/palette/black-alpha/60",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2074,7 +2074,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/70",
+      "name": "nbds/core/palette/black-alpha/70",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2093,7 +2093,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/80",
+      "name": "nbds/core/palette/black-alpha/80",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2112,7 +2112,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/black-alpha/90",
+      "name": "nbds/core/palette/black-alpha/90",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2131,7 +2131,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/5",
+      "name": "nbds/core/palette/white-alpha/5",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2150,7 +2150,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/10",
+      "name": "nbds/core/palette/white-alpha/10",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2169,7 +2169,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/20",
+      "name": "nbds/core/palette/white-alpha/20",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2188,7 +2188,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/30",
+      "name": "nbds/core/palette/white-alpha/30",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2207,7 +2207,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/40",
+      "name": "nbds/core/palette/white-alpha/40",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2226,7 +2226,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/50",
+      "name": "nbds/core/palette/white-alpha/50",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2245,7 +2245,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/60",
+      "name": "nbds/core/palette/white-alpha/60",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2264,7 +2264,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/70",
+      "name": "nbds/core/palette/white-alpha/70",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2283,7 +2283,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/80",
+      "name": "nbds/core/palette/white-alpha/80",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2302,7 +2302,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "palette/white-alpha/90",
+      "name": "nbds/core/palette/white-alpha/90",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",

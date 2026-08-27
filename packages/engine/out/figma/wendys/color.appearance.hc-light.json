@@ -3,7 +3,7 @@
   "$mode": "hc-light",
   "variables": [
     {
-      "name": "color/appearance/background/primary",
+      "name": "prism/color/appearance/background/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -18,11 +18,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/background/secondary",
+      "name": "prism/color/appearance/background/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -37,11 +37,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/background/tertiary",
+      "name": "prism/color/appearance/background/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -56,11 +56,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/background/inverse/primary",
+      "name": "prism/color/appearance/background/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -75,11 +75,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/background/inverse/secondary",
+      "name": "prism/color/appearance/background/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -94,11 +94,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/background/inverse/tertiary",
+      "name": "prism/color/appearance/background/inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -113,11 +113,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/scrim/default",
+      "name": "prism/color/appearance/scrim/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -132,11 +132,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/60"
+        "name": "prism/core/palette/black-alpha/60"
       }
     },
     {
-      "name": "color/appearance/veil/dark/large",
+      "name": "prism/color/appearance/veil/dark/large",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -151,11 +151,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/50"
+        "name": "prism/core/palette/black-alpha/50"
       }
     },
     {
-      "name": "color/appearance/veil/dark/body",
+      "name": "prism/color/appearance/veil/dark/body",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -170,11 +170,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/60"
+        "name": "prism/core/palette/black-alpha/60"
       }
     },
     {
-      "name": "color/appearance/veil/dark/enhanced",
+      "name": "prism/color/appearance/veil/dark/enhanced",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -189,11 +189,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/70"
+        "name": "prism/core/palette/black-alpha/70"
       }
     },
     {
-      "name": "color/appearance/veil/light/large",
+      "name": "prism/color/appearance/veil/light/large",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -208,11 +208,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/40"
+        "name": "prism/core/palette/white-alpha/40"
       }
     },
     {
-      "name": "color/appearance/veil/light/body",
+      "name": "prism/color/appearance/veil/light/body",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -227,11 +227,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/50"
+        "name": "prism/core/palette/white-alpha/50"
       }
     },
     {
-      "name": "color/appearance/veil/light/enhanced",
+      "name": "prism/color/appearance/veil/light/enhanced",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -246,11 +246,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/60"
+        "name": "prism/core/palette/white-alpha/60"
       }
     },
     {
-      "name": "color/appearance/foreground/primary",
+      "name": "prism/color/appearance/foreground/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -266,11 +266,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/foreground/secondary",
+      "name": "prism/color/appearance/foreground/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -286,11 +286,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/foreground/tertiary",
+      "name": "prism/color/appearance/foreground/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -306,11 +306,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/primary",
+      "name": "prism/color/appearance/foreground/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -326,11 +326,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/secondary",
+      "name": "prism/color/appearance/foreground/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -346,11 +346,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/tertiary",
+      "name": "prism/color/appearance/foreground/inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -366,11 +366,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/brand",
+      "name": "prism/color/appearance/foreground/inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -386,11 +386,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/success",
+      "name": "prism/color/appearance/foreground/inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -406,11 +406,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/350"
+        "name": "prism/core/palette/success/350"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/warning",
+      "name": "prism/color/appearance/foreground/inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -426,11 +426,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/350"
+        "name": "prism/core/palette/warning/350"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/danger",
+      "name": "prism/color/appearance/foreground/inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -446,11 +446,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "prism/core/palette/danger/350"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/info",
+      "name": "prism/color/appearance/foreground/inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -466,11 +466,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/350"
+        "name": "prism/core/palette/info/350"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/brand-subtle",
+      "name": "prism/color/appearance/foreground/inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -486,11 +486,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/900"
+        "name": "prism/core/palette/primary/900"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/success-subtle",
+      "name": "prism/color/appearance/foreground/inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -506,11 +506,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/900"
+        "name": "prism/core/palette/success/900"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/warning-subtle",
+      "name": "prism/color/appearance/foreground/inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -526,11 +526,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/900"
+        "name": "prism/core/palette/warning/900"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/danger-subtle",
+      "name": "prism/color/appearance/foreground/inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -546,11 +546,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/900"
+        "name": "prism/core/palette/danger/900"
       }
     },
     {
-      "name": "color/appearance/foreground/inverse/info-subtle",
+      "name": "prism/color/appearance/foreground/inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -566,11 +566,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/900"
+        "name": "prism/core/palette/info/900"
       }
     },
     {
-      "name": "color/appearance/foreground/brand",
+      "name": "prism/color/appearance/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -586,11 +586,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/foreground/success",
+      "name": "prism/color/appearance/foreground/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -606,11 +606,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/700"
+        "name": "prism/core/palette/success/700"
       }
     },
     {
-      "name": "color/appearance/foreground/warning",
+      "name": "prism/color/appearance/foreground/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -626,11 +626,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/700"
+        "name": "prism/core/palette/warning/700"
       }
     },
     {
-      "name": "color/appearance/foreground/info",
+      "name": "prism/color/appearance/foreground/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -646,11 +646,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/700"
+        "name": "prism/core/palette/info/700"
       }
     },
     {
-      "name": "color/appearance/foreground/brand-subtle",
+      "name": "prism/color/appearance/foreground/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -666,11 +666,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/100"
+        "name": "prism/core/palette/primary/100"
       }
     },
     {
-      "name": "color/appearance/foreground/success-subtle",
+      "name": "prism/color/appearance/foreground/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -686,11 +686,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/100"
+        "name": "prism/core/palette/success/100"
       }
     },
     {
-      "name": "color/appearance/foreground/warning-subtle",
+      "name": "prism/color/appearance/foreground/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -706,11 +706,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/100"
+        "name": "prism/core/palette/warning/100"
       }
     },
     {
-      "name": "color/appearance/foreground/danger-subtle",
+      "name": "prism/color/appearance/foreground/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -726,11 +726,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/100"
+        "name": "prism/core/palette/danger/100"
       }
     },
     {
-      "name": "color/appearance/foreground/info-subtle",
+      "name": "prism/color/appearance/foreground/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -746,11 +746,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/100"
+        "name": "prism/core/palette/info/100"
       }
     },
     {
-      "name": "color/appearance/foreground/danger",
+      "name": "prism/color/appearance/foreground/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -766,11 +766,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "prism/core/palette/danger/700"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/fill/rest",
+      "name": "prism/color/appearance/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -785,11 +785,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/fill/hover",
+      "name": "prism/color/appearance/interactive/primary/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -804,11 +804,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/fill/pressed",
+      "name": "prism/color/appearance/interactive/primary/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -823,11 +823,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/750"
+        "name": "prism/core/palette/primary/750"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/fill/focused",
+      "name": "prism/color/appearance/interactive/primary/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -842,11 +842,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/fill/selected",
+      "name": "prism/color/appearance/interactive/primary/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -861,11 +861,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/750"
+        "name": "prism/core/palette/primary/750"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/on-fill",
+      "name": "prism/color/appearance/interactive/primary/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -881,11 +881,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/text/rest",
+      "name": "prism/color/appearance/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -899,11 +899,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/600"
+        "name": "prism/core/palette/primary/600"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/text/hover",
+      "name": "prism/color/appearance/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -917,11 +917,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/text/pressed",
+      "name": "prism/color/appearance/interactive/primary/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -935,11 +935,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/border/rest",
+      "name": "prism/color/appearance/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -953,11 +953,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/600"
+        "name": "prism/core/palette/primary/600"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/border/hover",
+      "name": "prism/color/appearance/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -971,11 +971,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/border/pressed",
+      "name": "prism/color/appearance/interactive/primary/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -989,11 +989,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/text/rest",
+      "name": "prism/color/appearance/interactive/primary/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1007,11 +1007,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/text/hover",
+      "name": "prism/color/appearance/interactive/primary/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1025,11 +1025,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/250"
+        "name": "prism/core/palette/primary/250"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/text/pressed",
+      "name": "prism/color/appearance/interactive/primary/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1043,11 +1043,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/200"
+        "name": "prism/core/palette/primary/200"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/fill/rest",
+      "name": "prism/color/appearance/interactive/primary/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1062,11 +1062,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/100"
+        "name": "prism/core/palette/primary/100"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/fill/hover",
+      "name": "prism/color/appearance/interactive/primary/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1081,11 +1081,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/050"
+        "name": "prism/core/palette/primary/050"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/fill/pressed",
+      "name": "prism/color/appearance/interactive/primary/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1100,11 +1100,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/200"
+        "name": "prism/core/palette/primary/200"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/fill/focused",
+      "name": "prism/color/appearance/interactive/primary/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1119,11 +1119,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/050"
+        "name": "prism/core/palette/primary/050"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/fill/selected",
+      "name": "prism/color/appearance/interactive/primary/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1138,11 +1138,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/200"
+        "name": "prism/core/palette/primary/200"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/on-fill",
+      "name": "prism/color/appearance/interactive/primary/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1158,11 +1158,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/border/rest",
+      "name": "prism/color/appearance/interactive/primary/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1176,11 +1176,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/border/hover",
+      "name": "prism/color/appearance/interactive/primary/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1194,11 +1194,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/250"
+        "name": "prism/core/palette/primary/250"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/border/pressed",
+      "name": "prism/color/appearance/interactive/primary/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1212,11 +1212,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/200"
+        "name": "prism/core/palette/primary/200"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/overlay/hover",
+      "name": "prism/color/appearance/interactive/primary/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1231,11 +1231,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/10"
+        "name": "prism/core/palette/white-alpha/10"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/overlay/pressed",
+      "name": "prism/color/appearance/interactive/primary/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1250,11 +1250,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/20"
+        "name": "prism/core/palette/white-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/inverse/overlay/selected",
+      "name": "prism/color/appearance/interactive/primary/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1269,11 +1269,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/20"
+        "name": "prism/core/palette/white-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/overlay/hover",
+      "name": "prism/color/appearance/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1288,11 +1288,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/10"
+        "name": "prism/core/palette/black-alpha/10"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/overlay/pressed",
+      "name": "prism/color/appearance/interactive/primary/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1307,11 +1307,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/20"
+        "name": "prism/core/palette/black-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/primary/overlay/selected",
+      "name": "prism/color/appearance/interactive/primary/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1326,11 +1326,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/20"
+        "name": "prism/core/palette/black-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/fill/rest",
+      "name": "prism/color/appearance/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1345,11 +1345,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "prism/core/palette/danger/700"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/fill/hover",
+      "name": "prism/color/appearance/interactive/destructive/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1364,11 +1364,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "prism/core/palette/danger/750"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/fill/pressed",
+      "name": "prism/color/appearance/interactive/destructive/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1383,11 +1383,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/800"
+        "name": "prism/core/palette/danger/800"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/fill/focused",
+      "name": "prism/color/appearance/interactive/destructive/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1402,11 +1402,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "prism/core/palette/danger/750"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/fill/selected",
+      "name": "prism/color/appearance/interactive/destructive/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1421,11 +1421,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/800"
+        "name": "prism/core/palette/danger/800"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/on-fill",
+      "name": "prism/color/appearance/interactive/destructive/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1441,11 +1441,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/text/rest",
+      "name": "prism/color/appearance/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1459,11 +1459,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
+        "name": "prism/core/palette/danger/650"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/text/hover",
+      "name": "prism/color/appearance/interactive/destructive/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1477,11 +1477,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "prism/core/palette/danger/700"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/text/pressed",
+      "name": "prism/color/appearance/interactive/destructive/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1495,11 +1495,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "prism/core/palette/danger/750"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/border/rest",
+      "name": "prism/color/appearance/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1513,11 +1513,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/650"
+        "name": "prism/core/palette/danger/650"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/border/hover",
+      "name": "prism/color/appearance/interactive/destructive/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1531,11 +1531,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "prism/core/palette/danger/700"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/border/pressed",
+      "name": "prism/color/appearance/interactive/destructive/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1549,11 +1549,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/750"
+        "name": "prism/core/palette/danger/750"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/text/rest",
+      "name": "prism/color/appearance/interactive/destructive/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1567,11 +1567,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "prism/core/palette/danger/350"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/text/hover",
+      "name": "prism/color/appearance/interactive/destructive/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1585,11 +1585,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "prism/core/palette/danger/300"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/text/pressed",
+      "name": "prism/color/appearance/interactive/destructive/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -1603,11 +1603,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/250"
+        "name": "prism/core/palette/danger/250"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/fill/rest",
+      "name": "prism/color/appearance/interactive/destructive/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1622,11 +1622,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/100"
+        "name": "prism/core/palette/danger/100"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/fill/hover",
+      "name": "prism/color/appearance/interactive/destructive/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1641,11 +1641,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/050"
+        "name": "prism/core/palette/danger/050"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/fill/pressed",
+      "name": "prism/color/appearance/interactive/destructive/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1660,11 +1660,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/200"
+        "name": "prism/core/palette/danger/200"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/fill/focused",
+      "name": "prism/color/appearance/interactive/destructive/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1679,11 +1679,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/050"
+        "name": "prism/core/palette/danger/050"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/fill/selected",
+      "name": "prism/color/appearance/interactive/destructive/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1698,11 +1698,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/200"
+        "name": "prism/core/palette/danger/200"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/on-fill",
+      "name": "prism/color/appearance/interactive/destructive/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1718,11 +1718,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/border/rest",
+      "name": "prism/color/appearance/interactive/destructive/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1736,11 +1736,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/350"
+        "name": "prism/core/palette/danger/350"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/border/hover",
+      "name": "prism/color/appearance/interactive/destructive/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1754,11 +1754,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "prism/core/palette/danger/300"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/border/pressed",
+      "name": "prism/color/appearance/interactive/destructive/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -1772,11 +1772,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/250"
+        "name": "prism/core/palette/danger/250"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/overlay/hover",
+      "name": "prism/color/appearance/interactive/destructive/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1791,11 +1791,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/10"
+        "name": "prism/core/palette/white-alpha/10"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/overlay/pressed",
+      "name": "prism/color/appearance/interactive/destructive/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1810,11 +1810,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/20"
+        "name": "prism/core/palette/white-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/inverse/overlay/selected",
+      "name": "prism/color/appearance/interactive/destructive/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1829,11 +1829,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/20"
+        "name": "prism/core/palette/white-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/overlay/hover",
+      "name": "prism/color/appearance/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1848,11 +1848,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/10"
+        "name": "prism/core/palette/black-alpha/10"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/overlay/pressed",
+      "name": "prism/color/appearance/interactive/destructive/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1867,11 +1867,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/20"
+        "name": "prism/core/palette/black-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/destructive/overlay/selected",
+      "name": "prism/color/appearance/interactive/destructive/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1886,11 +1886,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/20"
+        "name": "prism/core/palette/black-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/fill/rest",
+      "name": "prism/color/appearance/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1905,11 +1905,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/150"
+        "name": "prism/core/palette/neutral/150"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/fill/hover",
+      "name": "prism/color/appearance/interactive/neutral/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1924,11 +1924,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/200"
+        "name": "prism/core/palette/neutral/200"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/fill/pressed",
+      "name": "prism/color/appearance/interactive/neutral/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1943,11 +1943,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/250"
+        "name": "prism/core/palette/neutral/250"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/fill/focused",
+      "name": "prism/color/appearance/interactive/neutral/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1962,11 +1962,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/200"
+        "name": "prism/core/palette/neutral/200"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/fill/selected",
+      "name": "prism/color/appearance/interactive/neutral/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1981,11 +1981,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/250"
+        "name": "prism/core/palette/neutral/250"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/on-fill",
+      "name": "prism/color/appearance/interactive/neutral/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2001,11 +2001,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/text/rest",
+      "name": "prism/color/appearance/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2019,11 +2019,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/text/hover",
+      "name": "prism/color/appearance/interactive/neutral/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2037,11 +2037,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/text/pressed",
+      "name": "prism/color/appearance/interactive/neutral/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2055,11 +2055,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/border/rest",
+      "name": "prism/color/appearance/interactive/neutral/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2073,11 +2073,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/border/hover",
+      "name": "prism/color/appearance/interactive/neutral/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2091,11 +2091,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/600"
+        "name": "prism/core/palette/neutral/600"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/border/pressed",
+      "name": "prism/color/appearance/interactive/neutral/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2109,11 +2109,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/700"
+        "name": "prism/core/palette/neutral/700"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/text/rest",
+      "name": "prism/color/appearance/interactive/neutral/inverse/text/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2127,11 +2127,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/text/hover",
+      "name": "prism/color/appearance/interactive/neutral/inverse/text/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2145,11 +2145,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/text/pressed",
+      "name": "prism/color/appearance/interactive/neutral/inverse/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2163,11 +2163,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/fill/rest",
+      "name": "prism/color/appearance/interactive/neutral/inverse/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2182,11 +2182,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/050"
+        "name": "prism/core/palette/neutral/050"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/fill/hover",
+      "name": "prism/color/appearance/interactive/neutral/inverse/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2201,11 +2201,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/100"
+        "name": "prism/core/palette/neutral/100"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/fill/pressed",
+      "name": "prism/color/appearance/interactive/neutral/inverse/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2220,11 +2220,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/150"
+        "name": "prism/core/palette/neutral/150"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/fill/focused",
+      "name": "prism/color/appearance/interactive/neutral/inverse/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2239,11 +2239,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/100"
+        "name": "prism/core/palette/neutral/100"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/fill/selected",
+      "name": "prism/color/appearance/interactive/neutral/inverse/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2258,11 +2258,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/150"
+        "name": "prism/core/palette/neutral/150"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/on-fill",
+      "name": "prism/color/appearance/interactive/neutral/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2278,11 +2278,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/border/rest",
+      "name": "prism/color/appearance/interactive/neutral/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2296,11 +2296,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/border/hover",
+      "name": "prism/color/appearance/interactive/neutral/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2314,11 +2314,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/400"
+        "name": "prism/core/palette/neutral/400"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/border/pressed",
+      "name": "prism/color/appearance/interactive/neutral/inverse/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2332,11 +2332,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/300"
+        "name": "prism/core/palette/neutral/300"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/overlay/hover",
+      "name": "prism/color/appearance/interactive/neutral/inverse/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2351,11 +2351,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/10"
+        "name": "prism/core/palette/white-alpha/10"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/overlay/pressed",
+      "name": "prism/color/appearance/interactive/neutral/inverse/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2370,11 +2370,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/20"
+        "name": "prism/core/palette/white-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/inverse/overlay/selected",
+      "name": "prism/color/appearance/interactive/neutral/inverse/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2389,11 +2389,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white-alpha/20"
+        "name": "prism/core/palette/white-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/overlay/hover",
+      "name": "prism/color/appearance/interactive/neutral/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2408,11 +2408,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/10"
+        "name": "prism/core/palette/black-alpha/10"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/overlay/pressed",
+      "name": "prism/color/appearance/interactive/neutral/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2427,11 +2427,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/20"
+        "name": "prism/core/palette/black-alpha/20"
       }
     },
     {
-      "name": "color/appearance/interactive/neutral/overlay/selected",
+      "name": "prism/color/appearance/interactive/neutral/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2446,11 +2446,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black-alpha/20"
+        "name": "prism/core/palette/black-alpha/20"
       }
     },
     {
-      "name": "color/appearance/disabled/fill",
+      "name": "prism/color/appearance/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2465,11 +2465,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/200"
+        "name": "prism/core/palette/neutral/200"
       }
     },
     {
-      "name": "color/appearance/disabled/on-fill",
+      "name": "prism/color/appearance/disabled/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2485,11 +2485,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/700"
+        "name": "prism/core/palette/neutral/700"
       }
     },
     {
-      "name": "color/appearance/disabled/text",
+      "name": "prism/color/appearance/disabled/text",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2503,11 +2503,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/550"
+        "name": "prism/core/palette/neutral/550"
       }
     },
     {
-      "name": "color/appearance/disabled/icon",
+      "name": "prism/color/appearance/disabled/icon",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2523,11 +2523,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/550"
+        "name": "prism/core/palette/neutral/550"
       }
     },
     {
-      "name": "color/appearance/disabled/border",
+      "name": "prism/color/appearance/disabled/border",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2541,11 +2541,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/200"
+        "name": "prism/core/palette/neutral/200"
       }
     },
     {
-      "name": "color/appearance/disabled/inverse/fill",
+      "name": "prism/color/appearance/disabled/inverse/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2560,11 +2560,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/800"
+        "name": "prism/core/palette/neutral/800"
       }
     },
     {
-      "name": "color/appearance/disabled/inverse/on-fill",
+      "name": "prism/color/appearance/disabled/inverse/on-fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2579,11 +2579,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/350"
+        "name": "prism/core/palette/neutral/350"
       }
     },
     {
-      "name": "color/appearance/disabled/inverse/text",
+      "name": "prism/color/appearance/disabled/inverse/text",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2598,11 +2598,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/disabled/inverse/icon",
+      "name": "prism/color/appearance/disabled/inverse/icon",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2617,11 +2617,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/disabled/inverse/border",
+      "name": "prism/color/appearance/disabled/inverse/border",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2636,11 +2636,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/800"
+        "name": "prism/core/palette/neutral/800"
       }
     },
     {
-      "name": "color/appearance/field/fill",
+      "name": "prism/color/appearance/field/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2655,11 +2655,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/field/border/rest",
+      "name": "prism/color/appearance/field/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2673,11 +2673,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/field/border/hover",
+      "name": "prism/color/appearance/field/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2691,11 +2691,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/600"
+        "name": "prism/core/palette/neutral/600"
       }
     },
     {
-      "name": "color/appearance/field/placeholder",
+      "name": "prism/color/appearance/field/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2709,11 +2709,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/650"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
-      "name": "color/appearance/field/inverse/fill",
+      "name": "prism/color/appearance/field/inverse/fill",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2728,11 +2728,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/field/inverse/border/rest",
+      "name": "prism/color/appearance/field/inverse/border/rest",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2746,11 +2746,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/field/inverse/border/hover",
+      "name": "prism/color/appearance/field/inverse/border/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -2764,11 +2764,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/400"
+        "name": "prism/core/palette/neutral/400"
       }
     },
     {
-      "name": "color/appearance/field/inverse/placeholder",
+      "name": "prism/color/appearance/field/inverse/placeholder",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2782,11 +2782,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/350"
+        "name": "prism/core/palette/neutral/350"
       }
     },
     {
-      "name": "color/appearance/text/primary",
+      "name": "prism/color/appearance/text/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2800,11 +2800,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/text/secondary",
+      "name": "prism/color/appearance/text/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2818,11 +2818,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/700"
+        "name": "prism/core/palette/neutral/700"
       }
     },
     {
-      "name": "color/appearance/text/tertiary",
+      "name": "prism/color/appearance/text/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2836,11 +2836,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/550"
+        "name": "prism/core/palette/neutral/550"
       }
     },
     {
-      "name": "color/appearance/text/brand",
+      "name": "prism/color/appearance/text/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2854,11 +2854,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/text/success",
+      "name": "prism/color/appearance/text/success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2872,11 +2872,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/700"
+        "name": "prism/core/palette/success/700"
       }
     },
     {
-      "name": "color/appearance/text/warning",
+      "name": "prism/color/appearance/text/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2890,11 +2890,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/700"
+        "name": "prism/core/palette/warning/700"
       }
     },
     {
-      "name": "color/appearance/text/danger",
+      "name": "prism/color/appearance/text/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2908,11 +2908,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "prism/core/palette/danger/700"
       }
     },
     {
-      "name": "color/appearance/text/info",
+      "name": "prism/color/appearance/text/info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2926,11 +2926,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/700"
+        "name": "prism/core/palette/info/700"
       }
     },
     {
-      "name": "color/appearance/text/brand-subtle",
+      "name": "prism/color/appearance/text/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2944,11 +2944,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/450"
+        "name": "prism/core/palette/primary/450"
       }
     },
     {
-      "name": "color/appearance/text/success-subtle",
+      "name": "prism/color/appearance/text/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2962,11 +2962,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "prism/core/palette/success/500"
       }
     },
     {
-      "name": "color/appearance/text/warning-subtle",
+      "name": "prism/color/appearance/text/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2980,11 +2980,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "prism/core/palette/warning/500"
       }
     },
     {
-      "name": "color/appearance/text/danger-subtle",
+      "name": "prism/color/appearance/text/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -2998,11 +2998,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "prism/core/palette/danger/500"
       }
     },
     {
-      "name": "color/appearance/text/info-subtle",
+      "name": "prism/color/appearance/text/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3016,11 +3016,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/500"
+        "name": "prism/core/palette/info/500"
       }
     },
     {
-      "name": "color/appearance/text/on-brand",
+      "name": "prism/color/appearance/text/on-brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3034,11 +3034,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/text/on-success",
+      "name": "prism/color/appearance/text/on-success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3052,11 +3052,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/text/on-warning",
+      "name": "prism/color/appearance/text/on-warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3070,11 +3070,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/text/on-danger",
+      "name": "prism/color/appearance/text/on-danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3088,11 +3088,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/text/on-info",
+      "name": "prism/color/appearance/text/on-info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3106,11 +3106,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/text/link/default",
+      "name": "prism/color/appearance/text/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3124,11 +3124,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/text/link/hover",
+      "name": "prism/color/appearance/text/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3142,11 +3142,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/text/link/visited",
+      "name": "prism/color/appearance/text/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3160,11 +3160,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/750"
+        "name": "prism/core/palette/primary/750"
       }
     },
     {
-      "name": "color/appearance/text/link/focused",
+      "name": "prism/color/appearance/text/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3178,11 +3178,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/primary",
+      "name": "prism/color/appearance/text/on-inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3196,11 +3196,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/secondary",
+      "name": "prism/color/appearance/text/on-inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3214,11 +3214,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/350"
+        "name": "prism/core/palette/neutral/350"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/tertiary",
+      "name": "prism/color/appearance/text/on-inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3232,11 +3232,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/brand",
+      "name": "prism/color/appearance/text/on-inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3250,11 +3250,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/250"
+        "name": "prism/core/palette/primary/250"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/success",
+      "name": "prism/color/appearance/text/on-inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3268,11 +3268,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/300"
+        "name": "prism/core/palette/success/300"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/warning",
+      "name": "prism/color/appearance/text/on-inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3286,11 +3286,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/300"
+        "name": "prism/core/palette/warning/300"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/danger",
+      "name": "prism/color/appearance/text/on-inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3304,11 +3304,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "prism/core/palette/danger/300"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/info",
+      "name": "prism/color/appearance/text/on-inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3322,11 +3322,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/300"
+        "name": "prism/core/palette/info/300"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/brand-subtle",
+      "name": "prism/color/appearance/text/on-inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3340,11 +3340,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/400"
+        "name": "prism/core/palette/primary/400"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/success-subtle",
+      "name": "prism/color/appearance/text/on-inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3358,11 +3358,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "prism/core/palette/success/500"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/warning-subtle",
+      "name": "prism/color/appearance/text/on-inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3376,11 +3376,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "prism/core/palette/warning/500"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/danger-subtle",
+      "name": "prism/color/appearance/text/on-inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3394,11 +3394,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "prism/core/palette/danger/500"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/info-subtle",
+      "name": "prism/color/appearance/text/on-inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3412,11 +3412,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/500"
+        "name": "prism/core/palette/info/500"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/link/default",
+      "name": "prism/color/appearance/text/on-inverse/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3430,11 +3430,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/link/hover",
+      "name": "prism/color/appearance/text/on-inverse/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3448,11 +3448,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/250"
+        "name": "prism/core/palette/primary/250"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/link/visited",
+      "name": "prism/color/appearance/text/on-inverse/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3466,11 +3466,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/200"
+        "name": "prism/core/palette/primary/200"
       }
     },
     {
-      "name": "color/appearance/text/on-inverse/link/focused",
+      "name": "prism/color/appearance/text/on-inverse/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "TEXT_FILL"
@@ -3484,11 +3484,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/icon/primary",
+      "name": "prism/color/appearance/icon/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3504,11 +3504,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/black"
+        "name": "prism/core/palette/black"
       }
     },
     {
-      "name": "color/appearance/icon/secondary",
+      "name": "prism/color/appearance/icon/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3524,11 +3524,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/700"
+        "name": "prism/core/palette/neutral/700"
       }
     },
     {
-      "name": "color/appearance/icon/tertiary",
+      "name": "prism/color/appearance/icon/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3544,11 +3544,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/550"
+        "name": "prism/core/palette/neutral/550"
       }
     },
     {
-      "name": "color/appearance/icon/brand",
+      "name": "prism/color/appearance/icon/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3564,11 +3564,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/icon/success",
+      "name": "prism/color/appearance/icon/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3584,11 +3584,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/700"
+        "name": "prism/core/palette/success/700"
       }
     },
     {
-      "name": "color/appearance/icon/warning",
+      "name": "prism/color/appearance/icon/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3604,11 +3604,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/700"
+        "name": "prism/core/palette/warning/700"
       }
     },
     {
-      "name": "color/appearance/icon/danger",
+      "name": "prism/color/appearance/icon/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3624,11 +3624,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/700"
+        "name": "prism/core/palette/danger/700"
       }
     },
     {
-      "name": "color/appearance/icon/info",
+      "name": "prism/color/appearance/icon/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3644,11 +3644,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/700"
+        "name": "prism/core/palette/info/700"
       }
     },
     {
-      "name": "color/appearance/icon/brand-subtle",
+      "name": "prism/color/appearance/icon/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3664,11 +3664,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/450"
+        "name": "prism/core/palette/primary/450"
       }
     },
     {
-      "name": "color/appearance/icon/success-subtle",
+      "name": "prism/color/appearance/icon/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3684,11 +3684,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "prism/core/palette/success/500"
       }
     },
     {
-      "name": "color/appearance/icon/warning-subtle",
+      "name": "prism/color/appearance/icon/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3704,11 +3704,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "prism/core/palette/warning/500"
       }
     },
     {
-      "name": "color/appearance/icon/danger-subtle",
+      "name": "prism/color/appearance/icon/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3724,11 +3724,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "prism/core/palette/danger/500"
       }
     },
     {
-      "name": "color/appearance/icon/info-subtle",
+      "name": "prism/color/appearance/icon/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3744,11 +3744,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/500"
+        "name": "prism/core/palette/info/500"
       }
     },
     {
-      "name": "color/appearance/icon/on-brand",
+      "name": "prism/color/appearance/icon/on-brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3764,11 +3764,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/icon/on-success",
+      "name": "prism/color/appearance/icon/on-success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3784,11 +3784,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/icon/on-warning",
+      "name": "prism/color/appearance/icon/on-warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3804,11 +3804,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/icon/on-danger",
+      "name": "prism/color/appearance/icon/on-danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3824,11 +3824,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/icon/on-info",
+      "name": "prism/color/appearance/icon/on-info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3844,11 +3844,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/icon/link/default",
+      "name": "prism/color/appearance/icon/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3864,11 +3864,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/icon/link/hover",
+      "name": "prism/color/appearance/icon/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3884,11 +3884,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/700"
+        "name": "prism/core/palette/primary/700"
       }
     },
     {
-      "name": "color/appearance/icon/link/visited",
+      "name": "prism/color/appearance/icon/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3904,11 +3904,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/750"
+        "name": "prism/core/palette/primary/750"
       }
     },
     {
-      "name": "color/appearance/icon/link/focused",
+      "name": "prism/color/appearance/icon/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3924,11 +3924,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/primary",
+      "name": "prism/color/appearance/icon/on-inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3944,11 +3944,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/white"
+        "name": "prism/core/palette/white"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/secondary",
+      "name": "prism/color/appearance/icon/on-inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3964,11 +3964,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/350"
+        "name": "prism/core/palette/neutral/350"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/tertiary",
+      "name": "prism/color/appearance/icon/on-inverse/tertiary",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3984,11 +3984,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/brand",
+      "name": "prism/color/appearance/icon/on-inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4004,11 +4004,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/250"
+        "name": "prism/core/palette/primary/250"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/success",
+      "name": "prism/color/appearance/icon/on-inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4024,11 +4024,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/300"
+        "name": "prism/core/palette/success/300"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/warning",
+      "name": "prism/color/appearance/icon/on-inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4044,11 +4044,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/300"
+        "name": "prism/core/palette/warning/300"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/danger",
+      "name": "prism/color/appearance/icon/on-inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4064,11 +4064,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/300"
+        "name": "prism/core/palette/danger/300"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/info",
+      "name": "prism/color/appearance/icon/on-inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4084,11 +4084,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/300"
+        "name": "prism/core/palette/info/300"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/brand-subtle",
+      "name": "prism/color/appearance/icon/on-inverse/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4104,11 +4104,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/400"
+        "name": "prism/core/palette/primary/400"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/success-subtle",
+      "name": "prism/color/appearance/icon/on-inverse/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4124,11 +4124,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "prism/core/palette/success/500"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/warning-subtle",
+      "name": "prism/color/appearance/icon/on-inverse/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4144,11 +4144,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "prism/core/palette/warning/500"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/danger-subtle",
+      "name": "prism/color/appearance/icon/on-inverse/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4164,11 +4164,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "prism/core/palette/danger/500"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/info-subtle",
+      "name": "prism/color/appearance/icon/on-inverse/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4184,11 +4184,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/500"
+        "name": "prism/core/palette/info/500"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/link/default",
+      "name": "prism/color/appearance/icon/on-inverse/link/default",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4204,11 +4204,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/link/hover",
+      "name": "prism/color/appearance/icon/on-inverse/link/hover",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4224,11 +4224,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/250"
+        "name": "prism/core/palette/primary/250"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/link/visited",
+      "name": "prism/color/appearance/icon/on-inverse/link/visited",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4244,11 +4244,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/200"
+        "name": "prism/core/palette/primary/200"
       }
     },
     {
-      "name": "color/appearance/icon/on-inverse/link/focused",
+      "name": "prism/color/appearance/icon/on-inverse/link/focused",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -4264,11 +4264,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/300"
+        "name": "prism/core/palette/primary/300"
       }
     },
     {
-      "name": "color/appearance/border/primary",
+      "name": "prism/color/appearance/border/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4282,11 +4282,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/border/secondary",
+      "name": "prism/color/appearance/border/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4300,11 +4300,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/700"
+        "name": "prism/core/palette/neutral/700"
       }
     },
     {
-      "name": "color/appearance/border/inverse/default",
+      "name": "prism/color/appearance/border/inverse/default",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4318,11 +4318,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/border/inverse/primary",
+      "name": "prism/color/appearance/border/inverse/primary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4336,11 +4336,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/500"
+        "name": "prism/core/palette/neutral/500"
       }
     },
     {
-      "name": "color/appearance/border/inverse/secondary",
+      "name": "prism/color/appearance/border/inverse/secondary",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4354,11 +4354,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/neutral/250"
+        "name": "prism/core/palette/neutral/250"
       }
     },
     {
-      "name": "color/appearance/border/inverse/brand",
+      "name": "prism/color/appearance/border/inverse/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4372,11 +4372,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/400"
+        "name": "prism/core/palette/primary/400"
       }
     },
     {
-      "name": "color/appearance/border/inverse/success",
+      "name": "prism/color/appearance/border/inverse/success",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4390,11 +4390,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "prism/core/palette/success/500"
       }
     },
     {
-      "name": "color/appearance/border/inverse/warning",
+      "name": "prism/color/appearance/border/inverse/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4408,11 +4408,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "prism/core/palette/warning/500"
       }
     },
     {
-      "name": "color/appearance/border/inverse/danger",
+      "name": "prism/color/appearance/border/inverse/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4426,11 +4426,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "prism/core/palette/danger/500"
       }
     },
     {
-      "name": "color/appearance/border/inverse/info",
+      "name": "prism/color/appearance/border/inverse/info",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4444,11 +4444,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/500"
+        "name": "prism/core/palette/info/500"
       }
     },
     {
-      "name": "color/appearance/border/inverse/focus",
+      "name": "prism/color/appearance/border/inverse/focus",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4462,11 +4462,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/400"
+        "name": "prism/core/palette/primary/400"
       }
     },
     {
-      "name": "color/appearance/border/brand",
+      "name": "prism/color/appearance/border/brand",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4480,11 +4480,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/500"
+        "name": "prism/core/palette/primary/500"
       }
     },
     {
-      "name": "color/appearance/border/success",
+      "name": "prism/color/appearance/border/success",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4498,11 +4498,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/success/500"
+        "name": "prism/core/palette/success/500"
       }
     },
     {
-      "name": "color/appearance/border/warning",
+      "name": "prism/color/appearance/border/warning",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4516,11 +4516,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/warning/500"
+        "name": "prism/core/palette/warning/500"
       }
     },
     {
-      "name": "color/appearance/border/danger",
+      "name": "prism/color/appearance/border/danger",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4534,11 +4534,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/danger/500"
+        "name": "prism/core/palette/danger/500"
       }
     },
     {
-      "name": "color/appearance/border/info",
+      "name": "prism/color/appearance/border/info",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4552,11 +4552,11 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/info/500"
+        "name": "prism/core/palette/info/500"
       }
     },
     {
-      "name": "color/appearance/border/focus",
+      "name": "prism/color/appearance/border/focus",
       "resolvedType": "COLOR",
       "scopes": [
         "STROKE_COLOR"
@@ -4570,7 +4570,7 @@
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "palette/primary/650"
+        "name": "prism/core/palette/primary/650"
       }
     }
   ]

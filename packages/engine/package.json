@@ -17,6 +17,7 @@
     "./emit-brandinput": "./emit-brandinput.ts",
     "./emit-figma-color": "./emit-figma-color.ts",
     "./emit-figma-styles": "./emit-figma-styles.ts",
+    "./figma-names": "./figma-names.ts",
     "./levers": "./levers.ts",
     "./materialization-renames": "./materialization-renames.ts",
     "./modes": "./modes.ts",

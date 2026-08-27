@@ -241,11 +241,17 @@ await new Promise((r) => setTimeout(r, 3000));
   // ⑤ Score the agent's own consumption — the loop-closing step, and the reason eval.ts exists.
   const scored = (await server.callJson('score_consumption', {
     brand: gen.payload.derivedBrandInput,
-    refs: ['color.text.primary', '{prism.color.background.primary}', 'palette.primary.600', 'color.not.a.token'],
+    // `core.palette.primary.600` since #1102 — the leak probe must reference a path that EXISTS, or it
+    // lands in `invented` and all three arms below report the wrong thing. That is exactly what the tier
+    // move did here: `palette.primary.600` resolved to nothing, so `primitiveLeaks` went empty and
+    // `invented` went to 2. `test.ts` carries the same probe and was corrected in the same lane; THIS copy
+    // was missed, which is the argument for the arm being spelled identically in both.
+    refs: ['color.text.primary', '{prism.color.background.primary}', 'core.palette.primary.600', 'color.not.a.token'],
     pairs: [{ fg: 'color.text.primary', bg: 'color.background.primary' }],
   })).payload;
   ok(scored.consumption.invented.length === 1, 'journey ⑤: score_consumption catches the invented ref');
-  ok(scored.consumption.primitiveLeaks.length === 1, 'journey ⑤: score_consumption catches the primitive leak');
+  ok(scored.consumption.primitiveLeaks.length === 1 && scored.consumption.primitiveLeaks[0] === 'core.palette.primary.600',
+    'journey ⑤: score_consumption catches the primitive leak, and names it — a count alone was satisfied by the ref becoming invented');
   // Non-vacuous: both VALID forms must be counted valid, or the invented count would be right by luck.
   ok(scored.consumption.valid === 3, `journey ⑤: brace and root-qualified refs both count as valid (${scored.consumption.valid}/4)`);
   ok(scored.contracts.checked > 0 && scored.contracts.rate === 1,

@@ -24,6 +24,7 @@
  * calls this.
  */
 import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-color';
+import { CORE_COLLECTION } from './emit-figma-color';
 import type { Theme } from './theme';
 import { buildFigmaSurface } from './emit-figma-surface';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
@@ -176,7 +177,13 @@ export const buildSurfaceWritePlan = (theme: Theme): SurfacePlan => {
     name: v.name,
     targetsByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
   }));
-  return { name: 'color', modes, create, aliases };
+  // Off the FILE, not spelled here (#1097/#1089, same reason as `buildFloatWritePlan`). #1089 renamed
+  // this collection `color.surface` and a literal at this line would have been the second place its
+  // name is stated — the one the emitter can move out from under. It is `plan.name` the executor
+  // upserts, so a stale literal writes 128 correct pointers into a collection nobody binds, with no
+  // gate reading a collection label. That is not hypothetical: the literal was `'color'` here while
+  // the emitter had already moved to `color.surface`.
+  return { name: files[0].$collection, modes, create, aliases };
 };
 
 // ---------------------------------------------------------------------------
@@ -251,17 +258,23 @@ export const floatPlanFor = (name: string, files: FigmaCollectionFile[]): FloatC
 export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
   const dims = buildFigmaDims(theme);
   const layout = buildFigmaLayout(theme); // one FigmaCollectionFile per breakpoint mode
+  // The collection name comes off the FILE (`$collection`) rather than being spelled again here
+  // (#1097). The dimension primitives moved into the one `core` collection, and a literal at this call
+  // site would have been the second place that fact is stated — one the emitter can move out from
+  // under. `plan.name` is what the executor upserts, so a stale literal here writes the right
+  // variables into the wrong collection, silently, with no gate reading a collection label.
+  const named = (files: FigmaCollectionFile[]): FloatCollectionPlan => floatPlanFor(files[0].$collection, files);
   return [
-    floatPlanFor('core-dimension', [dims.dimension]),
-    floatPlanFor('space', [dims.space]),
-    floatPlanFor('radius', dims.radius), // 1 or 2 modes (Default [+ wireframe])
-    floatPlanFor('size', [dims.size]),
-    floatPlanFor('icon', [dims.icon]),   // #324 — the visual slot's bindable size
-    floatPlanFor('control', [dims.control]), // #900 — a small control's OWN box (checkbox/radio/switch)
-    floatPlanFor('border-width', [dims.borderWidth]),
-    floatPlanFor('focus', [dims.focus]),
-    floatPlanFor('opacity', [dims.opacity]),
-    floatPlanFor('layout', layout),
+    named([dims.dimension]),
+    named([dims.space]),
+    named(dims.radius), // 1 or 2 modes (Default [+ wireframe])
+    named([dims.size]),
+    named([dims.icon]),   // #324 — the visual slot's bindable size
+    named([dims.control]), // #900 — a small control's OWN box (checkbox/radio/switch)
+    named([dims.borderWidth]),
+    named([dims.focus]),
+    named([dims.opacity]),
+    named(layout),
   ];
 };
 
@@ -434,18 +447,19 @@ const varPlanFor = (name: string, files: FigmaCollectionFile[]): VarCollectionPl
 export const fontVarPlanFrom = (
   font: FigmaCollectionFile[],
   fluid: FigmaCollectionFile[],
-): VarCollectionPlan[] => [varPlanFor('core-font', font), varPlanFor('type-sets', fluid)];
+): VarCollectionPlan[] => [varPlanFor(font[0].$collection, font), varPlanFor(fluid[0].$collection, fluid)];
 
 /**
  * The font-variable plan — `core-font` (per-mode) + `type-sets` (mobile/desktop). PURE: calls the
  * node-free `buildFigmaFont`/`buildFigmaFontFluid` and reshapes; bundles into the plugin.
  */
 export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
-  const font = buildFigmaFont(theme);        // per-mode core-font FigmaCollectionFile[]
+  const font = buildFigmaFont(theme);        // per-mode `core` font FigmaCollectionFile[]
   const fluid = buildFigmaFontFluid(theme);  // type-sets mobile/desktop FigmaCollectionFile[]
+  // Same reason as `buildFloatWritePlan` — the artifact names its own collection (#1097).
   return [
-    varPlanFor('core-font', font),
-    varPlanFor('type-sets', fluid),
+    varPlanFor(font[0].$collection, font),
+    varPlanFor(fluid[0].$collection, fluid),
   ];
 };
 
@@ -455,11 +469,11 @@ export const buildFontVarPlan = (theme: Theme): VarCollectionPlan[] => {
 export type TextStyleRow = {
   name: string;
   description: string;
-  fontFamilyVar: string;         // 'font/family/<category>' — in core-font
+  fontFamilyVar: string;         // '<root>/core/font/family/<category>' — in the `core` collection
   fontFamilyPrimary: string;     // the primary face (loadFontAsync + fontName.family)
   fontSizeVar: string;
-  fontSizeCollection: 'core-font' | 'type-sets';
-  fontWeightVar: string;         // 'font/weight-role/<role>' — in core-font
+  fontSizeCollection: string;    // the `core` collection, or `type-sets` for a fluid size
+  fontWeightVar: string;         // '<root>/core/font/weight-role/<role>' — in the `core` collection
   fontStyle: string;             // baked style-name (loadFontAsync + fontName.style)
   lineHeightPct: number;
   letterSpacingPct: number;
@@ -474,7 +488,7 @@ const bakedNum = (p: FigmaTextStyle['properties']['lineHeight']): number =>
 const bakedStr = (p: FigmaTextStyle['properties']['fontStyle']): string =>
   p.bound === false && typeof p.value === 'string' ? p.value : '';
 const boundVar = (p: FigmaTextStyle['properties']['fontSize']): { variable: string; collection: string } =>
-  p.bound === true ? { variable: p.variable, collection: p.collection } : { variable: '', collection: 'core-font' };
+  p.bound === true ? { variable: p.variable, collection: p.collection } : { variable: '', collection: CORE_COLLECTION };
 
 /**
  * The Text Style plan — one `TextStyleRow` per composite. Flattens `buildFigmaTextStyles` into the
@@ -503,8 +517,15 @@ const textStylePlanFrom = (
   // which carries the per-mode value at render — so the Default face is the correct thing to load for
   // the style's own fallback. No shipping brand sets `familiesByMode` today, so this path is currently
   // unexercised by a fixture; a `familiesByMode` example brand would close that gap before it matters.
+  // MATCHED AT THE TAIL, not by prefix (#1097). A family variable is now
+  // `<root>/core/font/family/<category>`, and the root is the BRAND'S — so `startsWith('font/family/')`
+  // matched nothing at all, for every brand, and `faceByVar` came back empty: every Text Style would
+  // have got `fontFamilyPrimary: ''`, which `loadFontAsync` then fails on. Silent in the plan and loud
+  // only at write time, in the plugin, on someone else's file. The tail is the part that is a DTCG path
+  // and therefore brand-invariant; the head is the part that is not.
+  const isFamilyVar = /(?:^|\/)font\/family\/[^/]+$/;
   const faceByVar = new Map(
-    fontDefault.variables.filter((v) => v.name.startsWith('font/family/')).map((v) => [v.name, String(v.value)] as const),
+    fontDefault.variables.filter((v) => isFamilyVar.test(v.name)).map((v) => [v.name, String(v.value)] as const),
   );
   return styles.map((s) => {
     const p = s.properties;
@@ -516,7 +537,7 @@ const textStylePlanFrom = (
       fontFamilyVar: familyVar,
       fontFamilyPrimary: faceByVar.get(familyVar) ?? '',
       fontSizeVar: size.variable,
-      fontSizeCollection: size.collection === 'type-sets' ? 'type-sets' : 'core-font',
+      fontSizeCollection: size.collection === 'type-sets' ? 'type-sets' : CORE_COLLECTION,
       fontWeightVar: p.fontWeight.bound === true ? p.fontWeight.variable : '',
       fontStyle: bakedStr(p.fontStyle),
       lineHeightPct: bakedNum(p.lineHeight),

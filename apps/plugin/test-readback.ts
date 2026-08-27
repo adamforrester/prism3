@@ -72,8 +72,8 @@ const verdict = verifyReadback(snap);
 console.log('plugin read-back (#109) — write → read → verify round-trip on the shim\n');
 
 // snapshot round-trips the plan
-ok(snap.collections.some((c) => c.name === 'core-palette') && snap.collections.some((c) => c.name === 'color.appearance'),
-  'snapshot carries both collections (core-palette + color.appearance)');
+ok(snap.collections.some((c) => c.name === 'core') && snap.collections.some((c) => c.name === 'color.appearance'),
+  'snapshot carries both collections (core + color.appearance)');
 ok(snap.palette.length === plan.palette.length,
   `palette round-trips: ${snap.palette.length}/${plan.palette.length} primitives`);
 ok(snap.color.length === plan.color.create.length,
@@ -99,7 +99,7 @@ ok(verdict.ok, 'verifyReadback: contract holds on the written file' + (verdict.o
 ok(verdict.checks.modesDistinct, `collapse-guard: background/primary distinct per mode (${Object.values(verdict.details.backgroundPrimaryByMode).join(' / ')})`);
 ok(verdict.checks.aliasesResolve && verdict.details.danglingAliases.length === 0, 'every alias resolves — 0 dangling');
 ok(verdict.checks.slotScopes && verdict.checks.fieldFamilyPresent, 'slot scopes + field family match the contract');
-ok(verdict.checks.primitivesHidden, 'core-palette primitives hidden from publishing');
+ok(verdict.checks.primitivesHidden, 'core-tier palette primitives hidden from publishing');
 
 // FLOAT axes (#146) — write the geometric collections into the SAME shim, read them back, verify.
 const nbTheme = nbThemeFrom(nbMeasured);
@@ -107,11 +107,15 @@ await applyFloatPlan(buildFloatWritePlan(nbTheme), api);
 const snap2 = await readFigmaVariables(api);
 const fverdict = verifyFloatReadback(snap2, nbTheme.modes.includes('wireframe'));
 
-ok(!!snap2.float && ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'].every((n) => !!snap2.float![n]),
-  'snapshot carries the FLOAT collections after the float write');
+// Keyed by AXIS, which is a third thing again: the axis is `core/dimension`, the COLLECTION it lives in
+// is `core` (shared with `core/palette` and `core/font` since #1097), and the variables inside are
+// `<root>/core/dimension/*`. Three different strings for one thing, so the axis key is written out here
+// rather than reused from the collection list above.
+ok(!!snap2.float && ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'].every((n) => !!snap2.float![n]),
+  'snapshot carries the FLOAT axes after the float write');
 ok(fverdict.ok, 'verifyFloatReadback: contract holds' + (fverdict.ok ? '' : ` — ${Object.entries(fverdict.checks).filter(([, v]) => !v).map(([k]) => k).join(',')}`));
 ok(fverdict.checks.aliasesResolve && fverdict.details.danglingAliases.length === 0, 'every FLOAT alias resolves — 0 dangling');
-ok(fverdict.checks.dimensionsHidden, 'core-dimension primitives hidden from publishing');
+ok(fverdict.checks.dimensionsHidden, 'core-tier dimension primitives hidden from publishing');
 ok(fverdict.checks.collectionsPresent, 'all expected FLOAT collections present in the read-back');
 
 // STYLE axes (shadow/gradient lane) — write Effect + Paint Styles into a styles shim, read the names
@@ -183,11 +187,157 @@ ok(sverdict.details.unboundStops.length === 0, `no unbound stops reported (${sve
 // one stop's binding knocked out: the check flips and the offending stop is named.
 const brokenSnap = {
   ...snap3,
-  styles: { ...snap3.styles!, gradientStopBindings: { ...stopBindings, 'gradient/hero': [null, 'palette/primary/600'] } },
+  // The surviving stop is spelled ROOTED (`prism/core/palette/...`), because `inCoreGroup` is what
+  // decides bound-ness and an unrooted name fails it — which would make BOTH stops unbound and this arm
+  // fail for the wrong reason. Exactly one knocked-out stop is what it is trying to detect.
+  styles: { ...snap3.styles!, gradientStopBindings: { ...stopBindings, 'gradient/hero': [null, 'prism/core/palette/primary/600'] } },
 };
 const bverdict = verifyStylesReadback(brokenSnap, expectDark, expectGradients);
 ok(!bverdict.checks.gradientStopsBound && bverdict.details.unboundStops.length === 1 && !bverdict.ok,
   `an unbound stop fails the verdict and is named (${bverdict.details.unboundStops[0] ?? 'none'})`);
+
+// ═══ THE NAMESPACE, AS A DIFFERENTIAL ROUND-TRIP (#1097) ══════════════════════════════════════════
+//
+// THE TWO INDEPENDENT THINGS ARE THE TWO RUNS. One brand is emitted TWICE — once under its own root,
+// once under a root no corpus brand uses — both written by the real executors and read back through the
+// real `readFigmaVariables`. The claim is then a comparison between two measurements, not against an
+// expected value anybody authored: after removing the leading segment, the two read-backs must be
+// IDENTICAL. If they are, the read path cannot distinguish one root from another, which is the whole
+// content of the change.
+//
+// WHY THIS AND NOT THE `zzstub` ROOT IN `test.ts`. That stub proves a synthetic root works INSIDE A STUB,
+// and it earns its keep. It is not this: it fixes one root and asserts about it, so the day someone
+// changes it for an unrelated reason the namespace proof silently disappears and no gate reports the
+// loss (`docs/34`'s borrowed-backstop shape — an arm pointed at data that no longer carries the hazard).
+// A differential has no such anchor. It compares two runs to each other, so it stays a namespace proof
+// for as long as the two roots differ, whatever they are.
+//
+// THE REACHABILITY ARM IS LOAD-BEARING and comes first. "Identical after stripping the first segment" is
+// also satisfied by an engine that emits NO root at all — both runs would be identical before stripping
+// too, and the gate would pass while proving nothing. So the raw names are asserted to DIFFER, and each
+// run's names to begin with its OWN root, before the agreement is asserted at all.
+//
+// MUTATION-VERIFIED BY NAME, twice, because the two mutations fail DIFFERENT arms here:
+//   1. `inPalette(v.name)` → a literal `v.name.startsWith('prism/core/palette/')` in `read-figma.ts`.
+//      Arms (0) and (1) fail and name 162 palette names present under one root and absent under the other.
+//   2. The colour alias resolution normalised to the default: `nameById.get(id).replace(/^root\//, 'prism/')`.
+//      Arm (2)'s FIRST half still PASSES — and that is the finding. A defect applied symmetrically to both
+//      runs leaves them agreeing with each other, so a differential is structurally blind to it. Only the
+//      leak arm ("no `prism/` in the foreign run") catches it. The two halves of (2) are therefore not
+//      redundant: one compares the runs, the other compares the foreign run against a root it must never
+//      contain. Delete either and a real regression ships.
+const NATIVE_ROOT = 'prism';      // aurora's own — the engine default
+const FOREIGN_ROOT = 'zzclient';  // no corpus brand uses it; a read path that spells a root fails here
+const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
+
+/** Strip the leading segment. A local re-implementation ON PURPOSE: `tailOf` is part of the subject
+ *  (`write-components.ts` resolves bindings through it), so an oracle built from it would compare the
+ *  read path against itself. Four lines of `split` owe nothing to the engine. */
+const dropRoot = (n: string): string => n.split('/').slice(1).join('/');
+
+/** Write colour + FLOAT + styles for one root and read the whole thing back through the real executor. */
+const emitAndRead = async (root: string) => {
+  const theme = brandTheme({ ...auroraInput, root });
+  const vars = new VariablesShim();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: shim satisfies VariablesApi
+  const vapi = vars as any;
+  await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), vapi);
+  await applyFloatPlan(buildFloatWritePlan(theme), vapi);
+  const styles = new StylesShimBound(vars);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await applyStylesPlan(buildStylesPlan(theme), styles as any);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return readFigmaVariables(vapi, styles as any);
+};
+
+const runNative = await emitAndRead(NATIVE_ROOT);
+const runForeign = await emitAndRead(FOREIGN_ROOT);
+
+/** Every variable name a snapshot carries, in a stable order. */
+const varNamesOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string[] => [
+  ...s.palette.map((v) => v.name),
+  ...s.color.map((v) => v.name),
+  ...Object.keys(s.float ?? {}).sort().flatMap((k) => s.float![k].map((v) => v.name)),
+].sort();
+
+const nativeNames = varNamesOf(runNative);
+const foreignNames = varNamesOf(runForeign);
+
+// (0) REACHABILITY — the two runs really are two different files, and each is rooted at its own root.
+ok(nativeNames.length > 0 && foreignNames.length === nativeNames.length,
+  `#1097 differential reachable: both runs read back the same ${nativeNames.length} variables`);
+ok(nativeNames.every((n) => n.startsWith(`${NATIVE_ROOT}/`)) && foreignNames.every((n) => n.startsWith(`${FOREIGN_ROOT}/`)),
+  `#1097 differential reachable: every name in run A starts \`${NATIVE_ROOT}/\` and every name in run B starts \`${FOREIGN_ROOT}/\` — so the root really moved`);
+ok(nativeNames.join('\n') !== foreignNames.join('\n'),
+  '#1097 differential reachable: ...and the two raw name sets therefore DIFFER — the agreement below is not the trivial one an unrooted emission would satisfy');
+
+// (1) THE AGREEMENT — every variable name matches once the leading segment is gone.
+// Compared as a SYMMETRIC DIFFERENCE rather than an index-by-index zip, because the failure this arm
+// exists to catch does not preserve length: a read path that spells `prism/` returns the foreign run's
+// palette as EMPTY, and zipping the longer list against the shorter one reads `undefined` and throws.
+// A gate that dies in a stack trace has still failed the suite, but it has stopped saying WHY — and the
+// label is the whole value of failing by name. Found by running the mutation, not by reasoning about it.
+const diffBothWays = (a: string[], b: string[]): string[] => {
+  const bs = new Set(b), as = new Set(a);
+  return [...a.filter((x) => !bs.has(x)).map((x) => `only in ${NATIVE_ROOT}: ${x}`),
+          ...b.filter((x) => !as.has(x)).map((x) => `only in ${FOREIGN_ROOT}: ${x}`)];
+};
+const nameDiff = diffBothWays(nativeNames.map(dropRoot).sort(), foreignNames.map(dropRoot).sort());
+ok(nameDiff.length === 0,
+  `#1097 the two runs' variable names are IDENTICAL modulo the leading segment (${nativeNames.length} names${nameDiff.length ? `, ${nameDiff.length} differ: ${nameDiff.slice(0, 3).join('; ')}` : ''})`);
+
+// (2) ALIAS TARGETS TOO — a name that round-trips while its POINTERS keep a root would render correctly
+// and be broken the moment a brand changed root. Read out of `valuesByMode`, where the reader resolves
+// an id back to a name, so this crosses the same boundary the real read does.
+type Binding = { row: string; mode: string; target: string };
+const aliasTargetsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): Binding[] => {
+  const out: Binding[] = [];
+  // `palette` rows are single-value primitives and carry no `valuesByMode` at all, so the guard is real
+  // rather than defensive — reading them raw is what threw the first time this ran.
+  const rows = [...s.color, ...Object.keys(s.float ?? {}).sort().flatMap((k) => s.float![k])];
+  for (const v of rows)
+    for (const m of Object.keys(v.valuesByMode ?? {}).sort()) {
+      const val = v.valuesByMode[m];
+      if (val && typeof val === 'object' && 'alias' in val && typeof val.alias === 'string') out.push({ row: v.name, mode: m, target: val.alias });
+    }
+  return out.sort((a, b) => `${a.row}@${a.mode}`.localeCompare(`${b.row}@${b.mode}`));
+};
+const nativeAliases = aliasTargetsOf(runNative);
+const foreignAliases = aliasTargetsOf(runForeign);
+const stripped = (b: Binding): string => `${dropRoot(b.row)} @${b.mode} -> ${dropRoot(b.target)}`;
+// Symmetric for the same reason as (1) — see there.
+const aliasDiff = diffBothWays(nativeAliases.map(stripped).sort(), foreignAliases.map(stripped).sort());
+ok(nativeAliases.length > 0 && nativeAliases.length === foreignAliases.length && aliasDiff.length === 0,
+  `#1097 every alias TARGET agrees modulo the root as well (${nativeAliases.length} bindings${aliasDiff.length ? `, ${aliasDiff.length} differ: ${aliasDiff.slice(0, 3).join('; ')}` : ''})`);
+ok(nativeAliases.every((b) => b.target.startsWith(`${NATIVE_ROOT}/`)) && foreignAliases.every((b) => b.target.startsWith(`${FOREIGN_ROOT}/`)),
+  `#1097 ...and not one target in the foreign run still points at a \`${NATIVE_ROOT}/\` name — a hard-coded default leaks HERE, in the pointer, long before it shows in a variable name`);
+
+// (3) COLLECTIONS AND MODES CARRY NO ROOT AT ALL, so they must match with NOTHING stripped. A collection
+// is an axis, not a token, and the mode picker is where a designer would see a namespace they never asked
+// for. Compared raw on purpose — stripping first would hide a root that had leaked in.
+const collOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string =>
+  s.collections.map((c) => `${c.name}[${[...c.modes].sort().join(',')}]`).sort().join(' | ');
+ok(collOf(runNative) === collOf(runForeign) && collOf(runNative).indexOf(NATIVE_ROOT) < 0,
+  `#1097 collections and their modes are byte-identical across the two roots, and carry no root themselves (${runNative.collections.length} collections)`);
+
+// (4) THE STYLES EXCEPTION, stated as a gate rather than only in prose. A text/effect/paint STYLE name
+// drops the root AND the tier — `shadow/md`, not `<root>/shadow/md` — because Figma's style tree is what
+// a designer browses by hand. So style names must match RAW between the two runs, and the assertion is
+// here rather than in a doc because "a variable's name is its DTCG path" generalised to styles is the
+// wrong sentence and this is the only place both are in hand at once.
+const styleNamesOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string =>
+  [...(s.styles?.effects ?? []), ...(s.styles?.paints ?? [])].sort().join(' | ');
+ok(styleNamesOf(runNative).length > 0 && styleNamesOf(runNative) === styleNamesOf(runForeign)
+  && styleNamesOf(runForeign).indexOf(`${FOREIGN_ROOT}/`) < 0,
+  `#1097 STYLE names are unrooted and identical across both runs — the stated exception (${(runNative.styles?.effects.length ?? 0) + (runNative.styles?.paints.length ?? 0)} styles)`);
+// ...while the gradient stops those styles bind to are VARIABLES, so they do carry the root. Asserted in
+// the same breath because the exception is easy to over-apply: the style name is unrooted, its bindings
+// are not, and one file holds both.
+const stopsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): string[] =>
+  Object.values(s.styles?.gradientStopBindings ?? {}).flat().filter((n): n is string => typeof n === 'string');
+ok(stopsOf(runForeign).length > 0 && stopsOf(runForeign).every((n) => n.startsWith(`${FOREIGN_ROOT}/`))
+  && stopsOf(runNative).map(dropRoot).join('|') === stopsOf(runForeign).map(dropRoot).join('|'),
+  `#1097 ...but a gradient stop binds a VARIABLE, so it IS rooted — and agrees modulo the root (${stopsOf(runForeign).length} stops)`);
 
 console.log(`\nplugin read-back: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

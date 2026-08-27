@@ -9,7 +9,8 @@
  *
  * This module holds:
  *   • `buildFigmaDims(theme)` — the nine FLOAT primitive/semantic collections
- *     (`core-dimension`/`space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/`opacity`),
+ *     (the `core` primitive collection, holding `core/dimension/*` since #1097, plus
+ *     `space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/`opacity`),
  *   • `buildFigmaLayout(theme)` — the `layout` collection with one mode per breakpoint,
  *   • their local helpers (`pxFromValue`/`aliasFigName`), scope maps, and `LAYOUT_MODES`.
  *
@@ -20,7 +21,7 @@
  */
 import { Theme } from './theme';
 import { buildTree, at } from './tree';
-import { figName, desc } from './emit-figma-color';
+import { figName, desc, nsName, coreName, CORE_COLLECTION } from './emit-figma-color';
 import type { FigmaVar, FigmaCollectionFile } from './emit-figma-color';
 
 /** Numeric px from a `12px` or `"{alias}"` value. For alias targets we resolve via
@@ -37,7 +38,10 @@ const pxFromValue = (tree: any, v: unknown): number => {
   }
   return 0;
 };
-/** DTCG alias `{nbds.dimension.8}` → Figma name `dimension/8`. Uses figName. */
+/** DTCG alias `{nbds.core.dimension.8}` → Figma name `nbds/core/dimension/8`. Uses `figName`, so the
+ *  brand namespace AND the primitive tier come along on their own (#1097, #1102) — the alias string
+ *  already carries both, which is why every `alias:` site below needs no help while the `name:` sites,
+ *  assembled from bare keys, each have to say which tier they are in. */
 const aliasFigName = (aliasStr: string): string => {
   const m = /^\{(.+)\}$/.exec(String(aliasStr));
   return m ? figName(m[1]) : '';
@@ -108,6 +112,16 @@ const SIZE_PADDING_SCOPES = ['GAP'];
 export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
+  /** Every name here is assembled from keys rather than walked out of the tree, so the brand namespace
+   *  goes on explicitly (#1097). The ALIAS targets need no help — `aliasFigName` reads a dotted path
+   *  that already carries the root.
+   *
+   *  TWO helpers, because this builder spans both tiers: `dimension/*` is a PRIMITIVE and carries the
+   *  `core` segment (#1102), while `space`/`radius`/`size`/`icon`/`control`/`border-width`/`focus`/
+   *  `opacity` are semantics that alias into it and stay at the top level. Every `name:` below picks
+   *  one, so the tier is visible at the call site rather than inferred from the group's key. */
+  const ns = (name: string): string => nsName(root, name);
+  const coreDim = (name: string): string => coreName(root, name);
   const brand = tree[root];
 
   // dimension primitives — REF TIER. Value is the numeric px; no alias.
@@ -116,12 +130,12 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // alias into this scale). Scopes stay at the four dim targets so, if a
   // component author needs a raw primitive for a bespoke case, the picker
   // guidance is still correct.
-  const dimVars: FigmaVar[] = Object.keys(brand.dimension).map((key) => ({
-    name: `dimension/${key}`,
+  const dimVars: FigmaVar[] = Object.keys(brand.core.dimension).map((key) => ({
+    name: coreDim(`dimension/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: DIMENSION_SCOPES,
-    description: desc(brand.dimension[key]),
-    value: pxFromValue(tree, brand.dimension[key].$value),
+    description: desc(brand.core.dimension[key]),
+    value: pxFromValue(tree, brand.core.dimension[key].$value),
     alias: null,
     hiddenFromPublishing: true,
   }));
@@ -136,7 +150,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     const leaf = brand.space[key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
-      name: `space/${key}`,
+      name: ns(`space/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: SPACE_SCOPES,
       description: desc(leaf),
@@ -147,7 +161,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
 
   // Radius is the FIRST non-colour/shadow axis to be MODE-VARYING (docs/11 Pillar 1b).
   // When the brand opts into `wireframe`, non-zero radius leaves carry a
-  // `$extensions.prism3.modes.wireframe → {root.dimension.0}` override in the DTCG tree
+  // `$extensions.prism3.modes.wireframe → {root.core.dimension.0}` override in the DTCG tree
   // (tree.ts:340–346) — the same per-mode override shape colour/shadow use. Materialise
   // that here as a wireframe MODE on the `radius` variable collection: in the wireframe
   // mode file every non-zero radius var aliases `dimension/0`; radius.none stays 0 with
@@ -169,7 +183,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       const source: any = override ?? leaf;
       const isAlias = typeof source.$value === 'string' && /^\{.+\}$/.test(source.$value);
       return {
-        name: `radius/${key}`,
+        name: ns(`radius/${key}`),
         resolvedType: 'FLOAT' as const,
         scopes: RADIUS_SCOPES,
         description: desc(leaf),
@@ -192,7 +206,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       sizeVars.push({
-        name: `size/${t}/${prop}`,
+        name: ns(`size/${t}/${prop}`),
         resolvedType: 'FLOAT',
         scopes: prop === 'height' ? SIZE_HEIGHT_SCOPES : SIZE_PADDING_SCOPES,
         description: desc(leaf),
@@ -209,7 +223,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     const leaf = brand.icon.size[key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
-      name: `icon/size/${key}`,
+      name: ns(`icon/size/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: SIZE_HEIGHT_SCOPES,
       description: desc(leaf),
@@ -231,7 +245,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       controlVars.push({
-        name: `control/size/${rung}/${field}`,
+        name: ns(`control/size/${rung}/${field}`),
         resolvedType: 'FLOAT',
         scopes: SIZE_HEIGHT_SCOPES,
         description: desc(leaf),
@@ -245,7 +259,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     const leaf = brand['border-width'][key];
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     return {
-      name: `border-width/${key}`,
+      name: ns(`border-width/${key}`),
       resolvedType: 'FLOAT' as const,
       scopes: BORDER_WIDTH_SCOPES,
       description: desc(leaf),
@@ -263,7 +277,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     if (leaf.$type !== 'dimension') continue; // skip strokeStyle
     const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
     focusVars.push({
-      name: `focus/ring/${key}`,
+      name: ns(`focus/ring/${key}`),
       resolvedType: 'FLOAT',
       scopes: FOCUS_SCOPES,
       description: desc(leaf),
@@ -281,9 +295,9 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   // primitives (palette/dimension/font), there is no semantic layer to reach for
   // instead, so it is NOT hidden from publishing — it stays visible in the library
   // picker with its OPACITY scope, matching the sidecar (`consume: Consumable`),
-  // eval (excluded from PRIMITIVE_TIERS), and the prism3-consume skill.
+  // eval (excluded from PRIMITIVE_GROUPS), and the prism3-consume skill.
   const opacityVars: FigmaVar[] = Object.keys(brand.opacity).map((key) => ({
-    name: `opacity/${key}`,
+    name: ns(`opacity/${key}`),
     resolvedType: 'FLOAT' as const,
     scopes: OPACITY_SCOPES,
     description: desc(brand.opacity[key]),
@@ -293,7 +307,7 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
 
   const c = (name: string, variables: FigmaVar[]): FigmaCollectionFile => ({ $collection: name, $mode: 'Default', variables });
   return {
-    dimension: c('core-dimension', dimVars),
+    dimension: c(CORE_COLLECTION, dimVars),
     space: c('space', spaceVars),
     radius: radiusFiles,
     size: c('size', sizeVars),
@@ -336,6 +350,7 @@ const LAYOUT_BREAKPOINT_SCOPES = ['WIDTH_HEIGHT']; // min-width threshold
 export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
   const { tree } = buildTree(theme);
   const root = Object.keys(tree)[0];
+  const ns = (name: string): string => nsName(root, name);
   const brand = tree[root];
   const bpNode = brand.breakpoint;
   const gridNode = brand.grid;
@@ -357,7 +372,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     for (const bpKey of Object.keys(bpNode)) {
       const leaf = bpNode[bpKey];
       variables.push({
-        name: `breakpoint/${bpKey}`,
+        name: ns(`breakpoint/${bpKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_BREAKPOINT_SCOPES,
         description: desc(leaf),
@@ -369,7 +384,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     // grid/* — per-mode. columns is a plain FLOAT; gutter/margin alias space/*.
     const g = gridNode[mode];
     variables.push({
-      name: 'grid/columns',
+      name: ns('grid/columns'),
       resolvedType: 'FLOAT',
       scopes: LAYOUT_COLUMNS_SCOPES,
       description: desc(g.columns),
@@ -380,7 +395,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
       const leaf = g[key];
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       variables.push({
-        name: `grid/${key}`,
+        name: ns(`grid/${key}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_GAP_SCOPES,
         description: desc(leaf),
@@ -393,7 +408,7 @@ export const buildFigmaLayout = (theme: Theme): FigmaCollectionFile[] => {
     for (const cKey of ['max', 'narrow'] as const) {
       const leaf = containerNode[cKey];
       variables.push({
-        name: `container/${cKey}`,
+        name: ns(`container/${cKey}`),
         resolvedType: 'FLOAT',
         scopes: LAYOUT_CONTAINER_SCOPES,
         description: desc(leaf),

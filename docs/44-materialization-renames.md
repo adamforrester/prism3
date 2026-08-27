@@ -79,6 +79,19 @@ to design against: a designer opens one brand's file, so the migration a single 
 659–718 renames, not 2,076. It is also not the 4,000 the per-mode row count suggests — `color`'s 236
 variables appear in four mode files each, and the four are one name.
 
+> **The table above is a MEASUREMENT, dated, and the emission has since moved (#1097, 2026-08-26).**
+> Re-measured on the committed emission: **671 / 711 / 730 across THIRTEEN collections**, corpus **2,112**.
+> Two independent moves, and it is worth knowing which is which because only one of them is this lane's:
+> **(a)** `color` 236 → 242 and `surface` 122 → 128, +6 each, +12 per brand — ordinary token additions
+> landing after this document was written, exactly the drift the paragraph below predicts; **(b)** 15 → 13
+> collections, which IS structural: #1097 folds `core-palette`/`core-dimension`/`core-font` into one `core`
+> (−2), and #1089 renames `color`→`color.appearance` and `surface`→`color.surface` (±0). Per collection
+> today: `core` 199 / 238 / 258, `color.appearance` 242 (× 4 mode files), `color.surface` 128 (× 2).
+> **The argument the table exists to make is untouched** — the variance that decides the mechanism is
+> larger now, not smaller (`core` spans 199–258 where `core-palette` spanned 122–182). The old figures are
+> left standing rather than overwritten, because a document that silently restates its measurements to
+> match today cannot be checked against the reasoning it once supported.
+
 The three remaining collections — `text-styles`, `shadow-styles`, `gradient-styles` — hold **zero
 variables**. They materialize as Figma *styles*, where a rename is a different call on a different
 API. `rename-map.ts` already excludes `shadow` from `PROJECTED_ROOTS` for this reason. They are out of
@@ -258,7 +271,9 @@ Both figures are **ranges across the three brands**, and per brand they are: und
 964 (nb / aurora / wendys), over-claims 423 / 463 / 482 — the latter aggregating to **1,368**, which is
 what the gate prints. **These are a SNAPSHOT at a corpus of 2,076 keys** — both figures are
 functions of the non-`color` population, so every token addition moves them. `#1030`'s six veil leaves
-already did (846–964 → 858–976). `test.ts` therefore asserts the *relationship* (`2 × non-color` at its
+already did (846–964 → 858–976), and by 2026-08-26 the corpus is **2,112** rather than 2,076 (see the
+dated note in §2), so the literal figures here have moved again — dropping the #1097 rule entirely leaves
+**2,112** unaccounted, which is the whole-set figure this lane actually measures. `test.ts` therefore asserts the *relationship* (`2 × non-color` at its
 extremes) and reports the literal, rather than pinning it: a figure that moves on every additive change
 is not something a test about renames should fail on. *(Corrected 2026-08-26, #1047: this row read a bare "463", which is aurora's
 figure alone, sitting in the same column as a range. Derived independently in #1039 from the committed
@@ -363,8 +378,9 @@ name. Absent a base ref it **fails**; `verify.ts` declares it after `regen` (it 
 
 **`test.ts`** — check 2, beside the existing derived-map section: no rule's domain member is still
 emitted, every image is emitted, plus the two floors. A **floor** is required in both directions and
-is the docs/34 shape 9 guard: assert the emission the accounting walks is non-empty (2,076 names
-across three brands today), because a reader that finds nothing accounts for everything.
+is the docs/34 shape 9 guard: assert the emission the accounting walks is non-empty (**2,112** names
+across three brands as of 2026-08-26 — 2,076 when this was written; the floor is a floor precisely so
+this number moving is not a failure), because a reader that finds nothing accounts for everything.
 
 **`ci.yml`** — `fetch-depth: 0` on the checkout (see §6.6 — not `2`), and CLAUDE.md §4 / `CONTRIBUTING.md` §3 / the PR
 template gain the gate, per `lint-doc-gates.ts`.
@@ -397,10 +413,13 @@ pre-pass from §3 — which is theirs, not the mechanism's.
   `color/*` while their collection is renamed (§1).~~ **Closed by #1013: they become
   `color/appearance/*`.** The deciding argument is not about the collection at all — a Figma variable
   name tracks its **DTCG path**, which is the property that keeps the two formats reconcilable
-  (`core-palette` holds `palette/*`, not `core-palette/*`). The DTCG value tier is `color.appearance.*`,
+  (`core-palette` held `palette/*`, not `core-palette/*`). The DTCG value tier is `color.appearance.*`,
   so the variables are `color/appearance/*` and the scope of the swap is **~370 variables per brand,
   not 128** — both collections renamed *and* every variable inside them. §5's two rules are the record;
-  `MATERIALIZATION_RENAMES` now carries its first real entries.
+  `MATERIALIZATION_RENAMES` now carries its first real entries. *(#1102 later made the parenthetical
+  read the other way and thereby confirmed the rule: the DTCG path became `core.palette.*`, so the
+  variables became `core/palette/*` — the name tracked the path, as stated, rather than the collection
+  label, which is now the bare `core`.)*
 - Whether the three renames land as one migration or three. #1032 argued one, on the grounds that each
   costs a full-file migration and a manual Figma verification. **Practice contradicted it**: #1013
   shipped the swap alone, because it is the only one of the three with a token-model consequence (which

@@ -15,20 +15,29 @@
  *
  * **The collection it reads is `color.appearance` since #1013, and the alias tier that took the short
  * name `color` is NOT read at all.** That is a hole, not a decision: `read-figma.ts` has only ever read
- * `core-palette` + the value tier, so the surface axis went unverified from the day it shipped (#993) —
+ * the palette primitives + the value tier, so the surface axis went unverified from the day it shipped (#993) —
  * the swap did not create the gap, it moved the gap onto the collection a designer binds first. Filed
  * separately; the names below are the value tier's and are spelled in full for the reason `docs/34`
  * gives: a shared prefix constant would make one stale segment read as forty independent absences.
  *   - **slot scopes** — the per-slot scope contract (docs/10 §3 / docs/20) survived the round-trip.
  *   - **fieldFamilyPresent / retiredRolesAbsent / renamedRolesAbsent / bareDangerPresent** — the
  *     role-set shape (#86 renames, retired roles gone, bare `foreground/danger` present).
- *   - **primitivesHidden** — core-palette primitives are hidden from publishing (ref tier).
+ *   - **primitivesHidden** — the `core` tier's palette primitives are hidden from publishing (ref tier).
+ *
+ * ── EVERY NAME BELOW IS A **TAIL**, NOT A VARIABLE NAME (#1097) ───────────────────────────────────
+ *
+ * Since the namespace landed, a variable is `<root>/color/appearance/background/primary` where `<root>`
+ * is the brand's own — `nbds`, `prism`, or a client's. So the expected-name lists here are the part BELOW
+ * that root, and the checks compare `tailOf(v.name)`. That is what keeps one list correct for every brand
+ * instead of one list per brand, and it is why no root is spelled in this file. `figma-names.ts` carries
+ * the reasoning and the Prism2 precedent.
  *
  * PURE — no `node:*`, no `figma.*`, no I/O. The snapshot is host-neutral plain data: it's what #110's
  * shared UI will consume to SEED itself from an existing themed file, and what the write-side
  * `WritePlan` can be diffed against for a full write→read round-trip.
  */
 import type { Rgba } from './write-plan';
+import { tailOf, inCoreGroup } from './figma-names';
 
 /** A variable's per-mode value, as read back: either a resolved literal or the NAME of the variable
  *  it aliases (names — not Figma ids — so the snapshot is pure + serialisable). `null` alias = the
@@ -38,13 +47,15 @@ export type ReadValue = { alias: string | null } | Rgba | number;
 
 export type ReadbackSnapshot = {
   collections: { name: string; modes: string[] }[];
-  /** core-palette primitives (ref tier). */
+  /** the `core` tier's palette primitives (ref tier) — the `core/palette` slice, see `axisSource`. */
   palette: { name: string; scopes: string[]; hidden: boolean }[];
   /** semantic colour roles — per-mode alias target name (or literal). */
   color: { name: string; scopes: string[]; valuesByMode: Record<string, ReadValue> }[];
-  /** FLOAT axes (#146) — the geometric/dimensional vars, keyed by collection name
-   *  (`core-dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`/`layout`). Optional
-   *  so a colour-only read (pre-#146, or a partial file) still validates on the colour contract. */
+  /** FLOAT axes (#146) — the geometric/dimensional vars, keyed by AXIS
+   *  (`core/dimension`/`space`/`radius`/`size`/`icon`/`border-width`/`focus`/`opacity`/`layout`). An axis
+   *  key is a collection name, or `core/<group>` for one slice of the merged `core` collection — #1097
+   *  merged the three `core-*` collections, so a collection no longer identifies an axis. Optional so a
+   *  colour-only read (pre-#146, or a partial file) still validates on the colour contract. */
   float?: Record<string, { name: string; scopes: string[]; hidden: boolean; valuesByMode: Record<string, ReadValue> }[]>;
   /** STYLE axes (shadow/gradient lane) — local Effect + Paint style NAMES. Effect styles hold fully
    *  resolved values, so for those the readback stays name-level. Optional like `float`.
@@ -59,8 +70,8 @@ export type ReadbackSnapshot = {
     paints: string[];
     gradientStopBindings?: Record<string, (string | null)[]>;
   };
-  /** TYPOGRAPHY (#237) — `core-font`/`type-sets` variables (same per-mode row shape as `float`) +
-   *  local Text Style names. Optional like the others. */
+  /** TYPOGRAPHY (#237) — `core/font`/`type-sets` variables (same per-mode row shape as `float`, and the
+   *  same axis-key convention) + local Text Style names. Optional like the others. */
   font?: Record<string, { name: string; scopes: string[]; hidden: boolean; valuesByMode: Record<string, ReadValue> }[]>;
   textStyles?: string[];
 };
@@ -76,7 +87,7 @@ export type StylesReadbackVerdict = {
     shadowDarkConsistent: boolean;
     /** gradient Paint Styles present iff the brand opts into gradients. */
     gradientsConsistent: boolean;
-    /** every gradient stop read binds to a `palette/*` variable (#236) — so the gradient re-themes.
+    /** every gradient stop read binds to a `core/palette/*` variable (#236) — so the gradient re-themes.
      *  Vacuously true when the reader supplied no bindings (pre-#236 snapshot). */
     gradientStopsBound: boolean;
   };
@@ -87,9 +98,9 @@ export type StylesReadbackVerdict = {
 export type TypographyReadbackVerdict = {
   ok: boolean;
   checks: {
-    /** `core-font` present with its family/size/weight vars. */
+    /** the `core/font` axis present with its family/size/weight vars. */
     coreFontPresent: boolean;
-    /** every `core-font` alias (weight-role → font/weight/N) resolves within core-font. */
+    /** every `core/font` alias (weight-role → font/weight/N) resolves within the font axes. */
     weightAliasesResolve: boolean;
     /** at least one Text Style is present (some may be legitimately skipped for unavailable fonts). */
     textStylesPresent: boolean;
@@ -107,7 +118,7 @@ export type FloatReadbackVerdict = {
     collectionsPresent: boolean;
     /** every FLOAT alias target (space→dimension, size→…, layout grid→space) resolves. */
     aliasesResolve: boolean;
-    /** `core-dimension` primitives are hidden from publishing. */
+    /** the `core/dimension` primitives are hidden from publishing. */
     dimensionsHidden: boolean;
     /** iff the brand ships wireframe, the `radius` collection carries a `wireframe` mode. */
     radiusWireframeMode: boolean;
@@ -115,9 +126,11 @@ export type FloatReadbackVerdict = {
   details: { collections: string[]; danglingAliases: string[] };
 };
 
-// The FLOAT axes this lane materialises (#146). `layout` is present iff the brand ships a grid;
-// the others are always emitted, so their absence is a real miss.
-const EXPECTED_FLOAT_COLLECTIONS = ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'];
+// The FLOAT axes this lane materialises (#146), as axis keys — `layout` is present iff the brand ships a
+// grid; the others are always emitted, so their absence is a real miss. `core/dimension` rather than a
+// collection name since #1097: the dimension primitives share the `core` collection with the palette and
+// font ones, so "is the collection present" no longer answers "is this axis present".
+const EXPECTED_FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity'];
 
 /** The verify verdict: an overall pass + the individual checks + supporting detail for the UI/log. */
 export type ReadbackVerdict = {
@@ -143,6 +156,9 @@ export type ReadbackVerdict = {
 
 // Expected slot scopes (docs/10 §3 / docs/20) — the same contract the emit-figma scope maps produce.
 // Sorted, comma-joined, to compare order-independently against the read-back scopes.
+//
+// TAILS, not variable names (#1097): every key here is what follows the brand's own root, so one list
+// serves `nbds`, `prism` and a client namespace nobody here has seen. See this file's header.
 const EXPECTED_SLOT_SCOPES: Record<string, string[]> = {
   'color/appearance/interactive/primary/text/rest': ['TEXT_FILL'],
   // All three border states, mirroring `field/border/*` below — the edge is stateful (#576).
@@ -173,13 +189,18 @@ const isAlias = (v: ReadValue): v is { alias: string | null } => typeof v === 'o
  * file into a `ReadbackSnapshot`, then calls this; the same checks run on the shim in tests.
  */
 export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
-  const colorByName = new Map(snap.color.map((v) => [v.name, v]));
-  const has = (n: string): boolean => colorByName.has(n);
+  // TWO indexes, and the split is load-bearing (#1097). The name CONTRACT is checked against tails, so
+  // one expected-name list holds for every brand root. ALIAS RESOLUTION is checked against full names,
+  // because an alias target as Figma reports it is a full name — stripping both sides would make a
+  // cross-root dangle (`nbds/…` pointing at `prism/…`) resolve, which is exactly the kind of miss this
+  // check exists to catch.
+  const colorByTail = new Map(snap.color.map((v) => [tailOf(v.name), v]));
+  const has = (n: string): boolean => colorByTail.has(n);
   const allNames = new Set<string>([...snap.palette.map((p) => p.name), ...snap.color.map((c) => c.name)]);
   const colModes = snap.collections.find((c) => c.name === 'color.appearance')?.modes ?? [];
 
   // modesDistinct — background/primary must bind a different TARGET per mode (the collapse guard).
-  const bg = colorByName.get('color/appearance/background/primary');
+  const bg = colorByTail.get('color/appearance/background/primary');
   const backgroundPrimaryByMode: Record<string, string> = {};
   for (const m of colModes) {
     const val = bg?.valuesByMode[m];
@@ -197,7 +218,7 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
   // slotScopes — the per-slot scope contract survived (order-independent).
   const scopeMismatches: string[] = [];
   for (const [name, want] of Object.entries(EXPECTED_SLOT_SCOPES)) {
-    const v = colorByName.get(name);
+    const v = colorByTail.get(name);
     const got = v ? sortScopes(v.scopes) : 'ABSENT';
     if (got !== sortScopes(want)) scopeMismatches.push(`${name}: ${got} != ${sortScopes(want)}`);
   }
@@ -230,15 +251,15 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
 /**
  * Verify the FLOAT axes of a read-back snapshot (#146). Light by design — the geometric layer has no
  * semantic role-set to police like colour does, so this asserts the structural facts that matter:
- * the expected collections are present, every cross-collection alias resolves (against ALL float vars
- * — the executor binds space→dimension etc. across collections), the `core-dimension` primitives are
- * hidden, and the `radius` collection carries a `wireframe` mode iff the brand ships wireframe.
+ * the expected axes are present, every cross-collection alias resolves (against ALL float vars — the
+ * executor binds space→dimension etc. across collections), the `core/dimension` primitives are hidden,
+ * and the `radius` collection carries a `wireframe` mode iff the brand ships wireframe.
  * Returns an all-pass verdict when `snap.float` is absent (a colour-only file is not a FLOAT failure).
  */
 export const verifyFloatReadback = (snap: ReadbackSnapshot, expectWireframe: boolean): FloatReadbackVerdict => {
   const float = snap.float ?? {};
   const present = Object.keys(float);
-  const collectionsPresent = present.length === 0 ? false : EXPECTED_FLOAT_COLLECTIONS.every((n) => present.includes(n));
+  const collectionsPresent = present.length === 0 ? false : EXPECTED_FLOAT_AXES.every((n) => present.includes(n));
 
   // Every FLOAT var name across all collections — alias targets span collections, so resolve globally.
   const allFloatNames = new Set<string>();
@@ -249,7 +270,7 @@ export const verifyFloatReadback = (snap: ReadbackSnapshot, expectWireframe: boo
       for (const [m, val] of Object.entries(v.valuesByMode))
         if (isAlias(val) && val.alias && !allFloatNames.has(val.alias)) danglingAliases.push(`${v.name} @${m} -> ${val.alias}`);
 
-  const dims = float['core-dimension'] ?? [];
+  const dims = float['core/dimension'] ?? [];
   const dimensionsHidden = dims.length > 0 && dims.every((v) => v.hidden);
 
   const radiusModes = snap.collections.find((c) => c.name === 'radius')?.modes ?? [];
@@ -274,7 +295,7 @@ export const verifyFloatReadback = (snap: ReadbackSnapshot, expectWireframe: boo
  * brand facts the caller passes.
  *
  * One value-level check joins them at #236: `gradientStopsBound`. Every gradient stop the reader saw a
- * binding slot for must name a `palette/*` target, because an unbound stop is exactly the pre-#236
+ * binding slot for must name a `core/palette/*` target, because an unbound stop is exactly the pre-#236
  * defect — the gradient renders correctly and then silently fails to follow a re-theme. That failure
  * is invisible to every name-level check, which is why it needs its own. Skipped (passing) when the
  * reader supplied no `gradientStopBindings`, so a pre-#236 snapshot still validates.
@@ -296,7 +317,9 @@ export const verifyStylesReadback = (
   if (bindings) {
     for (const [style, stops] of Object.entries(bindings))
       stops.forEach((target, i) => {
-        if (!target || !target.startsWith('palette/')) unboundStops.push(`${style} stop ${i} -> ${target ?? 'unbound'}`);
+        // `inCoreGroup`, not `startsWith('core/palette/')` — the target is a full variable name and so
+        // carries the brand's own root ahead of the tier (#1097/#1102).
+        if (!target || !inCoreGroup(target, 'palette')) unboundStops.push(`${style} stop ${i} -> ${target ?? 'unbound'}`);
       });
   }
 
@@ -311,15 +334,15 @@ export const verifyStylesReadback = (
 
 /**
  * Verify the TYPOGRAPHY axes of a read-back snapshot (#237). Name-level and light, like the FLOAT +
- * styles verdicts. Asserts: `core-font` is present, its weight-role aliases (→ `font/weight/N`) resolve
- * within the font collections, and at least one Text Style landed. Returns all-pass when `snap.font`
+ * styles verdicts. Asserts: the `core/font` axis is present, its weight-role aliases (→ `font/weight/N`)
+ * resolve within the font axes, and at least one Text Style landed. Returns all-pass when `snap.font`
  * is absent (a typography-less read isn't a failure). Text styles legitimately skipped for unavailable
  * fonts are the caller's concern (surfaced in the apply summary), not a read-back failure.
  */
 export const verifyTypographyReadback = (snap: ReadbackSnapshot): TypographyReadbackVerdict => {
   const font = snap.font ?? {};
   const present = Object.keys(font);
-  const coreFontPresent = present.includes('core-font');
+  const coreFontPresent = present.includes('core/font');
 
   // Weight-role aliases (font/weight-role/* → font/weight/N) resolve within the font collections.
   const allFontNames = new Set<string>();

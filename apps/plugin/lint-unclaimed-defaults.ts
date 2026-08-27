@@ -52,6 +52,20 @@
  * most-repeated defect shape in this repo's history. Each assertion prints its own name so a mutation
  * test can grep for THAT arm rather than for a failure count (#986).
  *
+ * ── MUTATION-VERIFIED BY NAME (#1097) ───────────────────────────────────────────────────────────────
+ *
+ *   M1  `byName`'s key in `write-components.ts` from `tailOf(v.name)` back to a root-spelling
+ *       `v.name.startsWith('prism/') ? tailOf(v.name) : v.name`
+ *                                                → A1 unclaimed-property, 9563 pairs / 59 groups
+ *   M2  `mkVar` handing back the plan name unrooted, i.e. reverting this file's `SHIM_ROOT`
+ *                                                → A1 unclaimed-property, 9563 pairs / 59 groups
+ *
+ * The two mutations are the two sides of one boundary — a rooted file meeting a root-relative plan — and
+ * they are indistinguishable in the output, which is the point worth recording: 9563 is what this gate
+ * says when the executor cannot resolve ANY plan binding, so read it as "the boundary broke", never as
+ * "the executor forgot 9563 decisions". M2 was not authored as a test; it was the state of this file for
+ * the length of the #1097 lane, and the gate is how it was found.
+ *
  * ── WHAT THIS SHIM CANNOT SEE, stated rather than implied ───────────────────────────────────────────
  *
  *   · `createNodeFromSvg` here returns an artboard frame holding ONE vector, because that is the shape
@@ -166,7 +180,21 @@ const makeShim = (plans: AnatomyPlan[], page: { children: any[] }) => {
   const varNames = [...new Set(plans.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]))];
   const styleNames = [...new Set(plans.flatMap((p) => planTextStyles(p.root)))];
   const effectNames = [...new Set(plans.flatMap((p) => planEffectStyles(p.root)))];
-  const mkVar = (name: string) => ({ id: `V:${name}`, name, value: 2, resolveForConsumer: () => ({ value: 2 }) });
+  // THE SHIM'S VARIABLES CARRY A ROOT, because the file's variables do (#1097) and a plan's binding names
+  // do not. `planBoundVars` returns root-relative names — `size/md/gap` — and the executor resolves them
+  // against `tailOf(v.name)`, so a shim handing those names back verbatim is not a shim of a real file: the
+  // tail of `size/md/gap` is `md/gap`, every lookup misses, and the executor silently skips every bind it
+  // was asked to make. That is not a hypothetical — it reported 9563 unclaimed pairs across 59 groups, i.e.
+  // ~every visually-significant property in the corpus, which reads as a catastrophic executor regression
+  // rather than as a shim that stopped resembling Figma.
+  //
+  // The root is deliberately FOREIGN. No brand is called `zzshim`, so this also holds the executor to the
+  // rule that no read path may spell a root: reintroduce `startsWith('prism/')` anywhere in the resolution
+  // and every bind fails here too. Styles are NOT rooted, above — that is the styles exception, not an
+  // oversight: a text or effect style name drops both the root and the tier, and the executor matches
+  // those by full name for exactly that reason.
+  const SHIM_ROOT = 'zzshim';
+  const mkVar = (name: string) => ({ id: `V:${name}`, name: `${SHIM_ROOT}/${name}`, value: 2, resolveForConsumer: () => ({ value: 2 }) });
   makingShimNodes = true;
   const comps = [...nominated(plans)].map((n) => { const c = mkNode('COMPONENT'); c.name = n; return c; });
   makingShimNodes = false;

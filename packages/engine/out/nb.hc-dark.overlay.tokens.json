@@ -5,12 +5,12 @@
         "background": {
           "primary": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "Page surface — the canvas / base",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -30,12 +30,12 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "Page surface, second tier — a slightly tinted page / band",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.050",
+                "aliasOf": "nbds.core.palette.neutral.050",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -55,12 +55,12 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "Page surface, third tier",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.100",
+                "aliasOf": "nbds.core.palette.neutral.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -81,12 +81,12 @@
           "inverse": {
             "primary": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Inverse page surface — a dark band in light mode",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.950",
+                  "aliasOf": "nbds.core.palette.neutral.950",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -106,12 +106,12 @@
             },
             "secondary": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Inverse page surface, second tier",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.900",
+                  "aliasOf": "nbds.core.palette.neutral.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -131,12 +131,12 @@
             },
             "tertiary": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Inverse page surface, third tier",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.850",
+                  "aliasOf": "nbds.core.palette.neutral.850",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -159,12 +159,12 @@
         "scrim": {
           "default": {
             "$type": "color",
-            "$value": "{nbds.palette.black-alpha.70}",
+            "$value": "{nbds.core.palette.black-alpha.70}",
             "$description": "Scrim — 40% black backdrop (modals / drawers)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.black-alpha.40",
+                "aliasOf": "nbds.core.palette.black-alpha.40",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -186,12 +186,12 @@
         "foreground": {
           "primary": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "Default surface placed on the page — a card",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.050",
+                "aliasOf": "nbds.core.palette.neutral.050",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -211,12 +211,12 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "A second surface — a panel / nested container",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.100",
+                "aliasOf": "nbds.core.palette.neutral.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -236,12 +236,12 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "A third surface step",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.150",
+                "aliasOf": "nbds.core.palette.neutral.150",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -262,12 +262,12 @@
           "inverse": {
             "primary": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Inverse / bold surface — a dark fill in light mode",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.900",
+                  "aliasOf": "nbds.core.palette.neutral.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -287,12 +287,12 @@
             },
             "secondary": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Inverse surface, second tier",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.850",
+                  "aliasOf": "nbds.core.palette.neutral.850",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -312,12 +312,12 @@
             },
             "tertiary": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Inverse surface, third tier",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.800",
+                  "aliasOf": "nbds.core.palette.neutral.800",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -337,12 +337,12 @@
             },
             "brand": {
               "$type": "color",
-              "$value": "{nbds.palette.red.650}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 3.2,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -364,12 +364,12 @@
             },
             "success": {
               "$type": "color",
-              "$value": "{nbds.palette.green.600}",
+              "$value": "{nbds.core.palette.green.600}",
               "$description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.green.500",
+                  "aliasOf": "nbds.core.palette.green.500",
                   "contrast": 3.67,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -391,12 +391,12 @@
             },
             "warning": {
               "$type": "color",
-              "$value": "{nbds.palette.amber.650}",
+              "$value": "{nbds.core.palette.amber.650}",
               "$description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.amber.500",
+                  "aliasOf": "nbds.core.palette.amber.500",
                   "contrast": 3.99,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -418,12 +418,12 @@
             },
             "danger": {
               "$type": "color",
-              "$value": "{nbds.palette.red.650}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 3.2,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -445,12 +445,12 @@
             },
             "info": {
               "$type": "color",
-              "$value": "{nbds.palette.info.650}",
+              "$value": "{nbds.core.palette.info.650}",
               "$description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.info.500",
+                  "aliasOf": "nbds.core.palette.info.500",
                   "contrast": 3.94,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -472,12 +472,12 @@
             },
             "brand-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.red.100}",
+              "$value": "{nbds.core.palette.red.100}",
               "$description": "Subtle brand tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.900",
+                  "aliasOf": "nbds.core.palette.red.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -497,12 +497,12 @@
             },
             "success-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.green.100}",
+              "$value": "{nbds.core.palette.green.100}",
               "$description": "Subtle success tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.green.900",
+                  "aliasOf": "nbds.core.palette.green.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -522,12 +522,12 @@
             },
             "warning-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.amber.100}",
+              "$value": "{nbds.core.palette.amber.100}",
               "$description": "Subtle warning tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.amber.900",
+                  "aliasOf": "nbds.core.palette.amber.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -547,12 +547,12 @@
             },
             "danger-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.red.100}",
+              "$value": "{nbds.core.palette.red.100}",
               "$description": "Subtle danger tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.900",
+                  "aliasOf": "nbds.core.palette.red.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -572,12 +572,12 @@
             },
             "info-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.info.100}",
+              "$value": "{nbds.core.palette.info.100}",
               "$description": "Subtle info tint surface on an inverse surface — banners, badges and selected rows on a dark hero",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.info.900",
+                  "aliasOf": "nbds.core.palette.info.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -598,12 +598,12 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.550",
+                "aliasOf": "nbds.core.palette.red.550",
                 "contrast": 4.62,
                 "against": "neutral.050",
                 "min": 3,
@@ -625,12 +625,12 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{nbds.palette.green.300}",
+            "$value": "{nbds.core.palette.green.300}",
             "$description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.500",
+                "aliasOf": "nbds.core.palette.green.500",
                 "contrast": 4.02,
                 "against": "neutral.050",
                 "min": 3,
@@ -652,12 +652,12 @@
           },
           "warning": {
             "$type": "color",
-            "$value": "{nbds.palette.amber.300}",
+            "$value": "{nbds.core.palette.amber.300}",
             "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.amber.500",
+                "aliasOf": "nbds.core.palette.amber.500",
                 "contrast": 3.7,
                 "against": "neutral.050",
                 "min": 3,
@@ -679,12 +679,12 @@
           },
           "info": {
             "$type": "color",
-            "$value": "{nbds.palette.info.300}",
+            "$value": "{nbds.core.palette.info.300}",
             "$description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.info.500",
+                "aliasOf": "nbds.core.palette.info.500",
                 "contrast": 3.75,
                 "against": "neutral.050",
                 "min": 3,
@@ -706,12 +706,12 @@
           },
           "brand-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.red.900}",
+            "$value": "{nbds.core.palette.red.900}",
             "$description": "Subtle brand tint surface — banners, badges, selected rows",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.100",
+                "aliasOf": "nbds.core.palette.red.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -731,12 +731,12 @@
           },
           "success-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.green.900}",
+            "$value": "{nbds.core.palette.green.900}",
             "$description": "Subtle success tint surface — banners, badges, selected rows",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.100",
+                "aliasOf": "nbds.core.palette.green.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -756,12 +756,12 @@
           },
           "warning-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.amber.900}",
+            "$value": "{nbds.core.palette.amber.900}",
             "$description": "Subtle warning tint surface — banners, badges, selected rows",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.amber.100",
+                "aliasOf": "nbds.core.palette.amber.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -781,12 +781,12 @@
           },
           "danger-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.red.900}",
+            "$value": "{nbds.core.palette.red.900}",
             "$description": "Subtle danger tint surface — banners, badges, selected rows",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.100",
+                "aliasOf": "nbds.core.palette.red.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -806,12 +806,12 @@
           },
           "info-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.info.900}",
+            "$value": "{nbds.core.palette.info.900}",
             "$description": "Subtle info tint surface — banners, badges, selected rows",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.info.100",
+                "aliasOf": "nbds.core.palette.info.100",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -831,12 +831,12 @@
           },
           "danger": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.550",
+                "aliasOf": "nbds.core.palette.red.550",
                 "contrast": 4.62,
                 "against": "neutral.050",
                 "min": 3,
@@ -862,12 +862,12 @@
             "fill": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.300}",
+                "$value": "{nbds.core.palette.red.300}",
                 "$description": "primary interactive fill — rest",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.550",
+                    "aliasOf": "nbds.core.palette.red.550",
                     "contrast": 4.62,
                     "against": "neutral.050",
                     "min": 3,
@@ -889,12 +889,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "primary interactive fill — hover",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 5.64,
                     "against": "neutral.050",
                     "min": 3,
@@ -916,12 +916,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.200}",
+                "$value": "{nbds.core.palette.red.200}",
                 "$description": "primary interactive fill — pressed",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 6.82,
                     "against": "neutral.050",
                     "min": 3,
@@ -943,12 +943,12 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "primary interactive fill — focused",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 5.64,
                     "against": "neutral.050",
                     "min": 3,
@@ -970,12 +970,12 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.200}",
+                "$value": "{nbds.core.palette.red.200}",
                 "$description": "primary interactive fill — selected",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 6.82,
                     "against": "neutral.050",
                     "min": 3,
@@ -998,12 +998,12 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{nbds.palette.black}",
+              "$value": "{nbds.core.palette.black}",
               "$description": "Ink on the primary interactive fill",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.white",
+                  "aliasOf": "nbds.core.palette.white",
                   "contrast": 5.62,
                   "against": "interactive.primary.fill.rest",
                   "min": 4.5,
@@ -1026,12 +1026,12 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.350}",
+                "$value": "{nbds.core.palette.red.350}",
                 "$description": "primary interactive ink — rest (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.550",
+                    "aliasOf": "nbds.core.palette.red.550",
                     "contrast": 5.62,
                     "against": "background.primary",
                     "min": 4.5,
@@ -1053,12 +1053,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.300}",
+                "$value": "{nbds.core.palette.red.300}",
                 "$description": "primary interactive ink — hover (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 6.85,
                     "against": "background.primary",
                     "min": 4.5,
@@ -1080,12 +1080,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "primary interactive ink — pressed (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 8.29,
                     "against": "background.primary",
                     "min": 4.5,
@@ -1109,12 +1109,12 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.350}",
+                "$value": "{nbds.core.palette.red.350}",
                 "$description": "primary interactive border — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.550",
+                    "aliasOf": "nbds.core.palette.red.550",
                     "contrast": 5.62,
                     "against": "background.primary",
                     "min": 3,
@@ -1136,12 +1136,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.300}",
+                "$value": "{nbds.core.palette.red.300}",
                 "$description": "primary interactive border — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 6.85,
                     "against": "background.primary",
                     "min": 3,
@@ -1163,12 +1163,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 8.29,
                     "against": "background.primary",
                     "min": 3,
@@ -1193,12 +1193,12 @@
               "text": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.650}",
+                  "$value": "{nbds.core.palette.red.650}",
                   "$description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.450",
+                      "aliasOf": "nbds.core.palette.red.450",
                       "contrast": 5.05,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -1220,12 +1220,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.700}",
+                  "$value": "{nbds.core.palette.red.700}",
                   "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.400",
+                      "aliasOf": "nbds.core.palette.red.400",
                       "contrast": 5.98,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -1247,12 +1247,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.750}",
+                  "$value": "{nbds.core.palette.red.750}",
                   "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.350",
+                      "aliasOf": "nbds.core.palette.red.350",
                       "contrast": 6.97,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -1276,12 +1276,12 @@
               "fill": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.900}",
+                  "$value": "{nbds.core.palette.red.900}",
                   "$description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.100",
+                      "aliasOf": "nbds.core.palette.red.100",
                       "contrast": 14.1,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1303,12 +1303,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.950}",
+                  "$value": "{nbds.core.palette.red.950}",
                   "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.050",
+                      "aliasOf": "nbds.core.palette.red.050",
                       "contrast": 16,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1330,12 +1330,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.800}",
+                  "$value": "{nbds.core.palette.red.800}",
                   "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.200",
+                      "aliasOf": "nbds.core.palette.red.200",
                       "contrast": 10.83,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1357,12 +1357,12 @@
                 },
                 "focused": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.950}",
+                  "$value": "{nbds.core.palette.red.950}",
                   "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.050",
+                      "aliasOf": "nbds.core.palette.red.050",
                       "contrast": 16,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1384,12 +1384,12 @@
                 },
                 "selected": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.800}",
+                  "$value": "{nbds.core.palette.red.800}",
                   "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.200",
+                      "aliasOf": "nbds.core.palette.red.200",
                       "contrast": 10.83,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1412,12 +1412,12 @@
               },
               "on-fill": {
                 "$type": "color",
-                "$value": "{nbds.palette.white}",
+                "$value": "{nbds.core.palette.white}",
                 "$description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.950",
+                    "aliasOf": "nbds.core.palette.neutral.950",
                     "contrast": 14.1,
                     "against": "interactive.primary.inverse.fill.rest",
                     "min": 4.5,
@@ -1440,12 +1440,12 @@
               "border": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.650}",
+                  "$value": "{nbds.core.palette.red.650}",
                   "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.450",
+                      "aliasOf": "nbds.core.palette.red.450",
                       "contrast": 5.05,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1467,12 +1467,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.700}",
+                  "$value": "{nbds.core.palette.red.700}",
                   "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.400",
+                      "aliasOf": "nbds.core.palette.red.400",
                       "contrast": 5.98,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1494,12 +1494,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.750}",
+                  "$value": "{nbds.core.palette.red.750}",
                   "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.350",
+                      "aliasOf": "nbds.core.palette.red.350",
                       "contrast": 6.97,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -1523,12 +1523,12 @@
               "overlay": {
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.10}",
+                  "$value": "{nbds.core.palette.black-alpha.10}",
                   "$description": "primary interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.10",
+                      "aliasOf": "nbds.core.palette.white-alpha.10",
                       "contrast": 14.26,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -1554,12 +1554,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.20}",
+                  "$value": "{nbds.core.palette.black-alpha.20}",
                   "$description": "primary interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.20",
+                      "aliasOf": "nbds.core.palette.white-alpha.20",
                       "contrast": 10.07,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -1585,12 +1585,12 @@
                 },
                 "selected": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.20}",
+                  "$value": "{nbds.core.palette.black-alpha.20}",
                   "$description": "primary interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.20",
+                      "aliasOf": "nbds.core.palette.white-alpha.20",
                       "contrast": 10.07,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -1619,12 +1619,12 @@
             "overlay": {
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.10}",
+                "$value": "{nbds.core.palette.white-alpha.10}",
                 "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.hover)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.10",
+                    "aliasOf": "nbds.core.palette.black-alpha.10",
                     "contrast": 15.51,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -1650,12 +1650,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.20}",
+                "$value": "{nbds.core.palette.white-alpha.20}",
                 "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.pressed)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.20",
+                    "aliasOf": "nbds.core.palette.black-alpha.20",
                     "contrast": 12.11,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -1681,12 +1681,12 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.20}",
+                "$value": "{nbds.core.palette.white-alpha.20}",
                 "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.selected)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.20",
+                    "aliasOf": "nbds.core.palette.black-alpha.20",
                     "contrast": 12.11,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -1716,12 +1716,12 @@
             "fill": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.300}",
+                "$value": "{nbds.core.palette.red.300}",
                 "$description": "destructive interactive fill — rest",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.550",
+                    "aliasOf": "nbds.core.palette.red.550",
                     "contrast": 4.62,
                     "against": "neutral.050",
                     "min": 3,
@@ -1743,12 +1743,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "destructive interactive fill — hover",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 5.64,
                     "against": "neutral.050",
                     "min": 3,
@@ -1770,12 +1770,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.200}",
+                "$value": "{nbds.core.palette.red.200}",
                 "$description": "destructive interactive fill — pressed",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 6.82,
                     "against": "neutral.050",
                     "min": 3,
@@ -1797,12 +1797,12 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "destructive interactive fill — focused",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 5.64,
                     "against": "neutral.050",
                     "min": 3,
@@ -1824,12 +1824,12 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.200}",
+                "$value": "{nbds.core.palette.red.200}",
                 "$description": "destructive interactive fill — selected",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 6.82,
                     "against": "neutral.050",
                     "min": 3,
@@ -1852,12 +1852,12 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{nbds.palette.black}",
+              "$value": "{nbds.core.palette.black}",
               "$description": "Ink on the destructive interactive fill",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.white",
+                  "aliasOf": "nbds.core.palette.white",
                   "contrast": 5.62,
                   "against": "interactive.destructive.fill.rest",
                   "min": 4.5,
@@ -1880,12 +1880,12 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.350}",
+                "$value": "{nbds.core.palette.red.350}",
                 "$description": "destructive interactive ink — rest (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.550",
+                    "aliasOf": "nbds.core.palette.red.550",
                     "contrast": 5.62,
                     "against": "background.primary",
                     "min": 4.5,
@@ -1907,12 +1907,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.300}",
+                "$value": "{nbds.core.palette.red.300}",
                 "$description": "destructive interactive ink — hover (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 6.85,
                     "against": "background.primary",
                     "min": 4.5,
@@ -1934,12 +1934,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "destructive interactive ink — pressed (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 8.29,
                     "against": "background.primary",
                     "min": 4.5,
@@ -1963,12 +1963,12 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.350}",
+                "$value": "{nbds.core.palette.red.350}",
                 "$description": "destructive interactive border — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.550",
+                    "aliasOf": "nbds.core.palette.red.550",
                     "contrast": 5.62,
                     "against": "background.primary",
                     "min": 3,
@@ -1990,12 +1990,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.300}",
+                "$value": "{nbds.core.palette.red.300}",
                 "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.600",
+                    "aliasOf": "nbds.core.palette.red.600",
                     "contrast": 6.85,
                     "against": "background.primary",
                     "min": 3,
@@ -2017,12 +2017,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.250}",
+                "$value": "{nbds.core.palette.red.250}",
                 "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.650",
+                    "aliasOf": "nbds.core.palette.red.650",
                     "contrast": 8.29,
                     "against": "background.primary",
                     "min": 3,
@@ -2047,12 +2047,12 @@
               "text": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.650}",
+                  "$value": "{nbds.core.palette.red.650}",
                   "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.450",
+                      "aliasOf": "nbds.core.palette.red.450",
                       "contrast": 5.05,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -2074,12 +2074,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.700}",
+                  "$value": "{nbds.core.palette.red.700}",
                   "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.400",
+                      "aliasOf": "nbds.core.palette.red.400",
                       "contrast": 5.98,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -2101,12 +2101,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.750}",
+                  "$value": "{nbds.core.palette.red.750}",
                   "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.350",
+                      "aliasOf": "nbds.core.palette.red.350",
                       "contrast": 6.97,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -2130,12 +2130,12 @@
               "fill": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.900}",
+                  "$value": "{nbds.core.palette.red.900}",
                   "$description": "destructive interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.100",
+                      "aliasOf": "nbds.core.palette.red.100",
                       "contrast": 14.1,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2157,12 +2157,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.950}",
+                  "$value": "{nbds.core.palette.red.950}",
                   "$description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.050",
+                      "aliasOf": "nbds.core.palette.red.050",
                       "contrast": 16,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2184,12 +2184,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.800}",
+                  "$value": "{nbds.core.palette.red.800}",
                   "$description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.200",
+                      "aliasOf": "nbds.core.palette.red.200",
                       "contrast": 10.83,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2211,12 +2211,12 @@
                 },
                 "focused": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.950}",
+                  "$value": "{nbds.core.palette.red.950}",
                   "$description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.050",
+                      "aliasOf": "nbds.core.palette.red.050",
                       "contrast": 16,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2238,12 +2238,12 @@
                 },
                 "selected": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.800}",
+                  "$value": "{nbds.core.palette.red.800}",
                   "$description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.200",
+                      "aliasOf": "nbds.core.palette.red.200",
                       "contrast": 10.83,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2266,12 +2266,12 @@
               },
               "on-fill": {
                 "$type": "color",
-                "$value": "{nbds.palette.white}",
+                "$value": "{nbds.core.palette.white}",
                 "$description": "Ink on the destructive inverse fill (a dark label on the light on-dark CTA)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.950",
+                    "aliasOf": "nbds.core.palette.neutral.950",
                     "contrast": 14.1,
                     "against": "interactive.destructive.inverse.fill.rest",
                     "min": 4.5,
@@ -2294,12 +2294,12 @@
               "border": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.650}",
+                  "$value": "{nbds.core.palette.red.650}",
                   "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.450",
+                      "aliasOf": "nbds.core.palette.red.450",
                       "contrast": 5.05,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2321,12 +2321,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.700}",
+                  "$value": "{nbds.core.palette.red.700}",
                   "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.400",
+                      "aliasOf": "nbds.core.palette.red.400",
                       "contrast": 5.98,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2348,12 +2348,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.red.750}",
+                  "$value": "{nbds.core.palette.red.750}",
                   "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.red.350",
+                      "aliasOf": "nbds.core.palette.red.350",
                       "contrast": 6.97,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -2377,12 +2377,12 @@
               "overlay": {
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.10}",
+                  "$value": "{nbds.core.palette.black-alpha.10}",
                   "$description": "destructive interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.10",
+                      "aliasOf": "nbds.core.palette.white-alpha.10",
                       "contrast": 14.26,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -2408,12 +2408,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.20}",
+                  "$value": "{nbds.core.palette.black-alpha.20}",
                   "$description": "destructive interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.20",
+                      "aliasOf": "nbds.core.palette.white-alpha.20",
                       "contrast": 10.07,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -2439,12 +2439,12 @@
                 },
                 "selected": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.20}",
+                  "$value": "{nbds.core.palette.black-alpha.20}",
                   "$description": "destructive interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.20",
+                      "aliasOf": "nbds.core.palette.white-alpha.20",
                       "contrast": 10.07,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -2473,12 +2473,12 @@
             "overlay": {
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.10}",
+                "$value": "{nbds.core.palette.white-alpha.10}",
                 "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.hover)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.10",
+                    "aliasOf": "nbds.core.palette.black-alpha.10",
                     "contrast": 15.51,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -2504,12 +2504,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.20}",
+                "$value": "{nbds.core.palette.white-alpha.20}",
                 "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.pressed)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.20",
+                    "aliasOf": "nbds.core.palette.black-alpha.20",
                     "contrast": 12.11,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -2535,12 +2535,12 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.20}",
+                "$value": "{nbds.core.palette.white-alpha.20}",
                 "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.selected)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.20",
+                    "aliasOf": "nbds.core.palette.black-alpha.20",
                     "contrast": 12.11,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -2570,12 +2570,12 @@
             "fill": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.850}",
+                "$value": "{nbds.core.palette.neutral.850}",
                 "$description": "neutral interactive fill — rest",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.150",
+                    "aliasOf": "nbds.core.palette.neutral.150",
                     "contrast": 1.3,
                     "against": "neutral.050",
                     "figma": {
@@ -2595,12 +2595,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.800}",
+                "$value": "{nbds.core.palette.neutral.800}",
                 "$description": "neutral interactive fill — hover",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.200",
+                    "aliasOf": "nbds.core.palette.neutral.200",
                     "contrast": 1.49,
                     "against": "neutral.050",
                     "figma": {
@@ -2620,12 +2620,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.750}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive fill — pressed",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.250",
+                    "aliasOf": "nbds.core.palette.neutral.250",
                     "contrast": 1.71,
                     "against": "neutral.050",
                     "figma": {
@@ -2645,12 +2645,12 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.800}",
+                "$value": "{nbds.core.palette.neutral.800}",
                 "$description": "neutral interactive fill — focused",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.200",
+                    "aliasOf": "nbds.core.palette.neutral.200",
                     "contrast": 1.49,
                     "against": "neutral.050",
                     "figma": {
@@ -2670,12 +2670,12 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.750}",
+                "$value": "{nbds.core.palette.neutral.750}",
                 "$description": "neutral interactive fill — selected",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.250",
+                    "aliasOf": "nbds.core.palette.neutral.250",
                     "contrast": 1.71,
                     "against": "neutral.050",
                     "figma": {
@@ -2696,12 +2696,12 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Ink on the neutral interactive fill",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.950",
+                  "aliasOf": "nbds.core.palette.neutral.950",
                   "contrast": 12.33,
                   "against": "interactive.neutral.fill.rest",
                   "min": 4.5,
@@ -2724,12 +2724,12 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.white}",
+                "$value": "{nbds.core.palette.white}",
                 "$description": "neutral interactive ink — rest (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.950",
+                    "aliasOf": "nbds.core.palette.neutral.950",
                     "contrast": 19.44,
                     "against": "background.primary",
                     "min": 4.5,
@@ -2751,12 +2751,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.white}",
+                "$value": "{nbds.core.palette.white}",
                 "$description": "neutral interactive ink — hover (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.950",
+                    "aliasOf": "nbds.core.palette.neutral.950",
                     "contrast": 19.44,
                     "against": "background.primary",
                     "min": 4.5,
@@ -2778,12 +2778,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.white}",
+                "$value": "{nbds.core.palette.white}",
                 "$description": "neutral interactive ink — pressed (outline / text appearance)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.950",
+                    "aliasOf": "nbds.core.palette.neutral.950",
                     "contrast": 19.44,
                     "against": "background.primary",
                     "min": 4.5,
@@ -2807,12 +2807,12 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.500}",
+                "$value": "{nbds.core.palette.neutral.500}",
                 "$description": "neutral interactive border — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.400",
+                    "aliasOf": "nbds.core.palette.neutral.400",
                     "contrast": 3.27,
                     "against": "background.primary",
                     "min": 3,
@@ -2834,12 +2834,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.400}",
+                "$value": "{nbds.core.palette.neutral.400}",
                 "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.500",
+                    "aliasOf": "nbds.core.palette.neutral.500",
                     "contrast": 4.59,
                     "against": "background.primary",
                     "min": 3,
@@ -2861,12 +2861,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.300}",
+                "$value": "{nbds.core.palette.neutral.300}",
                 "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.600",
+                    "aliasOf": "nbds.core.palette.neutral.600",
                     "contrast": 6.69,
                     "against": "background.primary",
                     "min": 3,
@@ -2891,12 +2891,12 @@
               "text": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black}",
+                  "$value": "{nbds.core.palette.black}",
                   "$description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.025",
+                      "aliasOf": "nbds.core.palette.neutral.025",
                       "contrast": 18.11,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -2918,12 +2918,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black}",
+                  "$value": "{nbds.core.palette.black}",
                   "$description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.025",
+                      "aliasOf": "nbds.core.palette.neutral.025",
                       "contrast": 18.11,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -2945,12 +2945,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black}",
+                  "$value": "{nbds.core.palette.black}",
                   "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.025",
+                      "aliasOf": "nbds.core.palette.neutral.025",
                       "contrast": 18.11,
                       "against": "background.inverse.primary",
                       "min": 4.5,
@@ -2974,12 +2974,12 @@
               "fill": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.850}",
+                  "$value": "{nbds.core.palette.neutral.850}",
                   "$description": "neutral interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.050",
+                      "aliasOf": "nbds.core.palette.neutral.050",
                       "contrast": 15.99,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3001,12 +3001,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.900}",
+                  "$value": "{nbds.core.palette.neutral.900}",
                   "$description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.100",
+                      "aliasOf": "nbds.core.palette.neutral.100",
                       "contrast": 14.13,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3028,12 +3028,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.950}",
+                  "$value": "{nbds.core.palette.neutral.950}",
                   "$description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.150",
+                      "aliasOf": "nbds.core.palette.neutral.150",
                       "contrast": 12.33,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3055,12 +3055,12 @@
                 },
                 "focused": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.900}",
+                  "$value": "{nbds.core.palette.neutral.900}",
                   "$description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.100",
+                      "aliasOf": "nbds.core.palette.neutral.100",
                       "contrast": 14.13,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3082,12 +3082,12 @@
                 },
                 "selected": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.950}",
+                  "$value": "{nbds.core.palette.neutral.950}",
                   "$description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.150",
+                      "aliasOf": "nbds.core.palette.neutral.150",
                       "contrast": 12.33,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3110,12 +3110,12 @@
               },
               "on-fill": {
                 "$type": "color",
-                "$value": "{nbds.palette.white}",
+                "$value": "{nbds.core.palette.white}",
                 "$description": "Ink on the neutral inverse fill (a dark label on the light on-dark CTA)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.950",
+                    "aliasOf": "nbds.core.palette.neutral.950",
                     "contrast": 15.99,
                     "against": "interactive.neutral.inverse.fill.rest",
                     "min": 4.5,
@@ -3138,12 +3138,12 @@
               "border": {
                 "rest": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.500}",
+                  "$value": "{nbds.core.palette.neutral.500}",
                   "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.550",
+                      "aliasOf": "nbds.core.palette.neutral.550",
                       "contrast": 3.54,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3165,12 +3165,12 @@
                 },
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.600}",
+                  "$value": "{nbds.core.palette.neutral.600}",
                   "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.450",
+                      "aliasOf": "nbds.core.palette.neutral.450",
                       "contrast": 5.06,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3192,12 +3192,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.neutral.700}",
+                  "$value": "{nbds.core.palette.neutral.700}",
                   "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.neutral.350",
+                      "aliasOf": "nbds.core.palette.neutral.350",
                       "contrast": 6.93,
                       "against": "background.inverse.primary",
                       "min": 3,
@@ -3221,12 +3221,12 @@
               "overlay": {
                 "hover": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.10}",
+                  "$value": "{nbds.core.palette.black-alpha.10}",
                   "$description": "neutral interactive overlay on a dark / inverse surface — hover (10% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.10",
+                      "aliasOf": "nbds.core.palette.white-alpha.10",
                       "contrast": 14.26,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -3252,12 +3252,12 @@
                 },
                 "pressed": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.20}",
+                  "$value": "{nbds.core.palette.black-alpha.20}",
                   "$description": "neutral interactive overlay on a dark / inverse surface — pressed (20% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.20",
+                      "aliasOf": "nbds.core.palette.white-alpha.20",
                       "contrast": 10.07,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -3283,12 +3283,12 @@
                 },
                 "selected": {
                   "$type": "color",
-                  "$value": "{nbds.palette.black-alpha.20}",
+                  "$value": "{nbds.core.palette.black-alpha.20}",
                   "$description": "neutral interactive overlay on a dark / inverse surface — selected (20% wash, the opposite polarity to the page wash)",
                   "$extensions": {
                     "prism3": {
                       "role": "semantic",
-                      "aliasOf": "nbds.palette.white-alpha.20",
+                      "aliasOf": "nbds.core.palette.white-alpha.20",
                       "contrast": 10.07,
                       "against": "background.inverse.primary",
                       "contrastModel": "ink-on-composite",
@@ -3317,12 +3317,12 @@
             "overlay": {
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.10}",
+                "$value": "{nbds.core.palette.white-alpha.10}",
                 "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.hover)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.10",
+                    "aliasOf": "nbds.core.palette.black-alpha.10",
                     "contrast": 15.51,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -3348,12 +3348,12 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.20}",
+                "$value": "{nbds.core.palette.white-alpha.20}",
                 "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.pressed)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.20",
+                    "aliasOf": "nbds.core.palette.black-alpha.20",
                     "contrast": 12.11,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -3379,12 +3379,12 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{nbds.palette.white-alpha.20}",
+                "$value": "{nbds.core.palette.white-alpha.20}",
                 "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.selected)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.black-alpha.20",
+                    "aliasOf": "nbds.core.palette.black-alpha.20",
                     "contrast": 12.11,
                     "against": "background.primary",
                     "contrastModel": "ink-on-composite",
@@ -3414,12 +3414,12 @@
         "disabled": {
           "fill": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.750}",
+            "$value": "{nbds.core.palette.neutral.750}",
             "$description": "Disabled control fill — one muted neutral, any intent",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.200",
+                "aliasOf": "nbds.core.palette.neutral.200",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -3439,12 +3439,12 @@
           },
           "on-fill": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.300}",
+            "$value": "{nbds.core.palette.neutral.300}",
             "$description": "Label / icon on a disabled fill — muted but clears 3:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.550",
+                "aliasOf": "nbds.core.palette.neutral.550",
                 "contrast": 3.04,
                 "against": "disabled.fill",
                 "min": 3,
@@ -3466,12 +3466,12 @@
           },
           "border": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.750}",
+            "$value": "{nbds.core.palette.neutral.750}",
             "$description": "Disabled control border — muted neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.200",
+                "aliasOf": "nbds.core.palette.neutral.200",
                 "contrast": 1.81,
                 "against": "background.primary",
                 "figma": {
@@ -3492,12 +3492,12 @@
           "inverse": {
             "fill": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.250}",
+              "$value": "{nbds.core.palette.neutral.250}",
               "$description": "Disabled control fill on an inverse surface — one muted neutral, any intent",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.800",
+                  "aliasOf": "nbds.core.palette.neutral.800",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -3517,12 +3517,12 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.700}",
+              "$value": "{nbds.core.palette.neutral.700}",
               "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.500",
+                  "aliasOf": "nbds.core.palette.neutral.500",
                   "contrast": 3.02,
                   "against": "disabled.inverse.fill",
                   "min": 3,
@@ -3544,12 +3544,12 @@
             },
             "text": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.550",
+                  "aliasOf": "nbds.core.palette.neutral.550",
                   "contrast": 3.27,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -3571,12 +3571,12 @@
             },
             "icon": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.550",
+                  "aliasOf": "nbds.core.palette.neutral.550",
                   "contrast": 3.27,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -3598,12 +3598,12 @@
             },
             "border": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.250}",
+              "$value": "{nbds.core.palette.neutral.250}",
               "$description": "Disabled control border on an inverse surface — muted neutral",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.800",
+                  "aliasOf": "nbds.core.palette.neutral.800",
                   "contrast": 1.4,
                   "against": "background.inverse.primary",
                   "figma": {
@@ -3626,12 +3626,12 @@
         "field": {
           "fill": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.050",
+                "aliasOf": "nbds.core.palette.neutral.050",
                 "contrast": 1,
                 "against": "self",
                 "figma": {
@@ -3652,12 +3652,12 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.400",
+                  "aliasOf": "nbds.core.palette.neutral.400",
                   "contrast": 3.27,
                   "against": "background.primary",
                   "min": 3,
@@ -3679,12 +3679,12 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.400}",
+              "$value": "{nbds.core.palette.neutral.400}",
               "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.500",
+                  "aliasOf": "nbds.core.palette.neutral.500",
                   "contrast": 4.59,
                   "against": "background.primary",
                   "min": 3,
@@ -3707,12 +3707,12 @@
           },
           "placeholder": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.350}",
+            "$value": "{nbds.core.palette.neutral.350}",
             "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.550",
+                "aliasOf": "nbds.core.palette.neutral.550",
                 "contrast": 4.52,
                 "against": "field.fill",
                 "min": 4.5,
@@ -3735,12 +3735,12 @@
           "inverse": {
             "fill": {
               "$type": "color",
-              "$value": "{nbds.palette.white}",
+              "$value": "{nbds.core.palette.white}",
               "$description": "Form field fill on an inverse surface — the inverse ladder's second tier, the same one-step inset the page field takes",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.900",
+                  "aliasOf": "nbds.core.palette.neutral.900",
                   "contrast": 1,
                   "against": "self",
                   "figma": {
@@ -3761,12 +3761,12 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.500}",
+                "$value": "{nbds.core.palette.neutral.500}",
                 "$description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.550",
+                    "aliasOf": "nbds.core.palette.neutral.550",
                     "contrast": 3.54,
                     "against": "background.inverse.primary",
                     "min": 3,
@@ -3788,12 +3788,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.neutral.600}",
+                "$value": "{nbds.core.palette.neutral.600}",
                 "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.neutral.450",
+                    "aliasOf": "nbds.core.palette.neutral.450",
                     "contrast": 5.06,
                     "against": "background.inverse.primary",
                     "min": 3,
@@ -3816,12 +3816,12 @@
             },
             "placeholder": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.650}",
+              "$value": "{nbds.core.palette.neutral.650}",
               "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.450",
+                  "aliasOf": "nbds.core.palette.neutral.450",
                   "contrast": 4.68,
                   "against": "field.inverse.fill",
                   "min": 4.5,
@@ -3846,12 +3846,12 @@
         "text": {
           "primary": {
             "$type": "color",
-            "$value": "{nbds.palette.white}",
+            "$value": "{nbds.core.palette.white}",
             "$description": "Primary text — strongest neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.950",
+                "aliasOf": "nbds.core.palette.neutral.950",
                 "contrast": 19.44,
                 "against": "background.primary",
                 "min": 7,
@@ -3873,12 +3873,12 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.300}",
+            "$value": "{nbds.core.palette.neutral.300}",
             "$description": "Secondary text — 4.5:1 on the floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.550",
+                "aliasOf": "nbds.core.palette.neutral.550",
                 "contrast": 4.52,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -3900,12 +3900,12 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.600",
+                "aliasOf": "nbds.core.palette.red.600",
                 "contrast": 5.64,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -3927,12 +3927,12 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{nbds.palette.green.300}",
+            "$value": "{nbds.core.palette.green.300}",
             "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.600",
+                "aliasOf": "nbds.core.palette.green.600",
                 "contrast": 5.78,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -3954,12 +3954,12 @@
           },
           "warning": {
             "$type": "color",
-            "$value": "{nbds.palette.amber.300}",
+            "$value": "{nbds.core.palette.amber.300}",
             "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.amber.600",
+                "aliasOf": "nbds.core.palette.amber.600",
                 "contrast": 5.46,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -3981,12 +3981,12 @@
           },
           "danger": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.600",
+                "aliasOf": "nbds.core.palette.red.600",
                 "contrast": 5.64,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -4008,12 +4008,12 @@
           },
           "info": {
             "$type": "color",
-            "$value": "{nbds.palette.info.300}",
+            "$value": "{nbds.core.palette.info.300}",
             "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.info.600",
+                "aliasOf": "nbds.core.palette.info.600",
                 "contrast": 5.51,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -4035,12 +4035,12 @@
           },
           "brand-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.red.350}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Muted brand text — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.450",
+                "aliasOf": "nbds.core.palette.red.450",
                 "contrast": 3.85,
                 "against": "background.primary",
                 "min": 3,
@@ -4062,12 +4062,12 @@
           },
           "success-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.green.350}",
+            "$value": "{nbds.core.palette.green.350}",
             "$description": "Muted success text — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.450",
+                "aliasOf": "nbds.core.palette.green.450",
                 "contrast": 4.11,
                 "against": "background.primary",
                 "min": 3,
@@ -4089,12 +4089,12 @@
           },
           "warning-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.amber.350}",
+            "$value": "{nbds.core.palette.amber.350}",
             "$description": "Muted warning text — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.amber.450",
+                "aliasOf": "nbds.core.palette.amber.450",
                 "contrast": 3.79,
                 "against": "background.primary",
                 "min": 3,
@@ -4116,12 +4116,12 @@
           },
           "danger-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.red.350}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Muted danger text — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.450",
+                "aliasOf": "nbds.core.palette.red.450",
                 "contrast": 3.85,
                 "against": "background.primary",
                 "min": 3,
@@ -4143,12 +4143,12 @@
           },
           "info-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.info.350}",
+            "$value": "{nbds.core.palette.info.350}",
             "$description": "Muted info text — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.info.450",
+                "aliasOf": "nbds.core.palette.info.450",
                 "contrast": 3.86,
                 "against": "background.primary",
                 "min": 3,
@@ -4170,12 +4170,12 @@
           },
           "on-brand": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "text on a solid brand fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 5.62,
                 "against": "foreground.brand",
                 "min": 4.5,
@@ -4197,12 +4197,12 @@
           },
           "on-success": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "text on a solid success fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 4.89,
                 "against": "foreground.success",
                 "min": 4.5,
@@ -4224,12 +4224,12 @@
           },
           "on-warning": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "text on a solid warning fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 4.5,
                 "against": "foreground.warning",
                 "min": 4.5,
@@ -4251,12 +4251,12 @@
           },
           "on-danger": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "text on a solid danger fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 5.62,
                 "against": "foreground.danger",
                 "min": 4.5,
@@ -4278,12 +4278,12 @@
           },
           "on-info": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "text on a solid info fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 4.56,
                 "against": "foreground.info",
                 "min": 4.5,
@@ -4306,12 +4306,12 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{nbds.palette.red.300}",
+              "$value": "{nbds.core.palette.red.300}",
               "$description": "Link text — default",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 4.62,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -4333,12 +4333,12 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.palette.red.250}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "Link text — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.600",
+                  "aliasOf": "nbds.core.palette.red.600",
                   "contrast": 5.64,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -4360,12 +4360,12 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{nbds.palette.red.200}",
+              "$value": "{nbds.core.palette.red.200}",
               "$description": "Link text — visited",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.650",
+                  "aliasOf": "nbds.core.palette.red.650",
                   "contrast": 6.82,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -4387,12 +4387,12 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.palette.red.300}",
+              "$value": "{nbds.core.palette.red.300}",
               "$description": "Link text — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 4.62,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -4416,12 +4416,12 @@
           "on-inverse": {
             "primary": {
               "$type": "color",
-              "$value": "{nbds.palette.black}",
+              "$value": "{nbds.core.palette.black}",
               "$description": "Primary text — strongest neutral",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.025",
+                  "aliasOf": "nbds.core.palette.neutral.025",
                   "contrast": 18.11,
                   "against": "background.inverse.primary",
                   "min": 7,
@@ -4443,12 +4443,12 @@
             },
             "secondary": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.650}",
+              "$value": "{nbds.core.palette.neutral.650}",
               "$description": "Secondary text — 4.5:1 on the floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.450",
+                  "aliasOf": "nbds.core.palette.neutral.450",
                   "contrast": 4.68,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -4470,12 +4470,12 @@
             },
             "tertiary": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Tertiary text — 3:1 on the floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.550",
+                  "aliasOf": "nbds.core.palette.neutral.550",
                   "contrast": 3.27,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -4497,12 +4497,12 @@
             },
             "brand": {
               "$type": "color",
-              "$value": "{nbds.palette.red.700}",
+              "$value": "{nbds.core.palette.red.700}",
               "$description": "brand text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.450",
+                  "aliasOf": "nbds.core.palette.red.450",
                   "contrast": 4.66,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -4524,12 +4524,12 @@
             },
             "success": {
               "$type": "color",
-              "$value": "{nbds.palette.green.700}",
+              "$value": "{nbds.core.palette.green.700}",
               "$description": "success text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.green.400",
+                  "aliasOf": "nbds.core.palette.green.400",
                   "contrast": 5.17,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -4551,12 +4551,12 @@
             },
             "warning": {
               "$type": "color",
-              "$value": "{nbds.palette.amber.700}",
+              "$value": "{nbds.core.palette.amber.700}",
               "$description": "warning text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.amber.450",
+                  "aliasOf": "nbds.core.palette.amber.450",
                   "contrast": 4.74,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -4578,12 +4578,12 @@
             },
             "danger": {
               "$type": "color",
-              "$value": "{nbds.palette.red.700}",
+              "$value": "{nbds.core.palette.red.700}",
               "$description": "danger text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.450",
+                  "aliasOf": "nbds.core.palette.red.450",
                   "contrast": 4.66,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -4605,12 +4605,12 @@
             },
             "info": {
               "$type": "color",
-              "$value": "{nbds.palette.info.700}",
+              "$value": "{nbds.core.palette.info.700}",
               "$description": "info text — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.info.450",
+                  "aliasOf": "nbds.core.palette.info.450",
                   "contrast": 4.65,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -4632,12 +4632,12 @@
             },
             "brand-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.red.650}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 3.46,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -4659,12 +4659,12 @@
             },
             "success-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.green.650}",
+              "$value": "{nbds.core.palette.green.650}",
               "$description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.green.550",
+                  "aliasOf": "nbds.core.palette.green.550",
                   "contrast": 3.3,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -4686,12 +4686,12 @@
             },
             "warning-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.amber.650}",
+              "$value": "{nbds.core.palette.amber.650}",
               "$description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.amber.550",
+                  "aliasOf": "nbds.core.palette.amber.550",
                   "contrast": 3.57,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -4713,12 +4713,12 @@
             },
             "danger-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.red.650}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 3.46,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -4740,12 +4740,12 @@
             },
             "info-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.info.650}",
+              "$value": "{nbds.core.palette.info.650}",
               "$description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.info.550",
+                  "aliasOf": "nbds.core.palette.info.550",
                   "contrast": 3.51,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -4768,12 +4768,12 @@
             "link": {
               "default": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.650}",
+                "$value": "{nbds.core.palette.red.650}",
                 "$description": "Link text — default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.450",
+                    "aliasOf": "nbds.core.palette.red.450",
                     "contrast": 4.66,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -4795,12 +4795,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.700}",
+                "$value": "{nbds.core.palette.red.700}",
                 "$description": "Link text — hover",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.400",
+                    "aliasOf": "nbds.core.palette.red.400",
                     "contrast": 5.52,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -4822,12 +4822,12 @@
               },
               "visited": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.750}",
+                "$value": "{nbds.core.palette.red.750}",
                 "$description": "Link text — visited",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.350",
+                    "aliasOf": "nbds.core.palette.red.350",
                     "contrast": 6.44,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -4849,12 +4849,12 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.650}",
+                "$value": "{nbds.core.palette.red.650}",
                 "$description": "Link text — focused",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.450",
+                    "aliasOf": "nbds.core.palette.red.450",
                     "contrast": 4.66,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -4880,12 +4880,12 @@
         "icon": {
           "primary": {
             "$type": "color",
-            "$value": "{nbds.palette.white}",
+            "$value": "{nbds.core.palette.white}",
             "$description": "Primary icon — strongest neutral",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.950",
+                "aliasOf": "nbds.core.palette.neutral.950",
                 "contrast": 19.44,
                 "against": "background.primary",
                 "min": 7,
@@ -4907,12 +4907,12 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.300}",
+            "$value": "{nbds.core.palette.neutral.300}",
             "$description": "Secondary icon — 4.5:1 on the floor",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.550",
+                "aliasOf": "nbds.core.palette.neutral.550",
                 "contrast": 4.52,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -4934,12 +4934,12 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.600",
+                "aliasOf": "nbds.core.palette.red.600",
                 "contrast": 5.64,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -4961,12 +4961,12 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{nbds.palette.green.300}",
+            "$value": "{nbds.core.palette.green.300}",
             "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.600",
+                "aliasOf": "nbds.core.palette.green.600",
                 "contrast": 5.78,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -4988,12 +4988,12 @@
           },
           "warning": {
             "$type": "color",
-            "$value": "{nbds.palette.amber.300}",
+            "$value": "{nbds.core.palette.amber.300}",
             "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.amber.600",
+                "aliasOf": "nbds.core.palette.amber.600",
                 "contrast": 5.46,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -5015,12 +5015,12 @@
           },
           "danger": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.600",
+                "aliasOf": "nbds.core.palette.red.600",
                 "contrast": 5.64,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -5042,12 +5042,12 @@
           },
           "info": {
             "$type": "color",
-            "$value": "{nbds.palette.info.300}",
+            "$value": "{nbds.core.palette.info.300}",
             "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.info.600",
+                "aliasOf": "nbds.core.palette.info.600",
                 "contrast": 5.51,
                 "against": "neutral.050",
                 "min": 4.5,
@@ -5069,12 +5069,12 @@
           },
           "brand-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.red.350}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.450",
+                "aliasOf": "nbds.core.palette.red.450",
                 "contrast": 3.85,
                 "against": "background.primary",
                 "min": 3,
@@ -5096,12 +5096,12 @@
           },
           "success-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.green.350}",
+            "$value": "{nbds.core.palette.green.350}",
             "$description": "Muted success icon — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.450",
+                "aliasOf": "nbds.core.palette.green.450",
                 "contrast": 4.11,
                 "against": "background.primary",
                 "min": 3,
@@ -5123,12 +5123,12 @@
           },
           "warning-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.amber.350}",
+            "$value": "{nbds.core.palette.amber.350}",
             "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.amber.450",
+                "aliasOf": "nbds.core.palette.amber.450",
                 "contrast": 3.79,
                 "against": "background.primary",
                 "min": 3,
@@ -5150,12 +5150,12 @@
           },
           "danger-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.red.350}",
+            "$value": "{nbds.core.palette.red.350}",
             "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.450",
+                "aliasOf": "nbds.core.palette.red.450",
                 "contrast": 3.85,
                 "against": "background.primary",
                 "min": 3,
@@ -5177,12 +5177,12 @@
           },
           "info-subtle": {
             "$type": "color",
-            "$value": "{nbds.palette.info.350}",
+            "$value": "{nbds.core.palette.info.350}",
             "$description": "Muted info icon — low-emphasis accent, 3:1 on the page",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.info.450",
+                "aliasOf": "nbds.core.palette.info.450",
                 "contrast": 3.86,
                 "against": "background.primary",
                 "min": 3,
@@ -5204,12 +5204,12 @@
           },
           "on-brand": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "icon on a solid brand fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 5.62,
                 "against": "foreground.brand",
                 "min": 4.5,
@@ -5231,12 +5231,12 @@
           },
           "on-success": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "icon on a solid success fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 4.89,
                 "against": "foreground.success",
                 "min": 4.5,
@@ -5258,12 +5258,12 @@
           },
           "on-warning": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "icon on a solid warning fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 4.5,
                 "against": "foreground.warning",
                 "min": 4.5,
@@ -5285,12 +5285,12 @@
           },
           "on-danger": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "icon on a solid danger fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 5.62,
                 "against": "foreground.danger",
                 "min": 4.5,
@@ -5312,12 +5312,12 @@
           },
           "on-info": {
             "$type": "color",
-            "$value": "{nbds.palette.black}",
+            "$value": "{nbds.core.palette.black}",
             "$description": "icon on a solid info fill",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.white",
+                "aliasOf": "nbds.core.palette.white",
                 "contrast": 4.56,
                 "against": "foreground.info",
                 "min": 4.5,
@@ -5340,12 +5340,12 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{nbds.palette.red.300}",
+              "$value": "{nbds.core.palette.red.300}",
               "$description": "Link icon — default",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 4.62,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -5367,12 +5367,12 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.palette.red.250}",
+              "$value": "{nbds.core.palette.red.250}",
               "$description": "Link icon — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.600",
+                  "aliasOf": "nbds.core.palette.red.600",
                   "contrast": 5.64,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -5394,12 +5394,12 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{nbds.palette.red.200}",
+              "$value": "{nbds.core.palette.red.200}",
               "$description": "Link icon — visited",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.650",
+                  "aliasOf": "nbds.core.palette.red.650",
                   "contrast": 6.82,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -5421,12 +5421,12 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.palette.red.300}",
+              "$value": "{nbds.core.palette.red.300}",
               "$description": "Link icon — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 4.62,
                   "against": "neutral.050",
                   "min": 4.5,
@@ -5450,12 +5450,12 @@
           "on-inverse": {
             "primary": {
               "$type": "color",
-              "$value": "{nbds.palette.black}",
+              "$value": "{nbds.core.palette.black}",
               "$description": "Primary icon — strongest neutral",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.025",
+                  "aliasOf": "nbds.core.palette.neutral.025",
                   "contrast": 18.11,
                   "against": "background.inverse.primary",
                   "min": 7,
@@ -5477,12 +5477,12 @@
             },
             "secondary": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.650}",
+              "$value": "{nbds.core.palette.neutral.650}",
               "$description": "Secondary icon — 4.5:1 on the floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.450",
+                  "aliasOf": "nbds.core.palette.neutral.450",
                   "contrast": 4.68,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -5504,12 +5504,12 @@
             },
             "tertiary": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Tertiary icon — 3:1 on the floor",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.550",
+                  "aliasOf": "nbds.core.palette.neutral.550",
                   "contrast": 3.27,
                   "against": "background.inverse.secondary",
                   "min": 3,
@@ -5531,12 +5531,12 @@
             },
             "brand": {
               "$type": "color",
-              "$value": "{nbds.palette.red.700}",
+              "$value": "{nbds.core.palette.red.700}",
               "$description": "brand icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.450",
+                  "aliasOf": "nbds.core.palette.red.450",
                   "contrast": 4.66,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -5558,12 +5558,12 @@
             },
             "success": {
               "$type": "color",
-              "$value": "{nbds.palette.green.700}",
+              "$value": "{nbds.core.palette.green.700}",
               "$description": "success icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.green.400",
+                  "aliasOf": "nbds.core.palette.green.400",
                   "contrast": 5.17,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -5585,12 +5585,12 @@
             },
             "warning": {
               "$type": "color",
-              "$value": "{nbds.palette.amber.700}",
+              "$value": "{nbds.core.palette.amber.700}",
               "$description": "warning icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.amber.450",
+                  "aliasOf": "nbds.core.palette.amber.450",
                   "contrast": 4.74,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -5612,12 +5612,12 @@
             },
             "danger": {
               "$type": "color",
-              "$value": "{nbds.palette.red.700}",
+              "$value": "{nbds.core.palette.red.700}",
               "$description": "danger icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.450",
+                  "aliasOf": "nbds.core.palette.red.450",
                   "contrast": 4.66,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -5639,12 +5639,12 @@
             },
             "info": {
               "$type": "color",
-              "$value": "{nbds.palette.info.700}",
+              "$value": "{nbds.core.palette.info.700}",
               "$description": "info icon — 4.5:1 on the floor (background.inverse.secondary) and on its own tint",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.info.450",
+                  "aliasOf": "nbds.core.palette.info.450",
                   "contrast": 4.65,
                   "against": "background.inverse.secondary",
                   "min": 4.5,
@@ -5666,12 +5666,12 @@
             },
             "brand-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.red.650}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 3.46,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -5693,12 +5693,12 @@
             },
             "success-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.green.650}",
+              "$value": "{nbds.core.palette.green.650}",
               "$description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.green.550",
+                  "aliasOf": "nbds.core.palette.green.550",
                   "contrast": 3.3,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -5720,12 +5720,12 @@
             },
             "warning-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.amber.650}",
+              "$value": "{nbds.core.palette.amber.650}",
               "$description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.amber.550",
+                  "aliasOf": "nbds.core.palette.amber.550",
                   "contrast": 3.57,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -5747,12 +5747,12 @@
             },
             "danger-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.red.650}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.red.550",
+                  "aliasOf": "nbds.core.palette.red.550",
                   "contrast": 3.46,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -5774,12 +5774,12 @@
             },
             "info-subtle": {
               "$type": "color",
-              "$value": "{nbds.palette.info.650}",
+              "$value": "{nbds.core.palette.info.650}",
               "$description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.info.550",
+                  "aliasOf": "nbds.core.palette.info.550",
                   "contrast": 3.51,
                   "against": "background.inverse.primary",
                   "min": 3,
@@ -5802,12 +5802,12 @@
             "link": {
               "default": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.650}",
+                "$value": "{nbds.core.palette.red.650}",
                 "$description": "Link icon — default",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.450",
+                    "aliasOf": "nbds.core.palette.red.450",
                     "contrast": 4.66,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -5829,12 +5829,12 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.700}",
+                "$value": "{nbds.core.palette.red.700}",
                 "$description": "Link icon — hover",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.400",
+                    "aliasOf": "nbds.core.palette.red.400",
                     "contrast": 5.52,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -5856,12 +5856,12 @@
               },
               "visited": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.750}",
+                "$value": "{nbds.core.palette.red.750}",
                 "$description": "Link icon — visited",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.350",
+                    "aliasOf": "nbds.core.palette.red.350",
                     "contrast": 6.44,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -5883,12 +5883,12 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.palette.red.650}",
+                "$value": "{nbds.core.palette.red.650}",
                 "$description": "Link icon — focused",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.palette.red.450",
+                    "aliasOf": "nbds.core.palette.red.450",
                     "contrast": 4.66,
                     "against": "background.inverse.secondary",
                     "min": 4.5,
@@ -5914,12 +5914,12 @@
         "border": {
           "primary": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.500}",
+            "$value": "{nbds.core.palette.neutral.500}",
             "$description": "Default border — decorative, ~1.4:1",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.100",
+                "aliasOf": "nbds.core.palette.neutral.100",
                 "contrast": 1.38,
                 "against": "background.primary",
                 "figma": {
@@ -5939,12 +5939,12 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{nbds.palette.neutral.250}",
+            "$value": "{nbds.core.palette.neutral.250}",
             "$description": "Stronger border / divider",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.neutral.400",
+                "aliasOf": "nbds.core.palette.neutral.400",
                 "contrast": 3.27,
                 "against": "background.primary",
                 "figma": {
@@ -5965,12 +5965,12 @@
           "inverse": {
             "default": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Border on inverse surfaces",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.800",
+                  "aliasOf": "nbds.core.palette.neutral.800",
                   "contrast": 1.4,
                   "against": "background.inverse.primary",
                   "figma": {
@@ -5990,12 +5990,12 @@
             },
             "primary": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.500}",
+              "$value": "{nbds.core.palette.neutral.500}",
               "$description": "Default border on an inverse surface — decorative, ~1.4:1",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.800",
+                  "aliasOf": "nbds.core.palette.neutral.800",
                   "contrast": 1.4,
                   "against": "background.inverse.primary",
                   "figma": {
@@ -6015,12 +6015,12 @@
             },
             "secondary": {
               "$type": "color",
-              "$value": "{nbds.palette.neutral.700}",
+              "$value": "{nbds.core.palette.neutral.700}",
               "$description": "Stronger border / divider on an inverse surface",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.palette.neutral.600",
+                  "aliasOf": "nbds.core.palette.neutral.600",
                   "contrast": 2.91,
                   "against": "background.inverse.primary",
                   "figma": {
@@ -6041,12 +6041,12 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{nbds.palette.green.450}",
+            "$value": "{nbds.core.palette.green.450}",
             "$description": "success border — 3:1 (SC 1.4.11)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.green.500",
+                "aliasOf": "nbds.core.palette.green.500",
                 "contrast": 4.89,
                 "against": "background.primary",
                 "min": 3,
@@ -6068,12 +6068,12 @@
           },
           "focus": {
             "$type": "color",
-            "$value": "{nbds.palette.red.300}",
+            "$value": "{nbds.core.palette.red.300}",
             "$description": "Focus ring color (keyboard focus)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "nbds.palette.red.550",
+                "aliasOf": "nbds.core.palette.red.550",
                 "contrast": 5.62,
                 "against": "background.primary",
                 "min": 3,

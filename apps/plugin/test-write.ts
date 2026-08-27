@@ -21,6 +21,19 @@ import { applyWritePlan, applySurfacePlan, orphansOf, beginMigration } from './s
 import { deriveVariableRenames, isRefusal } from '@prism3/engine/rename-map';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 
+/**
+ * The brand namespace every emitted variable carries (#1097) and the `core` tier the primitives sit under
+ * (#1102), spelled HERE rather than imported. `nbThemeFrom(nbMeasured)` roots at `nbds`, and this file's
+ * whole job is to check the executor against names it did not compute — a helper imported from the
+ * emitter would agree with the emitter about the namespace by construction (`docs/34` shape 11).
+ *
+ * A pre-#1097 file's names are UN-rooted, and the seeded legacy names below stay that way on purpose:
+ * that is what a designer's file holds, and reaching the rooted target from it is the migration under
+ * test. So a name in this file is rooted iff it is something the engine WRITES.
+ */
+const NB_ROOT = 'nbds';
+const nbVar = (tail: string): string => `${NB_ROOT}/${tail}`;
+
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
   if (cond) console.log(`  ✓ ${label}`);
@@ -98,29 +111,31 @@ ok(r1.misses.length === 0 && r2.misses.length === 0,
   `zero unresolved bindings${r1.misses.length ? ' — ' + r1.misses.slice(0, 3).join(',') : ''}`);
 
 // collections + modes
-const palCol = shim.collections.find((c) => c.name === 'core-palette')!;
+// `core`, not `core-palette` (#1097) — the three `core-*` collections consolidated into ONE, so this
+// plan's palette half lands in the same collection the dimension and font plans write to.
+const palCol = shim.collections.find((c) => c.name === 'core')!;
 const colCol = shim.collections.find((c) => c.name === 'color.appearance')!;
-ok(shim.collections.length === 2 && !!palCol && !!colCol, 'exactly two collections: core-palette + color.appearance');
+ok(shim.collections.length === 2 && !!palCol && !!colCol, 'exactly two collections: core + color.appearance');
 ok(colCol.modes.map((m) => m.name).join(',') === plan.color.modes.join(','),
   `color.appearance collection modes match the plan (${colCol.modes.map((m) => m.name).join('/')})`);
 
 // primitives hidden + scoped
 const palVars = shim.vars.filter((v) => v.variableCollectionId === palCol.id);
 ok(palVars.length > 0 && palVars.every((v) => v.hiddenFromPublishing && v.scopes.length > 0),
-  'every core-palette primitive hidden from publishing + scoped');
+  'every `core` palette primitive hidden from publishing + scoped');
 
 // the collapse-guard: background/primary resolves to a DIFFERENT palette target per mode
 const colVars = new Map(shim.vars.filter((v) => v.variableCollectionId === colCol.id).map((v) => [v.name, v]));
 const byId = new Map(shim.vars.map((v) => [v.id, v]));
-const bg = colVars.get('color/appearance/background/primary')!;
+const bg = colVars.get(nbVar('color/appearance/background/primary'))!;
 const bgTargets = colCol.modes.map((m) => {
   const val = bg.valuesByMode[m.modeId];
   return val && 'type' in val ? byId.get(val.id)?.name : undefined;
 });
 ok(!!bg && new Set(bgTargets).size > 1,
   `background/primary aliases a distinct palette step per mode (collapse-guard: ${bgTargets.join(' / ')})`);
-ok(bgTargets.every((t) => typeof t === 'string' && t.startsWith('palette/')),
-  'background/primary alias targets are palette primitives (cross-collection resolution)');
+ok(bgTargets.every((t) => typeof t === 'string' && t.startsWith(nbVar('core/palette/'))),
+  'background/primary alias targets are `core` palette primitives (cross-collection resolution)');
 
 // ---- #479: orphan REPORT — renames leave ghosts, and the write path cannot see them ------------
 // Create-or-update-by-name is idempotent for adds/edits and structurally blind to a rename: the new
@@ -138,11 +153,17 @@ ok(orphansOf(['z', 'a'], []).join() === 'a,z', 'orphansOf: sorted, so two runs d
 // Now end-to-end against a shim pre-seeded with the two ghost shapes the live drive actually found:
 // a stale leaf at a path that is now a group, and a whole pre-rename palette family.
 const ghostShim = new VariablesShim();
-const ghostPal = ghostShim.createVariableCollection('core-palette');
+const ghostPal = ghostShim.createVariableCollection('core');
 const ghostCol = ghostShim.createVariableCollection('color.appearance');
-ghostShim.createVariable('palette/accent/550', ghostPal);              // pre-rename palette generation
+// The palette ghost is ROOTED (#1097) and the colour one is not, and the asymmetry is measured rather than
+// stylistic. `upsertCollection` narrows `core` to the SLICE the calling plan owns (`coreGroupOf`), because
+// three executors write into one collection now — so an un-rooted `palette/accent/550` is in no core group,
+// is filtered out of `byName`, and is invisible to the orphan report AND to the migration pass. That hole is
+// real and is **#1109**, not asserted here; what this arm is about is a stale leaf inside a slice the plan
+// DOES own, which is the drift a designer actually accumulates.
+ghostShim.createVariable(nbVar('core/palette/accent/550'), ghostPal);   // pre-rename palette generation
 ghostShim.createVariable('color/appearance/interactive/primary/text', ghostCol);  // flat leaf, now a group
-const ghostNames = ['palette/accent/550', 'color/appearance/interactive/primary/text'];
+const ghostNames = [nbVar('core/palette/accent/550'), 'color/appearance/interactive/primary/text'];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const gr = await applyWritePlan(plan, ghostShim as any);
@@ -177,7 +198,11 @@ ok(second.orphans.every((o) => o.names.length === 0),
 // behaviour) and once with one. The two must disagree, by count, or the mechanism is decoration.
 
 // The real, shipped map — not a synthetic one — restricted to entries whose target this plan writes.
-const realRenames = deriveVariableRenames().filter((r) => r.collection === 'color.appearance' && plan.color.create.some((c) => c.name === r.to));
+// `deriveVariableRenames()` rows are TAILS — they come from `DEPRECATIONS`, where nothing is
+// brand-specific — and the plan's rows are rooted, so the two are compared through `nbVar` (#1097). The
+// same asymmetry is why `seedSolo` seeds the tail: an un-rooted name is what a pre-#1097 file holds, and
+// the composed migration is #1013's rule and then #1097's, landing on the rooted target in one move.
+const realRenames = deriveVariableRenames().filter((r) => r.collection === 'color.appearance' && plan.color.create.some((c) => c.name === nbVar(r.to)));
 ok(realRenames.length >= 40,
   `#1013 the shipped map reaches ${realRenames.length} live \`color.appearance\` entries (floor 40) — a derivation that produced none would satisfy every arm below vacuously`);
 
@@ -226,7 +251,7 @@ ok(migrated.length === soloCount,
 // THE MECHANISM: same variable, new name. A rename that recreated the variable would pass a name check
 // and lose every binding — the id is the only thing that distinguishes the two.
 const idKept = [...byTarget.values()].filter((g) => {
-  const v = migShim.vars.find((x) => x.name === g[0].to);
+  const v = migShim.vars.find((x) => x.name === nbVar(g[0].to));   // rooted target, un-rooted source (#1097)
   return v && v.id === idBefore.get(g[0].from);
 });
 ok(idKept.length === soloCount,
@@ -301,7 +326,12 @@ const crShim = new VariablesShim();
 const legacy = crShim.createVariableCollection('legacy-color');
 const child = crShim.createVariable('color/appearance/text/primary', legacy);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
-const crPass = await beginMigration(crShim as any, { collections: [{ from: 'legacy-color', to: 'color.appearance', since: '9.9.9' }], variables: [] });
+// NO MATERIALIZATION RULES (`[]`), so this arm measures the collection mechanism ALONE. With the shipped
+// rules in scope #1097's would also fire on the child — the collection is now `color.appearance`, the
+// child's name is un-rooted, so it would legitimately be renamed as well — and "the child kept its name"
+// would fail for a reason that has nothing to do with what a collection rename does. The variable half in
+// the same file is (vii) below, driven on the shipped rules.
+const crPass = await beginMigration(crShim as any, { collections: [{ from: 'legacy-color', to: 'color.appearance', since: '9.9.9' }], variables: [] }, []);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const crRes = await applyWritePlan(plan, crShim as any, crPass);
 ok(crPass.outcomes.some((o) => o.kind === 'collection' && o.status === 'migrated'),
@@ -312,14 +342,20 @@ ok(child.variableCollectionId === legacy.id && crShim.vars.some((v) => v.id === 
   '#1013 collection rename: the child variable kept its id, its name and its parent — a collection rename is ONE write, not 200');
 ok(crRes.misses.length === 0, '#1013 collection rename: the write itself is unaffected');
 
-// (v) #1035 — THE SHIPPED CHAIN, ON A PRE-#1013 FILE. This is the migration the owner will run: a file
+// (v) #1035 — THE SHIPPED MAP, ON A PRE-#1013 FILE. This is the migration the owner will run: a file
 // written before the swap carries `color` (the value tier) and `surface` (the alias tier), and both must
 // end up under their new names with their ids — and therefore every binding a designer made — intact.
 //
-// The ORDER is the whole arm. `color → color.appearance` must land before `surface → color`, or the
-// short name is occupied by the alias tier when the value tier reaches for it and one of the two is
-// refused. Nothing in the map's array order says so: reversing `COLLECTION_RENAMES` must not change this
-// result, which is what `planCollectionRenames`'s topological sort buys and what this arm holds it to.
+// **This block used to be about ORDER, and since #1097 it is not.** The map's two entries were a chain
+// (`color → color.appearance` alongside `surface → color`), so the value tier had to vacate the short
+// name before the alias tier could take it; #1097 retargeted the second entry to `surface →
+// color.surface` — because the old target had drifted behind #1089's collection rename and was stranding
+// designers' variables — and neither target is an entry's source any longer. There is no order left to
+// get wrong here.
+//
+// The ordering guarantee itself is unchanged and still needs a failing arm, so it is exercised on an
+// AUTHORED chain immediately below rather than on the shipped map. Pointing an ordering arm at data that
+// no longer contains the shape is `docs/34`'s borrowed-backstop: it passes, and it proves nothing.
 const chainShim = new VariablesShim();
 const oldValue = chainShim.createVariableCollection('color');
 const oldAlias = chainShim.createVariableCollection('surface');
@@ -332,12 +368,35 @@ ok(chainCols.length === 2 && chainCols.every((o) => o.status === 'migrated'),
   `#1035 both entries of the shipped chain migrate on a pre-#1013 file (${chainCols.map((o) => `${o.from}→${o.to}:${o.status}`).join(' ')})`);
 ok(chainShim.collections.find((c) => c.name === 'color.appearance')?.id === oldValue.id,
   '#1035 the VALUE tier is now `color.appearance` and it is the ORIGINAL `color` collection, by id — its variables and their bindings came with it');
-ok(chainShim.collections.find((c) => c.name === 'color')?.id === oldAlias.id,
-  '#1035 and the short name `color` is now the ORIGINAL `surface` collection, by id — the swap moved two collections, it did not create a third');
-ok(chainShim.collections.length === 2 && !chainShim.collections.some((c) => c.name === 'surface'),
-  `#1035 exactly two collections afterwards and no \`surface\` left behind (${chainShim.collections.map((c) => c.name).join(', ')}) — an out-of-order pass leaves both tiers merged into one`);
+ok(chainShim.collections.find((c) => c.name === 'color.surface')?.id === oldAlias.id,
+  '#1035 and `color.surface` is the ORIGINAL `surface` collection, by id — the swap moved two collections, it did not create a third');
+ok(chainShim.collections.length === 2
+  && !chainShim.collections.some((c) => c.name === 'surface' || c.name === 'color'),
+  `#1035 exactly two collections afterwards, with neither pre-#1013 name left behind (${chainShim.collections.map((c) => c.name).join(', ')}) — a stale rename target leaves the originals in place AND a fresh collection beside them, which is exactly how #1108 happened`);
 ok(valueChild.variableCollectionId === oldValue.id && aliasChild.variableCollectionId === oldAlias.id,
   '#1035 every child stayed in its own collection — a collection rename touches the collection, never its variables');
+
+// AND THE ORDERING GUARANTEE, THROUGH THE EXECUTOR, ON AN AUTHORED CHAIN. `beginMigration` is given the
+// map the engine shipped between #1013 and #1097, in BOTH array orders. Written out here rather than
+// imported: it is no longer live data, and the point of the arm is that array order cannot reach the
+// result. Without the topological sort, `surface → color` lands first, the short name is occupied when
+// the value tier reaches for it, and one of the two is refused.
+const CHAIN_MAP = [
+  { from: 'color', to: 'color.appearance', since: '0.26.0' },
+  { from: 'surface', to: 'color', since: '0.26.0' },
+];
+for (const order of [CHAIN_MAP, [...CHAIN_MAP].reverse()]) {
+  const ordShim = new VariablesShim();
+  const ordValue = ordShim.createVariableCollection('color');
+  const ordAlias = ordShim.createVariableCollection('surface');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+  const ordPass = await beginMigration(ordShim as any, { collections: order, variables: [] }, []);
+  const label = order.map((c) => c.from).join(',');
+  ok(ordPass.refusals.length === 0
+    && ordShim.collections.find((c) => c.name === 'color.appearance')?.id === ordValue.id
+    && ordShim.collections.find((c) => c.name === 'color')?.id === ordAlias.id,
+    `#1035 an authored CHAIN migrates completely through the executor with the array written [${label}] — the order is computed from the dependencies, so both spellings of the same map give the same file${ordPass.refusals.length ? ` (REFUSED: ${ordPass.refusals[0]})` : ''}`);
+}
 
 // AND THE ALREADY-MIGRATED FILE MUST NOT REFUSE. Re-running on the file above is the second-apply case a
 // designer hits by pressing the button twice, and it is the one the pre-#1013 target-first ordering got
@@ -391,7 +450,7 @@ ok(badRes.misses.length === 0 && badRes.orphans.find((o) => o.name === 'color.ap
 const occShim = seedSolo();
 const occCol = occShim.collections.find((c) => c.name === 'color.appearance')!;
 const occFirst = [...byTarget.values()][0][0];
-occShim.createVariable(occFirst.to, occCol);
+occShim.createVariable(nbVar(occFirst.to), occCol);   // the TARGET is rooted (#1097); the seeded source is not
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const occPass = await beginMigration(occShim as any);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
@@ -437,8 +496,8 @@ const swapAliasChild = swapShim.createVariable('surface/background/primary', swa
 // happens to do). What CAN be anchored is the other end: if the emission ever stops writing these two
 // targets, this arm has to fail HERE, by name, rather than quietly decay into a pair of
 // `target-not-planned` outcomes that read like a considered refusal.
-ok(plan.color.create.some((r) => r.name === 'color/appearance/background/primary')
-  && surfacePlan.create.some((r) => r.name === 'color/background/primary'),
+ok(plan.color.create.some((r) => r.name === nbVar('color/appearance/background/primary'))
+  && surfacePlan.create.some((r) => r.name === nbVar('color/background/primary')),
   '#1013 the two post-swap names this arm migrates INTO are names the two plans really write — anchored to the emission at its target end, hand-typed at its source end');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
@@ -448,24 +507,55 @@ const swapRes = await applyWritePlan(plan, swapShim as any, swapPass);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const swapSurf = await applySurfacePlan(surfacePlan, swapShim as any, swapPass);
 const swapValueCol = swapShim.collections.find((c) => c.name === 'color.appearance')!;
-const swapAliasCol = swapShim.collections.find((c) => c.name === 'color')!;
+const swapAliasCol = swapShim.collections.find((c) => c.name === 'color.surface')!;
 const inValue = swapShim.vars.filter((v) => v.variableCollectionId === swapValueCol.id);
 const inAlias = swapShim.vars.filter((v) => v.variableCollectionId === swapAliasCol.id);
 
-ok(swapValueChild.name === 'color/appearance/background/primary' && swapValueChild.variableCollectionId === swapValue.id,
+// ── THE ALIAS TIER MIGRATES AGAIN, AND IT DID NOT WHEN THIS BLOCK WAS FIRST WRITTEN (#1108) ───────
+//
+// It broke here, in this block, and the break was in the map rather than in the executors: from #1089
+// until #1097 `COLLECTION_RENAMES` sent the alias tier to `color`, the name its collection carried
+// between #1013 and #1089. The plan writes `color.surface`. So the pre-pass renamed the designer's
+// `surface` collection to `color`, `applySurfacePlan` created a FRESH `color.surface` beside it, and
+// every variable and binding in the original was stranded in a collection nothing walks — reported by
+// nothing, because each executor only walks the collection it wrote.
+//
+// #1097 retargets the entry to `surface` → `color.surface` and both tiers migrate end to end again. Two
+// things came out of that worth keeping in view here: the entry's `since` stays `0.26.0` (the version
+// that retired the NAME `surface`, not the version that fixed where it points), and the retarget also
+// removed the map's only chain, so `planCollectionRenames`'s ordering is now covered by a fixture in
+// `packages/engine/test.ts` rather than by this data.
+//
+// **What is still not migratable is the `core-*` → `core` fan-in, and that is not the same defect.**
+// Three collections onto one is refused statically by `validateRenameMap`, and underneath that Figma has
+// no operation to perform at all: `Variable.variableCollectionId` is `readonly`
+// (`@figma/plugin-typings/plugin-api.d.ts:11454`), so no rename can re-parent a variable. A designer's
+// pre-#1097 `core-palette`/`core-dimension`/`core-font` collections stay put beside a fresh `core`,
+// reported by nothing. That half of #1108 is accepted, and `packages/engine/test.ts` asserts it by name
+// so a green suite records the hole instead of implying coverage.
+ok(swapValueChild.name === nbVar('color/appearance/background/primary') && swapValueChild.variableCollectionId === swapValue.id,
   `#1013 the value-tier variable was RENAMED IN PLACE — same id, new name (${swapValueChild.name}) — so every binding a designer made against it still resolves`);
-ok(swapAliasChild.name === 'color/background/primary' && swapAliasChild.variableCollectionId === swapAlias.id,
-  `#1013 and the alias-tier variable took the short name the value tier vacated (${swapAliasChild.name}), also by id — the two rules fired in two different collections, each keyed to its tier's NEW name`);
-// THE COUNT IS THE ARM. Migrated: 236 + 122. Orphaned-and-recreated: 237 + 123, with the extra one in
+ok(swapAliasChild.name === nbVar('color/background/primary') && swapAliasChild.variableCollectionId === swapAlias.id,
+  `#1013 and the alias-tier variable took the tail the value tier vacated (${swapAliasChild.name}), also by id — the two rules fired in two different collections, each keyed to its tier's NEW name`);
+// THE COUNT IS THE ARM. Migrated: 242 + 128. Orphaned-and-recreated: 243 + 129, with the extra one in
 // each holding the live bindings and no plan row left to keep it alive.
 ok(inValue.length === plan.color.create.length && inAlias.length === surfacePlan.create.length,
   `#1013 exactly ${plan.color.create.length} + ${surfacePlan.create.length} variables afterwards (got ${inValue.length} + ${inAlias.length}) — a collection pre-pass with no variable half leaves ONE MORE in each: the designer's original, orphaned beside a fresh create`);
+// AND NEITHER PRE-#1013 NAME SURVIVES, which is the arm that would have caught the stranding on its own.
+// A rename target that has drifted behind a plan's collection name leaves the designer's collection AND a
+// fresh one — and every count above still passes, because the fresh collection holds exactly the planned
+// rows. `core` is here legitimately: `applyWritePlan` writes the palette primitives too, so the count is
+// not the check. The check is that no collection is still called `color` or `surface`, and that the two
+// colour collections are the designer's originals by id.
+ok(!swapShim.collections.some((c) => c.name === 'color' || c.name === 'surface')
+  && swapValueCol.id === swapValue.id && swapAliasCol.id === swapAlias.id,
+  `#1108 both of the designer's collections were renamed IN PLACE, by id, and no pre-#1013 name is left behind (${swapShim.collections.map((c) => c.name).join(', ')}) — a leftover \`surface\` beside a fresh \`color.surface\` is the stranding, and every count in this block passes through it`);
 ok(swapRes.orphans.every((o) => o.names.length === 0) && swapSurf.orphans.length === 0,
   '#1013 and neither executor reports an orphan — the migration is total, not partial-with-a-report');
 const swapMoved = swapPass.outcomes.filter((o) => o.kind === 'variable' && o.status === 'migrated');
 ok(swapMoved.length === 2
-  && swapMoved.some((o) => o.from === 'color/background/primary' && o.to === 'color/appearance/background/primary')
-  && swapMoved.some((o) => o.from === 'surface/background/primary' && o.to === 'color/background/primary'),
+  && swapMoved.some((o) => o.from === 'color/background/primary' && o.to === nbVar('color/appearance/background/primary'))
+  && swapMoved.some((o) => o.from === 'surface/background/primary' && o.to === nbVar('color/background/primary')),
   `#1013 both moves are REPORTED by name, one per rule (${swapMoved.map((o) => `${o.from}→${o.to}`).join(', ')}) — and only those two, so a rule that over-reached would show up as a third`);
 ok(swapRes.misses.length === 0 && swapSurf.misses.length === 0,
   '#1013 and the writes themselves are unaffected — zero unresolved bindings across both tiers');
@@ -479,7 +569,7 @@ ok(swapRes.misses.length === 0 && swapSurf.misses.length === 0,
 const ghostRule = [{
   id: 'synthetic-disarm', since: '9.9.9',
   domain: (c: string, n: string) => c === 'color.appearance' && n === 'color/ghost',
-  map: () => 'color/appearance/text/primary',
+  map: () => nbVar('color/appearance/text/primary'),
 }];
 const disarmShim = new VariablesShim();
 disarmShim.createVariableCollection('legacy-x');
@@ -503,7 +593,7 @@ const armedGhost = armedShim.createVariable('color/ghost', armedTarget);
 const armedPass = await beginMigration(armedShim as any, { collections: [], variables: [] }, ghostRule);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 await applyWritePlan(plan, armedShim as any, armedPass);
-ok(armedPass.refusals.length === 0 && armedGhost.name === 'color/appearance/text/primary',
+ok(armedPass.refusals.length === 0 && armedGhost.name === nbVar('color/appearance/text/primary'),
   `#1013 and with nothing refused the very same rule DOES move it (${armedGhost.name}) — so the arm above measures the disarming, not a rule that was never going to fire`);
 
 // (viii) #1056 THE HALF-MIGRATED FILE — a run interrupted, or a designer who renamed one variable by
@@ -515,7 +605,11 @@ ok(armedPass.refusals.length === 0 && armedGhost.name === 'color/appearance/text
 const halfShim = new VariablesShim();
 const halfCol = halfShim.createVariableCollection('color.appearance');
 const halfOld = halfShim.createVariable('color/background/primary', halfCol);
-const halfNew = halfShim.createVariable('color/appearance/background/primary', halfCol);
+// The NEW spelling is ROOTED (#1097) and the old one is not, which is what a half-migrated file actually
+// holds: an un-rooted `color/appearance/*` is not a post-migration name, it is a name one era short, and
+// seeding it there would make BOTH sources compose onto one target and report `ambiguous-source` — a
+// different refusal than the one this arm is about.
+const halfNew = halfShim.createVariable(nbVar('color/appearance/background/primary'), halfCol);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
 const halfPass = await beginMigration(halfShim as any);
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
@@ -523,8 +617,8 @@ const halfRes = await applyWritePlan(plan, halfShim as any, halfPass);
 const halfOutcome = halfPass.outcomes.find((o) => o.kind === 'variable' && o.from === 'color/background/primary');
 ok(halfOutcome?.status === 'target-occupied',
   `#1056 both spellings live → target-occupied, reported by name (got ${halfOutcome?.status ?? 'NO OUTCOME AT ALL'})`);
-ok(halfOld.name === 'color/background/primary' && halfNew.name === 'color/appearance/background/primary'
-  && halfShim.vars.filter((v) => v.name === 'color/appearance/background/primary').length === 1,
+ok(halfOld.name === 'color/background/primary' && halfNew.name === nbVar('color/appearance/background/primary')
+  && halfShim.vars.filter((v) => v.name === nbVar('color/appearance/background/primary')).length === 1,
   '#1056 and NEITHER moved — one variable with the new name, still the original, and the old one left exactly as the designer left it');
 ok(halfRes.orphans.find((o) => o.name === 'color.appearance')!.names.includes('color/background/primary'),
   '#1056 the un-migratable name falls through to the ORPHAN report, so a refusal here is still something the designer is told about');

@@ -20,7 +20,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { brandTheme, Theme } from './theme';
+import { brandTheme, Theme, CORE_TIER } from './theme';
 import { nbTheme } from './nb-fixture';
 import { readExampleBrand } from './emit-dtcg';
 import { resolvePreview } from './resolve-preview';
@@ -74,13 +74,13 @@ for (const b of brands) {
   // ---- colour primitives ----
   txt.push('\n— COLOUR PRIMITIVES —');
   html.push('<h3>Color primitives</h3>');
-  const palettes = Object.keys(data.palette).filter((k) => k !== 'white' && k !== 'black');
+  const palettes = Object.keys(data.core.palette).filter((k) => k !== 'white' && k !== 'black');
   for (const pal of palettes) {
-    const steps = STEP_ORDER(Object.keys(data.palette[pal]));
+    const steps = STEP_ORDER(Object.keys(data.core.palette[pal]));
     txt.push(`\n  ${pal}`);
     html.push(`<div class="palette"><div class="plabel">${esc(pal)}</div><div class="ramp">`);
     for (const k of steps) {
-      const node = data.palette[pal][k];
+      const node = data.core.palette[pal][k];
       const hex = hexOf(tree, node);
       const anchor = node.$extensions?.prism3?.anchor;
       txt.push(`    ${(pal + '.' + k).padEnd(18)} ${hex}${anchor ? '   ← brand anchor' : ''}`);
@@ -129,7 +129,7 @@ for (const b of brands) {
       const node = m === 'light' ? roleNode : overrides[m];       // light = canonical $value; others in $extensions.modes
       if (!node) { html.push('<td class="cell"><small>—</small></td>'); continue; }
       const hex = hexOf(tree, node);
-      const tgt = aliasTarget(node).replace(`${root}.palette.`, '');
+      const tgt = aliasTarget(node).replace(`${root}.${CORE_TIER}.palette.`, '');
       const ratio = m === 'light' ? roleNode.$extensions?.prism3?.contrast : node.contrast;
       txt.push(`    ${m.padEnd(9)} → ${tgt.padEnd(14)} ${hex}${ratio ? `  (${ratio}:1)` : ''}`);
       html.push(`<td class="cell" style="background:${hex};color:${textOn(hex)}"><span>${tgt}</span><small>${hex}${ratio ? ` · ${ratio}:1` : ''}</small></td>`);
@@ -139,7 +139,7 @@ for (const b of brands) {
   html.push('</tbody></table>');
 
   // ---- dimension axis ----
-  const grid = STEP_ORDER(Object.keys(data.dimension)).map(Number);
+  const grid = STEP_ORDER(Object.keys(data.core.dimension)).map(Number);
   txt.push('\n— DIMENSION GRID (px) —\n  ' + grid.join(', '));
   html.push(`<h3>Dimension grid <span class="muted">${grid.length} primitives</span></h3><div class="bars">`);
   for (const px of grid) html.push(`<div class="barrow"><span class="bk">${px}</span><div class="bar" style="width:${Math.min(px, 200)}px"></div></div>`);
@@ -216,26 +216,26 @@ for (const b of brands) {
   html.push('<h3>Font primitives <span class="muted">families · weight roles · line-height · tracking · size ladder</span></h3>');
   html.push('<div class="fontprim">');
   html.push('<div class="fpcol"><div class="fplabel">families</div>');
-  for (const k of Object.keys(data.font.family)) {
-    const fam = familyOf(tree, data.font.family[k]);
+  for (const k of Object.keys(data.core.font.family)) {
+    const fam = familyOf(tree, data.core.font.family[k]);
     html.push(`<div class="fpline" style="font-family:${fam}">${k} — ${esc(fam.split(',')[0])}</div>`);
   }
   html.push('</div>');
   html.push('<div class="fpcol"><div class="fplabel">weight roles</div>');
-  for (const k of Object.keys(data.font['weight-role'])) {
-    const w = numOf(tree, data.font['weight-role'][k]);
+  for (const k of Object.keys(data.core.font['weight-role'])) {
+    const w = numOf(tree, data.core.font['weight-role'][k]);
     html.push(`<div class="fpline" style="font-weight:${w}">${k} — ${w}</div>`);
   }
   html.push('</div>');
   html.push('<div class="fpcol"><div class="fplabel">line-height</div>');
-  for (const k of Object.keys(data.font['line-height'])) html.push(`<div class="fpline">${k} — ${data.font['line-height'][k].$value}</div>`);
+  for (const k of Object.keys(data.core.font['line-height'])) html.push(`<div class="fpline">${k} — ${data.core.font['line-height'][k].$value}</div>`);
   html.push('</div>');
   html.push('<div class="fpcol"><div class="fplabel">tracking</div>');
-  for (const k of Object.keys(data.font['letter-spacing'])) html.push(`<div class="fpline">${k} — ${data.font['letter-spacing'][k].$value}</div>`);
+  for (const k of Object.keys(data.core.font['letter-spacing'])) html.push(`<div class="fpline">${k} — ${data.core.font['letter-spacing'][k].$value}</div>`);
   html.push('</div></div>');
   html.push('<div class="bars" style="margin-top:8px">');
-  for (const k of Object.keys(data.font.size)) {
-    const px = data.font.size[k].$extensions?.prism3?.px ?? remPxOf(tree, data.font.size[k]);
+  for (const k of Object.keys(data.core.font.size)) {
+    const px = data.core.font.size[k].$extensions?.prism3?.px ?? remPxOf(tree, data.core.font.size[k]);
     html.push(`<div class="barrow"><span class="bk">${k}</span><div class="bar fs" style="width:${Math.min(px, 200)}px"></div><span class="bv">${px}px</span></div>`);
   }
   html.push('</div>');
@@ -270,7 +270,7 @@ for (const b of brands) {
         ? `radial-gradient(${ext.shape} at ${Math.round(ext.center[0] * 100)}% ${Math.round(ext.center[1] * 100)}%, ${stopList})`
         : `linear-gradient(${ext.angle}deg, ${stopList})`;
       const aa = ext.a11y ?? {};
-      const stopAliases = (node.$value as any[]).map((s) => `${String(s.color).replace(/^\{|\}$/g, '').replace(`${root}.palette.`, '')} ${Math.round(s.position * 100)}%`).join(' → ');
+      const stopAliases = (node.$value as any[]).map((s) => `${String(s.color).replace(/^\{|\}$/g, '').replace(`${root}.${CORE_TIER}.palette.`, '')} ${Math.round(s.position * 100)}%`).join(' → ');
       txt.push(`  gradient.${k.padEnd(8)} ${ext.kind}${ext.kind === 'linear' ? ` ${ext.angle}°` : ''} · ${stopAliases} · worst-on-white ${aa.worstOnWhite}:1`);
       html.push(`<div class="gradrow"><div class="gradmeta"><b>${k}</b><span>${ext.kind}${ext.kind === 'linear' ? ` · ${ext.angle}°` : ` · ${ext.shape}`} · ${ext.interpolation}</span><span class="tfam">${esc(stopAliases)}</span><span class="gradaa">text-on: white ${aa.worstOnWhite}:1 · black ${aa.worstOnBlack}:1${Math.min(aa.worstOnWhite, aa.worstOnBlack) < 4.5 ? ' · scrim for body text' : ''}</span></div>`);
       html.push(`<div class="gradpair"><div class="gradcell"><div class="gradbox" style="background:${css}"></div><small>OKLCH (web)</small></div><div class="gradcell"><div class="gradbox" style="background:${srgbCss}"></div><small>sRGB ${samp.length}-stop (Figma)</small></div></div>`);

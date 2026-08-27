@@ -168,11 +168,26 @@
  * reproduction of #801 against a built file is still unrun.
  */
 
+/**
+ * MUTATION-VERIFIED BY NAME, after #1097 moved the names this gate resolves (see `floatVars`).
+ *
+ *   · `anatomy-figma.ts`'s `absoluteInset: varOf(p.inset)` → a tail that does not exist
+ *       → 42 "is not a FLOAT" failures. The tail lookup still fails on a genuinely absent name;
+ *         it did not become permissive by matching loosely.
+ *   · `button.ts`'s `'ring-offset': 'focus.ring.offset'` → `'focus.ring.offset-field'` (value 0)
+ *       → 9 failures naming the zero gap and WCAG 2.4.11. This is the arm that matters, and it is
+ *         the arm that was DEAD: under the pre-fix lookup the header printed "0 (part × brand) gap
+ *         check(s)" and this mutation would have changed nothing. The vacuity report is what caught
+ *         it — an arm that runs zero checks is not a pass, and the count in the header is there so a
+ *         reader can see the difference between 0 and 42 without running a mutation to find out.
+ */
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { componentDefs } from './components/index';
 import { figmaAnatomyPlan, type AnatomyPlan, type FigmaNodePlan } from './anatomy-figma';
 import type { ComponentDef } from './component-schema';
+// The positional, brand-invariant read layer (#1097) — a gate must not spell a brand's root either.
+import { tailOf } from './figma-names';
 
 const OUT_FIGMA = join(import.meta.dirname, 'out', 'figma');
 
@@ -233,17 +248,44 @@ const brands = (): string[] =>
     ? readdirSync(OUT_FIGMA, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort()
     : [];
 
-/** Every FLOAT a brand's committed Figma export defines, name → value. */
+/**
+ * Every FLOAT a brand's committed Figma export defines, keyed by TAIL → value.
+ *
+ * BY TAIL, NOT BY FULL NAME, and this is a plan-meets-file boundary rather than a convenience. Since
+ * #1097 the export names every variable `<root>/focus/ring/offset`, while a plan's `absoluteInset` is
+ * root-RELATIVE (`focus/ring/offset`) because a plan is brand-agnostic — the same plan is pasted into
+ * `prism`, `nbds` and `wendys` files. Keying by full name made every lookup below miss and the gate
+ * reported 45 "not a FLOAT" failures against variables that are all present.
+ *
+ * The tail must be unique or the lookup is ambiguous, so that is ASSERTED rather than assumed: all of a
+ * brand's variables share one root, so a duplicate tail means two variables with the same full name,
+ * and a silent last-one-wins here would resolve a gap against the wrong value. `write-components.ts`
+ * reports the same condition as `AMBIGUOUS variable tail` at its own boundary.
+ */
 const floatVars = (brand: string): Map<string, number> => {
-  const byName = new Map<string, number>();
+  const byTail = new Map<string, number>();
+  const seen = new Map<string, string>();
   for (const f of readdirSync(join(OUT_FIGMA, brand)).filter((n) => n.endsWith('.json'))) {
     const doc = JSON.parse(readFileSync(join(OUT_FIGMA, brand, f), 'utf8')) as {
       variables?: Array<{ name: string; resolvedType?: string; value?: unknown }>;
     };
-    for (const v of doc.variables ?? [])
-      if (v.resolvedType === 'FLOAT' && typeof v.value === 'number') byName.set(v.name, v.value);
+    for (const v of doc.variables ?? []) {
+      if (v.resolvedType !== 'FLOAT' || typeof v.value !== 'number') continue;
+      const tail = tailOf(v.name);
+      const prior = seen.get(tail);
+      if (prior !== undefined && prior !== v.name) {
+        throw new Error(
+          `AMBIGUOUS variable tail in brand '${brand}': '${tail}' is the tail of both '${prior}' and ` +
+            `'${v.name}', so a root-relative plan name cannot be resolved to one variable. A plan is ` +
+            'brand-agnostic and binds by tail; two variables sharing one is a naming defect, not something ' +
+            'for this gate to pick a winner for.',
+        );
+      }
+      seen.set(tail, v.name);
+      byTail.set(tail, v.value);
+    }
   }
-  return byName;
+  return byTail;
 };
 
 /** Every node in a plan, WITH its parent — the parent is half of what an inset means, so a walk

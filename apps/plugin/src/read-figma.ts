@@ -1,10 +1,17 @@
 /**
  * Prism3 Figma plugin — the MAIN-THREAD read adapter (docs/22 Phase 4 / #109).
  *
- * The inverse of `write-figma.ts`'s `applyWritePlan`: reads the current file's `core-palette` +
- * `color` collections back out of `figma.variables.*` into a host-neutral `ReadbackSnapshot`
+ * The inverse of `write-figma.ts`'s `applyWritePlan`: reads the current file's `core` +
+ * `color.appearance` collections back out of `figma.variables.*` into a host-neutral `ReadbackSnapshot`
  * (engine `read-back.ts`). Two uses: (a) seed the shared UI from an existing themed file at #110,
  * and (b) feed the pure `verifyReadback` so the materialisation contract can be checked live.
+ *
+ * A COLLECTION NO LONGER IDENTIFIES AN AXIS (#1097). The palette, dimension and font primitives share
+ * one `core` collection, so every partition below is by AXIS KEY — a collection name, or `core/<group>`
+ * for one slice of it — resolved through the engine's `figma-names.ts`. Reading `core` wholesale would
+ * put 38 dimension and 39 font variables into `snapshot.palette`, flip `primitivesHidden` on whichever
+ * group happened to be unhidden, and make every float alias resolve against font names. And nothing here
+ * spells a brand root: the un-merge is positional, so it holds for a client namespace we have never seen.
  *
  * Uses the async getters required under `documentAccess:"dynamic-page"`
  * (`getLocalVariableCollectionsAsync` / `getLocalVariablesAsync`) — the same ones `applyWritePlan`
@@ -16,6 +23,7 @@
  * shim (see `apps/plugin/test-readback.ts`).
  */
 import type { ReadbackSnapshot, ReadValue } from '@prism3/engine/read-back';
+import { axisSource, inAxis } from '@prism3/engine/figma-names';
 import type { VariablesApi, VariableAlias, ReadVarValue } from './write-figma';
 
 /** The minimal styles-read surface (shadow/gradient + typography lanes) — the style-name getters.
@@ -36,10 +44,11 @@ const isRgb = (v: ReadVarValue): v is { r: number; g: number; b: number; a?: num
   typeof v === 'object' && v !== null && 'r' in v;
 
 /**
- * Read the live colour variables into a `ReadbackSnapshot`. Only the two colour collections
- * (`core-palette` + `color.appearance`) are read — the scope this lane materialises. Vars in other
- * collections are ignored. An alias whose target var can't be found is surfaced as `{ alias: null }`
- * rather than a fabricated name, so `verifyReadback`'s dangling-alias check stays honest.
+ * Read the live colour variables into a `ReadbackSnapshot`. Only the two colour axes (`core/palette` +
+ * `color.appearance`) are read — the scope this lane materialises. Vars in other collections, and in the
+ * other groups of the `core` collection, are ignored here and read by their own axis below. An alias whose
+ * target var can't be found is surfaced as `{ alias: null }` rather than a fabricated name, so
+ * `verifyReadback`'s dangling-alias check stays honest.
  *
  * `color.appearance` and not `color` since #1013 — the value tier is what `verifyReadback` checks, and
  * it is the tier that carries the appearance modes and the palette aliases. The alias tier that took the
@@ -55,12 +64,14 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
   const allVars = await vars.getLocalVariablesAsync();
   const nameById = new Map(allVars.map((v) => [v.id, v.name] as const));
 
-  const palCol = collections.find((c) => c.name === 'core-palette');
+  const PALETTE_AXIS = 'core/palette';
+  const palCol = collections.find((c) => c.name === axisSource(PALETTE_AXIS).collection);
   const colCol = collections.find((c) => c.name === 'color.appearance');
 
+  const inPalette = inAxis(PALETTE_AXIS);
   const palette = palCol
     ? allVars
-        .filter((v) => v.variableCollectionId === palCol.id)
+        .filter((v) => v.variableCollectionId === palCol.id && inPalette(v.name))
         .map((v) => ({ name: v.name, scopes: v.scopes, hidden: v.hiddenFromPublishing }))
     : [];
 
@@ -82,17 +93,18 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
         })
     : [];
 
-  // FLOAT axes (#146) — the geometric/dimensional collections. Read each present collection into the
-  // same per-mode shape as colour (alias → target NAME, literal → the numeric value as an Rgba-less
-  // ReadValue). Keyed by collection name so `verifyFloatReadback` can check presence + resolution.
-  const FLOAT_COLLECTIONS = ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+  // FLOAT axes (#146) — the geometric/dimensional axes. Read each present one into the same per-mode
+  // shape as colour (alias → target NAME, literal → the numeric value as an Rgba-less ReadValue). Keyed
+  // by axis key so `verifyFloatReadback` can check presence + resolution.
+  const FLOAT_AXES = ['core/dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   const float: NonNullable<ReadbackSnapshot['float']> = {};
-  for (const name of FLOAT_COLLECTIONS) {
-    const coll = collections.find((c) => c.name === name);
+  for (const key of FLOAT_AXES) {
+    const coll = collections.find((c) => c.name === axisSource(key).collection);
     if (!coll) continue;
+    const owns = inAxis(key);
     const modeNameF = new Map(coll.modes.map((m) => [m.modeId, m.name] as const));
-    float[name] = allVars
-      .filter((v) => v.variableCollectionId === coll.id)
+    float[key] = allVars
+      .filter((v) => v.variableCollectionId === coll.id && owns(v.name))
       .map((v) => {
         const valuesByMode: Record<string, ReadValue> = {};
         for (const [modeId, mName] of modeNameF) {
@@ -106,16 +118,17 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
       });
   }
 
-  // TYPOGRAPHY (#237) — the `core-font`/`type-sets` collections, same per-mode shape as FLOAT (family
-  // STRING values are surfaced as strings; weight-role aliases → target NAME). Keyed by collection name.
-  const FONT_COLLECTIONS = ['core-font', 'type-sets'];
+  // TYPOGRAPHY (#237) — the `core/font`/`type-sets` axes, same per-mode shape as FLOAT (family STRING
+  // values are surfaced as strings; weight-role aliases → target NAME). Keyed by axis key.
+  const FONT_AXES = ['core/font', 'type-sets'];
   const font: NonNullable<ReadbackSnapshot['font']> = {};
-  for (const name of FONT_COLLECTIONS) {
-    const coll = collections.find((c) => c.name === name);
+  for (const key of FONT_AXES) {
+    const coll = collections.find((c) => c.name === axisSource(key).collection);
     if (!coll) continue;
+    const owns = inAxis(key);
     const modeNameF = new Map(coll.modes.map((m) => [m.modeId, m.name] as const));
-    font[name] = allVars
-      .filter((v) => v.variableCollectionId === coll.id)
+    font[key] = allVars
+      .filter((v) => v.variableCollectionId === coll.id && owns(v.name))
       .map((v) => {
         const valuesByMode: Record<string, ReadValue> = {};
         for (const [modeId, mName] of modeNameF) {

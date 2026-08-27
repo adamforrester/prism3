@@ -40,8 +40,17 @@
  *       each a standalone `{$collection,$mode,variables[]}` with the mode's own value inlined.
  *       Figma's model is the transpose: ONE variable carrying `valuesByMode[modeId]` for every mode.
  *       So per-mode files must be joined per variable name. This is exactly #697's three-axis
- *       problem in executable form, and the join is only well-defined because every mode file of a
- *       collection carries the IDENTICAL variable name-set (asserted below, not hoped for).
+ *       problem in executable form.
+ *
+ *       The join's soundness condition has TWO halves, and until #1097 one file per (collection,
+ *       mode) made them look like one. `core.palette.json` / `core.dimension.json` /
+ *       `core.font.json` now all declare `$collection: 'core'` and `$mode: 'Default'` — three files,
+ *       ONE mode, DISJOINT name-sets. So the halves are: (a) ACROSS modes, every mode of a
+ *       collection carries the same name-set, or a variable would be missing a value in some mode;
+ *       (b) WITHIN a mode, no two files define the same name, or one value silently wins. Both are
+ *       asserted below, not hoped for. Reading the file list as the mode list instead conflates
+ *       them — it makes `core` a three-mode collection and reports all 238 of its variables as
+ *       missing values in modes that do not exist.
  *
  *   W3. THREE "COLLECTIONS" ARE NOT VARIABLE COLLECTIONS AT ALL.
  *       `text-styles.json`, `shadow-styles.json` and `gradient-styles.json` have no `variables[]` —
@@ -122,8 +131,10 @@ export type Adapted = {
 
 export type AdaptationNotes = {
   brand: string;
-  /** collection name -> the mode names joined into it (W2). */
+  /** collection name -> the DISTINCT mode names joined into it (W2); several files may share one. */
   modeAxes: Record<string, string[]>;
+  /** `collection: name @mode` where two files of one mode both defined it — must be 0 (W2). */
+  overwrittenModeValues: string[];
   /** How many aliases were rewritten from a name to a synthetic id (W1). */
   aliasesRebound: number;
   /** Alias names with no matching variable — must be 0 or the mapping is ambiguous (W1). */
@@ -195,6 +206,7 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
   const notes: AdaptationNotes = {
     brand,
     modeAxes: {},
+    overwrittenModeValues: [],
     aliasesRebound: 0,
     unresolvedAliasNames: [],
     duplicateVariableNames: [],
@@ -233,7 +245,14 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
   const knownNames = new Set(nameToCollection.keys());
 
   for (const [collName, group] of [...varGroups].sort((a, b) => a[0].localeCompare(b[0]))) {
-    const modeNames = group.map((f) => f.$mode ?? 'Default');
+    // A collection's mode axis is the DISTINCT `$mode` values across its files, not one entry per
+    // file (#1097). Since the core fan-in, `core.palette.json` / `core.dimension.json` /
+    // `core.font.json` all declare `$collection: 'core'` AND `$mode: 'Default'` — one mode, three
+    // files. Pushing three `Default`s makes `core` a three-mode collection whose variables each
+    // carry one value, which W2 below then reports as 238 unsound variables. `axes.ts`'s
+    // `censusFromEmission` already takes the union for the same reason; this is the second place a
+    // mode list is built from filenames and it was missed.
+    const modeNames = [...new Set(group.map((f) => f.$mode ?? 'Default'))];
     notes.modeAxes[collName] = modeNames;
 
     const collectionId = collectionIdFor(collName);
@@ -264,6 +283,14 @@ export const adaptBrand = (brand: string, figmaDir: string): Adapted => {
           };
           if (v.codeSyntax) adapted.codeSyntax = v.codeSyntax;
           byName.set(v.name, adapted);
+        }
+
+        // W2's second half, and the one the dedupe above would otherwise have taken away: files
+        // sharing a mode UNION their name-sets, so two of them defining the same name means one
+        // value silently wins. Recorded here rather than inferred later, because after the write
+        // the loser is gone.
+        if (modeId in adapted.valuesByMode) {
+          notes.overwrittenModeValues.push(`${collName}: ${v.name} @${f.$mode ?? 'Default'}`);
         }
 
         // W1 — an alias by NAME becomes an alias by synthetic ID.
@@ -448,6 +475,13 @@ export const assertAdaptable = (a: Adapted): void => {
     throw new Error(
       `W1 unsound: ${a.notes.duplicateVariableNames.length} variable name(s) appear in more than one ` +
         `collection, so a name cannot be mapped to one id: ${a.notes.duplicateVariableNames.slice(0, 5).join(', ')}`
+    );
+  }
+  if (a.notes.overwrittenModeValues.length) {
+    throw new Error(
+      `W2 unsound: ${a.notes.overwrittenModeValues.length} variable(s) were defined twice for the SAME ` +
+        `mode by two files of one collection, so one value silently won: ` +
+        `${a.notes.overwrittenModeValues.slice(0, 5).join(', ')}`
     );
   }
   for (const c of a.collections) {

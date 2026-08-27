@@ -11,8 +11,16 @@
  * fiddly to hand-roll — this shell makes it one deterministic `tsx` invocation.
  *
  * It encodes the hard-won materialisation rules (see docs/10 §3 + the #84 round-trip):
- *   - **Collection ordering** — `core-palette` (primitives) first; the `color.appearance` collection's
+ *   - **Collection ordering** — `core/palette` (primitives) first; the `color.appearance` collection's
  *     aliases can only bind once the palette var IDs exist.
+ *   - **A COLLECTION NO LONGER IDENTIFIES AN AXIS (#1097).** The palette, dimension and font primitives
+ *     share one `core` collection, so every pass and every report below is keyed by AXIS — a collection
+ *     name, or `core/<group>` for one slice of it. Three passes write `core`; that is fine for
+ *     create-or-update-by-name, which only ever looks its own rows up. It is NOT fine for `verify`'s
+ *     orphan diff, which subtracts a name set and would report the other two slices as orphans.
+ *   - **Variable names carry the brand root (#1097).** `nbds/color/appearance/background/primary`, not
+ *     `color/appearance/background/primary`. `verify` therefore indexes by TAIL, so the contract names
+ *     it states stay literal and the one segment it cannot know stays unspelled.
  *   - **Two-pass colour write** — pass A creates every var + literal fallback values in all
  *     modes; pass B rebinds aliases. Alias targets must exist before binding.
  *   - **PER-MODE alias binding** — pass B binds *each mode to its own target* (the #84
@@ -51,9 +59,9 @@
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify
  *
- * Scope: ALL FIVE write axes the plugin executor writes — colour (`core-palette` + `color.appearance`,
+ * Scope: ALL FIVE write axes the plugin executor writes — colour (`core/palette` + `color.appearance`,
  * renamed from `color` by #1013 and NOT the surface alias tier, which this path has never written), the ten
- * FLOAT collections (#342), and as of #464 the typography variables (`core-font` + `type-sets`), the
+ * FLOAT collections (#342), and as of #464 the typography variables (`core/font` + `type-sets`), the
  * Text Styles, and the Effect/Paint styles. The five-vs-two asymmetry is the reason the last three
  * landed: this CLI is the ONLY write path an MCP-driven session can use, so an agent could theme a
  * file over MCP and get every colour and dimension and no typography at all. `test.ts` now asserts
@@ -63,6 +71,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import type { FigmaCollectionFile } from './emit-figma';
+import { CORE_COLLECTION } from './emit-figma-color';
+import { ownedCoreGroup } from './figma-names';
 import { buildWritePlan, floatPlanFor, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import type { WritePlan, FloatCollectionPlan, VarCollectionPlan, StylesPlan, TextStylePlan } from './write-plan';
 import type { FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
@@ -73,6 +83,21 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 // Canonical mode order (matches emit-figma's COLOR_MODES); wireframe is opt-in and only
 // present for brands that generate it.
 const MODE_ORDER = ['light', 'dark', 'hc-light', 'hc-dark', 'wireframe'] as const;
+
+/**
+ * The AXIS a plan owns: its collection name, or `core/<group>` when the plan owns one slice of the
+ * merged `core` collection (#1097).
+ *
+ * Every paste report below used to key on the collection, which identified the axis exactly. Since
+ * `core-palette`/`core-dimension`/`core-font` became one `core` collection it does not: three passes
+ * would each report `collection:'core'` with a different total, and the `verify` pass's `orphans` map
+ * would have COLLIDED on the key had it reported more than one of them. Derived from the plan's own
+ * row names, positionally, so nothing here spells a brand root.
+ */
+const axisLabel = (collection: string, planned: readonly string[]): string => {
+  const group = ownedCoreGroup(planned);
+  return group === null ? collection : `${collection}/${group}`;
+};
 
 // Compact scope codes — keep the colour payload inside the figma_execute budget. Decoded
 // back to the Figma enum inside the generated plugin JS (SC map below must mirror this).
@@ -121,7 +146,7 @@ const colourModes = (brand: string): string[] =>
 // aliases / hidden flags — they can't drift.
 const planFor = (brand: string): WritePlan =>
   buildWritePlan({
-    palette: load(brand, 'core-palette.json'),
+    palette: load(brand, 'core.palette.json'),
     color: colourModes(brand).map((m) => load(brand, `color.appearance.${m}.json`)),
   });
 
@@ -140,28 +165,34 @@ const planFor = (brand: string): WritePlan =>
 // plugin path uses, so the two still can't drift.
 //
 // Order matters for the same reason it does in colour: a collection whose aliases point at
-// `core-dimension` / `space` can only bind once those variables exist.
-const FLOAT_AXES: { collection: string; modes: string[] | null }[] = [
-  { collection: 'core-dimension', modes: null },
-  { collection: 'space', modes: null },
-  { collection: 'radius', modes: ['Default', 'wireframe'] }, // per-mode only for a wireframe brand
-  { collection: 'size', modes: null },
-  { collection: 'icon', modes: null },
-  { collection: 'control', modes: null },
-  { collection: 'border-width', modes: null },
-  { collection: 'focus', modes: null },
-  { collection: 'opacity', modes: null },
-  { collection: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
+// the `core` dimension primitives / `space` can only bind once those variables exist.
+//
+// `stem` is the FILE stem, not the collection (#1097). The dimension primitives now live in the one
+// `core` collection alongside palette and font, so `core.dimension.json` declares
+// `$collection: 'core'` and the two names have diverged. Every axis is keyed on the stem because that
+// is what this shell can find on disk, and the collection is read back off the loaded artifact — so a
+// future collection rename needs no edit here and cannot leave a stale literal behind.
+const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
+  { stem: 'core.dimension', modes: null },
+  { stem: 'space', modes: null },
+  { stem: 'radius', modes: ['Default', 'wireframe'] }, // per-mode only for a wireframe brand
+  { stem: 'size', modes: null },
+  { stem: 'icon', modes: null },
+  { stem: 'control', modes: null },
+  { stem: 'border-width', modes: null },
+  { stem: 'focus', modes: null },
+  { stem: 'opacity', modes: null },
+  { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
 ];
 
-/** The files backing one float axis, in mode order. A single-mode axis is `<name>.json`; a
- *  multi-mode axis is `<name>.<mode>.json` — except radius, which emits the single-file form when
+/** The files backing one float axis, in mode order. A single-mode axis is `<stem>.json`; a
+ *  multi-mode axis is `<stem>.<mode>.json` — except radius, which emits the single-file form when
  *  the brand hasn't opted into wireframe (docs/11 Pillar 1b), so BOTH shapes are probed. */
-const floatFiles = (brand: string, axis: { collection: string; modes: string[] | null }): string[] => {
+const floatFiles = (brand: string, axis: { stem: string; modes: string[] | null }): string[] => {
   const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
-  const single = `${axis.collection}.json`;
+  const single = `${axis.stem}.json`;
   if (!axis.modes) return existsSync(at(single)) ? [single] : [];
-  const perMode = axis.modes.map((m) => `${axis.collection}.${m}.json`).filter((f) => existsSync(at(f)));
+  const perMode = axis.modes.map((m) => `${axis.stem}.${m}.json`).filter((f) => existsSync(at(f)));
   if (perMode.length) return perMode;
   return existsSync(at(single)) ? [single] : [];
 };
@@ -169,7 +200,10 @@ const floatFiles = (brand: string, axis: { collection: string; modes: string[] |
 const floatPlans = (brand: string): FloatCollectionPlan[] =>
   FLOAT_AXES.map((axis) => ({ axis, files: floatFiles(brand, axis) }))
     .filter(({ files }) => files.length > 0)
-    .map(({ axis, files }) => floatPlanFor(axis.collection, files.map((f) => load(brand, f))));
+    .map(({ files }) => {
+      const loaded = files.map((f) => load(brand, f));
+      return floatPlanFor(loaded[0].$collection, loaded);
+    });
 
 /** Exported so the suite can assert the paste path covers every axis the plugin path writes —
  *  the drift check that would have caught this gap when it opened. */
@@ -191,15 +225,20 @@ export const floatCollections = (brand: string): string[] => floatPlans(brand).m
 // `font-fluid/*` to already exist. `styles` is independent (Effect/Paint styles bind no variables),
 // so its position is a convention.
 
-/** `core-font` emits one file per mode (Phase D — same convention as `radius`), so BOTH the
- *  single-file `core-font.json` and the per-mode `core-font.<mode>.json` shapes are probed. A brand
- *  with no per-mode typography emits only the former. */
+/** The font primitives emit one file per mode (Phase D — same convention as `radius`), so BOTH the
+ *  single-file `core.font.json` and the per-mode `core.font.<mode>.json` shapes are probed. A brand
+ *  with no per-mode typography emits only the former.
+ *
+ *  The FILE STEM and the COLLECTION are two different names since #1097: the stem is
+ *  `core.<group>` (one file per group, so a reader of `out/figma/**` can still find the font
+ *  primitives by name) while every one of them declares `$collection: 'core'`. Nothing here spells
+ *  the collection — it is read back off the loaded file, below. */
 const fontFiles = (brand: string): { font: FigmaCollectionFile[]; fluid: FigmaCollectionFile[] } => {
   const at = (f: string) => resolve(HERE, `out/figma/${brand}/${f}`);
-  const single = 'core-font.json';
+  const single = 'core.font.json';
   // Mode names aren't known ahead of time here (they're the brand's appearance modes), so read the
   // per-mode files by the same MODE_ORDER the colour lane uses, then fall back to the single file.
-  const perMode = MODE_ORDER.map((m) => `core-font.${m}.json`).filter((f) => existsSync(at(f)));
+  const perMode = MODE_ORDER.map((m) => `core.font.${m}.json`).filter((f) => existsSync(at(f)));
   const font = perMode.length ? perMode : existsSync(at(single)) ? [single] : [];
   const fluid = FONT_FLUID_MODES.map((m) => `type-sets.${m}.json`).filter((f) => existsSync(at(f)));
   return { font: font.map((f) => load(brand, f)), fluid: fluid.map((f) => load(brand, f)) };
@@ -244,14 +283,19 @@ const decode=(c)=>[...c].map(x=>SC[x]);
 const cols=async()=>figma.variables.getLocalVariableCollectionsAsync();
 const findCol=async(n)=>(await cols()).find(c=>c.name===n);`;
 
-// ---- pass: palette (core-palette, one Default mode, literal values, hidden primitives) --
+// ---- pass: palette (the `core` collection's palette slice, one Default mode, literal values, hidden primitives) --
+// Writes into the SHARED `core` collection since #1097 — `have` is deliberately unscoped (every var in
+// the collection, including the dimension and font slices) because this loop only ever LOOKS UP its own
+// planned names, so a wider index costs nothing and misses nothing. The scoping that does matter is in
+// `verifyPass`'s orphan diff, which subtracts a name set and would call every other slice an orphan.
 const palettePass = (brand: string): string => {
   // row: [name, scopeCode, description, value, hidden]
   const P = planFor(brand).palette.map((r) => [r.name, encodeScopes(r.scopes), r.description, r.value, r.hidden ? 1 : 0]);
+  const AXIS = axisLabel(CORE_COLLECTION, planFor(brand).palette.map((r) => r.name));
   return `${PRELUDE}
 const P=${JSON.stringify(P)};
-let col=await findCol('core-palette');
-if(!col)col=figma.variables.createVariableCollection('core-palette');
+let col=await findCol(${JSON.stringify(CORE_COLLECTION)});
+if(!col)col=figma.variables.createVariableCollection(${JSON.stringify(CORE_COLLECTION)});
 const mode=col.modes[0].modeId;
 const have=new Map((await figma.variables.getLocalVariablesAsync()).filter(v=>v.variableCollectionId===col.id).map(v=>[v.name,v]));
 let created=0;
@@ -261,7 +305,7 @@ for(const [name,sc,desc,val,hidden] of P){
   v.scopes=decode(sc);v.description=desc;v.hiddenFromPublishing=!!hidden;
   v.setValueForMode(mode,val);
 }
-return {collection:'core-palette',total:P.length,created};
+return {collection:${JSON.stringify(CORE_COLLECTION)},axis:${JSON.stringify(AXIS)},total:P.length,created};
 `;
 };
 
@@ -418,9 +462,9 @@ return {bound,expected:A.length*MODES.length,misses};
 // without asking whoever pastes it to track ten separate steps.
 const dimsCreatePass = (brand: string): string => {
   const FSC = JSON.stringify(Object.fromEntries(Object.entries(FLOAT_SCOPE_CODE).map(([k, v]) => [v, k])));
-  // row: [collection, modes, [[name, scopeCode, description, hidden, [value per mode]]]]
+  // row: [collection, axis, modes, [[name, scopeCode, description, hidden, [value per mode]]]]
   const D = floatPlans(brand).map((p) => [
-    p.name, p.modes,
+    p.name, axisLabel(p.name, p.create.map((r) => r.name)), p.modes,
     p.create.map((r) => [r.name, encodeFloatScopes(r.scopes), r.description, r.hidden ? 1 : 0, r.valuesByMode]),
   ]);
   return `${PRELUDE}
@@ -428,7 +472,7 @@ const FSC=${FSC};
 const dec=(c)=>[...c].map(x=>FSC[x]);
 const D=${JSON.stringify(D)};
 const out=[];
-for(const [cname,MODES,rows] of D){
+for(const [cname,axis,MODES,rows] of D){
   let col=await findCol(cname);
   if(!col)col=figma.variables.createVariableCollection(cname);
   col.renameMode(col.modes[0].modeId,MODES[0]);
@@ -442,7 +486,7 @@ for(const [cname,MODES,rows] of D){
     v.scopes=dec(sc);v.description=desc;v.hiddenFromPublishing=!!hidden;
     MODES.forEach((m,i)=>v.setValueForMode(modeIds[m],vals[i]));
   }
-  out.push({collection:cname,modes:MODES,total:rows.length,created});
+  out.push({collection:cname,axis:axis,modes:MODES,total:rows.length,created});
 }
 return out;
 `;
@@ -491,9 +535,9 @@ return {bound,misses};
 // type travels per row, encoded 's'/'f', and an unknown code throws at paste time rather than
 // defaulting to either.
 const fontVarsPass = (brand: string): string => {
-  // row: [name, typeCode, scopes, description, hidden, [value per mode], [alias per mode]]
+  // row: [collection, axis, modes, [[name, typeCode, scopes, description, hidden, [value per mode], [alias per mode]]]]
   const F = fontVarPlans(brand).map((p) => [
-    p.name, p.modes,
+    p.name, axisLabel(p.name, p.rows.map((r) => r.name)), p.modes,
     p.rows.map((r) => [
       r.name, r.resolvedType === 'STRING' ? 's' : 'f', encodeFontScopes(r.scopes),
       r.description, r.hidden ? 1 : 0, r.valuesByMode, r.aliasByMode,
@@ -508,7 +552,7 @@ const F=${JSON.stringify(F)};
 const out=[];const byNameGlobal=new Map();const modeIdsByCol={};
 // pass A: create/update every var with its literal per-mode value (aliases bind in pass B below,
 // once every target exists — the same ordering rule the colour and float lanes follow).
-for(const [cname,MODES,rows] of F){
+for(const [cname,axis,MODES,rows] of F){
   let col=await findCol(cname);
   if(!col)col=figma.variables.createVariableCollection(cname);
   col.renameMode(col.modes[0].modeId,MODES[0]);
@@ -524,11 +568,11 @@ for(const [cname,MODES,rows] of F){
     MODES.forEach((m,i)=>v.setValueForMode(modeIds[m],vals[i]));
     byNameGlobal.set(name,v);
   }
-  out.push({collection:cname,modes:MODES,total:rows.length,created});
+  out.push({collection:cname,axis:axis,modes:MODES,total:rows.length,created});
 }
 // pass B: the weight-role -> font/weight/N links, per mode.
 let bound=0;const misses=[];
-for(const [cname,MODES,rows] of F){
+for(const [cname,,MODES,rows] of F){
   const modeIds=modeIdsByCol[cname];
   for(const [name,,,,,,aliases] of rows){
     const v=byNameGlobal.get(name);
@@ -665,32 +709,54 @@ const verifyPass = (brand: string): string => {
   const plan = planFor(brand);
   const PLANNED_PALETTE = plan.palette.map((r) => r.name);
   const PLANNED_COLOR = plan.color.create.map((r) => r.name);
+  // The `core` tier segment, stated LITERALLY rather than imported from `theme.ts`'s `CORE_TIER`
+  // (docs/34 shape 11). Every pass in this file re-states as generated JS the rules it enforces, and
+  // this is one of them; three independent spellings of `core` — `theme.ts`, `figma-names.ts`, here —
+  // is the property that lets a mistake in one be caught by the other two.
+  const CORE_TIER_SEGMENT = 'core';
+  // Which slice of `core` the palette plan owns, derived from the plan's OWN rows rather than
+  // asserted. `null` would mean the plan spans the whole collection, in which case an unscoped diff
+  // is the correct one — so the filter is generated, not defaulted.
+  const PALETTE_GROUP = ownedCoreGroup(PLANNED_PALETTE);
+  const PALETTE_AXIS = axisLabel(CORE_COLLECTION, PLANNED_PALETTE);
+  const paletteFilter = PALETTE_GROUP === null ? '' : `&&coreGroup(v.name)===${JSON.stringify(PALETTE_GROUP)}`;
   return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const vars=await figma.variables.getLocalVariablesAsync();
 const col=await findCol('color.appearance');
 const cvars=vars.filter(v=>v.variableCollectionId===col.id);
-const byName=new Map(cvars.map(v=>[v.name,v]));
+// Indexed by TAIL — the variable name minus its leading brand-root segment (#1097). Every name
+// literal in this pass is a contract this pass states for itself, and the root is the one segment it
+// CANNOT state, because it is the client's. Stripping it positionally keeps all of them literal and
+// unchanged; spelling \`prism/\` here would be Prism2's \`pds/\` bug, which passes for whichever brand
+// you happened to test with. The orphan diff below stays on FULL names — plan rows are full names.
+const tailOf=(n)=>n.split('/').slice(1).join('/');
+const byTail=new Map(cvars.map(v=>[tailOf(v.name),v]));
 const modeIds={};MODES.forEach(m=>{const mm=col.modes.find(x=>x.name===m);modeIds[m]=mm&&mm.modeId;});
 const targetOf=(val)=>val&&val.type==='VARIABLE_ALIAS'?(vars.find(x=>x.id===val.id)||{}).name:JSON.stringify(val);
 // modes-distinct guard: background/primary must NOT be identical across modes (the collapse bug)
-const probe=byName.get('color/appearance/background/primary');
+const probe=byTail.get('color/appearance/background/primary');
 const perMode=Object.fromEntries(MODES.map(m=>[m,targetOf(probe&&probe.valuesByMode[modeIds[m]])]));
 const modesDistinct=new Set(Object.values(perMode)).size>1;
-const scope=(n)=>{const v=byName.get(n);return v?[...v.scopes].sort().join(','):'ABSENT';};
-const absent=(n)=>!byName.has(n);
+const scope=(n)=>{const v=byTail.get(n);return v?[...v.scopes].sort().join(','):'ABSENT';};
+const absent=(n)=>!byTail.has(n);
 // #479 — plan-vs-file diff, REPORT ONLY: a name present in the file's collection but absent from
 // this plan is an orphan, most often a rename create-or-update-by-name can never detect on its own.
 // Nothing here deletes anything — see \`pruneReport\` in materialise-to-figma.ts for why that stays a
 // separate, ungranted decision.
 const PLANNED_PALETTE=${JSON.stringify(PLANNED_PALETTE)};
 const PLANNED_COLOR=${JSON.stringify(PLANNED_COLOR)};
-const palCol=await findCol('core-palette');
-const palVars=palCol?vars.filter(v=>v.variableCollectionId===palCol.id):[];
+// SCOPED TO THE PALETTE SLICE (#1097). \`core\` now holds the dimension and font primitives too, and
+// this diff subtracts a name set: read wholesale, all 77 of them would be reported as orphans of the
+// palette plan on every single paste. \`coreGroup\` is positional — segment 2 of \`<root>/core/<group>/…\`
+// — so it never spells a root either.
+const coreGroup=(n)=>{const s=n.split('/');return s[1]===${JSON.stringify(CORE_TIER_SEGMENT)}?(s[2]||null):null;};
+const palCol=await findCol(${JSON.stringify(CORE_COLLECTION)});
+const palVars=palCol?vars.filter(v=>v.variableCollectionId===palCol.id${paletteFilter}):[];
 const orphanReason=(name,planned)=>planned.some(p=>p.indexOf(name+'/')===0)?'path now used as a group prefix, not a leaf':'no longer referenced by any current plan';
 const pruneReport=(existingNames,planned)=>{const keep=new Set(planned);return existingNames.filter(n=>!keep.has(n)).sort().map(n=>({name:n,reason:orphanReason(n,planned)}));};
 const orphans={
-  'core-palette':pruneReport(palVars.map(v=>v.name),PLANNED_PALETTE),
+  ${JSON.stringify(PALETTE_AXIS)}:pruneReport(palVars.map(v=>v.name),PLANNED_PALETTE),
   'color.appearance':pruneReport(cvars.map(v=>v.name),PLANNED_COLOR),
 };
 return {

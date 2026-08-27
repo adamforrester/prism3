@@ -15,7 +15,7 @@
  *
  * PURE — no `node:*`, no `figma.*`, no I/O. Depends only on the pure `theme`/`tree` core.
  */
-import { Theme } from './theme';
+import { Theme, CORE_TIER } from './theme';
 import { buildTree, at } from './tree';
 
 export type FigmaColor = { r: number; g: number; b: number; a: number };
@@ -152,11 +152,67 @@ const colorScopes = (dotted: string): string[] => {
 };
 const PALETTE_SCOPES = ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'];
 
+/**
+ * THE ONE CORE COLLECTION (#1097) — the primitive tier, whatever its type.
+ *
+ * `core-palette` (colour steps), `core-dimension` (the dimension ramp) and `core-font` (family, size
+ * and weight primitives) were three collections holding one tier. A designer opening the picker asks
+ * "is this a primitive?", never "is this a primitive *dimension*?", and the three-way split put a
+ * type distinction where the tier distinction belongs. `core-font` already mixed STRING with FLOAT in
+ * one collection, so the split was not even a type boundary.
+ *
+ * It is spelled the same as the DTCG tier (`CORE_TIER`, #1102) and is deliberately NOT the same
+ * constant. A Figma collection label and a DTCG path segment are independent by construction — that
+ * independence is exactly why `core-palette` could hold `palette/*` for a year — and tying them would
+ * make a future collection rename silently move 164 token paths.
+ *
+ * Named here because this module owns the shared emission helpers; the migration record states the
+ * three old names LITERALLY (`materialization-renames.ts`) and must not import this.
+ */
+export const CORE_COLLECTION = 'core';
+
+/**
+ * Drop the brand's own root segment: `nbds.color.background.primary` → `color.background.primary`.
+ *
+ * **This is no longer the variable-NAME transform** (#1097 — `figName` keeps the namespace). Its one
+ * remaining job is `colorScopes`, which dispatches on `seg[1]` and therefore needs the path indexed
+ * from a brand-invariant position: with the root left on, `seg[1]` is `color` for every brand and the
+ * whole scope table misses via the `??` fallback. Same silent failure the comment there describes.
+ */
 export const stripNs = (dotted: string): string => dotted.replace(/^[^.]+\./, '');
-/** `nbds.palette.red.550` → `palette/red/550`; `nbds.color.background.primary` →
- *  `color/background/primary`. DTCG step keys are already zero-padded (`050`, `025`)
- *  and alpha steps are unpadded (`black-alpha.60`), so this is a pure separator swap. */
-export const figName = (dotted: string): string => stripNs(dotted).replace(/\./g, '/');
+/** `nbds.palette.red.550` → `nbds/palette/red/550`; `prism.color.background.primary` →
+ *  `prism/color/background/primary`. A pure separator swap, and the brand namespace STAYS (#1097):
+ *  a variable's Figma name IS its DTCG path. DTCG step keys are already zero-padded (`050`, `025`)
+ *  and alpha steps are unpadded (`black-alpha.60`), so nothing else is transformed.
+ *
+ *  Figma STYLES are the stated exception — `emit-figma-font.ts`'s text-style names drop both the
+ *  namespace and the tier, deliberately and unchanged (#1097). Variables track their DTCG path
+ *  exactly; styles keep the transform they already had. */
+export const figName = (dotted: string): string => dotted.replace(/\./g, '/');
+
+/**
+ * Put the brand namespace on a name assembled from literal segments (#1097).
+ *
+ * `figName` covers every name walked out of the tree, where the dotted path already carries the root.
+ * The FLOAT and font axes assemble their names from keys instead (`font/size/16`, `space/100`), so
+ * there is no dotted path to hand it — and one of them, `font-fluid/*`, is not a DTCG path at all
+ * (`font-fluid/display/sm` is the Figma name for `<root>.type.display.sm`). The namespace still goes
+ * on: what #1097 guarantees is that every VARIABLE name begins with the brand's root segment, which is
+ * a weaker and truer claim than "every name is its DTCG path".
+ */
+export const nsName = (root: string, name: string): string => `${root}/${name}`;
+
+/**
+ * The same, for a name in the PRIMITIVE tier — `<root>/core/<name>` (#1102).
+ *
+ * `dimension/8` and `font/size/16` are assembled from keys like every other FLOAT name, but their DTCG
+ * paths gained a `core` level, so their Figma names have to gain the matching segment or the two stop
+ * agreeing. Kept as its own function rather than a `core/` string typed at each of the ~18 call sites:
+ * the sites that need it and the sites that must NOT (`space/*`, `radius/*`, `font-fluid/*` — semantic
+ * or non-DTCG) are distinguished by which helper they call, which is checkable by reading, where a
+ * literal prefix would be checkable only by knowing the tier of every group by heart.
+ */
+export const coreName = (root: string, name: string): string => nsName(root, `${CORE_TIER}/${name}`);
 
 /** DTCG colour `$value` ("rgb(247, 229, 228)" / "rgba(0,0,0,0.6)" / "#f7e5e4") → Figma
  *  {r,g,b,a} 0–1. Figma stores colour as float32, so round each channel with fround. */
@@ -195,7 +251,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   const root = Object.keys(tree)[0];
 
   const palette: FigmaCollectionFile = {
-    $collection: 'core-palette',
+    $collection: CORE_COLLECTION,
     $mode: 'Default',
     // Palette primitives are REF TIER — designers should reach for `color/*`
     // semantics that alias these steps, not the raw palette. Set
@@ -206,7 +262,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     // Scopes stay at the four color fill/stroke targets so, if a component
     // author does need to bind a raw primitive for a bespoke case, the
     // picker guidance is still correct per role family.
-    variables: leaves(tree[root].palette, `${root}.palette`).map(([dotted, leaf]) => ({
+    variables: leaves(tree[root].core.palette, `${root}.${CORE_TIER}.palette`).map(([dotted, leaf]) => ({
       name: figName(dotted),
       resolvedType: 'COLOR',
       scopes: PALETTE_SCOPES,

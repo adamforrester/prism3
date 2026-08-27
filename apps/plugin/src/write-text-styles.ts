@@ -9,7 +9,7 @@
  *
  * FONT FALLBACK = SKIP-WITH-WARNING (owner decision, #237): if a font/style won't load (family not
  * installed, or a weight the family lacks), the style is SKIPPED and recorded in `skipped[]` — never a
- * substituted wrong face, never a throw that aborts the whole write. The font *variables* (`core-font`/
+ * substituted wrong face, never a throw that aborts the whole write. The font *variables* (`core/font`/
  * `type-sets`) write regardless (that's `applyVarCollectionPlan`), so a skipped style is the only loss.
  *
  * Bound props (fontFamily/fontSize/fontWeight) are wired to their variables via `setBoundVariable`; the
@@ -142,7 +142,7 @@ export type TextStyleApplyResult = {
 /**
  * Materialise the Text Style plan into Figma. Idempotent find-by-name → reuse+overwrite, else create.
  * Per row: load the font (skip-with-warning on failure), set the baked literals, then bind the three
- * variable-backed props. Assumes `applyVarCollectionPlan` already wrote `core-font`/`type-sets` (so the
+ * variable-backed props. Assumes `applyVarCollectionPlan` already wrote `core/font`/`type-sets` (so the
  * bound targets exist); a missing target is recorded in `misses` but doesn't abort.
  */
 export const applyTextStylePlan = async (plan: TextStylePlan, api: TextStylesApi): Promise<TextStyleApplyResult> => {

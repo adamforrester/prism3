@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "border-width/none",
+      "name": "prism/border-width/none",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -12,11 +12,11 @@
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/0"
+        "name": "prism/core/dimension/0"
       }
     },
     {
-      "name": "border-width/hairline",
+      "name": "prism/border-width/hairline",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -25,11 +25,11 @@
       "value": 1,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/1"
+        "name": "prism/core/dimension/1"
       }
     },
     {
-      "name": "border-width/thick",
+      "name": "prism/border-width/thick",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -38,11 +38,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/2"
+        "name": "prism/core/dimension/2"
       }
     },
     {
-      "name": "border-width/heavy",
+      "name": "prism/border-width/heavy",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -51,7 +51,7 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "dimension/4"
+        "name": "prism/core/dimension/4"
       }
     }
   ]

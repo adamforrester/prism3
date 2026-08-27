@@ -1,24 +1,45 @@
 /**
  * emit-figma.ts — I/O shell: the DTCG token tree → a Figma import artifact (docs/10).
  *
- * COLLECTION NAMING (#66, 2026-07-05): the PRIMITIVE collections carry a `core-` prefix so a
- * designer scans primitives-vs-semantics at a glance in Figma's collection list —
- * `core-palette` / `core-dimension` / `core-font`, and `type-sets` (the responsive fluid-size
- * collection, ex-`font-fluid`). This is a **collection-label** convention only: the DTCG token
- * tree, the `<root>.*` namespace, and — crucially — the Figma VARIABLE NAMES are unchanged. Every
- * variable name still mirrors its DTCG path (`palette/red/550`, `font/family/display`,
- * `font-fluid/…`), so the `variableId` round-trip and every cross-collection alias resolve
- * exactly as before. Semantic collections keep their bare names (`color`, `space`, `radius`,
- * `size`, `icon`, `control`, `border-width`, `focus`, `opacity`, `layout`). See docs/00 + issue #66/#67 (Token Press).
+ * COLLECTION NAMING — CURRENT (#1097, #1089), superseding #66.
+ *
+ * ONE primitive collection, named `core`. The three `core-`prefixed collections #66 introduced
+ * (`core-palette` / `core-dimension` / `core-font`) held one tier between them, so they are now a
+ * single `core` collection whose variables carry the group as a name segment: `core/palette/…`,
+ * `core/dimension/…`, `core/font/…`. Note the three EMITTED FILES keep their own stems
+ * (`core.palette.json`, `core.dimension.json`, `core.font.json`) — a file stem, a collection name and
+ * a variable prefix are three different strings here, and conflating them is the standing trap.
+ *
+ * EVERY VARIABLE NAME NOW CARRIES THE BRAND ROOT as its first segment: `<root>/core/palette/red/550`,
+ * `<root>/color/text/primary`, `<root>/font-fluid/display/sm`. #66's claim that variable names were
+ * unchanged is no longer true of the current emission, and it is the sentence most likely to mislead
+ * someone reading the old paragraph, so it is called out here rather than quietly dropped. The root is
+ * `theme.root` (`prism` by default, `nbds` for NB) — brand-specific, which is why no read path spells
+ * it and `figma-names.ts` reads names POSITIONALLY instead.
+ *
+ * STYLES ARE THE EXCEPTION, deliberately: a text/effect/paint STYLE name carries neither the root nor
+ * the tier (`display/sm/strong`, `shadow/md`, `gradient/brand`). Figma renders style names in a flat,
+ * user-facing picker with no collection to disambiguate them, so a root there is noise a designer reads
+ * on every use. A gradient STOP, though, binds a VARIABLE, so the stop IS rooted.
+ *
+ * SEMANTIC COLLECTIONS keep bare names (`space`, `radius`, `size`, `icon`, `control`, `border-width`,
+ * `focus`, `opacity`, `layout`, `type-sets`) — except colour, split by #1089 into `color.appearance`
+ * (the appearance-moded semantics) and `color.surface` (the surface-moded ones). `font-fluid/*` remains
+ * a live VARIABLE prefix inside `type-sets`; only the COLLECTION of that name is gone.
+ *
+ * See docs/00 + issue #66/#67 (Token Press), #1089, #1097, #1102.
  *
  * Axes shipped:
- *   • COLOUR — `core-palette` primitives (Default mode) + `color` semantics (4 modes),
- *     every semantic a VARIABLE_ALIAS into a `palette/…` variable. Byte-reproduces
- *     `fixtures/figma/nb/{palette,color.<mode>}.json` (variable names/scopes/aliases/values).
- *   • TYPOGRAPHY — `core-font` primitives (family STRING + size/weight FLOAT + weight-role
+ *   • COLOUR — `core` primitives (Default mode) + `color.appearance` semantics (4 modes),
+ *     every semantic a VARIABLE_ALIAS into a `<root>/core/palette/…` variable. Byte-reproduces
+ *     `fixtures/figma/nb/{palette,color.<mode>}.json` (variable names/scopes/aliases/values) —
+ *     modulo the root and the two tier prefixes, which `test.ts` states as a LITERAL translation on
+ *     the engine's side and asserts are present BEFORE stripping them, since stripping an absent
+ *     prefix is a no-op an emitter that dropped the namespace would satisfy.
+ *   • TYPOGRAPHY — `core` font primitives (family STRING + size/weight FLOAT + weight-role
  *     FLOAT aliased) + `type-sets` (per-mode FLOATs for the fluid composites) +
  *     text styles for every composite, applying the six §4 fixes: (1) no wrapper
- *     `text/` prefix; (2) prescribed collection names (`core-font`, `type-sets`);
+ *     `text/` prefix; (2) prescribed collection names (`core`, `type-sets`);
  *     (3a) lineHeight baked as PERCENT (unitless × 100 — mode/size-independent);
  *     (3b) letterSpacing baked as PERCENT (em × 100 — this PR bakes; a follow-up
  *     lands bindable tracking FLOATs); (4) primary family bound + full stack in
@@ -135,12 +156,13 @@ const json = (v: unknown): string => JSON.stringify(v, null, 2) + '\n';
  * script body can serve neither. Deriving both from one function is what stops them disagreeing about
  * what a brand's artifact set even is.
  *
- * Paths are relative to the brand's own directory (`core-palette.json`, not `out/figma/nb/…`), so the
- * caller owns the root. The per-mode filename rules are the interesting part and are preserved
- * exactly: a brand with no per-mode typography emits one `core-font.json`, one with overrides emits
- * `core-font.<mode>.json`; radius follows the same shape. Both conventions exist so that a brand not
- * using the feature emits byte-identical output to the pre-feature world, which is precisely the
- * property a careless extraction would destroy.
+ * Paths are relative to the brand's own directory (`core.palette.json`, not `out/figma/nb/…`), so the
+ * caller owns the root, and every filename is built from its file's own `$collection` label — never a
+ * literal repeated here, which is how the #1097 collection renames carried through to the filenames for
+ * free. The per-mode rules are the interesting part and are preserved exactly: a brand with no per-mode
+ * typography emits one `core.font.json`, one with overrides emits `core.font.<mode>.json`; radius
+ * follows the same shape. Both conventions exist so that a brand not using the feature emits
+ * byte-identical output to the pre-feature world, which a careless extraction would destroy.
  *
  * Returns the summary line too, built from the same pass — computing it separately would mean
  * building every collection twice and inviting the counts to drift from the files they describe.
@@ -150,16 +172,12 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   const add = (path: string, value: unknown): void => { artifacts.push({ path, content: json(value) }); };
 
   const { palette, color } = buildFigmaColor(theme);
-  // Filenames follow the $collection label (so the core-*/type-sets rename carries through).
-  add(`${palette.$collection}.json`, palette);
   for (const c of color) add(`${c.$collection}.${c.$mode}.json`, c);
 
-  // core-font is per-mode (Phase D): a brand with no per-mode typography emits ONE `core-font.json`
-  // (byte-identical to pre-D); a brand overriding font family/weight per mode emits per-mode
-  // filenames `core-font.<mode>.json`, matching the colour/radius per-mode convention.
+  // core-font is per-mode (Phase D): a brand with no per-mode typography emits ONE Default-mode file
+  // (byte-identical to pre-D); a brand overriding font family/weight per mode emits one per mode,
+  // matching the colour/radius per-mode convention.
   const fontFiles = buildFigmaFont(theme);
-  if (fontFiles.length === 1) add('core-font.json', fontFiles[0]);
-  else for (const f of fontFiles) add(`core-font.${f.$mode}.json`, f);
 
   const fluid = buildFigmaFontFluid(theme);
   for (const f of fluid) add(`${f.$collection}.${f.$mode}.json`, f);
@@ -172,6 +190,9 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   // `radius.json` (byte-identical to the pre-1b world); a wireframe-opted-in brand emits per-mode
   // filenames `radius.Default.json` + `radius.wireframe.json`, matching the colour axis convention.
   for (const [key, val] of Object.entries(dims)) {
+    // `dimension` is a CORE primitive group and no longer a collection of its own (#1097) — it is
+    // merged into `core` below, alongside the palette and the font primitives.
+    if (key === 'dimension') continue;
     if (key === 'radius') {
       const arr = val as FigmaCollectionFile[];
       if (arr.length === 1) add('radius.json', arr[0]);
@@ -181,10 +202,36 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
       add(`${coll.$collection}.json`, coll);
     }
   }
-  const dimsCount = (Object.values(dims) as (FigmaCollectionFile | FigmaCollectionFile[])[]).reduce((n, v) => {
-    if (Array.isArray(v)) return n + v[0].variables.length; // radius: count once (same names across modes)
-    return n + v.variables.length;
-  }, 0);
+  const dimsCount = (Object.entries(dims) as Array<[string, FigmaCollectionFile | FigmaCollectionFile[]]>)
+    .filter(([key]) => key !== 'dimension')   // counted under `core`, where it now lives
+    .reduce((n, [, v]) => {
+      if (Array.isArray(v)) return n + v[0].variables.length; // radius: count once (same names across modes)
+      return n + v.variables.length;
+    }, 0);
+
+  // ── THE ONE `core` COLLECTION, IN THREE FILES (#1097) ───────────────────────────────────────────
+  //
+  // Palette, dimension and font primitives are one TIER, so they are one Figma collection: all three
+  // files below carry `$collection: 'core'`, and a designer sees one `core` entry in the picker holding
+  // `<root>/palette/*`, `<root>/dimension/*` and `<root>/font/*`.
+  //
+  // They stay THREE FILES, and that is the one place a filename is not simply its `$collection`. A
+  // merged `core.json` would hold COLOR, FLOAT and STRING rows from three different axes, and every
+  // reader of `out/figma/**` — the MCP payload generator, the FLOAT and font write plans, the read-back
+  // verdicts, the exporter-comparison axis table — partitions by FILE. Merging would move that split
+  // from the emitter, where the three groups are separate by construction, to each reader, where the
+  // only thing left to split on is the variable's own name prefix. So the filename carries the GROUP as
+  // a second segment (`core.palette.json`), the collection label stays the single source of the
+  // collection name, and nobody downstream has to un-merge anything.
+  const coreFile = (group: string, f: FigmaCollectionFile, mode?: string): void =>
+    add(`${f.$collection}.${group}${mode ? `.${mode}` : ''}.json`, f);
+
+  coreFile('palette', palette);
+  coreFile('dimension', dims.dimension);
+  // Same single-vs-per-mode rule as `radius`: one mode means no mode segment (a brand with no per-mode
+  // typography emits exactly one font file, as it did before Phase D).
+  if (fontFiles.length === 1) coreFile('font', fontFiles[0]);
+  else for (const f of fontFiles) coreFile('font', f, f.$mode);
 
   const layout = buildFigmaLayout(theme);
   for (const l of layout) add(`layout.${l.$mode}.json`, l);
@@ -201,7 +248,7 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   const surface = buildFigmaSurface(theme);
   for (const s of surface) add(`${s.$collection}.${s.$mode}.json`, s);
 
-  const summary = `palette ${palette.variables.length} + color ${color.length}×${color[0].variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
+  const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
   return { artifacts, summary };
 };
 

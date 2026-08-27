@@ -39,8 +39,11 @@
  * **invisible to `DEPRECATIONS`** — the Figma collection name is a materialisation choice, not a
  * contract path — so `COLLECTION_RENAMES` is *authored*, and stays small for the same reason: it can
  * only ever hold the handful of names the engine itself chose. #1013 gave it its first two entries
- * (`color` → `color.appearance` and `surface` → `color`), which between them are a CHAIN — so the
- * paragraphs below are about what the map actually holds rather than about a hypothetical.
+ * (`color` → `color.appearance` and `surface` → `color`), which between them were a CHAIN. **#1097
+ * retargeted the second to `surface` → `color.surface` and the chain is gone** — neither target is any
+ * entry's source now, so the map holds no ordering question at all. The ordering machinery below stays,
+ * and its coverage moved to a fixture in the same change; the paragraphs are about a shape the map HELD,
+ * which is worth knowing precisely because the next entry could reintroduce it.
  *
  * Ordering is the sharp difference, and since #1013 it is a GUARANTEE rather than a coincidence. A
  * collection rename must run **before** the find-by-name lookup it exists to fix, or
@@ -75,6 +78,12 @@
  * other, so it was a different problem with a different fix — and #1013 is that fix. See
  * `planCollectionRenames`.
  *
+ * **Since #1097 no shipped entry exercises that ordering, and that is a coverage fact worth stating
+ * where the code is.** The chain arms in `test.ts` drive an authored pair, not `COLLECTION_RENAMES`; one
+ * of them was pointed at the live map and went from proving the sort to proving nothing the moment the
+ * chain left the data, silently. If a future entry reintroduces a chain, the fixture is already there —
+ * do not delete it on the grounds that the map is simple today.
+ *
  * ## When the map is wrong
  *
  * Every hazard resolves to *refuse and report*, never to a partial write, and the split between
@@ -85,7 +94,8 @@
  *     variable chains statically is what makes the variable apply pass order-independent — no group's
  *     target can be another group's source, so outcomes don't depend on iteration order. A COLLECTION
  *     chain is no longer refused: `planCollectionRenames` orders it, which is the ordering guarantee
- *     `upsertCollection` was never in a position to give (#1035).
+ *     `upsertCollection` was never in a position to give (#1035). The shipped map stopped holding one at
+ *     #1097; the guarantee is unchanged.
  *   - **apply-time** (`planVariableRenames`): `from` absent (`source-absent` — the *normal* case, a
  *     fresh file or one already migrated); `to` already held by a different variable
  *     (`target-occupied` — merging would lose one side's bindings); fan-**in** with more than one
@@ -162,30 +172,43 @@ export const isRefusal = (s: RenameStatus): boolean =>
  * reports `source-absent`, so over-projecting is self-correcting and under-projecting is not.
  *
  * Since #1013 the two are `color.appearance` (the VALUE tier — 242 roles, one mode per appearance) and
- * `color` (the ALIAS tier — the 128 roles that have an inverse counterpart, two surface modes). They
- * were `color` and `surface`. The measured subset relation is unchanged by the swap: 128 of the 242
- * roles are also alias-tier roles, and every alias-tier role is a value-tier role.
+ * the alias tier — the 128 roles that have an inverse counterpart, two surface modes. They were `color`
+ * and `surface`; #1089 then named the alias tier's axis, so it is `color.surface`. The measured subset
+ * relation is unchanged by either rename: 128 of the 242 roles are also alias-tier roles, and every
+ * alias-tier role is a value-tier role.
  *
  * **The value tier is listed first, and that is not cosmetic.** `color.appearance` is where a renamed
- * role's variable actually lives in every brand; `color` holds it only for the 128. A reader scanning
- * the projections should meet the one that fires first.
+ * role's variable actually lives in every brand; the alias tier holds it only for the 128. A reader
+ * scanning the projections should meet the one that fires first.
  */
-export const MIRRORED_COLLECTIONS: Record<string, readonly string[]> = { color: ['color.appearance', 'color'] };
+export const MIRRORED_COLLECTIONS: Record<string, readonly string[]> = { color: ['color.appearance', 'color.surface'] };
 
 /**
- * Contract roots that are ALSO the name of an emitted Figma variable collection — measured, 9 of the 18
+ * Contract roots that are ALSO the name of an emitted Figma variable collection — measured, 9 of the 16
  * guaranteed roots. Only these project: a deprecation on any other root has no variable to migrate, and
  * emitting an entry for it would produce a map row that can never fire and can never be reported. An
  * entry nothing will ever look at is worse than no entry, because it inflates the map's own count.
  *
- * The other 9 are excluded for three different reasons, and none of them is "we forgot": `palette`,
- * `font`, `dimension` and `type` live in collections named `core-palette` / `core-font` /
- * `core-dimension` / `type-sets`, so projecting them would need a prefix rule that is a guess about a
- * naming convention rather than a fact about the emission; `shadow` materialises as Figma STYLES, where
- * a rename is a different operation on a different API; `motion`, `breakpoint`, `container` and `grid`
- * have no variable counterpart at all (Figma has no easing variable, and the rest are consumed as
- * values, not bound). A deprecation landing on any of them fails the `test.ts` arm that pins the
- * unprojected set by NAME — so it forces the decision rather than skipping it quietly.
+ * The other 7 are excluded for three different reasons, and none of them is "we forgot": `core` and
+ * `type` live in collections whose variables are named after a GROUP inside them (`core` holds
+ * `palette/*`, `dimension/*` and `font/*`; `type-sets` holds `font-fluid/*`), so projecting them would
+ * need a prefix rule that is a guess about a naming convention rather than a fact about the emission;
+ * `shadow` materialises as Figma STYLES, where a rename is a different operation on a different API;
+ * `motion`, `breakpoint`, `container` and `grid` have no variable counterpart at all (Figma has no
+ * easing variable, and the rest are consumed as values, not bound). A deprecation landing on any of them
+ * fails the `test.ts` arm that pins the unprojected set by NAME — so it forces the decision rather than
+ * skipping it quietly.
+ *
+ * ── `core` IS AN EMITTED COLLECTION NAME SINCE #1097, AND IS STILL NOT LISTED ──────────────────────
+ *
+ * The three primitive collections merged into one called `core`, so for the first time the root and a
+ * collection agree — and `reRoot` would spell `core/palette/red/550`, which is exactly what the emission
+ * carries below the brand root. Adding it would nonetheless produce nothing: no deprecation has `core` as
+ * its PATH root. #1102's 164 entries move INTO the tier (`palette.red.550` → `core.palette.red.550`), so
+ * their path root is `palette`/`dimension`/`font`, and a cross-root replacement is refused as a MOVE in
+ * any case. An inert entry is the thing this list exists to avoid, so the decision is recorded here
+ * rather than taken speculatively — and the `test.ts` arm that pins the unprojected set by name is what
+ * forces it to be re-taken the first time a rename lands INSIDE the tier.
  *
  * `test.ts` asserts every root here is genuinely an emitted collection name, against the corpus. That
  * check is the reason this can be an authored list at all: the claim is verified against the emission
@@ -220,12 +243,30 @@ const roleOf = (figmaName: string): string => {
   return seg.slice(tier !== undefined && seg[1] === tier ? 2 : 1).join('/');
 };
 
-/** Spell one role into one collection. The collection name IS the tier prefix, dots to slashes:
- *  `color.appearance` holds `color/appearance/*`, `color` holds `color/*`, `space` holds `space/*`.
- *  `core-palette` holding `palette/*` is the counterexample, and is why `PROJECTED_ROOTS` is a closed
- *  list rather than "every collection". */
+/**
+ * WHERE A COLLECTION'S NAME AND ITS VARIABLES' NAME PREFIX DISAGREE (#1089) — one entry, and it is an
+ * exception to a rule that held for every other projected root.
+ *
+ * `reRoot` below spelled the prefix by splitting the COLLECTION name on dots, which was a fact about the
+ * emission while a collection was named after the tier its variables carry: `color.appearance` holds
+ * `color/appearance/*`, `space` holds `space/*`. #1089 named the alias tier's AXIS instead — the
+ * collection is `color.surface` and its variables kept their `color/*` tails, because no DTCG path moved.
+ *
+ * The derivation would now spell `color/surface/<role>`, a name no brand emits, so all 40 projecting rows
+ * would resolve nowhere — silently, since a row whose target is absent is a reported no-op by design.
+ */
+const NAME_PREFIX: Record<string, readonly string[]> = { 'color.surface': ['color'] };
+
+/** Spell one role into one collection. The collection name is the tier prefix, dots to slashes, EXCEPT
+ *  where `NAME_PREFIX` says otherwise: `color.appearance` holds `color/appearance/*`, `color.surface`
+ *  holds `color/*`, `space` holds `space/*`. `core` holding `palette/*`, `dimension/*` and `font/*` is
+ *  the counterexample that keeps `PROJECTED_ROOTS` a closed list rather than "every collection".
+ *
+ *  The BRAND ROOT is deliberately absent here (#1097). Every emitted name carries it, and these rows do
+ *  not: they are tails, derived from `DEPRECATIONS`, where nothing is brand-specific.
+ *  `composeVariableRenames` is the one layer that puts it on — see its header. */
 const reRoot = (figmaName: string, collection: string): string =>
-  [...collection.split('.'), roleOf(figmaName)].join('/');
+  [...(NAME_PREFIX[collection] ?? collection.split('.')), roleOf(figmaName)].join('/');
 
 /**
  * Every candidate Figma projection of one deprecation: the ROLE, spelled into each collection the root
@@ -293,14 +334,39 @@ export const deriveVariableRenames = (deps: readonly Deprecation[] = DEPRECATION
  * **When that arm goes red after a version bump, restamping these entries to the new version is the
  * wrong fix** — it is the false provenance record all over again. The stamps below are historical and
  * should stay put; the arm is what expires. Its failure message says so at length.
+ *
+ * **And a retarget is not a restamp.** #1097 moved the alias-tier entry's TARGET and left its `since` at
+ * `0.26.0`, because the field answers when the SOURCE name was retired — `surface` stopped being a
+ * collection the engine writes when #1013's code shipped — not when the entry was last edited. The arm
+ * went red on the changed key, which is what it is for; the fix was a new key in its table, not a new
+ * version on the data.
  */
 export const COLLECTION_RENAMES: CollectionRename[] = [
   // The VALUE tier vacates the short name. It keeps every variable and every id; only the collection's
   // own name moves, so a designer's bindings into it are untouched by this entry alone.
   { from: 'color', to: 'color.appearance', since: '0.26.0' },
-  // The ALIAS tier takes it. This is the entry that has to wait: `color` is occupied until the one above
-  // has applied, and applying this first leaves `target-occupied` and a half-migrated file.
-  { from: 'surface', to: 'color', since: '0.26.0' },
+  // The ALIAS tier follows the name #1089 gave it. **This entry's target moved with #1097, and the
+  // rewrite is deliberate rather than a restamp** (contrast the `since` note above, which says a
+  // historical stamp must stay put — that is about the VERSION field, not about a target that is now
+  // simply wrong).
+  //
+  // It read `surface → color` from #1013 until #1089 renamed the alias tier's collection to
+  // `color.surface`, so both tiers name their axis in the mode picker. From that moment the entry
+  // pointed at a collection nothing writes: the pre-pass moved the designer's `surface` collection to
+  // `color`, `applySurfacePlan` created a FRESH `color.surface` beside it, and every variable and every
+  // binding in the original was stranded in a collection nothing owns — reported by nothing, because
+  // each executor only walks the collection it wrote. `apps/plugin/test-write.ts`'s (vii) block found it
+  // and #1108 recorded it.
+  //
+  // Retargeting is the whole fix, and it also removes the CHAIN this map used to carry: neither
+  // `color.appearance` nor `color.surface` is anyone's source, so no ordering question arises and
+  // `closesLoop` above has nothing to walk. Simpler than what it replaces.
+  //
+  // **`color → color.surface` is NOT the entry, and the reason is not just the duplicate-source
+  // refusal.** `color` names the VALUE tier before #1082 and the POINTER tier after it, and this map has
+  // no era: one entry cannot mean "the pre-#1082 `color`" while another means the post-#1082 one. The
+  // source that is unambiguous across both eras is `surface`, which only ever named the alias tier.
+  { from: 'surface', to: 'color.surface', since: '0.26.0' },
 ];
 
 /** The map the executor uses. */
@@ -453,8 +519,53 @@ export const planVariableRenames = (
 export type MaterializationStep = {
   id: string;
   since: string;
-  domain: (collection: string, name: string) => boolean;
-  map: (collection: string, name: string) => string;
+  domain: (collection: string, name: string, root: string) => boolean;
+  map: (collection: string, name: string, root: string) => string;
+};
+
+/**
+ * Carry one live name through the materialization rules until none of them claims it (#1097).
+ *
+ * ── A CHAIN, WHERE THE ACCOUNTING IS SINGLE-APPLICATION, AND THE ASYMMETRY IS THE POINT ────────────
+ *
+ * `accountFor` asks each rule about each key ONCE and fails a key two rules both claim, because a claim is
+ * a PAIRING and two pairings for one name is an ambiguity, not a composition. That is right for a record
+ * of one commit's diff: the merge base is a single point in time and every key moved once.
+ *
+ * A designer's file is not a single point in time. It can sit two eras back — `surface/text/primary` in a
+ * pre-#1013 file has to reach `<root>/color/text/primary`, which is #1013's rule and then #1097's. Applying
+ * only the first match would leave `color/text/primary`, an un-namespaced name no plan contains, so
+ * `planVariableRenames` would report `target-not-planned` and migrate nothing — a correct record and a
+ * refused migration, which is the failure this function exists to avoid.
+ *
+ * Exactly the same shape as `recollect` versus `planCollectionRenames`, one layer down and in the same
+ * direction: the side that reads a snapshot is single-step, the side that walks a live file composes.
+ *
+ * Terminating because every rule's domain excludes its own image — #1013's two by an explicit
+ * `!startsWith` clause, #1097's because a rooted name is already rooted. The cap and the self-map guard are
+ * belt-and-braces for a future rule that forgets: a malformed rule stops the walk instead of spinning, and
+ * the name it stopped at then fails `planVariableRenames` visibly.
+ *
+ * `since` is the LAST rule applied — the most recent materialisation the name passed through, which is what
+ * a reader of the outcome wants when a name crossed two eras.
+ */
+const materialize = (
+  collection: string,
+  name: string,
+  root: string,
+  rules: readonly MaterializationStep[],
+): { name: string; since: string } => {
+  let cur = name;
+  let since = '';
+  for (let i = 0; i <= rules.length; i++) {
+    const rule = rules.find((r) => r.domain(collection, cur, root));
+    if (!rule) break;
+    const next = rule.map(collection, cur, root);
+    if (next === cur) break;                     // a rule that maps its own domain member to itself
+    cur = next;
+    since = rule.since;
+  }
+  return { name: cur, since };
 };
 
 /**
@@ -475,6 +586,14 @@ export type MaterializationStep = {
  * side in the CURRENT materialisation (`color/appearance/<role>`), because that is what the emission
  * writes today. So a contract row can only be matched after the materialization step has carried the
  * live name into today's spelling.
+ *
+ * ── AND WHERE THE BRAND ROOT ENTERS (#1097) ───────────────────────────────────────────────────────
+ *
+ * Every emitted name now begins with the brand's `theme.root`, and the contract rows do not carry it —
+ * they are TAILS, because `projectionsOf` derives them from `DEPRECATIONS`, where nothing is
+ * brand-specific. So this function is the single place the root is put on and taken off: the
+ * materialization walk produces a rooted name, the contract lookup happens on its tail, and the row's
+ * target is rooted again on the way out. One layer knows the root, and it is the layer #1097 says owns it.
  *
  * ── WHY EVERY CONTRACT ROW STILL PASSES THROUGH ──────────────────────────────────────────────────
  *
@@ -500,21 +619,37 @@ export const composeVariableRenames = (
   existing: Iterable<string>,
   contract: readonly VarRename[],
   rules: readonly MaterializationStep[],
+  /** The brand's `theme.root` — the first segment of every name the engine emits since #1097. REQUIRED
+   *  and undefaulted: a wrong root makes every row's target un-plannable, and there is no value that is
+   *  right for more than one brand. `write-figma.ts` derives it from the write plan's own rows. */
+  root: string,
 ): VarRename[] => {
   const rows = contract.filter((r) => r.collection === collection);
   const byFrom = new Map(rows.map((r) => [r.from, r] as const));
   const out: VarRename[] = [];
   const consumed = new Set<string>();
+  const prefix = `${root}/`;
   for (const from of existing) {
-    const rule = rules.find((r) => r.domain(collection, from));
-    const mid = rule ? rule.map(collection, from) : from;
-    const row = byFrom.get(mid);
-    const to = row?.to ?? mid;
+    const mid = materialize(collection, from, root, rules);
+    // THE CONTRACT ROWS ARE TAILS, AND THE ROOT IS ADDED HERE (#1097).
+    //
+    // `projectionsOf` spells `color/appearance/<role>` — the DTCG path below the brand root, with slashes.
+    // It has no brand in scope and should not: the root is a MATERIALISATION fact, which is the whole thesis
+    // of #1097, so it enters at the materialisation layer rather than in the contract projection. Threading
+    // a root through `renameMap()` instead would put a brand-specific value inside the derivation from
+    // `DEPRECATIONS`, where nothing is brand-specific.
+    const tail = mid.name.startsWith(prefix) ? mid.name.slice(prefix.length) : mid.name;
+    const row = byFrom.get(tail);
+    const to = row ? `${prefix}${row.to}` : mid.name;
     if (to === from) continue;
-    consumed.add(mid);
-    out.push({ collection, from, to, since: row?.since ?? rule?.since ?? '' });
+    consumed.add(tail);
+    out.push({ collection, from, to, since: row?.since ?? mid.since });
   }
-  for (const r of rows) if (!consumed.has(r.from)) out.push(r);
+  // Rooted on the way out too, so `planVariableRenames` reports `source-absent` against a name spelled the
+  // way the file spells names. An un-rooted `from` here would be absent from EVERY file rather than from
+  // this one, which is a different fact wearing the same report line.
+  for (const r of rows)
+    if (!consumed.has(r.from)) out.push({ ...r, from: `${prefix}${r.from}`, to: `${prefix}${r.to}` });
   return out;
 };
 
@@ -550,13 +685,20 @@ const topoOrder = (renames: readonly CollectionRename[]): CollectionRename[] => 
  *
  * ── WHY THE ORDER IS COMPUTED AND NOT AUTHORED ──────────────────────────────────────────────────
  *
- * `topoOrder` puts an entry after any entry whose source is this entry's target. For
- * `COLLECTION_RENAMES` that is `color → color.appearance` before `surface → color`, whichever order the
- * array is written in. Before #1035 the apply order was the executor's sequence of `upsertCollection`
- * calls — which happened to be the right one, for a reason documented as being about alias resolution,
- * with nothing anywhere recording that a migration depended on it (docs/44 §3).
+ * `topoOrder` puts an entry after any entry whose source is this entry's target. For the map as #1013
+ * shipped it that was `color → color.appearance` before `surface → color`, whichever order the array is
+ * written in. Before #1035 the apply order was the executor's sequence of `upsertCollection` calls —
+ * which happened to be the right one, for a reason documented as being about alias resolution, with
+ * nothing anywhere recording that a migration depended on it (docs/44 §3).
  *
  * ── THE THREE STATES, AND THE ONE THAT LOOKS LIKE A CONFLICT ─────────────────────────────────────
+ *
+ * **#1097 retargeted the alias entry to `color.surface`, so the shipped map no longer produces any of
+ * this: no source is another entry's target, `topoOrder` has nothing to reorder, and the
+ * `targets.has(entry.from)` branch below is unreachable from `COLLECTION_RENAMES` alone.** The branch
+ * and this table both stay — the state is reachable from any future chain, and the `test.ts` arms that
+ * cover it drive an authored pair rather than the live map, deliberately. Read the rest of this section
+ * as the shape the mechanism handles, not as a description of today's data.
  *
  * A file sits somewhere on the chain, and the middle name is present in two of the three states:
  *
@@ -589,6 +731,10 @@ export const planCollectionRenames = (
     // why the paragraph vouching for that order had to be rewritten in the same change as this line.
     if (!have.has(entry.from)) { out.push(at('source-absent')); continue; }
     if (have.has(entry.to)) {
+      // `targets.has(entry.from)`: this entry's source is another entry's TARGET, so its presence beside
+      // our own target means we already applied and the `from` we can see is the other entry's product —
+      // not a conflict. Unreachable from `COLLECTION_RENAMES` since #1097 removed the chain, and kept for
+      // the next one; the arms that exercise it use an authored chain, not the shipped map.
       out.push(at(targets.has(entry.from) ? 'source-absent' : 'target-occupied'));
       continue;
     }

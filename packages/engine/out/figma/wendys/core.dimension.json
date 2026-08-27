@@ -1,9 +1,9 @@
 {
-  "$collection": "core-dimension",
+  "$collection": "core",
   "$mode": "Default",
   "variables": [
     {
-      "name": "dimension/0",
+      "name": "prism/core/dimension/0",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -17,7 +17,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/1",
+      "name": "prism/core/dimension/1",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -31,7 +31,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/2",
+      "name": "prism/core/dimension/2",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -45,7 +45,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/4",
+      "name": "prism/core/dimension/4",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -59,7 +59,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/6",
+      "name": "prism/core/dimension/6",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -73,7 +73,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/8",
+      "name": "prism/core/dimension/8",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -87,7 +87,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/10",
+      "name": "prism/core/dimension/10",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -101,7 +101,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/12",
+      "name": "prism/core/dimension/12",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -115,7 +115,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/16",
+      "name": "prism/core/dimension/16",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -129,7 +129,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/20",
+      "name": "prism/core/dimension/20",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -143,7 +143,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/24",
+      "name": "prism/core/dimension/24",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -157,7 +157,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/28",
+      "name": "prism/core/dimension/28",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -171,7 +171,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/32",
+      "name": "prism/core/dimension/32",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -185,7 +185,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/36",
+      "name": "prism/core/dimension/36",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -199,7 +199,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/40",
+      "name": "prism/core/dimension/40",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -213,7 +213,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/44",
+      "name": "prism/core/dimension/44",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -227,7 +227,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/48",
+      "name": "prism/core/dimension/48",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -241,7 +241,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/52",
+      "name": "prism/core/dimension/52",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -255,7 +255,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/56",
+      "name": "prism/core/dimension/56",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -269,7 +269,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/60",
+      "name": "prism/core/dimension/60",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -283,7 +283,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/64",
+      "name": "prism/core/dimension/64",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -297,7 +297,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/68",
+      "name": "prism/core/dimension/68",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -311,7 +311,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/72",
+      "name": "prism/core/dimension/72",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -325,7 +325,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/76",
+      "name": "prism/core/dimension/76",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -339,7 +339,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/80",
+      "name": "prism/core/dimension/80",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -353,7 +353,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/84",
+      "name": "prism/core/dimension/84",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -367,7 +367,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/88",
+      "name": "prism/core/dimension/88",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -381,7 +381,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/92",
+      "name": "prism/core/dimension/92",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -395,7 +395,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/96",
+      "name": "prism/core/dimension/96",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -409,7 +409,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/100",
+      "name": "prism/core/dimension/100",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -423,7 +423,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/104",
+      "name": "prism/core/dimension/104",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -437,7 +437,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/108",
+      "name": "prism/core/dimension/108",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -451,7 +451,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/112",
+      "name": "prism/core/dimension/112",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -465,7 +465,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/116",
+      "name": "prism/core/dimension/116",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -479,7 +479,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/120",
+      "name": "prism/core/dimension/120",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -493,7 +493,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/124",
+      "name": "prism/core/dimension/124",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -507,7 +507,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "dimension/128",
+      "name": "prism/core/dimension/128",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT",
@@ -517,20 +517,6 @@
       ],
       "description": "128px — dimension primitive",
       "value": 128,
-      "alias": null,
-      "hiddenFromPublishing": true
-    },
-    {
-      "name": "dimension/720",
-      "resolvedType": "FLOAT",
-      "scopes": [
-        "WIDTH_HEIGHT",
-        "GAP",
-        "CORNER_RADIUS",
-        "STROKE_FLOAT"
-      ],
-      "description": "720px — dimension primitive",
-      "value": 720,
       "alias": null,
       "hiddenFromPublishing": true
     }

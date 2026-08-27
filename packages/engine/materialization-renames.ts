@@ -10,8 +10,13 @@
  * namespace folder its name sits under, the dot-vs-dash spelling of `core-palette` — none of those are
  * contract paths, so none of them touch `DEPRECATIONS`, and nothing anywhere records them. `docs/44`
  * names three: `surface`↔`color`, the namespace folder, and `core-*`→`core.*`. #1039 shipped the
- * mechanism with none of them; **#1013 landed the first, and it is the two rules below.** The other two
- * are still out.
+ * mechanism with none of them; **#1013 landed the first as the two rules below, and #1097 the other two
+ * as the THIRD — one rule, not two.** All three of `docs/44`'s named cases are now recorded.
+ *
+ * That the namespace folder and the `core` tier are ONE rule is not tidiness. `multiplyClaimed` fails a
+ * key two rules both claim, and every primitive is in the domain of both halves — `palette/red/550`
+ * gains the namespace AND the tier. Two rules would have to be written as one-claims-what-the-other-does-not,
+ * which is a pairing stated twice and checkable in neither. One rule states the final name once.
  *
  * The colour swap needed both halves of the record at once, which is the clearest available statement of
  * why they are one mechanism. The COLLECTION renames live in `rename-map.ts`'s `COLLECTION_RENAMES`
@@ -97,6 +102,19 @@ export const varKey = (collection: string, name: string): VarKey => `${collectio
  * `map` returns the NAME only, never the collection. A collection rename is a different Figma
  * operation with a different failure mode and it already has `COLLECTION_RENAMES`; letting a rule move
  * a variable between collections would put one record in front of two operations.
+ *
+ * ── `root` IS A PARAMETER AND NOT A CONSTANT, AND THAT IS THE #1097 DEFECT CLASS (`docs/44` §7) ────
+ *
+ * Since #1097 every emitted variable name begins with the brand's own `theme.root` — `prism` by default,
+ * `nbds` for New Balance, whatever a client picks. **A rule may therefore not spell the first segment**,
+ * for the same reason no read path may: Prism2 hardcoded `pds/` and the bug was invisible in testing,
+ * because you test with the brand whose prefix you hardcoded. Two of this corpus's three Figma-emitting
+ * brands root at `prism`, so a hardcoded `prism/` would be caught by one brand in three.
+ *
+ * So the root arrives as an argument, from a source independent of the names being checked: the gate reads
+ * it from `out/<brand>.tokens.json`'s single top-level key, and the apply path takes it from the write
+ * plan's own rows. It is deliberately NOT read out of `out/figma/**` — that is the accounting's AFTER side,
+ * and taking the root from there would define the rule's domain in terms of the very names it is checking.
  */
 export type MaterializationRule = {
   /** Stable, and used in every report line — a rule is identified by this in both checks. */
@@ -105,9 +123,21 @@ export type MaterializationRule = {
   since: string;
   /** What moved and why, to `INVERSE_GAPS`' standard: enough that a reader can weigh the decision. */
   why: string;
-  domain: (collection: string, name: string) => boolean;
-  map: (collection: string, name: string) => string;
+  domain: (collection: string, name: string, root: string) => boolean;
+  map: (collection: string, name: string, root: string) => string;
 };
+
+/**
+ * The primitive tier's segment and the three groups inside it, **stated literally for the third time in
+ * the repo** — `theme.ts` exports `CORE_TIER`, `figma-names.ts` spells it for the read direction, and this
+ * is the write-record's own spelling. `figma-names.ts`'s header carries the full argument; the short form
+ * is that a rule which imported the emitter's constant would agree with the emitter by construction, and
+ * this module's entire value is being a SECOND expression of the change (`docs/34` shape 11).
+ *
+ * **Deduplicating these three deletes two gates and reports a pass.** They are not a DRY violation.
+ */
+const CORE_TIER = 'core';
+const CORE_GROUPS: readonly string[] = ['palette', 'dimension', 'font'];
 
 /**
  * #1039 shipped this EMPTY, because `docs/44` §8 left open whether the value tier's 242 variables would
@@ -142,8 +172,49 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
       + '`color/text/primary`. The axis is still surface (two modes, `default` and `inverse`) — what moved '
       + 'is which of the two tiers a designer reaches by default, which is the point of #1013 rather than '
       + 'a side effect of it.',
-    domain: (collection, name) => collection === 'color' && name.startsWith('surface/'),
+    // #1089 RENAMED THE COLLECTION THIS RULE RUNS IN, AND THE DOMAIN NAMES THE LIVE NAME, NOT THE
+    // HISTORICAL ONE. `materialize` is always called with the collection the write plan is about to use,
+    // so a domain keyed on `color` — what the alias tier was called between #1013 and #1089 — matches
+    // nothing the engine writes and the rule is unreachable: a pre-#1013 `surface/*` name would compose
+    // to nothing, be planned under no name, and the variable would be left behind silently. `since` is a
+    // different question and correctly still reads `0.26.0`: the RENAME this rule performs shipped then,
+    // and only the collection it is looked up under has moved since.
+    domain: (collection, name) => collection === 'color.surface' && name.startsWith('surface/'),
     map: (_collection, name) => `color/${name.slice('surface/'.length)}`,
+  },
+  {
+    id: 'namespace-and-core-tier-1097',
+    since: '0.27.0',
+    why:
+      'Every variable took the brand namespace as its first segment and the primitives took a `core` tier '
+      + 'under it: `color/background/primary` became `<root>/color/background/primary`, and '
+      + '`palette/red/550` became `<root>/core/palette/red/550`. Both halves are one rule because a '
+      + 'primitive is in the domain of both and two rules claiming one key is what `multiplyClaimed` '
+      + 'refuses. The point of the namespace is that a client\'s variables sit in their own folder rather '
+      + 'than colliding with whatever else a shared file holds, and the point of the tier is that after it '
+      + 'a variable\'s name IS its DTCG path — `prism.core.palette.red.550` (#1102) with slashes for dots. '
+      + 'Figma STYLES keep the transform they already had and drop both segments; that exception is stated '
+      + 'in `docs/10` because "names track their DTCG path" is now true-with-one-exception rather than just true.',
+    // POSITIONAL, and the two halves read in opposite directions on purpose.
+    //
+    // The domain asks whether the name is ALREADY rooted, which is the idempotence question and the only
+    // one answerable without knowing what the old first segments were: a post-#1097 name starts with the
+    // root, a pre-#1097 name does not. Enumerating the pre-#1097 first segments instead (`color`, `space`,
+    // `palette`, …) would be per-brand authored data of exactly the kind `docs/44` §4 rejected, and it
+    // would go stale the first time a brand emitted a group this list had not heard of.
+    //
+    // The map keys the tier on the NAME's first segment rather than on the collection, because the tier is
+    // a fact about the DTCG path (`prism.palette.*` → `prism.core.palette.*`) and not about where Figma
+    // happens to put it. Verified against the corpus at the merge base: `palette/*`, `dimension/*` and
+    // `font/*` occur in no collection but the three `core-*` ones, and `font-fluid/*` — which stays
+    // OUTSIDE the tier — is a different first segment, not a prefix match on `font`.
+    //
+    // One brand-root value would defeat this: a client rooting at `color` makes `color/appearance/…` read
+    // as already-namespaced. The accounting reports those keys as unaccounted removals, loudly, which is
+    // the right outcome for a namespace that collides with the engine's own top-level names.
+    domain: (_collection, name, root) => !name.startsWith(`${root}/`),
+    map: (_collection, name, root) =>
+      CORE_GROUPS.includes(name.split('/')[0]) ? `${root}/${CORE_TIER}/${name}` : `${root}/${name}`,
   },
 ];
 
@@ -196,6 +267,10 @@ const account = (
   /** Parsed back out of a key. Kept as a parameter so the accounting never re-splits a string it did
    *  not build — a `::` inside a variable name would make a split-based parse silently wrong. */
   parse: (key: VarKey) => { collection: string; name: string },
+  /** The BRAND ROOT every name in this comparison is expected to carry (#1097) — see
+   *  `MaterializationRule` for why it is an argument rather than a literal, and where each caller sources
+   *  it. One accounting covers one brand, which is what makes a single value correct here. */
+  root: string,
   /** WHICH SET THE RULES ARE EVALUATED OVER — the entire difference between the doc's two columns.
    *  `'whole-set'` walks `before`; `'diff'` walks only what was removed. The diff and addition sets are
    *  computed from `before` either way, so the two differ in exactly one thing: whether a rule that
@@ -216,8 +291,8 @@ const account = (
   for (const key of (walk === 'whole-set' ? before : removed)) {
     const { collection, name } = parse(key);
     for (const rule of rules) {
-      if (!rule.domain(collection, name)) continue;
-      const to = varKey(collection, rule.map(collection, name));
+      if (!rule.domain(collection, name, root)) continue;
+      const to = varKey(collection, rule.map(collection, name, root));
       const claim: Claim = { rule: rule.id, from: key, to };
       claims.push(claim);
       claimedFrom.set(key, [...(claimedFrom.get(key) ?? []), rule.id]);
@@ -283,7 +358,8 @@ export const accountForDiffDriven = (
   after: ReadonlySet<VarKey>,
   rules: readonly MaterializationRule[],
   parse: (key: VarKey) => { collection: string; name: string },
-): Accounting => account(before, after, rules, parse, 'diff');
+  root: string,
+): Accounting => account(before, after, rules, parse, root, 'diff');
 
 /**
  * THE ACCOUNTING THE GATE USES. `walk: 'whole-set'` is fixed here and is not a parameter the caller
@@ -294,7 +370,8 @@ export const accountFor = (
   after: ReadonlySet<VarKey>,
   rules: readonly MaterializationRule[],
   parse: (key: VarKey) => { collection: string; name: string },
-): Accounting => account(before, after, rules, parse, 'whole-set');
+  root: string,
+): Accounting => account(before, after, rules, parse, root, 'whole-set');
 
 /**
  * TOTAL means: nothing left unclaimed, no claim contradicted, no key claimed twice. Used by both the
@@ -385,6 +462,63 @@ export const parseVarKey = (key: VarKey): { collection: string; name: string } =
 export type CollectionMove = { from: string; to: string };
 
 /**
+ * WHERE EACH COLLECTION AT A PAST MERGE BASE NOW LIVES — the accounting's recollection map, and
+ * **deliberately not `COLLECTION_RENAMES`** (#1097).
+ *
+ * The two lists look interchangeable and are relative to different points in time, which is why sharing
+ * one was safe until #1013 and unsafe after it:
+ *
+ *   · `COLLECTION_RENAMES` is a MIGRATION list. Each entry is relative to whenever that rename shipped,
+ *     and it is applied to a designer's file, which may sit anywhere in that history. It holds
+ *     `color → color.appearance`, because a PRE-#1013 file's `color` is the value tier.
+ *   · this list is an ACCOUNTING list. Every entry is relative to the MERGE BASE, which is a single
+ *     commit, and it is applied to names read out of git at that commit. A POST-#1013 base's `color` is
+ *     the ALIAS tier, so the same `from` has to go to `color.surface`.
+ *
+ * One `from`, two answers, both correct in their own frame. `recollect` is single-step and takes the FIRST
+ * match, so putting both in one array makes the answer depend on array order — a silent misattribution of
+ * all 128 alias-tier keys per brand, reported as unaccounted removals against rules that are correct.
+ * `test.ts` asserts no `from` appears twice here, because that ambiguity is the whole reason this exists.
+ *
+ * The lane that added the `core` entries ships **no `COLLECTION_RENAMES` entry for them, and cannot** — the
+ * three-into-one shape is the reason, not a decision that could have gone the other way:
+ *
+ *   · `validateRenameMap` refuses `duplicate collection target`, so three sources onto one `core` is a
+ *     static refusal before any write.
+ *   · and underneath that, Figma has no operation to perform. `Variable.variableCollectionId` is
+ *     `readonly` (`@figma/plugin-typings/plugin-api.d.ts:11454`), so a variable cannot be moved between
+ *     collections at all — a collection rename preserves every child, and there is no second write that
+ *     re-parents one. A fan-in is not a rename with an awkward validator; it is not a rename.
+ *
+ * **Recorded here rather than only in the issue, because a reader of this list will otherwise assume the
+ * missing entry was forgotten** and add it, at which point the map stops validating and the reason has to
+ * be rediscovered. The consequence for a designer's pre-#1097 file is real and accepted: the `core-*`
+ * collections and every binding on them stay put beside a fresh `core`, reported by nothing (#1108).
+ * `test.ts` asserts both halves — that this list reaches the fan-in and that `COLLECTION_RENAMES` cannot.
+ *
+ * The accounting still needs to know where the keys went, and that need is what this list serves — it forces
+ * no Figma operation and never reaches a designer's file.
+ *
+ * ── STALE ENTRIES GO INERT RATHER THAN WRONG, WHICH IS WHY THIS IS APPEND-ONLY ──────────────────────
+ *
+ * Once #1097 is on `main` the merge base emits `core` and `color.surface`, so no key carries a `from`
+ * below and every entry claims nothing. That is the same property `COLLECTION_RENAMES` relies on and it is
+ * what makes leaving them here safe. Do not prune them: a reader landing on a `core-palette` in an old
+ * emission needs to find the record, and an entry that has gone inert costs nothing.
+ */
+export const ACCOUNTING_COLLECTION_MOVES: readonly CollectionMove[] = [
+  // #1097 — the three primitive collections merged into one. `core.palette.json`, `core.dimension.json`
+  // and `core.font.json` are three FILES that all declare `$collection: 'core'`; the file stem stopped
+  // being the collection name in the same change, which is why nothing here can be derived from a filename.
+  { from: 'core-palette', to: 'core' },
+  { from: 'core-dimension', to: 'core' },
+  { from: 'core-font', to: 'core' },
+  // #1089 — the alias tier names its axis, so both colour collections do. The variables inside kept their
+  // `color/*` tails and no DTCG path moved; only the mode picker's label did.
+  { from: 'color', to: 'color.surface' },
+];
+
+/**
  * Move one BEFORE key into the collection its variable now lives in — **a single step, never a walk.**
  *
  * The accounting is keyed on `collection :: name` and a rule's `map` returns the name only (deliberately
@@ -400,12 +534,17 @@ export type CollectionMove = { from: string; to: string };
  *
  * ── SINGLE-STEP, AND THE TRANSITIVE VERSION IS WRONG RATHER THAN JUST SLOWER ─────────────────────
  *
- * `COLLECTION_RENAMES` holds a CHAIN: `surface → color` alongside `color → color.appearance`. Following
- * it to a fixed point would send `surface :: surface/text/primary` to `color.appearance`, which is not
- * where that variable went — it went to `color`, one hop. The two entries describe two different
- * collections moving at the same moment, not one collection moving twice. A `while` loop here would
- * misattribute all 128 alias-tier keys per brand, and the accounting would then report them as
- * unaccounted removals against rules that are correct.
+ * `COLLECTION_RENAMES` held a CHAIN from #1013 until #1097: `surface → color` alongside
+ * `color → color.appearance`. Following it to a fixed point would send `surface :: surface/text/primary`
+ * to `color.appearance`, which is not where that variable went — it went to `color`, one hop. The two
+ * entries described two different collections moving at the same moment, not one collection moving twice.
+ * A `while` loop here would misattribute all 128 alias-tier keys per brand, and the accounting would then
+ * report them as unaccounted removals against rules that are correct.
+ *
+ * **#1097 retargeted that entry to `surface → color.surface`, so the shipped map no longer holds a chain
+ * and this hazard is no longer reachable from production data.** The rule is unchanged and the arm in
+ * `test.ts` now drives a CHAIN FIXTURE instead — because pointed at the live map it passed while proving
+ * nothing, which is `docs/34`'s borrowed-backstop shape and was caught in exactly that state.
  *
  * **This is the exact inverse of the apply side, and the asymmetry is the point.**
  * `planCollectionRenames` DOES need topological order, because it walks one live name set and each rename

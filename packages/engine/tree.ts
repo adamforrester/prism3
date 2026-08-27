@@ -14,7 +14,7 @@
  */
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
-import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey } from './theme';
+import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
 import { SizeStep, ControlSizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
 import { surfaceRowsFor, SURFACE_MODES } from './surface-rows';
@@ -282,7 +282,7 @@ const fluidClamp = (minPx: number, maxPx: number, minVW: number, maxVW: number):
  *  composite in that category inherits — the same seam leading and tracking use (#377). */
 const RE_POINT_LABEL: Record<string, string> = { fontSize: 'size' };
 const typographyLeaf = (root: string, c: { group: string; variant: string; sizePx: number; sizeMinPx: number; weightRole: string; lineHeight: string; tracking: string; textCase: string; link: boolean; italic: boolean; lineHeightByMode?: Record<string, string>; trackingByMode?: Record<string, string>; sizeByMode?: Record<string, number>; sizeMinByMode?: Record<string, number> }, face: string, minVW: number, maxVW: number): Token => {
-  const a = (seg: string) => `{${root}.font.${seg}}`;
+  const a = (seg: string) => `{${root}.${CORE_TIER}.font.${seg}}`;
   const value: Record<string, unknown> = {
     fontFamily: a(`family.${c.group}`),      // #415 — a composite's family IS its category
     fontSize: a(`size.${c.sizePx}`),                            // canonical = desktop/max (fallback)
@@ -300,8 +300,8 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
   const responsive = isFluid
     ? {
         fluid: true,
-        min: { px: c.sizeMinPx, rem: round(c.sizeMinPx / 16, 4), ref: `{${root}.font.size.${c.sizeMinPx}}` },
-        max: { px: c.sizePx, rem: round(c.sizePx / 16, 4), ref: `{${root}.font.size.${c.sizePx}}` },
+        min: { px: c.sizeMinPx, rem: round(c.sizeMinPx / 16, 4), ref: `{${root}.${CORE_TIER}.font.size.${c.sizeMinPx}}` },
+        max: { px: c.sizePx, rem: round(c.sizePx / 16, 4), ref: `{${root}.${CORE_TIER}.font.size.${c.sizePx}}` },
         web: fluidClamp(c.sizeMinPx, c.sizePx, minVW, maxVW).clamp,
         figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinPx, desktop: c.sizePx } },
       }
@@ -330,8 +330,8 @@ const typographyLeaf = (root: string, c: { group: string; variant: string; sizeP
         ...(c.sizeByMode?.[m] !== undefined && c.sizeMinByMode?.[m] !== undefined
           ? { responsive: c.sizeMinByMode[m] !== c.sizeByMode[m]
               ? { fluid: true,
-                  min: { px: c.sizeMinByMode[m], rem: round(c.sizeMinByMode[m] / 16, 4), ref: `{${root}.font.size.${c.sizeMinByMode[m]}}` },
-                  max: { px: c.sizeByMode[m], rem: round(c.sizeByMode[m] / 16, 4), ref: `{${root}.font.size.${c.sizeByMode[m]}}` },
+                  min: { px: c.sizeMinByMode[m], rem: round(c.sizeMinByMode[m] / 16, 4), ref: `{${root}.${CORE_TIER}.font.size.${c.sizeMinByMode[m]}}` },
+                  max: { px: c.sizeByMode[m], rem: round(c.sizeByMode[m] / 16, 4), ref: `{${root}.${CORE_TIER}.font.size.${c.sizeByMode[m]}}` },
                   web: fluidClamp(c.sizeMinByMode[m], c.sizeByMode[m], minVW, maxVW).clamp,
                   figma: { field: 'fontSize', scope: 'FONT_SIZE', modes: { mobile: c.sizeMinByMode[m], desktop: c.sizeByMode[m] } } }
               : { fluid: false, px: c.sizeByMode[m] } }
@@ -494,14 +494,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // light rung), else a literal px. Shared by the per-mode RADIUS rungs and the per-mode size HEIGHT
   // sub-leaf — both re-anchor a grid-aligned dimension per mode.
   const gridStepOverride = (px: number, note: string): Record<string, unknown> =>
-    gridSet.has(px) ? { $value: `{${root}.dimension.${px}}`, px, note } : { $value: `${px}px`, px, note };
+    gridSet.has(px) ? { $value: `{${root}.${CORE_TIER}.dimension.${px}}`, px, note } : { $value: `${px}px`, px, note };
   // reference: fine grid primitives
   const dimension: Record<string, Token> = {};
   for (const px of theme.dims.grid) dimension[String(px)] = dimLeaf(px);
   // reference: numbered-multiplier space scale (density-free)
   const space: Record<string, Token> = {};
   const spaceKeyOf = new Map<number, string>(theme.dims.space.map((s) => [s.px, s.key]));
-  for (const s of theme.dims.space) space[s.key] = dimAlias(`${root}.dimension.${s.px}`, `space.${s.key} — ${s.px}px (${s.mult}× ${theme.dims.spaceBase}px base)`, { px: s.px, mult: s.mult });
+  for (const s of theme.dims.space) space[s.key] = dimAlias(`${root}.${CORE_TIER}.dimension.${s.px}`, `space.${s.key} — ${s.px}px (${s.mult}× ${theme.dims.spaceBase}px base)`, { px: s.px, mult: s.mult });
   // radius ramp (t-shirt) — geometry is MODE-VARYING (docs/11 Pillar 1b + Phase D). Two paths
   // coexist on the same `$extensions.prism3.modes` map:
   //  • wireframe (not lever-driven) zeroes every radius → each non-zero rung aliases `dimension.0`;
@@ -513,11 +513,11 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const radiusByMode = theme.dims.radiusByMode ?? {};
   for (const r of theme.dims.radius) {
     const leaf = gridSet.has(r.px)
-      ? dimAlias(`${root}.dimension.${r.px}`, `radius ${r.name} — ${r.px}px${r.pill ? ' (pill)' : ''}`, { px: r.px, radiusScale: theme.dims.radiusScaleValue })
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${r.px}`, `radius ${r.name} — ${r.px}px${r.pill ? ' (pill)' : ''}`, { px: r.px, radiusScale: theme.dims.radiusScaleValue })
       : dimLeaf(r.px, `radius ${r.name} — ${r.px}px (off-grid literal)`);
     const modeOverrides: Record<string, unknown> = {};
     if (wireframe && r.px !== 0)
-      modeOverrides.wireframe = { $value: `{${root}.dimension.0}`, px: 0, note: 'wireframe zeroes all radius (sharp corners)' };
+      modeOverrides.wireframe = { $value: `{${root}.${CORE_TIER}.dimension.0}`, px: 0, note: 'wireframe zeroes all radius (sharp corners)' };
     for (const [mode, steps] of Object.entries(radiusByMode)) {
       const rr = steps.find((s) => s.name === r.name);
       if (!rr || rr.px === r.px) continue;   // px equal → no diff → no override
@@ -555,7 +555,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const size: Record<string, any> = {};
   for (const z of theme.dims.sizes) {
     const heightLeaf = gridSet.has(z.height)
-      ? dimAlias(`${root}.dimension.${z.height}`, `size.${z.name} control height — ${z.height}px (density: ${theme.dims.density})`, { px: z.height, density: theme.dims.density })
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${z.height}`, `size.${z.name} control height — ${z.height}px (density: ${theme.dims.density})`, { px: z.height, density: theme.dims.density })
       : dimLeaf(z.height, `size.${z.name} control height — ${z.height}px`);
     const padXLeaf = spacePad(z.padX, `size.${z.name} horizontal inset — ${z.padX}px (density: ${theme.dims.density})`);
     const padYLeaf = spacePad(z.padY, `size.${z.name} vertical inset — ${z.padY}px (density: ${theme.dims.density})`);
@@ -589,7 +589,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const iconSize: Record<string, Token> = {};
   for (const ic of theme.dims.icons) {
     iconSize[ic.name] = gridSet.has(ic.px)
-      ? dimAlias(`${root}.dimension.${ic.px}`, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid; pairs with size.${ic.name})`, { px: ic.px })
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${ic.px}`, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid; pairs with size.${ic.name})`, { px: ic.px })
       // Unreachable while buildDims feeds icon px into the grid; kept so a future grid change
       // degrades to a literal rather than emitting a dangling alias.
       : dimLeaf(ic.px, `icon.size.${ic.name} — ${ic.px}px artboard (fixed grid)`);
@@ -624,7 +624,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   };
   const controlLeaf = (px: number, description: string): Token =>
     gridSet.has(px)
-      ? dimAlias(`${root}.dimension.${px}`, description, { px, density: theme.dims.density })
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, description, { px, density: theme.dims.density })
       // Unreachable while buildDims feeds the control px into the grid; kept so a future grid change
       // degrades to a literal rather than emitting a dangling alias.
       : dimLeaf(px, description);
@@ -650,7 +650,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // 1px hairline floor; no sub-px tokens (unreliable on hi-dpi). Field consensus
   // clusters here (Tailwind 0/1/2/4/8, Atlassian 1/2, Fluent thin/thick).
   const bwAlias = (px: number, name: string): Token =>
-    gridSet.has(px) ? dimAlias(`${root}.dimension.${px}`, name, { px }) : dimLeaf(px, name);
+    gridSet.has(px) ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, name, { px }) : dimLeaf(px, name);
   const borderWidth: Record<string, Token> = {
     none: bwAlias(0, 'border-width none — 0px'),
     hairline: bwAlias(1, 'border-width hairline — 1px (default border floor)'),
@@ -779,13 +779,13 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const family: Record<string, Token> = {};
   for (const f of ty.families) {
     const slug = typefaceSlug(f.stack[0]);
-    const leaf = familySemanticAlias(`${root}.font.typeface.${slug}`, f.stack[0], `font family \u2014 ${f.group} \u2192 ${f.stack[0]}`);
+    const leaf = familySemanticAlias(`${root}.${CORE_TIER}.font.typeface.${slug}`, f.stack[0], `font family \u2014 ${f.group} \u2192 ${f.stack[0]}`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, fams] of Object.entries(familiesByMode)) {
       const mf = fams.find((x) => x.group === f.group);
       if (!mf || stackKey(mf.stack) === stackKey(f.stack)) continue;   // same stack -> no diff -> no override
       const mslug = typefaceSlug(mf.stack[0]);
-      modeOverrides[mode] = { $value: `{${root}.font.typeface.${mslug}}`, aliasOf: `${root}.font.typeface.${mslug}`, face: mf.stack[0], note: `font family override \u2014 ${mode} (\u2192 ${mf.stack[0]})` };
+      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.typeface.${mslug}}`, aliasOf: `${root}.${CORE_TIER}.font.typeface.${mslug}`, face: mf.stack[0], note: `font family override \u2014 ${mode} (\u2192 ${mf.stack[0]})` };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     family[f.group] = leaf;
@@ -796,12 +796,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   for (const w of ty.weightsRef) fweight[String(w)] = fontWeightLeaf(w, `font weight ${w} — numeric reference (the brand's literal axis value)`);
   const weightRole: Record<string, Token> = {};
   for (const r of ty.weightRoles) {
-    const leaf = weightRoleAlias(`${root}.font.weight.${r.value}`, r.value, `weight role '${r.role}' → ${r.value} — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)`);
+    const leaf = weightRoleAlias(`${root}.${CORE_TIER}.font.weight.${r.value}`, r.value, `weight role '${r.role}' → ${r.value} — function-named, white-label-stable (the brand maps the numeric; a 2-weight brand collapses roles)`);
     const modeOverrides: Record<string, unknown> = {};
     for (const [mode, roles] of Object.entries(weightRolesByMode)) {
       const mr = roles.find((x) => x.role === r.role);
       if (!mr || mr.value === r.value) continue;   // same numeric → no diff → no override
-      modeOverrides[mode] = { $value: `{${root}.font.weight.${mr.value}}`, weight: mr.value, note: `font weight-role lever override — ${mode} (${r.role} → ${mr.value})` };
+      modeOverrides[mode] = { $value: `{${root}.${CORE_TIER}.font.weight.${mr.value}}`, weight: mr.value, note: `font weight-role lever override — ${mode} (${r.role} → ${mr.value})` };
     }
     if (Object.keys(modeOverrides).length) leaf.$extensions.prism3.modes = modeOverrides;
     weightRole[r.role] = leaf;
@@ -853,23 +853,23 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // composite that referenced the rung, which is the whole point of the tier existing.
   const lineHeightRole: Record<string, Token> = {};
   for (const lh of ty.lineHeights) {
-    const leaf = rungRoleAlias(`${root}.font.line-height.${lineHeightStepKey(lh.value)}`, lh.value,
+    const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(lh.value)}`, lh.value,
       `line-height role '${lh.key}' → ${lh.value}× — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
     for (const [m, byRole] of Object.entries(ty.lineHeightRoleByMode ?? {}))
       if (byRole[lh.key] !== undefined)
-        modes[m] = { $value: `{${root}.font.line-height.${lineHeightStepKey(byRole[lh.key])}}` };
+        modes[m] = { $value: `{${root}.${CORE_TIER}.font.line-height.${lineHeightStepKey(byRole[lh.key])}}` };
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     lineHeightRole[lh.key] = leaf;
   }
   const letterSpacingRole: Record<string, Token> = {};
   for (const ls of ty.letterSpacings) {
-    const leaf = rungRoleAlias(`${root}.font.letter-spacing.${letterSpacingStepKey(ls.em)}`, ls.em,
+    const leaf = rungRoleAlias(`${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(ls.em)}`, ls.em,
       `letter-spacing role '${ls.key}' → ${ls.em}em — a relative-emphasis name a mode may re-point; the step itself never changes`);
     const modes: Record<string, any> = {};
     for (const [m, byRole] of Object.entries(ty.letterSpacingRoleByMode ?? {}))
       if (byRole[ls.key] !== undefined)
-        modes[m] = { $value: `{${root}.font.letter-spacing.${letterSpacingStepKey(byRole[ls.key])}}` };
+        modes[m] = { $value: `{${root}.${CORE_TIER}.font.letter-spacing.${letterSpacingStepKey(byRole[ls.key])}}` };
     if (Object.keys(modes).length) (leaf.$extensions as any).prism3.modes = modes;
     letterSpacingRole[ls.key] = leaf;
   }
@@ -933,7 +933,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // ---- assemble under the brand root ----
   // `gradient` is included only when the brand opted in (kept off the tree for
   // brands that declare none — gradients are an opt-in axis, not a default group).
-  const brand = { palette, color: colorTier, opacity, motion, font, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, dimension, space, radius, 'border-width': borderWidth, focus, size, control };
+  //
+  // `core` (#1102) holds the three PRIMITIVE groups — the colour ramps, the dimension ramp, and the
+  // font family/size/weight primitives. It goes FIRST because a reader scanning the file meets the
+  // reference tier before the things that alias it, which is the order the tokens actually resolve in.
+  // `opacity` stays at the top level deliberately: it is directly consumable (#79) and has no semantic
+  // layer above it, so it is not a primitive in the sense this tier means — the same reason it is the
+  // one ref-tier-looking collection that is NOT `hiddenFromPublishing` in Figma.
+  const brand = { core: { palette, dimension, font }, color: colorTier, opacity, motion, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, space, radius, 'border-width': borderWidth, focus, size, control };
   const tree = {
     [root]: brand,
     $extensions: {

@@ -40,15 +40,16 @@ import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS
 import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, MIRRORED_COLLECTIONS, type RenameMap } from './rename-map';
 import {
   MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
-  recollect, recollectAll,
+  recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
   type MaterializationRule, type VarKey,
 } from './materialization-renames';
 import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './token-contract';
-import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIERS } from './eval';
+import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
 import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
+import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
 import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
@@ -73,6 +74,54 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, dirname, join, relative } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// #1097 — every emitted Figma variable name begins with the BRAND'S OWN ROOT, so an arm that looks a
+// variable up by name needs the root rather than a spelled prefix. Taken from the theme, which is where
+// the root is configured, and never from `out/figma/**`, which is the side under test. Spelling `nbds/`
+// here would still pass for the two corpus brands rooted at `prism` and would hide exactly the defect
+// #1097's read paths were rebuilt to avoid — see `materialization-renames.ts`'s `root` note.
+const NB_ROOT = nbTheme().root;
+/** An nb variable's full emitted name, from its root-relative tail. */
+const nbVar = (tail: string): string => `${NB_ROOT}/${tail}`;
+/**
+ * Each Figma-emitting brand's configured root, keyed by the directory name under `out/figma/`. Same
+ * sourcing rule as `NB_ROOT` above: from the THEME, never from the first segment of an emitted name.
+ *
+ * A missing entry THROWS rather than defaulting, and `tsx` not typechecking this file is why that matters:
+ * an absent root arrives at a rule's `domain` as `undefined`, `!name.startsWith('undefined/')` is true of
+ * every name in the corpus, and the whole emission reads as having moved. A brand emitted with no entry
+ * here is a hole, not a default.
+ */
+const BRAND_ROOTS: Record<string, string> = {
+  nb: NB_ROOT,
+  aurora: brandTheme(exampleBrands()['aurora'] as BrandInput).root,
+  wendys: brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input).root,
+};
+const rootOfBrand = (brand: string): string => {
+  const r = BRAND_ROOTS[brand];
+  if (!r) throw new Error(`no configured root for emitted brand \`${brand}\` — add it to BRAND_ROOTS (from that brand's theme), never read it off the emission`);
+  return r;
+};
+/**
+ * The three primitive groups #1102 moved under the `core` DTCG tier. Written out rather than imported
+ * from `theme.ts`: this is the list the FIXTURE transform below needs, and importing the emitter's own
+ * list would make the transform agree with whatever the emitter does (docs/34).
+ */
+const CORE_GROUPS = new Set(['palette', 'dimension', 'font']);
+/**
+ * A pre-#1097 fixture variable name mapped to the name the engine emits today.
+ *
+ * The fixtures under `fixtures/figma/nb/` are frozen at the shape of the real NB Figma export
+ * (normalised of its `pds/` prefix) and are deliberately NOT rewritten by a rename — their
+ * `$collection` fields still read `font`/`font-fluid`, from before #66 renamed those collections. So
+ * the transform is stated HERE, by hand, in exactly the two segments #1097/#1102 added: the brand
+ * root, and the `core` tier over the three primitive groups.
+ *
+ * It ADDS rather than strips, and that direction is the point. Stripping `${root}/` off the emitted
+ * name would let an emitter that forgot the `core` tier still match the fixture — a false pass.
+ * Building the expected name forwards means a missing root OR a missing tier is a mismatch.
+ */
+const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) ? `core/${n}` : n);
 
 let pass = 0; const fails: string[] = [];
 const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(msg); };
@@ -332,10 +381,14 @@ for (const b of brands) {
   // (e) Figma slots are scoped by SLOT (fill→paint, text→TEXT_FILL, border→STROKE_COLOR).
   const { color } = buildFigmaColor(nbTheme());
   const byName = new Map<string, any>(color.find((c) => c.$mode === 'light')!.variables.map((v: any) => [v.name, v]));
-  // Names carry the `color/appearance/` tier prefix since #1013. Spelled out per call rather than
-  // built from a constant: a missing name returns `null` here, so a stale prefix reads as "scopes are
-  // null" on all twelve at once — and a prefix derived from the emitter could not report that at all.
-  const scopeOf = (n: string) => JSON.stringify(byName.get(n)?.scopes ?? null);
+  // Names carry the `color/appearance/` tier prefix since #1013 and the brand namespace since #1097.
+  // The TIER is spelled out per call rather than built from a constant: a missing name returns `null`
+  // here, so a stale prefix reads as "scopes are null" on all twelve at once — and a prefix derived from
+  // the emitter could not report that at all. The NAMESPACE is added once, by `nbVar`, because it is the
+  // one segment that is brand-specific rather than structural: writing `nbds/` twelve times would make
+  // this block the thing that has to be edited when a brand renames its root, which is the mistake
+  // #1097 exists to stop the READ paths making.
+  const scopeOf = (n: string) => JSON.stringify(byName.get(nbVar(n))?.scopes ?? null);
   const scopeBad: string[] = [];
   if (scopeOf('color/appearance/interactive/primary/text/rest') !== JSON.stringify(['TEXT_FILL'])) scopeBad.push('primary/text/rest');
   // Every border STATE must carry the stroke scope, not just the one that used to be the whole slot
@@ -792,7 +845,7 @@ for (const b of brands) {
         // The WRAPPED shape (`{ $value, px, note }`) is the one the overlay projector reads — #708 was
         // two shapes for one concept and 28 mode-varying shadows dropped from every overlay.
         const want = EXPECTED_CONTROL.compact[rung][field];
-        if (mods.dark.px !== want || mods.dark.$value !== `{prism.dimension.${want}}`) wrong.push(`${rung}.${field} ${JSON.stringify(mods.dark.$value)}/${mods.dark.px} ≠ ${want}`);
+        if (mods.dark.px !== want || mods.dark.$value !== `{prism.core.dimension.${want}}`) wrong.push(`${rung}.${field} ${JSON.stringify(mods.dark.$value)}/${mods.dark.px} ≠ ${want}`);
       }
     ok(missing.length === 0, '#900 a `modeLevers.density` mode re-derives the control box, so it moves with the row it sits in (#708: the box must not keep the baseline dimension)'
       + (missing.length ? ` — NO OVERRIDE: ${missing.join(', ')}` : ''));
@@ -1019,7 +1072,10 @@ for (const b of brands) {
   // pointer — so a probe left on the old spelling would not go quiet here (these rows are value-tier only)
   // but would silently become the wrong claim the moment anyone widened the row source: the alias tier has
   // two modes on the SURFACE axis, and "distinct per mode" there means something else entirely.
-  const bg = rows.find(([n]) => n === 'color/appearance/background/primary');
+  // #1097 adds the brand namespace on top of that, and the probe spells it via `nbVar` — these rows are
+  // emitted names, not plan names. A probe left unrooted selects nothing, `!!bg` is false, and the arm goes
+  // red rather than quiet, which is the only reason it is safe to write as a `find`.
+  const bg = rows.find(([n]) => n === nbVar('color/appearance/background/primary'));
   ok(!!bg && new Set(bg![1]).size > 1, 'materialise: background/primary binds a different palette step per mode (the collapse-guard probe)');
 }
 
@@ -1065,12 +1121,12 @@ for (const b of brands) {
   const plan = buildWritePlan(buildFigmaColor(nbTheme()));
   const { modes, create, aliases } = plan.color;
   ok(modes.length === 4, `write-plan: nb plan carries 4 colour modes (${modes.join('/')})`);
-  ok(plan.palette.length > 0 && plan.palette.every((r) => r.hidden), 'write-plan: every core-palette primitive is hidden from publishing');
+  ok(plan.palette.length > 0 && plan.palette.every((r) => r.hidden), 'write-plan: every `core` palette primitive is hidden from publishing');
   ok(plan.palette.every((r) => r.scopes.length > 0 && r.value && typeof r.value.r === 'number'), 'write-plan: palette rows carry scopes + a literal RGBA value');
   ok(create.length > 0 && create.every((r) => r.valuesByMode.length === modes.length), 'write-plan: every colour create-row carries one literal value per mode');
   ok(aliases.length === create.length && aliases.every((r) => r.targetsByMode.length === modes.length), 'write-plan: every colour alias-row carries one target per mode (parallel to create-rows)');
   ok(aliases.some((r) => new Set(r.targetsByMode).size > 1), 'write-plan: alias rows carry distinct per-mode targets (collapse-proof at the plan level)');
-  const bgp = aliases.find((r) => r.name === 'color/appearance/background/primary');
+  const bgp = aliases.find((r) => r.name === nbVar('color/appearance/background/primary'));
   ok(!!bgp && new Set(bgp!.targetsByMode).size > 1, 'write-plan: background/primary binds a different palette step per mode (plan-level collapse-guard probe)');
 }
 
@@ -1084,7 +1140,7 @@ for (const b of brands) {
   // per-mode value is the alias target NAME from the plan.
   const snapFrom = (aliasRowsIn: typeof plan.color.aliases): ReadbackSnapshot => ({
     collections: [
-      { name: 'core-palette', modes: ['Default'] },
+      { name: 'core', modes: ['Default'] },
       // The VALUE tier's collection, `color.appearance` since #1013. `read-back.ts` looks the appearance
       // modes up BY THIS NAME, so a snapshot still saying `color` reports zero modes and `modesDistinct`
       // goes false — the collapse guard failing for a reason that has nothing to do with a collapse.
@@ -1106,7 +1162,7 @@ for (const b of brands) {
   ok(good.checks.aliasesResolve && good.details.danglingAliases.length === 0, 'read-back: every alias target resolves (0 dangling)');
   ok(good.checks.slotScopes && good.checks.fieldFamilyPresent, 'read-back: slot scopes + field family match the contract');
   ok(good.checks.retiredRolesAbsent && good.checks.renamedRolesAbsent && good.checks.bareDangerPresent, 'read-back: retired/renamed roles absent, bare foreground/danger present');
-  ok(good.checks.primitivesHidden, 'read-back: core-palette primitives hidden from publishing');
+  ok(good.checks.primitivesHidden, 'read-back: `core` palette primitives hidden from publishing');
 
   // NEGATIVE: collapse every mode of background/primary to a single target → modesDistinct must fail.
   //
@@ -1115,8 +1171,13 @@ for (const b of brands) {
   // and the NEGATIVE arm passed — for a reason having nothing to do with collapsing anything. Only the
   // paired POSITIVE arm going red said so. A negative arm alone cannot tell "the mutation was detected"
   // from "the check was already failing", which is why the two are written together here.
+  //
+  // #1097 is the same trap one segment further out: the plan's rows are ROOTED, so an unrooted name here
+  // selects no row, collapses nothing, and the negative arm fails — which is what it did, and which is the
+  // paired design working rather than a new defect. `nbVar` because a mutation that matches nothing is
+  // indistinguishable from a guard that does not bite.
   const collapsed = plan.color.aliases.map((r) =>
-    r.name === 'color/appearance/background/primary' ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
+    r.name === nbVar('color/appearance/background/primary') ? { ...r, targetsByMode: r.targetsByMode.map(() => r.targetsByMode[0]) } : r,
   );
   const bad = verifyReadback(snapFrom(collapsed));
   ok(!bad.checks.modesDistinct && !bad.ok, 'read-back: collapsed background/primary FAILS modesDistinct (negative — the collapse guard bites)');
@@ -1168,15 +1229,23 @@ for (const b of brands) {
 // the plan (0 dangling — the executor binds against one global name map), opacity must be 0–100 (the
 // Figma OPACITY-percent convention), and a wireframe brand must add a distinct `wireframe` radius mode.
 {
-  const auroraFloat = buildFloatWritePlan(brandTheme(exampleBrands()['aurora'] as BrandInput));
+  const auroraTheme = brandTheme(exampleBrands()['aurora'] as BrandInput);
+  const auroraFloat = buildFloatWritePlan(auroraTheme);
+  // Aurora's root — `prism`, where nb's is `nbds`. Read off the theme for the reason `NB_ROOT` is, and
+  // used here rather than `NB_ROOT` because this block's plans are aurora's: a cross-brand prefix would
+  // make every alias arm below vacuous.
+  const aRoot = auroraTheme.root;
   const names = auroraFloat.map((c) => c.name);
-  const EXPECTED = ['core-dimension', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
+  // Nine collections, ten axes: #1097 merged `core-palette`/`core-dimension`/`core-font` into ONE `core`
+  // collection, so `core/dimension` is a SLICE of a collection rather than a collection of its own. The
+  // count moves 10 → 9 for that reason and no other.
+  const EXPECTED = ['core', 'space', 'radius', 'size', 'icon', 'control', 'border-width', 'focus', 'opacity', 'layout'];
   ok(EXPECTED.every((n) => names.includes(n)) && names.length === EXPECTED.length,
     `float-plan: ten collections present (${names.join(', ')})`);
 
   // Single-mode dims axes vs per-breakpoint layout.
-  ok(auroraFloat.find((c) => c.name === 'core-dimension')!.modes.join(',') === 'Default',
-    'float-plan: core-dimension is single Default mode');
+  ok(auroraFloat.find((c) => c.name === 'core')!.modes.join(',') === 'Default',
+    'float-plan: the `core` collection is single Default mode');
   const layout = auroraFloat.find((c) => c.name === 'layout')!;
   ok(layout.modes.length >= 4 && layout.create.length > 0,
     `float-plan: layout carries one mode per breakpoint (${layout.modes.join('/')})`);
@@ -1190,21 +1259,21 @@ for (const b of brands) {
         if (t && !allNames.has(t)) danglers.push(`${a.name} -> ${t}`);
   ok(danglers.length === 0, `float-plan: every cross-collection alias resolves (0 dangling)${danglers.length ? ' — ' + danglers.slice(0, 3).join(', ') : ''}`);
 
-  // space aliases dimension; core-dimension + opacity are primitives (no aliases).
+  // space aliases dimension; the `core` dimension slice + opacity are primitives (no aliases).
   const space = auroraFloat.find((c) => c.name === 'space')!;
-  ok(space.aliases.every((a) => a.targetsByMode.every((t) => t === null || t.startsWith('dimension/'))),
-    'float-plan: space vars alias core-dimension primitives');
-  ok(auroraFloat.find((c) => c.name === 'core-dimension')!.aliases.every((a) => a.targetsByMode.every((t) => t === null)),
-    'float-plan: core-dimension primitives carry no aliases');
+  ok(space.aliases.every((a) => a.targetsByMode.every((t) => t === null || t.startsWith(`${aRoot}/core/dimension/`))),
+    'float-plan: space vars alias the `core` dimension primitives, under the brand root');
+  ok(auroraFloat.find((c) => c.name === 'core')!.aliases.every((a) => a.targetsByMode.every((t) => t === null)),
+    'float-plan: `core` primitives carry no aliases');
 
   // opacity values are 0–100 (Figma OPACITY percent), not the DTCG 0–1 fraction.
   const opVals = auroraFloat.find((c) => c.name === 'opacity')!.create.flatMap((r) => r.valuesByMode);
   ok(opVals.length > 0 && opVals.every((n) => n >= 0 && n <= 100) && opVals.some((n) => n > 1),
     `float-plan: opacity is 0–100 percent (max ${Math.max(...opVals)})`);
 
-  // core-dimension primitives hidden from publishing; opacity NOT hidden (#79 — directly consumable).
-  ok(auroraFloat.find((c) => c.name === 'core-dimension')!.create.every((r) => r.hidden),
-    'float-plan: core-dimension primitives hidden from publishing');
+  // `core` primitives hidden from publishing; opacity NOT hidden (#79 — directly consumable).
+  ok(auroraFloat.find((c) => c.name === 'core')!.create.every((r) => r.hidden),
+    'float-plan: `core` primitives hidden from publishing');
   ok(auroraFloat.find((c) => c.name === 'opacity')!.create.every((r) => !r.hidden),
     'float-plan: opacity NOT hidden (directly consumable)');
 
@@ -1213,8 +1282,8 @@ for (const b of brands) {
   const wfRadius = wfFloat.find((c) => c.name === 'radius')!;
   const wfIdx = wfRadius.modes.indexOf('wireframe');
   ok(wfIdx > 0 && wfRadius.modes.includes('Default'), `float-plan: wireframe brand adds a wireframe radius mode (${wfRadius.modes.join('/')})`);
-  ok(wfRadius.aliases.length > 0 && wfRadius.aliases.every((a) => a.targetsByMode[wfIdx] === 'dimension/0'),
-    'float-plan: every radius aliases dimension/0 in the wireframe mode (sharp corners)');
+  ok(wfRadius.aliases.length > 0 && wfRadius.aliases.every((a) => a.targetsByMode[wfIdx] === `${aRoot}/core/dimension/0`),
+    'float-plan: every radius aliases core/dimension/0 in the wireframe mode (sharp corners)');
 
   // verifyFloatReadback guard: a colour-only snapshot (no `float`) is NOT a float failure; a dangling
   // FLOAT alias IS caught. (The full write→read→verify round-trip is covered in apps/plugin/test-readback.)
@@ -1224,8 +1293,11 @@ for (const b of brands) {
     collections: [{ name: 'space', modes: ['Default'] }],
     palette: [], color: [],
     float: {
-      'core-dimension': [{ name: 'dimension/0', scopes: ['GAP'], hidden: true, valuesByMode: { Default: 0 } }],
-      space: [{ name: 'space/100', scopes: ['GAP'], hidden: false, valuesByMode: { Default: { alias: 'dimension/NOPE' } } }],
+      // AXIS KEYS, not collection names — `core/dimension` is one slice of the merged `core` collection
+      // (#1097). The variable names carry a root because a real read does; `zzclient` rather than a
+      // corpus brand's, so an axis key accidentally spelled as a prefix of a name cannot match.
+      'core/dimension': [{ name: 'zzclient/core/dimension/0', scopes: ['GAP'], hidden: true, valuesByMode: { Default: 0 } }],
+      space: [{ name: 'zzclient/space/100', scopes: ['GAP'], hidden: false, valuesByMode: { Default: { alias: 'zzclient/core/dimension/NOPE' } } }],
       radius: [], size: [], 'border-width': [], focus: [], opacity: [],
     },
   }, false);
@@ -1272,26 +1344,30 @@ for (const b of brands) {
     'styles: a light-only brand emits shadow/* but NO shadow-dark/*');
 }
 
-// TYPOGRAPHY WRITE PLANS (#237): core-font/type-sets VARIABLE plan + the Text Style plan.
+// TYPOGRAPHY WRITE PLANS (#237): the `core` font slice + `type-sets` VARIABLE plan + the Text Style plan.
 {
   const nb = nbTheme();
   const fontVars = buildFontVarPlan(nb);
-  const coreFont = fontVars.find((c) => c.name === 'core-font')!;
+  // `core`, not `core-font`: #1097 merged the three primitive collections, so the typography primitives
+  // and the dimension primitives now share ONE collection and `core/font` is a slice of it. The plan
+  // still carries two entries because `type-sets` is a collection of its own.
+  const coreFont = fontVars.find((c) => c.name === 'core')!;
   const typeSets = fontVars.find((c) => c.name === 'type-sets')!;
-  ok(!!coreFont && !!typeSets && fontVars.length === 2, 'font-plan: two collections — core-font + type-sets');
+  ok(!!coreFont && !!typeSets && fontVars.length === 2, 'font-plan: two collections — `core` + type-sets');
 
-  // core-font mixes STRING (family) + FLOAT (size/weight/weight-role); families are STRING with string values.
-  const familyRows = coreFont.rows.filter((r) => r.name.startsWith('font/family/'));
+  // The `core` font slice mixes STRING (family) + FLOAT (size/weight/weight-role); families are STRING
+  // with string values.
+  const familyRows = coreFont.rows.filter((r) => r.name.startsWith(nbVar('core/font/family/')));
   ok(familyRows.length > 0 && familyRows.every((r) => r.resolvedType === 'STRING' && typeof r.valuesByMode[0] === 'string'),
-    'font-plan: font/family/* rows are STRING with a string face value');
-  ok(coreFont.rows.some((r) => r.name.startsWith('font/size/') && r.resolvedType === 'FLOAT'), 'font-plan: font/size/* rows are FLOAT');
+    'font-plan: core/font/family/* rows are STRING with a string face value');
+  ok(coreFont.rows.some((r) => r.name.startsWith(nbVar('core/font/size/')) && r.resolvedType === 'FLOAT'), 'font-plan: core/font/size/* rows are FLOAT');
 
-  // weight-role rows alias font/weight/N (within core-font — resolves against the same collection).
-  const wr = coreFont.rows.filter((r) => r.name.startsWith('font/weight-role/'));
+  // weight-role rows alias font/weight/N (within `core` — resolves against the same collection).
+  const wr = coreFont.rows.filter((r) => r.name.startsWith(nbVar('core/font/weight-role/')));
   const coreNames = new Set(coreFont.rows.map((r) => r.name));
   const wrDangling = wr.flatMap((r) => r.aliasByMode.filter((a): a is string => !!a)).filter((t) => !coreNames.has(t));
-  ok(wr.length > 0 && wr.every((r) => r.aliasByMode.every((a) => a === null || a.startsWith('font/weight/'))) && wrDangling.length === 0,
-    'font-plan: weight-role rows alias font/weight/N, all resolving within core-font');
+  ok(wr.length > 0 && wr.every((r) => r.aliasByMode.every((a) => a === null || a.startsWith(nbVar('core/font/weight/')))) && wrDangling.length === 0,
+    'font-plan: weight-role rows alias core/font/weight/N, all resolving within the `core` collection');
 
   // type-sets is FLOAT, mobile/desktop.
   ok(typeSets.modes.join(',') === 'mobile,desktop' && typeSets.rows.every((r) => r.resolvedType === 'FLOAT'),
@@ -1302,10 +1378,10 @@ for (const b of brands) {
   ok(ts.length > 0, `font-plan: text-style plan has rows (${ts.length})`);
   const tbad: string[] = [];
   for (const r of ts) {
-    if (!r.fontFamilyVar.startsWith('font/family/')) tbad.push(`${r.name}: familyVar`);
+    if (!r.fontFamilyVar.startsWith(nbVar('core/font/family/'))) tbad.push(`${r.name}: familyVar`);
     if (!r.fontFamilyPrimary) tbad.push(`${r.name}: no primary face`);
-    if (!(r.fontSizeCollection === 'core-font' || r.fontSizeCollection === 'type-sets')) tbad.push(`${r.name}: sizeColl`);
-    if (!r.fontWeightVar.startsWith('font/weight-role/')) tbad.push(`${r.name}: weightVar`);
+    if (!(r.fontSizeCollection === 'core' || r.fontSizeCollection === 'type-sets')) tbad.push(`${r.name}: sizeColl`);
+    if (!r.fontWeightVar.startsWith(nbVar('core/font/weight-role/'))) tbad.push(`${r.name}: weightVar`);
     if (!r.fontStyle) tbad.push(`${r.name}: no fontStyle`);
     if (typeof r.lineHeightPct !== 'number') tbad.push(`${r.name}: lineHeight`);
   }
@@ -1322,16 +1398,19 @@ for (const b of brands) {
   ok(verifyTypographyReadback({ collections: [], palette: [], color: [] }).ok, 'verifyTypographyReadback: typography-absent snapshot passes (not a failure)');
   const goodTypo = verifyTypographyReadback({
     collections: [], palette: [], color: [],
-    font: { 'core-font': [
-      { name: 'font/weight/700', scopes: [], hidden: true, valuesByMode: { Default: 700 } },
-      { name: 'font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'font/weight/700' } } },
+    // AXIS KEY `core/font` — one slice of the merged `core` collection (#1097) — and rooted names, as a
+    // real read yields. `zzclient` because it is a root no corpus brand uses: the verdict must resolve
+    // an alias by full name, so a reader that stripped roots would pass this and must not.
+    font: { 'core/font': [
+      { name: 'zzclient/core/font/weight/700', scopes: [], hidden: true, valuesByMode: { Default: 700 } },
+      { name: 'zzclient/core/font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'zzclient/core/font/weight/700' } } },
     ] },
     textStyles: ['body/md/default'],
   });
-  ok(goodTypo.ok, 'verifyTypographyReadback: well-formed core-font + text style passes');
+  ok(goodTypo.ok, 'verifyTypographyReadback: well-formed `core/font` axis + text style passes');
   const danglingTypo = verifyTypographyReadback({
     collections: [], palette: [], color: [],
-    font: { 'core-font': [{ name: 'font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'font/weight/999' } } }] },
+    font: { 'core/font': [{ name: 'zzclient/core/font/weight-role/strong', scopes: [], hidden: false, valuesByMode: { Default: { alias: 'zzclient/core/font/weight/999' } } }] },
     textStyles: ['x'],
   });
   ok(!danglingTypo.ok && !danglingTypo.checks.weightAliasesResolve, 'verifyTypographyReadback: a dangling weight-role alias fails (negative)');
@@ -1390,26 +1469,45 @@ for (const b of brands) {
         for (const p of guaranteedInv) if (!emitted.has(p)) removable.add(p);
       }
     }
-    // The 9 known-removable, and why each is here rather than fixed: `outlineInteraction` opts out of
-    // overlay tokens by design. Listed literally so the exemption is a claim about specific paths.
+    // KNOWN IS NOW EMPTY, AND THAT IS THE FIX THIS ARM ASKED FOR (#957, landing with #1102).
     //
-    // `color.appearance.*` since #1013: the overlays are appearance-varying paint, so they moved to the
-    // VALUE tier with the rest of it. What did not move is the SWEPT count — 113 guaranteed inverse paths
-    // before the swap and 113 after — and that is the useful reading of this arm during a rename: the tier
-    // moved, and no inverse path was added or lost on the way. The arm reported the change in both
-    // directions (4 newly removable under the new spelling, 4 no-longer-removable under the old), which is
-    // what an EQUALITY assertion buys over `unexpected.length === 0`: a subset check would have accepted
-    // the stale list silently, since nothing under the old spelling is removable any more.
-    const KNOWN = (['primary', 'neutral', 'destructive'] as const)
-      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.interactive.${c}.inverse.overlay.${s}`))
-      .sort();
+    // It used to hold 9 paths — `interactive.<c>.inverse.overlay.{hover,pressed,selected}` — with the note
+    // that "the honest fix is almost certainly to demote those paths to `brandDependent` (the contract is
+    // wrong, not the lever)". That demotion has now happened, so the paths are no longer in
+    // `readBaseline().guaranteed`, `guaranteedInv` never offers them, and the equality assertion fired
+    // exactly as designed: it reported all 9 as `fixed` and said "tighten KNOWN". This is that tightening,
+    // and it is worth recording that the tripwire worked rather than quietly editing the list.
+    //
+    // An empty `KNOWN` keeps both halves of the equality doing work — `unexpected` still fails the day a
+    // NEW lever starts gating a guaranteed inverse path, which is the arm's real purpose. What an empty
+    // list DOES lose is its own non-vacuity: `unexpected.length === 0` is trivially true if the sweep
+    // finds nothing because it swept nothing. So the sweep's width is a separate arm, and the demotion is
+    // asserted rather than assumed — otherwise "no lever removes a guaranteed inverse path" would also be
+    // satisfiable by demoting every inverse path there is.
+    //
+    // The SWEPT count is 104, down from 113, and the arithmetic is the whole story: 113 − 9 demoted. It
+    // survived #1013's tier rename unchanged at 113, which was that rename's useful reading here.
+    const KNOWN: string[] = [];
     const got = [...removable].sort();
     const unexpected = got.filter((p) => !KNOWN.includes(p));
     const fixed = KNOWN.filter((p) => !got.includes(p));
     ok(unexpected.length === 0 && fixed.length === 0,
-      `inverse: no lever removes a guaranteed inverse path beyond outlineInteraction's ${KNOWN.length} overlays (swept ${guaranteedInv.length} guaranteed inverse paths)` +
+      `inverse: no lever removes a guaranteed inverse path (${KNOWN.length} known exemptions; swept ${guaranteedInv.length} guaranteed inverse paths)` +
       (unexpected.length ? ` — NEWLY REMOVABLE: ${unexpected.slice(0, 4).join(', ')}` : '') +
       (fixed.length ? ` — no longer removable, tighten KNOWN: ${fixed.slice(0, 4).join(', ')}` : ''));
+    ok(guaranteedInv.length >= 100 && leverManifest.length > 20,
+      `inverse: the lever sweep is wide enough for the arm above to mean anything (${guaranteedInv.length} guaranteed inverse paths × ${leverManifest.length} levers) — a floor, because an empty sweep satisfies "nothing is removable"`);
+    // #957's demotion, stated as the claim it is: these 9 are STILL EMITTED for a brand that does not pull
+    // `outlineInteraction`, and are simply no longer promised. Read off the baseline's `brandDependent`,
+    // which is where the demotion has to land for the arm above to be honest — if they had been DELETED
+    // instead, `KNOWN: []` would pass for the wrong reason and nothing here would notice.
+    const demotedOverlays = (['primary', 'neutral', 'destructive'] as const)
+      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.interactive.${c}.inverse.overlay.${s}`)).sort();
+    const bd = new Set(readBaseline().brandDependent);
+    const notDemoted = demotedOverlays.filter((p) => !bd.has(p));
+    ok(notDemoted.length === 0,
+      `inverse: the ${demotedOverlays.length} overlay paths this arm used to exempt are brand-DEPENDENT now, not gone (#957)` +
+      (notDemoted.length ? ` — MISSING from brandDependent: ${notDemoted.slice(0, 4).join(', ')}` : ''));
   }
 
   // (a3) THE COVERAGE REGISTER, both directions (#892 step 5 / #893). Every semantic colour role
@@ -1483,11 +1581,43 @@ for (const b of brands) {
       // name set) instead of trusting it: if the row sets ever diverge, the next arm names the brand.
       const perBrand = corpus().map(({ id, theme: t }) => ({ id, paths: new Set(surfaceRows(t).map((r) => `color.${r.role}`)) }));
       ok(perBrand.length > 1, `surface: the corpus offers ${perBrand.length} brands to intersect — one brand would make the intersection a restatement of that brand`);
-      const rowPaths = new Set([...perBrand[0].paths].filter((p) => perBrand.every((b) => b.paths.has(p))));
-      ok(rowPaths.size > 0, `surface: surfaceRows() yielded ${rowPaths.size} rows shared by every brand — an empty layer would make every def binding read as unaliased`);
-      const diverged = perBrand.filter((b) => b.paths.size !== rowPaths.size).map((b) => `${b.id} (${b.paths.size} rows vs ${rowPaths.size} shared)`);
+      const allRowPaths = new Set(perBrand.flatMap((b) => [...b.paths]));
+      const shared = new Set([...allRowPaths].filter((p) => perBrand.every((b) => b.paths.has(p))));
+
+      // SUPPRESSED IS NOT DIVERGED (#957/#1102, and `token-contract.ts`'s "sparse is not the same as
+      // suppressed" one level along). The corpus gained `minimal-levers`, which pulls
+      // `outlineInteraction: 'none'` — a lever whose entire declared purpose is to emit no overlay tokens.
+      // So the intersection is now 9 rows short of every other member's set, and reading that as
+      // divergence would be reading a lever working as a corpus that disagrees.
+      //
+      // Two things must not be lost to that concession, so each is its own arm. First, the difference has
+      // to be EXACTLY these 9 paths — a row set drifting for any other reason still fails. Second, exactly
+      // ONE member may be short, and by exactly the recorded set: loosening this to "ignore any missing
+      // overlay row" would let a second lever start gating rows unnoticed, which is the whole failure mode.
+      //
+      // The list is written out here rather than derived from the lever, from `INVERSE_GAPS`, or from the
+      // short member's own diff. Derived from any of those it would agree with whatever suppression is
+      // happening and could not report a new one (`docs/34` shape 1).
+      const LEVER_SUPPRESSED_ROWS = (['primary', 'neutral', 'destructive'] as const)
+        .flatMap((c) => ['hover', 'pressed', 'selected'].map((st) => `color.interactive.${c}.overlay.${st}`)).sort();
+      const suppressed = new Set(LEVER_SUPPRESSED_ROWS);
+      const missingPer = perBrand.map((b) => ({ id: b.id, missing: [...allRowPaths].filter((p) => !b.paths.has(p)).sort() }));
+      const diverged = missingPer
+        .filter((b) => b.missing.some((p) => !suppressed.has(p)))
+        .map((b) => `${b.id} (${b.missing.filter((p) => !suppressed.has(p)).join(', ')})`);
       ok(diverged.length === 0,
-        `surface: every brand's alias layer carries the same rows, which is what lets one register cover the corpus${diverged.length ? ` — DIVERGED: ${diverged.join('; ')}` : ''}`);
+        `surface: every brand's alias layer carries the same rows except where a named lever suppresses them, which is what lets one register cover the corpus${diverged.length ? ` — DIVERGED: ${diverged.join('; ')}` : ''}`);
+      const short = missingPer.filter((b) => b.missing.length > 0);
+      ok(short.length === 1 && short[0].missing.join('|') === LEVER_SUPPRESSED_ROWS.join('|'),
+        `surface: the row-set difference is attributable to ONE corpus member and to exactly the ${LEVER_SUPPRESSED_ROWS.length} rows \`outlineInteraction: 'none'\` suppresses (${short.length} member(s) short: ${short.map((b) => `${b.id}×${b.missing.length}`).join(', ') || 'none'})`);
+
+      // The register's denominator, and it FAILS CLOSED on purpose. Given the two arms above this equals
+      // the union — but written as `shared ∪ suppressed` rather than as the union, a row that drops out for
+      // an UNEXPLAINED reason is not in it, so a def binding that row is reported as unregistered rather
+      // than waved through. Spelling it `allRowPaths` would invert that.
+      const rowPaths = new Set([...shared, ...LEVER_SUPPRESSED_ROWS].filter((p) => allRowPaths.has(p)));
+      ok(rowPaths.size > 0 && shared.size > 0,
+        `surface: surfaceRows() yielded ${rowPaths.size} rows every brand carries or a named lever removes (${shared.size} shared by all ${perBrand.length}) — an empty layer would make every def binding read as unaliased`);
 
       const outside = [...bound.keys()].filter((p) => !rowPaths.has(p)).sort();
       const unregistered = outside.filter((p) => !UNALIASED_PATHS.has(p));
@@ -1649,14 +1779,24 @@ for (const b of brands) {
     // The brands with a committed Figma emission — `regen`'s emit-figma step writes these three; a
     // brand absent here is not a silent skip, the count below is asserted.
     // #1013 swapped the two collections' names, so both filenames here moved: this layer is now
-    // `color.<surface-mode>.json` and the value tier it aliases is `color.appearance.<mode>.json`.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.inverse.json`)));
+    // `color.surface.<surface-mode>.json` and the value tier it aliases is `color.appearance.<mode>.json`.
+    // (#1089 renamed the alias tier's COLLECTION `color` → `color.surface`, and an artifact filename
+    // follows its collection name, so the stem gained a segment a second time. The `existsSync` filter is
+    // why this must be got right rather than merely fixed: a stale filename makes `figmaBrands` EMPTY and
+    // every per-brand arm below simply does not run. The floor arm on the next line is the only thing
+    // between that and a green suite — it is not decoration.)
+    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.surface.inverse.json`)));
     ok(figmaBrands.length >= 3, `surface: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
       const colorVars = new Set<string>(
         JSON.parse(readFileSync(resolve(dir, 'color.appearance.light.json'), 'utf8')).variables.map((v: any) => v.name));
-      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `color.${m}.json`), 'utf8')));
+      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `color.surface.${m}.json`), 'utf8')));
+      // #1097 — the register's paths are DTCG paths below the root (`color.background.primary`), and the
+      // emitted names are rooted Figma names. `srfName` is the one place that boundary is crossed for this
+      // block, and the root comes from the brand's theme via `rootOfBrand`, never from a name in the file.
+      const srfName = (dtcgPath: string): string =>
+        `${rootOfBrand(brand)}/color/${dtcgPath.replace(/^color\./, '').replace(/\./g, '/')}`;
 
       // THE DEAD POINTER — the failure #893 says the whole sequencing exists to prevent. An alias at
       // a name no variable carries pastes clean into Figma and resolves to nothing at bind time.
@@ -1676,13 +1816,12 @@ for (const b of brands) {
       // were emitted as a self-alias anyway, the distinction the register exists to preserve would be
       // gone from the artifact and a deliberate gap would read exactly like a filled one.
       const omitted = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'omit');
-      const leaked = omitted.filter((g) => names[0].has(`color/${g.replace(/^color\./, '').replace(/\./g, '/')}`));
+      const leaked = omitted.filter((g) => names[0].has(srfName(g)));
       ok(leaked.length === 0,
         `surface(${brand}): a gap dispositioned 'omit' emits NO row${leaked.length ? ` — LEAKED: ${leaked.join(', ')}` : ` (${omitted.length} omitted)`}`);
 
       // And the converse: a gap dispositioned `self` must be present, with both modes on one target.
-      const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self')
-        .map((g) => `color/${g.replace(/^color\./, '').replace(/\./g, '/')}`);
+      const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self').map(srfName);
       const missingSelf = selfs.filter((n) => !names[0].has(n));
       const notSelfAliased = selfs.filter((n) => {
         const d = files[0].variables.find((v: any) => v.name === n);
@@ -1702,8 +1841,15 @@ for (const b of brands) {
     // hand-authored client brand (#893, the Mistica case).
     {
       const rowSets = figmaBrands.map((b) =>
-        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.inverse.json`), 'utf8'))
-          .variables.map((v: any) => `${v.name}→${v.alias?.name}`).sort().join('|'));
+        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.surface.inverse.json`), 'utf8'))
+          // #1097 — the ROW SET is compared across brands, and every name in it now begins with that
+          // brand's own root, so comparing the raw names would report three-way divergence on nothing but
+          // the namespace. The root is stripped, per brand, with its own configured value; a name that
+          // does NOT carry it survives with the root attached and so still diverges, which is the
+          // behaviour wanted — this de-roots what is there, it does not assume it.
+          .variables.map((v: any) => [v.name, v.alias?.name]
+            .map((n: string | undefined) => (n ?? 'NO ALIAS').replace(new RegExp(`^${rootOfBrand(b)}/`), ''))
+            .join('→')).sort().join('|'));
       // `rowSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
       // under a stack trace that named this line instead — the diagnosis pointing at the wrong file.
@@ -1943,7 +2089,7 @@ for (const b of brands) {
   const withOv = { ...base, overrides: { dark: { [roleKey]: { palette: 'primary', step: overStep } } } } as unknown as BrandInput;
   const baseNode = nodeAt(buildTree(brandTheme(base)).tree[root]);
   const ovNode = nodeAt(buildTree(brandTheme(withOv)).tree[root]);
-  ok(ovNode.$extensions.prism3.modes.dark.$value === `{${root}.palette.primary.${overStep}}`,
+  ok(ovNode.$extensions.prism3.modes.dark.$value === `{${root}.core.palette.primary.${overStep}}`,
     `A1(a): dark override → primary.${overStep} in $extensions.prism3.modes.dark (got ${ovNode.$extensions.prism3.modes.dark.$value})`);
   ok(ovNode.$value === baseNode.$value, `A1(a): light canonical $value unchanged by the dark override (${ovNode.$value})`);
   ok(baseNode.$extensions.prism3.modes.dark.$value !== ovNode.$extensions.prism3.modes.dark.$value,
@@ -1958,7 +2104,9 @@ for (const b of brands) {
   ok(!failThrew, 'A1(b): a contrast-failing override does NOT throw (WARN, not block)');
   ok(darkRes && Array.isArray(darkRes.warnings) && darkRes.warnings.some((w: any) => w.role === roleKey && w.ratio < w.min),
     'A1(b): the failing override is recorded in ModeResult.warnings (ratio < min)');
-  ok(darkRes && darkRes.roles[roleKey].path === `${root}.palette.primary.${failStep}`,
+  // `core.palette`, not `palette` — #1102 moved the primitive tier under `core` in DTCG too, so a role's
+  // resolved path gains the segment. The sibling arm in (a) above already spells it that way.
+  ok(darkRes && darkRes.roles[roleKey].path === `${root}.core.palette.primary.${failStep}`,
     'A1(b): the failing override still emits — the role is repointed despite the warning');
   ok(!threw(() => buildTree(brandTheme(failing))), 'A1(b): buildTree emits a contrast-failing override without throwing');
 
@@ -2048,7 +2196,7 @@ for (const b of brands) {
   // (b) an override on the custom mode DEVIATES it while its base (dark) stays unchanged.
   const deviated = { ...withCustom, overrides: { 'marketing-dark': { [roleKey]: { palette: 'primary', step: '750' } } } } as unknown as BrandInput;
   const mdD = modeOf(deviated, 'marketing-dark'), dkD = modeOf(deviated, 'dark');
-  ok(mdD!.roles[roleKey].path === `${root}.palette.primary.750`, `C1(b): a custom-mode override repoints marketing-dark (${mdD!.roles[roleKey].path})`);
+  ok(mdD!.roles[roleKey].path === `${root}.core.palette.primary.750`, `C1(b): a custom-mode override repoints marketing-dark (${mdD!.roles[roleKey].path})`);
   ok(dkD!.roles[roleKey].path === dk!.roles[roleKey].path, 'C1(b): the base dark mode is untouched by the custom-mode override');
   // and a per-mode interactive anchor on the custom mode also deviates it.
   const anchored = { ...withCustom, modeAnchors: { 'marketing-dark': { primary: 100 } } } as unknown as BrandInput;
@@ -2058,7 +2206,7 @@ for (const b of brands) {
   // (c) buildTree emits the custom value under $extensions.prism3.modes['marketing-dark']; light $value unchanged.
   const baseTree = nodeAt(buildTree(brandTheme(base)).tree[root]);
   const custTree = nodeAt(buildTree(brandTheme(deviated)).tree[root]);
-  ok(custTree.$extensions.prism3.modes['marketing-dark']?.$value === `{${root}.palette.primary.750}`,
+  ok(custTree.$extensions.prism3.modes['marketing-dark']?.$value === `{${root}.core.palette.primary.750}`,
     `C1(c): buildTree emits the custom mode under $extensions.prism3.modes['marketing-dark'] (${custTree.$extensions.prism3.modes['marketing-dark']?.$value})`);
   ok(custTree.$value === baseTree.$value, `C1(c): light canonical $value is unchanged by the custom mode (${custTree.$value})`);
 
@@ -2141,7 +2289,7 @@ for (const b of brands) {
   const sharpDark = { ...base, modeLevers: { dark: { radius: 0 } } } as unknown as BrandInput;
   const baseRadius = buildTree(brandTheme(base)).tree[root].radius;
   const dRadius = buildTree(brandTheme(sharpDark)).tree[root].radius;
-  ok(baseRadius.md.px !== 0 && dRadius.md.$extensions.prism3.modes.dark.$value === `{${root}.dimension.0}`,
+  ok(baseRadius.md.px !== 0 && dRadius.md.$extensions.prism3.modes.dark.$value === `{${root}.core.dimension.0}`,
     `D(a): dark radius:0 → radius.md carries a modes.dark override aliasing dimension.0 (got ${dRadius.md.$extensions.prism3.modes?.dark?.$value})`);
   ok(dRadius.md.$extensions.prism3.modes.dark.px === 0, 'D(a): the dark override records px 0');
   ok(dRadius.md.$value === baseRadius.md.$value, `D(a): light canonical radius.md $value is unchanged by the dark lever (${dRadius.md.$value})`);
@@ -2161,8 +2309,11 @@ for (const b of brands) {
   // (b) the Figma radius emit produces a dark radius mode/file with the override materialised.
   const figRadius = buildFigmaDims(brandTheme(sharpDark)).radius;
   const figDark = figRadius.find((f) => f.$mode === 'dark');
-  const figMd = figDark?.variables.find((v) => v.name === 'radius/md');
-  ok(!!figDark && figMd?.value === 0 && figMd?.alias?.name === 'dimension/0',
+  // ROOTED (#1097) — this is an emitted Figma variable, and the alias target on the next line has carried
+  // the root for as long as this arm has existed, so an unrooted lookup here would have been the only half
+  // of the pair not in the file's own space.
+  const figMd = figDark?.variables.find((v) => v.name === `${root}/radius/md`);
+  ok(!!figDark && figMd?.value === 0 && figMd?.alias?.name === `${root}/core/dimension/0`,
     `D(b): buildFigmaDims emits a dark radius file with radius/md → dimension/0 (value ${figMd?.value})`);
 
   // (c) validation throws — generate-only mode (hc-light/wireframe), a mode not generated, out-of-range.
@@ -2247,26 +2398,26 @@ for (const b of brands) {
   // (a) family.display carries a modes.dark override that RE-POINTS the role to a different
   //     typeface primitive (#269) rather than re-valuing it — the alias-preserving shape. The
   //     overridden face is unioned into the typeface set, so the alias always lands on a real leaf.
-  const famDark = pmTree.font.family.display.$extensions.prism3.modes?.dark;
-  ok(!!famDark && famDark.$value === `{${root}.font.typeface.georgia}` && famDark.face === 'Georgia',
+  const famDark = pmTree.core.font.family.display.$extensions.prism3.modes?.dark;
+  ok(!!famDark && famDark.$value === `{${root}.core.font.typeface.georgia}` && famDark.face === 'Georgia',
     `D-typo(a): dark family override RE-POINTS family.display to the georgia typeface (got ${famDark?.$value})`);
-  ok(!!pmTree.font.typeface.georgia, 'D-typo(a): a per-mode-only face is unioned into the typeface primitives so its alias resolves');
-  ok(pmTree.font.family.display.$value === baseTree.font.family.display.$value,
-    `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.font.family.display.$value})`);
-  ok(pmTree.font.family.body.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden category (body) carries no modes override');
+  ok(!!pmTree.core.font.typeface.georgia, 'D-typo(a): a per-mode-only face is unioned into the typeface primitives so its alias resolves');
+  ok(pmTree.core.font.family.display.$value === baseTree.core.font.family.display.$value,
+    `D-typo(a): light canonical family.display $value is unchanged by the dark lever (${pmTree.core.font.family.display.$value})`);
+  ok(pmTree.core.font.family.body.$extensions.prism3.modes === undefined, 'D-typo(a): an un-overridden category (body) carries no modes override');
   // #415 — the sibling that USED to move with it. display/title/label/eyebrow all sat on the old
   // `display` family role, so a per-mode `families.display` dragged all four; category-keyed, it moves
   // exactly the one named. This is the whole reason the per-mode familyMap lever (#390) could retire.
-  ok(pmTree.font.family.title.$extensions.prism3.modes === undefined,
+  ok(pmTree.core.font.family.title.$extensions.prism3.modes === undefined,
     '[#415] a per-mode families.display moves ONLY display — title, its old role-mate, is untouched');
 
   // (b) weight-role.strong carries a modes.dark override aliasing font.weight.500; light stays 700.
-  const wrDark = pmTree.font['weight-role'].strong.$extensions.prism3.modes?.dark;
-  ok(!!wrDark && wrDark.$value === `{${root}.font.weight.500}` && wrDark.weight === 500,
+  const wrDark = pmTree.core.font['weight-role'].strong.$extensions.prism3.modes?.dark;
+  ok(!!wrDark && wrDark.$value === `{${root}.core.font.weight.500}` && wrDark.weight === 500,
     `D-typo(b): dark weight override → weight-role.strong modes.dark aliases font.weight.500 (got ${wrDark?.$value})`);
-  ok(pmTree.font['weight-role'].strong.$value === baseTree.font['weight-role'].strong.$value,
-    `D-typo(b): light canonical weight-role.strong $value is unchanged (${pmTree.font['weight-role'].strong.$value})`);
-  ok(!!pmTree.font.weight['500'], 'D-typo(b): the font.weight.500 primitive EXISTS (weightsRef union) so the per-mode alias resolves — 500 is role-owned by nothing, so this fails if the union is dropped');
+  ok(pmTree.core.font['weight-role'].strong.$value === baseTree.core.font['weight-role'].strong.$value,
+    `D-typo(b): light canonical weight-role.strong $value is unchanged (${pmTree.core.font['weight-role'].strong.$value})`);
+  ok(!!pmTree.core.font.weight['500'], 'D-typo(b): the font.weight.500 primitive EXISTS (weightsRef union) so the per-mode alias resolves — 500 is role-owned by nothing, so this fails if the union is dropped');
 
   // (c) a composite that binds display + strong is UNCHANGED — it just aliases the primitives, so the
   //     per-mode value is inherited via the alias, not stamped on the composite (the composite SET is fixed).
@@ -2276,17 +2427,17 @@ for (const b of brands) {
   // (d) every DTCG alias resolves — incl. the per-mode weight override alias (walked from modes.<m>.$value).
   ok(built.stats.broken.length === 0 && built.stats.aliases > 0, `D-typo(d): all ${built.stats.aliases} aliases resolve` + (built.stats.broken.length ? ` — BROKEN ${built.stats.broken.slice(0, 3).map((b: any) => b.ref).join(',')}` : ''));
 
-  // (e) the Figma font emit produces a `dark` core-font mode file with the family/weight overrides
+  // (e) the Figma font emit produces a `dark` `core` mode file with the family/weight overrides
   //     materialised; the Default (light) file keeps the canonical weight-role numeric.
   const fontFiles = buildFigmaFont(brandTheme(perMode));
   const darkFile = fontFiles.find((f) => f.$mode === 'dark');
-  const figFamDark = darkFile?.variables.find((v) => v.name === 'font/family/display');
-  const figWrDark = darkFile?.variables.find((v) => v.name === 'font/weight-role/strong');
-  const defWr = fontFiles.find((f) => f.$mode === 'Default')?.variables.find((v) => v.name === 'font/weight-role/strong');
-  ok(fontFiles.length === 2 && !!darkFile, `D-typo(e): buildFigmaFont emits Default + dark core-font files (${fontFiles.map((f) => f.$mode).join(',')})`);
-  ok(figFamDark?.value === 'Georgia', `D-typo(e): dark font/family/display bound to Georgia (${figFamDark?.value})`);
-  ok(figWrDark?.value === 500 && figWrDark?.alias?.name === 'font/weight/500', `D-typo(e): dark font/weight-role/strong → font/weight/500 (value ${figWrDark?.value})`);
-  ok(defWr?.value === 700 && defWr?.alias?.name === 'font/weight/700', `D-typo(e): Default (light) font/weight-role/strong stays 700 (${defWr?.value})`);
+  const figFamDark = darkFile?.variables.find((v) => v.name === `${root}/core/font/family/display`);
+  const figWrDark = darkFile?.variables.find((v) => v.name === `${root}/core/font/weight-role/strong`);
+  const defWr = fontFiles.find((f) => f.$mode === 'Default')?.variables.find((v) => v.name === `${root}/core/font/weight-role/strong`);
+  ok(fontFiles.length === 2 && !!darkFile, `D-typo(e): buildFigmaFont emits Default + dark \`core\` files (${fontFiles.map((f) => f.$mode).join(',')})`);
+  ok(figFamDark?.value === 'Georgia', `D-typo(e): dark core/font/family/display bound to Georgia (${figFamDark?.value})`);
+  ok(figWrDark?.value === 500 && figWrDark?.alias?.name === `${root}/core/font/weight/500`, `D-typo(e): dark core/font/weight-role/strong → core/font/weight/500 (value ${figWrDark?.value})`);
+  ok(defWr?.value === 700 && defWr?.alias?.name === `${root}/core/font/weight/700`, `D-typo(e): Default (light) core/font/weight-role/strong stays 700 (${defWr?.value})`);
 
   // (f) validation throws — families/weights on a generate-only mode (hc-light), on an un-generated
   //     mode, and a weight outside [100, 900].
@@ -2332,38 +2483,38 @@ for (const b of brands) {
   //     the LADDER STEP is mode-invariant. Under the old single tier the adjective WAS the primitive, so
   //     this assertion had to read `line-height.normal`; now the primitive is the numeric step and the
   //     adjective is a semantic role above it. The rule is unchanged — a mode never re-values a step.
-  const lhStep = (v: number) => pmTree.font['line-height'][lineHeightStepKey(v)];
-  const lsStep = (v: number) => pmTree.font['letter-spacing'][letterSpacingStepKey(v)];
-  ok(Object.values(pmTree.font['line-height']).every((n: any) => n.$extensions.prism3.modes === undefined),
+  const lhStep = (v: number) => pmTree.core.font['line-height'][lineHeightStepKey(v)];
+  const lsStep = (v: number) => pmTree.core.font['letter-spacing'][letterSpacingStepKey(v)];
+  ok(Object.values(pmTree.core.font['line-height']).every((n: any) => n.$extensions.prism3.modes === undefined),
     'D-lhls(a): NO line-height ladder step carries a per-mode override — every step is a primitive (#296)');
-  ok(lhStep(1.5).$value === baseTree.font['line-height'][lineHeightStepKey(1.5)].$value,
+  ok(lhStep(1.5).$value === baseTree.core.font['line-height'][lineHeightStepKey(1.5)].$value,
     'D-lhls(a): the 1.5 step is mode-invariant');
-  ok(lhStep(1.65).$value === baseTree.font['line-height'][lineHeightStepKey(1.65)].$value,
+  ok(lhStep(1.65).$value === baseTree.core.font['line-height'][lineHeightStepKey(1.65)].$value,
     'D-lhls(a): the step the mode re-points TO is also unchanged');
 
   // (b) same for letter-spacing.
-  ok(Object.values(pmTree.font['letter-spacing']).every((n: any) => n.$extensions.prism3.modes === undefined),
+  ok(Object.values(pmTree.core.font['letter-spacing']).every((n: any) => n.$extensions.prism3.modes === undefined),
     'D-lhls(b): NO letter-spacing ladder step carries a per-mode override (#296)');
-  ok(lsStep(0).$value === baseTree.font['letter-spacing'][letterSpacingStepKey(0)].$value,
+  ok(lsStep(0).$value === baseTree.core.font['letter-spacing'][letterSpacingStepKey(0)].$value,
     'D-lhls(b): the 0em step is mode-invariant');
 
   // (c) #377 — the per-mode change now lives on the semantic ROLE, stated ONCE, instead of being fanned
   //     onto all 38 composites. That is the whole reason the tier exists.
-  const lhRole = pmTree.font['line-height-role'].normal;
+  const lhRole = pmTree.core.font['line-height-role'].normal;
   const roleDark = lhRole.$extensions.prism3.modes?.dark;
   ok(!!roleDark, 'D-lhls(c): the line-height ROLE carries the modes.dark override (#377 — stated once)');
-  ok(roleDark?.$value === `{${root}.font.line-height.${lineHeightStepKey(1.65)}}`,
+  ok(roleDark?.$value === `{${root}.core.font.line-height.${lineHeightStepKey(1.65)}}`,
     `D-lhls(c): dark re-points the role at the 1.65 step (got ${roleDark?.$value})`);
-  ok(lhRole.$value === `{${root}.font.line-height.${lineHeightStepKey(1.5)}}`,
+  ok(lhRole.$value === `{${root}.core.font.line-height.${lineHeightStepKey(1.5)}}`,
     'D-lhls(c): the role\'s light canonical value still points at the 1.5 step');
-  ok(pmTree.font['letter-spacing-role'].normal.$extensions.prism3.modes?.dark?.$value
-      === `{${root}.font.letter-spacing.${letterSpacingStepKey(0.02)}}`,
+  ok(pmTree.core.font['letter-spacing-role'].normal.$extensions.prism3.modes?.dark?.$value
+      === `{${root}.core.font.letter-spacing.${letterSpacingStepKey(0.02)}}`,
     'D-lhls(c): the tracking role re-points at the 0.02em step in dark');
 
   // (c2) …and the composite is now CLEAN: it aliases the role and carries no leading/tracking variant
   //      of its own. This is the assertion that proves the fan-out is gone rather than duplicated.
   const bodyMd = pmTree.type.body.md.default;
-  ok(bodyMd.$value.lineHeight === `{${root}.font.line-height-role.normal}`,
+  ok(bodyMd.$value.lineHeight === `{${root}.core.font.line-height-role.normal}`,
     'D-lhls(c2): the composite aliases the semantic ROLE, not the primitive');
   const cDark = bodyMd.$extensions.prism3.modes?.dark;
   ok(cDark?.$value?.lineHeight === undefined && cDark?.$value?.letterSpacing === undefined,
@@ -2412,8 +2563,8 @@ for (const b of brands) {
   // #377 — assert on the ROLE now, which is where a real override would land. Checking the step would
   // pass vacuously (a step never carries modes), so this had to move with the tier or it would have
   // become a test that cannot fail.
-  ok(equalTree.font['line-height-role'].normal.$extensions.prism3.modes === undefined
-      && equalTree.font['letter-spacing-role'].normal.$extensions.prism3.modes === undefined,
+  ok(equalTree.core.font['line-height-role'].normal.$extensions.prism3.modes === undefined
+      && equalTree.core.font['letter-spacing-role'].normal.$extensions.prism3.modes === undefined,
     'D-lhls(i): a per-mode LH/LS equal to the light value attaches no role override (no-diff suppression)');
 
   // (j) byte-identical guard — a modeLevers entry with no LH/LS lever adds nothing at all (absent feature).
@@ -3160,8 +3311,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     // Emission: fontSize re-points, and the mode carries its own responsive pair.
     const leaf = (tree: any, path: string) => path.split('.').reduce((o, k) => o?.[k], tree);
     const em = leaf(buildTree(t1).tree, 'prism.type.title.2xl.strong');
-    ok(em.$extensions.prism3.modes.dark.$value.fontSize === '{prism.font.size.36}', '[#328] emitted dark $value.fontSize aliases the re-sized ladder step');
-    ok(em.$value.fontSize === '{prism.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
+    ok(em.$extensions.prism3.modes.dark.$value.fontSize === '{prism.core.font.size.36}', '[#328] emitted dark $value.fontSize aliases the re-sized ladder step');
+    ok(em.$value.fontSize === '{prism.core.font.size.40}', '[#328] emitted canonical $value.fontSize still aliases the light step');
     ok(em.$extensions.prism3.modes.dark.responsive?.max?.px === 36 && em.$extensions.prism3.modes.dark.responsive?.min?.px === 32,
       '[#328] the emitted per-mode responsive pair is the RECOMPUTED one (32→36), not the inherited 36→40');
     // The fidelity gate DOES reach into `$extensions.prism3.modes.<m>.$value` — hardened in #301 for
@@ -3183,15 +3334,15 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const bothT = brandTheme({ ...pmBase, typography: {}, modeLevers: { dark: { typeSizes: { title: { '2xl': 36 } }, lineHeights: { snug: 'relaxed' } } } } as any);
     const bothTree = buildTree(bothT).tree;
     const bl = leaf(bothTree, 'prism.type.title.2xl.strong').$extensions.prism3.modes.dark;
-    ok(bl.$value.fontSize === '{prism.font.size.36}',
+    ok(bl.$value.fontSize === '{prism.core.font.size.36}',
       '[#328] the per-mode SIZE still re-points on the composite — size is per-composite by contract');
     // A mode variant is a FULL-value snapshot (`{ ...value, ...parts }`), so `lineHeight` is present by
     // spread. The real proof the fan-out is gone is that it is UNCHANGED from light — the composite was
     // not re-pointed; the role beneath it was.
-    ok(bl.$value.lineHeight === '{prism.font.line-height-role.snug}',
+    ok(bl.$value.lineHeight === '{prism.core.font.line-height-role.snug}',
       '[#377] the composite\'s per-mode lineHeight is IDENTICAL to light — no fan-out, the role carries the change');
-    ok(leaf(bothTree, 'prism.font.line-height-role.snug').$extensions.prism3.modes.dark.$value
-        === `{prism.font.line-height.${lineHeightStepKey(1.65)}}`,
+    ok(leaf(bothTree, 'prism.core.font.line-height-role.snug').$extensions.prism3.modes.dark.$value
+        === `{prism.core.font.line-height.${lineHeightStepKey(1.65)}}`,
       '[#377] the leading re-point lives on the role, stated once, and title.2xl inherits it');
 
     // Validation THROWS — never drops. A silently ignored per-mode request is only visible in one mode.
@@ -3232,21 +3383,21 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     const thr = (f: () => unknown) => { try { f(); return false; } catch { return true; } };
     const mk = (families: any, ty: any = {}) => brandTheme({ ...fmBase, typography: ty, modeLevers: { dark: { families } } } as any);
     const leaf = (tree: any, path: string) => path.split('.').reduce((o: any, k: string) => o?.[k], tree);
-    const modesOf = (t: any, cat: string) => leaf(buildTree(t).tree, `prism.font.family.${cat}`).$extensions.prism3.modes;
+    const modesOf = (t: any, cat: string) => leaf(buildTree(t).tree, `prism.core.font.family.${cat}`).$extensions.prism3.modes;
 
     // THE WHOLE POINT: dark moves title onto Georgia and NOTHING else moves.
     const t1 = mk({ title: 'Georgia' });
-    ok(modesOf(t1, 'title')?.dark?.$value === '{prism.font.typeface.georgia}',
+    ok(modesOf(t1, 'title')?.dark?.$value === '{prism.core.font.typeface.georgia}',
       `[#415] per-mode families: dark title RE-POINTS to the georgia typeface (got ${modesOf(t1, 'title')?.dark?.$value})`);
-    ok(leaf(buildTree(t1).tree, 'prism.font.family.title').$value === '{prism.font.typeface.inter}',
+    ok(leaf(buildTree(t1).tree, 'prism.core.font.family.title').$value === '{prism.core.font.typeface.inter}',
       '[#415] the light/canonical binding is untouched — a mode re-points the alias, it never re-values it');
     ok(modesOf(t1, 'display') === undefined,
       '[#415] display — title’s mate on the old `display` role — does NOT move (the coupling that made #390 necessary)');
     // The negative above is only worth something if display CAN be moved from here; otherwise it would
     // pass structurally rather than behaviorally, which is how a test quietly stops testing.
-    ok(modesOf(mk({ title: 'Georgia', display: 'Georgia' }), 'display')?.dark?.$value === '{prism.font.typeface.georgia}',
+    ok(modesOf(mk({ title: 'Georgia', display: 'Georgia' }), 'display')?.dark?.$value === '{prism.core.font.typeface.georgia}',
       '[#415] …and display DOES move when it is named — the sibling assertion above is behavioral, not vacuous');
-    ok(!!leaf(buildTree(t1).tree, 'prism.font.typeface.georgia'),
+    ok(!!leaf(buildTree(t1).tree, 'prism.core.font.typeface.georgia'),
       '[#415] a per-mode-only face is unioned into the typeface primitives so its alias lands on a real leaf');
 
     // Emission — #415’s real dividend over #390. The COMPOSITES are byte-identical to a brand with
@@ -3421,8 +3572,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const t = tBrand('fam', { families: { display: 'Poppins', body: 'Inter', code: 'Fira Code' } });
   const { tree } = buildTree(t);
   const root = Object.keys(tree)[0];
-  const fam = (tree[root] as any).font.family;
-  const tf = (tree[root] as any).font.typeface;
+  const fam = (tree[root] as any).core.font.family;
+  const tf = (tree[root] as any).core.font.typeface;
 
   // tier 1 — a primitive per distinct face, slugged from its own name.
   ok(!!tf.poppins && !!tf.inter && !!tf['fira-code'], 'a typeface primitive is emitted per face, slugged from the face name');
@@ -3431,12 +3582,12 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(Array.isArray(fb) && fb.length > 0 && !fb.includes('Inter'), 'the fallback tail lives on the TYPEFACE, primary excluded');
 
   // tier 2 — one semantic per CATEGORY (#415), each aliasing a primitive; none carries a literal face.
-  ok(fam.body.$value === `{${root}.font.typeface.inter}`, 'a category semantic aliases its typeface primitive');
-  ok(fam.display.$value === `{${root}.font.typeface.poppins}`, 'each category aliases the face it binds');
-  ok(fam.body.$extensions.prism3.aliasOf === `${root}.font.typeface.inter`, 'the semantic records aliasOf, like every other semantic');
+  ok(fam.body.$value === `{${root}.core.font.typeface.inter}`, 'a category semantic aliases its typeface primitive');
+  ok(fam.display.$value === `{${root}.core.font.typeface.poppins}`, 'each category aliases the face it binds');
+  ok(fam.body.$extensions.prism3.aliasOf === `${root}.core.font.typeface.inter`, 'the semantic records aliasOf, like every other semantic');
   // Unset categories take the default face rather than disappearing — the tier is complete by
   // construction, so every composite has a `font.family.<its group>` to point at.
-  ok(Object.keys(fam).length === 7 && fam.caption.$value === `{${root}.font.typeface.inter}`,
+  ok(Object.keys(fam).length === 7 && fam.caption.$value === `{${root}.core.font.typeface.inter}`,
     `[#415] every category gets a semantic; an unset one (caption) takes the default face (${Object.keys(fam).join('/')})`);
 
   // the invariant that matters downstream: resolution is unchanged.
@@ -3446,13 +3597,13 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // two categories on ONE face share a single primitive (variable ORs across them).
   const shared = buildTree(tBrand('shared', { families: { display: 'Inter', body: 'Inter' } })).tree;
   const sroot = Object.keys(shared)[0];
-  const stf = (shared[sroot] as any).font.typeface;
-  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).font.family.display.$value === (shared[sroot] as any).font.family.body.$value,
+  const stf = (shared[sroot] as any).core.font.typeface;
+  ok(Object.keys(stf).filter((k) => k === 'inter').length === 1 && (shared[sroot] as any).core.font.family.display.$value === (shared[sroot] as any).core.font.family.body.$value,
     'two categories bound to the same face share one typeface primitive');
 
   // Figma family variable: value = primary, description still leads with the FULL stack.
-  const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith('font/family/'));
-  const textVar = figFam.find((v) => v.name === 'font/family/body')!;
+  const figFam = buildFigmaFont(t)[0].variables.filter((v) => v.name.startsWith(`${root}/core/font/family/`));
+  const textVar = figFam.find((v) => v.name === `${root}/core/font/family/body`)!;
   ok(textVar.value === 'Inter', 'Figma family variable binds the primary face as value');
   ok(textVar.description.startsWith('stack: Inter, '), 'Figma family description still leads with the full reassembled stack (fix #4 preserved)');
 }
@@ -3553,8 +3704,8 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!staged.typography.families.some((f: any) => f.stack[0] === 'Fraunces'), 'a staged face binds no family role — staging is not binding');
   ok(buildTree(staged).tree[Object.keys(buildTree(staged).tree)[0]] !== undefined, 'a brand with a staged face still builds a tree');
   const stagedRoot = Object.keys(buildTree(staged).tree)[0];
-  ok(!!(buildTree(staged).tree[stagedRoot] as any).font.typeface.fraunces, 'the staged face reaches the emitted tree as font.typeface.fraunces');
-  ok(!(buildTree(staged).tree[stagedRoot] as any).font.family.fraunces, 'a staged face emits NO family semantic leaf (nothing binds it)');
+  ok(!!(buildTree(staged).tree[stagedRoot] as any).core.font.typeface.fraunces, 'the staged face reaches the emitted tree as core.font.typeface.fraunces');
+  ok(!(buildTree(staged).tree[stagedRoot] as any).core.font.family.fraunces, 'a staged face emits NO family semantic leaf (nothing binds it)');
 
   // Existing brands must be untouched: same list, same ORDER, which is why the library appends last.
   ok(JSON.stringify(bare.typography.typefaces) === JSON.stringify(tBrand('lib-none2', { families: { body: 'Inter' }, typefaceLibrary: [] }).typography.typefaces),
@@ -3607,7 +3758,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!noCode.typography.typefaces.some((t: any) => t.slug === 'jetbrains-mono'), 'no code binding ⇒ no orphan mono typeface primitive');
   const noCodeTree = buildTree(noCode).tree;
   const nmRoot = Object.keys(noCodeTree)[0];
-  ok(!(noCodeTree[nmRoot] as any).font.family.code, 'no code binding emits no font.family.code leaf');
+  ok(!(noCodeTree[nmRoot] as any).core.font.family.code, 'no code binding emits no core.font.family.code leaf');
   ok(!(noCodeTree[nmRoot] as any).type?.code, 'no code binding emits no type.code composites');
   // The carve-out is deliberate and enforced, not a happy accident of `code` being last in the list.
   const thrN = (g: string) => { try { tBrand('null-' + g, { families: { [g]: null } }); return false; } catch { return true; } };
@@ -3676,14 +3827,14 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // `true` → exactly one default brand gradient (primary.600→primary.350, linear).
   const def = grBrand('gr-true', true).gradient.gradients;
   ok(def.length === 1 && def[0].name === 'brand' && def[0].kind === 'linear', '`gradients: true` ships one default linear brand gradient');
-  ok(def[0].stops.length === 2 && def[0].stops[0].aliasOf === 'prism.palette.primary.600' && def[0].stops[1].aliasOf === 'prism.palette.primary.350', 'default gradient stops alias primary.600 → primary.350');
+  ok(def[0].stops.length === 2 && def[0].stops[0].aliasOf === 'prism.core.palette.primary.600' && def[0].stops[1].aliasOf === 'prism.core.palette.primary.350', 'default gradient stops alias primary.600 → primary.350');
   // explicit array: linear + radial, cross-palette, stop colours alias the ramp.
   const ex = grBrand('gr-ex', [
     { name: 'brand', kind: 'linear', angle: 135, stops: [{ palette: 'primary', step: 600, position: 0 }, { palette: 'accent', step: 500, position: 1 }] },
     { name: 'glow', kind: 'radial', center: [0.5, 0.4], shape: 'circle', stops: [{ palette: 'accent', step: 400, position: 0 }, { palette: 'accent', step: 700, position: 1 }] },
   ]).gradient.gradients;
   ok(ex.length === 2 && ex[0].kind === 'linear' && ex[1].kind === 'radial', 'explicit array → both linear + radial kinds');
-  ok(ex.every((g) => g.stops.every((s) => s.aliasOf.startsWith('prism.palette.'))), 'every gradient stop aliases the colour ramp (never raw hex)');
+  ok(ex.every((g) => g.stops.every((s) => s.aliasOf.startsWith('prism.core.palette.'))), 'every gradient stop aliases the colour ramp (never raw hex)');
   // stops sorted ascending by position; positions in [0,1].
   ok(ex.every((g) => g.stops.every((s, i) => i === 0 || s.position >= g.stops[i - 1].position)), 'stops are ordered ascending by position');
   ok(ex.every((g) => g.stops.every((s) => s.position >= 0 && s.position <= 1)), 'stop positions are within [0,1]');
@@ -5140,11 +5291,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // scopes, and — the load-bearing property — every semantic aliases the SAME palette
 // variable by name in every mode (0 broken/mismatched). Values compared to float32
 // tolerance (Figma stores colour as float32; the importer's rounding differs by ~5e-7).
-// NB (#66): the byte-repro is on variable NAMES / scopes / aliases / values — NOT the
-// `$collection` label. The emitter now labels the primitives `core-palette` / `core-font`
-// / `type-sets` (#66), while the frozen fixture keeps the pre-rename labels; the fixture is
-// the Token Press byte-repro target and stays put until Token Press confirms the new labels
-// (#67). The load-bearing contract (names/aliases/values) is unchanged, which is what this gates.
+// NB (#66, #1097): the byte-repro is on variable NAMES / scopes / aliases / values — NOT the
+// `$collection` label. The emitter labels the one primitive collection `core` (#1097 folded #66's
+// three `core-*` collections into it) plus `type-sets`, while the frozen fixture keeps the
+// pre-rename labels; the fixture is the Token Press byte-repro target and stays put until Token
+// Press confirms the new labels (#67). The NAMES are no longer unchanged either — #1097 roots them
+// and #1102 tiers them — so what this gates is the contract modulo a translation stated in full
+// below, never written into the fixture.
 {
   const FIXDIR = resolve(HERE, './fixtures/figma/nb');
   const { palette, color } = buildFigmaColor(nbTheme());
@@ -5172,13 +5325,45 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // engine uses to build these names — importing the emission's own de-tiering would put one subject
     // under both sides of the comparison (`docs/34` shape 11). A hand-typed prefix swap is a second
     // expression of the change; the arm below is what stops it from being a silent no-op.
-    const deTier = (n: string): string =>
-      n.startsWith('color/appearance/') ? `color/${n.slice('color/appearance/'.length)}` : n;
+    // ── AND #1097/#1102 ADD TWO MORE SEGMENTS TO THE SAME TRANSLATION ───────────────────────────────
+    //
+    // The emitted name is now `nbds/color/appearance/<role>` and, in the palette file,
+    // `nbds/core/palette/<step>`. Same situation as the tier and the same answer — the relation is stated
+    // here, not written into the fixture.
+    //
+    // BUT THE DIRECTION IS A TRAP, AND THIS IS WHERE IT BITES. Translating the ENGINE'S name backwards
+    // means stripping a prefix, and a strip is satisfied by a name that never had it: an emitter that
+    // forgot the namespace entirely would emit `color/background/primary`, the strip would be a no-op, and
+    // the fixture would match exactly. So each strip has an arm ABOVE it asserting the prefix is REALLY
+    // there on every row of this file, and the strip is only sound because of it. (`nbFixName`, used by the
+    // typography blocks, takes the other route and builds the fixture's name FORWARD, which needs no such
+    // precondition. Both are used here: forward where the fixture side is simple, checked-then-stripped
+    // where the engine side carries three separate translations that would each need their own forward
+    // spelling.)
+    //
+    // Every prefix below is a LITERAL. Not `NB_ROOT`-plus-`CORE_TIER` imported from `theme.ts`, not
+    // `roleOf` from `rename-map.ts`: importing the emission's own segments would put one subject under both
+    // sides of the comparison (`docs/34` shape 11), and the arms above would then pass for whatever the
+    // emitter currently spells.
+    const rootedRows = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/`)).length;
+    ok(rootedRows === out.variables.length,
+      `figma ${key}: every emitted variable carries the brand namespace \`${NB_ROOT}/\` (#1097) (${rootedRows}/${out.variables.length}) — checked BEFORE it is stripped, because stripping a prefix that is absent is a no-op and an emitter that dropped the namespace would match this fixture perfectly`);
+    if (key === 'palette') {
+      const coreRows = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/core/palette/`)).length;
+      ok(coreRows === out.variables.length,
+        `figma ${key}: every emitted palette variable sits under #1102's \`core\` tier (${coreRows}/${out.variables.length}) — same reason as the namespace arm above: the tier is asserted, then removed`);
+    }
     if (key !== 'palette') {
-      const tiered = out.variables.filter((v: any) => v.name.startsWith('color/appearance/')).length;
+      const tiered = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/color/appearance/`)).length;
       ok(tiered === out.variables.length,
         `figma ${key}: every emitted value-tier variable carries #1013's \`color/appearance/\` prefix (${tiered}/${out.variables.length}) — an untiered row would make the de-tiering above inert for it, and the fixture match would then be an accident rather than a translation`);
     }
+    /** An emitted name (or alias target) in the FIXTURE's space: namespace off, `core` tier off, value tier de-prefixed. */
+    const deTier = (n: string): string => {
+      let t = n.startsWith(`${NB_ROOT}/`) ? n.slice(`${NB_ROOT}/`.length) : n;
+      if (t.startsWith('core/')) t = t.slice('core/'.length);
+      return t.startsWith('color/appearance/') ? `color/${t.slice('color/appearance/'.length)}` : t;
+    };
     const outByName = new Map<string, any>(out.variables.map((v: any) => [deTier(v.name), v]));
     ok(outByName.size === out.variables.length,
       `figma ${key}: de-tiering collides with nothing (${outByName.size} keys from ${out.variables.length} rows) — two rows landing on one key would silently drop one from every check below`);
@@ -5272,11 +5457,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const known = NB_KNOWN_DIVERGENCES.find((d) => d.mode === modeOf && d.name === name);
       if (known) {
         hit.add(`${known.mode}|${known.name}`);
-        if ((fv.alias?.name ?? null) !== known.nb || (ov.alias?.name ?? null) !== known.engine)
-          aliasBad.push(`${name} [divergence CHANGED: recorded ${known.nb}→${known.engine}, got ${fv.alias?.name}→${ov.alias?.name}]`);
+        // The emitted ALIAS TARGET is a variable name too, so it goes through the same translation — the
+        // divergence table records `palette/red/450`, the emission now says `nbds/core/palette/red/450`.
+        if ((fv.alias?.name ?? null) !== known.nb || (ov.alias ? deTier(ov.alias.name) : null) !== known.engine)
+          aliasBad.push(`${name} [divergence CHANGED: recorded ${known.nb}→${known.engine}, got ${fv.alias?.name}→${ov.alias ? deTier(ov.alias.name) : null}]`);
         continue; // the value differs *because* the alias does — one finding, not two
       }
-      if ((fv.alias?.name ?? null) !== (ov.alias?.name ?? null)) aliasBad.push(name);
+      if ((fv.alias?.name ?? null) !== (ov.alias ? deTier(ov.alias.name) : null)) aliasBad.push(name);
       for (const ch of ['r', 'g', 'b', 'a']) if (Math.abs((fv.value?.[ch] ?? 0) - (ov.value?.[ch] ?? 0)) > 1e-5) valBad.push(`${name}.${ch}`);
     }
     // Stale entries are as much a bug as missing ones: a waiver that no longer applies is a claim
@@ -5314,7 +5501,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // faces NB binds keep their variable IDs; only the four genuinely-new variables get fresh ones.
   const font = buildFigmaFont(theme)[0];
   const fontFix = JSON.parse(readFileSync(resolve(FIXDIR, 'font.json'), 'utf8'));
-  const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [v.name, v]));
+  const fontByName = new Map<string, any>(fontFix.variables.map((v: any) => [nbFixName(v.name), v]));
   const emitByName = new Map<string, any>(font.variables.map((v: any) => [v.name, v]));
   const missingF = [...fontByName.keys()].filter((n) => !emitByName.has(n));
   const extraF = [...emitByName.keys()].filter((n) => !fontByName.has(n));
@@ -5331,8 +5518,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if (fv.resolvedType !== ov.resolvedType) badFT.push(name);
     if (JSON.stringify([...fv.scopes].sort()) !== JSON.stringify([...ov.scopes].sort())) badFS.push(name);
     if (fv.value !== ov.value) badFV.push(name);
-    if ((fv.alias?.name ?? null) !== (ov.alias?.name ?? null)) badFA.push(name);
-    if (name.startsWith('font/family/') && !ov.description.startsWith(fv.description)) badFD.push(name);
+    if ((fv.alias ? nbFixName(fv.alias.name) : null) !== (ov.alias?.name ?? null)) badFA.push(name);
+    if (name.startsWith(nbVar('core/font/family/')) && !ov.description.startsWith(fv.description)) badFD.push(name);
   }
   ok(badFT.length === 0, 'figma font: resolvedType matches fixture' + (badFT.length ? ` — ${badFT.slice(0, 3).join(',')}` : ''));
   ok(badFS.length === 0, 'figma font: scopes match fixture' + (badFS.length ? ` — ${badFS.slice(0, 3).join(',')}` : ''));
@@ -5345,7 +5532,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   for (const mode of FONT_FLUID_MODES) {
     const emitted = fluid.find((f) => f.$mode === mode)!;
     const fx = JSON.parse(readFileSync(resolve(FIXDIR, `font-fluid.${mode}.json`), 'utf8'));
-    const fxByName = new Map<string, any>(fx.variables.map((v: any) => [v.name, v]));
+    const fxByName = new Map<string, any>(fx.variables.map((v: any) => [nbFixName(v.name), v]));
     const outByName = new Map<string, any>(emitted.variables.map((v: any) => [v.name, v]));
     const missing = [...fxByName.keys()].filter((n) => !outByName.has(n));
     const extra = [...outByName.keys()].filter((n) => !fxByName.has(n));
@@ -5382,20 +5569,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const upperMismatch: string[] = [], decoMismatch: string[] = [];
   for (const s of ts.styles) {
     const p = s.properties;
-    // fix #2 — collection is the typography primitive `core-font` (renamed from `font`, #66) or
-    // `type-sets` (renamed from `font-fluid`) for the fluid composites. The bound VARIABLE names
-    // still mirror the DTCG paths (`font/…`, `font-fluid/…`) — the rename is a collection label only.
+    // fix #2 — collection is `core` (the merged primitive collection, #1097 — it was `core-font`,
+    // itself renamed from `font` by #66) or `type-sets` (renamed from `font-fluid`) for the fluid
+    // composites. The bound VARIABLE names mirror the DTCG path, which now carries both the brand
+    // root and the `core` tier — the STYLE name still carries neither, and that asymmetry is the
+    // stated exception (docs/10): a variable is its DTCG path with slashes, a style is not.
     const fx = expectedByCorrectedName.get(s.name);
     if (!fx) continue;
-    if (!(p.fontFamily as any).bound || (p.fontFamily as any).collection !== 'core-font') collBad.push(`${s.name}:family`);
-    if (!(p.fontSize as any).bound || !['core-font', 'type-sets'].includes((p.fontSize as any).collection)) collBad.push(`${s.name}:size`);
-    if (!(p.fontWeight as any).bound || (p.fontWeight as any).collection !== 'core-font') collBad.push(`${s.name}:weight`);
+    if (!(p.fontFamily as any).bound || (p.fontFamily as any).collection !== 'core') collBad.push(`${s.name}:family`);
+    if (!(p.fontSize as any).bound || !['core', 'type-sets'].includes((p.fontSize as any).collection)) collBad.push(`${s.name}:size`);
+    if (!(p.fontWeight as any).bound || (p.fontWeight as any).collection !== 'core') collBad.push(`${s.name}:weight`);
     // The pre-fix fixture bound fontSize to the same collection the corrected
     // emit chooses (font-fluid for fluid composites, font for static) — that
     // structure survives the fixes. Verify same binding target.
-    if ((p.fontSize as any).variable !== fx.properties.fontSize.variable) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${fx.properties.fontSize.variable}`);
-    if ((p.fontWeight as any).variable !== fx.properties.fontWeight.variable) weightBind.push(`${s.name}: ${(p.fontWeight as any).variable} ≠ ${fx.properties.fontWeight.variable}`);
-    if ((p.fontFamily as any).variable !== fx.properties.fontFamily.variable) famBad.push(`${s.name}: ${(p.fontFamily as any).variable} ≠ ${fx.properties.fontFamily.variable}`);
+    if ((p.fontSize as any).variable !== nbFixName(fx.properties.fontSize.variable)) sizeBind.push(`${s.name}: ${(p.fontSize as any).variable} ≠ ${nbFixName(fx.properties.fontSize.variable)}`);
+    if ((p.fontWeight as any).variable !== nbFixName(fx.properties.fontWeight.variable)) weightBind.push(`${s.name}: ${(p.fontWeight as any).variable} ≠ ${nbFixName(fx.properties.fontWeight.variable)}`);
+    if ((p.fontFamily as any).variable !== nbFixName(fx.properties.fontFamily.variable)) famBad.push(`${s.name}: ${(p.fontFamily as any).variable} ≠ ${nbFixName(fx.properties.fontFamily.variable)}`);
 
     // fix #3a — lineHeight PERCENT, matches fontSize×multiplier / fontSize×100.
     const lh = (p.lineHeight as any).value;
@@ -5426,10 +5615,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if ((p.textCase as any).value !== fx.properties.textCase.value) upperMismatch.push(`${s.name}: ${(p.textCase as any).value} ≠ ${fx.properties.textCase.value}`);
     if ((p.textDecoration as any).value !== fx.properties.textDecoration.value) decoMismatch.push(`${s.name}: ${(p.textDecoration as any).value} ≠ ${fx.properties.textDecoration.value}`);
   }
-  ok(collBad.length === 0, 'figma text-styles: fix #2 — every bound property uses the prescribed collection (core-font / type-sets)' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
-  ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds font/family/<category> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
-  ok(sizeBind.length === 0, 'figma text-styles: fontSize binds the same var as the fixture (font/<size> or font-fluid/<path>)' + (sizeBind.length ? ` — ${sizeBind.slice(0, 3).join('; ')}` : ''));
-  ok(weightBind.length === 0, 'figma text-styles: fontWeight binds font/weight-role/<role>' + (weightBind.length ? ` — ${weightBind.slice(0, 3).join('; ')}` : ''));
+  ok(collBad.length === 0, 'figma text-styles: fix #2 — every bound property uses the prescribed collection (`core` / type-sets)' + (collBad.length ? ` — ${collBad.slice(0, 3).join(', ')}` : ''));
+  ok(famBad.length === 0, 'figma text-styles: fix #4 — fontFamily binds <root>/core/font/family/<category> (primary face; full stack in variable description)' + (famBad.length ? ` — ${famBad.slice(0, 3).join('; ')}` : ''));
+  ok(sizeBind.length === 0, 'figma text-styles: fontSize binds the same var as the fixture (core/font/size/<n> or font-fluid/<path>, both rooted)' + (sizeBind.length ? ` — ${sizeBind.slice(0, 3).join('; ')}` : ''));
+  ok(weightBind.length === 0, 'figma text-styles: fontWeight binds <root>/core/font/weight-role/<role>' + (weightBind.length ? ` — ${weightBind.slice(0, 3).join('; ')}` : ''));
   ok(lhWrong.length === 0, 'figma text-styles: fix #3a — lineHeight baked as PERCENT (unit=PERCENT, value = round(multiplier×100))' + (lhWrong.length ? ` — ${lhWrong.slice(0, 3).join('; ')}` : ''));
   ok(lsWrong.length === 0, 'figma text-styles: fix #3b — letterSpacing baked as PERCENT (unit=PERCENT, value = em×100)' + (lsWrong.length ? ` — ${lsWrong.slice(0, 3).join('; ')}` : ''));
   ok(styleWrong.length === 0, 'figma text-styles: fix #5 — fontStyle derived from weight-role via the named-instance table' + (styleWrong.length ? ` — ${styleWrong.slice(0, 3).join('; ')}` : ''));
@@ -5479,7 +5668,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // strokeStyle leaf (`focus.ring.style: 'solid'`) is intentionally skipped —
   // Figma has no strokeStyle variable primitive.
   const expected = {
-    dimension: Object.keys(brand.dimension).length,
+    dimension: Object.keys(brand.core.dimension).length,
     space: Object.keys(brand.space).length,
     radius: Object.keys(brand.radius).length,
     // Counted from the tree, not `× <n> props per t-shirt`: that constant silently went stale the
@@ -5524,6 +5713,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   }
   ok(missingTargets.length === 0, 'figma dims: every alias resolves within the emitted collections' + (missingTargets.length ? ` — ${missingTargets.slice(0, 3).join(', ')}` : ''));
 
+  // (c2) #1097 — every emitted name AND every alias target carries this brand's namespace. Stated over
+  // the geometric axis specifically because it is the one with no fixtures: the colour and typography
+  // blocks would catch a dropped namespace as a fixture mismatch, and nothing here would. `(c)` above is
+  // not that arm — it compares the emission against itself, so a wholesale un-namespacing of both sides
+  // resolves perfectly.
+  const unrooted: string[] = [];
+  for (const c of allDimColls) for (const v of c.variables) {
+    if (!v.name.startsWith(nbVar(''))) unrooted.push(`${c.$collection}:${v.name}`);
+    if (v.alias && !v.alias.name.startsWith(nbVar(''))) unrooted.push(`${c.$collection}:${v.name} → ${v.alias.name}`);
+  }
+  ok(unrooted.length === 0, `figma dims: every variable name and alias target carries the brand namespace \`${nbVar('')}\` (#1097)` + (unrooted.length ? ` — ${unrooted.slice(0, 3).join(', ')}` : ''));
+
   // (d) Scopes narrow correctly per family — the picker in Figma should only
   // show `space/*` under GAP contexts, `radius/*` under CORNER_RADIUS, etc.
   // `dimension` (ref-tier primitive) keeps its broad scope so, if a component
@@ -5555,10 +5756,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const isPadding = v.name.includes('/padding-');
     if (isHeight) {
       if (JSON.stringify(v.scopes) !== JSON.stringify(['WIDTH_HEIGHT'])) sizeBad.push(`${v.name}:scope=${v.scopes.join(',')}`);
-      if (v.alias && !v.alias.name.startsWith('dimension/')) sizeBad.push(`${v.name}:alias=${v.alias.name} (want dimension/*)`);
+      // #1097/#1102: the alias target is the FULL emitted name, so the expected prefix carries the brand
+      // namespace and the `core` tier. `nbVar` supplies the root; `core/` is written out, because this arm
+      // is what says the component tier reaches the PRIMITIVE tier and not some other `dimension` group.
+      if (v.alias && !v.alias.name.startsWith(nbVar('core/dimension/'))) sizeBad.push(`${v.name}:alias=${v.alias.name} (want ${nbVar('core/dimension/')}*)`);
     } else if (isPadding) {
       if (JSON.stringify(v.scopes) !== JSON.stringify(['GAP'])) sizeBad.push(`${v.name}:scope=${v.scopes.join(',')}`);
-      if (v.alias && !v.alias.name.startsWith('space/')) sizeBad.push(`${v.name}:alias=${v.alias.name} (want space/*)`);
+      // `space` is NOT a core group — it stays at the root, one tier up from `dimension`. That asymmetry
+      // is the thing worth pinning: writing `nbVar('core/space/')` here would be wrong and would pass, so
+      // the two branches disagreeing on the tier is deliberate, not a copy-paste slip.
+      if (v.alias && !v.alias.name.startsWith(nbVar('space/'))) sizeBad.push(`${v.name}:alias=${v.alias.name} (want ${nbVar('space/')}*)`);
     }
   }
   ok(sizeBad.length === 0, 'figma size: heights alias dimension/* (WIDTH_HEIGHT); paddings alias space/* (GAP) — component tier composes shared primitives' + (sizeBad.length ? ` — ${sizeBad.slice(0, 3).join('; ')}` : ''));
@@ -5570,15 +5777,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(opBad.length === 0, `figma opacity: every value is a number in [0,100] (PERCENT for Figma OPACITY scope)` + (opBad.length ? ` — ${opBad.slice(0, 3).map((v) => `${v.name}=${v.value}`).join(', ')}` : ''));
   const opMismatch: string[] = [];
   for (const v of dims.opacity.variables) {
-    const key = v.name.split('/')[1];
+    // The step is the LAST segment, not `split('/')[1]` — which was the step until #1097 put the brand
+    // namespace in front of it and made index 1 the family. Worth spelling out because of HOW that broke:
+    // the lookup returned `undefined`, `dtcg * 100` was `NaN`, and `NaN > 0` is false, so every row
+    // "matched" and this arm went green on an emission it was no longer reading. A missing key is now a
+    // reported mismatch instead.
+    const key = v.name.split('/').pop()!;
     const dtcg = brand.opacity[key]?.$value as number;
+    if (typeof dtcg !== 'number') { opMismatch.push(`${v.name}: no DTCG \`opacity.${key}\` — the step is not where this arm looked`); continue; }
     if (Math.abs((v.value as number) - Math.round(dtcg * 100)) > 0) opMismatch.push(`${v.name}: ${v.value} ≠ ${Math.round(dtcg * 100)} (DTCG ${dtcg} × 100)`);
   }
   ok(opMismatch.length === 0, `figma opacity: every emitted value = DTCG fraction × 100` + (opMismatch.length ? ` — ${opMismatch.slice(0, 3).join(', ')}` : ''));
 
   // (g) focus does NOT include the strokeStyle leaf (no Figma variable primitive
   // for strokeStyle — 'solid' stays a code-side literal).
-  const hasStrokeStyle = dims.focus.variables.some((v) => v.name === 'focus/ring/style');
+  // A NEGATIVE arm compared against a literal name is the one shape #1097 can silently retire: the
+  // namespace made `focus/ring/style` a name the emission cannot produce, so `some` was false for the
+  // wrong reason and the arm passed without testing anything. Rooted, it can fail again.
+  const hasStrokeStyle = dims.focus.variables.some((v) => v.name === nbVar('focus/ring/style'));
   ok(!hasStrokeStyle, `figma focus: strokeStyle leaf skipped (no Figma primitive for strokeStyle; the 'solid' literal stays code-side)`);
 
   // (h) Every dims var carries a non-empty description from the DTCG tree — the
@@ -5666,8 +5882,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const aliasBad: string[] = [];
   for (const s of auroraGradient.styles) for (const stop of s.stops) {
     if (!stop.alias) { aliasBad.push(`${s.name}: stop@${stop.position} has no alias`); continue; }
-    // Resolve `palette/primary/600` → the DTCG path `<root>.palette.primary.600` → leaf must exist.
-    const path = `${Object.keys(auroraTree)[0]}.${stop.alias.replace(/\//g, '.')}`;
+    // Resolve `<root>/core/palette/primary/600` → the DTCG path `<root>.core.palette.primary.600` → leaf
+    // must exist. Since #1097 the alias is ALREADY rooted, so the root is checked rather than prepended —
+    // prepending it builds a doubled root and reports every stop as broken (see the generalise block's
+    // copy of this for the full note).
+    if (!stop.alias.startsWith(`${Object.keys(auroraTree)[0]}/`)) { aliasBad.push(`${s.name}: alias ${stop.alias} is not rooted at ${Object.keys(auroraTree)[0]}/`); continue; }
+    const path = stop.alias.replace(/\//g, '.');
     const leaf = path.split('.').reduce((n: any, seg) => n?.[seg], auroraTree);
     if (!leaf || leaf.$type !== 'color') aliasBad.push(`${s.name}: alias ${stop.alias} does not resolve`);
   }
@@ -5687,12 +5907,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // default: no root → the 'prism' placeholder, byte-identical world (asserted in block 3)
   const def = brandTheme(input);
-  ok(def.root === 'prism' && def.namespace === 'prism.palette', 'namespace: omitted root defaults to the prism placeholder');
+  // `namespace` is the colour-PRIMITIVE root, and #1102 put the `core` tier between the brand root and it:
+  // `prism.core.palette`, not `prism.palette`. Spelled as a LITERAL rather than built from `CORE_TIER`,
+  // because importing the constant would make this a second reading of the code under test — the tier
+  // segment could then be renamed in `theme.ts` and both sides would agree (`docs/34` shape 1).
+  ok(def.root === 'prism' && def.namespace === 'prism.core.palette', 'namespace: omitted root defaults to the prism placeholder, and the primitive root sits under the `core` tier');
   ok(Object.keys(buildTree(def).tree)[0] === 'prism', 'namespace: default tree is rooted at prism');
 
   // custom: re-home under 'acme'
   const custom = brandTheme({ ...input, root: 'acme' });
-  ok(custom.root === 'acme' && custom.namespace === 'acme.palette', 'namespace: custom root sets root + <root>.palette');
+  ok(custom.root === 'acme' && custom.namespace === 'acme.core.palette', 'namespace: custom root sets root + <root>.core.palette — the tier is fixed, the root is the lever');
   const ctree = buildTree(custom).tree;
   ok(Object.keys(ctree)[0] === 'acme' && !('prism' in ctree), 'namespace: custom tree is rooted at acme, no prism key');
 
@@ -5775,7 +5999,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // reaches the DTCG tree: the pinned hex lands at that step under <root>.palette.neutral
   const ntree = buildTree(pinnedTheme).tree as any;
-  ok(ntree.prism.palette.neutral[pinnedStep.key].$value === pinnedStep.hex, 'pin-a-neutral: the pinned grey flows through to the DTCG neutral primitive');
+  ok(ntree.prism.core.palette.neutral[pinnedStep.key].$value === pinnedStep.hex, 'pin-a-neutral: the pinned grey flows through to the DTCG neutral primitive');
 
   // schema accepts a pinned neutral
   ok(validateBrandInput({ ...input, neutral: { ...input.neutral, anchor: grey } }).length === 0, 'pin-a-neutral: schema accepts neutral.anchor');
@@ -5855,7 +6079,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const act = wfTree.color.appearance.interactive.primary.fill.rest;
   ok(actionPal !== neutralPal && act.$value.includes(`.${actionPal}.`), 'wireframe: light $value stays the chromatic (accent) pick');
   ok(act.$extensions.prism3.modes.wireframe.$value.includes(`.${neutralPal}.`), 'wireframe: the wireframe override remaps a chromatic role → neutral (greyscale)');
-  ok(wfTree.radius.md.$extensions.prism3.modes?.wireframe?.$value === `{${R}.dimension.0}`, 'wireframe: radius.md carries a wireframe → dimension.0 override');
+  // `core.dimension.0` since #1102 — the DTCG primitive tier moved under `core`.
+  ok(wfTree.radius.md.$extensions.prism3.modes?.wireframe?.$value === `{${R}.core.dimension.0}`, 'wireframe: radius.md carries a wireframe → dimension.0 override');
   ok(!wfTree.radius.none.$extensions?.prism3?.modes, 'wireframe: radius.none (already 0) carries no redundant override');
   const wfMode = wfBuilt.modes.find((m) => m.mode === 'wireframe')!;
   const wfChecks = Object.values(wfMode.roles).filter((r) => r.min > 0);
@@ -5905,10 +6130,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // (d) Scopes narrow correctly per family. grid/columns is ALL_SCOPES (no
   // narrow scope fits a count); grid/{gutter,margin} → GAP (matches space);
   // container/{max,narrow} + breakpoint/* → WIDTH_HEIGHT.
+  // #1097 — every name below is matched ROOTED. The `return []` fall-through is why that matters here
+  // rather than being bookkeeping: an unrooted literal matches nothing, every row falls through to the
+  // empty expectation, and the arm then asserts "these variables have no scopes" — which is false for
+  // all ten and so does still go red, but reporting the wrong defect. The three arms further down are
+  // the ones that would have gone SILENT.
   const scopeFor = (name: string): string[] => {
-    if (name === 'grid/columns') return ['ALL_SCOPES'];
-    if (name === 'grid/gutter' || name === 'grid/margin') return ['GAP'];
-    if (name.startsWith('container/') || name.startsWith('breakpoint/')) return ['WIDTH_HEIGHT'];
+    if (name === nbVar('grid/columns')) return ['ALL_SCOPES'];
+    if (name === nbVar('grid/gutter') || name === nbVar('grid/margin')) return ['GAP'];
+    if (name.startsWith(nbVar('container/')) || name.startsWith(nbVar('breakpoint/'))) return ['WIDTH_HEIGHT'];
     return [];
   };
   const scopeMismatch: string[] = [];
@@ -5924,19 +6154,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
   const aliasBad: string[] = [];
   for (const l of layout) for (const v of l.variables) {
-    if (v.name === 'grid/gutter' || v.name === 'grid/margin') {
+    if (v.name === nbVar('grid/gutter') || v.name === nbVar('grid/margin')) {
       if (!v.alias) { aliasBad.push(`${l.$mode}:${v.name} has no alias`); continue; }
-      if (!v.alias.name.startsWith('space/')) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (want space/*)`);
+      if (!v.alias.name.startsWith(nbVar('space/'))) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (want ${nbVar('space/')}*)`);
       if (!spaceNames.has(v.alias.name)) aliasBad.push(`${l.$mode}:${v.name} → ${v.alias.name} (not in space collection)`);
     }
   }
-  ok(aliasBad.length === 0, 'figma layout: grid/gutter + grid/margin alias into space/* (per-mode) and every target resolves' + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join('; ')}` : ''));
+  const aliasRowsSeen = layout.flatMap((l) => l.variables.filter((v) => v.name === nbVar('grid/gutter') || v.name === nbVar('grid/margin'))).length;
+  ok(aliasBad.length === 0 && aliasRowsSeen === layout.length * 2,
+    `figma layout: grid/gutter + grid/margin alias into ${nbVar('space/')}* (per-mode) and every target resolves (${aliasRowsSeen}/${layout.length * 2} rows selected)`
+      + (aliasBad.length ? ` — ${aliasBad.slice(0, 3).join('; ')}` : ''));
 
   // (f) grid/columns is a plain FLOAT (no alias — it's a count, not a
   // dimension). columns matches the DTCG's per-breakpoint value.
   const colsBad: string[] = [];
   for (const l of layout) {
-    const cols = l.variables.find((v) => v.name === 'grid/columns');
+    const cols = l.variables.find((v) => v.name === nbVar('grid/columns'));
     if (!cols) { colsBad.push(`${l.$mode}: no grid/columns`); continue; }
     if (cols.alias !== null) colsBad.push(`${l.$mode}: grid/columns has alias (want plain FLOAT)`);
     const dtcg = brand.grid[l.$mode].columns.$value;
@@ -5947,9 +6180,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // (g) container/max + container/narrow are viewport-invariant — SAME value
   // in every mode. Same for breakpoint/* (min-width thresholds are constants;
   // the breakpoint COLUMN varies, but each named breakpoint's px is fixed).
+  // The `undefined` guard is #1097's doing and is the point of this shape: an unrooted name found
+  // nothing in any mode, `vals` was five `undefined`s, `distinct.size` was 1, and "invariant across
+  // modes" passed on a variable that was not there at all. Absence is now the first thing reported.
   const invariantBad: string[] = [];
-  for (const name of ['container/max', 'container/narrow', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl']) {
+  for (const name of ['container/max', 'container/narrow', 'breakpoint/sm', 'breakpoint/md', 'breakpoint/lg', 'breakpoint/xl', 'breakpoint/2xl'].map(nbVar)) {
     const vals = layout.map((l) => l.variables.find((v) => v.name === name)?.value);
+    if (vals.some((x) => x === undefined)) { invariantBad.push(`${name} is absent from ${vals.filter((x) => x === undefined).length}/${layout.length} modes`); continue; }
     const distinct = new Set(vals);
     if (distinct.size !== 1) invariantBad.push(`${name} varies across modes: ${[...distinct].join(',')}`);
   }
@@ -5960,7 +6197,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // as focus.ring.style in the dims axis. This is a load-bearing skip: it
   // documents the intentional omission so a future contributor doesn't add it
   // back by mistake.
-  const hasFluid = layout.some((l) => l.variables.some((v) => v.name === 'container/fluid'));
+  // Rooted for the same reason as the dims axis's `focus/ring/style` arm: a negative assertion against a
+  // name the emission can no longer spell passes without testing the skip.
+  const hasFluid = layout.some((l) => l.variables.some((v) => v.name === nbVar('container/fluid')));
   ok(!hasFluid, `figma layout: container/fluid (100%) is intentionally skipped (no Figma primitive for percentage-of-parent; stays code-side)`);
 
   // (i) A variable count sanity — the exact shape a Figma-MCP materialiser
@@ -5984,7 +6223,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(gridKeys.length === 6 && gridKeys[0] === 'xs', `CR-08: aurora ships 6 breakpoints starting at xs (got [${gridKeys.join(',')}])`);
   ok(layout.length === 6 && layout.map((l) => l.$mode).join(',') === gridKeys.join(','), `CR-08: aurora emits a layout mode per breakpoint incl. the base xs (got [${layout.map((l) => l.$mode).join(',')}])`);
   const xs = layout.find((l) => l.$mode === 'xs');
-  const xsCols = xs?.variables.find((v) => v.name === 'grid/columns');
+  // Rooted at AURORA's own root, read from the theme — not `NB_ROOT`, and not the first segment of an
+  // emitted name. This is the arm the corpus-wide default would hide: aurora and nb sit at different
+  // roots, so a hardcoded `nbds/` here would fail while a hardcoded `prism/` would pass, and only one of
+  // those two mistakes is visible from this block.
+  const xsCols = xs?.variables.find((v) => v.name === `${aurora.root}/grid/columns`);
   ok(!!xsCols && xsCols.value === brand.grid.xs.columns.$value, `CR-08: the xs grid carries aurora's base column count (${brand.grid.xs.columns.$value}), not dropped`);
   const spaceNames = new Set(dims.space.variables.map((v) => v.name));
   const dangling = layout.flatMap((l) => l.variables.filter((v) => v.alias && !spaceNames.has(v.alias.name)).map((v) => `${l.$mode}:${v.name}`));
@@ -6045,9 +6288,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // (e) every emitted color file's per-role value comes from the RIGHT mode extension
   // (not a silent light fallback). For [light, dark]: the dark file's interactive.primary.fill.rest
   // value must equal the dark extension's alias target, not the light $value.
-  const ldTree = (buildTree(ld).tree as any)[Object.keys(buildTree(ld).tree)[0]];
+  const ldBuilt = buildTree(ld);
+  const ldRoot = Object.keys(ldBuilt.tree)[0];
+  const ldTree = (ldBuilt.tree as any)[ldRoot];
   const darkFile = ldColor.find((f) => f.$mode === 'dark')!;
-  const darkAction = darkFile.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
+  // Rooted since #1097 — and the root comes off the TREE, not spelled `prism/`, because this brand's
+  // root is a default that a brief can move.
+  const darkAction = darkFile.variables.find((v) => v.name === `${ldRoot}/color/appearance/interactive/primary/fill/rest`)!;
   const darkExtAlias = ldTree.color.appearance.interactive.primary.fill.rest.$extensions.prism3.modes.dark.$value.replace(/^\{|\}$/g, '');
   ok(darkAction.alias?.name === figName(darkExtAlias),
     `emit-figma mode opt-out: dark file's color/interactive/primary/fill/rest alias is the DARK extension target, not a light fallback (got ${darkAction.alias?.name}, want ${figName(darkExtAlias)})`);
@@ -6060,9 +6307,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // isn't asserting fixture byte-identity (no fixtures for these brands — §2 only
 // freezes NB colour + typography); the gate is that (a) every axis produces
 // output with the right shape, (b) every alias resolves WITHIN each brand's
-// own emitted collections, (c) the namespace transform (figName) strips
-// whichever root the brand carries — aurora=prism (default), wendys=prism
-// (default), NB=nbds — with no leakage across brands, and (d) the aurora
+// own emitted collections, (c) since #1097 the namespace transform CARRIES the
+// brand's own root — aurora=prism (default), wendys=prism (default), NB=nbds —
+// exactly once and with no other brand's root anywhere, and (d) the aurora
 // gradient axis actually ships alias-driven stops that resolve to palette leaves
 // in the aurora tree (the alias-driven Paint Style form parked in the shadow +
 // gradient PR now materialises through the generalise pass).
@@ -6074,7 +6321,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // Each brand runs through every axis. We assert structural claims uniformly:
   // - palette + color(×4 modes when default) shape correct
   // - every alias in EACH brand's emitted collections resolves WITHIN that brand
-  // - namespace lever holds — figName strips the brand's own root exactly once
+  // - namespace lever holds — figName carries the brand's own root exactly once
   // - every axis produces non-empty output where it should (gradient is opt-in;
   //   aurora HAS gradients, wendys does not)
   for (const [id, theme] of [['aurora', auroraTheme], ['wendys', wendysTheme]] as const) {
@@ -6126,11 +6373,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     }
     ok(layoutAliasBad.length === 0, `figma generalise (${id}): every layout grid alias resolves within THIS brand's space collection` + (layoutAliasBad.length ? ` — ${layoutAliasBad.slice(0, 3).join(', ')}` : ''));
 
-    // (e) NAMESPACE strip — Figma variable names carry no brand prefix. figName
-    // strips exactly one root segment; walking every emitted name proves the
-    // transform is idempotent regardless of what root the brand carries. NB
-    // uses `nbds`; aurora + wendys both default to `prism` (no leakage back
-    // into the emitted names).
+    // (e) THE NAMESPACE, AND #1097 INVERTED THIS ARM. It used to read "no brand prefix": `figName` stripped
+    // exactly one root segment and this walked every emitted name asserting none of `prism/`, `nbds/` or
+    // `acme/` survived. #1097 made the namespace the point — a Figma variable now spells its DTCG path in
+    // full, root included — so the same walk asks the opposite question, and it is the STRONGER one: the
+    // old form was satisfied by an emitter that dropped the root, and by one that never had it.
+    //
+    // Two halves, and the second is where the idempotence lives. Every name must start with THIS brand's
+    // own root, read off the theme rather than spelled — `prism` is a default a brief can move, and a
+    // literal here would pass for the two brands that take the default and be wrong for the one that does
+    // not, which is the Prism2 hardcoded-`pds/` bug in a gate instead of in a read path. Then no name's
+    // TAIL may start with a root segment: that catches a DOUBLED root (`prism/prism/color/…`, what a
+    // second pass over its own output produces) and cross-brand leakage in one predicate, and neither is
+    // visible to a check that only looks at segment 0.
     const allEmittedNames: string[] = [
       ...palette.variables.map((v) => v.name),
       ...color.flatMap((c) => c.variables.map((v) => v.name)),
@@ -6139,8 +6394,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ...font.variables.map((v) => v.name),
       ...fluid.flatMap((f) => f.variables.map((v) => v.name)),
     ];
-    const namespaceLeaks = allEmittedNames.filter((n) => n.startsWith('prism/') || n.startsWith('nbds/') || n.startsWith('acme/'));
-    ok(namespaceLeaks.length === 0, `figma generalise (${id}): no brand-namespace leakage in emitted variable names (${allEmittedNames.length} names checked)` + (namespaceLeaks.length ? ` — LEAKS: ${namespaceLeaks.slice(0, 3).join(', ')}` : ''));
+    const KNOWN_ROOTS = ['prism', 'nbds', 'acme'];
+    const unrooted = allEmittedNames.filter((n) => !n.startsWith(`${theme.root}/`));
+    ok(allEmittedNames.length > 500 && unrooted.length === 0,
+      `figma generalise (${id}): every one of the ${allEmittedNames.length} emitted variable names carries this brand's own root \`${theme.root}/\` (#1097)` + (unrooted.length ? ` — UNROOTED: ${unrooted.slice(0, 3).join(', ')}` : ''));
+    const doubled = allEmittedNames.filter((n) => KNOWN_ROOTS.some((r) => n.slice(`${theme.root}/`.length).startsWith(`${r}/`)));
+    ok(doubled.length === 0,
+      `figma generalise (${id}): and NOTHING carries a second root segment after the first — a doubled \`${theme.root}/${theme.root}/\` is what a pass over its own output produces, and another brand's root there is leakage (${allEmittedNames.length} names checked)` + (doubled.length ? ` — DOUBLED: ${doubled.slice(0, 3).join(', ')}` : ''));
   }
 
   // (f) AURORA GRADIENTS — the alias-driven Paint Style form. Aurora opts in
@@ -6151,10 +6411,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(auroraGradient.styles.length > 0, `figma generalise (aurora): gradient axis emits ≥1 style (got ${auroraGradient.styles.length})`);
   const auroraTree = buildTree(auroraTheme).tree as any;
   const auroraRoot = Object.keys(auroraTree)[0];
+  // #1097 — THE STOP ALIAS IS A FULLY ROOTED FIGMA VARIABLE NAME NOW (`prism/core/palette/primary/600`),
+  // so the tree root is CHECKED here rather than prepended. Prepending it, which is what this did while
+  // aliases were root-less, builds `prism.prism.core.palette.…` and every stop reports "does not resolve"
+  // — the same red for a genuinely broken alias as for a correct one, which is worse than either.
   const stopAliasBad: string[] = [];
   for (const s of auroraGradient.styles) for (const stop of s.stops) {
     if (!stop.alias) { stopAliasBad.push(`${s.name}@${stop.position} has no alias`); continue; }
-    const dottedPath = `${auroraRoot}.${stop.alias.replace(/\//g, '.')}`;
+    if (!stop.alias.startsWith(`${auroraRoot}/`)) { stopAliasBad.push(`${s.name}@${stop.position} → ${stop.alias} is not rooted at ${auroraRoot}/`); continue; }
+    const dottedPath = stop.alias.replace(/\//g, '.');
     const leaf = dottedPath.split('.').reduce((n: any, seg) => n?.[seg], auroraTree);
     if (!leaf || leaf.$type !== 'color') stopAliasBad.push(`${s.name}@${stop.position} → ${stop.alias} does not resolve to a colour leaf`);
   }
@@ -6227,7 +6492,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const mismatchedAliases: string[] = [];
   for (const v of wfMode.variables) {
     // trace the DTCG leaf back for this Figma name (color/<family>/…)
-    const dtcgPath = v.name.split('/').slice(1); // drop the 'color' segment
+    // Drop the brand ROOT and the `color` segment — two, not one, since #1097 put the namespace on
+    // every variable name. Slicing one would leave `color` on the front and `node?.[seg]` would go
+    // undefined on the first hop, so every role would `continue` and both assertions below would pass
+    // over an empty list.
+    const dtcgPath = v.name.split('/').slice(2);
     let node: any = wfTree.color;
     for (const seg of dtcgPath) node = node?.[seg];
     if (!node) continue;
@@ -6235,7 +6504,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     if (typeof ext !== 'string') continue; // some roles may keep the light value in wireframe (already-neutral); accept whatever the tree emits
     const wantName = figName(ext.replace(/^\{|\}$/g, ''));
     if (v.alias?.name !== wantName) mismatchedAliases.push(`${v.name} → ${v.alias?.name} (want ${wantName})`);
-    if (v.alias && !v.alias.name.startsWith('palette/neutral/') && !v.alias.name.startsWith('palette/white') && !v.alias.name.startsWith('palette/black')) {
+    const neutralPrefix = `${wf.root}/core/palette/`;
+    if (v.alias && !v.alias.name.startsWith(`${neutralPrefix}neutral/`) && !v.alias.name.startsWith(`${neutralPrefix}white`) && !v.alias.name.startsWith(`${neutralPrefix}black`)) {
       // Wireframe is a greyscale mode — every chromatic role should route to the neutral
       // ramp (or pure white/black for those specific primitive roles).
       nonNeutralAliases.push(`${v.name} → ${v.alias.name}`);
@@ -6249,8 +6519,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // in the light file uses the accent palette; wireframe collapses to neutral). Structural
   // proof the value shipped alongside the alias is the neutral colour, not the light
   // chromatic one.
-  const wfAction = wfMode.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
-  const lightAction = wfColor.find((c) => c.$mode === 'light')!.variables.find((v) => v.name === 'color/appearance/interactive/primary/fill/rest')!;
+  const actionName = `${wf.root}/color/appearance/interactive/primary/fill/rest`;
+  const wfAction = wfMode.variables.find((v) => v.name === actionName)!;
+  const lightAction = wfColor.find((c) => c.$mode === 'light')!.variables.find((v) => v.name === actionName)!;
   const rgbDist = Math.abs((wfAction.value as any).r - (wfAction.value as any).g)
                 + Math.abs((wfAction.value as any).g - (wfAction.value as any).b);
   const lightRgbDist = Math.abs((lightAction.value as any).r - (lightAction.value as any).g)
@@ -6295,7 +6566,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     } else {
       // Non-zero radius must alias dimension/0 (value 0) in the wireframe mode.
       if (wfVar.value !== 0) wfAliasBad.push(`${wfVar.name}: non-zero-radius should be 0 in wireframe (got ${wfVar.value})`);
-      if (wfVar.alias?.name !== 'dimension/0') wfAliasBad.push(`${wfVar.name}: alias=${wfVar.alias?.name} (want dimension/0)`);
+      const wantZero = `${wf.root}/core/dimension/0`;
+      if (wfVar.alias?.name !== wantZero) wfAliasBad.push(`${wfVar.name}: alias=${wfVar.alias?.name} (want ${wantZero})`);
     }
   }
   ok(wfAliasBad.length === 0, `emit-figma wireframe: every non-zero radius aliases dimension/0 in wireframe mode; radius.none stays 0` + (wfAliasBad.length ? ` — ${wfAliasBad.slice(0, 3).join('; ')}` : ''));
@@ -6363,7 +6635,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the pre-M-09 unconditional-alias code would emit off a non-brace value.
   const emptyNamed = dims.space.variables.filter((v) => v.alias && !v.alias.name);
   ok(emptyNamed.length === 0, `M-09: no space var ships an empty-named alias (got ${emptyNamed.length})`);
-  ok(dims.space.variables.every((v) => v.alias && v.alias.name.startsWith('dimension/')), 'M-09: every space var aliases a dimension/* primitive');
+  ok(dims.space.variables.every((v) => v.alias && v.alias.name.startsWith(nbVar('core/dimension/'))), 'M-09: every space var aliases a <root>/core/dimension/* primitive');
 
   // The invariant the guard enforces: a space alias is either null or a NON-EMPTY
   // VARIABLE_ALIAS — never the `{ name: '' }` dangling binding. This is the same shape
@@ -6491,12 +6763,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // output" — and until now it was not callable from that surface.
   const scored = JSON.parse(callTool('score_consumption', {
     brand,
-    refs: ['color.text.primary', '{prism.color.background.primary}', 'palette.primary.600', 'color.nope.missing'],
+    // `core.palette.primary.600` since #1102 — the primitive-leak probe must reference a path that EXISTS,
+    // or it lands in `invented` and this block's three arms all report the wrong thing. That is what
+    // happened when the tier moved: `palette.primary.600` resolved to nothing, `primitiveLeaks` went empty
+    // and `invented` went to 2, so the leak arm failed rather than passing on a ref that no longer probes
+    // anything. `color.nope.missing` is the ref that is SUPPOSED to be invented, and it stays untouched.
+    refs: ['color.text.primary', '{prism.color.background.primary}', 'core.palette.primary.600', 'color.nope.missing'],
     pairs: [{ fg: 'color.text.primary', bg: 'color.background.primary' }, { fg: 'color.text.tertiary', bg: 'color.background.primary', kind: 'ui' }],
   }).content[0].text);
   ok(scored.consumption.invented.length === 1 && scored.consumption.invented[0] === 'color.nope.missing',
     'MCP: score_consumption catches an invented token ref');
-  ok(scored.consumption.primitiveLeaks.length === 1 && scored.consumption.primitiveLeaks[0] === 'palette.primary.600',
+  ok(scored.consumption.primitiveLeaks.length === 1 && scored.consumption.primitiveLeaks[0] === 'core.palette.primary.600',
     'MCP: score_consumption catches a reach past the semantic layer into a raw primitive');
   // Non-vacuous: brace syntax and a root-qualified path must BOTH be accepted, or the two valid refs
   // above would have been miscounted as invented and the assertion would pass for the wrong reason.
@@ -6534,10 +6811,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const { tree } = buildTree(theme);
   const paths = [...tokenPaths(tree, 'prism')];
   const semantic = paths.find((p) => !isPrimitiveRef(p))!;   // a real semantic leaf (color.*/space.* …)
-  const primitive = paths.find((p) => isPrimitiveRef(p))!;   // a real primitive leaf (palette.*/dimension.*/font.*)
+  const primitive = paths.find((p) => isPrimitiveRef(p))!;   // a real primitive leaf (core.palette.* …)
   ok(paths.length > 100 && !!semantic && !!primitive, `eval: tokenPaths enumerates the tree's leaves (${paths.length}) incl. semantic + primitive tiers`);
-  ok(PRIMITIVE_TIERS.has('palette') && PRIMITIVE_TIERS.has('dimension') && PRIMITIVE_TIERS.has('font') && !PRIMITIVE_TIERS.has('color'),
-    'eval: primitive tiers = palette/dimension/font (the core-* grouping); color is semantic');
+  // The declared group list, checked against the tree's ACTUAL `core` children rather than restated
+  // (#1102). `PRIMITIVE_GROUPS` is prose the eval metric does not dispatch on, so nothing else would
+  // notice it going stale — a fourth group under `core` must show up here as a named failure.
+  {
+    const coreGroups = new Set(paths.filter(isPrimitiveRef).map((p) => p.split('.')[1]));
+    ok([...coreGroups].sort().join(',') === [...PRIMITIVE_GROUPS].sort().join(','),
+      `eval: the \`${PRIMITIVE_TIER}\` tier's groups are exactly the declared primitives (${[...coreGroups].sort().join(', ')})`);
+  }
+  ok(!isPrimitiveRef('color.background.primary') && !isPrimitiveRef('opacity.disabled'),
+    'eval: color is semantic and opacity is directly consumable (#79) — neither is a primitive ref');
 
   // all-semantic output → 0 invented, 0 leak
   const clean = scoreConsumption([semantic, semantic], tree, 'prism');
@@ -6670,7 +6955,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 //
 // (b) SEMANTIC + DIRECTLY-CONSUMABLE TIER stays visible. `color/*`, `space`,
 //     `radius`, `size`, `border-width`, `focus`, `opacity` (#79 — consumable, no
-//     semantic layer to prefer), `font-fluid`, `font/weight-role/*`, `layout` all
+//     semantic layer to prefer), `font-fluid`, `core/font/weight-role/*`, `layout` all
 //     keep their role-family scopes and carry no `hiddenFromPublishing` field
 //     (JSON stays clean — bytes are unchanged modulo the new descriptions).
 //
@@ -6694,9 +6979,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const primitiveGroups: Array<{ tag: string; vars: any[]; expectScopes: string[] }> = [
     { tag: 'palette', vars: palette.variables, expectScopes: ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL', 'STROKE_COLOR'] },
     { tag: 'dimension', vars: dims.dimension.variables, expectScopes: ['WIDTH_HEIGHT', 'GAP', 'CORNER_RADIUS', 'STROKE_FLOAT'] },
-    { tag: 'font/family', vars: font.variables.filter((v) => v.name.startsWith('font/family/')), expectScopes: ['FONT_FAMILY'] },
-    { tag: 'font/size', vars: font.variables.filter((v) => v.name.startsWith('font/size/')), expectScopes: ['FONT_SIZE'] },
-    { tag: 'font/weight', vars: font.variables.filter((v) => v.name.startsWith('font/weight/')), expectScopes: ['FONT_WEIGHT'] },
+    // Rooted + `core`-tiered since #1097/#1102. A bare `font/family/` prefix would now match nothing
+    // and every assertion below it would pass over an EMPTY array — the vacuous-filter shape, not a
+    // failure. `nbVar` derives the root from the theme, so it cannot drift from the emitter.
+    { tag: 'core/font/family', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/'))), expectScopes: ['FONT_FAMILY'] },
+    { tag: 'core/font/size', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/size/'))), expectScopes: ['FONT_SIZE'] },
+    { tag: 'core/font/weight', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight/'))), expectScopes: ['FONT_WEIGHT'] },
   ];
   const notHidden: string[] = [];
   const wrongScope: string[] = [];
@@ -6721,7 +7009,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     { tag: 'focus', vars: dims.focus.variables },
     { tag: 'opacity', vars: dims.opacity.variables },
     { tag: 'font-fluid', vars: fluid.flatMap((c) => c.variables) },
-    { tag: 'font/weight-role', vars: font.variables.filter((v) => v.name.startsWith('font/weight-role/')) },
+    { tag: 'core/font/weight-role', vars: font.variables.filter((v) => v.name.startsWith(nbVar('core/font/weight-role/'))) },
     { tag: 'layout', vars: layout.flatMap((c) => c.variables) },
   ];
   const wronglyHidden: string[] = [];
@@ -6746,18 +7034,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const { tree } = buildTree(theme);
   const R = Object.keys(tree)[0];
   const spotChecks: Array<[string, any, string]> = [
-    ['palette/red/550', tree[R].palette.red['550'], palette.variables.find((v) => v.name === 'palette/red/550')!.description],
-    ['color/appearance/background/primary', tree[R].color.appearance.background.primary, color[0].variables.find((v) => v.name === 'color/appearance/background/primary')!.description],
-    ['space/100', tree[R].space['100'], dims.space.variables.find((v) => v.name === 'space/100')!.description],
-    ['radius/md', tree[R].radius.md, dims.radius[0].variables.find((v) => v.name === 'radius/md')!.description],
-    ['opacity/50', tree[R].opacity['50'], dims.opacity.variables.find((v) => v.name === 'opacity/50')!.description],
-    ['font/size/16', tree[R].font.size['16'], font.variables.find((v) => v.name === 'font/size/16')!.description],
-    ['font/weight/400', tree[R].font.weight['400'], font.variables.find((v) => v.name === 'font/weight/400')!.description],
+    // The label stays the root-relative tail (it is what the message reads); the LOOKUP is by the
+    // full emitted name, which now carries the brand root on every variable (#1097).
+    ['core/palette/red/550', tree[R].core.palette.red['550'], palette.variables.find((v) => v.name === nbVar('core/palette/red/550'))!.description],
+    ['color/appearance/background/primary', tree[R].color.appearance.background.primary, color[0].variables.find((v) => v.name === nbVar('color/appearance/background/primary'))!.description],
+    ['space/100', tree[R].space['100'], dims.space.variables.find((v) => v.name === nbVar('space/100'))!.description],
+    ['radius/md', tree[R].radius.md, dims.radius[0].variables.find((v) => v.name === nbVar('radius/md'))!.description],
+    ['opacity/50', tree[R].opacity['50'], dims.opacity.variables.find((v) => v.name === nbVar('opacity/50'))!.description],
+    ['core/font/size/16', tree[R].core.font.size['16'], font.variables.find((v) => v.name === nbVar('core/font/size/16'))!.description],
+    ['core/font/weight/400', tree[R].core.font.weight['400'], font.variables.find((v) => v.name === nbVar('core/font/weight/400'))!.description],
   ];
   const descMismatch: string[] = [];
   for (const [name, leaf, actual] of spotChecks) {
     // family carries the stack line FIRST, then the description; other tokens are exact.
-    if (name.startsWith('font/family/')) continue;
+    if (name.startsWith('core/font/family/')) continue;
     if (actual !== String(leaf.$description ?? '')) descMismatch.push(name);
   }
   ok(descMismatch.length === 0, 'figma descriptions: spot-check across axes matches the DTCG $description verbatim' + (descMismatch.length ? ` — ${descMismatch.slice(0, 3).join(', ')}` : ''));
@@ -6765,14 +7055,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // font/family descriptions: still lead with the stack (fix #4 preserved),
   // AND the DTCG $description is threaded onto the end.
   const familyFusion: string[] = [];
-  for (const v of font.variables.filter((v) => v.name.startsWith('font/family/'))) {
-    const role = v.name.split('/')[2];
-    const leaf = tree[R].font.family[role];
+  for (const v of font.variables.filter((v) => v.name.startsWith(nbVar('core/font/family/')))) {
+    const role = v.name.split('/').pop()!;
+    const leaf = tree[R].core.font.family[role];
     const stackFirst = /^stack: [^—]+/.test(v.description);
     const carriesDtcg = v.description.includes(String(leaf.$description ?? ''));
     if (!stackFirst || !carriesDtcg) familyFusion.push(v.name);
   }
-  ok(familyFusion.length === 0, 'figma font/family: description leads with the stack (fix #4) AND ends with the DTCG $description' + (familyFusion.length ? ` — ${familyFusion.slice(0, 3).join(', ')}` : ''));
+  ok(familyFusion.length === 0, 'figma core/font/family: description leads with the stack (fix #4) AND ends with the DTCG $description' + (familyFusion.length ? ` — ${familyFusion.slice(0, 3).join(', ')}` : ''));
 
   // Drift fence: same brand emits deterministically. Regenerate twice; the
   // sorted-keys JSON MUST be byte-identical. Catches accidental
@@ -7046,10 +7336,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // Effect styles live in a THIRD namespace (`setEffectStyleIdAsync`). Read into their own set —
     // see below for the assertion that a merged set would have let through.
     const emittedEffects = new Set<string>();
+    // #1097 — `emitted` HOLDS TAILS, `emittedStyles`/`emittedEffects` HOLD NAMES, and the asymmetry is the
+    // artifact's own: a variable is emitted as `nbds/size/md/gap`, a style as `label/md/emphasis` with no
+    // namespace and no tier. A plan's bound variable names are root-relative (see `figmaVarName`), so the
+    // comparison space for variables is tail space and for styles it is name space.
+    //
+    // `tailOf` is imported from `figma-names.ts` rather than restated, and here that is the RIGHT call
+    // even though this file otherwise re-expresses what it checks by hand: the thing under test is the
+    // ANATOMY PROJECTION, not the name-splitting, and `tailOf` has its own gates. What must not be
+    // imported is a ROOT — and it is not: `tailOf` is positional, so this comparison would hold for a
+    // brand whose namespace nobody here has spelled.
+    //
+    // A dropped namespace fails this arm rather than sneaking through, which is worth being sure of:
+    // `tailOf('size/md/gap')` on an un-namespaced emission returns `md/gap`, so the plan's `size/md/gap`
+    // finds nothing and every binding reports MISSING.
     for (const f of readdirSync(resolve(HERE, 'out/figma/nb'))) {
       if (!f.endsWith('.json')) continue;
       const j = JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
-      for (const v of j.variables ?? []) emitted.add(v.name);
+      for (const v of j.variables ?? []) emitted.add(tailOf(v.name));
       for (const s of j.styles ?? []) (f.startsWith('shadow') ? emittedEffects : emittedStyles).add(s.name);
     }
     ok(emitted.size > 0 && emittedStyles.size > 0, `anatomy: read the emitted Figma names (${emitted.size} variables, ${emittedStyles.size} styles)`);
@@ -7587,6 +7891,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
      *  measuring the case that shipped. The `insetValue` override is how the unequal cases get tested. */
     const RING_GAP = 2;
     const RING_STROKE = 2;
+    /** The brand namespace every variable in the stubbed file carries (#1097) — and DELIBERATELY a root
+     *  no brand in the corpus emits.
+     *
+     *  A real Figma file holds `nbds/size/md/gap`; a plan binds `size/md/gap`, because a plan is a
+     *  function of the def alone and knows no brand (see `figmaVarName`). The two spaces meet in the
+     *  executors, which key the live variables by TAIL. Rooting the stub is therefore what makes this
+     *  block model a real file at all — before #1097 the stub's names WERE the plan's names, and the
+     *  lookup could not be wrong.
+     *
+     *  `zzstub` rather than `nbds` or `prism` is the whole return on it: every one of the ~25 paste
+     *  assertions below becomes a statement that the binding works for a namespace nobody has spelled,
+     *  and both executors are driven through it (the paste payload and, at the parity gate,
+     *  `applyComponentPlan`). An executor that sliced a literal prefix — Prism2's actual bug, hardcoded
+     *  `pds/` — resolves nothing here and this block goes red, where a fixture rooted at the brand under
+     *  test would have passed. The `varValue`/`resolved`/`varOverrides` keys stay ROOT-RELATIVE: they are
+     *  the plan's space, and rooting them too would just re-introduce the coincidence. */
+    const STUB_ROOT = 'zzstub';
     // The stub is built by its OWN function rather than inline in `runPayload` for one reason: the
     // parity gate at the end of this block drives the PLUGIN executor (`applyComponentPlan`) against
     // the same host model the paste payload runs on. Two executors compared against two different
@@ -7624,7 +7945,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           : name === 'focus/ring/width' ? RING_STROKE
           : name === 'focus/ring/offset' ? RING_GAP
           : 2;
-      const mkVar = (name: string) => ({ id: `V:${name}`, name, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
+      // `name` is ROOTED, everything else keyed root-relative — see `STUB_ROOT`. The id stays
+      // root-relative because it is the stub's own handle, not something Figma's naming applies to.
+      const mkVar = (name: string) => ({ id: `V:${name}`, name: `${STUB_ROOT}/${name}`, value: varValue(name), resolveForConsumer: () => ({ value: resolved(name) }) });
       // Records the binding the way real Figma does — into `boundVariables` — so the read-back sees
       // what it would see live. A node that is NOT bound stays absent from it, which is the state the
       // read-back is meant to report.
@@ -9525,7 +9848,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // variable the anatomy plan binds must appear in the payload that would be pasted.
     const dimsCreate = passJs('nb', 'dims-create');
     const wanted = [...new Set(button.variants.size.flatMap((s) => planBoundVars(figmaAnatomyPlan(button, s, { leading: true, trailing: true }).root)))];
-    const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${v}"`));
+    // TWO SPACES, ONE COMPARISON (#1097). `wanted` is root-relative — a plan binds `size/md/gap` and
+    // knows no brand — while the payload creates the name Figma will hold, `nbds/core/dimension/0` and
+    // `nbds/size/md/gap`. `nbFixName` is the fixture's own hand-written translation (root on, `core/` for
+    // a core group), not something imported from the emitter, so a wrong translation on either side shows
+    // up here rather than cancelling out. The QUOTES stay: dropping them to be root-agnostic would let
+    // any prefix satisfy the substring test, including a doubled one.
+    const unreachable = wanted.filter((v) => !dimsCreate.includes(`"${nbFixName(v)}"`));
     ok(unreachable.length === 0, `anatomy: every variable the plan binds is in the dims-create payload${unreachable.length ? ` — UNREACHABLE: ${unreachable.join(', ')}` : ` (${wanted.length} vars)`}`);
     ok(passOrder().indexOf('dims-create') < passOrder().indexOf('dims-aliases'), 'materialise: dims-create is pasted before dims-aliases (a target must exist before it can be bound)');
   }
@@ -9958,7 +10287,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // The component tier is the reason this pass exists (#327 binds it), so name it explicitly
   // rather than trusting the axis-coverage check to imply it.
-  for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'])
+  // Rooted (#1097). `includes` on a quoted string is a substring test, so an unrooted `"size/md/gap"`
+  // matches nothing in a payload full of `"nbds/size/md/gap"` and these four arms would report the
+  // component tier missing — the right verdict for the wrong reason. Note the direction that does NOT
+  // work: dropping the quotes to make the test root-agnostic would match the rooted name as a substring
+  // and pass whatever the prefix turned out to be, including a doubled one.
+  for (const v of ['size/md/gap', 'size/md/padding-x-visual', 'icon/size/md', 'radius/md'].map(nbVar))
     ok(create.includes(`"${v}"`), `materialise: dims-create carries ${v}`);
 
   // Payload budget — the reason the colour lane is split across three passes in the first place.
@@ -10055,15 +10389,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const verify = passJs('nb', 'verify');
   ok(verify.includes('pruneReport') && verify.includes('orphanReason') && verify.includes('const orphans='),
     'materialise: verify pass embeds the #479 prune-report + reason classifier');
-  ok(verify.includes("findCol('core-palette')"),
-    'materialise: verify pass reads back core-palette too, not just color — #479 measured its drift as 222 vs a 122-row plan');
+  ok(verify.includes('findCol("core")'),
+    'materialise: verify pass reads back the `core` collection too, not just color — #479 measured its drift as 222 vs a 122-row plan');
 
   // The embedded PLANNED_PALETTE / PLANNED_COLOR arrays must be the REAL plan for this brand, not a
   // stale or partial one — parse them out of the payload and compare to `planFor`'s own output via
   // the public plan-building path (buildWritePlan over the emitted files), the same equality style
   // the typography block below uses for font/style/text-style plans.
   const plan = buildWritePlan({
-    palette: JSON.parse(readFileSync(resolve(HERE, 'out/figma/nb/core-palette.json'), 'utf8')),
+    palette: JSON.parse(readFileSync(resolve(HERE, 'out/figma/nb/core.palette.json'), 'utf8')),
     color: ['light', 'dark', 'hc-light', 'hc-dark'].map((m) => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/color.appearance.${m}.json`), 'utf8'))),
   });
   const paletteMatch = verify.match(/const PLANNED_PALETTE=(\[.*?\]);/);
@@ -10087,7 +10421,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // ------------------------------- materialise-to-figma: the TYPOGRAPHY + STYLE paste paths (#464)
 // The same gap #342 closed for floats, for the last three axes. The plugin has written all five
 // since #237; the paste path — the only one an MCP-driven session can use — had colour and floats,
-// so `core-font`, `type-sets`, 38 Text Styles and 14 Effect Styles were unreachable over MCP. An
+// so the `core` font slice, `type-sets`, 38 Text Styles and 14 Effect Styles were unreachable over MCP. An
 // agent could theme a file and get every colour and dimension and no typography at all.
 //
 // The load-bearing assertion is not "the passes exist" but "the file-read plan EQUALS the
@@ -10105,7 +10439,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // PLAN EQUALITY — the file-read reshapes against the theme-built ones, per axis. `nb` is the
   // fixture both paths can build, so this is a true equality rather than a shape comparison.
   const rd = (f: string): unknown => JSON.parse(readFileSync(resolve(HERE, `out/figma/nb/${f}`), 'utf8'));
-  const coreFont = rd('core-font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
+  const coreFont = rd('core.font.json') as Parameters<typeof fontVarPlanFrom>[0][number];
   const fluidFiles = ['mobile', 'desktop'].map((m) => rd(`type-sets.${m}.json`) as typeof coreFont);
   ok(JSON.stringify(fontVarPlanFrom([coreFont], fluidFiles)) === JSON.stringify(buildFontVarPlan(t)),
     'materialise: the file-read font plan is IDENTICAL to the theme-built font plan (the two write paths cannot drift)');
@@ -10118,7 +10452,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const textStyles = passJs('nb', 'text-styles');
   const styles = passJs('nb', 'styles');
 
-  // `core-font` mixes STRING (family) and FLOAT (size/weight) in ONE collection — the reason this
+  // The `core` collection mixes STRING (family) and FLOAT (size/weight/palette-adjacent) in ONE
+  // collection — the reason this
   // pass carries a per-row type code where `dims-create` hardcodes 'FLOAT'. A family var created as
   // FLOAT accepts no string value and fails only when a Text Style tries to bind it, so both codes
   // must reach the payload, and the decode must THROW on an unknown one rather than default.
@@ -10126,7 +10461,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(/,"s",/.test(fontVars) && /,"f",/.test(fontVars), 'materialise: font-vars rows use both type codes');
   ok(/throw new Error\('unknown scope code/.test(fontVars), 'materialise: an unknown font scope code THROWS at paste time (never silently decodes to undefined)');
   // This is the assertion that caught FONT_FAMILY having no code at all — it's a STRING scope, so the
-  // FLOAT map (built for the dims lane) never needed one, and `core-font` is the only collection that
+  // FLOAT map (built for the dims lane) never needed one, and `core` is the only collection that
   // mixes the two. Every family var would have pasted with `scopes: [undefined]`.
   ok(!/"[a-z*]*\?[a-z*]*",/.test(fontVars), 'materialise: every font scope encodes to a known code (no `?` in the payload)');
   // The decode map is a bijection or it silently mis-scopes: two scopes sharing a letter means one
@@ -10141,7 +10476,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const fontCreated = new Set<string>();
   for (const m of fontVars.matchAll(/\["([a-z0-9/\-.]+)","[sf]"/g)) fontCreated.add(m[1]);
   const fontTargets = new Set<string>();
-  for (const m of fontVars.matchAll(/,\["(font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
+  // Rooted + `core`-tiered since #1097/#1102 — the leading `[a-z0-9/\-.]*` is the brand root, which is
+  // a lever, so the pattern must not spell one. A pattern anchored at `font/weight/` would match
+  // NOTHING here and `fontTargets.size === 5` would be the only thing that noticed.
+  for (const m of fontVars.matchAll(/,\["([a-z0-9/\-.]*core\/font\/weight\/\d+)"\]\]/g)) fontTargets.add(m[1]);
   ok(fontCreated.size === 50, `materialise: font-vars creates all 50 typography variables (${fontCreated.size})`);
   ok(fontTargets.size === 5 && [...fontTargets].every((x) => fontCreated.has(x)),
     `materialise: every weight-role alias target is created by the same pass (${fontTargets.size} roles)`);
@@ -10299,7 +10637,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // first cut of this intersected paths WITH the configurable root included (`nbds.*` vs `prism.*`)
   // and returned 0, which would have made every assertion below vacuously true.
   ok(guaranteedCount > 400, `contract: the guaranteed surface is non-empty and substantial (${guaranteedCount} paths — a root-prefix bug here yields 0)`);
-  ok(live.corpus.length === 5, `contract: the corpus spans both dialects, the legacy fixture and the minimal input (${live.corpus.length} brands)`);
+  // SIX since #1102's contract accept, which added `minimal-levers` — the sparse input WITH the two
+  // suppressing levers pulled. It is the member that separates SPARSE from SUPPRESSED: `minimal` omits
+  // every optional field, so every lever takes its default, and a default is a value like any other.
+  ok(live.corpus.length === 6, `contract: the corpus spans both dialects, the legacy fixture, the minimal input and the minimal input with the suppressing levers pulled (${live.corpus.length} brands)`);
   for (const { id, theme } of corpus()) {
     const paths = pathsOf(theme);
     const missing = Object.keys(live.guaranteed).filter((p) => !paths.has(p));
@@ -10432,7 +10773,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 // ---- figmaArtifacts: the per-mode FILENAME conventions regen cannot see ------------------------
 // `regen --check` proves this extraction is byte-identical, but only over nb/aurora/wendys — and all
 // three take the SINGLE-FILE branch of both conditionals. So the byte proof covers half of each `if`,
-// and the per-mode halves (`core-font.<mode>.json`, `radius.<mode>.json`) had no coverage at all.
+// and the per-mode halves (`core.font.<mode>.json`, `radius.<mode>.json`) had no coverage at all.
 //
 // That asymmetry is the point worth keeping: a corpus proves what the corpus contains. These two
 // conventions exist so a brand NOT using the feature stays byte-identical to the pre-feature world,
@@ -10443,14 +10784,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const pathsOf = (input: unknown): string[] => figmaArtifacts(brandTheme(input as never)).artifacts.map((a) => a.path);
 
   const plain = pathsOf(base);
-  ok(plain.filter((p) => /^core-font\./.test(p)).join() === 'core-font.json',
-    'figmaArtifacts: a brand with no per-mode typography emits ONE core-font.json (pre-Phase-D byte shape)');
+  // `core.font.*`, not `core-font.*` (#1097): the three primitive collections merged, and the FILE
+  // STEM follows the collection plus its group — `core.font.json`, `core.palette.json`,
+  // `core.dimension.json` all declare `$collection: 'core'`. The dot is now a stem separator here as
+  // well as a mode separator, which is why the per-mode arm below matches THREE segments.
+  ok(plain.filter((p) => /^core\.font\./.test(p)).join() === 'core.font.json',
+    'figmaArtifacts: a brand with no per-mode typography emits ONE core.font.json (pre-Phase-D byte shape)');
   ok(plain.filter((p) => /^radius\./.test(p)).join() === 'radius.json',
     'figmaArtifacts: a non-wireframe brand emits ONE radius.json (pre-Pillar-1b byte shape)');
 
   const perModeFont = pathsOf({ ...base, families: { body: 'Inter', display: 'Inter' }, modeLevers: { dark: { families: { body: 'Georgia' } } } });
-  ok(perModeFont.filter((p) => /^core-font\./.test(p)).sort().join() === 'core-font.Default.json,core-font.dark.json',
-    'figmaArtifacts: a per-mode FAMILY override switches core-font to per-mode filenames');
+  ok(perModeFont.filter((p) => /^core\.font\./.test(p)).sort().join() === 'core.font.Default.json,core.font.dark.json',
+    'figmaArtifacts: a per-mode FAMILY override switches core.font to per-mode filenames');
 
   const wire = pathsOf({ ...base, modes: ['light', 'dark', 'wireframe'] });
   ok(wire.filter((p) => /^radius\./.test(p)).sort().join() === 'radius.Default.json,radius.wireframe.json',
@@ -11465,7 +11810,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const ext = (leaf?.$extensions as { prism3?: { px?: number } } | undefined)?.prism3?.px;
       return { brand: id.split(' ')[0], px: ext };
     });
-    ok(px.length === 5 && px.every((b) => b.px === 16),
+    ok(px.length === 6 && px.every((b) => b.px === 16),
       `#1010 the status glyph's artboard is 16px in EVERY corpus brand — '${ref}' is on the fixed grid, not the density-scaled control ladder (${px.map((b) => `${b.brand} ${b.px}`).join(', ')})`);
   }
   ok(fmSet.every((p) => p.size === undefined) && !fmSet.some((p) => /(^|, )size=/.test(planComponentName(p))),
@@ -11871,26 +12216,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `rename-map: the derivation materialises ${map.variables.length} entries, ${colorRows.length} of them in \`color.appearance\` (floors 80/40) — zero derived entries is the silent failure this whole block exists for`);
 
   for (const [brand, idx] of indexes) {
+    // #1097 — THE MAP'S ROWS ARE TAILS AND THE EMISSION'S NAMES ARE ROOTED, so every lookup below
+    // crosses that boundary and has to say so. `DEPRECATIONS` records paths BELOW the configurable root
+    // (`color.text.primary`, never `prism.color.text.primary`) because the root is a lever, so the
+    // derived rows carry no brand prefix; `composeVariableRenames` is the one layer that adds it, and
+    // this oracle stands where that layer does. Comparing a tail against a rooted index would make
+    // every arm below report its own failure mode — `unresolved` would be 100% and `stale` 0% — which
+    // is precisely the "silent, resolves nowhere" shape the whole block exists to catch, arriving via
+    // the gate instead of the subject.
+    const rooted = (tail: string): string => `${rootOfBrand(brand)}/${tail}`;
     // Direction 1: the map points at something real. A `to` that resolves nowhere is a migration that
     // would rename a live variable to a name the engine has stopped writing — manufacturing an orphan
     // out of a healthy variable, the one way this operation is worse than doing nothing.
-    const unresolved = colorRows.filter((r) => !idx.has(r.to));
+    const unresolved = colorRows.filter((r) => !idx.has(rooted(r.to)));
     ok(unresolved.length === 0,
-      `rename-map(${brand}): every derived \`color.appearance\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => r.to).join(', ')}` : ` (${colorRows.length} entries)`}`);
+      `rename-map(${brand}): every derived \`color.appearance\` target is a name the emission carries${unresolved.length ? ` — UNRESOLVED: ${unresolved.slice(0, 3).map((r) => rooted(r.to)).join(', ')}` : ` (${colorRows.length} entries)`}`);
 
     // Direction 2: the map does not point at something LIVE. A `from` still emitted means the entry is
     // stale — the rename never happened, or reverted — and applying it would move a variable the plan
     // is about to write, under the name the plan is writing it under.
-    const stale = map.variables.filter((r) => idx.has(r.from));
+    const stale = map.variables.filter((r) => idx.has(rooted(r.from)));
     ok(stale.length === 0,
-      `rename-map(${brand}): no derived SOURCE is still emitted — a live \`from\` is an entry that would migrate a variable the plan still owns${stale.length ? ` — STALE: ${stale.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
+      `rename-map(${brand}): no derived SOURCE is still emitted — a live \`from\` is an entry that would migrate a variable the plan still owns${stale.length ? ` — STALE: ${stale.slice(0, 3).map((r) => rooted(r.from)).join(', ')}` : ''}`);
 
     // And the entry's claimed collection is where the target actually lives. An entry filed under the
     // wrong collection never fires (the executor filters by collection name) and reports nothing —
     // exactly the shape of a silently inert map.
-    const misfiled = colorRows.filter((r) => idx.get(r.to) !== r.collection);
+    const misfiled = colorRows.filter((r) => idx.get(rooted(r.to)) !== r.collection);
     ok(misfiled.length === 0,
-      `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${r.to} is in ${idx.get(r.to)}, entry says ${r.collection}`).join('; ')}` : ''}`);
+      `rename-map(${brand}): every entry is filed under the collection its target is emitted into${misfiled.length ? ` — MISFILED: ${misfiled.slice(0, 3).map((r) => `${rooted(r.to)} is in ${idx.get(rooted(r.to))}, entry says ${r.collection}`).join('; ')}` : ''}`);
 
   // ---- #1087: AN ABSENT SOURCE OUTRANKS AN UNPLANNED TARGET ----
   //
@@ -12001,14 +12355,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // one, and it built `color.appearance/…`, a name no collection has ever held. That is a SECOND
     // defect the tier swap exposed, independent of the key/mirror inversion above — fixing only the
     // inversion leaves all 37 breaks standing, because the twin lookup can never hit.
-    const pfx = (coll: string) => `${coll.split('.').join('/')}/`;
+    //
+    // AND SINCE #1089 THE CONVENTION HAS ONE EXCEPTION, restated here for the same reason the rest is:
+    // `color.surface` holds `color/<role>`, not `color/surface/<role>`. #1089 renamed the collection so
+    // both tiers name their axis in the mode picker and deliberately left the VARIABLE names alone, so
+    // no DTCG path moved. Deriving the prefix from the dotted name alone therefore builds
+    // `color/surface/…` — a name no brand emits — and every `color.surface` row's twin lookup misses,
+    // silently, in exactly the manner the paragraph above describes. `rename-map.ts` carries the same
+    // exception in a `NAME_PREFIX` table; this is a hand-written second statement of it, NOT an import.
+    //
+    // #1097 adds the brand root on top. `plannedBy` is read out of the artifacts, so its names are
+    // ROOTED (`nbds/color/appearance/…`); the map's rows are TAILS. The prefix carries the root so the
+    // twin lookup and the plan lookup both happen in the emission's own space.
+    const NAME_PFX: Record<string, string> = { 'color.surface': 'color' };
+    const pfx = (coll: string) => `${rootOfBrand(brand)}/${NAME_PFX[coll] ?? coll.split('.').join('/')}/`;
     const breaks: string[] = [];
     let plannedRows = 0, mirrorRows = 0;
     for (const r of map.variables) {
-      if (plannedBy.get(r.collection)?.has(r.to)) { plannedRows++; continue; }
+      const to = `${rootOfBrand(brand)}/${r.to}`;
+      if (plannedBy.get(r.collection)?.has(to)) { plannedRows++; continue; }
       // The same ROLE, spelled into each of the group's other members.
       const others = groupOf(r.collection).filter((g) => g !== r.collection);
-      const role = r.to.startsWith(pfx(r.collection)) ? r.to.slice(pfx(r.collection).length) : null;
+      const role = to.startsWith(pfx(r.collection)) ? to.slice(pfx(r.collection).length) : null;
       const twin = role === null ? undefined : others.find((g) => plannedBy.get(g)?.has(pfx(g) + role) ?? false);
       // A row in a collection that mirrors NOTHING has no `others` at all, so it can never land here —
       // that emptiness is load-bearing rather than defensive: without it the bucket is an escape hatch
@@ -12036,7 +12404,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const members = [...new Set([k, ...ms])];
       return members.length > 1 ? members : [];
     }));
-    const mirrorEligible = map.variables.filter((r) => grouped.has(r.collection) && !(plannedBy.get(r.collection)?.has(r.to) ?? false)).length;
+    const mirrorEligible = map.variables.filter((r) => grouped.has(r.collection) && !(plannedBy.get(r.collection)?.has(`${rootOfBrand(brand)}/${r.to}`) ?? false)).length;
     //
     // ITS BOUND, STATED because the message is scoped precisely and the scope is easy to over-read.
     // This catches a widened predicate absorbing a break in a collection that mirrors NOTHING (measured:
@@ -12073,10 +12441,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // directions: a root that is not really a collection name yields entries nothing ever reads, and a
   // missing root yields no entries at all. The first direction is what the domain arm below catches; this
   // is the second, and it is why the list can be authored at all.
+  //
+  // A ROOT IS NOT ALWAYS A COLLECTION NAME, and since #1089 the colour axis is the case that proves it.
+  // `PROJECTED_ROOTS` holds CONTRACT path roots; the colour root materialises into TWO collections
+  // (`color.appearance` and `color.surface`) and into neither one called `color`. So the root is expanded
+  // through `MIRRORED_COLLECTIONS` before the emission is asked about it, and EVERY member must be a
+  // real collection — checking "at least one" would let a mirror pair go half-dead unnoticed, which is
+  // the same silence the arm exists to break, one member in.
   const emittedCollections = new Set(nbIdx.values());
-  const notCollections = PROJECTED_ROOTS.filter((r) => !emittedCollections.has(r));
+  const collectionsOfRoot = (r: string): string[] => [...new Set(MIRRORED_COLLECTIONS[r] ?? [r])];
+  const notCollections = PROJECTED_ROOTS.flatMap((r) => collectionsOfRoot(r).filter((c) => !emittedCollections.has(c)).map((c) => `${r} → ${c}`));
   ok(PROJECTED_ROOTS.length >= 9 && notCollections.length === 0,
-    `rename-map: every projected root is genuinely an emitted collection name (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
+    `rename-map: every projected root materialises into genuinely emitted collection names (${PROJECTED_ROOTS.length} roots, floor 9)${notCollections.length ? ` — NOT COLLECTIONS: ${notCollections.join(', ')}` : ''}`);
 
   // ---- (b) the entries with NO Figma counterpart are a stated set, not a silent skip ----
   // A DEPRECATION CAN REACH NO FIGMA VARIABLE FOR THREE UNRELATED REASONS, and the arms below name each
@@ -12090,8 +12466,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // reported 117 and the arm failed on a number — which is the only reason anyone looked. A derivation
   // that had stopped projecting entirely would have satisfied it with every deprecation in the list.
   //
-  //   1. ROOT NOT PROJECTED — `motion.easing.*` (3). `motion` is not in `PROJECTED_ROOTS`: Figma has no
-  //      easing variable, so there is nothing in any file to rename.
+  //   1. ROOT NOT PROJECTED — 167 across four families, and #1102 is why this is now the largest of the
+  //      three. `motion.easing.*` (3) is the original case: `motion` is not in `PROJECTED_ROOTS` because
+  //      Figma has no easing variable, so there is nothing in any file to rename. #1102's core-tier move
+  //      adds `palette.*` (62), `dimension.*` (37) and `font.*` (65) — 164 paths gaining a `core.` tier
+  //      segment — and those reach no Figma rename for a DIFFERENT reason that lands in the same bucket:
+  //      the Figma-side change is the brand namespace plus the `core/` tier on every variable in the
+  //      collection, which is a MATERIALIZATION rename (`namespace-and-core-tier-1097`) and not a
+  //      per-path one. They are ALSO cross-root (`palette` → `core`), so reason 3 would catch them if
+  //      reason 1 did not; the root check fires first, and the families are pinned by name below so
+  //      neither reason can absorb a fourth silently.
   //   2. TIER-ONLY — #1013's moves (114). The contract path moved and the ROLE did not, so there is no
   //      variable rename to derive: the Figma-side change is the tier prefix on every variable in the
   //      collection, which is a MATERIALIZATION rename and lives as a rule in `materialization-renames.ts`.
@@ -12101,25 +12485,41 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // Then the CLASP: the three reasons must account for every non-projecting entry. Without it a fourth
   // reason could appear and be absorbed by whichever arm's count happened to be a floor.
+  //
+  // PER FAMILY, NOT AS A TOTAL. The arm that stood here read `every((d) => d.path.startsWith('motion.easing.'))`
+  // — sound while the bucket held one family, and unmaintainable the moment it held four: the honest
+  // widening is `startsWith` over a union, which is satisfied by ANY distribution summing to 167 and
+  // would let 62 `palette.*` entries quietly become 62 `font.*` ones. So each family carries its own
+  // expected count, and a family the table does not name reports as `UNKNOWN(<path>)` rather than
+  // landing in whichever number happens to be a floor. The total is then a consequence, not the claim.
+  const UNPROJECTED_FAMILIES: Record<string, number> = { 'motion.easing.': 3, 'palette.': 62, 'dimension.': 37, 'font.': 65 };
   const unprojectedRoot = DEPRECATIONS.filter((d) => !PROJECTED_ROOTS.includes(d.path.split('.')[0]));
-  ok(unprojectedRoot.length === 3 && unprojectedRoot.every((d) => d.path.startsWith('motion.easing.'))
+  const famCount = new Map<string, number>();
+  for (const d of unprojectedRoot) {
+    const fam = Object.keys(UNPROJECTED_FAMILIES).find((f) => d.path.startsWith(f)) ?? `UNKNOWN(${d.path})`;
+    famCount.set(fam, (famCount.get(fam) ?? 0) + 1);
+  }
+  const famWrong = [...new Set([...Object.keys(UNPROJECTED_FAMILIES), ...famCount.keys()])]
+    .filter((f) => (UNPROJECTED_FAMILIES[f] ?? 0) !== (famCount.get(f) ?? 0))
+    .map((f) => `${f} expected ${UNPROJECTED_FAMILIES[f] ?? 0}, got ${famCount.get(f) ?? 0}`);
+  ok(unprojectedRoot.length === 167 && famWrong.length === 0
       && unprojectedRoot.every((d) => projectionsOf(d).length === 0),
-    `rename-map: exactly the 3 \`motion.easing.*\` deprecations sit on an unprojected ROOT — Figma has no easing variable, so there is nothing to migrate (got ${unprojectedRoot.length}: ${unprojectedRoot.map((d) => d.path).join(', ')})`);
+    `rename-map: the ${unprojectedRoot.length} deprecations on an unprojected ROOT break down exactly as authored (expected 167 = ${Object.entries(UNPROJECTED_FAMILIES).map(([f, n]) => `${n} ${f}*`).join(' + ')}) — Figma has no easing variable, and the core tier moves by materialization rule rather than per path${famWrong.length ? ` — WRONG: ${famWrong.join('; ')}` : ''}`);
   const tierOnly = DEPRECATIONS.filter((d) => d.replacedBy === `color.appearance.${d.path.slice('color.'.length)}`);
   const tierOnlyProjecting = tierOnly.filter((d) => projectionsOf(d).length > 0);
   ok(tierOnly.length === 114 && tierOnlyProjecting.length === 0,
     `rename-map: all ${tierOnly.length} of #1013's tier-only moves project NOTHING (expected 114) — the contract path moved, the role did not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
   const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
   const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
-  ok(noProjection.length === 117 && unaccounted.length === 0,
-    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 3 unprojected root + 114 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(noProjection.length === 281 && unaccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 167 unprojected root + 114 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
   // least one live variable. Per-ROW this is deliberately false — the mirror over-projects, see (c) — so
   // the claim is per-deprecation, and it is the one whose failure mode is a derivation quietly aiming at
   // names the emission stopped writing.
   const projecting = DEPRECATIONS.filter((d) => projectionsOf(d).length > 0);
-  const projectedButDead = projecting.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(p.to)));
+  const projectedButDead = projecting.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(`${NB_ROOT}/${p.to}`)));
   ok(projecting.length === 40 && projectedButDead.length === 0,
     `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 40)${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
@@ -12141,18 +12541,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // Since #1013 the two collections are `color.appearance` (value) and `color` (alias) — the mirror is the
   // same relation under swapped names, and `MIRRORED_COLLECTIONS` is where that pair is stated once.
-  ok(MIRRORED_COLLECTIONS['color']?.join() === 'color.appearance,color',
+  // #1089 then renamed the alias tier `color.surface`, so BOTH members name their axis in the mode
+  // picker and neither is the bare root any more. The pair is a pair of COLLECTIONS; the KEY stays the
+  // contract root `color`, because that is what a deprecation's path segment 0 says and the lookup in
+  // `projectionsOf` is keyed on it.
+  ok(MIRRORED_COLLECTIONS['color']?.join() === 'color.appearance,color.surface',
     `rename-map: the mirror pair is [value tier, alias tier] in that order — the value tier is listed first because it is the superset, and a reader who takes them the other way round reads the subset relation backwards (got ${MIRRORED_COLLECTIONS['color']?.join() ?? 'nothing'})`);
-  const surfRows = map.variables.filter((r) => r.collection === 'color');
-  const surfLive = surfRows.filter((r) => nbIdx.has(r.to));
+  const surfRows = map.variables.filter((r) => r.collection === 'color.surface');
+  const surfLive = surfRows.filter((r) => nbIdx.has(`${NB_ROOT}/${r.to}`));
   ok(surfLive.length >= 3,
-    `rename-map: the alias-tier mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every alias twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => r.to).join(', ')})` : ''}`);
-  ok(surfLive.every((r) => nbIdx.get(r.to) === 'color'),
-    'rename-map: every live mirror target is emitted into `color`, not read back out of `color.appearance` under a re-rooted name');
+    `rename-map: the alias-tier mirror reaches ${surfLive.length} live targets (floor 3) — a mirror that projected nothing would leave every alias twin orphaned, silently${surfLive.length ? ` (${surfLive.slice(0, 3).map((r) => `${NB_ROOT}/${r.to}`).join(', ')})` : ''}`);
+  ok(surfLive.every((r) => nbIdx.get(`${NB_ROOT}/${r.to}`) === 'color.surface'),
+    'rename-map: every live mirror target is emitted into `color.surface`, not read back out of `color.appearance` under a re-rooted name');
   // The mirror over-projects on purpose — most `color` entries have no surface twin — and that is safe
   // ONLY because an absent source is a reported no-op rather than an error. Asserted, because if it
   // ever became an error, over-projection would turn every apply into a wall of false refusals.
-  const surfDead = surfRows.filter((r) => !nbIdx.has(r.to));
+  const surfDead = surfRows.filter((r) => !nbIdx.has(`${NB_ROOT}/${r.to}`));
   ok(surfDead.length > 0 && planVariableRenames([], surfDead.map((r) => r.to), surfDead).every((o) => o.status === 'source-absent'),
     `rename-map: the ${surfDead.length} mirror entries with no live twin resolve to \`source-absent\`, not a refusal — over-projecting is self-correcting, under-projecting is not`);
 
@@ -12161,24 +12565,53 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // collection name is the inert-map failure again: the executor filters by collection, so an entry
   // filed under `colour` is never looked at and never reported.
   const domainTheme = nbTheme();
+  // `color.appearance` is named by hand because `buildWritePlan` is keyed by plan GROUP (`palette`,
+  // `color`) rather than by collection name, so the colour emission's collection is not readable off it.
+  // The palette collection used to be named here too, as `core-palette`; #1097 consolidated the three
+  // `core-*` collections into one `core`, which the float and font plans below already produce — so the
+  // literal came out rather than being updated, and the domain is one line closer to plan-derived.
   const written = new Set<string>([
-    'core-palette', 'color.appearance',
+    'color.appearance',
     buildSurfaceWritePlan(domainTheme).name,
     ...buildFloatWritePlan(domainTheme).map((p) => p.name),
     ...buildFontVarPlan(domainTheme).map((p) => p.name),
   ]);
   ok(written.size >= 10, `rename-map: the plan-derived collection domain is populated (${written.size} collections) — an empty domain would fail every entry rather than checking it`);
+  //
+  // #1097 — EVERY `COLLECTION_RENAMES` TARGET IS A COLLECTION THE PLANS PRODUCE, AND FOR ONE OF THEM
+  // THAT IS NEW. The exemption list below is EMPTY, and it is kept at zero length rather than deleted.
+  //
+  // `surface` → `color` shipped with #1013 and went stale the moment #1089 renamed the alias tier's
+  // collection to `color.surface`: from then until #1097 the entry named a collection no write plan
+  // produced, so the pre-pass moved a designer's `surface` collection to `color`, `applySurfacePlan`
+  // created a fresh `color.surface` beside it, and every variable and binding in the original was
+  // stranded where nothing walks (#1108 found it, `apps/plugin/test-write.ts`'s (vii) block reproduced
+  // it). #1097 retargets the entry to `surface` → `color.surface`, which is the whole fix.
+  //
+  // **The list stays, at zero, because an empty exemption and a deleted exemption are different gates.**
+  // Empty says "measured: nothing is exempt" and fails the moment a target goes stale again. Deleted
+  // says nothing, and the next author to let a rename target drift ahead of a collection name gets the
+  // same silent stranding with no arm to catch it. That drift is the defect class, not the instance.
+  //
+  // What #1097 still does NOT migrate is the `core-*` → `core` fan-in, and that is not a stale target —
+  // there is no entry at all, because `validateRenameMap` refuses three sources onto one target and
+  // Figma's `Variable.variableCollectionId` is `readonly` (`@figma/plugin-typings/plugin-api.d.ts:11454`),
+  // so no sequence of renames can merge collections. #1108 records it; it is not a one-line fix.
+  const STALE_COLLECTION_TARGETS: readonly string[] = [];
   const outsideDomain = [...new Set(map.variables.map((r) => r.collection)), ...map.collections.map((c) => c.to)]
-    .filter((n) => !written.has(n));
+    .filter((n) => !written.has(n) && !STALE_COLLECTION_TARGETS.includes(n));
   ok(outsideDomain.length === 0,
-    `rename-map: every collection the map names is one the write plans actually produce${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+    `rename-map: every collection the map names is one the write plans actually produce${STALE_COLLECTION_TARGETS.length ? `, or is a stated stale target (${STALE_COLLECTION_TARGETS.join(', ')})` : ' — with NO stated exemptions'}${outsideDomain.length ? ` — OUTSIDE: ${outsideDomain.join(', ')}` : ` (${[...new Set(map.variables.map((r) => r.collection))].sort().join(', ')})`}`);
+  const staleActual = map.collections.map((cr) => cr.to).filter((n) => !written.has(n));
+  ok(staleActual.join() === STALE_COLLECTION_TARGETS.join(),
+    `rename-map: the stale-target list is EXACTLY the collection-rename targets the plans no longer produce (authored [${STALE_COLLECTION_TARGETS.join(', ')}], measured [${staleActual.join(', ')}]) — so a target going stale fails here instead of being absorbed by the exemption above, and a stale target that comes back to life fails too`);
   // `COLLECTION_RENAMES` shipped EMPTY until #1013, because #1013 Q4 — whether the alias layer and the
   // value layer swap names — was an open decision and pre-authoring the entry would have taken it by
   // shipping it into designers' files. #1013 took it, so the arm flips from "there are none" to "there are
   // exactly the two the swap needs", and the domain check above is what makes them checkable rather than
-  // asserted: both targets have to be collections the write plans really produce.
+  // asserted: both targets have to be collections the write plans really produce. Since #1097 they both do.
   ok(map.collections.length === 2 && map.collections.every((cr) => written.has(cr.to)),
-    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and both targets are collections the write plans produce (${map.collections.map((cr) => `${cr.from}→${cr.to}`).join(', ')})`);
+    `rename-map: COLLECTION_RENAMES carries the two #1013 entries and every target is a collection the write plans produce (${map.collections.map((cr) => `${cr.from}→${cr.to}${written.has(cr.to) ? '' : ' [STALE]'}`).join(', ')})`);
 
   // ---- (e) STATIC refusals: constructed hazards, each by its own name ----
   ok(validateRenameMap(map).length === 0,
@@ -12271,9 +12704,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'rename-map: a file holding none of the sources reports every entry rather than omitting it — the planner has no null outcome, because "not applicable" and "checked, nothing to do" are the same fact and only one of them is reportable');
 
   // ---- (f2) THE CHAIN, and the ORDER IS COMPUTED (#1035) ----
-  // The shipped map's two entries are a chain: `color` must vacate the short name before `surface` can
-  // take it. Every arm below drives the SAME two entries against a different file state, which is the
-  // only way to tell an ordering that works from one that happened to be written down correctly.
+  // A chain: `color` must vacate the short name before `surface` can take it. Every arm below drives the
+  // SAME two entries against a different file state, which is the only way to tell an ordering that works
+  // from one that happened to be written down correctly.
+  //
+  // **These entries are a FIXTURE, and since #1097 that is the only place a chain exists.** They were the
+  // shipped map from #1013 until #1097 retargeted the alias tier to the name #1089 gave its collection
+  // (`surface` → `color.surface`), which removed the chain: neither target is anyone's source any more.
+  // The fixture stays and is now load-bearing in a way it was not before — it is the whole of the
+  // coverage on `planCollectionRenames`'s topological sort. Deleting it because "the map has no chain"
+  // would delete the ordering guarantee's only test while leaving the ordering code in place, and the
+  // arm below is what makes that visible rather than silent.
   const chainRenames = [c('surface', 'color'), c('color', 'color.appearance')];
   const PRE = 'color→color.appearance:migrated | surface→color:migrated';
   ok(cstat(['color', 'surface'], chainRenames) === PRE,
@@ -12292,10 +12733,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'rename-map: ALREADY migrated → both entries source-absent, no refusal. `color` and `color.appearance` both present is the NORMAL post-swap file, and reading it as `target-occupied` is the defect #1035 fixed');
   ok(cstat(['color.appearance', 'color', 'surface'], chainRenames) === 'color→color.appearance:source-absent | surface→color:target-occupied',
     'rename-map: migrated BUT still carrying a stray `surface` → target-occupied, refusing to merge the leftover into the live alias tier — the one state where a refusal is the right answer');
-  // The shipped map is that chain, and validates clean. The chain refusal was DELETED in #1035, so this
-  // is not the same statement as "the map is small": it is the statement that a chain is now legal.
-  ok(COLLECTION_RENAMES.length === 2 && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0,
-    `rename-map: the shipped COLLECTION_RENAMES is a 2-entry CHAIN and validates clean (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
+  // THE SHIPPED MAP IS NOT A CHAIN, AND SAYING SO IS THE POINT. It was one from #1013 to #1097; the
+  // retarget in #1097 made both targets terminal. Asserted as an explicit NOT rather than left to the
+  // clean-validation arm, because "validates clean" is true of a chain too — the two statements are not
+  // interchangeable, and the one that would rot silently is this one.
+  const shippedTargets = COLLECTION_RENAMES.map((x) => x.to);
+  const shippedSources = new Set(COLLECTION_RENAMES.map((x) => x.from));
+  ok(COLLECTION_RENAMES.length === 2
+    && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0
+    && !shippedTargets.some((t) => shippedSources.has(t)),
+    `rename-map: the shipped COLLECTION_RENAMES is 2 entries, validates clean, and holds NO chain — no target is another entry's source, so there is no ordering question left in the map itself (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
   // And the entries are STAMPED with the version that made the change. This arm exists because its
   // ABSENCE was measurable: `MATERIALIZATION_RENAMES` has carried the equivalent since #1039, this map
   // carried nothing, and both entries duly shipped reading `0.25.0` — the media veil's version, which
@@ -12303,30 +12750,52 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // "what code produced this file?" (see the map's own header), so a wrong one is not cosmetic: it is a
   // false provenance record on the only question the field exists to answer, and permanent.
   //
-  // Two limits, stated because the arm reads stronger than it is. It pins every entry to the CURRENT
-  // version, so it is a TRIPWIRE that fires on the next `ENGINE_VERSION` bump rather than a durable
-  // rule — correct while the map holds exactly one change's entries, and a deliberate prompt to decide
-  // then. **Which is why the failure message spends most of its length refusing the obvious remedy.** A
-  // tripwire whose easiest green is "restamp the entries to today's version" would hand the next reader
-  // the exact false provenance record it was added to prevent — the gate becoming the defect, one bump
-  // later. The message has to say the opposite of what a red gate normally implies: the data is probably
-  // right and the arm is probably obsolete. The durable form is a record checked against an era it names
-  // rather than against today, and
-  // there is nothing to key that on yet: no version history exists in `version.ts` to check membership
-  // against. That is #1080.
-  ok(COLLECTION_RENAMES.every((r) => r.since === ENGINE_VERSION),
-    `rename-map: every COLLECTION_RENAMES entry is stamped with the ENGINE_VERSION that made the change `
-    + `(got ${COLLECTION_RENAMES.map((r) => `${r.from}→${r.to}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
-    + `\n    IF YOU ARE READING THIS AFTER AN \`ENGINE_VERSION\` BUMP, DO NOT RESTAMP THE ENTRIES TO ${ENGINE_VERSION}.`
-    + `\n    \`since\` records the version whose code MADE the rename, not the version in the file today. Moving a`
-    + `\n    historical stamp forward is precisely the false provenance record this arm was added to prevent, so the`
-    + `\n    obvious way to get green here is the one change that reintroduces the defect.`
-    + `\n    This arm cannot tell a STALE stamp from a CORRECT HISTORICAL one. Once ${ENGINE_VERSION} is past these`
-    + `\n    renames, a LOWER stamp is the right answer and this arm is the thing that is obsolete, not the data.`
-    + `\n    Decide by hand: did each entry's rename ship in ${ENGINE_VERSION}? If it did, stamp it ${ENGINE_VERSION}. If it`
-    + `\n    shipped earlier, leave the stamp alone and retire this arm — #1080 is the durable replacement.`);
-  ok(cstat(['core-palette', 'color', 'surface'], [...COLLECTION_RENAMES]) === PRE,
-    'rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone');
+  // THE TRIPWIRE FIRED, AND #1097 IS WHERE IT WAS ANSWERED — so read the arm below against the note it
+  // replaced rather than as a fresh one. The previous form was `every((r) => r.since === ENGINE_VERSION)`,
+  // and its own failure message spent nine lines saying what to do when it went red: *"IF YOU ARE READING
+  // THIS AFTER AN `ENGINE_VERSION` BUMP, DO NOT RESTAMP THE ENTRIES … a LOWER stamp is the right answer
+  // and this arm is the thing that is obsolete, not the data."* #1097 bumped `ENGINE_VERSION` to `0.27.0`,
+  // both entries still correctly read `0.26.0` — #1013's version, which is the code that made these two
+  // renames — and the arm went red on exactly the shape it predicted.
+  //
+  // So it is retired the way it asked to be: as a RECORD CHECKED AGAINST AN ERA IT NAMES. The table below
+  // is authored per entry, keyed by the rename itself, and holds the version whose code made it. It no
+  // longer moves when `ENGINE_VERSION` moves, which is the whole difference — a new entry has to be added
+  // by hand with its own era, and restamping an existing one is now a visible edit to an expectation
+  // rather than the easiest way to a green run. #1080 (a version history in `version.ts` to check
+  // membership against) would let this be derived instead of authored; until then, authored is the form
+  // that does not decay, and the same treatment is applied to `MATERIALIZATION_RENAMES` above.
+  //
+  // **#1097 CHANGED A KEY AND NOT AN ERA, AND THE DIFFERENCE IS THE WHOLE POINT OF THE TABLE.** The
+  // alias-tier entry's TARGET moved (`surface` → `color` became `surface` → `color.surface`), so its key
+  // here moved with it and the arm went red on a rename it had never been told about — correct behaviour,
+  // and the second time this table has caught an edit rather than a bump. Its `since` stays `0.26.0`:
+  // `surface` stopped being a collection the engine writes when #1013's code shipped, and #1097 corrected
+  // where that retired name POINTS, not when it died. Moving the stamp to `0.27.0` would be the false
+  // provenance record in its subtler form — right that something changed in #1097, wrong about what the
+  // field answers.
+  const EXPECTED_COLLECTION_SINCE: Record<string, string> = {
+    'color→color.appearance': '0.26.0',
+    'surface→color.surface': '0.26.0',
+  };
+  const sinceWrong = COLLECTION_RENAMES
+    .filter((r) => EXPECTED_COLLECTION_SINCE[`${r.from}→${r.to}`] !== r.since)
+    .map((r) => `${r.from}→${r.to} authored ${EXPECTED_COLLECTION_SINCE[`${r.from}→${r.to}`] ?? '(not in the table)'}, got ${r.since}`);
+  ok(sinceWrong.length === 0 && Object.keys(EXPECTED_COLLECTION_SINCE).length === COLLECTION_RENAMES.length,
+    `rename-map: every COLLECTION_RENAMES entry is stamped with the version whose code MADE the rename `
+    + `(${COLLECTION_RENAMES.map((r) => `${r.from}→${r.to}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately not the oracle).`
+    + `${sinceWrong.length ? `\n    WRONG: ${sinceWrong.join('; ')}` : ''}`
+    + `\n    A NEW ENTRY FAILS HERE UNTIL IT IS ADDED TO \`EXPECTED_COLLECTION_SINCE\` WITH ITS OWN ERA — that is the`
+    + `\n    prompt, not an obstacle. Do NOT restamp an existing entry to today's version to get green: \`since\``
+    + `\n    records the version whose code made the rename, not the version in the file today, and moving a`
+    + `\n    historical stamp forward is the false provenance record this arm exists to prevent.`);
+  // The SHIPPED entries against a pre-#1013 file. Its expectation is spelled out here rather than reusing
+  // `PRE` above, because #1097 moved the alias target and the two are no longer the same string: the
+  // fixture is a chain, the shipped map is not. Sharing one literal would have made this arm agree with
+  // the fixture by construction and hidden exactly that difference.
+  ok(cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES])
+      === 'color→color.appearance:migrated | surface→color.surface:migrated',
+    `rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone (${cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES])})`);
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
       && !isRefusal('migrated') && !isRefusal('source-absent'),
     'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
@@ -12338,24 +12807,39 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // name, and the folding is the point rather than a convenience: run as two passes, a name matched by
   // both would route through an INTERMEDIATE spelling no plan asks for, and the two correct rules would
   // migrate nothing between them — `target-not-planned` on the first, `source-absent` on the second.
+  //
+  // #1097 — THE ROOT IS A PARAMETER, AND IT IS SYNTHETIC HERE ON PURPOSE. `composeVariableRenames` is the
+  // one layer that knows the brand root: the contract rows it looks up are TAILS, the rules take the root
+  // as an argument, and the composed `to` is a fully rooted name. Every arm below drives it with a root
+  // that appears nowhere in the corpus, so a read path that spelled `prism/` or `nbds/` literally would
+  // fail here while passing under a real brand — the Prism2 bug's exact signature, and the reason the
+  // expectations below carry `zzcompose/` rather than a brand's own prefix.
+  const CROOT = 'zzcompose';
   const comp = (collection: string, existing: string[], contract: ReturnType<typeof v>[] = []): string =>
-    composeVariableRenames(collection, existing, contract, MATERIALIZATION_RENAMES)
+    composeVariableRenames(collection, existing, contract, MATERIALIZATION_RENAMES, CROOT)
       .map((r) => `${r.from}→${r.to}`).sort().join(' | ');
-  ok(comp('color.appearance', ['color/background/primary']) === 'color/background/primary→color/appearance/background/primary',
+  ok(comp('color.appearance', ['color/background/primary']) === `color/background/primary→${CROOT}/color/appearance/background/primary`,
     'rename-map: a pre-#1013 value-tier name in the value-tier collection composes to one row under the tier rule — this is the row that turns 242 orphans into 242 migrations');
-  ok(comp('color', ['surface/border/brand']) === 'surface/border/brand→color/border/brand',
+  ok(comp('color.surface', ['surface/border/brand']) === `surface/border/brand→${CROOT}/color/border/brand`,
     'rename-map: and the alias tier composes under its own rule, in its own collection — the two rules are keyed to the collection they run in, so neither can reach into the other');
-  ok(comp('color.appearance', ['color/appearance/background/primary']) === '',
-    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding');
-  ok(comp('color', ['color/background/primary']) === '',
-    'rename-map: a value-tier SPELLING sitting in the alias collection is left alone — the tier rule tests the collection, not just the prefix, which is what keeps the post-swap `color` collection out of its reach');
+  ok(comp('color.appearance', [`${CROOT}/color/appearance/background/primary`]) === '',
+    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding. Post-#1097 "already migrated" means ROOTED: the namespace rule is the last hop of the chain, so a name that has the root has been all the way through');
+  // AND THE TIER-ONLY HALF OF THAT, WHICH #1097 WOULD OTHERWISE HAVE HIDDEN. Before the namespace rule
+  // existed, `color/appearance/background/primary` in its own collection was a complete no-op and the arm
+  // above said so. Now it is NOT: it still needs the root, so it composes to one hop rather than none.
+  // Kept as its own arm because the difference is the whole of what #1097 does to an existing file, and
+  // folding it into the arm above would have deleted the observation.
+  ok(comp('color.appearance', ['color/appearance/background/primary']) === `color/appearance/background/primary→${CROOT}/color/appearance/background/primary`,
+    'rename-map: a name already in the right TIER but with no ROOT still composes — one hop, the namespace only. This is the #1097 migration on a file that is otherwise current, and it is the arm that would go silent if the namespace rule stopped firing on already-tiered names');
+  ok(comp('color.surface', ['color/background/primary']) === `color/background/primary→${CROOT}/color/background/primary`,
+    'rename-map: a value-tier SPELLING sitting in the alias collection is left alone BY THE TIER RULES — the tier rule tests the collection, not just the prefix, which is what keeps the post-swap alias collection out of its reach. It still takes the namespace, because #1097 applies to every name in every collection and a rule that exempted this one would leave an un-rooted variable behind');
   // THE COMPOSITION-ORDER ARM. A contract row keyed on the POST-rule spelling must be reached by the
   // name that only becomes that spelling once the rule has run. One row, one hop, and the intermediate
   // name appears nowhere in the output.
   const composed = composeVariableRenames('color.appearance', ['color/old'],
-    [v('color/appearance/old', 'color/appearance/new', 'color.appearance')], MATERIALIZATION_RENAMES);
-  ok(composed.length === 1 && composed[0].from === 'color/old' && composed[0].to === 'color/appearance/new'
-      && composed.every((r) => r.to !== 'color/appearance/old'),
+    [v('color/appearance/old', 'color/appearance/new', 'color.appearance')], MATERIALIZATION_RENAMES, CROOT);
+  ok(composed.length === 1 && composed[0].from === 'color/old' && composed[0].to === `${CROOT}/color/appearance/new`
+      && composed.every((r) => r.to !== 'color/appearance/old' && r.to !== `${CROOT}/color/appearance/old`),
     `rename-map: rule THEN contract, folded into one hop (${composed.map((r) => `${r.from}→${r.to}`).join(', ') || 'NOTHING'}) — the intermediate spelling is never written, because nothing plans it and a variable renamed to an unplanned name is an orphan manufactured out of a healthy one`);
   // And the shipped configuration cannot get into the state where that folding is ambiguous, because the
   // two sources are disjoint: every contract row for a mirrored collection is keyed on a POST-swap name,
@@ -12363,11 +12847,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // this is the precondition, and it is the thing that would quietly stop being true.
   const shipped = renameMap().variables;
   const valueRows = shipped.filter((r) => r.collection === 'color.appearance');
-  const aliasRowsHere = shipped.filter((r) => r.collection === 'color');
+  const aliasRowsHere = shipped.filter((r) => r.collection === 'color.surface');
   ok(valueRows.length > 0 && valueRows.every((r) => r.from.startsWith('color/appearance/'))
       && aliasRowsHere.length > 0 && aliasRowsHere.every((r) => !r.from.startsWith('surface/')),
     `rename-map: the shipped contract rows (${valueRows.length} value-tier, ${aliasRowsHere.length} alias-tier) are keyed on POST-swap names, exactly the domain the two rules exclude — so no live name is claimed by both, and the fold has one answer`);
-  ok(comp('color.appearance', [], [v('color/appearance/a', 'color/appearance/b', 'color.appearance')]) === 'color/appearance/a→color/appearance/b',
+  ok(comp('color.appearance', [], [v('color/appearance/a', 'color/appearance/b', 'color.appearance')]) === `${CROOT}/color/appearance/a→${CROOT}/color/appearance/b`,
     'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
 }
 
@@ -12506,6 +12990,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const brands = readdirSync(figmaRoot).sort();
   ok(brands.length >= 3, `#1039: the corpus emits Figma for ${brands.length} brands (floor 3) — every claim below is "every name that …", vacuously true of none`);
 
+  // #1097 — THE ACCOUNTING IS PER-BRAND BECAUSE THE ROOT IS. Every rule's `domain` and `map` take the
+  // brand root as an argument rather than spelling one, so every call site below has to supply it.
+  // `BRAND_ROOTS` at the top of this file is where it comes from, and its header carries the reasoning:
+  // the THEME, never the first segment of an emitted name, which is the artifact under comparison.
+  const rootOf = rootOfBrand;
+  const distinctRoots = [...new Set(brands.map(rootOf))].sort();
+  ok(distinctRoots.length >= 2,
+    `#1039: the corpus spans ${distinctRoots.length} distinct roots (${distinctRoots.join(', ')}) — floor 2, because with one root everywhere a read path that hardcoded it would pass every arm below`);
+
   /** The committed emission for one brand, as `collection :: name` keys. A FIXTURE INPUT — see above. */
   const emissionOf = (brand: string): Set<VarKey> => {
     const out = new Set<VarKey>();
@@ -12525,12 +13018,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const missingImages: string[] = [];
   for (const brand of brands) {
     const keys = emissionOf(brand);
+    const root = rootOf(brand);
     for (const key of keys) {
       const { collection, name } = parseVarKey(key);
       for (const rule of MATERIALIZATION_RENAMES) {
-        if (!rule.domain(collection, name)) continue;
+        if (!rule.domain(collection, name, root)) continue;
         stillEmitted.push(`[${rule.id}] ${brand} ${key} — the rule says this moved, and it is still emitted`);
-        const image = varKey(collection, rule.map(collection, name));
+        const image = varKey(collection, rule.map(collection, name, root));
         if (!keys.has(image)) missingImages.push(`[${rule.id}] ${brand} ${key} → ${image} — the image is not emitted`);
       }
     }
@@ -12546,14 +13040,27 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the value tier's variables would move to `color/appearance/*` or keep `color/*` under a renamed
   // collection. #1013 decided it — both, and both halves of the record — so the arm that pinned "empty"
   // becomes the arm that pins WHICH rules, by id. A count would be satisfied by any two rules at all.
-  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013'
-      && MATERIALIZATION_RENAMES.every((r) => r.since === ENGINE_VERSION && r.why.length > 120),
-    `#1039/#1013: the artifact ships exactly the two swap rules, stamped with the engine version that made the change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}, ENGINE_VERSION ${ENGINE_VERSION}).`
-    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps, and`
-    + `\n    that each rule carries a real \`why\`. IF THE STAMPS ARE WHAT MOVED, DO NOT RESTAMP THEM TO ${ENGINE_VERSION} —`
-    + `\n    the same warning as the \`COLLECTION_RENAMES\` arm in (f2), stated there in full: \`since\` records the version`
-    + `\n    that MADE the rename, this arm cannot tell a stale stamp from a correct historical one, and after a version`
-    + `\n    bump the arm is what is obsolete rather than the data (#1080).`);
+  //
+  // THE STAMPS ARE LITERALS, ONE PER RULE, AND NOT `=== ENGINE_VERSION` (#1080). `since` records the
+  // version that MADE the rename. A uniform comparison against the live `ENGINE_VERSION` held only while
+  // every rule in the artifact happened to have shipped in the same release: the next bump makes every
+  // historical stamp unequal, and the arm then demands they be restamped — erasing the record it exists to
+  // hold. #1097 is the PR that ends that coincidence, by adding the first rule at a later version than the
+  // two already here, so the comparison is per-rule from here on. IF A STAMP IS WHAT MOVED, DO NOT
+  // RESTAMP IT: this arm cannot tell a stale stamp from a correct historical one, and after a version bump
+  // the arm is what is obsolete rather than the data.
+  const EXPECTED_SINCE: Record<string, string> = {
+    'appearance-tier-1013': '0.26.0',
+    'surface-to-color-1013': '0.26.0',
+    'namespace-and-core-tier-1097': '0.27.0',
+  };
+  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013 | namespace-and-core-tier-1097'
+      && MATERIALIZATION_RENAMES.every((r) => r.since === EXPECTED_SINCE[r.id] && r.why.length > 120),
+    `#1039/#1013/#1097: the artifact ships exactly the three rules, each stamped with the version that made ITS change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately NOT what the stamps are compared to).`
+    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps against`
+    + `\n    the literal table beside this arm, and that each rule carries a real \`why\`. #1097 is one rule and not two`
+    + `\n    (namespace + \`core\` tier) because \`multiplyClaimed\` FAILS a key two rules both claim, and every name the`
+    + `\n    tier moves is a name the namespace moves as well — see the rule's own \`why\`.`);
 
   // Each rule's transformation on a LITERAL witness, with both directions of its domain boundary. The
   // negative halves are not padding: each one is a defect that check 2 would report as a wall of noise.
@@ -12566,31 +13073,96 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //     writes `color/*` into the very collection it reads `surface/*` from.
   //   · and neither may reach across into the other's collection, which is what keeps them disjoint and
   //     `multiplyClaimed` empty — asserted over the real corpus in the end-to-end arm below.
-  const ruleApply = (id: string, collection: string, name: string): string | null => {
+  //
+  //   · rule 3 (#1097) must not match its own image either, and its image is where the namespace makes
+  //     this sharper than the other two: applied twice, `prism/color/text/primary` becomes
+  //     `prism/prism/color/text/primary`, which is what a plugin re-running against a file it already
+  //     wrote would produce. The `!startsWith(`${root}/`)` domain is the whole of the idempotence.
+  //
+  // THE ROOT IS A PARAMETER OF THE WITNESSES TOO, and it is `zzwitness` — a root no brand uses, same
+  // reasoning as the table's `zzclient` below (`docs/44` §7). The two #1013 rules predate #1097 and must
+  // IGNORE it: the names they were written against carried no root at all. Passing a root they should not
+  // consult, and asserting the same images as before, is what says so.
+  const WROOT = 'zzwitness';
+  const ruleApply = (id: string, collection: string, name: string, root: string): string | null => {
     const r = MATERIALIZATION_RENAMES.find((x) => x.id === id);
     if (!r) return null;
-    return r.domain(collection, name) ? r.map(collection, name) : null;
+    return r.domain(collection, name, root) ? r.map(collection, name, root) : null;
   };
-  ok(ruleApply('appearance-tier-1013', 'color.appearance', 'color/text/primary') === 'color/appearance/text/primary'
-      && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary') === null
-      && ruleApply('appearance-tier-1013', 'color', 'color/text/primary') === null,
-    '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved');
-  ok(ruleApply('surface-to-color-1013', 'color', 'surface/text/primary') === 'color/text/primary'
-      && ruleApply('surface-to-color-1013', 'color', 'color/text/primary') === null
-      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary') === null,
-    '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies — and does not re-match what it just wrote');
+  ok(ruleApply('appearance-tier-1013', 'color.appearance', 'color/text/primary', WROOT) === 'color/appearance/text/primary'
+      && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary', WROOT) === null
+      && ruleApply('appearance-tier-1013', 'color', 'color/text/primary', WROOT) === null,
+    '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved. Given a `root` it must not consult, its images are unchanged');
+  // Rule 2's COLLECTION is `color.surface`, not `color`, and the mismatch between that and the rule's own
+  // id is deliberate. The rule performs #1013's rename (`surface/text/primary` → `color/text/primary`) and
+  // is stamped `0.26.0` for it; #1089 then renamed the collection it runs in, and `materialize` is always
+  // called with the collection the write plan is about to use — so the domain names the LIVE collection
+  // while the id and `since` name the change. Keyed on the historical `color` the rule is unreachable and
+  // a pre-#1013 `surface/*` variable is left behind in silence, which is the third arm below stated in
+  // reverse: `color.appearance` is not the collection, and neither is `color` any more.
+  ok(ruleApply('surface-to-color-1013', 'color.surface', 'surface/text/primary', WROOT) === 'color/text/primary'
+      && ruleApply('surface-to-color-1013', 'color.surface', 'color/text/primary', WROOT) === null
+      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary', WROOT) === null
+      && ruleApply('surface-to-color-1013', 'color', 'surface/text/primary', WROOT) === null,
+    '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies (`color.surface` since #1089) — and does not re-match what it just wrote, nor reach the value tier, nor the bare `color` name no collection holds any more');
 
-  // ---- #1013 END-TO-END: an AUTHORED before-set against the REAL emission ----
+  // #1097's witnesses. FOUR properties, and the two negative ones are where the single-rule design is
+  // load-bearing rather than convenient:
   //
-  // WHERE THE TWO SIDES COME FROM IS THE WHOLE POINT (`docs/34` shape 11). The before-set below is typed
-  // out by hand in the PRE-#1013 spelling — `color :: color/background/primary`, `surface ::
-  // surface/background/primary`, verifiable against `git show origin/main:…`. The after-set is `nbKeys`,
-  // the emitter's real current output. So the rules have to bridge a hand-written past to a generated
-  // present, and nothing on either side was produced by the thing under test.
+  //   · a semantic name takes the root and nothing else — no `core` tier, because `color` is not a
+  //     primitive group.
+  //   · a primitive name takes the root AND the tier, in one image. Two rules producing this jointly
+  //     would both claim the key and `multiplyClaimed` would fail it.
+  //   · `font-fluid/*` must NOT go under `core`, and it is the trap: the tier list is matched on the
+  //     WHOLE first segment, so a `startsWith('font')` spelling would sweep the 11 type-set variables
+  //     into `core/font-fluid/*` — a collection they are not in and a DTCG path that does not exist.
+  //   · and an already-rooted name is outside the domain, which is idempotence stated as a rule rather
+  //     than as a behaviour of the plugin (`apps/plugin/test-readback.ts` states the behaviour, by
+  //     emitting one brand under two roots and comparing the two read-backs to each other).
+  const R3 = 'namespace-and-core-tier-1097';
+  ok(ruleApply(R3, 'color.surface', 'color/text/primary', WROOT) === 'zzwitness/color/text/primary'
+      && ruleApply(R3, 'core', 'palette/red/550', WROOT) === 'zzwitness/core/palette/red/550'
+      && ruleApply(R3, 'core', 'dimension/0', WROOT) === 'zzwitness/core/dimension/0'
+      && ruleApply(R3, 'core', 'font/family/display', WROOT) === 'zzwitness/core/font/family/display',
+    '#1097 rule 3: every name takes the brand root, and the three primitive groups take the `core` tier in the SAME image — one rule, because two would both claim the key and `multiplyClaimed` refuses that');
+  ok(ruleApply(R3, 'type-sets', 'font-fluid/display/sm/strong', WROOT) === 'zzwitness/font-fluid/display/sm/strong'
+      && ruleApply(R3, 'color.surface', 'zzwitness/color/text/primary', WROOT) === null
+      && ruleApply(R3, 'core', 'zzwitness/core/palette/red/550', WROOT) === null,
+    '#1097 rule 3: `font-fluid/*` is NOT a `core` group (whole-segment match, not a prefix), and an already-rooted name is outside the domain — the rule is idempotent by construction');
+
+  // ---- END-TO-END, ONE HOP AT A TIME (#1013, then #1097) ----
   //
+  // WHERE THE TWO SIDES COME FROM IS THE WHOLE POINT (`docs/34` shape 11). Every before-set below is typed
+  // out by hand, in the spelling of a specific past merge base and verifiable against `git show <ref>:…`.
   // The tempting version — build the before-set by inverting the rules over the current emission — is
   // vacuous: it agrees with the rules by construction and reports TOTAL whatever they say.
+  //
+  // ── WHY THIS IS TWO FIXTURES AND NOT ONE (#1097) ─────────────────────────────────────────────────
+  //
+  // It was one, and one was correct while the artifact held one hop's worth of rules. The accounting asks
+  // each rule about each before-key INDEPENDENTLY — rules are never composed — and `multiplyClaimed` FAILS
+  // a key more than one rule claims. So a before-set old enough to need two hops is not a harder version of
+  // the same question; it is a question this mechanism is built to refuse, and refusing it is correct: two
+  // rules claiming one key is exactly the ambiguity that would misattribute a migration.
+  //
+  // A pre-#1013 name like `color/background/primary` carries no brand root, so #1097's rule claims it too,
+  // on top of #1013's. That is asserted below rather than avoided, because "the fixture was split for a
+  // reason" is worth more as a number than as this paragraph.
+  //
+  // What each fixture is for, then:
+  //
+  //   A — the #1013 hop. Both sides hand-written, rules restricted to the two `-1013` ids. It keeps the
+  //       historical record exercised: the two rules, `COLLECTION_RENAMES`' one-hop recollection, and the
+  //       drop-one forcing function, all against the spelling that shipped.
+  //   B — the #1097 hop. Before-set hand-written in the POST-#1013, PRE-#1097 spelling; after-set is
+  //       `nbKeys`, the emitter's real current output. This is the fixture that bridges a hand-written past
+  //       to a generated present, and it runs all THREE rules — so "only #1097's rule claims here" is a
+  //       measured property of the rule set rather than a restriction the fixture imposed.
   {
+    const era1013 = MATERIALIZATION_RENAMES.filter((r) => r.id.endsWith('-1013'));
+    ok(era1013.length === 2,
+      `#1013: the fixture below runs ${era1013.length} rules (expected the 2 \`-1013\` ids) — the filter is by id and not by count, so a third rule joining that era is included rather than silently dropped`);
+
     const before = new Set<VarKey>([
       varKey('color', 'color/background/primary'),
       varKey('color', 'color/background/inverse/primary'),
@@ -12599,40 +13171,194 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ]);
     const recollected = recollectAll(before, COLLECTION_RENAMES);
     ok([...recollected].sort().join(' | ') === [
-      varKey('color', 'surface/background/primary'),
-      varKey('color', 'surface/border/brand'),
+      varKey('color.surface', 'surface/background/primary'),
+      varKey('color.surface', 'surface/border/brand'),
       varKey('color.appearance', 'color/background/inverse/primary'),
       varKey('color.appearance', 'color/background/primary'),
     ].sort().join(' | '),
       `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
 
-    const acct = accountFor(recollected, nbKeys, MATERIALIZATION_RENAMES, parseVarKey);
+    // ── ONE HOP REACHES TODAY'S RULE DOMAIN, AND THAT IS WHAT #1097 CHANGED (#1089, #1097) ────────────
+    //
+    // `surface-to-color-1013`'s domain names `color.surface`, because `materialize` is called with the
+    // collection the write plan is about to use and that is the LIVE name (see the rule's own header).
+    // Between #1089 and #1097 `COLLECTION_RENAMES` sent the alias tier to `color` — the name it carried
+    // from #1013 to #1089 — so a #1013-era key could not reach that domain at all: the migration stopped
+    // one collection short, `applySurfacePlan` created a fresh `color.surface` beside it, and the
+    // designer's variables and bindings were stranded with nothing reporting it (#1108's finding).
+    // Retargeting the entry to `surface` → `color.surface` closes it in one hop.
+    //
+    // So the second record is now a NO-OP for the colour tiers, and that is asserted rather than assumed:
+    // an identity, not a re-statement of the expectation above. The reason `ACCOUNTING_COLLECTION_MOVES`
+    // still exists is the OTHER move it carries — `core-palette`/`core-dimension`/`core-font` → `core` —
+    // which no migration list can hold, and the arms below are about exactly that.
+    const inLiveCollections = recollectAll(recollected, ACCOUNTING_COLLECTION_MOVES);
+    ok([...inLiveCollections].sort().join(' | ') === [...recollected].sort().join(' | '),
+      `#1097: the accounting's collection moves are a NO-OP once the migration list reaches \`color.surface\` directly — both tiers were already in their final collection after one hop, and re-applying must not move either again (got ${[...inLiveCollections].sort().join(' | ')})`);
+
+    // The post-#1013, pre-#1097 emission for these four, hand-written: the value tier prefixed, the alias
+    // tier's `surface/` traded for `color/`, both in the collection the two recollections just put them in.
+    const after1013 = new Set<VarKey>([
+      varKey('color.appearance', 'color/appearance/background/primary'),
+      varKey('color.appearance', 'color/appearance/background/inverse/primary'),
+      varKey('color.surface', 'color/background/primary'),
+      varKey('color.surface', 'color/border/brand'),
+    ]);
+    // The root is the one the corpus does not use: these rules must not consult it, and the images asserted
+    // through `isTotal` are the same either way only if that holds.
+    const acct = accountFor(inLiveCollections, after1013, era1013, parseVarKey, WROOT);
     ok(isTotal(acct) && acct.claims.length === 4 && acct.removed.length === 4,
       `#1013: the two rules account for the swap end-to-end — 4 hand-written pre-swap keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
+
+    // ── THE GAP THAT REMAINS, AND IT IS THE CORE FAN-IN — NOT THE COLOUR TIERS (#1108) ────────────────
+    //
+    // The two lists are still not interchangeable, and this is where the difference is a number rather
+    // than a paragraph. `ACCOUNTING_COLLECTION_MOVES` lands three primitive collections on one `core`;
+    // `COLLECTION_RENAMES` cannot hold that entry and never will, for two independent reasons:
+    // `validateRenameMap` refuses three sources onto one target, and Figma's
+    // `Variable.variableCollectionId` is `readonly` (`@figma/plugin-typings/plugin-api.d.ts:11454`), so no
+    // sequence of renames can move a variable between collections at all. A fan-in is not a rename.
+    //
+    // The consequence for a designer's pre-#1097 file: the `core-*` collections and every binding on them
+    // stay exactly where they are, beside a fresh `core`, reported by nothing. #1108, deliberately
+    // accepted, and asserted here so a green suite records it instead of implying coverage.
+    const coreBefore = new Set<VarKey>([
+      varKey('core-palette', 'palette/red/550'),
+      varKey('core-dimension', 'dimension/0'),
+    ]);
+    ok([...recollectAll(coreBefore, COLLECTION_RENAMES)].sort().join(' | ') === [...coreBefore].sort().join(' | '),
+      `#1108: the MIGRATION list cannot reach the core fan-in — a pre-#1097 file's \`core-*\` keys come back unchanged (got ${[...recollectAll(coreBefore, COLLECTION_RENAMES)].sort().join(' | ')}), because a readonly \`variableCollectionId\` admits no move and \`validateRenameMap\` refuses the duplicate target`);
+    ok([...recollectAll(coreBefore, ACCOUNTING_COLLECTION_MOVES)].sort().join(' | ') === [
+      varKey('core', 'dimension/0'),
+      varKey('core', 'palette/red/550'),
+    ].sort().join(' | '),
+      `#1108: while the ACCOUNTING list does reach it — which is the whole reason the two lists are separate rather than one (got ${[...recollectAll(coreBefore, ACCOUNTING_COLLECTION_MOVES)].sort().join(' | ')})`);
+
+    // AND THE REASON THE FIXTURE IS RESTRICTED, AS A NUMBER. Run the same hop with all three rules and
+    // every key is claimed twice — #1097's rule matches any name without a root, and a pre-#1013 name has
+    // none. This is the mechanism working: composing two hops is what it refuses to do.
+    const twoHop = accountFor(inLiveCollections, after1013, MATERIALIZATION_RENAMES, parseVarKey, WROOT);
+    ok(!isTotal(twoHop) && twoHop.multiplyClaimed.length === 4,
+      `#1097: a TWO-HOP before-set is refused rather than accounted — ${twoHop.multiplyClaimed.length} of the 4 keys are claimed by both eras' rules (expected 4). Two rules claiming one key is the ambiguity that would misattribute a migration, so the fixtures are per-hop`);
 
     // THE FORCING FUNCTION, on the real rules rather than on a fixture pair: drop either rule and the keys
     // it covered are reported as unaccounted removals BY NAME. This is the arm that fails if a later
     // simplification decides one rule is enough.
-    for (const dropped of MATERIALIZATION_RENAMES) {
-      const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
-      const partial = accountFor(recollected, nbKeys, kept, parseVarKey);
+    for (const dropped of era1013) {
+      const kept = era1013.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(inLiveCollections, after1013, kept, parseVarKey, WROOT);
       ok(!isTotal(partial) && partial.unaccountedRemovals.length === 2,
         `#1013: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
     }
 
-    // AND THE RECOLLECTION'S SINGLE-STEP CLAIM, as a failure rather than as a comment. `COLLECTION_RENAMES`
-    // is a chain, so following it to a fixed point sends the alias tier to `color.appearance` — where that
-    // variable never went. The misattributed keys then match no rule (rule 1 wants a `color/` name) and
-    // read as unaccounted removals against rules that are correct. See `recollect`'s header for why the
-    // apply side needs the opposite treatment.
+    // AND THE RECOLLECTION'S SINGLE-STEP CLAIM, as a failure rather than as a comment. Follow a CHAIN to a
+    // fixed point and the alias tier lands in `color.appearance` — where that variable never went. The
+    // misattributed keys then match no rule (rule 1 wants a `color/` name) and read as unaccounted removals
+    // against rules that are correct. See `recollect`'s header for why the apply side needs the opposite
+    // treatment.
+    //
+    // **The chain is a FIXTURE here, and it is the map #1097 replaced.** `COLLECTION_RENAMES` was
+    // `surface → color` alongside `color → color.appearance` until #1097 retargeted the first to
+    // `color.surface`, which removed the chain — so driving this arm off the shipped map now makes
+    // transitivity a no-op and the arm passes vacuously, reporting `NOTHING`. That is what it did on the
+    // first run of this change. `recollectAll`'s one-hop contract is unchanged and still worth a failing
+    // arm, so the hazard is spelled out here instead of borrowed from data that no longer contains it —
+    // `docs/34`'s borrowed-backstop shape, caught in the act.
+    const CHAIN_FIXTURE: readonly { from: string; to: string }[] = [
+      { from: 'surface', to: 'color' },
+      { from: 'color', to: 'color.appearance' },
+    ];
     const transitive = new Set([...before].map((k) => {
       let cur = k;
-      for (let i = 0; i < COLLECTION_RENAMES.length; i++) cur = recollect(cur, COLLECTION_RENAMES);
+      for (let i = 0; i < CHAIN_FIXTURE.length; i++) cur = recollect(cur, CHAIN_FIXTURE);
       return cur;
     }));
-    const misattributed = accountFor(transitive, nbKeys, MATERIALIZATION_RENAMES, parseVarKey);
+    const misattributed = accountFor(transitive, after1013, era1013, parseVarKey, WROOT);
     ok(!isTotal(misattributed) && misattributed.unaccountedRemovals.some((k) => k === varKey('color.appearance', 'surface/background/primary')),
       `#1013: a TRANSITIVE recollection misattributes the alias tier to \`color.appearance\` and the accounting refuses it — one hop is correct, a fixed point is wrong (${misattributed.unaccountedRemovals.join(' · ') || 'NOTHING'})`);
+  }
+
+  // ---- FIXTURE B: THE #1097 HOP — a hand-written pre-#1097 base against the REAL emission ----
+  //
+  // Seven keys, chosen so each one is a different way the rule has to behave, and every one of them is a
+  // name `git show <pre-#1097 ref>:packages/engine/out/figma/nb/…` still holds:
+  //
+  //   · a value-tier name, already `color/appearance/*` from #1013 — root only, no tier.
+  //   · an alias-tier name in the `color` collection that #1089 renamed to `color.surface` — the
+  //     COLLECTION moved and the NAME took a root, and the recollection is what lets one rule see both.
+  //   · one name from each of the three merged primitive collections — root AND `core` tier, one image.
+  //   · a name in a collection that did not move at all (`radius`) — root only, and it is the arm that
+  //     fails if the rule is ever narrowed to the collections this PR touched.
+  //   · `font-fluid/*`, which starts with `font` and must NOT be swept under `core` (see the witnesses).
+  //
+  // `ACCOUNTING_COLLECTION_MOVES` is the recollection map here, NOT `COLLECTION_RENAMES` — the two are
+  // relative to different points in time and that module's header is where the distinction is argued. This
+  // is the fixture that would catch them being merged: `COLLECTION_RENAMES` sends `color` to
+  // `color.appearance`, and a post-#1013 base's `color` is the alias tier, so all 128 of its keys would
+  // read as unaccounted removals against a rule that is correct.
+  {
+    const before = new Set<VarKey>([
+      varKey('color.appearance', 'color/appearance/background/primary'),
+      varKey('color', 'color/background/primary'),
+      varKey('core-palette', 'palette/white'),
+      varKey('core-dimension', 'dimension/0'),
+      varKey('core-font', 'font/family/display'),
+      varKey('radius', 'radius/none'),
+      varKey('type-sets', 'font-fluid/display/sm/strong'),
+    ]);
+    const recollected = recollectAll(before, ACCOUNTING_COLLECTION_MOVES);
+    ok([...recollected].sort().join(' | ') === [
+      varKey('color.appearance', 'color/appearance/background/primary'),
+      varKey('color.surface', 'color/background/primary'),
+      varKey('core', 'palette/white'),
+      varKey('core', 'dimension/0'),
+      varKey('core', 'font/family/display'),
+      varKey('radius', 'radius/none'),
+      varKey('type-sets', 'font-fluid/display/sm/strong'),
+    ].sort().join(' | '),
+      `#1097: the accounting's collection moves merge the three \`core-*\` collections into one and name the alias tier's axis — ONE HOP each, and \`radius\`/\`type-sets\`/\`color.appearance\` are left alone (got ${[...recollected].sort().join(' | ')})`);
+
+    const NB = rootOf('nb');
+    const acct = accountFor(recollected, nbKeys, MATERIALIZATION_RENAMES, parseVarKey, NB);
+    ok(isTotal(acct) && acct.claims.length === 7 && acct.removed.length === 7 && acct.multiplyClaimed.length === 0,
+      `#1097: one rule accounts for the whole rename against the REAL nb emission — 7 hand-written pre-#1097 keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed. The after-set is what the emitter wrote, so a rule that agrees with itself and not with the emission fails here`);
+
+    // PER-RULE, NOT UNIFORM, and the asymmetry is the assertion. Dropping #1097's rule leaves all seven
+    // unaccounted; dropping either #1013 rule changes NOTHING, because this hop is not theirs. A uniform
+    // "drop one → 2 unaccounted" expectation of the kind fixture A carries would be wrong here, and wrong
+    // in the direction that hides things: it would pass on a rule set where the wrong rule did the work.
+    for (const dropped of MATERIALIZATION_RENAMES) {
+      const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(recollected, nbKeys, kept, parseVarKey, NB);
+      const mine = dropped.id === 'namespace-and-core-tier-1097';
+      ok(mine ? (!isTotal(partial) && partial.unaccountedRemovals.length === 7) : isTotal(partial),
+        `#1097: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} of the 7 keys unaccounted (expected ${mine ? 7 : 0}) — ${mine ? `named individually: ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}` : 'this hop is not that rule\'s, so removing it must change nothing — an arm that went red here would mean the wrong rule is doing the work'}`);
+    }
+
+    // THE COLLECTION-MOVE HALF, dropped one entry at a time — each entry is load-bearing or it is
+    // decoration, and one arm per entry is what tells them apart.
+    //
+    // IT FAILS AS A CONTRADICTED CLAIM, NOT AS AN UNACCOUNTED REMOVAL, and the distinction is worth
+    // pinning rather than papering over with `!isTotal`. A rule's `map` returns the NAME only (deliberately
+    // — see `MaterializationRule`), so the key keeps whichever collection the recollection left it in. With
+    // the move dropped, #1097's rule still claims `core-palette :: palette/white` and still produces the
+    // right name — but under the wrong collection, so the image is a key nothing emits. That is exactly the
+    // `target-not-planned` shape: a rule whose image resolves nowhere, which is inert at apply time.
+    for (const move of ACCOUNTING_COLLECTION_MOVES) {
+      const kept = ACCOUNTING_COLLECTION_MOVES.filter((m) => m.from !== move.from);
+      const partial = accountFor(recollectAll(before, kept), nbKeys, MATERIALIZATION_RENAMES, parseVarKey, NB);
+      ok(!isTotal(partial) && partial.contradictedClaims.length === 1 && partial.unaccountedRemovals.length === 0
+          && /not emitted/.test(partial.contradictedClaims[0]?.contradiction ?? ''),
+        `#1097: dropping the \`${move.from} → ${move.to}\` collection move contradicts ${partial.contradictedClaims.length} claim (expected 1, and 0 unaccounted removals — got ${partial.unaccountedRemovals.length}): `
+        + `${partial.contradictedClaims.map((c) => `${c.from} → ${c.to}: ${c.contradiction}`).join(' · ') || 'NOTHING, so the entry is decoration'}`);
+    }
+    // …and no `from` twice, which is the one way this list fails SILENTLY. `recollect` takes the FIRST
+    // match, so a duplicate `from` makes the answer depend on array order — see that list's header for the
+    // 128-keys-per-brand misattribution it would cause. Nothing above can see it: the fixture would still
+    // pass under whichever entry happened to come first.
+    const froms = ACCOUNTING_COLLECTION_MOVES.map((m) => m.from);
+    ok(new Set(froms).size === froms.length,
+      `#1097: no collection appears twice as a \`from\` in ACCOUNTING_COLLECTION_MOVES (${froms.join(', ')}) — \`recollect\` is single-step and first-match, so a duplicate makes the answer depend on array order`);
   }
 
   // ---- #1053: AN ADDITIVE CHANGE IS CLEAN, AND A REMOVAL IS STILL NOT ----
@@ -12647,11 +13373,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const added = new Set([...base, varKey('color', 'color/media/veil/soft')]);
     const withoutA = new Set([varKey('color', 'color/b')]);
 
-    ok(isTotal(accountFor(base, added, [], parseVarKey)),
+    ok(isTotal(accountFor(base, added, [], parseVarKey, WROOT)),
       '#1053: an ADDITIVE change with no rules is TOTAL — an unclaimed addition is a new token, and there is nothing it could be hiding');
-    ok(!isTotal(accountFor(base, withoutA, [], parseVarKey)),
+    ok(!isTotal(accountFor(base, withoutA, [], parseVarKey, WROOT)),
       '#1053: …while an unclaimed REMOVAL is still NOT — that is the silent rename this mechanism exists to catch, and the asymmetry is the whole fix');
-    ok(accountFor(base, added, [], parseVarKey).unaccountedAdditions.length === 1,
+    ok(accountFor(base, added, [], parseVarKey, WROOT).unaccountedAdditions.length === 1,
       '#1053: the arriving name is still COUNTED and reportable — diagnostic value, which is why it is dropped from the verdict rather than from the accounting');
 
     // THE BROKEN-RULE CASE, pinned HERE because it is the one everybody expects to have moved to check
@@ -12663,7 +13389,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       domain: (c, n) => c === 'color' && n === 'color/a',
       map: () => 'color/nowhere',
     };
-    const broken = accountFor(base, withoutA, [brokenRule], parseVarKey);
+    const broken = accountFor(base, withoutA, [brokenRule], parseVarKey, WROOT);
     ok(broken.contradictedClaims.length === 1 && /not emitted either/.test(broken.contradictedClaims[0].contradiction),
       `#1053: a rule whose image never appears is a CONTRADICTED CLAIM in check 1 — not a check-2 arm, because check 2 cannot see a domain member that has already left the emission (got ${broken.contradictedClaims.length})`);
     ok(!isTotal(broken),
@@ -12686,8 +13412,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   };
   const ruleColorOnly: MaterializationRule = {
     id: 'fixture-ns-color-only', since: '0.0.0-fixture',
-    why: 'fixture: the under-covering rule — claims only the `color` collection',
-    domain: (c) => c === 'color', map: nsAll,
+    // `color.surface` since #1089, and it has to be a collection the emission ACTUALLY HAS. Left as
+    // `color` this rule matched nothing, `renamed(before, c => c === 'color')` renamed nothing, and rows 2
+    // and 3 both went quiet: row 3's contradiction arm is gated on the emission having moved, so a rule
+    // that claims everything over an emission that moved nowhere reports ZERO contradictions. The
+    // over-claiming row — the one the whole-set clause exists for — would have passed by claiming nothing.
+    why: 'fixture: the under-covering rule — claims only the `color.surface` collection',
+    domain: (c) => c === 'color.surface', map: nsAll,
   };
   /** Apply the namespace to a chosen subset of collections — the EMISSION side of the fixture. */
   const renamed = (keys: ReadonlySet<VarKey>, which: (c: string) => boolean): Set<VarKey> => {
@@ -12702,32 +13433,32 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const rows: string[] = [];
   for (const brand of brands) {
     const before = emissionOf(brand);
-    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color').length;
+    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color.surface').length;
 
     // ROW 1 — complete rule, complete rename → TOTAL.
-    const r1 = accountFor(before, renamed(before, () => true), [ruleAll], parseVarKey);
+    const r1 = accountFor(before, renamed(before, () => true), [ruleAll], parseVarKey, rootOf(brand));
     ok(isTotal(r1),
       `#1039 table row 1 (${brand}): a complete rule over a complete rename is TOTAL — ${r1.unaccountedRemovals.length} unaccounted removals, ${r1.unaccountedAdditions.length} additions, ${r1.contradictedClaims.length} contradicted`);
 
     // ROW 2 — under-covering rule, complete rename → unaccounted, named individually. THE FORCING
     // FUNCTION FIRING. Both accountings agree here, which is why this row is not the interesting one.
-    const r2 = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
+    const r2 = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey, rootOf(brand));
     const unaccounted2 = r2.unaccountedRemovals.length + r2.unaccountedAdditions.length;
     ok(unaccounted2 === nonColor * 2 && unaccounted2 > 0,
-      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color\` keys) — the forcing function fires`);
-    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color :: ')),
+      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color.surface\` keys) — the forcing function fires`);
+    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color.surface :: ')),
       `#1039 table row 2 (${brand}): and names them individually rather than counting them — e.g. ${r2.unaccountedRemovals[0]}`);
 
     // ROW 3 — OVER-CLAIMING rule, `color`-only rename. The row the whole-set clause exists for.
-    const colorOnlyEmission = renamed(before, (c) => c === 'color');
-    const r3 = accountFor(before, colorOnlyEmission, [ruleAll], parseVarKey);
+    const colorOnlyEmission = renamed(before, (c) => c === 'color.surface');
+    const r3 = accountFor(before, colorOnlyEmission, [ruleAll], parseVarKey, rootOf(brand));
     ok(r3.contradictedClaims.length === nonColor && nonColor > 0,
-      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color\` key the rule said moved and did not`);
+      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color.surface\` key the rule said moved and did not`);
 
     // AND THE CONTRAST THAT IS THE EVIDENCE: the diff-driven accounting reports TOTAL on the same input.
     // Without this the whole-set clause is a sentence in a comment; with it, it is two numbers that
     // disagree. `docs/44` calls this row "TOTAL — blind".
-    const r3blind = accountForDiffDriven(before, colorOnlyEmission, [ruleAll], parseVarKey);
+    const r3blind = accountForDiffDriven(before, colorOnlyEmission, [ruleAll], parseVarKey, rootOf(brand));
     ok(isTotal(r3blind),
       `#1039 table row 3 (${brand}): …while DIFF-DRIVEN accounting reports TOTAL over the identical input — blind, because a rule claiming a rename that did not happen is never exercised`);
     ok(r3.contradictedClaims.length > 0 && r3blind.contradictedClaims.length === 0,
@@ -12740,7 +13471,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the three brands, while 463 is aurora's single figure where nb is 423 and wendys 482.
   const unaccountedAll = brands.map((b) => {
     const before = emissionOf(b);
-    const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey);
+    const r = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey, rootOf(b));
     return r.unaccountedRemovals.length + r.unaccountedAdditions.length;
   });
   // DERIVED, NOT PINNED (#1053). This asserted the literal `846–964` from `docs/44` §5, and that is a
@@ -12757,10 +13488,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const spanHi = Math.max(...unaccountedAll);
   const perBrandTwice = brands.map((b) => {
     const before = emissionOf(b);
-    return [...before].filter((k) => parseVarKey(k).collection !== 'color').length * 2;
+    return [...before].filter((k) => parseVarKey(k).collection !== 'color.surface').length * 2;
   });
   ok(spanLo === Math.min(...perBrandTwice) && spanHi === Math.max(...perBrandTwice) && spanLo > 0,
-    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color\` population at its extremes `
+    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color.surface\` population at its extremes `
     + `(${perBrandTwice.join(' / ')}) — derived, so a token addition moves the figure without failing a test about renames. `
     + `\`docs/44\` §5 records 846–964 as the snapshot at 2,076 keys (${rows.join(' | ')})`);
 }

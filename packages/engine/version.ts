@@ -102,6 +102,59 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.27.0: THE BRAND NAMESPACE ON EVERY FIGMA VARIABLE, and the DTCG `core` tier with it (#1097/#1102).
+ * The widest rename the project has run — 671 / 711 / 730 distinct variable names for nb / aurora /
+ * wendys, 2112 across the corpus. Three Figma-side changes land as ONE, because each would otherwise
+ * cost its own migration and its own verification pass over the same names:
+ *
+ *   (1) every emitted variable gains the BRAND ROOT as its first segment — `color/background/primary`
+ *       becomes `nbds/color/background/primary` for nb and `prism/color/background/primary` for the two
+ *       engine-native brands. `emit-figma-color.ts`'s `stripNs` is what took it off before this change.
+ *   (2) the three `core-*` collections consolidate into ONE `core` collection holding `palette/*`,
+ *       `dimension/*` and `font/*`. Three files still emit it — `core.palette.json`,
+ *       `core.dimension.json`, `core.font.json` — each declaring `$collection: 'core'`, which makes this
+ *       the first place in the engine where a file STEM is not a collection NAME.
+ *   (3) the `color` collection is renamed `color.surface` (#1089), so both colour tiers name their axis
+ *       in Figma's mode picker rather than one naming it and one not. The variables inside keep their
+ *       `color/*` names, so this part moves no DTCG path.
+ *
+ * And #1102 folds in the DTCG half of (2): `palette.*`, `dimension.*` and `font.*` move under a `core`
+ * tier — `prism.palette.red.550` becomes `prism.core.palette.red.550`, 164 paths. NOT separable, because
+ * a variable name tracks its DTCG path: landed after #1097 it would rename the same 164 variables a
+ * second time, and as one change it is a single rule chain producing a single final name.
+ *
+ * FIGMA STYLES ARE THE STATED EXCEPTION, and they keep the transform they already had: a text style is
+ * `display/sm/strong` where its DTCG path is `prism.type.display.sm.strong`, dropping the root AND the
+ * tier. So after this bump "a variable's name is its DTCG path with dots for slashes" is true, and the
+ * same sentence about a STYLE is false. `docs/10` states it where the transform lives, because a reader
+ * who generalises from variables to styles gets a name Figma does not have.
+ *
+ * `font-fluid/*` deliberately does NOT go under `core`: it is a COMPUTED tier, not a primitive, and it
+ * is emitted into `type-sets`. The materialization rule keys the tier on the name's own first segment
+ * for exactly that reason — so a fourth primitive group is a one-word change, and `font-fluid` needs no
+ * exception to stay outside.
+ *
+ * EMITTED FILENAMES FOLLOW COLLECTION NAMES, so 15 artifacts are RENAMED rather than rewritten. The
+ * artifact count is UNCHANGED at 114 because every one of the 15 is a rename — but `regen --check`'s
+ * removal arm cannot see a file the engine stopped emitting (#1059), so run against a tree still
+ * holding the old stems it reads 129. The stale copies are `git rm`-ed explicitly here, and 114 is
+ * derived from the emitted set rather than read off what regen printed. That is #1082's lesson applied
+ * a second time, and the reason it is worth writing down: the wrong number is the plausible one.
+ *
+ * A minor rather than a major on the ENGINE version, for the same reason 0.26.0 was: `ENGINE_VERSION`
+ * answers "what code produced this?" and makes no compatibility promise. The promise is the contract's,
+ * and `CONTRACT_VERSION` takes the major (7.0.0 below).
+ *
+ * THE NAMESPACE ITSELF CONTRIBUTES NOTHING TO THAT MAJOR, and (1) and (3) above contribute nothing to it
+ * either. Measured both ways: 714 guaranteed paths on the merge base and 684 here, and in BOTH baselines
+ * ZERO carry a brand-namespace root — the contract is "keyed below the configurable root" (its own note),
+ * and the root added by (1) IS that root. (3) renames a COLLECTION, not a token, so its 128 variables keep
+ * their `color/*` names. What takes the major is (2) and #957: 164 paths moving under `core.*`, and 30
+ * paths demoted out of `guaranteed`. Recorded here because a bump credited to the namespace would be a
+ * false provenance record no gate can catch — the version number is the same either way — and because
+ * someone reading 7.0.0 as evidence that renaming a root breaks consumers would design around a cost that
+ * does not exist. (#1097, #1102, #1089, #957)
+ *
  * 0.26.0: THE TIER SWAP (#1013). The value tier moves to `color.appearance.*` and the surface alias
  * tier takes the short name `color.*`, in BOTH formats — the Figma `color` collection is renamed
  * `color.appearance` and its 242 variables with it, the `surface` collection is renamed `color` and
@@ -509,7 +562,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.26.0';
+export const ENGINE_VERSION = '0.27.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -555,6 +608,65 @@ export const ENGINE_VERSION = '0.26.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 7.0.0: THE `core` TIER, plus the sixth corpus member. `palette.*`, `dimension.*` and `font.*` move
+ * under `core.*` — 164 removed and 164 added — and 30 further paths stop being GUARANTEED without
+ * ceasing to be emitted. Both halves are MAJOR, and the second one is why the two are worth separating.
+ * (714 → 684)
+ *
+ * THOSE TWO HALVES ARE THE WHOLE ATTRIBUTION. The lane that ships this bump also puts a BRAND NAMESPACE
+ * on every Figma variable (`ENGINE_VERSION` 0.27.0 above), and that change moves the contract by NOTHING.
+ * Measured on both baselines — 714 paths before, 684 after — ZERO carry a brand-namespace root, because
+ * `guaranteed` is keyed BELOW the configurable root (the note at the top of `token-contract.json` says so)
+ * and the namespace IS that root. A brand switching from `prism` to `nbds` re-roots every emitted name and
+ * breaks no reference the contract ever promised.
+ *
+ * Written out because the number cannot carry it. 7.0.0 is 7.0.0 whichever change is credited, so a bump
+ * attributed to the namespace is a false record with no gate able to fire on it — the classic shape being
+ * that the *value* is right and only the *reason* is wrong. And the misreading is costly in a specific
+ * direction: someone taking 7.0.0 as evidence that renaming a root is BREAKING will treat `theme.root` as
+ * frozen, and it is a lever precisely because it is not. (#1097)
+ *
+ * WHY A TIER AND NOT THREE TOP-LEVEL NAMES. These are the RAW PRIMITIVES the semantic layer is built
+ * from, and a consumer reaching one directly is what `eval.ts`'s primitive-leak metric exists to
+ * measure. Under one segment that metric is a one-segment test (`path.split('.')[0] === 'core'`) instead
+ * of a membership test against a remembered list of three — so a fourth primitive group is flagged
+ * automatically rather than scoring as a clean semantic reference, which is the one answer the metric
+ * exists to prevent. It also makes the DTCG tree agree with Figma, where the same three groups are now
+ * one `core` collection (`ENGINE_VERSION` 0.27.0 above).
+ *
+ * `opacity` is pointedly NOT among them. It is directly consumable, with no semantic layer to reach for
+ * instead (#79), so it stays at the root and the primitive tier holds exactly three groups.
+ *
+ * Every one of the 164 removals ships a `DEPRECATIONS` entry pointing at `core.<the same path>`, held
+ * LITERALLY for #1013's reason: a table generated from the transform that caused the removal agrees with
+ * any bug in the transform, and the refusal could never fire (`docs/34`). Written out, a wrong segment
+ * fails both ways — `path` misses the removed set, and `core.<wrong segment>` misses the live set.
+ *
+ * THE SIXTH CORPUS MEMBER, which rides along because it moves the same baseline. `minimal-levers` is
+ * `MINIMAL_BRAND` with `outlineInteraction: 'none'` and `typography.displayCeiling: 'sm'` — two levers no
+ * other member pulls, which is exactly why 30 paths were being promised: on the strength of nobody
+ * having pulled them. 27 are `interactive.<c>.overlay.{hover,pressed,selected}` and their inverse and
+ * surface-tier twins (a brand whose outline interaction is `none` emits no overlay at all), and 3 are
+ * `type.display.{md,lg,xl}.strong` (a brand whose display ceiling is `sm` ships no larger rung). They
+ * move `guaranteed` → `brandDependent`.
+ *
+ * A DEMOTION IS NOT A REMOVAL, and `classify` reports it as its own thing rather than as 30 removals
+ * shipping no migration. The engine still emits every one of the 30 — for any brand that does not pull
+ * the lever — so there is no replacement path to point at and a `DEPRECATIONS` entry would be a lie. It
+ * is still MAJOR: what moved is the PROMISE, and a consumer who read the guarantee and referenced
+ * `interactive.primary.overlay.hover` is now referencing something their next brand may not emit. That
+ * is the whole content of this half of the bump, and the member adds no path no existing member emits,
+ * so nothing else about the surface moves. (#957)
+ *
+ * AND A DEMOTION IS NOT ROT EITHER, which is where the dangling check had to learn the difference. 9 of
+ * #1013's deprecations point at `color.appearance.interactive.<c>.inverse.overlay.<state>` — three of the
+ * demoted paths per colour — and the check, which read the GUARANTEED set only, called all 9 rot and
+ * exited 1. They are not rot: the replacement exists, conditionally. So the check reads guaranteed ∪
+ * brandDependent now, and the conditional ones are REPORTED as `conditionalMigrations` rather than
+ * accepted in silence. Widening without reporting would have been the same as deleting the check for
+ * those 9 — a consumer following one of those pointers needs to know the answer depends on a lever their
+ * own brand may have set. (#1102, #1097, #957)
  *
  * 6.0.0: THE TIER SWAP. `color.*` and the surface layer trade names. 114 removed, 242 added, so MAJOR,
  * and every removal ships a `DEPRECATIONS` entry pointing at `color.appearance.<the same path>`.
@@ -711,7 +823,7 @@ export const ENGINE_VERSION = '0.26.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '6.0.0';
+export const CONTRACT_VERSION = '7.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -827,6 +939,73 @@ export const DEPRECATIONS: Deprecation[] = [
       replacedBy: `color.appearance.${group}.${leaf}`,
       since: '6.0.0',
     }))),
+  // ── #1102: THE `core` TIER ──────────────────────────────────────────────────────────────────────
+  //
+  // The three RAW-PRIMITIVE groups move under one `core` tier: `palette.red.550` becomes
+  // `core.palette.red.550`, and the same for `dimension.*` and `font.*`. 164 paths. The Figma side of
+  // the same change is the `core` COLLECTION (`ENGINE_VERSION` 0.27.0), and it is one change rather
+  // than two because a variable's name tracks its DTCG path — landed separately these 164 variables
+  // would be renamed twice.
+  //
+  // WHY THE LIST IS LITERAL, for #1013's reason above and not a new one: the transform is a one-line
+  // prefix, so importing whatever performed the move would spell this table in a line — and make it
+  // agree with any bug in the move, so `--accept`'s refusal could never fire (`docs/34`). Written out,
+  // a wrong leaf fails BOTH ways: `path` misses the removed set (an unjustified removal) and
+  // `core.<wrong leaf>` misses the live set (a dangling deprecation).
+  //
+  // The `core.` prefix IS derived from `path`, and that is safe for the same reason rather than in
+  // spite of it — it is a constant, and a typo carried from `path` into `replacedBy` still dangles.
+  // Deriving the PATHS is what would be circular; deriving the one segment that is the same on all 164
+  // is not.
+  //
+  // `opacity` is deliberately absent: it is directly consumable with no semantic layer to reach for
+  // instead (#79), so it is not a primitive in this sense and stays at the root. `font-fluid` is absent
+  // too, and for a different reason — it is COMPUTED, not raw, and it is not a DTCG root at all.
+  ...([
+    ['palette', [
+      'black', 'black-alpha.10', 'black-alpha.20', 'black-alpha.30', 'black-alpha.40', 'black-alpha.5',
+      'black-alpha.50', 'black-alpha.60', 'black-alpha.70', 'black-alpha.80', 'black-alpha.90',
+      'info.025', 'info.050', 'info.100', 'info.150', 'info.200', 'info.250', 'info.300', 'info.350',
+      'info.400', 'info.450', 'info.500', 'info.550', 'info.600', 'info.650', 'info.700', 'info.750',
+      'info.800', 'info.850', 'info.900', 'info.950',
+      'neutral.025', 'neutral.050', 'neutral.100', 'neutral.150', 'neutral.200', 'neutral.250',
+      'neutral.300', 'neutral.350', 'neutral.400', 'neutral.450', 'neutral.500', 'neutral.550',
+      'neutral.600', 'neutral.650', 'neutral.700', 'neutral.750', 'neutral.800', 'neutral.850',
+      'neutral.900', 'neutral.950',
+      'white', 'white-alpha.10', 'white-alpha.20', 'white-alpha.30', 'white-alpha.40', 'white-alpha.5',
+      'white-alpha.50', 'white-alpha.60', 'white-alpha.70', 'white-alpha.80', 'white-alpha.90',
+    ]],
+    ['dimension', [
+      '0', '1', '2', '4', '6', '8', '10', '12', '16', '20', '24', '28', '32', '36', '40', '44', '48',
+      '52', '56', '60', '64', '68', '72', '76', '80', '84', '88', '92', '96', '100', '104', '108',
+      '112', '116', '120', '124', '128',
+    ]],
+    ['font', [
+      'family.body', 'family.caption', 'family.code', 'family.display', 'family.eyebrow',
+      'family.label', 'family.title',
+      'letter-spacing-role.normal', 'letter-spacing-role.snug', 'letter-spacing-role.tight',
+      'letter-spacing-role.tighter', 'letter-spacing-role.wide', 'letter-spacing-role.wider',
+      'letter-spacing.0', 'letter-spacing.20', 'letter-spacing.50', 'letter-spacing.neg-10',
+      'letter-spacing.neg-20', 'letter-spacing.neg-30',
+      'line-height-role.compact', 'line-height-role.cozy', 'line-height-role.loose',
+      'line-height-role.normal', 'line-height-role.relaxed', 'line-height-role.snug',
+      'line-height-role.tight',
+      'line-height.105', 'line-height.115', 'line-height.125', 'line-height.140', 'line-height.150',
+      'line-height.165', 'line-height.175',
+      'size.10', 'size.11', 'size.12', 'size.14', 'size.16', 'size.18', 'size.20', 'size.24',
+      'size.28', 'size.32', 'size.36', 'size.40', 'size.48', 'size.56', 'size.64', 'size.72',
+      'size.80', 'size.96', 'size.112', 'size.128', 'size.144', 'size.160',
+      'typeface.jetbrains-mono',
+      'weight-role.default', 'weight-role.emphasis', 'weight-role.max', 'weight-role.strong',
+      'weight-role.subtle',
+      'weight.300', 'weight.400', 'weight.700', 'weight.900',
+    ]],
+  ] as Array<[string, readonly string[]]>).flatMap(([group, leaves]) =>
+    leaves.map((leaf) => ({
+      path: `${group}.${leaf}`,
+      replacedBy: `core.${group}.${leaf}`,
+      since: '7.0.0',
+    }))),
 ];
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */
@@ -847,14 +1026,34 @@ export type Contract = {
 };
 
 export type Diff = {
+  /** Paths the guarantee lost. INCLUDES `demoted` — see there for why they are also reported apart. */
   removed: string[];
   /** `$type` changed on a path that still exists — a break for anyone consuming the old type. */
   retyped: Array<{ path: string; from: string; to: string }>;
   added: string[];
   /** Removals that ship a `DEPRECATIONS` entry. Still breaking; merely breaking WITH a fix. */
   migrated: Deprecation[];
-  /** Deprecation entries whose `replacedBy` does not exist — a migration pointing nowhere. */
+  /**
+   * Paths that left `guaranteed` but are still EMITTED, for some inputs — they moved to
+   * `brandDependent`. Reported apart from the rest of `removed` because the two need opposite
+   * responses: a removal ships a `DEPRECATIONS` entry naming a replacement, and a demotion cannot,
+   * since the path itself is what a brand that does not pull the lever still emits. Filed under one
+   * heading, 30 demotions read as 30 removals shipping no migration (#957) — which is exactly the
+   * signal the deprecation discipline depends on, spent on the one case where it means nothing.
+   *
+   * Still MAJOR, and counted in `removed` for that reason: what moved is the PROMISE, and a consumer
+   * who read the guarantee is now referencing something their next brand may not have.
+   */
+  demoted: string[];
+  /** Deprecation entries whose `replacedBy` does not exist AT ALL — a migration pointing nowhere. */
   danglingDeprecations: Deprecation[];
+  /**
+   * Entries whose `replacedBy` is emitted but only `brandDependent` — a migration whose target
+   * depends on a lever. Not rot (the check above would be wrong to fail them) and not clean either,
+   * so it is REPORTED: widening the dangling check without this would be the same as deleting it for
+   * these. 9 today, all #1013 pointers into the overlay roles #957 demoted.
+   */
+  conditionalMigrations: Deprecation[];
   level: Level;
 };
 
@@ -878,11 +1077,22 @@ export const satisfiesBump = (prev: string, next: string, level: Level): boolean
  * Classify the live guaranteed surface against the committed baseline.
  *
  * Removals and retypes are MAJOR because both break a consumer that did nothing wrong. Additions
- * are MINOR — new names cannot break an existing reference. Note that `brandDependent` is NOT an
- * input here: a path moving in or out of that set says something changed about the CORPUS, not
- * about what the engine promises, so it must not be able to force a bump.
+ * are MINOR — new names cannot break an existing reference.
+ *
+ * `brandDependent` still CANNOT FORCE A BUMP, and the level computation below does not read it: a
+ * path moving in or out of that set says something changed about the CORPUS, not about what the
+ * engine promises. It is an input for the two things that are not about the level at all — telling a
+ * DEMOTION apart from a removal, and telling a CONDITIONAL migration apart from a dangling one. Both
+ * of those questions are "is this path emitted anywhere?", which the guaranteed set alone cannot
+ * answer; neither changes `level` by a rung. Defaulted to empty so a caller asking only about the
+ * guarantee gets the stricter reading it asked for.
  */
-export const classify = (baseline: Contract, live: Record<string, string>, deprecations = DEPRECATIONS): Diff => {
+export const classify = (
+  baseline: Contract,
+  live: Record<string, string>,
+  deprecations = DEPRECATIONS,
+  brandDependent: readonly string[] = [],
+): Diff => {
   const removed = Object.keys(baseline.guaranteed).filter((p) => !(p in live)).sort();
   const added = Object.keys(live).filter((p) => !(p in baseline.guaranteed)).sort();
   const retyped = Object.keys(baseline.guaranteed)
@@ -892,10 +1102,15 @@ export const classify = (baseline: Contract, live: Record<string, string>, depre
 
   const byPath = new Map(deprecations.map((d) => [d.path, d]));
   const migrated = removed.map((p) => byPath.get(p)).filter((d): d is Deprecation => d !== undefined);
-  // A replacement that is not in the LIVE guaranteed set is the rot case: the table keeps telling
-  // consumers to migrate to something the engine no longer emits.
-  const danglingDeprecations = deprecations.filter((d) => !(d.replacedBy in live));
+  const conditional = new Set(brandDependent);
+  // A path that left the guarantee but is still emitted for SOME input was demoted, not removed.
+  const demoted = removed.filter((p) => conditional.has(p));
+  // A replacement the engine does not emit AT ALL is the rot case: the table keeps telling consumers
+  // to migrate to something that no longer exists. One that is emitted but only brand-dependently is
+  // a conditional migration — real, and worth saying so rather than passing in silence.
+  const danglingDeprecations = deprecations.filter((d) => !(d.replacedBy in live) && !conditional.has(d.replacedBy));
+  const conditionalMigrations = deprecations.filter((d) => !(d.replacedBy in live) && conditional.has(d.replacedBy));
 
   const level: Level = removed.length || retyped.length ? 'major' : added.length ? 'minor' : 'none';
-  return { removed, retyped, added, migrated, danglingDeprecations, level };
+  return { removed, retyped, added, migrated, demoted, danglingDeprecations, conditionalMigrations, level };
 };
