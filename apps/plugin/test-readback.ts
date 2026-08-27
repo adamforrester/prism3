@@ -216,6 +216,16 @@ ok(!bverdict.checks.gradientStopsBound && bverdict.details.unboundStops.length =
 // also satisfied by an engine that emits NO root at all — both runs would be identical before stripping
 // too, and the gate would pass while proving nothing. So the raw names are asserted to DIFFER, and each
 // run's names to begin with its OWN root, before the agreement is asserted at all.
+//
+// MUTATION-VERIFIED BY NAME, twice, because the two mutations fail DIFFERENT arms here:
+//   1. `inPalette(v.name)` → a literal `v.name.startsWith('prism/core/palette/')` in `read-figma.ts`.
+//      Arms (0) and (1) fail and name 162 palette names present under one root and absent under the other.
+//   2. The colour alias resolution normalised to the default: `nameById.get(id).replace(/^root\//, 'prism/')`.
+//      Arm (2)'s FIRST half still PASSES — and that is the finding. A defect applied symmetrically to both
+//      runs leaves them agreeing with each other, so a differential is structurally blind to it. Only the
+//      leak arm ("no `prism/` in the foreign run") catches it. The two halves of (2) are therefore not
+//      redundant: one compares the runs, the other compares the foreign run against a root it must never
+//      contain. Delete either and a real regression ships.
 const NATIVE_ROOT = 'prism';      // aurora's own — the engine default
 const FOREIGN_ROOT = 'zzclient';  // no corpus brand uses it; a read path that spells a root fails here
 const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
