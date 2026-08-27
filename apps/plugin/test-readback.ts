@@ -262,10 +262,17 @@ ok(nativeNames.join('\n') !== foreignNames.join('\n'),
   '#1097 differential reachable: ...and the two raw name sets therefore DIFFER — the agreement below is not the trivial one an unrooted emission would satisfy');
 
 // (1) THE AGREEMENT — every variable name matches once the leading segment is gone.
-const nameDiff = nativeNames
-  .map((n, i) => [dropRoot(n), dropRoot(foreignNames[i])] as const)
-  .filter(([a, b]) => a !== b)
-  .map(([a, b]) => `${a} ≠ ${b}`);
+// Compared as a SYMMETRIC DIFFERENCE rather than an index-by-index zip, because the failure this arm
+// exists to catch does not preserve length: a read path that spells `prism/` returns the foreign run's
+// palette as EMPTY, and zipping the longer list against the shorter one reads `undefined` and throws.
+// A gate that dies in a stack trace has still failed the suite, but it has stopped saying WHY — and the
+// label is the whole value of failing by name. Found by running the mutation, not by reasoning about it.
+const diffBothWays = (a: string[], b: string[]): string[] => {
+  const bs = new Set(b), as = new Set(a);
+  return [...a.filter((x) => !bs.has(x)).map((x) => `only in ${NATIVE_ROOT}: ${x}`),
+          ...b.filter((x) => !as.has(x)).map((x) => `only in ${FOREIGN_ROOT}: ${x}`)];
+};
+const nameDiff = diffBothWays(nativeNames.map(dropRoot).sort(), foreignNames.map(dropRoot).sort());
 ok(nameDiff.length === 0,
   `#1097 the two runs' variable names are IDENTICAL modulo the leading segment (${nativeNames.length} names${nameDiff.length ? `, ${nameDiff.length} differ: ${nameDiff.slice(0, 3).join('; ')}` : ''})`);
 
@@ -288,10 +295,8 @@ const aliasTargetsOf = (s: Awaited<ReturnType<typeof emitAndRead>>): Binding[] =
 const nativeAliases = aliasTargetsOf(runNative);
 const foreignAliases = aliasTargetsOf(runForeign);
 const stripped = (b: Binding): string => `${dropRoot(b.row)} @${b.mode} -> ${dropRoot(b.target)}`;
-const aliasDiff = nativeAliases
-  .map((b, i) => [stripped(b), foreignAliases[i] ? stripped(foreignAliases[i]) : 'ABSENT'] as const)
-  .filter(([a, b]) => a !== b)
-  .map(([a, b]) => `${a} ≠ ${b}`);
+// Symmetric for the same reason as (1) — see there.
+const aliasDiff = diffBothWays(nativeAliases.map(stripped).sort(), foreignAliases.map(stripped).sort());
 ok(nativeAliases.length > 0 && nativeAliases.length === foreignAliases.length && aliasDiff.length === 0,
   `#1097 every alias TARGET agrees modulo the root as well (${nativeAliases.length} bindings${aliasDiff.length ? `, ${aliasDiff.length} differ: ${aliasDiff.slice(0, 3).join('; ')}` : ''})`);
 ok(nativeAliases.every((b) => b.target.startsWith(`${NATIVE_ROOT}/`)) && foreignAliases.every((b) => b.target.startsWith(`${FOREIGN_ROOT}/`)),
