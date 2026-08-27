@@ -7,6 +7,48 @@
 
 ---
 
+## (2026-08-27) — `CLAUDE.md` names the count sites instead of restating the count (#1110)
+
+**STATUS: shipped, prose only.** One sentence in `CLAUDE.md`, and this entry. No gate, no hook, no code.
+Gates stay at **45**. #1110 stays **open** as a recommendation — this takes only its narrow complement,
+and deliberately not the session-start freshness check it argues for, which is the owner's call.
+
+**Two defects in one sentence, both live on `main` until now.**
+
+It said *"`regen --check` should report **114** artifacts; `ci.yml` asserts that number"* — which names
+**two** sites when there are **three**. The third is `EXPECTED_ARTIFACTS` in `verify.ts` at the repo
+root, and it is the one a local `npm run verify` hits **first**. An orchestrator quoting this sentence
+faithfully therefore briefs a lane with two sites, which is exactly what happened on 2026-08-27; that was
+not carelessness, it was the sentence being short by one.
+
+And the numeral itself was a third count site that **no remedy anywhere names**. Read the two that do:
+
+| site | tells you to update | omits |
+|---|---|---|
+| `verify.ts` — *"update `EXPECTED_ARTIFACTS` here AND the same number in `ci.yml`, same PR"* | itself + `ci.yml` | **`CLAUDE.md`** |
+| `ci.yml` — *"update this check in the same PR"* | itself | **both others** |
+
+`ci.yml` is the hub and the other two are invisible to each other, so the prose numeral had nothing
+pulling it along and drifted — measured at **105** in a checkout six days and 63 commits behind, where
+`verify.ts` and `ci.yml` also read 105. That is `docs/34` **shape 18**'s borrowed remedy: each message is
+correct for its own property and one line short for a property riding on it.
+
+**The fix is to stop being a site rather than to become a better one.** The sentence now names
+`verify.ts` and `ci.yml` and restates no number, so it is **true at every ref** — including six-day-old
+ones. A stale checkout still carries stale instructions; what it no longer carries is a confident wrong
+count, which is the failure that actually cost a lane.
+
+**What this does NOT fix, stated because the fix is narrow and could read as wider.** Nothing here makes
+a stale checkout detectable. #1110's measurement stands: in the agent container this ran in, **64 of 69**
+worktrees carried a `CLAUDE.md` differing from `origin/main`, with **five** different answers to the
+artifact-count question and one shallow clone where the freshness comparison cannot be evaluated at all.
+Removing the numeral shrinks the blast radius of one sentence; it does not tell anyone their instructions
+are old.
+
+*A number in prose is a site whether or not anyone calls it one, and it drifts exactly as far as the
+nearest remedy that fails to mention it.*
+
+
 ## (2026-08-27) — Three findings, one family, three shapes: `docs/34` gains 19, 20 and 21 (#1049, #1093, #1103)
 
 **STATUS: docs only.** `docs/34` (+ the `shape-index` baseline via `--accept`), this entry, and one new
