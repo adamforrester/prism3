@@ -12,7 +12,8 @@
  * long-standing bug was exactly that — `pds/` hardcoded in a reader — and its signature is that it is
  * invisible in testing, because you test with the brand whose prefix you hardcoded. Everything here is
  * **positional**: `rootOf`/`tailOf` name no root, they count segments. A reader built on them works for a
- * client namespace we have never seen, which is the property `test-namespace.ts` gates behaviourally.
+ * client namespace we have never seen, which is the property `apps/plugin/test-readback.ts` gates
+ * behaviourally, as a differential round-trip over two roots (#1097).
  *
  * `startsWith('font/family/')` in `write-plan.ts` was the live instance this replaced: after the
  * namespace landed it matched nothing, for every brand, and produced an empty map rather than an error.

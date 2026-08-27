@@ -286,7 +286,7 @@ const upsertCollection = async (
   );
   // THE BRAND ROOT, FROM THE PLAN (#1097). The rules and the contract rows both need it, and the plan is
   // the one thing in scope that carries it: every planned name is `<root>/…`, so the first segment of any of
-  // them IS the root. Positional — no prefix is spelled here, which is the property `test-namespace.ts`
+  // them IS the root. Positional — no prefix is spelled here, which is the property `test-readback.ts`
   // gates behaviourally for a client namespace we have never seen.
   //
   // An EMPTY plan has no root to read, and a wrong root would send every rename to `<empty>/name`. There is

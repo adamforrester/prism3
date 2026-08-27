@@ -13117,7 +13117,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //     WHOLE first segment, so a `startsWith('font')` spelling would sweep the 11 type-set variables
   //     into `core/font-fluid/*` — a collection they are not in and a DTCG path that does not exist.
   //   · and an already-rooted name is outside the domain, which is idempotence stated as a rule rather
-  //     than as a behaviour of the plugin (`apps/plugin/test-namespace.ts` states the behaviour).
+  //     than as a behaviour of the plugin (`apps/plugin/test-readback.ts` states the behaviour, by
+  //     emitting one brand under two roots and comparing the two read-backs to each other).
   const R3 = 'namespace-and-core-tier-1097';
   ok(ruleApply(R3, 'color.surface', 'color/text/primary', WROOT) === 'zzwitness/color/text/primary'
       && ruleApply(R3, 'core', 'palette/red/550', WROOT) === 'zzwitness/core/palette/red/550'
