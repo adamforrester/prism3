@@ -5159,6 +5159,39 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   }
 }
 
+// (10g-ii) #1140 — the NEUTRAL EDGE LADDER has three DISTINCT rungs, on both grounds, in every mode.
+//
+// `border` was the only surface/ink family that stopped at `secondary`, so #1140 added `tertiary` at
+// `borderTarget * 2.2 * 2.2` — one more rung of the same ratio ladder rather than a new rule. The ratio
+// is the derivation; DISTINCTNESS is the contract, and the two are not the same claim: `pickClosest`
+// CLAMPS to what the neutral ramp actually offers, and in HC the third rung asks for 21.78:1 against a
+// `borderTarget` of 4.5 — above anything the ramp can deliver. A clamp that ran out of ramp would collapse
+// `tertiary` onto `secondary` silently, leaving a token a picker offers and a designer cannot tell apart
+// from its neighbour. That is what this measures, and it is why HC is the mode that matters.
+//
+// Compared as HEX and not as ratios, deliberately. Two rungs can sit at different computed targets and
+// still resolve to one ramp step, which is exactly the collapse; a ratio comparison would report the
+// targets diverging and say nothing about the step they landed on.
+{
+  for (const { id, theme } of corpus()) {
+    const bad: string[] = [];
+    let checked = 0;
+    for (const m of resolveAllModes(theme))
+      for (const pre of ['border', 'inverse.border']) {
+        const rungs = ['primary', 'secondary', 'tertiary'].map((r) => m.roles[`${pre}.${r}`]?.hex);
+        if (rungs.some((h) => h === undefined)) { bad.push(`${m.mode}:${pre}:absent`); continue; }
+        checked++;
+        if (new Set(rungs).size !== 3) bad.push(`${m.mode}:${pre}:${rungs.join('=')}`);
+      }
+    // The floor, for the same reason (10f-ii) has one: a renamed family makes every lookup `undefined`,
+    // and without the count an arm that measured nothing would read as a clean pass. Two grounds × the
+    // modes the brand declares, so the floor is stated as "more than one mode's worth".
+    ok(bad.length === 0 && checked >= 4,
+      `the neutral edge ladder's three rungs are distinct values on both grounds, in every mode — ${id} (${checked} ladder×mode pairs, floor 4)`
+      + (bad.length ? ` — COLLAPSED: ${bad.slice(0, 4).join(', ')}` : ''));
+  }
+}
+
 // (10h) #575 — the OUTLINE-METHOD contract: for every `outlineInteraction` value, the role
 // `outlineFillFamily` names is the role the engine actually emits, and the family it does NOT name
 // is absent.
