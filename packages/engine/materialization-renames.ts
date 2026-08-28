@@ -279,6 +279,9 @@ const account = (
    *  computed from `before` either way, so the two differ in exactly one thing: whether a rule that
    *  claims a rename which did not happen is ever asked about. */
   walk: 'whole-set' | 'diff',
+  /** Renames the CONTRACT already records — see `accountFor`'s header for why they belong in this
+   *  accounting and why they deliberately do not reach the contradiction arms. */
+  contractClaims: readonly Claim[] = [],
 ): Accounting => {
   const removed = [...before].filter((k) => !after.has(k)).sort();
   const added = [...after].filter((k) => !before.has(k)).sort();
@@ -326,6 +329,42 @@ const account = (
     }
   }
 
+  // ── THE OTHER RECORD OF A RENAME, and why it is folded in here rather than made a second gate ──
+  //
+  // A materialization rule is not the only thing that can move an emitted variable name. A CONTRACT
+  // rename moves the ROLE, and the role is the tail of every emitted name, so `DEPRECATIONS` + the
+  // `rename-map` projection is an equally authoritative record of a name leaving. #1140 is the first one
+  // since this gate shipped (#1039) — until then every contract-visible move had been tier-or-namespace,
+  // i.e. a materialization rule — and it arrived as 339 unaccounted removals across three brands with
+  // nothing wrong: the rename was recorded, in the register the gate did not read.
+  //
+  // WRITING A MATERIALIZATION RULE FOR IT WOULD HAVE BEEN THE WRONG FIX, and the reason is this module's
+  // own standard: it would put two differently-derived records in front of one Figma operation, one of
+  // which (`DEPRECATIONS`) already has a forcing function and one of which (a rule) is performed by
+  // memory. So the claim is READ from the contract instead, and the gate stays total.
+  //
+  // NO CONTRADICTION ARMS, deliberately, and the division of labour is stated so the omission is not
+  // mistaken for an oversight. A contract claim that is stale — pointing at a rename that did not
+  // happen — is caught by `test.ts`'s rename-map block, which drives every projection against the
+  // emitted corpus in both directions (every derived `to` resolves, no derived `from` is still emitted)
+  // for all three brands. Running the arms here as well would double-report the honest case: the
+  // projection over-projects across `MIRRORED_COLLECTIONS` by design, so a claim aimed at a collection
+  // whose tier does not carry that role is normal rather than contradicted.
+  //
+  // They DO reach `claimedFrom`, which means a key claimed by both a rule and the contract lands in
+  // `multiplyClaimed` and fails. That is the invariant, not a side effect: one operation, one record.
+  for (const c of contractClaims) {
+    // Filtered to keys this comparison actually holds. Unlike a rule — whose whole point is to be
+    // evaluated over the entire before-set so an over-claim is visible — a contract claim spans brands
+    // and mirror collections, and one accounting covers one brand. So `claims` counts the ones that bear
+    // on this brand, and the denominator it reports is per-brand for the rules and per-brand-and-live
+    // for the contract.
+    if (!before.has(c.from)) continue;
+    claims.push(c);
+    claimedFrom.set(c.from, [...(claimedFrom.get(c.from) ?? []), c.rule]);
+    claimedTo.add(c.to);
+  }
+
   const unaccountedRemovals = removed.filter((k) => !claimedFrom.has(k));
   const unaccountedAdditions = added.filter((k) => !claimedTo.has(k));
   const multiplyClaimed = removed
@@ -367,6 +406,12 @@ export const accountForDiffDriven = (
 /**
  * THE ACCOUNTING THE GATE USES. `walk: 'whole-set'` is fixed here and is not a parameter the caller
  * chooses — the option exists so the wrong one can be DEMONSTRATED, not so it can be selected.
+ *
+ * `contractClaims` is the second register a rename can be recorded in — the contract's own, projected
+ * into Figma names by `rename-map.ts`. It defaults to empty so every existing caller reads unchanged and
+ * so a test can drive the rules alone; the GATE supplies it, because a total accounting has to read both
+ * registers. Full reasoning, and why these claims get no contradiction arms, is at the fold-in inside
+ * `account`.
  */
 export const accountFor = (
   before: ReadonlySet<VarKey>,
@@ -374,7 +419,8 @@ export const accountFor = (
   rules: readonly MaterializationRule[],
   parse: (key: VarKey) => { collection: string; name: string },
   root: string,
-): Accounting => account(before, after, rules, parse, root, 'whole-set');
+  contractClaims: readonly Claim[] = [],
+): Accounting => account(before, after, rules, parse, root, 'whole-set', contractClaims);
 
 /**
  * TOTAL means: nothing left unclaimed, no claim contradicted, no key claimed twice. Used by both the

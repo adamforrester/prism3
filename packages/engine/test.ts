@@ -13606,6 +13606,60 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       '#1053: …and it still fails, so dropping the addition arm did not take the broken-rule case with it');
   }
 
+  // ---- THE SECOND REGISTER: a CONTRACT rename accounts for a removal (#1140) ----
+  //
+  // A rule covers a MATERIALIZATION move — collection, tier, brand namespace. A contract rename moves the
+  // ROLE, which is the tail of every emitted name, so `DEPRECATIONS` records a name leaving the emission
+  // just as authoritatively and the accounting has to read both. #1140 is the first contract-visible ROLE
+  // rename since the gate shipped (#1039): it arrived as 339 unaccounted removals across three brands
+  // with nothing wrong at all, because the rename was recorded in the register the gate did not read.
+  //
+  // DRIVEN ON A CONSTRUCTED PAIR, not on the live corpus, and that is the independence that matters here.
+  // The gate feeds itself `deriveVariableRenames()` and the emission; an arm built the same way would
+  // agree with any bug in the projection (`docs/34` shape 1). These four keys are hand-written in the
+  // spelling #1140 moved between, so the mechanism is exercised against a statement of the rename that
+  // does not come from the thing making it.
+  //
+  // BOTH DIRECTIONS, because "the claim makes it total" alone is satisfied by an accounting that claims
+  // everything. The same removal with no contract claim must still fail as unaccounted.
+  {
+    const K = (n: string): VarKey => varKey('color.appearance', `${WROOT}/${n}`);
+    const oldName = 'color/appearance/background/inverse/primary';
+    const newName = 'color/appearance/inverse/background/primary';
+    const before = new Set([K(oldName), K('color/appearance/background/primary')]);
+    const after = new Set([K(newName), K('color/appearance/background/primary')]);
+    const claim = { rule: 'contract:8.0.0', from: K(oldName), to: K(newName) };
+
+    const unread = accountFor(before, after, [], parseVarKey, WROOT);
+    ok(!isTotal(unread) && unread.unaccountedRemovals.length === 1,
+      '#1140: a ROLE rename with the contract register unread is an UNACCOUNTED REMOVAL — the state the gate was in when 113 roles moved, and the reason it is not a skip');
+    const read = accountFor(before, after, [], parseVarKey, WROOT, [claim]);
+    ok(isTotal(read) && read.claims.length === 1 && read.unaccountedAdditions.length === 0,
+      `#1140: …and the contract's own record accounts for it — the removal claimed, the arrival its image (${read.claims.length} claim(s), ${read.unaccountedRemovals.length} unaccounted)`);
+
+    // ONE OPERATION, ONE RECORD. Writing a materialization rule for a contract rename is the fix that
+    // reads as obvious and is wrong: two differently-derived records in front of one Figma operation, one
+    // with a forcing function and one performed by memory. It fails by NAME rather than going quietly,
+    // and this is the arm that says so.
+    const alsoARule: MaterializationRule = {
+      id: 'test-duplicates-the-contract', since: '0.0.0-fixture',
+      why: 'fixture: a materialization rule stating a rename the contract already records',
+      domain: (c, n) => c === 'color.appearance' && n === `${WROOT}/${oldName}`,
+      map: () => `${WROOT}/${newName}`,
+    };
+    const both = accountFor(before, after, [alsoARule], parseVarKey, WROOT, [claim]);
+    ok(!isTotal(both) && both.multiplyClaimed.length === 1
+        && both.multiplyClaimed[0].rules.join(',') === 'test-duplicates-the-contract,contract:8.0.0',
+      `#1140: a removal claimed by a rule AND by the contract is MULTIPLY CLAIMED — the pairing must have exactly one record (got [${both.multiplyClaimed[0]?.rules.join(', ') ?? 'none'}])`);
+
+    // A claim about a key this comparison does not hold is not an error — the projection spans brands and
+    // mirror collections by design, and one accounting covers one brand. It must neither fire nor count.
+    const elsewhere = accountFor(before, after, [], parseVarKey, WROOT,
+      [claim, { rule: 'contract:8.0.0', from: K('color/appearance/not/here'), to: K('color/appearance/nor/there') }]);
+    ok(isTotal(elsewhere) && elsewhere.claims.length === 1,
+      `#1140: a contract claim about a key outside this brand's before-set neither fires nor inflates the denominator (${elsewhere.claims.length} claim(s), expected 1)`);
+  }
+
   // ---- THE TABLE (`docs/44` §5), derived here rather than cited from the doc ----
   //
   // THE SYNTHETIC NAMESPACE IS `zzclient`, AND IT MUST BE ONE NO BRAND USES (`docs/44` §7). Two of the
