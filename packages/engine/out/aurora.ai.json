@@ -85,43 +85,58 @@
       ]
     },
     "inverse.background.primary": {
-      "$description": "Inverse background (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse background role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Page / canvas surface (tier 1), on an inverse surface.",
+      "meaning": "Page / canvas surface (inverse ground)",
+      "when_to_use": "The page / base canvas. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `background.primary`. Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.950}",
         "dark": "{prism.core.palette.neutral.025}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.foreground.primary",
+        "inverse.text.primary",
+        "inverse.border.primary"
+      ]
     },
     "inverse.background.secondary": {
-      "$description": "Inverse background (secondary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse background role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Page / canvas surface (tier 2), on an inverse surface.",
+      "meaning": "Page / canvas surface (inverse ground)",
+      "when_to_use": "A slightly tinted page or page band. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `background.secondary`. Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.900}",
         "dark": "{prism.core.palette.neutral.050}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.foreground.primary",
+        "inverse.text.primary",
+        "inverse.border.primary"
+      ]
     },
     "inverse.background.tertiary": {
-      "$description": "Inverse background (tertiary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse background role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Page / canvas surface (tier 3), on an inverse surface.",
+      "meaning": "Page / canvas surface (inverse ground)",
+      "when_to_use": "A third page-level surface step. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `background.tertiary`. Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.850}",
         "dark": "{prism.core.palette.neutral.100}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.foreground.primary",
+        "inverse.text.primary",
+        "inverse.border.primary"
+      ]
     },
     "scrim.default": {
       "$description": "Semi-transparent backdrop behind modals / drawers.",
@@ -136,7 +151,7 @@
         "hc-dark": "{prism.core.palette.black-alpha.70}"
       },
       "paired_with": [
-        "foreground.inverse.primary"
+        "inverse.foreground.primary"
       ]
     },
     "veil.dark.large": {
@@ -152,7 +167,7 @@
         "hc-dark": "{prism.core.palette.black-alpha.50}"
       },
       "paired_with": [
-        "text.on-inverse.primary"
+        "inverse.text.primary"
       ]
     },
     "veil.dark.body": {
@@ -168,7 +183,7 @@
         "hc-dark": "{prism.core.palette.black-alpha.60}"
       },
       "paired_with": [
-        "text.on-inverse.primary"
+        "inverse.text.primary"
       ]
     },
     "veil.dark.enhanced": {
@@ -184,7 +199,7 @@
         "hc-dark": "{prism.core.palette.black-alpha.70}"
       },
       "paired_with": [
-        "text.on-inverse.primary"
+        "inverse.text.primary"
       ]
     },
     "veil.light.large": {
@@ -287,43 +302,55 @@
       ]
     },
     "inverse.foreground.primary": {
-      "$description": "Inverse foreground (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Surface placed on the canvas (tier 1), on an inverse surface.",
+      "meaning": "Surface / fill on the canvas (inverse ground)",
+      "when_to_use": "Cards — the default surface placed on the page. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.primary`. Do not use for the page itself (use background.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.900}",
         "dark": "{prism.core.palette.neutral.050}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.primary",
+        "inverse.border.primary"
+      ]
     },
     "inverse.foreground.secondary": {
-      "$description": "Inverse foreground (secondary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Surface placed on the canvas (tier 2), on an inverse surface.",
+      "meaning": "Surface / fill on the canvas (inverse ground)",
+      "when_to_use": "Panels / nested containers. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.secondary`. Do not use for the page itself (use background.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.850}",
         "dark": "{prism.core.palette.neutral.100}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.primary",
+        "inverse.border.primary"
+      ]
     },
     "inverse.foreground.tertiary": {
-      "$description": "Inverse foreground (tertiary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Surface placed on the canvas (tier 3), on an inverse surface.",
+      "meaning": "Surface / fill on the canvas (inverse ground)",
+      "when_to_use": "A third surface step. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.tertiary`. Do not use for the page itself (use background.*) or for ink (use text/icon).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.800}",
         "dark": "{prism.core.palette.neutral.150}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.primary",
+        "inverse.border.primary"
+      ]
     },
     "foreground.brand": {
       "$description": "Bold solid brand identity fill.",
@@ -507,10 +534,10 @@
       ]
     },
     "inverse.foreground.brand": {
-      "$description": "Inverse foreground (brand state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Bold solid brand identity fill, on an inverse surface.",
+      "meaning": "Brand identity (inverse ground)",
+      "when_to_use": "Filled brand elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.brand`. Do not use for brand ink (use text.brand) or as a subtle tint (use foreground.brand-subtle).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.500}",
@@ -518,6 +545,10 @@
         "hc-light": "{prism.core.palette.primary.350}",
         "hc-dark": "{prism.core.palette.primary.600}"
       },
+      "paired_with": [
+        "text.on-brand",
+        "icon.on-brand"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -527,10 +558,10 @@
       ]
     },
     "inverse.foreground.success": {
-      "$description": "Inverse foreground (success state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Bold solid success / positive fill, on an inverse surface.",
+      "meaning": "Success / positive signalling (inverse ground)",
+      "when_to_use": "Filled success elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.success`. Do not use for success ink (use text.success) or as a subtle tint (use foreground.success-subtle).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.success.500}",
@@ -538,6 +569,10 @@
         "hc-light": "{prism.core.palette.success.350}",
         "hc-dark": "{prism.core.palette.success.650}"
       },
+      "paired_with": [
+        "text.on-success",
+        "icon.on-success"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -547,10 +582,10 @@
       ]
     },
     "inverse.foreground.warning": {
-      "$description": "Inverse foreground (warning state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Bold solid warning / caution fill, on an inverse surface.",
+      "meaning": "Warning / caution signalling (inverse ground)",
+      "when_to_use": "Filled warning elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.warning`. Do not use for warning ink (use text.warning) or as a subtle tint (use foreground.warning-subtle).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.500}",
@@ -558,6 +593,10 @@
         "hc-light": "{prism.core.palette.warning.350}",
         "hc-dark": "{prism.core.palette.warning.650}"
       },
+      "paired_with": [
+        "text.on-warning",
+        "icon.on-warning"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -567,10 +606,10 @@
       ]
     },
     "inverse.foreground.danger": {
-      "$description": "Inverse foreground (danger state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Bold solid destructive / error fill, on an inverse surface.",
+      "meaning": "Destructive / error signalling (inverse ground)",
+      "when_to_use": "Filled danger elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.danger`. Do not use for danger ink (use text.danger) or as a subtle tint (use foreground.danger-subtle).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.500}",
@@ -578,6 +617,10 @@
         "hc-light": "{prism.core.palette.danger.350}",
         "hc-dark": "{prism.core.palette.danger.650}"
       },
+      "paired_with": [
+        "text.on-danger",
+        "icon.on-danger"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -587,10 +630,10 @@
       ]
     },
     "inverse.foreground.info": {
-      "$description": "Inverse foreground (info state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Bold solid informational fill, on an inverse surface.",
+      "meaning": "Informational signalling (inverse ground)",
+      "when_to_use": "Filled info elements — badges, banners, status chips. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.info`. Do not use for info ink (use text.info) or as a subtle tint (use foreground.info-subtle).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.info.500}",
@@ -598,6 +641,10 @@
         "hc-light": "{prism.core.palette.info.350}",
         "hc-dark": "{prism.core.palette.info.650}"
       },
+      "paired_with": [
+        "text.on-info",
+        "icon.on-info"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -607,69 +654,89 @@
       ]
     },
     "inverse.foreground.brand-subtle": {
-      "$description": "Inverse foreground (brand-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Subtle brand identity tint surface, on an inverse surface.",
+      "meaning": "Brand identity (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis brand surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.brand-subtle`. Do not use as a solid brand fill (use foreground.brand) or for brand ink (use text.brand).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.900}",
         "dark": "{prism.core.palette.primary.100}",
         "hc-light": "{prism.core.palette.primary.900}",
         "hc-dark": "{prism.core.palette.primary.100}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.brand",
+        "inverse.icon.brand"
+      ]
     },
     "inverse.foreground.success-subtle": {
-      "$description": "Inverse foreground (success-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Subtle success / positive tint surface, on an inverse surface.",
+      "meaning": "Success / positive signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis success surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.success-subtle`. Do not use as a solid success fill (use foreground.success) or for success ink (use text.success).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.success.900}",
         "dark": "{prism.core.palette.success.100}",
         "hc-light": "{prism.core.palette.success.900}",
         "hc-dark": "{prism.core.palette.success.100}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.success",
+        "inverse.icon.success"
+      ]
     },
     "inverse.foreground.warning-subtle": {
-      "$description": "Inverse foreground (warning-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Subtle warning / caution tint surface, on an inverse surface.",
+      "meaning": "Warning / caution signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis warning surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.warning-subtle`. Do not use as a solid warning fill (use foreground.warning) or for warning ink (use text.warning).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.900}",
         "dark": "{prism.core.palette.warning.100}",
         "hc-light": "{prism.core.palette.warning.900}",
         "hc-dark": "{prism.core.palette.warning.100}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.warning",
+        "inverse.icon.warning"
+      ]
     },
     "inverse.foreground.danger-subtle": {
-      "$description": "Inverse foreground (danger-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Subtle destructive / error tint surface, on an inverse surface.",
+      "meaning": "Destructive / error signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis danger surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.danger-subtle`. Do not use as a solid danger fill (use foreground.danger) or for danger ink (use text.danger).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.900}",
         "dark": "{prism.core.palette.danger.100}",
         "hc-light": "{prism.core.palette.danger.900}",
         "hc-dark": "{prism.core.palette.danger.100}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.danger",
+        "inverse.icon.danger"
+      ]
     },
     "inverse.foreground.info-subtle": {
-      "$description": "Inverse foreground (info-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse foreground role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Subtle informational tint surface, on an inverse surface.",
+      "meaning": "Informational signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis info surfaces — banners, badges, selected rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `foreground.info-subtle`. Do not use as a solid info fill (use foreground.info) or for info ink (use text.info).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.info.900}",
         "dark": "{prism.core.palette.info.100}",
         "hc-light": "{prism.core.palette.info.900}",
         "hc-dark": "{prism.core.palette.info.100}"
-      }
+      },
+      "paired_with": [
+        "inverse.text.info",
+        "inverse.icon.info"
+      ]
     },
     "foreground.danger": {
       "$description": "Bold solid destructive / error fill.",
@@ -1498,10 +1565,10 @@
       ]
     },
     "inverse.interactive.primary.text.rest": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.text.rest`. Do not use on a filled primary control (use interactive.primary.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.450}",
@@ -1509,6 +1576,9 @@
         "hc-light": "{prism.core.palette.accent.350}",
         "hc-dark": "{prism.core.palette.accent.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1518,10 +1588,10 @@
       ]
     },
     "inverse.interactive.primary.text.hover": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.text.hover`. Do not use on a filled primary control (use interactive.primary.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.400}",
@@ -1529,6 +1599,9 @@
         "hc-light": "{prism.core.palette.accent.300}",
         "hc-dark": "{prism.core.palette.accent.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1538,10 +1611,10 @@
       ]
     },
     "inverse.interactive.primary.text.pressed": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT primary interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.text.pressed`. Do not use on a filled primary control (use interactive.primary.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.350}",
@@ -1549,6 +1622,9 @@
         "hc-light": "{prism.core.palette.accent.250}",
         "hc-dark": "{prism.core.palette.accent.750}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1558,10 +1634,10 @@
       ]
     },
     "inverse.interactive.primary.fill.rest": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive fill, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.rest`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.100}",
@@ -1569,6 +1645,9 @@
         "hc-light": "{prism.core.palette.accent.100}",
         "hc-dark": "{prism.core.palette.accent.900}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1578,10 +1657,10 @@
       ]
     },
     "inverse.interactive.primary.fill.hover": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive fill (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.050}",
@@ -1589,6 +1668,9 @@
         "hc-light": "{prism.core.palette.accent.050}",
         "hc-dark": "{prism.core.palette.accent.950}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1598,10 +1680,10 @@
       ]
     },
     "inverse.interactive.primary.fill.pressed": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive fill (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.pressed`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.200}",
@@ -1609,6 +1691,9 @@
         "hc-light": "{prism.core.palette.accent.200}",
         "hc-dark": "{prism.core.palette.accent.800}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1618,10 +1703,10 @@
       ]
     },
     "inverse.interactive.primary.fill.focused": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive fill (focused state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when keyboard-focused. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.focused`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.050}",
@@ -1629,6 +1714,9 @@
         "hc-light": "{prism.core.palette.accent.050}",
         "hc-dark": "{prism.core.palette.accent.950}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1638,10 +1726,10 @@
       ]
     },
     "inverse.interactive.primary.fill.selected": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive fill (selected state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows when selected / active. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.selected`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.200}",
@@ -1649,6 +1737,9 @@
         "hc-light": "{prism.core.palette.accent.200}",
         "hc-dark": "{prism.core.palette.accent.800}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1658,10 +1749,10 @@
       ]
     },
     "inverse.interactive.primary.on-fill": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Ink on the primary interactive fill, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The label / icon placed on a filled primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use interactive.primary.text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.950}",
@@ -1669,6 +1760,9 @@
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.fill.rest"
+      ],
       "contrast_with": [
         {
           "token": "inverse.interactive.primary.fill.rest",
@@ -1678,10 +1772,10 @@
       ]
     },
     "inverse.interactive.primary.border.rest": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive border — the outline edge, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE primary interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.rest`. Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.450}",
@@ -1689,6 +1783,10 @@
         "hc-light": "{prism.core.palette.accent.350}",
         "hc-dark": "{prism.core.palette.accent.650}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.text.rest",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1698,10 +1796,10 @@
       ]
     },
     "inverse.interactive.primary.border.hover": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive border — the outline edge (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE primary interactive element on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.hover`. Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.400}",
@@ -1709,6 +1807,10 @@
         "hc-light": "{prism.core.palette.accent.300}",
         "hc-dark": "{prism.core.palette.accent.700}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.text.hover",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1718,10 +1820,10 @@
       ]
     },
     "inverse.interactive.primary.border.pressed": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive border — the outline edge (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE primary interactive element while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.border.pressed`. Do not use as ink (use interactive.primary.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.350}",
@@ -1729,6 +1831,10 @@
         "hc-light": "{prism.core.palette.accent.250}",
         "hc-dark": "{prism.core.palette.accent.750}"
       },
+      "paired_with": [
+        "inverse.interactive.primary.text.pressed",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1738,10 +1844,10 @@
       ]
     },
     "inverse.interactive.destructive.text.rest": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.rest`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.450}",
@@ -1749,6 +1855,9 @@
         "hc-light": "{prism.core.palette.danger.350}",
         "hc-dark": "{prism.core.palette.danger.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1758,10 +1867,10 @@
       ]
     },
     "inverse.interactive.destructive.text.hover": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.hover`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.400}",
@@ -1769,6 +1878,9 @@
         "hc-light": "{prism.core.palette.danger.300}",
         "hc-dark": "{prism.core.palette.danger.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1778,10 +1890,10 @@
       ]
     },
     "inverse.interactive.destructive.text.pressed": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT destructive interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.text.pressed`. Do not use on a filled destructive control (use interactive.destructive.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.350}",
@@ -1789,6 +1901,9 @@
         "hc-light": "{prism.core.palette.danger.250}",
         "hc-dark": "{prism.core.palette.danger.750}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1798,10 +1913,10 @@
       ]
     },
     "inverse.interactive.destructive.fill.rest": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive fill, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.rest`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.100}",
@@ -1809,6 +1924,9 @@
         "hc-light": "{prism.core.palette.danger.100}",
         "hc-dark": "{prism.core.palette.danger.900}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1818,10 +1936,10 @@
       ]
     },
     "inverse.interactive.destructive.fill.hover": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive fill (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.hover`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.050}",
@@ -1829,6 +1947,9 @@
         "hc-light": "{prism.core.palette.danger.050}",
         "hc-dark": "{prism.core.palette.danger.950}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1838,10 +1959,10 @@
       ]
     },
     "inverse.interactive.destructive.fill.pressed": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive fill (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.pressed`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.200}",
@@ -1849,6 +1970,9 @@
         "hc-light": "{prism.core.palette.danger.200}",
         "hc-dark": "{prism.core.palette.danger.800}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1858,10 +1982,10 @@
       ]
     },
     "inverse.interactive.destructive.fill.focused": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive fill (focused state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when keyboard-focused. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.focused`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.050}",
@@ -1869,6 +1993,9 @@
         "hc-light": "{prism.core.palette.danger.050}",
         "hc-dark": "{prism.core.palette.danger.950}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1878,10 +2005,10 @@
       ]
     },
     "inverse.interactive.destructive.fill.selected": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive fill (selected state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED destructive interactive element — buttons, controls, selectable rows when selected / active. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.selected`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.200}",
@@ -1889,6 +2016,9 @@
         "hc-light": "{prism.core.palette.danger.200}",
         "hc-dark": "{prism.core.palette.danger.800}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1898,10 +2028,10 @@
       ]
     },
     "inverse.interactive.destructive.on-fill": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Ink on the destructive interactive fill, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The label / icon placed on a filled destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.on-fill`. Do not use on the page or on outline controls — use interactive.destructive.text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.950}",
@@ -1909,6 +2039,9 @@
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.fill.rest"
+      ],
       "contrast_with": [
         {
           "token": "inverse.interactive.destructive.fill.rest",
@@ -1918,10 +2051,10 @@
       ]
     },
     "inverse.interactive.destructive.border.rest": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive border — the outline edge, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE destructive interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.rest`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.450}",
@@ -1929,6 +2062,10 @@
         "hc-light": "{prism.core.palette.danger.350}",
         "hc-dark": "{prism.core.palette.danger.650}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.text.rest",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1938,10 +2075,10 @@
       ]
     },
     "inverse.interactive.destructive.border.hover": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive border — the outline edge (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE destructive interactive element on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.hover`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.400}",
@@ -1949,6 +2086,10 @@
         "hc-light": "{prism.core.palette.danger.300}",
         "hc-dark": "{prism.core.palette.danger.700}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.text.hover",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1958,10 +2099,10 @@
       ]
     },
     "inverse.interactive.destructive.border.pressed": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive border — the outline edge (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE destructive interactive element while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.border.pressed`. Do not use as ink (use interactive.destructive.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.350}",
@@ -1969,6 +2110,10 @@
         "hc-light": "{prism.core.palette.danger.250}",
         "hc-dark": "{prism.core.palette.danger.750}"
       },
+      "paired_with": [
+        "inverse.interactive.destructive.text.pressed",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1978,10 +2123,10 @@
       ]
     },
     "inverse.interactive.neutral.text.rest": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.rest`. Do not use on a filled neutral control (use interactive.neutral.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.025}",
@@ -1989,6 +2134,9 @@
         "hc-light": "{prism.core.palette.white}",
         "hc-dark": "{prism.core.palette.black}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -1998,10 +2146,10 @@
       ]
     },
     "inverse.interactive.neutral.text.hover": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.hover`. Do not use on a filled neutral control (use interactive.neutral.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.025}",
@@ -2009,6 +2157,9 @@
         "hc-light": "{prism.core.palette.white}",
         "hc-dark": "{prism.core.palette.black}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2018,10 +2169,10 @@
       ]
     },
     "inverse.interactive.neutral.text.pressed": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive ink (outline / text appearance), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The ink for OUTLINE and TEXT neutral interactive elements (no fill behind it). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.text.pressed`. Do not use on a filled neutral control (use interactive.neutral.on-fill).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.025}",
@@ -2029,6 +2180,9 @@
         "hc-light": "{prism.core.palette.white}",
         "hc-dark": "{prism.core.palette.black}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2038,10 +2192,10 @@
       ]
     },
     "inverse.interactive.neutral.fill.rest": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive fill, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.rest`. Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.050}",
@@ -2049,6 +2203,9 @@
         "hc-light": "{prism.core.palette.neutral.050}",
         "hc-dark": "{prism.core.palette.neutral.850}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2058,10 +2215,10 @@
       ]
     },
     "inverse.interactive.neutral.fill.hover": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive fill (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.hover`. Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.100}",
@@ -2069,6 +2226,9 @@
         "hc-light": "{prism.core.palette.neutral.100}",
         "hc-dark": "{prism.core.palette.neutral.900}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2078,10 +2238,10 @@
       ]
     },
     "inverse.interactive.neutral.fill.pressed": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive fill (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.pressed`. Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.150}",
@@ -2089,6 +2249,9 @@
         "hc-light": "{prism.core.palette.neutral.150}",
         "hc-dark": "{prism.core.palette.neutral.950}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2098,10 +2261,10 @@
       ]
     },
     "inverse.interactive.neutral.fill.focused": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive fill (focused state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when keyboard-focused. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.focused`. Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.100}",
@@ -2109,6 +2272,9 @@
         "hc-light": "{prism.core.palette.neutral.100}",
         "hc-dark": "{prism.core.palette.neutral.900}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2118,10 +2284,10 @@
       ]
     },
     "inverse.interactive.neutral.fill.selected": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive fill (selected state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED neutral interactive element — buttons, controls, selectable rows when selected / active. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.fill.selected`. Do not use for another intent (interactive.primary / destructive), or for outline/text appearances (use interactive.neutral.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.150}",
@@ -2129,6 +2295,9 @@
         "hc-light": "{prism.core.palette.neutral.150}",
         "hc-dark": "{prism.core.palette.neutral.950}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.on-fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2138,10 +2307,10 @@
       ]
     },
     "inverse.interactive.neutral.on-fill": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Ink on the neutral interactive fill, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The label / icon placed on a filled neutral interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.on-fill`. Do not use on the page or on outline controls — use interactive.neutral.text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.950}",
@@ -2149,6 +2318,9 @@
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.fill.rest"
+      ],
       "contrast_with": [
         {
           "token": "inverse.interactive.neutral.fill.rest",
@@ -2158,10 +2330,10 @@
       ]
     },
     "inverse.interactive.neutral.border.rest": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive border — the outline edge, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE neutral interactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.rest`. Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -2169,6 +2341,10 @@
         "hc-light": "{prism.core.palette.neutral.500}",
         "hc-dark": "{prism.core.palette.neutral.500}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.text.rest",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2178,10 +2354,10 @@
       ]
     },
     "inverse.interactive.neutral.border.hover": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive border — the outline edge (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE neutral interactive element on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.hover`. Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.450}",
@@ -2189,6 +2365,10 @@
         "hc-light": "{prism.core.palette.neutral.400}",
         "hc-dark": "{prism.core.palette.neutral.600}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.text.hover",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2198,10 +2378,10 @@
       ]
     },
     "inverse.interactive.neutral.border.pressed": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive border — the outline edge (pressed state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The border of an OUTLINE neutral interactive element while pressed. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.pressed`. Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.350}",
@@ -2209,6 +2389,10 @@
         "hc-light": "{prism.core.palette.neutral.300}",
         "hc-dark": "{prism.core.palette.neutral.700}"
       },
+      "paired_with": [
+        "inverse.interactive.neutral.text.pressed",
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2221,7 +2405,7 @@
       "$description": "Primary interactive overlay — hover.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.primary.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.primary.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.10}",
@@ -2245,7 +2429,7 @@
       "$description": "Primary interactive overlay — pressed.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.primary.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.primary.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.20}",
@@ -2269,7 +2453,7 @@
       "$description": "Primary interactive overlay — selected.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.primary.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.primary.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.20}",
@@ -2293,7 +2477,7 @@
       "$description": "Neutral interactive overlay — hover.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.neutral.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.neutral.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.10}",
@@ -2317,7 +2501,7 @@
       "$description": "Neutral interactive overlay — pressed.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.neutral.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.neutral.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.20}",
@@ -2341,7 +2525,7 @@
       "$description": "Neutral interactive overlay — selected.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.neutral.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.neutral.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.20}",
@@ -2365,7 +2549,7 @@
       "$description": "Destructive interactive overlay — hover.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.destructive.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.destructive.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.10}",
@@ -2389,7 +2573,7 @@
       "$description": "Destructive interactive overlay — pressed.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.destructive.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.destructive.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.20}",
@@ -2413,7 +2597,7 @@
       "$description": "Destructive interactive overlay — selected.",
       "meaning": "Interactivity / actions",
       "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.",
-      "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.destructive.inverse.overlay.* there.",
+      "avoid_when": "Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.destructive.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.black-alpha.20}",
@@ -2434,10 +2618,10 @@
       ]
     },
     "inverse.interactive.primary.overlay.hover": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive overlay — hover, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent primary hover wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.hover`. Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.primary.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.10}",
@@ -2445,6 +2629,9 @@
         "hc-light": "{prism.core.palette.white-alpha.10}",
         "hc-dark": "{prism.core.palette.black-alpha.10}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2455,10 +2642,10 @@
       ]
     },
     "inverse.interactive.primary.overlay.pressed": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive overlay — pressed, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent primary pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.pressed`. Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.primary.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.20}",
@@ -2466,6 +2653,9 @@
         "hc-light": "{prism.core.palette.white-alpha.20}",
         "hc-dark": "{prism.core.palette.black-alpha.20}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2476,10 +2666,10 @@
       ]
     },
     "inverse.interactive.primary.overlay.selected": {
-      "$description": "Inverse interactive (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary interactive overlay — selected, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent primary selected wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.overlay.selected`. Do not use as an opaque fill (use interactive.primary.fill.* or foreground.primary-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.primary.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.20}",
@@ -2487,6 +2677,9 @@
         "hc-light": "{prism.core.palette.white-alpha.20}",
         "hc-dark": "{prism.core.palette.black-alpha.20}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2497,10 +2690,10 @@
       ]
     },
     "inverse.interactive.neutral.overlay.hover": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive overlay — hover, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent neutral hover wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.hover`. Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.neutral.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.10}",
@@ -2508,6 +2701,9 @@
         "hc-light": "{prism.core.palette.white-alpha.10}",
         "hc-dark": "{prism.core.palette.black-alpha.10}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2518,10 +2714,10 @@
       ]
     },
     "inverse.interactive.neutral.overlay.pressed": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive overlay — pressed, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent neutral pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.pressed`. Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.neutral.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.20}",
@@ -2529,6 +2725,9 @@
         "hc-light": "{prism.core.palette.white-alpha.20}",
         "hc-dark": "{prism.core.palette.black-alpha.20}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2539,10 +2738,10 @@
       ]
     },
     "inverse.interactive.neutral.overlay.selected": {
-      "$description": "Inverse interactive (neutral state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Neutral interactive overlay — selected, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent neutral selected wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.neutral.overlay.selected`. Do not use as an opaque fill (use interactive.neutral.fill.* or foreground.neutral-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.neutral.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.20}",
@@ -2550,6 +2749,9 @@
         "hc-light": "{prism.core.palette.white-alpha.20}",
         "hc-dark": "{prism.core.palette.black-alpha.20}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2560,10 +2762,10 @@
       ]
     },
     "inverse.interactive.destructive.overlay.hover": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive overlay — hover, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent destructive hover wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.hover`. Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.destructive.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.10}",
@@ -2571,6 +2773,9 @@
         "hc-light": "{prism.core.palette.white-alpha.10}",
         "hc-dark": "{prism.core.palette.black-alpha.10}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2581,10 +2786,10 @@
       ]
     },
     "inverse.interactive.destructive.overlay.pressed": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive overlay — pressed, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent destructive pressed wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.pressed`. Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.destructive.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.20}",
@@ -2592,6 +2797,9 @@
         "hc-light": "{prism.core.palette.white-alpha.20}",
         "hc-dark": "{prism.core.palette.black-alpha.20}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2602,10 +2810,10 @@
       ]
     },
     "inverse.interactive.destructive.overlay.selected": {
-      "$description": "Inverse interactive (destructive state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse interactive role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive interactive overlay — selected, on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "A translucent destructive selected wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground. Only on an INVERSE ground — a dark band on a light page, or the reverse. Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.destructive.overlay.selected`. Do not use as an opaque fill (use interactive.destructive.fill.* or foreground.destructive-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.destructive.overlay.* there.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.white-alpha.20}",
@@ -2613,6 +2821,9 @@
         "hc-light": "{prism.core.palette.white-alpha.20}",
         "hc-dark": "{prism.core.palette.black-alpha.20}"
       },
+      "paired_with": [
+        "inverse.text.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.text.primary",
@@ -2718,23 +2929,26 @@
       ]
     },
     "inverse.disabled.fill": {
-      "$description": "Inverse disabled (fill state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse disabled role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Disabled control fill, on an inverse surface.",
+      "meaning": "Unavailable / inactive state (inverse ground)",
+      "when_to_use": "The fill of ANY disabled control (button, chip, field), regardless of intent — a disabled control looks disabled. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `disabled.fill`. Do not use for enabled controls (use interactive.*.fill / foreground.*).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.800}",
         "dark": "{prism.core.palette.neutral.250}",
         "hc-light": "{prism.core.palette.neutral.800}",
         "hc-dark": "{prism.core.palette.neutral.250}"
-      }
+      },
+      "paired_with": [
+        "inverse.disabled.on-fill"
+      ]
     },
     "inverse.disabled.on-fill": {
-      "$description": "Inverse disabled (on-fill state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse disabled role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Label / icon on a disabled fill, on an inverse surface.",
+      "meaning": "Unavailable / inactive state (inverse ground)",
+      "when_to_use": "The label or icon on a disabled control's fill — muted but legible on it. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `disabled.on-fill`. Do not use on an enabled fill (use interactive.*.on-fill) or on the page (use disabled.text).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.500}",
@@ -2742,6 +2956,9 @@
         "hc-light": "{prism.core.palette.neutral.350}",
         "hc-dark": "{prism.core.palette.neutral.700}"
       },
+      "paired_with": [
+        "inverse.disabled.fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.disabled.fill",
@@ -2751,10 +2968,10 @@
       ]
     },
     "inverse.disabled.text": {
-      "$description": "Inverse disabled (text state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse disabled role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Disabled text, on an inverse surface.",
+      "meaning": "Unavailable / inactive state (inverse ground)",
+      "when_to_use": "Text of a disabled or inactive element (a disabled outline/text control, disabled body copy). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `disabled.text`. Do not use for active content (use text.primary/secondary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -2771,10 +2988,10 @@
       ]
     },
     "inverse.disabled.icon": {
-      "$description": "Inverse disabled (icon state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse disabled role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Disabled icon, on an inverse surface.",
+      "meaning": "Unavailable / inactive state (inverse ground)",
+      "when_to_use": "Icon of a disabled or inactive element. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `disabled.icon`. Do not use for active icons (use icon.primary/secondary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -2791,17 +3008,20 @@
       ]
     },
     "inverse.disabled.border": {
-      "$description": "Inverse disabled (border state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse disabled role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Disabled control border, on an inverse surface.",
+      "meaning": "Unavailable / inactive state (inverse ground)",
+      "when_to_use": "The border of a disabled outline control. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `disabled.border`. Do not use as a page divider (use border.primary) or on an enabled control (use interactive.*.border).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.800}",
         "dark": "{prism.core.palette.neutral.250}",
         "hc-light": "{prism.core.palette.neutral.800}",
         "hc-dark": "{prism.core.palette.neutral.250}"
-      }
+      },
+      "paired_with": [
+        "inverse.disabled.fill"
+      ]
     },
     "field.fill": {
       "$description": "Form field fill.",
@@ -2892,23 +3112,28 @@
       ]
     },
     "inverse.field.fill": {
-      "$description": "Inverse field (fill state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse field role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Form field fill, on an inverse surface.",
+      "meaning": "Form input / field chrome (inverse ground)",
+      "when_to_use": "The background of a text input / form field — a subtly inset surface. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `field.fill`. Do not use for the page (use background.*) or a card (use foreground.*).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.900}",
         "dark": "{prism.core.palette.neutral.050}",
         "hc-light": "{prism.core.palette.black}",
         "hc-dark": "{prism.core.palette.white}"
-      }
+      },
+      "paired_with": [
+        "inverse.field.border.rest",
+        "inverse.field.placeholder",
+        "inverse.text.primary"
+      ]
     },
     "inverse.field.border.rest": {
-      "$description": "Inverse field (border state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse field role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Form field resting border, on an inverse surface.",
+      "meaning": "Form input / field chrome (inverse ground)",
+      "when_to_use": "The RESTING boundary of a form field — perceivable (3:1) before focus. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `field.border.rest`. Do not use for the focus ring (use border.focus) or a validation state (use border.<semantic>).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -2916,6 +3141,9 @@
         "hc-light": "{prism.core.palette.neutral.500}",
         "hc-dark": "{prism.core.palette.neutral.500}"
       },
+      "paired_with": [
+        "inverse.field.fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2925,10 +3153,10 @@
       ]
     },
     "inverse.field.border.hover": {
-      "$description": "Inverse field (border state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse field role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Form field hover border, on an inverse surface.",
+      "meaning": "Form input / field chrome (inverse ground)",
+      "when_to_use": "The HOVER boundary of a form field — a subtly stronger perceivable border (4.5) on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `field.border.hover`. Do not use as the resting border (use field.border.rest), the focus ring (use border.focus), or a validation state (use border.<semantic>).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.450}",
@@ -2936,6 +3164,10 @@
         "hc-light": "{prism.core.palette.neutral.400}",
         "hc-dark": "{prism.core.palette.neutral.600}"
       },
+      "paired_with": [
+        "inverse.field.fill",
+        "inverse.field.border.rest"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -2945,10 +3177,10 @@
       ]
     },
     "inverse.field.placeholder": {
-      "$description": "Inverse field (placeholder state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse field role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Form field placeholder ink, on an inverse surface.",
+      "meaning": "Form input / field chrome (inverse ground)",
+      "when_to_use": "Placeholder / hint text inside a field — readable (4.5) on the field fill. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `field.placeholder`. Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.450}",
@@ -2956,6 +3188,9 @@
         "hc-light": "{prism.core.palette.neutral.350}",
         "hc-dark": "{prism.core.palette.neutral.650}"
       },
+      "paired_with": [
+        "inverse.field.fill"
+      ],
       "contrast_with": [
         {
           "token": "inverse.field.fill",
@@ -3959,10 +4194,10 @@
       ]
     },
     "inverse.text.primary": {
-      "$description": "Inverse text (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary (highest-emphasis) text, on an inverse surface.",
+      "meaning": "Content hierarchy / reading emphasis (inverse ground)",
+      "when_to_use": "Primary text on any surface (holds across the tonal ladder). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.primary`. Do not use on solid/vivid fills — use text.on-*.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.025}",
@@ -3970,6 +4205,10 @@
         "hc-light": "{prism.core.palette.white}",
         "hc-dark": "{prism.core.palette.black}"
       },
+      "paired_with": [
+        "inverse.background.primary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -3979,10 +4218,10 @@
       ]
     },
     "inverse.text.secondary": {
-      "$description": "Inverse text (secondary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Secondary text, on an inverse surface.",
+      "meaning": "Content hierarchy / reading emphasis (inverse ground)",
+      "when_to_use": "Secondary text on any surface (holds across the tonal ladder). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.secondary`. Do not use on solid/vivid fills — use text.on-*.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.450}",
@@ -3990,6 +4229,10 @@
         "hc-light": "{prism.core.palette.neutral.350}",
         "hc-dark": "{prism.core.palette.neutral.650}"
       },
+      "paired_with": [
+        "inverse.background.primary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -3999,10 +4242,10 @@
       ]
     },
     "inverse.text.tertiary": {
-      "$description": "Inverse text (tertiary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Tertiary (subtle) text, on an inverse surface.",
+      "meaning": "Content hierarchy / reading emphasis (inverse ground)",
+      "when_to_use": "Tertiary text on any surface (holds across the tonal ladder). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.tertiary`. Do not use on solid/vivid fills — use text.on-*.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -4010,6 +4253,10 @@
         "hc-light": "{prism.core.palette.neutral.500}",
         "hc-dark": "{prism.core.palette.neutral.500}"
       },
+      "paired_with": [
+        "inverse.background.primary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4019,10 +4266,10 @@
       ]
     },
     "inverse.text.brand": {
-      "$description": "Inverse text (brand state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Brand identity text, on an inverse surface.",
+      "meaning": "Brand identity (inverse ground)",
+      "when_to_use": "Brand text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.brand`. Do not use on a solid brand fill — use text.on-brand.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.450}",
@@ -4030,6 +4277,9 @@
         "hc-light": "{prism.core.palette.primary.300}",
         "hc-dark": "{prism.core.palette.primary.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4039,10 +4289,10 @@
       ]
     },
     "inverse.text.success": {
-      "$description": "Inverse text (success state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Success / positive text, on an inverse surface.",
+      "meaning": "Success / positive signalling (inverse ground)",
+      "when_to_use": "Success text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.success`. Do not use on a solid success fill — use text.on-success.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.success.450}",
@@ -4050,6 +4300,9 @@
         "hc-light": "{prism.core.palette.success.300}",
         "hc-dark": "{prism.core.palette.success.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4059,10 +4312,10 @@
       ]
     },
     "inverse.text.warning": {
-      "$description": "Inverse text (warning state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Warning / caution text, on an inverse surface.",
+      "meaning": "Warning / caution signalling (inverse ground)",
+      "when_to_use": "Warning text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.warning`. Do not use on a solid warning fill — use text.on-warning.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.450}",
@@ -4070,6 +4323,9 @@
         "hc-light": "{prism.core.palette.warning.300}",
         "hc-dark": "{prism.core.palette.warning.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4079,10 +4335,10 @@
       ]
     },
     "inverse.text.danger": {
-      "$description": "Inverse text (danger state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive / error text, on an inverse surface.",
+      "meaning": "Destructive / error signalling (inverse ground)",
+      "when_to_use": "Danger text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.danger`. Do not use on a solid danger fill — use text.on-danger.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.450}",
@@ -4090,6 +4346,9 @@
         "hc-light": "{prism.core.palette.danger.300}",
         "hc-dark": "{prism.core.palette.danger.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4099,10 +4358,10 @@
       ]
     },
     "inverse.text.info": {
-      "$description": "Inverse text (info state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Informational text, on an inverse surface.",
+      "meaning": "Informational signalling (inverse ground)",
+      "when_to_use": "Info text on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.info`. Do not use on a solid info fill — use text.on-info.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.info.450}",
@@ -4110,6 +4369,9 @@
         "hc-light": "{prism.core.palette.info.300}",
         "hc-dark": "{prism.core.palette.info.700}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4119,10 +4381,10 @@
       ]
     },
     "inverse.text.brand-subtle": {
-      "$description": "Inverse text (brand-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted brand identity text, on an inverse surface.",
+      "meaning": "Brand identity (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis brand text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.brand-subtle`. For safety-critical brand messaging use the bold text.brand; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.550}",
@@ -4130,6 +4392,9 @@
         "hc-light": "{prism.core.palette.primary.500}",
         "hc-dark": "{prism.core.palette.primary.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4139,10 +4404,10 @@
       ]
     },
     "inverse.text.success-subtle": {
-      "$description": "Inverse text (success-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted success / positive text, on an inverse surface.",
+      "meaning": "Success / positive signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis success text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.success-subtle`. For safety-critical success messaging use the bold text.success; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.success.550}",
@@ -4150,6 +4415,9 @@
         "hc-light": "{prism.core.palette.success.500}",
         "hc-dark": "{prism.core.palette.success.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4159,10 +4427,10 @@
       ]
     },
     "inverse.text.warning-subtle": {
-      "$description": "Inverse text (warning-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted warning / caution text, on an inverse surface.",
+      "meaning": "Warning / caution signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis warning text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.warning-subtle`. For safety-critical warning messaging use the bold text.warning; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.550}",
@@ -4170,6 +4438,9 @@
         "hc-light": "{prism.core.palette.warning.500}",
         "hc-dark": "{prism.core.palette.warning.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4179,10 +4450,10 @@
       ]
     },
     "inverse.text.danger-subtle": {
-      "$description": "Inverse text (danger-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted destructive / error text, on an inverse surface.",
+      "meaning": "Destructive / error signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis danger text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.danger-subtle`. For safety-critical danger messaging use the bold text.danger; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.550}",
@@ -4190,6 +4461,9 @@
         "hc-light": "{prism.core.palette.danger.500}",
         "hc-dark": "{prism.core.palette.danger.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4199,10 +4473,10 @@
       ]
     },
     "inverse.text.info-subtle": {
-      "$description": "Inverse text (info-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted informational text, on an inverse surface.",
+      "meaning": "Informational signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis info text — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.info-subtle`. For safety-critical info messaging use the bold text.info; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.info.550}",
@@ -4210,6 +4484,9 @@
         "hc-light": "{prism.core.palette.info.500}",
         "hc-dark": "{prism.core.palette.info.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4219,10 +4496,10 @@
       ]
     },
     "inverse.text.link.default": {
-      "$description": "Inverse text (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive text) (default state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive text. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.default`. Do not use for non-interactive text (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.400}",
@@ -4239,10 +4516,10 @@
       ]
     },
     "inverse.text.link.hover": {
-      "$description": "Inverse text (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive text) (hover state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive text on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.hover`. Do not use for non-interactive text (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.350}",
@@ -4259,10 +4536,10 @@
       ]
     },
     "inverse.text.link.visited": {
-      "$description": "Inverse text (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive text) (visited state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive text after it has been visited. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.visited`. Do not use for non-interactive text (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.300}",
@@ -4279,10 +4556,10 @@
       ]
     },
     "inverse.text.link.focused": {
-      "$description": "Inverse text (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse text role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive text) (focused state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive text when keyboard-focused. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `text.link.focused`. Do not use for non-interactive text (use text.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.400}",
@@ -4299,10 +4576,10 @@
       ]
     },
     "inverse.icon.primary": {
-      "$description": "Inverse icon (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Primary (highest-emphasis) icon, on an inverse surface.",
+      "meaning": "Content hierarchy / reading emphasis (inverse ground)",
+      "when_to_use": "Primary icon on any surface (holds across the tonal ladder). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.primary`. Do not use on solid/vivid fills — use icon.on-*.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.025}",
@@ -4310,6 +4587,10 @@
         "hc-light": "{prism.core.palette.white}",
         "hc-dark": "{prism.core.palette.black}"
       },
+      "paired_with": [
+        "inverse.background.primary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4319,10 +4600,10 @@
       ]
     },
     "inverse.icon.secondary": {
-      "$description": "Inverse icon (secondary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Secondary icon, on an inverse surface.",
+      "meaning": "Content hierarchy / reading emphasis (inverse ground)",
+      "when_to_use": "Secondary icon on any surface (holds across the tonal ladder). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.secondary`. Do not use on solid/vivid fills — use icon.on-*.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -4330,6 +4611,10 @@
         "hc-light": "{prism.core.palette.neutral.500}",
         "hc-dark": "{prism.core.palette.neutral.500}"
       },
+      "paired_with": [
+        "inverse.background.primary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4339,10 +4624,10 @@
       ]
     },
     "inverse.icon.tertiary": {
-      "$description": "Inverse icon (tertiary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Tertiary (subtle) icon, on an inverse surface.",
+      "meaning": "Content hierarchy / reading emphasis (inverse ground)",
+      "when_to_use": "Tertiary icon on any surface (holds across the tonal ladder). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.tertiary`. Do not use on solid/vivid fills — use icon.on-*.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.550}",
@@ -4350,6 +4635,10 @@
         "hc-light": "{prism.core.palette.neutral.500}",
         "hc-dark": "{prism.core.palette.neutral.500}"
       },
+      "paired_with": [
+        "inverse.background.primary",
+        "inverse.foreground.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4359,10 +4648,10 @@
       ]
     },
     "inverse.icon.brand": {
-      "$description": "Inverse icon (brand state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Brand identity icon, on an inverse surface.",
+      "meaning": "Brand identity (inverse ground)",
+      "when_to_use": "Brand icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.brand`. Do not use on a solid brand fill — use icon.on-brand.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.500}",
@@ -4370,6 +4659,9 @@
         "hc-light": "{prism.core.palette.primary.450}",
         "hc-dark": "{prism.core.palette.primary.550}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4379,10 +4671,10 @@
       ]
     },
     "inverse.icon.success": {
-      "$description": "Inverse icon (success state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Success / positive icon, on an inverse surface.",
+      "meaning": "Success / positive signalling (inverse ground)",
+      "when_to_use": "Success icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.success`. Do not use on a solid success fill — use icon.on-success.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.success.500}",
@@ -4390,6 +4682,9 @@
         "hc-light": "{prism.core.palette.success.450}",
         "hc-dark": "{prism.core.palette.success.600}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4399,10 +4694,10 @@
       ]
     },
     "inverse.icon.warning": {
-      "$description": "Inverse icon (warning state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Warning / caution icon, on an inverse surface.",
+      "meaning": "Warning / caution signalling (inverse ground)",
+      "when_to_use": "Warning icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.warning`. Do not use on a solid warning fill — use icon.on-warning.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.500}",
@@ -4410,6 +4705,9 @@
         "hc-light": "{prism.core.palette.warning.450}",
         "hc-dark": "{prism.core.palette.warning.600}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4419,10 +4717,10 @@
       ]
     },
     "inverse.icon.danger": {
-      "$description": "Inverse icon (danger state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive / error icon, on an inverse surface.",
+      "meaning": "Destructive / error signalling (inverse ground)",
+      "when_to_use": "Danger icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.danger`. Do not use on a solid danger fill — use icon.on-danger.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.500}",
@@ -4430,6 +4728,9 @@
         "hc-light": "{prism.core.palette.danger.450}",
         "hc-dark": "{prism.core.palette.danger.600}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4439,10 +4740,10 @@
       ]
     },
     "inverse.icon.info": {
-      "$description": "Inverse icon (info state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Informational icon, on an inverse surface.",
+      "meaning": "Informational signalling (inverse ground)",
+      "when_to_use": "Info icon on standard surfaces (e.g. inline error/success text). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.info`. Do not use on a solid info fill — use icon.on-info.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.info.500}",
@@ -4450,6 +4751,9 @@
         "hc-light": "{prism.core.palette.info.450}",
         "hc-dark": "{prism.core.palette.info.600}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.secondary",
@@ -4459,10 +4763,10 @@
       ]
     },
     "inverse.icon.brand-subtle": {
-      "$description": "Inverse icon (brand-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted brand identity icon, on an inverse surface.",
+      "meaning": "Brand identity (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis brand icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.brand-subtle`. For safety-critical brand messaging use the bold icon.brand; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.550}",
@@ -4470,6 +4774,9 @@
         "hc-light": "{prism.core.palette.primary.500}",
         "hc-dark": "{prism.core.palette.primary.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4479,10 +4786,10 @@
       ]
     },
     "inverse.icon.success-subtle": {
-      "$description": "Inverse icon (success-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted success / positive icon, on an inverse surface.",
+      "meaning": "Success / positive signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis success icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.success-subtle`. For safety-critical success messaging use the bold icon.success; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.success.550}",
@@ -4490,6 +4797,9 @@
         "hc-light": "{prism.core.palette.success.500}",
         "hc-dark": "{prism.core.palette.success.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4499,10 +4809,10 @@
       ]
     },
     "inverse.icon.warning-subtle": {
-      "$description": "Inverse icon (warning-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted warning / caution icon, on an inverse surface.",
+      "meaning": "Warning / caution signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis warning icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.warning-subtle`. For safety-critical warning messaging use the bold icon.warning; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.550}",
@@ -4510,6 +4820,9 @@
         "hc-light": "{prism.core.palette.warning.500}",
         "hc-dark": "{prism.core.palette.warning.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4519,10 +4832,10 @@
       ]
     },
     "inverse.icon.danger-subtle": {
-      "$description": "Inverse icon (danger-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted destructive / error icon, on an inverse surface.",
+      "meaning": "Destructive / error signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis danger icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.danger-subtle`. For safety-critical danger messaging use the bold icon.danger; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.550}",
@@ -4530,6 +4843,9 @@
         "hc-light": "{prism.core.palette.danger.500}",
         "hc-dark": "{prism.core.palette.danger.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4539,10 +4855,10 @@
       ]
     },
     "inverse.icon.info-subtle": {
-      "$description": "Inverse icon (info-subtle state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Muted informational icon, on an inverse surface.",
+      "meaning": "Informational signalling (low-emphasis) (inverse ground)",
+      "when_to_use": "Low-emphasis info icon — secondary status text / quiet accents. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.info-subtle`. For safety-critical info messaging use the bold icon.info; verify contrast for body text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.info.550}",
@@ -4550,6 +4866,9 @@
         "hc-light": "{prism.core.palette.info.500}",
         "hc-dark": "{prism.core.palette.info.650}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",
@@ -4559,10 +4878,10 @@
       ]
     },
     "inverse.icon.link.default": {
-      "$description": "Inverse icon (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive icon) (default state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive icon. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.default`. Do not use for non-interactive icon (use icon.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.500}",
@@ -4579,10 +4898,10 @@
       ]
     },
     "inverse.icon.link.hover": {
-      "$description": "Inverse icon (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive icon) (hover state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive icon on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.hover`. Do not use for non-interactive icon (use icon.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.450}",
@@ -4599,10 +4918,10 @@
       ]
     },
     "inverse.icon.link.visited": {
-      "$description": "Inverse icon (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive icon) (visited state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive icon after it has been visited. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.visited`. Do not use for non-interactive icon (use icon.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.400}",
@@ -4619,10 +4938,10 @@
       ]
     },
     "inverse.icon.link.focused": {
-      "$description": "Inverse icon (link state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse icon role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Link (interactive icon) (focused state), on an inverse surface.",
+      "meaning": "Interactivity / navigation (inverse ground)",
+      "when_to_use": "Hyperlinks and interactive icon when keyboard-focused. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `icon.link.focused`. Do not use for non-interactive icon (use icon.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.500}",
@@ -4665,10 +4984,10 @@
       }
     },
     "border.tertiary": {
-      "$description": "Border tertiary.",
+      "$description": "Strongest divider border.",
       "meaning": "Separation / structure",
-      "when_to_use": "Use as the border tertiary role.",
-      "avoid_when": "Do not use outside the border role.",
+      "when_to_use": "The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate.",
+      "avoid_when": "Do not use as a hairline (use border.primary) or as a focus ring (use border.focus) — the ring has its own hue for a reason.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.600}",
@@ -4781,7 +5100,7 @@
       "$description": "Focus ring color.",
       "meaning": "Keyboard focus indication",
       "when_to_use": "The keyboard-focus indicator on interactive elements.",
-      "avoid_when": "Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.inverse.focus).",
+      "avoid_when": "Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.500}",
@@ -4801,10 +5120,10 @@
       ]
     },
     "inverse.border.primary": {
-      "$description": "Inverse border (primary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Default / decorative border, on an inverse surface.",
+      "meaning": "Separation / structure (inverse ground)",
+      "when_to_use": "Dividers, card outlines, low-emphasis separation. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.primary`. Do not use where a 3:1 non-text contrast is required (use border.secondary / border.focus).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.800}",
@@ -4814,10 +5133,10 @@
       }
     },
     "inverse.border.secondary": {
-      "$description": "Inverse border (secondary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Stronger divider border, on an inverse surface.",
+      "meaning": "Separation / structure (inverse ground)",
+      "when_to_use": "Higher-emphasis dividers and separators; control borders. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.secondary`. Do not use as a faint hairline (use border.primary).",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.600}",
@@ -4827,10 +5146,10 @@
       }
     },
     "inverse.border.tertiary": {
-      "$description": "Inverse border (tertiary state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Strongest divider border, on an inverse surface.",
+      "meaning": "Separation / structure (inverse ground)",
+      "when_to_use": "The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.tertiary`. Do not use as a hairline (use border.primary) or as a focus ring (use border.focus) — the ring has its own hue for a reason.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{prism.core.palette.neutral.350}",
@@ -4840,10 +5159,10 @@
       }
     },
     "inverse.border.brand": {
-      "$description": "Inverse border (brand state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Brand identity validation border, on an inverse surface.",
+      "meaning": "Brand identity (inverse ground)",
+      "when_to_use": "Validation/state borders for brand (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.brand`. Do not use as brand ink or fill — use text.brand / foreground.brand.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.primary.500}",
@@ -4860,10 +5179,10 @@
       ]
     },
     "inverse.border.success": {
-      "$description": "Inverse border (success state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Success / positive validation border, on an inverse surface.",
+      "meaning": "Success / positive signalling (inverse ground)",
+      "when_to_use": "Validation/state borders for success (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.success`. Do not use as success ink or fill — use text.success / foreground.success.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.success.500}",
@@ -4880,10 +5199,10 @@
       ]
     },
     "inverse.border.warning": {
-      "$description": "Inverse border (warning state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Warning / caution validation border, on an inverse surface.",
+      "meaning": "Warning / caution signalling (inverse ground)",
+      "when_to_use": "Validation/state borders for warning (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.warning`. Do not use as warning ink or fill — use text.warning / foreground.warning.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.warning.500}",
@@ -4900,10 +5219,10 @@
       ]
     },
     "inverse.border.danger": {
-      "$description": "Inverse border (danger state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Destructive / error validation border, on an inverse surface.",
+      "meaning": "Destructive / error signalling (inverse ground)",
+      "when_to_use": "Validation/state borders for danger (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.danger`. Do not use as danger ink or fill — use text.danger / foreground.danger.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.danger.500}",
@@ -4920,10 +5239,10 @@
       ]
     },
     "inverse.border.info": {
-      "$description": "Inverse border (info state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Informational validation border, on an inverse surface.",
+      "meaning": "Informational signalling (inverse ground)",
+      "when_to_use": "Validation/state borders for info (e.g. invalid fields). Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.info`. Do not use as info ink or fill — use text.info / foreground.info.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.info.500}",
@@ -4940,10 +5259,10 @@
       ]
     },
     "inverse.border.focus": {
-      "$description": "Inverse border (focus state).",
-      "meaning": "Inverse role",
-      "when_to_use": "Use as the inverse border role.",
-      "avoid_when": "Do not use outside the inverse role.",
+      "$description": "Focus ring color, on an inverse surface.",
+      "meaning": "Keyboard focus indication (inverse ground)",
+      "when_to_use": "The keyboard-focus indicator on interactive elements. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{prism.core.palette.accent.500}",
@@ -4951,6 +5270,9 @@
         "hc-light": "{prism.core.palette.accent.500}",
         "hc-dark": "{prism.core.palette.accent.500}"
       },
+      "paired_with": [
+        "inverse.background.primary"
+      ],
       "contrast_with": [
         {
           "token": "inverse.background.primary",

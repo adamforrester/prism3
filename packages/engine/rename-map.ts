@@ -120,7 +120,7 @@
  * Pure and host-neutral (imports `DEPRECATIONS` and nothing else) so `test.ts` drives it with no
  * Figma present, in the same split as `write-plan.ts` vs `write-figma.ts`.
  */
-import { DEPRECATIONS, type Deprecation } from './version';
+import { DEPRECATIONS, satisfiesBump, type Deprecation } from './version';
 // The dotted-path → slash-path mapping is stated ONCE, in `anatomy-figma`, precisely so a second copy
 // cannot drift from the emitters. Re-deriving it here would be a duplicate that this module's own gate
 // could not distinguish from the original.
@@ -307,9 +307,42 @@ export const projectionsOf = (d: Deprecation): VarRename[] => {
   }));
 };
 
-/** The derived variable map. Callers filter by collection; the executor does exactly that. */
-export const deriveVariableRenames = (deps: readonly Deprecation[] = DEPRECATIONS): VarRename[] =>
-  deps.flatMap(projectionsOf);
+/** Strictly newer, in terms of the one semver comparator this repo owns — `'patch'` accepts an
+ *  increment at any level, so this is "b < a" and not "b is a patch behind a". */
+const newer = (a: string, b: string): boolean => satisfiesBump(b, a, 'patch');
+
+/**
+ * The derived variable map. Callers filter by collection; the executor does exactly that.
+ *
+ * **COLLAPSED BY SPELLING, and #1140 is why.** Two deprecations can project the SAME Figma rename,
+ * because `projectionsOf` follows the ROLE and one role is reachable from more than one contract path.
+ * #1013's entry for `color.background.inverse.primary` and #1140's for
+ * `color.appearance.background.inverse.primary` both strip to the same pair —
+ * `color/appearance/background/inverse/primary` → `color/appearance/inverse/background/primary`. That is
+ * not a mistake in either record: `replacedBy` follows the LIVE name by rule (`version.ts`), so a
+ * historical entry acquires a role delta it did not itself cause the moment a later release moves the
+ * role.
+ *
+ * **Without this collapse the duplicate is not merely noisy — it is a REFUSAL.**
+ * `planVariableRenames` groups by target and reads two live rows as `ambiguous-source`, which is right
+ * for genuine fan-in (two DIFFERENT old names claiming one new one) and wrong for one name recorded
+ * twice. Measured on the live map at #1140: 532 rows, 306 distinct, and every one of the 113 inverse
+ * renames refused in a designer's file that held the old names — the exact stranding #893 sequenced the
+ * whole mechanism to prevent, arriving through the migration record rather than through the emission.
+ *
+ * The survivor keeps the GREATEST `since`, not the first one seen. The field answers "at which contract
+ * version did this Figma name stop being written?", and for a role that moved in 8.0.0 the answer is
+ * 8.0.0 however old the other entry's own retirement is.
+ */
+export const deriveVariableRenames = (deps: readonly Deprecation[] = DEPRECATIONS): VarRename[] => {
+  const bySpelling = new Map<string, VarRename>();
+  for (const r of deps.flatMap(projectionsOf)) {
+    const key = `${r.collection}|${r.from}|${r.to}`;
+    const held = bySpelling.get(key);
+    if (!held || newer(r.since, held.since)) bySpelling.set(key, r);
+  }
+  return [...bySpelling.values()];
+};
 
 /**
  * Authored collection renames. Empty was the honest state while #1013 Q4 was open; #1013 took the
@@ -499,6 +532,11 @@ export const planVariableRenames = (
     if (live.length === 0) out.push(...group.map((r) => at(r, 'source-absent')));
     else if (!want.has(to)) out.push(...group.map((r) => at(r, 'target-not-planned')));
     else if (have.has(to)) out.push(...live.map((r) => at(r, 'target-occupied')));
+    // Two live rows mean two DIFFERENT old names claiming one new one — genuine fan-in, unresolvable.
+    // It reads that way only because the rows reaching here are distinct by spelling:
+    // `deriveVariableRenames` collapses the same rename recorded under two contract paths (see its
+    // header, #1140), and `test.ts` pins the map duplicate-free. Undo that and this branch starts
+    // reporting one name recorded twice as ambiguous, refusing a migration that is not in doubt at all.
     else if (live.length > 1) out.push(...live.map((r) => at(r, 'ambiguous-source')));
     else out.push(at(live[0], 'migrated'));
   }
