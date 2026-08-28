@@ -135,6 +135,8 @@ Prism3 keeps inverse but reframes it as a **surface *context*** ("this control s
 
 ### 9.1 Decided (2026-08-20, #871): cascade to publish, surface as its own Figma collection
 
+**Superseded in part 2026-08-28 (#1133) — see §9.8.** The collection survives, as the pointer tier, on #1082's appearance-independence grounds; the *surface axis* does not. "Cascade to publish" was the mode-inheritance mechanism, and it goes with the mode — inverse is name-encoded and bounded to a declared set of components. The measurement below still holds and still says exactly what it said: inverse is not dark mode. What did not survive was the step from there to "therefore it is an axis".
+
 **Cascade to publish context; surface as its own Figma collection, orthogonal to appearance; no per-component surface axis.** Three research passes (KB PRs #20, #21, #22) plus measurement against our own tree settled it.
 
 `tools/exporter-comparison/axes.ts` already records that a brand's Figma emission carries three independent mode axes — appearance, breakpoint, viewport — against the DTCG projection's one appearance-only axis. **`surface` is a fourth instance of a pattern with three working instances**, not new architecture.
@@ -241,6 +243,28 @@ So the fix is not a new mechanism — it is the existing one extended to the ban
 **Direct dependents only**, which is correct rather than a shortcut: a dependent's own colour does not change, so anything measured against *it* is unaffected. The edge set covers `legibleFor` as well as `against` — since §9.6 a wash reports the legibility of a second role it names, and moving that desynchronises it identically. That edge is also why the count is 18 and #964's table said 17: `text.on-inverse.primary` only became reachable as a ground once §9.5 repaired the nine `against` strings dangling since §9.2.
 
 **The gate was written first, and red.** The override cases were added to `lint-ratio-truth.ts` and confirmed failing — **226 failures** — *before* the fix that makes them pass. Every prior case built through `surfaces`, so arms A–C had never exercised the `overrides` route at all: the same blindness that left §9.5's refusal unheld until arm D was written for it. A gate authored after a fix cannot tell you the fix was needed.
+
+### 9.8 Decided (2026-08-28, #1133): inverse is name-encoded and bounded — the `inverse` mode comes off the pointer collection
+
+**What came off, and it is one thing:** the `inverse` mode on the `color.surface` pointer collection. That collection is single-mode now (`Default`), 129 rows, and the pointer tier no longer flips. The DTCG overlay that would have projected the mode (#1129, PR #1132) was closed unmerged rather than landed.
+
+**What stayed, deliberately, because reverting an encoding is not reverting the model:** all **113** inverse roles in `color.appearance` — `background.inverse.*`, `border.inverse.*`, `text.inverse.*`, `interactive.*.inverse.*` — keep their four appearance modes and their contrast contracts. They are the *values* an inverse component variant binds, and every section of §9 that derived them (§9.2's normalization, §9.4's removal of the lever, §9.5's `inverseBase` ground, §9.6/§9.7's ratio truth) stands untouched. So does the two-tier pointer/value split (#1082), which was justified by appearance-independence and never by inverse, and the brand-root namespace (#1097).
+
+**Why the mode was built.** §9.1 read `surface` as a fourth instance of a pattern with three working instances (appearance, breakpoint, viewport), and the measurement under it still holds: inverse is not dark mode — 96 tokens match their dark-mode counterpart, 40 differ, clustered on fills. That measurement says *don't collapse inverse into dark*. It was read as *therefore give inverse its own axis*, and that second step is the one that did not survive.
+
+**What reverted it is the requirement, measured against what the encoding delivers.** #1128 measured **112 of the pointer tier's 128** roles flipping under the inverse mode. A mode is a whole-collection switch, so that is what it has to be — every role in the region inverts, including the ones nobody asked to invert. The requirement is narrower and never was larger: a **bounded set of inverse atomic elements** (button, link, icon, focus ring) plus **inverse variants of page-level blocks** (hero, band, footer). Against a bounded set a mode is the wrong shape twice — it cannot say *which* elements invert, and it makes "all of them" the only expressible answer.
+
+**The field name-encodes it, and keeps it bounded.** Three research passes over Carbon, Material 3, Fluent and Atlassian found no surveyed system shipping a dedicated inverse mode or collection. Each one names it and bounds it: `$text-on-color`, `on-primary`, `foregroundOnAccent`, `text.inverse`. That is not an accident of their tooling — a named role is addressable per component, which is the granularity a bounded set needs and the one a mode cannot offer.
+
+**Prism3 had already shipped the template and was recording it as an exception.** `focus-ring` carries a `color: 'default' | 'inverse'` component property whose `inverse` binds `color.appearance.border.inverse.focus`. Under mode-encoding it was the one def reaching past the pointer tier, logged in `UNALIASED_DEF_BINDINGS` as an argued exception. #1133 makes it the pattern, and the register's entry now reads as the first instance rather than the only violation.
+
+**The tradeoff refused, stated plainly, because it is real.** A mode buys **inheritance**: a designer tags one frame and every descendant flips, with no per-component work. Naming buys none of that — each inverse variant is authored. The cost is accepted because the inheritance *is* the unboundedness: a flip that propagates by containment cannot be restricted to a declared set, so buying the inheritance means buying the 112.
+
+**Priced, and the price is one name.** The pointer tier's 128 rows and the appearance tier's 129 non-inverse roles differed by exactly one — `scrim.default`, which the surface axis had omitted — so dropping the mode is purely *additive* to the contract: one `ADDED color.scrim.default`, `CONTRACT_VERSION` 7.0.0 → 7.1.0 (MINOR), `guaranteed` 684 → 685. The 113 inverse paths deliberately do **not** gain pointer-tier short names; whether they should is a separate naming question (#1135), and whether `color.surface` is still the right collection name now that #1089's rationale has narrowed is another (#1136) — both filed rather than settled here. Committed artifacts drop 114 → 111, two files per brand becoming one.
+
+**One trap for whoever re-verifies this.** #1013's `['scrim', ['default']]` deprecation had to be *retired*, not reworded: the engine emits that path again, and a deprecation for a live path tells a consumer to migrate off a name that works. No gate can see it — `classify`'s dangling check reads a `Deprecation.replacedBy` against the live set and never the `path` — so a revived path passes silently. Filed as #1137; not fixed here.
+
+**Where a developer looks is unchanged.** `color.appearance.background.inverse.primary` is the path, and it always was: the studio's token pill already showed it, and Studio never modelled inverse as a mode at all, so nothing there moved but a comment that had gone stale.
 
 ## 10. Levers (brand inputs)
 

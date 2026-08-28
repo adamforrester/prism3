@@ -7,6 +7,115 @@
 
 ---
 
+## (2026-08-28) — inverse reverts from mode-encoding to bounded name-encoding (#1133)
+
+The `inverse` mode came off the `color.surface` pointer collection. That tier is single-mode (`Default`) now,
+**129 rows, one file per brand instead of two**, and the pointers no longer flip. The DTCG overlay that would
+have projected the mode (#1129, PR #1132) was **closed unmerged** rather than landed — its `docs/20` §9.8 and
+its `prism3-consume` rule 3b were written for mode-encoding and would have been wrong the day they shipped.
+The corrected decision record is `docs/20` §9.8, with a superseded-in-part marker on §9.1, a `docs/42` row,
+and `ENGINE_VERSION` 0.28.0 / `CONTRACT_VERSION` 7.1.0.
+
+`npm run verify`: **45/45 gates reached a verdict, 45 PASS / 0 FAIL / 0 SKIP / 0 ADVISORY.**
+
+### The diagnosis that kept the change small: the encoding was wrong, the model was not
+
+The tempting revert is "back out inverse". That would have been wrong and large. What #1128 measured is that
+**112 of the pointer tier's 128 roles flip** under an inverse mode — a mode is a whole-collection switch, so
+an inverse *region* is the only thing it can express, and the requirement is a **bounded set** (inverse
+button, link, icon, focus ring; inverse variants of hero/band/footer). So the defect is one level down from
+the feature: the *values* are right and needed, the *carrier* was too coarse.
+
+Everything downstream follows from holding that line. **All 113 inverse roles in `color.appearance` stay**,
+four appearance modes and contrast contracts intact — they are what an inverse variant binds. So do the
+two-tier split (#1082, justified by appearance-independence and never by inverse), the brand namespace
+(#1097), the core fan-in, and every earlier §9 decision. The diff removes one mode and its plumbing.
+`apps/studio` is **comment-only** — Studio never modelled inverse as a mode, and the one thing that had to
+change there was a doc comment carrying two claims #1133 falsified while the code under it carried none.
+
+**`focus-ring` was already the template and was being recorded as an exception.** Its
+`color: 'default' | 'inverse'` property binds `color.appearance.border.inverse.focus`, which under
+mode-encoding made it the one def reaching past the pointer tier — logged in `UNALIASED_DEF_BINDINGS` as an
+argued violation. The revert turns that entry from the only exception into the first instance, which is why
+the register survived intact rather than coming out with the mode.
+
+### The name stays `color.surface`, and every reason is about the rename map
+
+With one mode, #1089's rationale for the `.surface` suffix ("it names the second axis in the mode picker") is
+gone — a single-mode collection never appears in that picker. Reverting to `color` was still the wrong call,
+on four grounds and one honest concession:
+
+- a rename is a **`COLLECTION_RENAMES` entry**, in the machinery #1097/#1108 had just finished de-chaining —
+  re-creating the bug class for zero designer-visible gain (variable names are `nbds/color/text/primary`
+  either way);
+- **the map has no era.** `color` named the VALUE tier before #1082 and would name the POINTER tier after,
+  which is the exact ambiguity `rename-map.ts:365-368` already refuses in its mirror image;
+- `MIRRORED_COLLECTIONS` would become the self-mirror `{ color: ['color.appearance', 'color'] }`;
+- ~60 `color.surface` sites ripple for a cosmetic result.
+
+The concession: the suffix's justification **narrows** from "names the second axis" to "names one tier of an
+explicitly two-tier pair" — weaker than #1089's, and worth saying so rather than pretending the rationale
+survived. Revisiting it belongs in a deliberate naming PR, filed as #1136.
+
+### Additive to the contract, and measured rather than assumed
+
+The pointer tier's 128 rows and the appearance tier's **129** non-inverse roles differed by exactly one:
+`nbds/color/scrim/default`, which the surface axis had omitted. So collapsing the mode ADDS a name and
+removes none — `token-contract.ts --check` reports one `ADDED color.scrim.default`, MINOR, `guaranteed`
+684 → 685. The 113 inverse paths deliberately do **not** come back as pointer-tier short names.
+
+Committed artifacts **114 → 111** (`verify.ts`, `ci.yml`).
+
+### Four traps, three of which cost time here
+
+- **`regen --check` cannot see a file the engine stopped emitting** (#1059) — it diffs bytes of what is
+  written, so six now-stale `color.surface.{default,inverse}.json` sat green until an explicit `git rm`. A new
+  `test.ts` arm now scans the directory and fails on any `color.surface.*.json` beside the unsuffixed file,
+  because an extra artifact is a `git status` entry, not a byte diff.
+- **A deprecation for a path the engine emits again is invisible to every gate.** `classify`'s dangling check
+  reads `Deprecation.replacedBy` against the live set and **never the `path`**, so #1013's
+  `['scrim', ['default']]` would have kept telling consumers to migrate off a name that works. Retired by
+  hand — reworded would have been worse than missing. Filed as #1137.
+- **Retiring one `DEPRECATIONS` entry broke three `test.ts` arms with literal counts** (114 → 113 tier-only,
+  281 → 280, 151 → 150). The arms are right to be literal; the note is that a rename-map count arm is coupled
+  to the deprecation table, so a *deletion* there lands three files away.
+- **The DTCG extension had been naming a collection that does not exist**, and this lane only found it
+  because it had to rewrite the line. `tree.ts:483` said `figma.collection: 'color'` for every pointer-tier
+  leaf while the emitted Figma file declares `$collection: "color.surface"` — stale since #1089's rename, 128
+  leaves per brand, three brands. Corrected here rather than written back knowingly false; the *reason nothing
+  noticed* is filed as **#1138** (`lint-overlay-completeness` compares `modes` and not `collection`;
+  exporter-comparison reads the Figma emission's `$collection` and never the DTCG extension; `regen --check`
+  diffs bytes and the engine was consistently wrong).
+- **A comment I wrote failed `lint-us-english`.** `emit-figma-surface.ts` is imported into the plugin, an
+  unminified esbuild bundle keeps `//` comments, so "capitalised" shipped in `apps/plugin/dist/main.js`. The
+  fix is the word, not `NOT_EN_GB` — that list is for false positives.
+
+### The approach discarded, and how coverage was kept from shrinking
+
+Deleting the mode retires whole arms: `test.ts`'s "both modes carry the same rows" and the `omit`/`self`
+disposition arms; `test-write-surface.ts`'s `AGREE_IN_LIGHT`, its self-aliased-row arms and its mode-collapse
+arm. **Deleting them and moving on was the discarded approach** — #993's criterion (2) exists because many
+rows once wired to ONE variable, and that failure is not a mode phenomenon. So each deletion got a
+replacement over the single mode: the two-mode-membership arm became a stronger uniform-membership arm
+derived from `color.appearance.light.json` with its own locally re-derived inverse predicate (independent of
+`isInverseRole`, `docs/34` shape 1), and the mode-collapse arm became a distinct-alias-ids arm plus a
+neighbours-not-contaminated arm. 32 arms in `test-write-surface.ts`, 2699 in `test.ts`.
+
+**Stranded plumbing was found by following references, not by guessing a list**, and dual-purpose machinery
+stayed: gone are `SURFACE_MODES`/`SurfaceMode`, `inverseCounterpart`, `gapDisposition`, `surfaceOmitted`,
+`InverseGap.alias`, the `surface` entry in `AXIS_MODEL` and the `Axis` union, and the `surface` DTCG
+extension field; kept are `isInverseRole`, the inverse-coverage register (now bounding the bounded set rather
+than feeding an emitter), `UNALIASED_DEF_BINDINGS`, and the `base-only` `crossesAs` kind — documented as
+vacated, the same posture `absent` has held since #1013.
+
+### Filed rather than fixed
+
+**#1138** the missing agreement gate between a leaf's `figma.collection` and the emitted `$collection` ·
+**#1135** whether the pointer tier should gain short names for the 113 inverse roles · **#1136** revisiting the
+`color.surface` name as a deliberate naming PR · **#1137** `classify`'s blindness to a revived
+`Deprecation.path` — expected to fail on its first run over the committed table, since #1013/#1089/#1097 all
+moved tiers and nothing has ever asked whether a source came back.
+
 ## (2026-08-27) — the brand namespace on every Figma variable, and the three claims it made checkable (#1097, #1102, #1108)
 
 Every Figma variable name now carries the brand root as its first segment — `nbds/core/palette/red/550`,

@@ -65,7 +65,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 |---|---|---|---|
 | Paint keys are declared by the def, as templates | 2026-08-13 | `docs/28-component-anatomy-schema.md` §5.1 | #758 |
 | The engine's rung names are the API, and the default is `md` | 2026-08-14 | `docs/28-component-anatomy-schema.md` §5.2 | #756 |
-| Inverse surface-context: cascade to publish, surface as its own Figma collection | 2026-08-20 | `docs/20-interactive-color-system.md` §9.1 | #871 |
+| Inverse surface-context: cascade to publish, surface as its own Figma collection *(superseded in part by §9.8 — the collection stays, the axis goes)* | 2026-08-20 | `docs/20-interactive-color-system.md` §9.1 | #871 |
 | Normalize `on-inverse` and `-inverse` to `.inverse.` | 2026-08-21 | `docs/20-interactive-color-system.md` §9.2 | #891 |
 | A colour control's range is decided case-by-case, not by one universal rule | 2026-08-21 | `docs/20-interactive-color-system.md` §9.3 | #894 |
 | `docs/34` holds the diagnosis; `CLAUDE.md` holds a countermeasure only when it's unhookable and statable in one clause | 2026-08-22 | `docs/43-agent-instruction-surface.md` | #922 |
@@ -75,6 +75,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | Overriding a ground re-derives its dependents' ratios; their values stay, and say so | 2026-08-23 | `docs/20-interactive-color-system.md` §9.7 | #964 |
 | A materialization rename is recorded as a rule; the emission diff forces the rule to exist | 2026-08-25 | `docs/44-materialization-renames.md` §5 | #1032 |
 | The media veil is its own family, `color.veil.*`, and it is appearance-invariant | 2026-08-25 | `docs/20-interactive-color-system.md` §8.1 | #1030 |
+| Inverse is name-encoded and bounded — the `inverse` mode comes off the pointer collection | 2026-08-28 | `docs/20-interactive-color-system.md` §9.8 | #1133 |
 
 ## Known gaps, named rather than silent
 

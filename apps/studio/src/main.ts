@@ -508,21 +508,25 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
 };
 /** WHICH TIER a colour role's DTCG path lives in (#1013), for every pill that shows one.
  *
- *  The swap split `color.*` in two: the ALIAS tier keeps the short name and carries only the roles the
- *  surface axis pairs (128 in the measured corpus), while the rest exist ONLY in the VALUE tier as
- *  `color.appearance.*` (114 — the 113 inverse-band roles plus `scrim.default`, whose gap disposition
- *  is `omit`). A pill is a path a developer copies, so `color.background.inverse.primary` — correct
- *  before #1013 — is now a name that resolves to nothing.
+ *  The swap split `color.*` in two: the POINTER tier keeps the short name and carries every NON-INVERSE
+ *  role (129 in the measured corpus), while the 113 inverse-band roles exist ONLY in the VALUE tier as
+ *  `color.appearance.*`. A pill is a path a developer copies, so `color.background.inverse.primary` —
+ *  correct before #1013 — is now a name that resolves to nothing.
  *
  *  Derived from `surfaceRows`, the ONE derivation both materialisations read (`tree.ts` for DTCG,
  *  `emit-figma-surface.ts` for the Figma collection), so the pill cannot disagree with the tree it
- *  names. A pattern match on `inverse` would have been the natural thing to write and is wrong twice:
- *  it misses `scrim.default`, and it would keep answering confidently the day a role gains a
- *  counterpart and moves tier.
+ *  names. Re-deriving the split here from a pattern match on `inverse` would answer correctly today and
+ *  keep answering confidently the day the pointer tier's membership rule changes, which is the whole
+ *  reason there is one derivation rather than two.
  *
- *  What it deliberately does NOT do is tell the richer story — an inverse-band token is also reachable
- *  as its page-role sibling under the collection's `inverse` mode, which is the thing a developer
- *  actually wants and which DTCG cannot express until the surface overlay lands (#1027). */
+ *  This comment carried two claims #1133 falsified and the code carried none, which is why nothing below
+ *  it changed. It said the pointer tier held "the roles the surface axis pairs (128)" and that the 114th
+ *  excluded role was `scrim.default`, "whose gap disposition is `omit`" — dispositions are gone with the
+ *  surface axis, `scrim.default` has a pointer now, and 129 is the count. It also promised the richer
+ *  story a pill withholds: that an inverse-band token is reachable as its page-role sibling under the
+ *  collection's `inverse` mode, pending a DTCG surface overlay (#1027). There is no such mode and no such
+ *  overlay — inverse is name-encoded, and `color.appearance.background.inverse.primary` IS the path a
+ *  developer wants, which is what the pill already shows (`docs/20` §9.8). */
 let aliasTierCache: { of: Theme; set: Set<string> } | null = null;
 const aliasTierRoles = (): Set<string> => {
   if (aliasTierCache?.of !== theme) {

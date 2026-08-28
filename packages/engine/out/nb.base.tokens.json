@@ -9745,19 +9745,17 @@
         "primary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.background.primary}",
-          "$description": "Page surface — the canvas / base — surface-context alias; resolves to background.primary on a default surface and background.inverse.primary on an inverse one",
+          "$description": "Page surface — the canvas / base — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.background.primary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9765,19 +9763,17 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.background.secondary}",
-          "$description": "Page surface, second tier — a slightly tinted page / band — surface-context alias; resolves to background.secondary on a default surface and background.inverse.secondary on an inverse one",
+          "$description": "Page surface, second tier — a slightly tinted page / band — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.background.secondary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9785,19 +9781,17 @@
         "tertiary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.background.tertiary}",
-          "$description": "Page surface, third tier — surface-context alias; resolves to background.tertiary on a default surface and background.inverse.tertiary on an inverse one",
+          "$description": "Page surface, third tier — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.background.tertiary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9807,19 +9801,17 @@
         "brand": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.brand}",
-          "$description": "brand border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.brand on a default surface and border.inverse.brand on an inverse one",
+          "$description": "brand border — 3:1 (SC 1.4.11) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.brand",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9827,19 +9819,17 @@
         "danger": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.danger}",
-          "$description": "danger border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.danger on a default surface and border.inverse.danger on an inverse one",
+          "$description": "danger border — 3:1 (SC 1.4.11) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.danger",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9847,19 +9837,17 @@
         "focus": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.focus}",
-          "$description": "Focus ring color (keyboard focus) — surface-context alias; resolves to border.focus on a default surface and border.inverse.focus on an inverse one",
+          "$description": "Focus ring color (keyboard focus) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.focus",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9867,19 +9855,17 @@
         "info": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.info}",
-          "$description": "info border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.info on a default surface and border.inverse.info on an inverse one",
+          "$description": "info border — 3:1 (SC 1.4.11) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.info",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9887,19 +9873,17 @@
         "primary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.primary}",
-          "$description": "Default border — decorative, ~1.4:1 — surface-context alias; resolves to border.primary on a default surface and border.inverse.primary on an inverse one",
+          "$description": "Default border — decorative, ~1.4:1 — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.primary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9907,19 +9891,17 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.secondary}",
-          "$description": "Stronger border / divider — surface-context alias; resolves to border.secondary on a default surface and border.inverse.secondary on an inverse one",
+          "$description": "Stronger border / divider — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.secondary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9927,19 +9909,17 @@
         "success": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.success}",
-          "$description": "success border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.success on a default surface and border.inverse.success on an inverse one",
+          "$description": "success border — 3:1 (SC 1.4.11) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.success",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9947,19 +9927,17 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.color.appearance.border.warning}",
-          "$description": "warning border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.warning on a default surface and border.inverse.warning on an inverse one",
+          "$description": "warning border — 3:1 (SC 1.4.11) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.border.warning",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9969,19 +9947,17 @@
         "border": {
           "$type": "color",
           "$value": "{nbds.color.appearance.disabled.border}",
-          "$description": "Disabled control border — muted neutral — surface-context alias; resolves to disabled.border on a default surface and disabled.inverse.border on an inverse one",
+          "$description": "Disabled control border — muted neutral — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.disabled.border",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -9989,19 +9965,17 @@
         "fill": {
           "$type": "color",
           "$value": "{nbds.color.appearance.disabled.fill}",
-          "$description": "Disabled control fill — one muted neutral, any intent — surface-context alias; resolves to disabled.fill on a default surface and disabled.inverse.fill on an inverse one",
+          "$description": "Disabled control fill — one muted neutral, any intent — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.disabled.fill",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10009,19 +9983,17 @@
         "icon": {
           "$type": "color",
           "$value": "{nbds.color.appearance.disabled.icon}",
-          "$description": "Disabled icon — clears 3:1 (reduced contrast, legible) — surface-context alias; resolves to disabled.icon on a default surface and disabled.inverse.icon on an inverse one",
+          "$description": "Disabled icon — clears 3:1 (reduced contrast, legible) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.disabled.icon",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10029,19 +10001,17 @@
         "on-fill": {
           "$type": "color",
           "$value": "{nbds.color.appearance.disabled.on-fill}",
-          "$description": "Label / icon on a disabled fill — muted but clears 3:1 — surface-context alias; resolves to disabled.on-fill on a default surface and disabled.inverse.on-fill on an inverse one",
+          "$description": "Label / icon on a disabled fill — muted but clears 3:1 — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.disabled.on-fill",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10049,19 +10019,17 @@
         "text": {
           "$type": "color",
           "$value": "{nbds.color.appearance.disabled.text}",
-          "$description": "Disabled text — clears 3:1 (reduced contrast, legible) — surface-context alias; resolves to disabled.text on a default surface and disabled.inverse.text on an inverse one",
+          "$description": "Disabled text — clears 3:1 (reduced contrast, legible) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.disabled.text",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10072,19 +10040,17 @@
           "hover": {
             "$type": "color",
             "$value": "{nbds.color.appearance.field.border.hover}",
-            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4) — surface-context alias; resolves to field.border.hover on a default surface and field.inverse.border.hover on an inverse one",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.field.border.hover",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -10092,19 +10058,17 @@
           "rest": {
             "$type": "color",
             "$value": "{nbds.color.appearance.field.border.rest}",
-            "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border — surface-context alias; resolves to field.border.rest on a default surface and field.inverse.border.rest on an inverse one",
+            "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.field.border.rest",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -10113,19 +10077,17 @@
         "fill": {
           "$type": "color",
           "$value": "{nbds.color.appearance.field.fill}",
-          "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears) — surface-context alias; resolves to field.fill on a default surface and field.inverse.fill on an inverse one",
+          "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.field.fill",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10133,19 +10095,17 @@
         "placeholder": {
           "$type": "color",
           "$value": "{nbds.color.appearance.field.placeholder}",
-          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder) — surface-context alias; resolves to field.placeholder on a default surface and field.inverse.placeholder on an inverse one",
+          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.field.placeholder",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10155,19 +10115,17 @@
         "brand": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.brand}",
-          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.brand on a default surface and foreground.inverse.brand on an inverse one",
+          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.brand",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10175,19 +10133,17 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.brand-subtle}",
-          "$description": "Subtle brand tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.brand-subtle on a default surface and foreground.inverse.brand-subtle on an inverse one",
+          "$description": "Subtle brand tint surface — banners, badges, selected rows — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.brand-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10195,19 +10151,17 @@
         "danger": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.danger}",
-          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.danger on a default surface and foreground.inverse.danger on an inverse one",
+          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.danger",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10215,19 +10169,17 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.danger-subtle}",
-          "$description": "Subtle danger tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.danger-subtle on a default surface and foreground.inverse.danger-subtle on an inverse one",
+          "$description": "Subtle danger tint surface — banners, badges, selected rows — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.danger-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10235,19 +10187,17 @@
         "info": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.info}",
-          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.info on a default surface and foreground.inverse.info on an inverse one",
+          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.info",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10255,19 +10205,17 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.info-subtle}",
-          "$description": "Subtle info tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.info-subtle on a default surface and foreground.inverse.info-subtle on an inverse one",
+          "$description": "Subtle info tint surface — banners, badges, selected rows — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.info-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10275,19 +10223,17 @@
         "primary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.primary}",
-          "$description": "Default surface placed on the page — a card — surface-context alias; resolves to foreground.primary on a default surface and foreground.inverse.primary on an inverse one",
+          "$description": "Default surface placed on the page — a card — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.primary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10295,19 +10241,17 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.secondary}",
-          "$description": "A second surface — a panel / nested container — surface-context alias; resolves to foreground.secondary on a default surface and foreground.inverse.secondary on an inverse one",
+          "$description": "A second surface — a panel / nested container — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.secondary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10315,19 +10259,17 @@
         "success": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.success}",
-          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.success on a default surface and foreground.inverse.success on an inverse one",
+          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.success",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10335,19 +10277,17 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.success-subtle}",
-          "$description": "Subtle success tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.success-subtle on a default surface and foreground.inverse.success-subtle on an inverse one",
+          "$description": "Subtle success tint surface — banners, badges, selected rows — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.success-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10355,19 +10295,17 @@
         "tertiary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.tertiary}",
-          "$description": "A third surface step — surface-context alias; resolves to foreground.tertiary on a default surface and foreground.inverse.tertiary on an inverse one",
+          "$description": "A third surface step — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.tertiary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10375,19 +10313,17 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.warning}",
-          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.warning on a default surface and foreground.inverse.warning on an inverse one",
+          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.warning",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10395,19 +10331,17 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.foreground.warning-subtle}",
-          "$description": "Subtle warning tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.warning-subtle on a default surface and foreground.inverse.warning-subtle on an inverse one",
+          "$description": "Subtle warning tint surface — banners, badges, selected rows — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.foreground.warning-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10417,19 +10351,17 @@
         "brand": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.brand}",
-          "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.brand on a default surface and icon.on-inverse.brand on an inverse one",
+          "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.brand",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10437,19 +10369,17 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.brand-subtle}",
-          "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.brand-subtle on a default surface and icon.on-inverse.brand-subtle on an inverse one",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.brand-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10457,19 +10387,17 @@
         "danger": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.danger}",
-          "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.danger on a default surface and icon.on-inverse.danger on an inverse one",
+          "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.danger",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10477,19 +10405,17 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.danger-subtle}",
-          "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.danger-subtle on a default surface and icon.on-inverse.danger-subtle on an inverse one",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.danger-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10497,19 +10423,17 @@
         "info": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.info}",
-          "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.info on a default surface and icon.on-inverse.info on an inverse one",
+          "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.info",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10517,19 +10441,17 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.info-subtle}",
-          "$description": "Muted info icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.info-subtle on a default surface and icon.on-inverse.info-subtle on an inverse one",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.info-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10538,19 +10460,17 @@
           "default": {
             "$type": "color",
             "$value": "{nbds.color.appearance.icon.link.default}",
-            "$description": "Link icon — default — surface-context alias; resolves to icon.link.default on a default surface and icon.on-inverse.link.default on an inverse one",
+            "$description": "Link icon — default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.icon.link.default",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -10558,19 +10478,17 @@
           "focused": {
             "$type": "color",
             "$value": "{nbds.color.appearance.icon.link.focused}",
-            "$description": "Link icon — focused — surface-context alias; resolves to icon.link.focused on a default surface and icon.on-inverse.link.focused on an inverse one",
+            "$description": "Link icon — focused — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.icon.link.focused",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -10578,19 +10496,17 @@
           "hover": {
             "$type": "color",
             "$value": "{nbds.color.appearance.icon.link.hover}",
-            "$description": "Link icon — hover — surface-context alias; resolves to icon.link.hover on a default surface and icon.on-inverse.link.hover on an inverse one",
+            "$description": "Link icon — hover — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.icon.link.hover",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -10598,19 +10514,17 @@
           "visited": {
             "$type": "color",
             "$value": "{nbds.color.appearance.icon.link.visited}",
-            "$description": "Link icon — visited — surface-context alias; resolves to icon.link.visited on a default surface and icon.on-inverse.link.visited on an inverse one",
+            "$description": "Link icon — visited — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.icon.link.visited",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -10619,19 +10533,17 @@
         "on-brand": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.on-brand}",
-          "$description": "icon on a solid brand fill — surface-context alias; resolves to icon.on-brand on a default surface and icon.on-brand on an inverse one",
+          "$description": "icon on a solid brand fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.on-brand",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10639,19 +10551,17 @@
         "on-danger": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.on-danger}",
-          "$description": "icon on a solid danger fill — surface-context alias; resolves to icon.on-danger on a default surface and icon.on-danger on an inverse one",
+          "$description": "icon on a solid danger fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.on-danger",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10659,19 +10569,17 @@
         "on-info": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.on-info}",
-          "$description": "icon on a solid info fill — surface-context alias; resolves to icon.on-info on a default surface and icon.on-info on an inverse one",
+          "$description": "icon on a solid info fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.on-info",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10679,19 +10587,17 @@
         "on-success": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.on-success}",
-          "$description": "icon on a solid success fill — surface-context alias; resolves to icon.on-success on a default surface and icon.on-success on an inverse one",
+          "$description": "icon on a solid success fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.on-success",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10699,19 +10605,17 @@
         "on-warning": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.on-warning}",
-          "$description": "icon on a solid warning fill — surface-context alias; resolves to icon.on-warning on a default surface and icon.on-warning on an inverse one",
+          "$description": "icon on a solid warning fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.on-warning",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10719,19 +10623,17 @@
         "primary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.primary}",
-          "$description": "Primary icon — strongest neutral — surface-context alias; resolves to icon.primary on a default surface and icon.on-inverse.primary on an inverse one",
+          "$description": "Primary icon — strongest neutral — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.primary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10739,19 +10641,17 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.secondary}",
-          "$description": "Secondary icon — 4.5:1 on the floor — surface-context alias; resolves to icon.secondary on a default surface and icon.on-inverse.secondary on an inverse one",
+          "$description": "Secondary icon — 4.5:1 on the floor — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.secondary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10759,19 +10659,17 @@
         "success": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.success}",
-          "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.success on a default surface and icon.on-inverse.success on an inverse one",
+          "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.success",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10779,19 +10677,17 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.success-subtle}",
-          "$description": "Muted success icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.success-subtle on a default surface and icon.on-inverse.success-subtle on an inverse one",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.success-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10799,19 +10695,17 @@
         "tertiary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.tertiary}",
-          "$description": "Tertiary icon — 3:1 on the floor — surface-context alias; resolves to icon.tertiary on a default surface and icon.on-inverse.tertiary on an inverse one",
+          "$description": "Tertiary icon — 3:1 on the floor — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.tertiary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10819,19 +10713,17 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.warning}",
-          "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.warning on a default surface and icon.on-inverse.warning on an inverse one",
+          "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.warning",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10839,19 +10731,17 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.icon.warning-subtle}",
-          "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.warning-subtle on a default surface and icon.on-inverse.warning-subtle on an inverse one",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.icon.warning-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -10863,19 +10753,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.border.hover}",
-              "$description": "destructive interactive border — hover (the outline edge; follows the ink) — surface-context alias; resolves to interactive.destructive.border.hover on a default surface and interactive.destructive.inverse.border.hover on an inverse one",
+              "$description": "destructive interactive border — hover (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.border.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -10883,19 +10771,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.border.pressed}",
-              "$description": "destructive interactive border — pressed (the outline edge; follows the ink) — surface-context alias; resolves to interactive.destructive.border.pressed on a default surface and interactive.destructive.inverse.border.pressed on an inverse one",
+              "$description": "destructive interactive border — pressed (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.border.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -10903,19 +10789,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.border.rest}",
-              "$description": "destructive interactive border — rest (the outline edge; follows the ink) — surface-context alias; resolves to interactive.destructive.border.rest on a default surface and interactive.destructive.inverse.border.rest on an inverse one",
+              "$description": "destructive interactive border — rest (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.border.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -10925,19 +10809,17 @@
             "focused": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.fill.focused}",
-              "$description": "destructive interactive fill — focused — surface-context alias; resolves to interactive.destructive.fill.focused on a default surface and interactive.destructive.inverse.fill.focused on an inverse one",
+              "$description": "destructive interactive fill — focused — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.fill.focused",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -10945,19 +10827,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.fill.hover}",
-              "$description": "destructive interactive fill — hover — surface-context alias; resolves to interactive.destructive.fill.hover on a default surface and interactive.destructive.inverse.fill.hover on an inverse one",
+              "$description": "destructive interactive fill — hover — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.fill.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -10965,19 +10845,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.fill.pressed}",
-              "$description": "destructive interactive fill — pressed — surface-context alias; resolves to interactive.destructive.fill.pressed on a default surface and interactive.destructive.inverse.fill.pressed on an inverse one",
+              "$description": "destructive interactive fill — pressed — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.fill.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -10985,19 +10863,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.fill.rest}",
-              "$description": "destructive interactive fill — rest — surface-context alias; resolves to interactive.destructive.fill.rest on a default surface and interactive.destructive.inverse.fill.rest on an inverse one",
+              "$description": "destructive interactive fill — rest — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.fill.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11005,19 +10881,17 @@
             "selected": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.fill.selected}",
-              "$description": "destructive interactive fill — selected — surface-context alias; resolves to interactive.destructive.fill.selected on a default surface and interactive.destructive.inverse.fill.selected on an inverse one",
+              "$description": "destructive interactive fill — selected — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.fill.selected",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11026,19 +10900,17 @@
           "on-fill": {
             "$type": "color",
             "$value": "{nbds.color.appearance.interactive.destructive.on-fill}",
-            "$description": "Ink on the destructive interactive fill — surface-context alias; resolves to interactive.destructive.on-fill on a default surface and interactive.destructive.inverse.on-fill on an inverse one",
+            "$description": "Ink on the destructive interactive fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.interactive.destructive.on-fill",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11047,19 +10919,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.overlay.hover}",
-              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.hover) — surface-context alias; resolves to interactive.destructive.overlay.hover on a default surface and interactive.destructive.inverse.overlay.hover on an inverse one",
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.hover) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.overlay.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11067,19 +10937,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.overlay.pressed}",
-              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.pressed) — surface-context alias; resolves to interactive.destructive.overlay.pressed on a default surface and interactive.destructive.inverse.overlay.pressed on an inverse one",
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.pressed) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.overlay.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11087,19 +10955,17 @@
             "selected": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.overlay.selected}",
-              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.selected) — surface-context alias; resolves to interactive.destructive.overlay.selected on a default surface and interactive.destructive.inverse.overlay.selected on an inverse one",
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.selected) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.overlay.selected",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11109,19 +10975,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.text.hover}",
-              "$description": "destructive interactive ink — hover (outline / text appearance) — surface-context alias; resolves to interactive.destructive.text.hover on a default surface and interactive.destructive.inverse.text.hover on an inverse one",
+              "$description": "destructive interactive ink — hover (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.text.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11129,19 +10993,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.text.pressed}",
-              "$description": "destructive interactive ink — pressed (outline / text appearance) — surface-context alias; resolves to interactive.destructive.text.pressed on a default surface and interactive.destructive.inverse.text.pressed on an inverse one",
+              "$description": "destructive interactive ink — pressed (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.text.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11149,19 +11011,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.destructive.text.rest}",
-              "$description": "destructive interactive ink — rest (outline / text appearance) — surface-context alias; resolves to interactive.destructive.text.rest on a default surface and interactive.destructive.inverse.text.rest on an inverse one",
+              "$description": "destructive interactive ink — rest (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.destructive.text.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11173,19 +11033,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.border.hover}",
-              "$description": "neutral interactive border — hover (the outline edge; follows the ink) — surface-context alias; resolves to interactive.neutral.border.hover on a default surface and interactive.neutral.inverse.border.hover on an inverse one",
+              "$description": "neutral interactive border — hover (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.border.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11193,19 +11051,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.border.pressed}",
-              "$description": "neutral interactive border — pressed (the outline edge; follows the ink) — surface-context alias; resolves to interactive.neutral.border.pressed on a default surface and interactive.neutral.inverse.border.pressed on an inverse one",
+              "$description": "neutral interactive border — pressed (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.border.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11213,19 +11069,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.border.rest}",
-              "$description": "neutral interactive border — rest (the outline edge; follows the ink) — surface-context alias; resolves to interactive.neutral.border.rest on a default surface and interactive.neutral.inverse.border.rest on an inverse one",
+              "$description": "neutral interactive border — rest (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.border.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11235,19 +11089,17 @@
             "focused": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.fill.focused}",
-              "$description": "neutral interactive fill — focused — surface-context alias; resolves to interactive.neutral.fill.focused on a default surface and interactive.neutral.inverse.fill.focused on an inverse one",
+              "$description": "neutral interactive fill — focused — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.fill.focused",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11255,19 +11107,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.fill.hover}",
-              "$description": "neutral interactive fill — hover — surface-context alias; resolves to interactive.neutral.fill.hover on a default surface and interactive.neutral.inverse.fill.hover on an inverse one",
+              "$description": "neutral interactive fill — hover — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.fill.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11275,19 +11125,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.fill.pressed}",
-              "$description": "neutral interactive fill — pressed — surface-context alias; resolves to interactive.neutral.fill.pressed on a default surface and interactive.neutral.inverse.fill.pressed on an inverse one",
+              "$description": "neutral interactive fill — pressed — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.fill.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11295,19 +11143,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.fill.rest}",
-              "$description": "neutral interactive fill — rest — surface-context alias; resolves to interactive.neutral.fill.rest on a default surface and interactive.neutral.inverse.fill.rest on an inverse one",
+              "$description": "neutral interactive fill — rest — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.fill.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11315,19 +11161,17 @@
             "selected": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.fill.selected}",
-              "$description": "neutral interactive fill — selected — surface-context alias; resolves to interactive.neutral.fill.selected on a default surface and interactive.neutral.inverse.fill.selected on an inverse one",
+              "$description": "neutral interactive fill — selected — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.fill.selected",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11336,19 +11180,17 @@
           "on-fill": {
             "$type": "color",
             "$value": "{nbds.color.appearance.interactive.neutral.on-fill}",
-            "$description": "Ink on the neutral interactive fill — surface-context alias; resolves to interactive.neutral.on-fill on a default surface and interactive.neutral.inverse.on-fill on an inverse one",
+            "$description": "Ink on the neutral interactive fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.interactive.neutral.on-fill",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11357,19 +11199,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.overlay.hover}",
-              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.hover) — surface-context alias; resolves to interactive.neutral.overlay.hover on a default surface and interactive.neutral.inverse.overlay.hover on an inverse one",
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.hover) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.overlay.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11377,19 +11217,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.overlay.pressed}",
-              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.pressed) — surface-context alias; resolves to interactive.neutral.overlay.pressed on a default surface and interactive.neutral.inverse.overlay.pressed on an inverse one",
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.pressed) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.overlay.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11397,19 +11235,17 @@
             "selected": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.overlay.selected}",
-              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.selected) — surface-context alias; resolves to interactive.neutral.overlay.selected on a default surface and interactive.neutral.inverse.overlay.selected on an inverse one",
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.selected) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.overlay.selected",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11419,19 +11255,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.text.hover}",
-              "$description": "neutral interactive ink — hover (outline / text appearance) — surface-context alias; resolves to interactive.neutral.text.hover on a default surface and interactive.neutral.inverse.text.hover on an inverse one",
+              "$description": "neutral interactive ink — hover (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.text.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11439,19 +11273,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.text.pressed}",
-              "$description": "neutral interactive ink — pressed (outline / text appearance) — surface-context alias; resolves to interactive.neutral.text.pressed on a default surface and interactive.neutral.inverse.text.pressed on an inverse one",
+              "$description": "neutral interactive ink — pressed (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.text.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11459,19 +11291,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.neutral.text.rest}",
-              "$description": "neutral interactive ink — rest (outline / text appearance) — surface-context alias; resolves to interactive.neutral.text.rest on a default surface and interactive.neutral.inverse.text.rest on an inverse one",
+              "$description": "neutral interactive ink — rest (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.neutral.text.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11483,19 +11313,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.border.hover}",
-              "$description": "primary interactive border — hover (the outline edge; follows the ink) — surface-context alias; resolves to interactive.primary.border.hover on a default surface and interactive.primary.inverse.border.hover on an inverse one",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.border.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11503,19 +11331,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.border.pressed}",
-              "$description": "primary interactive border — pressed (the outline edge; follows the ink) — surface-context alias; resolves to interactive.primary.border.pressed on a default surface and interactive.primary.inverse.border.pressed on an inverse one",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.border.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11523,19 +11349,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.border.rest}",
-              "$description": "primary interactive border — rest (the outline edge; follows the ink) — surface-context alias; resolves to interactive.primary.border.rest on a default surface and interactive.primary.inverse.border.rest on an inverse one",
+              "$description": "primary interactive border — rest (the outline edge; follows the ink) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.border.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11545,19 +11369,17 @@
             "focused": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.fill.focused}",
-              "$description": "primary interactive fill — focused — surface-context alias; resolves to interactive.primary.fill.focused on a default surface and interactive.primary.inverse.fill.focused on an inverse one",
+              "$description": "primary interactive fill — focused — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.fill.focused",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11565,19 +11387,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.fill.hover}",
-              "$description": "primary interactive fill — hover — surface-context alias; resolves to interactive.primary.fill.hover on a default surface and interactive.primary.inverse.fill.hover on an inverse one",
+              "$description": "primary interactive fill — hover — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.fill.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11585,19 +11405,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.fill.pressed}",
-              "$description": "primary interactive fill — pressed — surface-context alias; resolves to interactive.primary.fill.pressed on a default surface and interactive.primary.inverse.fill.pressed on an inverse one",
+              "$description": "primary interactive fill — pressed — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.fill.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11605,19 +11423,17 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.fill.rest}",
-              "$description": "primary interactive fill — rest — surface-context alias; resolves to interactive.primary.fill.rest on a default surface and interactive.primary.inverse.fill.rest on an inverse one",
+              "$description": "primary interactive fill — rest — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.fill.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11625,19 +11441,17 @@
             "selected": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.fill.selected}",
-              "$description": "primary interactive fill — selected — surface-context alias; resolves to interactive.primary.fill.selected on a default surface and interactive.primary.inverse.fill.selected on an inverse one",
+              "$description": "primary interactive fill — selected — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.fill.selected",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11646,19 +11460,17 @@
           "on-fill": {
             "$type": "color",
             "$value": "{nbds.color.appearance.interactive.primary.on-fill}",
-            "$description": "Ink on the primary interactive fill — surface-context alias; resolves to interactive.primary.on-fill on a default surface and interactive.primary.inverse.on-fill on an inverse one",
+            "$description": "Ink on the primary interactive fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.interactive.primary.on-fill",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11667,19 +11479,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.overlay.hover}",
-              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.hover) — surface-context alias; resolves to interactive.primary.overlay.hover on a default surface and interactive.primary.inverse.overlay.hover on an inverse one",
+              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.hover) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.overlay.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11687,19 +11497,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.overlay.pressed}",
-              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.pressed) — surface-context alias; resolves to interactive.primary.overlay.pressed on a default surface and interactive.primary.inverse.overlay.pressed on an inverse one",
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.pressed) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.overlay.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11707,19 +11515,17 @@
             "selected": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.overlay.selected}",
-              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.selected) — surface-context alias; resolves to interactive.primary.overlay.selected on a default surface and interactive.primary.inverse.overlay.selected on an inverse one",
+              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.selected) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.overlay.selected",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11729,19 +11535,17 @@
             "hover": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.text.hover}",
-              "$description": "primary interactive ink — hover (outline / text appearance) — surface-context alias; resolves to interactive.primary.text.hover on a default surface and interactive.primary.inverse.text.hover on an inverse one",
+              "$description": "primary interactive ink — hover (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.text.hover",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11749,19 +11553,17 @@
             "pressed": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.text.pressed}",
-              "$description": "primary interactive ink — pressed (outline / text appearance) — surface-context alias; resolves to interactive.primary.text.pressed on a default surface and interactive.primary.inverse.text.pressed on an inverse one",
+              "$description": "primary interactive ink — pressed (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.text.pressed",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
               }
@@ -11769,21 +11571,39 @@
             "rest": {
               "$type": "color",
               "$value": "{nbds.color.appearance.interactive.primary.text.rest}",
-              "$description": "primary interactive ink — rest (outline / text appearance) — surface-context alias; resolves to interactive.primary.text.rest on a default surface and interactive.primary.inverse.text.rest on an inverse one",
+              "$description": "primary interactive ink — rest (outline / text appearance) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
               "$extensions": {
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "nbds.color.appearance.interactive.primary.text.rest",
-                  "surface": "default",
                   "figma": {
-                    "collection": "color",
+                    "collection": "color.surface",
                     "modes": [
-                      "default",
-                      "inverse"
+                      "Default"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                   }
                 }
+              }
+            }
+          }
+        }
+      },
+      "scrim": {
+        "default": {
+          "$type": "color",
+          "$value": "{nbds.color.appearance.scrim.default}",
+          "$description": "Scrim — 40% black backdrop (modals / drawers) — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "nbds.color.appearance.scrim.default",
+              "figma": {
+                "collection": "color.surface",
+                "modes": [
+                  "Default"
+                ],
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11793,19 +11613,17 @@
         "brand": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.brand}",
-          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.brand on a default surface and text.on-inverse.brand on an inverse one",
+          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.brand",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11813,19 +11631,17 @@
         "brand-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.brand-subtle}",
-          "$description": "Muted brand text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.brand-subtle on a default surface and text.on-inverse.brand-subtle on an inverse one",
+          "$description": "Muted brand text — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.brand-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11833,19 +11649,17 @@
         "danger": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.danger}",
-          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.danger on a default surface and text.on-inverse.danger on an inverse one",
+          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.danger",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11853,19 +11667,17 @@
         "danger-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.danger-subtle}",
-          "$description": "Muted danger text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.danger-subtle on a default surface and text.on-inverse.danger-subtle on an inverse one",
+          "$description": "Muted danger text — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.danger-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11873,19 +11685,17 @@
         "info": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.info}",
-          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.info on a default surface and text.on-inverse.info on an inverse one",
+          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.info",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11893,19 +11703,17 @@
         "info-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.info-subtle}",
-          "$description": "Muted info text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.info-subtle on a default surface and text.on-inverse.info-subtle on an inverse one",
+          "$description": "Muted info text — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.info-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -11914,19 +11722,17 @@
           "default": {
             "$type": "color",
             "$value": "{nbds.color.appearance.text.link.default}",
-            "$description": "Link text — default — surface-context alias; resolves to text.link.default on a default surface and text.on-inverse.link.default on an inverse one",
+            "$description": "Link text — default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.text.link.default",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11934,19 +11740,17 @@
           "focused": {
             "$type": "color",
             "$value": "{nbds.color.appearance.text.link.focused}",
-            "$description": "Link text — focused — surface-context alias; resolves to text.link.focused on a default surface and text.on-inverse.link.focused on an inverse one",
+            "$description": "Link text — focused — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.text.link.focused",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11954,19 +11758,17 @@
           "hover": {
             "$type": "color",
             "$value": "{nbds.color.appearance.text.link.hover}",
-            "$description": "Link text — hover — surface-context alias; resolves to text.link.hover on a default surface and text.on-inverse.link.hover on an inverse one",
+            "$description": "Link text — hover — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.text.link.hover",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11974,19 +11776,17 @@
           "visited": {
             "$type": "color",
             "$value": "{nbds.color.appearance.text.link.visited}",
-            "$description": "Link text — visited — surface-context alias; resolves to text.link.visited on a default surface and text.on-inverse.link.visited on an inverse one",
+            "$description": "Link text — visited — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.text.link.visited",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -11995,19 +11795,17 @@
         "on-brand": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.on-brand}",
-          "$description": "text on a solid brand fill — surface-context alias; resolves to text.on-brand on a default surface and text.on-brand on an inverse one",
+          "$description": "text on a solid brand fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.on-brand",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12015,19 +11813,17 @@
         "on-danger": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.on-danger}",
-          "$description": "text on a solid danger fill — surface-context alias; resolves to text.on-danger on a default surface and text.on-danger on an inverse one",
+          "$description": "text on a solid danger fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.on-danger",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12035,19 +11831,17 @@
         "on-info": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.on-info}",
-          "$description": "text on a solid info fill — surface-context alias; resolves to text.on-info on a default surface and text.on-info on an inverse one",
+          "$description": "text on a solid info fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.on-info",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12055,19 +11849,17 @@
         "on-success": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.on-success}",
-          "$description": "text on a solid success fill — surface-context alias; resolves to text.on-success on a default surface and text.on-success on an inverse one",
+          "$description": "text on a solid success fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.on-success",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12075,19 +11867,17 @@
         "on-warning": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.on-warning}",
-          "$description": "text on a solid warning fill — surface-context alias; resolves to text.on-warning on a default surface and text.on-warning on an inverse one",
+          "$description": "text on a solid warning fill — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.on-warning",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12095,19 +11885,17 @@
         "primary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.primary}",
-          "$description": "Primary text — strongest neutral — surface-context alias; resolves to text.primary on a default surface and text.on-inverse.primary on an inverse one",
+          "$description": "Primary text — strongest neutral — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.primary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12115,19 +11903,17 @@
         "secondary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.secondary}",
-          "$description": "Secondary text — 4.5:1 on the floor — surface-context alias; resolves to text.secondary on a default surface and text.on-inverse.secondary on an inverse one",
+          "$description": "Secondary text — 4.5:1 on the floor — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.secondary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12135,19 +11921,17 @@
         "success": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.success}",
-          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.success on a default surface and text.on-inverse.success on an inverse one",
+          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.success",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12155,19 +11939,17 @@
         "success-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.success-subtle}",
-          "$description": "Muted success text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.success-subtle on a default surface and text.on-inverse.success-subtle on an inverse one",
+          "$description": "Muted success text — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.success-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12175,19 +11957,17 @@
         "tertiary": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.tertiary}",
-          "$description": "Tertiary text — 3:1 on the floor — surface-context alias; resolves to text.tertiary on a default surface and text.on-inverse.tertiary on an inverse one",
+          "$description": "Tertiary text — 3:1 on the floor — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.tertiary",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12195,19 +11975,17 @@
         "warning": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.warning}",
-          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.warning on a default surface and text.on-inverse.warning on an inverse one",
+          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.warning",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12215,19 +11993,17 @@
         "warning-subtle": {
           "$type": "color",
           "$value": "{nbds.color.appearance.text.warning-subtle}",
-          "$description": "Muted warning text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.warning-subtle on a default surface and text.on-inverse.warning-subtle on an inverse one",
+          "$description": "Muted warning text — low-emphasis accent, 3:1 on the page — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
           "$extensions": {
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "nbds.color.appearance.text.warning-subtle",
-              "surface": "default",
               "figma": {
-                "collection": "color",
+                "collection": "color.surface",
                 "modes": [
-                  "default",
-                  "inverse"
+                  "Default"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
               }
             }
           }
@@ -12238,19 +12014,17 @@
           "body": {
             "$type": "color",
             "$value": "{nbds.color.appearance.veil.dark.body}",
-            "$description": "Media veil, dark — 60% black over an image; white text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — surface-context alias; resolves to veil.dark.body on a default surface and veil.dark.body on an inverse one",
+            "$description": "Media veil, dark — 60% black over an image; white text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.veil.dark.body",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -12258,19 +12032,17 @@
           "enhanced": {
             "$type": "color",
             "$value": "{nbds.color.appearance.veil.dark.enhanced}",
-            "$description": "Media veil, dark — 70% black over an image; white text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — surface-context alias; resolves to veil.dark.enhanced on a default surface and veil.dark.enhanced on an inverse one",
+            "$description": "Media veil, dark — 70% black over an image; white text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.veil.dark.enhanced",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -12278,19 +12050,17 @@
           "large": {
             "$type": "color",
             "$value": "{nbds.color.appearance.veil.dark.large}",
-            "$description": "Media veil, dark — 50% black over an image; white text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — surface-context alias; resolves to veil.dark.large on a default surface and veil.dark.large on an inverse one",
+            "$description": "Media veil, dark — 50% black over an image; white text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.veil.dark.large",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -12300,19 +12070,17 @@
           "body": {
             "$type": "color",
             "$value": "{nbds.color.appearance.veil.light.body}",
-            "$description": "Media veil, light — 50% white over an image; black text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — surface-context alias; resolves to veil.light.body on a default surface and veil.light.body on an inverse one",
+            "$description": "Media veil, light — 50% white over an image; black text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.veil.light.body",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -12320,19 +12088,17 @@
           "enhanced": {
             "$type": "color",
             "$value": "{nbds.color.appearance.veil.light.enhanced}",
-            "$description": "Media veil, light — 60% white over an image; black text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — surface-context alias; resolves to veil.light.enhanced on a default surface and veil.light.enhanced on an inverse one",
+            "$description": "Media veil, light — 60% white over an image; black text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.veil.light.enhanced",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -12340,19 +12106,17 @@
           "large": {
             "$type": "color",
             "$value": "{nbds.color.appearance.veil.light.large}",
-            "$description": "Media veil, light — 40% white over an image; black text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — surface-context alias; resolves to veil.light.large on a default surface and veil.light.large on an inverse one",
+            "$description": "Media veil, light — 40% white over an image; black text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value",
             "$extensions": {
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "nbds.color.appearance.veil.light.large",
-                "surface": "default",
                 "figma": {
-                  "collection": "color",
+                  "collection": "color.surface",
                   "modes": [
-                    "default",
-                    "inverse"
+                    "Default"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical"
                 }
               }
             }
@@ -16219,7 +15983,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.27.0",
+      "version": "0.28.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -78,7 +78,7 @@ import { join } from 'node:path';
 
 /** The axes prism3 emits. Not an open vocabulary: adding one is a decision about the token model, and
  *  it should land here alongside how the axis reaches DTCG (a path segment, or an overlay). */
-export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'surface' | 'none';
+export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'none';
 
 /** How each axis crosses into the DTCG projection — the fact that decides everything downstream.
  *
@@ -93,10 +93,13 @@ export type Axis = 'appearance' | 'breakpoint' | 'viewport' | 'surface' | 'none'
  *               described here rather than deleted: the distinction is what a reader needs when the
  *               projection has no overlays for an axis and they are asking whether that is a decision.
  *  `base-only` — the axis's BASE member is carried in the base projection; its other members are not
- *               carried anywhere yet. Between `absent` and `overlay`, and `surface` moved onto it in
- *               #1013: the alias tier is now the `color.*` tier in DTCG, so its default member pairs
- *               path-for-path, while the inverse member still has no overlay file (#1027). Naming it
- *               is what keeps the two facts separable — carried, and not fully carried.
+ *               carried anywhere yet. Between `absent` and `overlay`. **Also vacated, by #1133**, and
+ *               kept for the same reason `absent` is: `surface` was the only axis ever so classified,
+ *               its second member (`inverse`) was the only thing that was ever base-only, and the
+ *               revert to name-encoded inverse left the pointer collection single-mode. Both kinds are
+ *               now vocabulary a future axis can claim rather than descriptions of anything shipped —
+ *               and a reader who finds an axis with no overlays needs to be able to tell which of the
+ *               four situations they are in.
  *
  *  `baseMember` is the mode whose values the `base` projection carries, or `null` when the axis is
  *  path-carried and no single mode corresponds. This is the load-bearing part: `compare.ts` uses it to
@@ -118,11 +121,6 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
     baseMember: 'desktop',
     why: 'the fluid type-set axis; the projection bakes the desktop end into `base` and carries the min/max pair in `$extensions.prism3.responsive` rather than as a second overlay',
   },
-  surface: {
-    crossesAs: 'base-only',
-    baseMember: 'default',
-    why: 'the alias layer #871 decided (#893), Figma-only until #1013 and no longer. It stores POINTERS into the value tier rather than values, which is why it was classified `absent` for as long as the value tier held the short `color` name: a pointer tier and its targets under one name have nothing to project separately. #1013 gave the pointers the short name (`color.*`) and the values the explicit one (`color.appearance.*`), and with two names the projection carries both — 128 alias paths, pairing path-for-path. What is still not carried is the axis\'s SECOND member: `inverse` has no overlay file (#1027), so surface context still reaches code through the CSS cascade (#882). `default` is the base member: every row\'s `default` mode points at the page token, so a file that never switches the mode behaves exactly as it did before the collection existed',
-  },
   none: {
     crossesAs: 'singular',
     baseMember: 'Default',
@@ -140,9 +138,11 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
  * the three former `core-*` collections, not three.
  *
  * A collection missing from this table FAILS (see `classifyCollections`) — it is not assumed
- * `'none'`, even though 12 of the 16 entries are `'none'` and a default would be right 12 times out
- * of 16. Being right 12 times out of 16 by accident is the failure mode, not the success case: the
- * 13th is a new mode-varying collection, which is exactly when the guess is both wrong and silent.
+ * `'none'`, even though 13 of the 16 entries are `'none'` and a default would be right 13 times out
+ * of 16. Being right 13 times out of 16 by accident is the failure mode, not the success case: the
+ * 14th is a new mode-varying collection, which is exactly when the guess is both wrong and silent.
+ * (It was 12 of 16 until #1133 made `color.surface` single-mode, which is the majority getting SAFER
+ * and the guess getting no better — the exact shape of drift a default hides.)
  *
  * The three style collections carry NO modes at all (`text-styles`, `shadow-styles`,
  * `gradient-styles` have no `$mode` key), because Figma styles cannot have modes. That is not the
@@ -155,10 +155,16 @@ export const COLLECTION_AXIS: Record<string, Axis> = {
   'color.appearance': 'appearance',
   layout: 'breakpoint',
   'type-sets': 'viewport',
-  'color.surface': 'surface', // #893 — the alias layer; short name in #1013, `.surface` in #1089
 
   // -- single-mode variable collections ---------------------------------------------------------
   'border-width': 'none',
+  // The pointer tier. It had its OWN axis (`surface`, two modes) from #893 until #1133 reverted inverse
+  // to name-encoding; with one `Default` mode it is a plain single-mode collection, and `'none'` is
+  // literally true of it rather than a convenient approximation. The `surface` axis is gone from
+  // `AXIS_MODEL` with it — nothing else claimed it. What makes this entry worth a comment is that it is
+  // the one collection here whose rows are all ALIASES: `none` classifies the MODE structure, and says
+  // nothing about whether a collection holds values or pointers.
+  'color.surface': 'none',
   // The merged primitive collection (#1097) — `palette/*`, `dimension/*` and `font/*` under one
   // `core`, arriving from three separate files that each declare it. One mode, `Default`, for all
   // three groups; if a brand ever gives one group a second mode the whole collection gains it, and

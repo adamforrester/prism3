@@ -24,8 +24,9 @@
  *
  * SEMANTIC COLLECTIONS keep bare names (`space`, `radius`, `size`, `icon`, `control`, `border-width`,
  * `focus`, `opacity`, `layout`, `type-sets`) — except colour, split by #1089 into `color.appearance`
- * (the appearance-moded semantics) and `color.surface` (the surface-moded ones). `font-fluid/*` remains
- * a live VARIABLE prefix inside `type-sets`; only the COLLECTION of that name is gone.
+ * (the appearance-moded values) and `color.surface` (the pointers into them, single-mode since #1133).
+ * `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`; only the COLLECTION of that name is
+ * gone.
  *
  * See docs/00 + issue #66/#67 (Token Press), #1089, #1097, #1102.
  *
@@ -114,7 +115,7 @@ export { buildFigmaDims, buildFigmaLayout, LAYOUT_MODES } from './emit-figma-dim
 // they bundle into the plugin. Imported for the CLI below + re-exported so every `from './emit-figma'`
 // importer (and `test.ts`) stay unchanged.
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
-import { buildFigmaSurface, surfaceOmitted } from './emit-figma-surface';
+import { buildFigmaSurface } from './emit-figma-surface';
 export type {
   FigmaEffect, FigmaEffectStyle, FigmaEffectStylesFile,
   FigmaPaintStop, FigmaPaintStyle, FigmaPaintStylesFile,
@@ -239,14 +240,16 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   add('shadow-styles.json', shadows);
   const gradients = buildFigmaGradient(theme);
   add('gradient-styles.json', gradients);
-  // The surface-context alias layer (#893). Two modes, no colours of its own — every row points into
+  // The pointer tier (#893). One mode, no colours of its own — every row points into
   // `color.appearance`. Emitted last because it READS the resolved colour set it aliases.
   //
-  // The filename takes the collection from the file rather than repeating it (#1013): this layer now
-  // holds the name `color`, and a hardcoded `surface.` prefix would have emitted a file whose name
-  // contradicted its own `$collection` — the one field every reader of `out/figma/` keys on.
+  // NO MODE SEGMENT, since #1133 reverted the second mode: the stem is the collection name alone,
+  // `color.surface.json`, which is the same rule `radius` and `core.font` follow when a brand gives them
+  // one mode. The collection still comes off the FILE rather than being repeated here (#1013) — a
+  // hardcoded stem would be a second place the collection is named, free to contradict `$collection`,
+  // the one field every reader of `out/figma/` keys on.
   const surface = buildFigmaSurface(theme);
-  for (const s of surface) add(`${s.$collection}.${s.$mode}.json`, s);
+  for (const s of surface) add(`${s.$collection}.json`, s);
 
   const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
   return { artifacts, summary };

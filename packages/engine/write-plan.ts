@@ -117,15 +117,20 @@ export const buildWritePlan = (
 };
 
 // ---------------------------------------------------------------------------
-// THE SURFACE AXIS (#993 — #893's unbuilt half). The `color` collection: two modes (`default`,
-// `inverse`) whose every row is an alias into the `color.appearance` collection, so switching the mode
-// on a frame flips a whole subtree to its inverse-context values.
+// THE POINTER TIER (#993 — #893's unbuilt half). The `color.surface` collection: ONE mode, `Default`,
+// whose every row is an alias into the `color.appearance` collection, so a designer binds the short
+// `color/text/primary` and the appearance mode resolves the value one hop later.
 //
-// It held the name `surface` until #1013 swapped the two tiers. The type below is still `SurfacePlan`
-// and the builder still `buildSurfaceWritePlan`, because SURFACE is what the axis IS — the collection
-// name is what a designer binds, and the tier that gets the short name is the one they should reach
-// for first. Reading the two as interchangeable is the trap #1013 exists to remove: `color` is now a
-// collection of pointers and `color.appearance` the collection of paints.
+// It carried a SECOND mode (`default`/`inverse`) from #893 until #1133 reverted it — inverse is
+// name-encoded again, bound at the appearance tier by a bounded set of component variants (`docs/20`
+// §9.8). Nothing in the plan or the executor changed for that: both are generic over `modes.length`,
+// which is why a two-mode collection becoming a one-mode collection is a prose diff here. Worth saying
+// out loud, because "the code did not need to change" is otherwise indistinguishable from "the code was
+// not checked".
+//
+// The type below is still `SurfacePlan` and the builder still `buildSurfaceWritePlan`, matching the
+// collection name it writes. Reading the tier names as interchangeable is the trap #1013 exists to
+// remove: `color.surface` is the collection of pointers and `color.appearance` the collection of paints.
 //
 // It reuses `ColorCreateRow`/`ColorAliasRow` verbatim rather than declaring its own pair, because it
 // IS a colour collection in the plan's terms — COLOR-typed, literal-per-mode then aliased-per-mode.
@@ -134,12 +139,12 @@ export const buildWritePlan = (
 // resolved against anything this plan describes. See `applySurfacePlan`.
 // ---------------------------------------------------------------------------
 
-/** The surface axis's materialisation plan — the `color` collection since #1013. Same two-pass shape as
+/** The pointer tier's materialisation plan — the `color.surface` collection. Same two-pass shape as
  *  `plan.color`, named like a `FloatCollectionPlan` so the executor's collection handling reads the same.
  *
- *  `name` is carried in the plan rather than hardcoded in the executor, which is why the swap costs one
- *  line here and none there — and why `applySurfacePlan` passes `plan.name` to `upsertCollection`. The
- *  value-tier executor hardcodes its own name instead, so that one had to be edited. */
+ *  `name` is carried in the plan rather than hardcoded in the executor, which is why #1013's swap cost
+ *  one line here and none there — and why `applySurfacePlan` passes `plan.name` to `upsertCollection`.
+ *  The value-tier executor hardcodes its own name instead, so that one had to be edited. */
 export type SurfacePlan = {
   name: string;
   modes: string[];
@@ -148,20 +153,21 @@ export type SurfacePlan = {
 };
 
 /**
- * Reshape `buildFigmaSurface(theme)`'s two mode files into the host-neutral surface plan.
+ * Reshape `buildFigmaSurface(theme)`'s mode file(s) into the host-neutral pointer plan.
  *
  * Mirrors the colour reshape exactly — walk the first mode's variables, read each mode's value and
- * alias at the same index. The two files share one variable order by construction (`buildFigmaSurface`
- * maps the same `surfaceRows(theme)` array for both modes), which is the same invariant the colour and
- * FLOAT reshapes rely on.
+ * alias at the same index. Written over `files` rather than over one file DELIBERATELY, and kept that
+ * way through #1133's revert to a single mode: it is the same code path the colour and FLOAT reshapes
+ * use, and the invariant it relies on (every mode file carries the same variable order, because
+ * `buildFigmaSurface` maps one `surfaceRows(theme)` array) is a property of the emitter rather than of
+ * the mode count.
  *
- * Every row carries BOTH a literal `valuesByMode` entry and an alias target — 122/122 in both modes on
- * every brand in the corpus. The literal is the emitter's stated fallback contract, not redundancy: it
- * is what a row keeps when its alias target is not in the file, which is the one case where this
- * collection can go wrong. **That fallback is also what makes an unresolved target invisible to the
- * eye** — the row still renders the right colour on the day it is written, and simply stops tracking
- * the brand afterwards. Hence `applySurfacePlan` reports a missing target as a named MISS: nothing else
- * distinguishes a live pointer from a dead one.
+ * Every row carries BOTH a literal `valuesByMode` entry and an alias target. The literal is the
+ * emitter's stated fallback contract, not redundancy: it is what a row keeps when its alias target is
+ * not in the file, which is the one case where this collection can go wrong. **That fallback is also
+ * what makes an unresolved target invisible to the eye** — the row still renders the right colour on the
+ * day it is written, and simply stops tracking the brand afterwards. Hence `applySurfacePlan` reports a
+ * missing target as a named MISS: nothing else distinguishes a live pointer from a dead one.
  */
 export const buildSurfaceWritePlan = (theme: Theme): SurfacePlan => {
   const files = buildFigmaSurface(theme);

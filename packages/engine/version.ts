@@ -102,6 +102,38 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.28.0: INVERSE GOES BACK TO A NAME (#1133). The `color.surface` pointer collection loses its second
+ * mode: `default`/`inverse` becomes one `Default`, and the per-brand `color.surface.{default,inverse}.json`
+ * pair becomes a single `color.surface.json`. Three brands × two files → three files, so the ARTIFACT
+ * COUNT goes 114 → 111 and `verify.ts` / `ci.yml` are edited to match.
+ *
+ * The revert, not a redesign. Mode-encoding shipped at 0.13.0 and it only pays if you flip EVERYTHING:
+ * #1128 measured 112 of 128 rows changing value between the two modes, which is the number that makes a
+ * mode look obviously right. The requirement is not a full-region flip — it is a BOUNDED set of inverse
+ * atomic elements plus inverse variants of page-level blocks, and no surveyed system ships an inverse
+ * mode or collection (Carbon, Material 3, Fluent and Atlassian all name it). A name expresses a bounded
+ * set; a mode applies to every row in the collection or to none. Reasoning in `docs/20` §9.8.
+ *
+ * THE APPEARANCE TIER AND ALL 113 OF ITS INVERSE LEAVES ARE UNTOUCHED, which is the whole point: those
+ * are the values an inverse component variant binds, and `focus-ring` has been binding one by name since
+ * 0.9.0. So is the two-tier split (#1082/#1013), whose justification is appearance-INDEPENDENCE and never
+ * mentioned inverse; so is the brand namespace (0.27.0) and the `core` fan-in. The collection KEEPS the
+ * name `color.surface` — argued in `docs/20` §9.8, and the short version is that renaming it costs a
+ * `COLLECTION_RENAMES` entry in exactly the machinery #1097 de-chained, with no era to tell the pre-#1082
+ * `color` (a value tier) from the post-revert one (a pointer tier).
+ *
+ * ONE ROW MORE, NOT FEWER: 128 → 129. `color.scrim.default` had been the coverage register's single
+ * `omit` entry, kept out of the tier because nobody had decided what a scrim should do on an inverse
+ * ground. There is no per-surface behaviour left for that to be undecided about, so it gets its pointer
+ * and the short name comes back — see `CONTRACT_VERSION` 7.1.0, which is a MINOR for that one addition.
+ * That also retires a #1013 DEPRECATIONS entry: `classify` only checks a `replacedBy` against the live
+ * set, so an entry whose `path` is emitted AGAIN passes silently. Filed as its own gate gap.
+ *
+ * The 0.26.0 entry below still describes the axis as `base-only` in `axes.ts` and the studio pill's
+ * comment as citing `scrim.default`'s `omit` disposition. Both statements were true at 0.26.0 and are
+ * false now, and neither is edited: a changelog entry records what shipped at a version, the same rule
+ * `DEPRECATIONS` follows for its `path` field. The live state is here.
+ *
  * 0.27.0: THE BRAND NAMESPACE ON EVERY FIGMA VARIABLE, and the DTCG `core` tier with it (#1097/#1102).
  * The widest rename the project has run — 671 / 711 / 730 distinct variable names for nb / aurora /
  * wendys, 2112 across the corpus. Three Figma-side changes land as ONE, because each would otherwise
@@ -562,7 +594,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.27.0';
+export const ENGINE_VERSION = '0.28.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -608,6 +640,34 @@ export const ENGINE_VERSION = '0.27.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 7.1.0: `color.scrim.default` comes BACK. One added guaranteed path, no removal and no retype, so
+ * MINOR — the smallest possible contract move, and it is the whole contract cost of #1133's revert of
+ * inverse from mode-encoding to name-encoding (`ENGINE_VERSION` 0.28.0).
+ *
+ * WHY A SINGLE PATH, when the change removes a whole Figma mode. Because the mode was never in the
+ * contract. The pointer tier carries a role's SHORT NAME and the appearance tier carries its VALUES; the
+ * second mode changed which value a Figma variable resolved to and moved no DTCG name, which is exactly
+ * the case the two-version split exists for. 6.0.0 below says so in its own words: "WHAT DTCG DOES NOT
+ * CARRY: the `inverse` MODE."
+ *
+ * So the only path that moves is the one the mode had been keeping OUT. 6.0.0 removed
+ * `color.scrim.default` because the role has no inverse counterpart and `inverse-coverage.ts` disposed
+ * the gap as `omit` — no pointer row, no short name. With one mode there is no per-surface behaviour to
+ * be undecided about, membership becomes uniform (every non-inverse role gets a pointer), and the role
+ * rejoins the tier: 128 rows → 129.
+ *
+ * THE 113 INVERSE PATHS DO NOT COME BACK, and that is a decision rather than an oversight. They stay
+ * `color.appearance.*.inverse.*` only, because naming an inverse leaf at the appearance tier is HOW
+ * name-encoding works — a component variant binds `color.appearance.border.inverse.focus` deliberately,
+ * the way `focus-ring` already does. A short `color.border.inverse.focus` alias would be a second
+ * spelling for the leaf whose point is that it is named on purpose. Whether the pointer tier should
+ * eventually offer short names for them is filed as its own question, not decided here.
+ *
+ * The `['scrim', ['default']]` DEPRECATIONS entry from 6.0.0 is retired in the same change — see the
+ * note where it stood. `classify` checks a `replacedBy` against the live set and never a `path`, so a
+ * deprecation for a path the engine emits again passes every gate while telling consumers to migrate off
+ * a working name.
  *
  * 7.0.0: THE `core` TIER, plus the sixth corpus member. `palette.*`, `dimension.*` and `font.*` move
  * under `core.*` — 164 removed and 164 added — and 30 further paths stop being GUARANTEED without
@@ -823,7 +883,7 @@ export const ENGINE_VERSION = '0.27.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '7.0.0';
+export const CONTRACT_VERSION = '7.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -929,10 +989,19 @@ export const DEPRECATIONS: Deprecation[] = [
     ['interactive.primary.inverse', INVERSE_INTERACTIVE_SLOTS],
     ['interactive.neutral.inverse', INVERSE_INTERACTIVE_SLOTS],
     ['interactive.destructive.inverse', INVERSE_INTERACTIVE_SLOTS],
-    // The one NON-inverse role that moves. It has no counterpart and `inverse-coverage.ts` disposes
-    // the gap as `omit` rather than a self-alias, so there is no surface row to keep the short name
-    // alive. Deliberate — see that register's entry, which was re-argued at this swap.
-    ['scrim', ['default']],
+    // `['scrim', ['default']]` WAS HERE, AND #1133 RETIRED IT RATHER THAN REWORDING IT.
+    //
+    // At the swap, `color.scrim.default` was the one NON-inverse role that moved: it had no inverse
+    // counterpart and the coverage register disposed the gap as `omit` rather than a self-alias, so no
+    // pointer row kept the short name alive. #1133 removed the surface mode, which removed the question
+    // the disposition answered — a single-mode row is never asked what it does on an inverse ground — so
+    // the role gets its pointer and `color.scrim.default` is EMITTED AGAIN (`CONTRACT_VERSION` 7.1.0).
+    //
+    // A deprecation for a path the engine emits is worse than a missing one: it tells a consumer to stop
+    // using a name that works, and it is the only kind of rot `classify` cannot see. The dangling check
+    // is on `replacedBy` alone, and `color.appearance.scrim.default` is still perfectly live — so this
+    // entry would have gone on passing every gate while saying something false. Removed by hand, and the
+    // blind spot filed as its own issue rather than fixed here.
   ] as Array<[string, readonly string[]]>).flatMap(([group, leaves]) =>
     leaves.map((leaf) => ({
       path: `color.${group}.${leaf}`,

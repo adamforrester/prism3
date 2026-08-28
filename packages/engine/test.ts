@@ -20,8 +20,7 @@ import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
-import { INVERSE_GAPS as _IG, gapDisposition } from './inverse-coverage';
-import { surfaceRows, SURFACE_MODES, UNALIASED_DEF_BINDINGS, UNALIASED_PATHS } from './emit-figma-surface';
+import { surfaceRows, UNALIASED_DEF_BINDINGS, UNALIASED_PATHS } from './emit-figma-surface';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
@@ -1510,15 +1509,23 @@ for (const b of brands) {
       (notDemoted.length ? ` — MISSING from brandDependent: ${notDemoted.slice(0, 4).join(', ')}` : ''));
   }
 
-  // (a3) THE COVERAGE REGISTER, both directions (#892 step 5 / #893). Every semantic colour role
-  // either has an inverse counterpart or is named in `INVERSE_GAPS` with the reason it does not — so
-  // a deliberate gap and an oversight cannot look the same to #893's alias layer, which has to decide
-  // per row whether to omit it or point `inverse` at the same token.
+  // (a3) THE COVERAGE REGISTER, both directions (#892 step 5 / #893, rescoped by #1133). Every
+  // semantic colour role either has an inverse counterpart at the APPEARANCE tier or is named in
+  // `INVERSE_GAPS` with the reason it does not — so a deliberate gap and an oversight cannot look the
+  // same.
   //
-  // Both directions, and neither alone is enough. Arm 1 stops a gap appearing silently. Arm 2 stops an
-  // entry outliving its gap: once a role GAINS a counterpart its entry would go on asserting a decision
-  // nobody re-argued, and #893 would keep self-aliasing a row that now has a real inverse to point at —
-  // a wrong value that RESOLVES, which is the #575 shape.
+  // What the register is FOR moved with #1133 and the arms did not, which is worth stating because it
+  // is the reason they survived a revert. Under mode-encoding the register instructed the pointer tier
+  // per row: omit this one, or point its `inverse` mode at the same token. There is no `inverse` mode
+  // now — inverse is name-encoded, bound by a bounded set of components at `color.appearance.*` — so
+  // the register's consumer is no longer an emitter, it is a component author: a role listed below is
+  // a role no inverse variant can bind. That makes the register what BOUNDS the bounded set, and both
+  // directions still matter for the same reasons.
+  //
+  // Arm 1 stops a gap appearing silently — a component author reading the appearance tier finds no
+  // counterpart and no recorded decision either. Arm 2 stops an entry outliving its gap: once a role
+  // GAINS a counterpart its entry would go on asserting a decision nobody re-argued, and an inverse
+  // variant that could have bound the real leaf would be talked out of it by a stale note.
   //
   // The register stores CONTRACT paths (`color.text.on-brand`) because that is the public name #893
   // and `token-contract.json` both use; `modes.ts` role keys omit the `color.` prefix, so the two
@@ -1550,12 +1557,18 @@ for (const b of brands) {
 
     // (a4) EVERY DEF-BOUND `color.*` PATH RESOLVES IN THE ALIAS LAYER, OR IS REGISTERED (#871).
     //
-    // The planned collection swap makes the alias layer take the name `color`. Every def that binds
-    // `color.<role>` then becomes surface-responsive for free — the name it ALREADY binds starts
-    // resolving in a layer whose modes are `default`/`inverse`. For a binding the layer has no row
-    // for, that is silently false: the def goes on resolving against a real token and simply stops
-    // tracking the surface, with no error at either end. **A wrong value that resolves — #575's
-    // shape**, and the reason this is a register and not a comment.
+    // A def binds a CONTRACT path, and the plain `color.<role>` spelling is the pointer layer. So a
+    // binding the layer has no row for reaches past it into `color.appearance.*`, and the register's
+    // question is whether somebody decided that or a name drifted there.
+    //
+    // #1133 changed what an unregistered reach MEANS without changing what the arms have to do. It used
+    // to be a def that had silently lost surface-responsiveness: the pointer layer's `default`/`inverse`
+    // modes made every `color.<role>` binding flip with the frame, and a binding with no row went on
+    // resolving against a real token while quietly not tracking the surface — a wrong value that
+    // RESOLVES, #575's shape. With the layer single-mode there is nothing to fall out of, and a reach
+    // into the value tier is instead how a name-encoded inverse binding is spelled. That is a decision
+    // worth recording rather than a defect, which is why the register survived the revert intact —
+    // an unargued reach is still the thing neither reading wants.
     //
     // The two sides are independent authors, which is what makes the comparison worth anything: the
     // bindings come from `componentDefs`, the rows from `surfaceRows`, and neither is derived from
@@ -1624,7 +1637,7 @@ for (const b of brands) {
       ok(unregistered.length === 0,
         `surface: every def-bound color.* path either resolves in the alias layer or is registered in UNALIASED_DEF_BINDINGS (${bound.size} bound, ${bound.size - outside.length} aliased, ${outside.length} outside, ${UNALIASED_PATHS.size} registered)` +
         (unregistered.length
-          ? ` — UNREGISTERED, and each one silently loses surface-responsiveness at the collection rename: ${unregistered.map((p) => `${p} (${bound.get(p)!.join(', ')})`).join('; ')}`
+          ? ` — UNREGISTERED, each an unargued reach past the pointer tier into \`color.appearance.*\`: since #1133 that reach is how a name-encoded inverse binding is spelled, so it belongs in the register as a decision rather than sitting here as drift: ${unregistered.map((p) => `${p} (${bound.get(p)!.join(', ')})`).join('; ')}`
           : ''));
 
       // Arm 2, and it has to check BOTH halves of an entry. A path that gained a row is stale; so is
@@ -1772,76 +1785,88 @@ for (const b of brands) {
         `override: derivation is a pure function of the input — a second pass computes the identical tree, so two passes are redundant${unstable.length ? ` — ${unstable.join('; ')}` : ''}`);
     }
 
-    // (a4) THE SURFACE COLLECTION (#893). Read out of the COMMITTED emission, not re-derived from
-    // `buildFigmaSurface` — a re-derivation would be the emitter checked against a copy of itself.
-    // `surfaceRows` is imported only for the row-count cross-check, which is the one place the two
-    // halves are SUPPOSED to agree.
+    // (a4) THE SURFACE COLLECTION (#893, single-mode since #1133). Read out of the COMMITTED emission,
+    // not re-derived from `buildFigmaSurface` — a re-derivation would be the emitter checked against a
+    // copy of itself. `surfaceRows` is imported only for the row-count cross-check, which is the one
+    // place the two halves are SUPPOSED to agree.
     // The brands with a committed Figma emission — `regen`'s emit-figma step writes these three; a
     // brand absent here is not a silent skip, the count below is asserted.
-    // #1013 swapped the two collections' names, so both filenames here moved: this layer is now
-    // `color.surface.<surface-mode>.json` and the value tier it aliases is `color.appearance.<mode>.json`.
-    // (#1089 renamed the alias tier's COLLECTION `color` → `color.surface`, and an artifact filename
-    // follows its collection name, so the stem gained a segment a second time. The `existsSync` filter is
-    // why this must be got right rather than merely fixed: a stale filename makes `figmaBrands` EMPTY and
-    // every per-brand arm below simply does not run. The floor arm on the next line is the only thing
-    // between that and a green suite — it is not decoration.)
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.surface.inverse.json`)));
+    // THE FILENAME HAS MOVED THREE TIMES AND THE `existsSync` FILTER IS WHY THAT MATTERS: a stale stem
+    // makes `figmaBrands` EMPTY and every per-brand arm below simply does not run. #1013 swapped the two
+    // collections' names; #1089 renamed this one `color` → `color.surface`, and an artifact filename
+    // follows its collection name; #1133 removed the second mode, so the mode segment goes with it and
+    // the stem is the bare collection name (`color.surface.json`), the same rule `radius` and
+    // `core.font` follow with one mode. The floor arm on the next line is the only thing between a
+    // fourth such move and a green suite — it is not decoration.
+    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.surface.json`)));
     ok(figmaBrands.length >= 3, `surface: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
       const colorVars = new Set<string>(
         JSON.parse(readFileSync(resolve(dir, 'color.appearance.light.json'), 'utf8')).variables.map((v: any) => v.name));
-      const files = SURFACE_MODES.map((m) => JSON.parse(readFileSync(resolve(dir, `color.surface.${m}.json`), 'utf8')));
-      // #1097 — the register's paths are DTCG paths below the root (`color.background.primary`), and the
-      // emitted names are rooted Figma names. `srfName` is the one place that boundary is crossed for this
-      // block, and the root comes from the brand's theme via `rootOfBrand`, never from a name in the file.
-      const srfName = (dtcgPath: string): string =>
-        `${rootOfBrand(brand)}/color/${dtcgPath.replace(/^color\./, '').replace(/\./g, '/')}`;
+
+      // ONE FILE, AND NOT BECAUSE ONE WAS READ. The arm above proves `color.surface.json` exists; it
+      // cannot notice a `color.surface.inverse.json` sitting beside it, which is exactly what a partial
+      // revert — or a re-introduction — leaves behind. A directory scan is the only reading that fails
+      // on a file nobody asked for, and `regen --check` would not catch it either: an untracked extra
+      // artifact is a `git status` entry, not a byte diff.
+      const surfaceFiles = readdirSync(dir).filter((n) => /^color\.surface(\..+)?\.json$/.test(n)).sort();
+      ok(surfaceFiles.join(',') === 'color.surface.json',
+        `surface(${brand}): the pointer tier is ONE single-mode file since #1133 — found ${surfaceFiles.join(', ') || 'none'}`);
+
+      const file = JSON.parse(readFileSync(resolve(dir, 'color.surface.json'), 'utf8'));
+      ok(file.$collection === 'color.surface' && file.$mode === 'Default',
+        `surface(${brand}): declares \`color.surface\` / \`Default\` — the capitalised single-mode name every other one-mode collection uses (got ${file.$collection} / ${file.$mode})`);
 
       // THE DEAD POINTER — the failure #893 says the whole sequencing exists to prevent. An alias at
       // a name no variable carries pastes clean into Figma and resolves to nothing at bind time.
-      const dangling = files.flatMap((f, i) => f.variables
+      const dangling = file.variables
         .filter((v: any) => !colorVars.has(v.alias?.name))
-        .map((v: any) => `${SURFACE_MODES[i]}:${v.name}→${v.alias?.name ?? 'NO ALIAS'}`));
+        .map((v: any) => `${v.name}→${v.alias?.name ?? 'NO ALIAS'}`);
       ok(dangling.length === 0,
-        `surface(${brand}): every alias resolves to a real color variable${dangling.length ? ` — DANGLING: ${dangling.slice(0, 3).join(', ')}` : ` (${files[0].variables.length} rows × ${SURFACE_MODES.length} modes)`}`);
+        `surface(${brand}): every alias resolves to a real color variable${dangling.length ? ` — DANGLING: ${dangling.slice(0, 3).join(', ')}` : ` (${file.variables.length} rows)`}`);
 
-      // A row present in one mode and not the other is a half-bound token: switching the mode would
-      // leave the layer pointing at nothing.
-      const names = files.map((f) => new Set<string>(f.variables.map((v: any) => v.name)));
-      const lopsided = [...names[0]].filter((n) => !names[1].has(n)).concat([...names[1]].filter((n) => !names[0].has(n)));
-      ok(lopsided.length === 0, `surface(${brand}): both modes carry the same rows${lopsided.length ? ` — ONLY IN ONE: ${lopsided.slice(0, 3).join(', ')}` : ''}`);
-
-      // THE REGISTER IS ENFORCED, NOT ADVISORY. A gap dispositioned `omit` must have NO row — if it
-      // were emitted as a self-alias anyway, the distinction the register exists to preserve would be
-      // gone from the artifact and a deliberate gap would read exactly like a filled one.
-      const omitted = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'omit');
-      const leaked = omitted.filter((g) => names[0].has(srfName(g)));
-      ok(leaked.length === 0,
-        `surface(${brand}): a gap dispositioned 'omit' emits NO row${leaked.length ? ` — LEAKED: ${leaked.join(', ')}` : ` (${omitted.length} omitted)`}`);
-
-      // And the converse: a gap dispositioned `self` must be present, with both modes on one target.
-      const selfs = [...INVERSE_GAP_PATHS].filter((g) => gapDisposition(g) === 'self').map(srfName);
-      const missingSelf = selfs.filter((n) => !names[0].has(n));
-      const notSelfAliased = selfs.filter((n) => {
-        const d = files[0].variables.find((v: any) => v.name === n);
-        const i = files[1].variables.find((v: any) => v.name === n);
-        return d && i && d.alias?.name !== i.alias?.name;
-      });
-      ok(missingSelf.length === 0 && notSelfAliased.length === 0,
-        `surface(${brand}): a gap dispositioned 'self' emits a row pointing at ONE target in both modes${missingSelf.length ? ` — MISSING: ${missingSelf.slice(0, 2).join(', ')}` : ''}${notSelfAliased.length ? ` — NOT SELF-ALIASED: ${notSelfAliased.slice(0, 2).join(', ')}` : ''}`);
+      // MEMBERSHIP IS UNIFORM, AND THAT IS AN ASSERTION NOW RATHER THAN A CONSEQUENCE.
+      //
+      // This arm replaces three that #1133 killed: "both modes carry the same rows", and the two that
+      // enforced the `omit`/`self` dispositions. All three were about what a row does when the mode
+      // flips, and there is no mode to flip. What is left to check is stronger and was never checked:
+      // the pointer tier carries EXACTLY the non-inverse rows of the tier it points into. Nothing else
+      // in the suite would notice 20 missing pointers — every arm above is satisfied by a subset.
+      //
+      // EXPECTED comes from `color.appearance.light.json`, a different file written by a different
+      // builder, with the inverse split re-derived HERE off the emitted Figma name (`/` segments) rather
+      // than by importing `isInverseRole`. Importing it would make this `isInverseRole === isInverseRole`
+      // with an emission in between (`docs/34` shape 1) — and the regex the emitter uses is written over
+      // DTCG dot paths, so a local one over slash paths is not even the same expression.
+      const invSeg = (n: string): boolean => n.split('/').some((sg) => sg === 'inverse' || sg === 'on-inverse');
+      const appearanceRoot = `${rootOfBrand(brand)}/color/appearance/`;
+      const expected = new Set([...colorVars]
+        .filter((n) => n.startsWith(appearanceRoot) && !invSeg(n))
+        .map((n) => `${rootOfBrand(brand)}/color/${n.slice(appearanceRoot.length)}`));
+      const got = new Set<string>(file.variables.map((v: any) => v.name));
+      const missing = [...expected].filter((n) => !got.has(n)).sort();
+      const extra = [...got].filter((n) => !expected.has(n)).sort();
+      ok(missing.length === 0 && extra.length === 0,
+        `surface(${brand}): one pointer per NON-INVERSE appearance role, no more and no fewer (${expected.size} expected, ${got.size} emitted)` +
+        (missing.length ? ` — NO POINTER: ${missing.slice(0, 4).join(', ')}` : '') +
+        (extra.length ? ` — POINTER WITH NO ROLE: ${extra.slice(0, 4).join(', ')}` : ''));
+      // Floor on the DERIVATION, not on the emission: an appearance file whose names did not carry the
+      // rooted `color/appearance/` prefix would make `expected` empty and the arm above vacuous.
+      ok(expected.size > 100 && [...colorVars].some(invSeg),
+        `surface(${brand}): the appearance tier the arm above derives from is real (${expected.size} non-inverse of ${colorVars.size} rows, and inverse rows are present to be excluded)`);
 
       // Floor: an empty or near-empty collection would pass every arm above trivially.
-      ok(files[0].variables.length > 100,
-        `surface(${brand}): the collection is populated (${files[0].variables.length} rows)`);
+      ok(file.variables.length > 100,
+        `surface(${brand}): the collection is populated (${file.variables.length} rows)`);
     }
-    // The four brands ship the IDENTICAL row set — the property that lets the collection be authored
-    // once and shared. It is what 4/4 zero-divergence buys, and it is NOT the acceptance check: a
-    // brand needing `inverse` to point at a structurally DIFFERENT role is only testable at the first
-    // hand-authored client brand (#893, the Mistica case).
+    // The brands ship the IDENTICAL row set — the property that lets the collection be authored once and
+    // shared. It is what zero divergence across the corpus buys, and it is NOT the acceptance check: a
+    // brand needing a structurally DIFFERENT inverse mapping is only testable at the first hand-authored
+    // client brand (#893, the Mistica case).
     {
       const rowSets = figmaBrands.map((b) =>
-        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.surface.inverse.json`), 'utf8'))
+        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.surface.json`), 'utf8'))
           // #1097 — the ROW SET is compared across brands, and every name in it now begins with that
           // brand's own root, so comparing the raw names would report three-way divergence on nothing but
           // the namespace. The root is stripped, per brand, with its own configured value; a name that
@@ -12507,12 +12532,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `rename-map: the ${unprojectedRoot.length} deprecations on an unprojected ROOT break down exactly as authored (expected 167 = ${Object.entries(UNPROJECTED_FAMILIES).map(([f, n]) => `${n} ${f}*`).join(' + ')}) — Figma has no easing variable, and the core tier moves by materialization rule rather than per path${famWrong.length ? ` — WRONG: ${famWrong.join('; ')}` : ''}`);
   const tierOnly = DEPRECATIONS.filter((d) => d.replacedBy === `color.appearance.${d.path.slice('color.'.length)}`);
   const tierOnlyProjecting = tierOnly.filter((d) => projectionsOf(d).length > 0);
-  ok(tierOnly.length === 114 && tierOnlyProjecting.length === 0,
-    `rename-map: all ${tierOnly.length} of #1013's tier-only moves project NOTHING (expected 114) — the contract path moved, the role did not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
+  // 113, and it was 114 until #1133. The 114th was `color.scrim.default` — the one NON-inverse role
+  // #1013 moved, because the coverage register disposed its inverse gap as `omit` and so no pointer row
+  // kept its short name. The revert made the pointer tier's membership uniform, `color.scrim.default` is
+  // emitted again, and its DEPRECATIONS entry is retired: a deprecation for a live path is the one rot
+  // `classify` cannot see (it checks `replacedBy` against the live set, never `path`). So all 113 left are
+  // inverse roles, which is now the honest description of this bucket rather than a coincidence.
+  ok(tierOnly.length === 113 && tierOnlyProjecting.length === 0,
+    `rename-map: all ${tierOnly.length} of #1013's tier-only moves project NOTHING (expected 113) — the contract path moved, the role did not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
   const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
   const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
-  ok(noProjection.length === 281 && unaccounted.length === 0,
-    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 167 unprojected root + 114 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(noProjection.length === 280 && unaccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 167 unprojected root + 113 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
   // least one live variable. Per-ROW this is deliberately false — the mirror over-projects, see (c) — so
@@ -12523,15 +12554,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(projecting.length === 40 && projectedButDead.length === 0,
     `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 40)${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
-  // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT. 151 deprecations now name a
-  // `color.appearance.*` replacement, but only 114 of them are #1013's own; the other 37 are older renames
+  // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT. 150 deprecations now name a
+  // `color.appearance.*` replacement, but only 113 of them are #1013's own; the other 37 are older renames
   // (3.0.0–5.0.0) whose `replacedBy` was carried into the new tier by the swap. Those must still project,
   // because a real role change is buried inside them — `interactive/primary/on-inverse/border` →
   // `interactive/primary/inverse/border/rest` — and it is `roleOf` stripping the tier from BOTH sides that
   // separates the two cases. A derivation keyed on the tier segment instead of the role would lose all 37.
   const intoNewTier = DEPRECATIONS.filter((d) => d.replacedBy?.startsWith('color.appearance.'));
   const olderRepointed = intoNewTier.filter((d) => !tierOnly.includes(d));
-  ok(intoNewTier.length === 151 && olderRepointed.length === 37 && olderRepointed.every((d) => projectionsOf(d).length === 2),
+  ok(intoNewTier.length === 150 && olderRepointed.length === 37 && olderRepointed.every((d) => projectionsOf(d).length === 2),
     `rename-map: the ${olderRepointed.length} PRE-#1013 deprecations repointed into the new tier still project both mirrors (${intoNewTier.length} name the new tier, ${tierOnly.length} of them tier-only) — the projection follows the ROLE, so it does not care which era the record was written in`);
 
   // ---- (c) the SURFACE mirror — one contract path, two Figma names ----

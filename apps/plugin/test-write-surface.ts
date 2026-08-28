@@ -9,13 +9,30 @@
  * and the one it POINTS AT is `color.appearance`** — the two names swapped, the axis did not, so the locals
  * below are `aliasCol`/`valueCol` rather than the `surfCol`/`colorCol` they were: a variable called
  * `colorCol` holding the appearance tier is the shape #1049 is about. Since #1089 the alias tier's
- * COLLECTION is `color.surface`, so both tiers now name their axis in Figma's mode picker; its VARIABLES
- * are still `color/*`, which is why a collection name and a variable prefix cannot be assumed to match
- * here. #993's three acceptance criteria are behavioural, and each is asserted as such:
+ * COLLECTION is `color.surface`, and its VARIABLES are still `color/*`, which is why a collection name
+ * and a variable prefix cannot be assumed to match here.
  *
- *   1. Both modes appear on the collection, named `default` and `inverse`.
- *   2. Switching the mode changes the RESOLVED colour of anything bound to `<root>/color/*`.
- *   3. The aliases resolve to the `color.appearance` collection's variables rather than to COPIES.
+ * ── #1133 TOOK THE SECOND MODE OFF, AND THAT REWROTE ONE ACCEPTANCE CRITERION ────────────────────
+ *
+ * The collection carried `default` and `inverse` modes from #993 until #1133 reverted inverse to
+ * NAME-encoding: a bounded set of components declares an inverse variant and binds
+ * `color.appearance.*.inverse.*` by name, rather than every row in the tier flipping with an ancestor
+ * frame's mode (`docs/20` §9.8). The pointer tier is single-mode, `Default`.
+ *
+ * #993's criterion (2) — *switching the mode changes the resolved colour* — therefore has no subject
+ * any more, and it is deleted rather than weakened. So is everything that existed to support it: the
+ * `AGREE_IN_LIGHT` register of rows whose two modes resolved equal in light, the self-aliased-row arms
+ * that read `inverse-coverage.ts`'s gap dispositions, and the mode-collapse arm. What replaced the
+ * collapse arm matters more than what it lost: the failure it guarded — many rows wired to ONE variable
+ * — is not a mode phenomenon, so it is re-asserted over the DISTINCTNESS of the alias ids actually in
+ * the file. `applySurfacePlan` and `buildSurfaceWritePlan` needed no change at all: both are generic
+ * over `modes.length`.
+ *
+ * The two criteria that remain are the ones that were always load-bearing:
+ *
+ *   1. The collection carries exactly ONE mode, named `Default`, with no leftover `Mode 1`.
+ *   3. The aliases resolve to the `color.appearance` collection's variables rather than to COPIES,
+ *      and every row resolves through the whole chain to a real colour.
  *
  * Every variable name below carries nb's BRAND ROOT (#1097) — `nbds/color/background/primary`, not
  * `color/background/primary` — and the authored literals spell it, because nb is the corpus member whose
@@ -43,7 +60,7 @@
  *
  * ── AND THE MISS PATH, WHICH THE HEALTHY PATH CANNOT REACH ──────────────────────────────────────
  *
- * The corpus measures 0 unresolved targets out of 244 per brand, so a suite that only ran the happy
+ * The corpus measures 0 unresolved targets out of 129 per brand, so a suite that only ran the happy
  * path would leave the miss branch unexecuted and report that as a pass (#969). Three hosts drive it
  * deliberately: no `color.appearance` collection at all, one missing a single target, and the healthy
  * file — asserting in all three that the report matches what is actually in the file.
@@ -58,52 +75,21 @@ import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 import { readFileSync } from 'node:fs';
 
 /**
- * The two mode names, AUTHORED here rather than imported from the emitter's `SURFACE_MODES`.
+ * The mode names, AUTHORED here rather than read off the plan or the emitter.
  *
- * Importing that constant would make "#993(1) the collection carries exactly the two named modes"
- * true by construction — the emitter names the modes from it, the plan carries them through, and the
- * assertion would compare the constant with itself. `docs/34` shape 16: state the quantity a human
- * would check, in the units they would check it in. A renamed mode is a BREAKING change for every
- * file already bound to it, so it should cost a deliberate edit here.
+ * There used to be an emitter constant (`SURFACE_MODES`, two members) and importing it would have made
+ * "#993(1) the collection carries exactly the named modes" true by construction — the emitter named the
+ * modes from it, the plan carried them through, and the assertion would have compared the constant with
+ * itself. #1133 deleted that constant along with the second mode, and this local one stays for the same
+ * reason it was local: `docs/34` shape 16, state the quantity a human would check in the units they
+ * would check it in. Reading `plan.modes` here instead would let the collection silently gain, lose or
+ * rename a mode, and a renamed mode is a BREAKING change for every file already bound to it.
+ *
+ * `Default`, capitalized, is prism3's single-mode name across every one-mode collection — not a
+ * lower-cased survivor of the old `default` member, which is the plausible wrong answer this literal
+ * exists to reject.
  */
-const SURFACE_MODES = ['default', 'inverse'] as const;
-
-/**
- * Rows whose two modes alias DIFFERENT variables that nevertheless resolve to the SAME colour in the
- * light appearance mode — so the mode switch is correctly wired and visibly changes nothing there.
- *
- * Measured on nb, not assumed: 100 of the 128 rows change colour, 16 are self-aliased by
- * `inverse-coverage.ts`'s gap register, and these 12 are the remainder. Two causes, both legitimate:
- *
- *   • STATUS COLOUR, context-independent. A danger border is the same red on a light page and on a
- *     dark one — the hue already reads against both, so inverse context does not move it. Seven of
- *     these do differ in `hc-light`/`hc-dark`, where high contrast re-tunes against the real
- *     background; the four `border/*` ones are identical in all four appearance modes.
- *   • SAME-POLARITY INVERSE. `interactive.neutral.inverse.fill.rest` is #e8e9ea in light against
- *     #ccced1 for the base — a LIGHTER gray, not a flip — so its ink correctly stays near-black in
- *     both. Verified against the resolved role table before admitting it: this is internally
- *     consistent, not the contrast defect it first looks like.
- *
- * Authored rather than computed, for the reason `payload-manifest.json` is: a register regenerated
- * from a scan of the thing it describes would classify each new entry itself and report that as a pass.
- */
-/* Keys carry nb's `nbds/` root (#1097). Written out rather than prefixed at lookup time, because the
- * register's whole value is that a human decided each entry: a key assembled from `theme.root` at read
- * time would match whatever the emitter currently produces, which is the one thing it must not do. */
-const AGREE_IN_LIGHT: Record<string, string> = {
-  'nbds/color/border/brand': 'status border, identical in all four appearance modes',
-  'nbds/color/border/danger': 'status border, identical in all four appearance modes',
-  'nbds/color/border/info': 'status border, identical in all four appearance modes',
-  'nbds/color/border/warning': 'status border, identical in all four appearance modes',
-  'nbds/color/border/focus': 'status border; differs in hc-light/hc-dark',
-  'nbds/color/border/success': 'status border; differs in hc-light/hc-dark',
-  'nbds/color/foreground/brand': 'status ink; differs in hc-light/hc-dark',
-  'nbds/color/foreground/danger': 'status ink; differs in hc-light/hc-dark',
-  'nbds/color/foreground/info': 'status ink; differs in hc-light/hc-dark',
-  'nbds/color/foreground/success': 'status ink; differs in hc-light/hc-dark',
-  'nbds/color/foreground/warning': 'status ink; differs in hc-light/hc-dark',
-  'nbds/color/interactive/neutral/on-fill': 'same-polarity inverse fill (#e8e9ea vs #ccced1), so the ink is constant by design',
-};
+const SURFACE_MODES = ['Default'] as const;
 
 let failed = 0;
 const ok = (cond: boolean, label: string): void => {
@@ -170,16 +156,19 @@ const byId = new Map(shim.vars.map((v) => [v.id, v]));
 const aliasVars = new Map(shim.vars.filter((v) => v.variableCollectionId === aliasCol.id).map((v) => [v.name, v]));
 const modeId = (c: ShimCollection, name: string): string => c.modes.find((m) => m.name === name)!.modeId;
 
-// The plan is the corpus fact this whole suite is scaled against — 128 rows × 2 modes. (122 before
-// #1030 added the six `color.veil.*` roles, every one of them self-aliased; see the block above.)
+// The plan is the corpus fact this whole suite is scaled against — 129 rows × 1 mode. It was 128 × 2
+// until #1133: one mode instead of two, and one row MORE, because `color.scrim.default` had been the
+// register's single `omit` entry and there is no longer a per-mode behaviour for it to be undecided
+// about. Both halves of that are spelled out, because a bare `plan.create.length * plan.modes.length`
+// happens to be satisfied by 258 as readily as by 129.
 const expectedBound = plan.create.length * plan.modes.length;
-ok(plan.create.length === 128 && plan.modes.length === 2 && expectedBound === 256,
-  `the plan is 128 rows × 2 modes = 256 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
+ok(plan.create.length === 129 && plan.modes.length === 1 && expectedBound === 129,
+  `the plan is 129 rows × 1 mode = 129 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
 
-// ---- ACCEPTANCE 1: both modes appear, named `default` and `inverse` -------------------------
+// ---- ACCEPTANCE 1: exactly one mode, named `Default` ---------------------------------------
 ok(aliasCol.modes.map((m) => m.name).join(',') === SURFACE_MODES.join(','),
-  `#993(1) the collection carries exactly the two named modes (${aliasCol.modes.map((m) => m.name).join('/')})`);
-ok(aliasCol.modes.length === 2, `#993(1) …and no leftover 'Mode 1' beside them (${aliasCol.modes.length} modes)`);
+  `#993(1) the collection carries exactly the named mode(s) (${aliasCol.modes.map((m) => m.name).join('/')})`);
+ok(aliasCol.modes.length === 1, `#993(1) …and no leftover 'Mode 1' beside it (${aliasCol.modes.length} modes)`);
 
 // ---- pass counts + idempotency ---------------------------------------------------------------
 ok(r1.total === plan.create.length && r1.created === plan.create.length,
@@ -226,16 +215,18 @@ ok([...aliasVars.values()].every((v) => SURFACE_MODES.every((m) => {
   return isAlias(got) && byId.get(got.id)?.variableCollectionId === valueCol.id;
 })), '#993(3) referential: every alias target lives in the `color.appearance` collection (cross-CALL resolution)');
 
-// ---- ACCEPTANCE 2: switching the mode changes the RESOLVED colour ---------------------------
-// Resolve through the whole chain (color.surface → color.appearance → core) with the APPEARANCE mode held
-// fixed at light, so the only thing varying is the surface mode. That is the designer's actual
-// gesture: same theme, flip the frame's surface mode, the subtree changes.
+// ---- ACCEPTANCE 3, END-TO-END: every row resolves through the WHOLE chain to a real colour ---
+// `color.surface` → `color.appearance` → `core`, with the appearance mode held at light. There is no
+// surface mode to vary since #1133, so what this measures is no longer "the flip works" but the thing
+// that was underneath it all along: a pointer tier is only useful if every one of its rows terminates in
+// a paint. A row whose chain dies renders as nothing in the designer's file, and no arm above sees it —
+// the referential arms check the FIRST hop only.
 const modeFor = new Map<string, string>([
   [valueCol.id, modeId(valueCol, colorPlan.color.modes[0])],
+  [aliasCol.id, modeId(aliasCol, SURFACE_MODES[0])],
   [shim.collections.find((c) => c.name === 'core')!.id, shim.collections.find((c) => c.name === 'core')!.modes[0].modeId],
 ]);
-const resolveIn = (v: ShimVar, surfaceMode: string): string | undefined => {
-  modeFor.set(aliasCol.id, modeId(aliasCol, surfaceMode));
+const resolveIn = (v: ShimVar): string | undefined => {
   let cur: ShimVar | undefined = v;
   for (let hop = 0; hop < 8 && cur; hop++) {
     const val = cur.valuesByMode[modeFor.get(cur.variableCollectionId)!];
@@ -246,70 +237,39 @@ const resolveIn = (v: ShimVar, surfaceMode: string): string | undefined => {
   return undefined;
 };
 
-// Every row must resolve to a real colour in both modes — an unresolvable chain is the failure this
-// collection makes possible, so it is asserted before anything is said about the values.
-const rows = plan.aliases.map((row) => {
-  const v = aliasVars.get(row.name)!;
-  return { name: row.name, selfAliased: row.targetsByMode[0] === row.targetsByMode[1], d: resolveIn(v, 'default'), i: resolveIn(v, 'inverse') };
-});
-const changedRows = rows.filter((r) => !r.selfAliased && r.d !== r.i);
-ok(rows.every((r) => r.d !== undefined && r.i !== undefined),
-  `#993(2) every one of the ${rows.length} rows resolves to a literal colour in BOTH modes (${rows.filter((r) => !r.d || !r.i).length} dead chains)`);
+const rows = plan.aliases.map((row) => ({ name: row.name, resolved: resolveIn(aliasVars.get(row.name)!) }));
+ok(rows.length === plan.create.length && rows.every((r) => r.resolved !== undefined),
+  `#993(3) every one of the ${rows.length} rows resolves through the chain to a literal colour (${rows.filter((r) => !r.resolved).length} dead chains)`);
 
-// The 16 self-aliased rows are the `gapDisposition: 'self'` register in `inverse-coverage.ts` — a role
-// with no inverse counterpart, where the same token is correct in both modes. They MUST resolve
-// identically; every other row must differ. Asserted in both directions, because "most rows change"
-// would pass an executor that got the self-aliased ones wrong, and "the self ones match" would pass
-// one that collapsed every mode to `default` (the #85 collapse, one tier up).
-const selfRows = rows.filter((r) => r.selfAliased);
-const otherRows = rows.filter((r) => !r.selfAliased);
-ok(selfRows.length === 16, `#993(2) 16 rows are self-aliased by the gap register (got ${selfRows.length})`);
-ok(selfRows.every((r) => r.d === r.i),
-  `#993(2) …and each resolves to the SAME colour in both modes (${selfRows.filter((r) => r.d !== r.i).length} differ)`);
-ok(changedRows.length === otherRows.length - Object.keys(AGREE_IN_LIGHT).length,
-  `#993(2) ${otherRows.length - Object.keys(AGREE_IN_LIGHT).length} of the ${otherRows.length} counterpart-backed rows resolve to a DIFFERENT colour per mode ` +
-  `(${changedRows.length} changed)`);
-
-// Both directions on the register, so it cannot rot: a 13th row agreeing fails as an unregistered
-// agreement, and a registered row that starts differing fails as a stale memory. This is the same
-// posture as `lint-absolute-inset.ts`'s `ZERO_OK` — a legitimate zero must be admitted by name.
-const agreedActual = otherRows.filter((r) => r.d === r.i).map((r) => r.name).sort();
-const agreedExpected = Object.keys(AGREE_IN_LIGHT).sort();
-ok(agreedActual.join('|') === agreedExpected.join('|'),
-  `#993(2) exactly the ${agreedExpected.length} registered rows agree in light, no more and no fewer ` +
-  `(unregistered ${agreedActual.filter((n) => !AGREE_IN_LIGHT[n]).length}: ${agreedActual.filter((n) => !AGREE_IN_LIGHT[n]).slice(0, 3).join(', ') || 'none'}; ` +
-  `stale: ${agreedExpected.filter((n) => !agreedActual.includes(n)).slice(0, 3).join(', ') || 'none'})`);
-
-// The load-bearing half for those 12: the VALUES agree, so no colour comparison can tell whether they
-// are wired to one variable or two. Assert the wiring directly — two distinct target ids. Without this,
-// an executor that bound both modes of a registered row to the SAME target would pass every colour
-// assertion in this file (the #85 collapse, surviving inside the exemption list — docs/34 shape 15).
-const collapsed = Object.keys(AGREE_IN_LIGHT).filter((name) => {
-  const v = aliasVars.get(name)!;
-  const a = v.valuesByMode[modeId(aliasCol, 'default')];
-  const b = v.valuesByMode[modeId(aliasCol, 'inverse')];
-  return !(isAlias(a) && isAlias(b) && a.id !== b.id);
-});
-ok(collapsed.length === 0,
-  `#993(2) …and each of those ${agreedExpected.length} still aliases TWO DISTINCT variables — equal values cannot hide a mode collapse ` +
-  `(${collapsed.length} collapsed${collapsed.length ? ': ' + collapsed.slice(0, 3).join(', ') : ''})`);
+// NO TWO ROWS SHARE A TARGET — and this arm is #1133's replacement for the mode-collapse arm, not a
+// new idea. The old one caught an executor that wired both modes of a row to ONE variable; with one
+// mode that phrasing has no subject, but the failure it guarded is the same shape one axis over: many
+// rows collapsing onto one target. It is the cheapest thing that distinguishes a real per-row mapping
+// from an executor that resolved the target lookup once and reused it, and NOTHING else here would
+// notice — the structural arm sees aliases, the referential arm sees a target in the right collection,
+// and both are satisfied by 129 aliases pointing at the same variable.
+const targetIds = [...aliasVars.values()].map((v) => v.valuesByMode[modeId(aliasCol, SURFACE_MODES[0])]).filter(isAlias).map((a) => a.id);
+ok(targetIds.length === expectedBound && new Set(targetIds).size === expectedBound,
+  `#993(3) the ${expectedBound} rows alias ${expectedBound} DISTINCT variables — a per-row mapping, not one target reused (${new Set(targetIds).size} distinct)`);
 
 // ---- ACCEPTANCE 3, BEHAVIOURAL: the row FOLLOWS its target ---------------------------------
 // The discriminator no copy can fake. Change the target variable in `color.appearance` after the write and the
 // surface row must report the new colour — a duplicate keeps the old one and every other assertion
-// above (structural, referential, both modes differing) would still hold for it.
-const probe = plan.aliases.find((row) => row.targetsByMode[0] !== row.targetsByMode[1])!;
+// above (structural, referential, resolving) would still hold for it.
+const probe = plan.aliases[0];
 const probeVar = aliasVars.get(probe.name)!;
 const probeTarget = valueVarsByName.get(probe.targetsByMode[0]!)!;
-const before = resolveIn(probeVar, 'default');
+const before = resolveIn(probeVar);
 probeTarget.setValueForMode(modeFor.get(valueCol.id)!, { r: 0.123, g: 0.456, b: 0.789, a: 1 });
-const after = resolveIn(probeVar, 'default');
+const after = resolveIn(probeVar);
 ok(before !== '0.123,0.456,0.789,1' && after === '0.123,0.456,0.789,1',
   `#993(3) behavioural: repainting '${probe.targetsByMode[0]}' moves '${probe.name}' with it — a pointer, not a copy (${before} → ${after})`);
-// And the OTHER mode is untouched by that edit, so the two modes are independently wired rather than
-// both hanging off one target (the collapse this collection is most exposed to).
-ok(resolveIn(probeVar, 'inverse') !== after,
-  `#993(3) …while the inverse mode is unaffected by the default target's repaint — the modes are wired separately`);
+// And ONLY that row moved. With no second mode to hold still, the neighbouring rows are what proves the
+// repaint was followed through a pointer rather than splattered across the collection — the same
+// separation the old `inverse`-mode arm asserted, re-aimed at the axis that still exists.
+const neighbours = plan.aliases.slice(1, 6).map((row) => resolveIn(aliasVars.get(row.name)!));
+ok(neighbours.length === 5 && neighbours.every((c) => c !== undefined && c !== after),
+  `#993(3) …and no OTHER row reports the probe colour — each row follows its own target (${neighbours.filter((c) => c === after).length} contaminated)`);
 
 // ---- THE MISS PATH — three hosts, because the healthy path cannot reach it (#969) -----------
 
@@ -317,7 +277,7 @@ ok(resolveIn(probeVar, 'inverse') !== after,
 const noColor = new VariablesShim();
 const mr = await applySurfacePlan(plan, noColor as any);
 ok(mr.misses.length === 1 && mr.misses[0].startsWith('collection:color.appearance absent'),
-  `MISS(a) a file with no \`color.appearance\` collection reports ONE named miss, not 244 restatements of it (${mr.misses.length}: ${mr.misses[0] ?? 'none'})`);
+  `MISS(a) a file with no \`color.appearance\` collection reports ONE named miss, not ${expectedBound} restatements of it (${mr.misses.length}: ${mr.misses[0] ?? 'none'})`);
 ok(mr.bound === 0 && mr.total === plan.create.length,
   `MISS(a) …with bound 0 against total ${mr.total}, so the summary shows nothing was wired (bound ${mr.bound})`);
 ok(!noColor.collections.some((c) => c.name === 'color.appearance'),

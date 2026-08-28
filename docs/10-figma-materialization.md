@@ -25,7 +25,8 @@
 > (`@figma/plugin-typings/plugin-api.d.ts:11454`), so the fan-in applies to fresh emission only (#1108).
 >
 > **The colour semantics are two collections** since #1089: `color.appearance` (appearance-moded) and
-> `color.surface` (surface-moded). Both hold `color/*` variables — a collection name and a variable prefix are
+> `color.surface` (single-mode `Default` — it carried a two-mode `surface` axis until #1133 reverted inverse
+> to name-encoding, `docs/20` §9.8). Both hold `color/*` variables — a collection name and a variable prefix are
 > independent here too. `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`; only the COLLECTION
 > of that name is gone.
 >
