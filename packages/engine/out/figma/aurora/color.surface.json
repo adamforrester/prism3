@@ -163,6 +163,22 @@
       }
     },
     {
+      "name": "prism/color/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.tertiary — a pointer into the color.appearance collection, where the appearance mode picks the value",
+      "value": {
+        "r": 0.3607843220233917,
+        "g": 0.3607843220233917,
+        "b": 0.3803921639919281,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "prism/color/appearance/border/tertiary"
+      }
+    },
+    {
       "name": "prism/color/border/warning",
       "resolvedType": "COLOR",
       "scopes": [],

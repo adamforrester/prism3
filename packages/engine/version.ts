@@ -641,6 +641,40 @@ export const ENGINE_VERSION = '0.28.0';
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  *
+ * 8.0.0: EVERY INVERSE ROLE MOVES TO ONE TOP-LEVEL `inverse` GROUP. 104 guaranteed paths removed, 106
+ * added, so MAJOR — a rename is a removal plus an addition, and a consumer holding
+ * `color.appearance.text.on-inverse.primary` resolves to nothing after it. (685 → 687)
+ *
+ * THE MEASUREMENT CAME FIRST, because the bump was genuinely in question. #1140 renames 113 emitted
+ * appearance roles, and whether that is a MAJOR or no contract move at all depends entirely on how many
+ * of the 113 are GUARANTEED rather than value-tier. Counted against the committed baseline: 104 of the
+ * 113 carry an `inverse`/`on-inverse` segment in `guaranteed`, and 0 appear in `brandDependent`. The 9
+ * that are neither are `interactive.{primary,neutral,destructive}.inverse.overlay.{hover,pressed,selected}`,
+ * demoted in 7.0.0. So the answer is MAJOR, on 104 paths, and it would have been "no bump" had the inverse
+ * roles been value-tier — which is the version of this change that was imagined before anyone counted.
+ *
+ * WHY THE ADDITIONS ARE 106 AND NOT 104. 103 of the removals are pure renames; the 104th
+ * (`border.inverse.default`) is DROPPED as a duplicate — byte-identical to `border.inverse.primary` in
+ * every mode — so it renames INTO a path that already has a claimant. Three paths are genuinely new, and
+ * the third is the one worth naming because nobody adds it by hand:
+ * `color.appearance.border.tertiary`, `color.appearance.inverse.border.tertiary`, and
+ * `color.border.tertiary` — the POINTER row the new non-inverse role gets automatically, since pointer
+ * membership is uniform over non-inverse roles since 7.1.0. `border` was the only surface/ink family
+ * stopping at `secondary` while `background`, `foreground`, `text` and `icon` all carry three rungs, and
+ * adding the rung on both grounds at once is what keeps `inverse(X) = inverse. + X` true with no
+ * exceptions. The inverse rung gets no pointer row, by the same rule: an inverse role is bound by name.
+ *
+ * WHAT THE RENAME BUYS, stated as the contract sees it: the inverse marker had THREE positions
+ * (`background.inverse.primary` @3, `interactive.primary.inverse.fill.rest` @4, `text.on-inverse.primary`
+ * @3 with a different spelling), so "is this path inverse?" was a two-alternative any-depth question. It
+ * is now a prefix. `on-` stops carrying two meanings for the second and last time — 4.0.0 made it mean
+ * ink-on-a-thing everywhere and kept `on-inverse` as the one member whose thing was a GROUND rather than
+ * a fill; 8.0.0 removes that member, so `on-` takes a ground and nothing else.
+ *
+ * 7.1.0's entry below still spells these paths the old way, deliberately — it is the record of what was
+ * decided then, and its `color.appearance.border.inverse.focus` is now `color.appearance.inverse.border.focus`.
+ * Same rule the `DEPRECATIONS` table follows: history does not move, live names do. (#1140)
+ *
  * 7.1.0: `color.scrim.default` comes BACK. One added guaranteed path, no removal and no retype, so
  * MINOR — the smallest possible contract move, and it is the whole contract cost of #1133's revert of
  * inverse from mode-encoding to name-encoding (`ENGINE_VERSION` 0.28.0).
@@ -883,7 +917,7 @@ export const ENGINE_VERSION = '0.28.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '7.1.0';
+export const CONTRACT_VERSION = '8.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -907,7 +941,7 @@ export type Deprecation = {
  * cannot rot into a pointer at nothing — the failure mode that makes most deprecation tables
  * worse than none.
  */
-/** The 15 slots every `interactive.<palette>.inverse.*` group carries — spelled once, used three times. */
+/** The 15 slots every `inverse.interactive.<palette>.*` group carries — spelled once, used three times. */
 const INVERSE_INTERACTIVE_SLOTS = [
   'border.hover', 'border.pressed', 'border.rest',
   'fill.focused', 'fill.hover', 'fill.pressed', 'fill.rest', 'fill.selected',
@@ -915,6 +949,53 @@ const INVERSE_INTERACTIVE_SLOTS = [
   'overlay.hover', 'overlay.pressed', 'overlay.selected',
   'text.hover', 'text.pressed', 'text.rest',
 ] as const;
+
+/**
+ * ── WHERE EVERY INVERSE ROLE LIVES NOW (#1140) ──────────────────────────────────────────────────
+ *
+ * `[old group, new group, leaves]` for all 113 inverse roles: the group as #1013 and #1140 each retired
+ * it, the group the engine emits today, and the leaves underneath. Two eras of `DEPRECATIONS` read this
+ * table, which is a deliberate choice and not a shortcut, so the reasoning is worth stating.
+ *
+ * WHY ONE TABLE FOR TWO BUMPS. #1013 removed `color.<group>.<leaf>` (the short spelling) and #1140
+ * removes `color.appearance.<group>.<leaf>` (the value-tier spelling) — the SAME 113 `(group, leaf)`
+ * pairs, prefixed differently, because #1013's removals were exactly the roles with no pointer row, which
+ * is exactly the inverse set. And both eras' `replacedBy` must name the SAME live path, since a
+ * deprecation points at what exists today. So `replacedBy` is not two facts to be held independently; it
+ * is one fact — "where does this role live now?" — and two copies of it are free to diverge, with the
+ * older copy rotting silently. That is not hypothetical: the three entries at 3.0.0 below were renamed
+ * out from under twice, and the comment there records both catches.
+ *
+ * WHAT STAYS LITERAL, AND WHY THAT IS THE PART THAT MATTERS. Both group columns and every leaf are
+ * WRITTEN OUT, exactly as #1013's table already wrote them. Nothing here is derived from `modes.ts`,
+ * `surfaceRowsFor`, or whatever performed the move — `docs/34` shape 1: a table generated from the
+ * transform that caused the removal agrees with any bug in that transform, so `--accept`'s refusal of an
+ * unjustified removal could never fire. Held literally, a wrong segment fails BOTH ways: `path` misses
+ * the removed set (an unjustified removal) and `replacedBy` misses the live set (a dangling deprecation).
+ *
+ * `border.inverse.default` IS ABSENT FROM THE `border` ROW ON PURPOSE. #1140 drops it as a duplicate
+ * rather than renaming it, so it has no 1:1 target and gets its own literal entry in each era's block
+ * below, pointing at `inverse.border.primary` — the path it was byte-identical to. Folding it into this
+ * row would claim a rename that did not happen.
+ */
+const INVERSE_GROUP_MOVES: Array<[string, string, readonly string[]]> = [
+  ['background.inverse', 'inverse.background', ['primary', 'secondary', 'tertiary']],
+  ['border.inverse', 'inverse.border', ['brand', 'danger', 'focus', 'info', 'primary', 'secondary', 'success', 'warning']],
+  ['disabled.inverse', 'inverse.disabled', ['border', 'fill', 'icon', 'on-fill', 'text']],
+  ['field.inverse', 'inverse.field', ['border.hover', 'border.rest', 'fill', 'placeholder']],
+  ['foreground.inverse', 'inverse.foreground', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
+  // `text`/`icon` were the two families spelling the marker `on-inverse`, and #1140 is where that
+  // spelling ends: `on-` takes a GROUND, and an inverse SURFACE is a context rather than a ground, so
+  // the ink folds into the same `inverse.` group as everything else (`inverse.text.primary`).
+  ['icon.on-inverse', 'inverse.icon', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default', 'link.focused', 'link.hover', 'link.visited', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
+  ['text.on-inverse', 'inverse.text', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default', 'link.focused', 'link.hover', 'link.visited', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
+  ['interactive.primary.inverse', 'inverse.interactive.primary', INVERSE_INTERACTIVE_SLOTS],
+  ['interactive.neutral.inverse', 'inverse.interactive.neutral', INVERSE_INTERACTIVE_SLOTS],
+  ['interactive.destructive.inverse', 'inverse.interactive.destructive', INVERSE_INTERACTIVE_SLOTS],
+];
+
+/** The one inverse role #1140 DEDUPES rather than renames — see the note above. */
+const INVERSE_DEDUPED = { group: 'border.inverse', leaf: 'default', replacedBy: 'inverse.border.primary' };
 
 export const DEPRECATIONS: Deprecation[] = [
   { path: 'motion.easing.enter', replacedBy: 'motion.easing.decelerate', since: '2.0.0' },
@@ -937,9 +1018,13 @@ export const DEPRECATIONS: Deprecation[] = [
   // …and #1013 renamed them out from under them a SECOND time, for the same reason and with the same
   // rule: `path` is history and never moves, `replacedBy` follows the live name. Every inverse role is
   // now under `color.appearance.*` because `color.*` is the surface tier and carries no inverse roles.
-  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.appearance.interactive.primary.inverse.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.appearance.interactive.neutral.inverse.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.appearance.interactive.destructive.inverse.border.rest', since: '3.0.0' },
+  // …and #1140 a THIRD time, which is what made these three worth deriving from one place rather than
+  // typing again: the inverse marker moved to a leading `inverse.` group, so the live path is
+  // `color.appearance.inverse.interactive.<palette>.border.rest`. Three catches, same shape each time —
+  // `INVERSE_GROUP_MOVES` above is where the live name is now stated once for every era that needs it.
+  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.appearance.inverse.interactive.primary.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.appearance.inverse.interactive.neutral.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.appearance.inverse.interactive.destructive.border.rest', since: '3.0.0' },
   // #891 — the inverse-context qualifier drops `on-`. Generated rather than hand-typed: 30 entries
   // written out longhand is 30 chances to fat-finger a segment, and the pairing here is 1:1 by
   // construction. It is still checked rather than asserted — a wrong slot name makes `path` miss the
@@ -949,25 +1034,31 @@ export const DEPRECATIONS: Deprecation[] = [
     ['text.rest', 'text.hover', 'text.pressed', 'fill.rest', 'fill.hover', 'fill.pressed',
      'border.rest', 'border.hover', 'border.pressed', 'on-fill'].map((slot) => ({
       path: `color.interactive.${c}.on-inverse.${slot}`,
-      replacedBy: `color.appearance.interactive.${c}.inverse.${slot}`,
+      replacedBy: `color.appearance.inverse.interactive.${c}.${slot}`,
       since: '4.0.0',
     }))),
   // #891 — `border` spelled the qualifier two ways at once; both become segments under one group.
-  // `border.inverse` is the leaf-to-group promotion, so its own replacement is the `default` child.
-  { path: 'color.border.inverse', replacedBy: 'color.appearance.border.inverse.default', since: '4.0.0' },
-  { path: 'color.border.focus-inverse', replacedBy: 'color.appearance.border.inverse.focus', since: '4.0.0' },
+  // `border.inverse` is the leaf-to-group promotion, so its own replacement WAS the `default` child —
+  // and #1140 dropped that child as a duplicate, so this entry now points where the duplicate pointed:
+  // `inverse.border.primary`, the path `border.inverse.default` was byte-identical to in every mode.
+  // The only entry in this table whose target was DELETED rather than renamed, which is why it is called
+  // out: had it been left alone it would have dangled, and `--check` names it.
+  { path: 'color.border.inverse', replacedBy: 'color.appearance.inverse.border.primary', since: '4.0.0' },
+  { path: 'color.border.focus-inverse', replacedBy: 'color.appearance.inverse.border.focus', since: '4.0.0' },
   // #892 — the two leaves that became 17-role groups. The promoted tier is the honest replacement:
   // it carries the value the leaf had, so a consumer following the pointer keeps the same ink rather
-  // than silently adopting a different tier.
-  { path: 'color.text.on-inverse', replacedBy: 'color.appearance.text.on-inverse.primary', since: '5.0.0' },
-  { path: 'color.icon.on-inverse', replacedBy: 'color.appearance.icon.on-inverse.primary', since: '5.0.0' },
+  // than silently adopting a different tier. (#1140 moved the group: `on-inverse` is retired and the ink
+  // sits under the one `inverse.` group, so the promoted tier is now `inverse.{text,icon}.primary`.)
+  { path: 'color.text.on-inverse', replacedBy: 'color.appearance.inverse.text.primary', since: '5.0.0' },
+  { path: 'color.icon.on-inverse', replacedBy: 'color.appearance.inverse.icon.primary', since: '5.0.0' },
   // ── #1013: THE TIER SWAP ────────────────────────────────────────────────────────────────────────
   //
   // `color.*` used to be the VALUE tier — one leaf per resolved role, varying by appearance mode.
   // It is now the SURFACE ALIAS tier: one leaf per role that has a default/inverse pair, pointing into
   // `color.appearance.*`. So a role WITH a pair keeps its short name and gains a second surface mode
   // (no entry needed — the path did not move, only what it resolves to), and a role WITHOUT one loses
-  // `color.<role>` entirely. These 114 are the second group.
+  // `color.<role>` entirely. That second group was 114 at the swap and is 113 now, because #1133 retired
+  // one of them (see the `scrim` note below).
   //
   // WHY THE LIST IS LITERAL AND NOT DERIVED. `surfaceRowsFor` knows exactly which roles have no row,
   // and importing it here would spell this table in one line. That line would also make the check
@@ -976,38 +1067,59 @@ export const DEPRECATIONS: Deprecation[] = [
   // and its own justification would move together, and the refusal could never fire (`docs/34`). Held
   // literally, a wrong segment fails BOTH ways, loudly: `path` misses the removed set (an unjustified
   // removal) and `replacedBy` misses the live set (a dangling deprecation).
-  ...([
-    ['background.inverse', ['primary', 'secondary', 'tertiary']],
-    ['border.inverse', ['brand', 'danger', 'default', 'focus', 'info', 'primary', 'secondary', 'success', 'warning']],
-    ['disabled.inverse', ['border', 'fill', 'icon', 'on-fill', 'text']],
-    ['field.inverse', ['border.hover', 'border.rest', 'fill', 'placeholder']],
-    ['foreground.inverse', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
-    // `text`/`icon` keep the `on-` qualifier: these are INKS on an inverse ground, not roles in an
-    // inverse context, and #891 renamed only the latter.
-    ['icon.on-inverse', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default', 'link.focused', 'link.hover', 'link.visited', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
-    ['text.on-inverse', ['brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default', 'link.focused', 'link.hover', 'link.visited', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle']],
-    ['interactive.primary.inverse', INVERSE_INTERACTIVE_SLOTS],
-    ['interactive.neutral.inverse', INVERSE_INTERACTIVE_SLOTS],
-    ['interactive.destructive.inverse', INVERSE_INTERACTIVE_SLOTS],
-    // `['scrim', ['default']]` WAS HERE, AND #1133 RETIRED IT RATHER THAN REWORDING IT.
-    //
-    // At the swap, `color.scrim.default` was the one NON-inverse role that moved: it had no inverse
-    // counterpart and the coverage register disposed the gap as `omit` rather than a self-alias, so no
-    // pointer row kept the short name alive. #1133 removed the surface mode, which removed the question
-    // the disposition answered — a single-mode row is never asked what it does on an inverse ground — so
-    // the role gets its pointer and `color.scrim.default` is EMITTED AGAIN (`CONTRACT_VERSION` 7.1.0).
-    //
-    // A deprecation for a path the engine emits is worse than a missing one: it tells a consumer to stop
-    // using a name that works, and it is the only kind of rot `classify` cannot see. The dangling check
-    // is on `replacedBy` alone, and `color.appearance.scrim.default` is still perfectly live — so this
-    // entry would have gone on passing every gate while saying something false. Removed by hand, and the
-    // blind spot filed as its own issue rather than fixed here.
-  ] as Array<[string, readonly string[]]>).flatMap(([group, leaves]) =>
+  //
+  // THE LIST NOW LIVES IN `INVERSE_GROUP_MOVES` ABOVE AND IS STILL EVERY BIT AS LITERAL. #1140 needs the
+  // identical 113 `(group, leaf)` pairs and the identical live targets for its own bump, so the pairs are
+  // named once rather than typed twice; the full argument for that is at the table. Nothing here became
+  // derived-from-the-subject — only the `color.` / `color.appearance.` prefixes are computed, which is the
+  // same latitude #1102's block below takes and for the same reason: a constant carried into both columns
+  // still dangles if it is wrong.
+  //
+  // `['scrim', ['default']]` WAS IN THIS LIST, AND #1133 RETIRED IT RATHER THAN REWORDING IT.
+  //
+  // At the swap, `color.scrim.default` was the one NON-inverse role that moved: it had no inverse
+  // counterpart and the coverage register disposed the gap as `omit` rather than a self-alias, so no
+  // pointer row kept the short name alive. #1133 removed the surface mode, which removed the question
+  // the disposition answered — a single-mode row is never asked what it does on an inverse ground — so
+  // the role gets its pointer and `color.scrim.default` is EMITTED AGAIN (`CONTRACT_VERSION` 7.1.0).
+  //
+  // A deprecation for a path the engine emits is worse than a missing one: it tells a consumer to stop
+  // using a name that works, and it is the only kind of rot `classify` cannot see. The dangling check
+  // is on `replacedBy` alone, and `color.appearance.scrim.default` is still perfectly live — so this
+  // entry would have gone on passing every gate while saying something false. Removed by hand, and the
+  // blind spot filed as its own issue rather than fixed here. It is also why `scrim` is absent from
+  // `INVERSE_GROUP_MOVES`: that table is the inverse set, and `scrim` never was inverse.
+  ...INVERSE_GROUP_MOVES.flatMap(([oldGroup, newGroup, leaves]) =>
     leaves.map((leaf) => ({
-      path: `color.${group}.${leaf}`,
-      replacedBy: `color.appearance.${group}.${leaf}`,
+      path: `color.${oldGroup}.${leaf}`,
+      replacedBy: `color.appearance.${newGroup}.${leaf}`,
       since: '6.0.0',
     }))),
+  { path: `color.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.appearance.${INVERSE_DEDUPED.replacedBy}`, since: '6.0.0' },
+  // ── #1140: ONE `inverse` GROUP ──────────────────────────────────────────────────────────────────
+  //
+  // The 113 inverse roles move from three marker positions to one leading `inverse.` group:
+  // `color.appearance.background.inverse.primary` → `color.appearance.inverse.background.primary`,
+  // `…text.on-inverse.primary` → `…inverse.text.primary`, and so on. 104 of the 113 are GUARANTEED, which
+  // is what makes this a MAJOR (see the `CONTRACT_VERSION` 8.0.0 entry above — the count was measured, not
+  // assumed). The other 9 are the `overlay` slots 7.0.0 demoted, and they get entries anyway: a consumer
+  // is not the only migrator here, and the Figma variable rename is 113 rows whatever the contract says
+  // about 9 of them.
+  //
+  // Same `(group, leaf)` pairs as #1013's block, one prefix along — the removals are the VALUE-tier
+  // spellings this time, since the short spellings went at 6.0.0 and never came back.
+  ...INVERSE_GROUP_MOVES.flatMap(([oldGroup, newGroup, leaves]) =>
+    leaves.map((leaf) => ({
+      path: `color.appearance.${oldGroup}.${leaf}`,
+      replacedBy: `color.appearance.${newGroup}.${leaf}`,
+      since: '8.0.0',
+    }))),
+  // The dedupe, not a rename: `border.inverse.default` was byte-identical to `border.inverse.primary` in
+  // light and in dark, so it is dropped and its consumers are pointed at the twin. This makes the pair a
+  // FAN-IN — two retired paths naming one live target — which the contract table holds happily and the
+  // Figma rename map refuses to APPLY without disambiguation (`ambiguous-source`). That refusal is the
+  // right behaviour: a migration cannot silently pick which of two variables becomes the survivor.
+  { path: `color.appearance.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.appearance.${INVERSE_DEDUPED.replacedBy}`, since: '8.0.0' },
   // ── #1102: THE `core` TIER ──────────────────────────────────────────────────────────────────────
   //
   // The three RAW-PRIMITIVE groups move under one `core` tier: `palette.red.550` becomes

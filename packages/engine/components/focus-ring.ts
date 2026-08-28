@@ -126,44 +126,35 @@ export const focusRing: ComponentDef = {
   // `color=default`, `border.inverse` at `color=inverse`). Wall 1 is why that is a bound color on a
   // node with no stroke to wear it.
   //
-  // ── AND `border.inverse` IS NOW KNOWN-REDUNDANT, WITH A PREREQUISITE BEFORE IT CAN GO (#871) ────
+  // ── `border.inverse` WAS KNOWN-REDUNDANT UNDER #871, AND #1133 MADE IT THE TEMPLATE ─────────────
   //
-  // #871 decided the surface axis is a CASCADE — context published by the container, no per-component
-  // surface axis — and this def is the only one still carrying one. Measured over `componentDefs`:
-  // 57 distinct `color.*` bindings, and `color.border.inverse.focus` is the ONE the alias layer has no
-  // row for. Not an omission at either end: `emit-figma-surface.ts`'s `isInverseRole` excludes inverse
-  // roles from being rows because inverse-ness is what the MODES express, and a `border.inverse.focus`
-  // row would have to say what its own inverse mode is.
-  //
-  // The redundancy is exact rather than approximate, which is what makes it a decision instead of a
-  // preference: the alias row for `border.focus` already reads `default → border.focus`,
-  // `inverse → border.inverse.focus`, so a ring binding the PLAIN path gets the same two values from
-  // the frame mode that these two keys get from a coordinate. Same tokens, same values, one mechanism
-  // instead of two — and the mode reaches the host's label and fill at the same time, where the
-  // variant reaches only the ring. #784 already applied this to `button`, which removed its own
-  // `on-inverse` bindings for exactly this reason and named this def's `color=inverse` as the last
+  // The record, because this comment argued the opposite for two hundred commits and the reversal is
+  // the thing worth reading. #871 decided the surface axis was a CASCADE — context published by the
+  // container, no per-component surface axis — and under it this pair of keys was exactly redundant: the
+  // pointer row for `border.focus` carried `default → border.focus`, `inverse → border.inverse.focus`,
+  // so a ring binding the PLAIN path got from the frame mode the same two values these two keys get
+  // from a coordinate. Same tokens, same values, one mechanism instead of two. #784 applied that to
+  // `button` (dropping its own inverse bindings) and named this def's `color=inverse` as the last
   // instance of the pattern it was leaving.
   //
-  // AFTER #1013 the redundancy is visible in the bindings themselves rather than argued from a
-  // register. `'border'` below spells `color.border.focus`, which now IS the alias row — so that one
-  // binding is surface-responsive with no def change at all. `'border.inverse'` had to move to
-  // `color.appearance.border.inverse.focus`, because the plain `color.border.inverse.focus` spelling is
-  // no longer a name the engine emits: the surface tier holds `color.*` and does not carry inverse
-  // roles. The two keys now sit in visibly different tiers, which is the honest shape of a def that
-  // reaches past the layer it should be using.
+  // #1133 REMOVED THE FRAME MODE, so there is no second mechanism to be redundant WITH. A ring on a
+  // dark band gets its edge from this binding or from nothing, which turns the pair of keys from a
+  // leftover into the shape every inverse component now follows: declare a variant, bind the two ends
+  // by name. The long form of that argument, and why the entry stays REGISTERED rather than deleted,
+  // is in `UNALIASED_DEF_BINDINGS` (`emit-figma-surface.ts`) — one statement, not two.
   //
-  // WHAT STOPS IT BEING A ONE-LINE DELETION: `color` is this def's ONLY variant axis, and
-  // `figmaPropertyErrors` rejects `variantAxes: []` outright (measured, not assumed). So removing the
-  // binding un-projects the def — regressing #795 and breaking the five hosts that resolve
-  // `nests: 'focus-ring'` by NAME against the pasted set. Letting a def project a single component
-  // rather than a set is a schema decision, filed as #1028, so the binding is REGISTERED in
-  // `UNALIASED_DEF_BINDINGS` rather than removed, and `test.ts` (a4) fails the entry as stale the day
-  // the binding goes. Nothing is lost meanwhile: the token stays emitted and contract-guaranteed.
+  // WHAT THE TWO KEYS SPELL, AND WHY THEY SIT IN DIFFERENT TIERS. `'border'` is `color.border.focus`,
+  // a pointer row, short and surface-tier. `'border.inverse'` is `color.appearance.inverse.border.focus`
+  // and reaches past the pointer tier by construction: `isInverseRole` excludes an inverse role from
+  // being a row, because an inverse role is bound BY NAME. #1140 moved the marker to a leading
+  // `inverse.` group, so the path is `…appearance.inverse.border.focus` where it read
+  // `…appearance.border.inverse.focus` — the ONE def-side edit that rename required, which is why this
+  // def was the one it had to land clean on.
   paintKeys: ['{slot}.{color}', '{slot}'],
 
   tokens: {
     'border': 'color.border.focus',
-    'border.inverse': 'color.appearance.border.inverse.focus',
+    'border.inverse': 'color.appearance.inverse.border.focus',
     'width': 'focus.ring.width',
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',

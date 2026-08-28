@@ -163,6 +163,22 @@
       }
     },
     {
+      "name": "nbds/color/border/tertiary",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "border.tertiary — a pointer into the color.appearance collection, where the appearance mode picks the value",
+      "value": {
+        "r": 0.33725491166114807,
+        "g": 0.364705890417099,
+        "b": 0.3843137323856354,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/color/appearance/border/tertiary"
+      }
+    },
+    {
       "name": "nbds/color/border/warning",
       "resolvedType": "COLOR",
       "scopes": [],
