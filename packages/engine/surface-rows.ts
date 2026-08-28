@@ -19,10 +19,12 @@
  * reintroduces them looking for the old shape:
  *
  *   · `inverseCounterpart` — the three-shape counterpart lookup (`border.inverse.<r>`,
- *     `interactive.<p>.inverse.<slot>`, `text.on-inverse.<r>`). It answered "what does the inverse
- *     mode point at", which is not a question any more. `test.ts` still re-derives the same lookup
- *     LOCALLY for the coverage register's both-directions arms — deliberately its own copy, so the
- *     register is checked against an independent derivation rather than against this file (`docs/34`).
+ *     `interactive.<p>.inverse.<slot>`, `text.on-inverse.<r>`, as those roles were then spelled). It
+ *     answered "what does the inverse mode point at", which is not a question any more. `test.ts` still
+ *     re-derives the counterpart LOCALLY for the coverage register's both-directions arms —
+ *     deliberately its own copy, so the register is checked against an independent derivation rather
+ *     than against this file (`docs/34`). Since #1140 that local copy is ONE expression rather than
+ *     three, because the counterpart of `X` is `inverse.X` for every `X`.
  *   · `gapDisposition` — the per-entry `self`/`omit` instruction read out of `inverse-coverage.ts`.
  *     A gap could steer emission because a row for an unpaired role had to answer "and in the inverse
  *     mode?". With one mode it does not, so **nothing here reads the register any more.** The register
@@ -44,9 +46,21 @@
 import { Theme } from './theme';
 import { resolveAllModes } from './modes';
 
-/** True for a role that IS an inverse-context variant, so it is never a row of its own — it is bound
- *  at the appearance tier by name (#1133). */
-export const isInverseRole = (k: string): boolean => /(^|\.)inverse(\.|$)|(^|\.)on-inverse(\.|$)/.test(k);
+/**
+ * True for a role that IS an inverse-context variant, so it is never a row of its own — it is bound
+ * at the appearance tier by name (#1133).
+ *
+ * ONE SEGMENT, IN ONE POSITION (#1140). This was
+ * `/(^|\.)inverse(\.|$)|(^|\.)on-inverse(\.|$)/` — two spellings, any depth — because the marker sat at
+ * depth 2, 3 or 4 depending on the family and was `on-inverse` for `text`/`icon`. Under Rule 1 an
+ * inverse role is exactly `inverse.` + a page role name, so the test is a prefix test.
+ *
+ * It stays a STRING test rather than reading a list of inverse roles from `modes.ts`, which is the
+ * `docs/34` point: the row rule and the thing it excludes must not be one expression. A role that
+ * gains the prefix is excluded automatically; a role that loses it becomes a row automatically; and
+ * `test.ts` (a3) holds the register against its OWN local derivation rather than against this line.
+ */
+export const isInverseRole = (k: string): boolean => k === 'inverse' || k.startsWith('inverse.');
 
 /**
  * One pointer row. A single field, and kept as an OBJECT rather than collapsed to a bare `string`

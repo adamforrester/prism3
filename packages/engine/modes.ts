@@ -7,20 +7,46 @@
  *
  * Semantic model — the surface & content vocabulary (see docs/06):
  *   - background — the CANVAS: thin, page-level inert surfaces. `primary`/
- *                  `secondary`/`tertiary` (tonal in BOTH modes) + an `inverse.*`
- *                  sibling ladder. The page you build on.
+ *                  `secondary`/`tertiary`, tonal in BOTH modes. The page you
+ *                  build on.
  *   - foreground — the SURFACES/FILLS placed on the canvas (Prism2's `surface`,
  *                  renamed): a tonal `primary/secondary/tertiary` ladder (cards →
- *                  panels → nested) + `inverse.*` (dark fills in light) + bold
- *                  semantic fills + `-subtle` tints. `foreground.primary` sits on
- *                  `background.primary`, a different shade. NOT ink.
+ *                  panels → nested) + bold semantic fills + `-subtle` tints.
+ *                  `foreground.primary` sits on `background.primary`, a different
+ *                  shade. NOT ink.
  *   - text/icon  — INK on a surface: neutral emphasis + semantic + `-subtle` +
  *                  `on-*` pairs (ink on a solid fill) + `link` (no disabled).
  *                  Split only by contrast floor (text 4.5 / icon optional 3:1).
  *   - interactive — the coherent interactive colour family (docs/20): every
  *                  interactive element's colour, `interactive.<color>.<slot>`.
  *   - disabled   — the one cross-cutting disabled treatment, any intent.
- *   - border     — neutral (`primary`/`secondary`), `inverse`, semantic, `focus`.
+ *   - border     — neutral (`primary`/`secondary`/`tertiary`), semantic, `focus`.
+ *   - inverse    — the whole vocabulary again, for the dark hero / inverse band:
+ *                  `inverse.<everything above>`. See the two rules below.
+ *
+ * ── THE TWO NAMING RULES FOR INVERSE AND `on-` (#1140, docs/20 §9.9) ────────────
+ *
+ * RULE 1 — `inverse/` IS THE SOLE INVERSE MARKER, and it is a TOP-LEVEL GROUP.
+ * The inverse form of a role is its name with `inverse.` on the front, with no
+ * exceptions: `inverse(X) = inverse. + X`. So `background.inverse.primary` is
+ * `inverse.background.primary`, `interactive.primary.inverse.fill.rest` is
+ * `inverse.interactive.primary.fill.rest`, and `on-inverse` IS GONE — the prefix
+ * already carries "on the inverse surface", so `text.on-inverse.primary` is
+ * `inverse.text.primary`. One marker, one position, mechanically derivable in
+ * both directions. Before this the marker sat at depth 2, 3 or 4 depending on the
+ * family and wore two different spellings, so every consumer that had to
+ * recognize an inverse role carried its own three-shape case analysis; three of
+ * them (`surface-rows.ts`, `emit-figma-color.ts`, `test.ts` (a3)) collapsed to a
+ * single expression in the same diff, which is the evidence the shape is right.
+ *
+ * RULE 2 — `on-` TAKES A GROUND, NEVER A ROLE OR A RANK. `on-<x>` means "ink
+ * placed on <x>", so `<x>` must name a thing ink sits on: the enclosing role's
+ * own fill (`on-fill`) or a status colour (`text.on-brand`, `on-danger`,
+ * `on-success`, `on-warning`, `on-info`). `on-primary`, `on-secondary` and
+ * `on-disabled` are REFUSED — `primary` is a rank and `disabled` is a state, and
+ * neither is a surface. `lint-context-nodes.ts` arm C holds this, so `on-fill`
+ * cannot quietly drift to `on-primary` later; that gate is the guardrail, this
+ * comment is the reason.
  *
  * Light & dark step surfaces tonally and SYMMETRICALLY (light is no longer all
  * white); shadow is an additive elevation cue, not the sole differentiator. In
@@ -96,7 +122,7 @@ export type ModeCfg = {
   floor: Cand; floorName: string;  // contrast floor (worst-case supported surface)
   bg: SurfSet; bgInverse: SurfSet; // background canvas ladders
   fg: SurfSet; fgInverse: SurfSet; // foreground surface ladders
-  inverseSurface: RGB;             // the primary inverse surface (for the inverse column / border.inverse)
+  inverseSurface: RGB;             // the primary inverse surface (for the inverse column / inverse.border.*)
   family: 'light' | 'dark';
   // Mode KIND (B — mode identity as data): drives resolveMode's behaviour instead of matching the
   // mode NAME. 'standard' = the plain light/dark derivation; 'hc' = high-contrast (pure black/white
@@ -260,7 +286,7 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     // restores the pure extremes (below) for low-vision max contrast.
     // Declarable per mode since #956 (`surfaces.<mode>.inverseBase`), defaulting to the anchors
     // above. It runs through the SAME `surfAt` + ladder pair as `base` below, so a declared band
-    // re-derives `background.inverse.*`, `foreground.inverse.*` and everything gated against them
+    // re-derives `inverse.background.*`, `inverse.foreground.*` and everything gated against them
     // rather than being pasted over one role afterwards. That is the difference between a ground and
     // a value, and it is why this is not an `overrides` entry.
     const invSpec = cfg.inverseBase ?? (family === 'light' ? 950 : 25);
@@ -317,7 +343,7 @@ const SEMANTICS = ['brand', 'success', 'warning', 'danger', 'info'] as const;
  */
 export const GROUND_INPUT: Record<string, string> = {
   'background.primary': 'base',
-  'background.inverse.primary': 'inverseBase',
+  'inverse.background.primary': 'inverseBase',
 };
 
 /**
@@ -328,7 +354,7 @@ export const GROUND_INPUT: Record<string, string> = {
  * TWO EDGES, and the second is the whole reason this exists. `against` is the surface a role sits on.
  * `legibleFor` (#963) is the ink a translucent wash reports the legibility of — move that ink and the
  * wash's ratio is just as stale as if the ground beneath it had moved. This followed `against` only,
- * so `text.primary` and `text.on-inverse.primary`, which since #963 are grounds EXCLUSIVELY through
+ * so `text.primary` and `inverse.text.primary`, which since #963 are grounds EXCLUSIVELY through
  * `legibleFor`, were invisible to the refusal: nine overlay roles depend on each, and the one check
  * that exists to stop a ground being overridden could not see either of them.
  *
@@ -632,17 +658,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ({ r: pickMinPass(textCands, asGround('disabled.fill', neutralLow().rgb), disabledTarget), against: 'disabled.fill', min: disabledTarget });
 
   // -------------------------------------------------------------- backgrounds
-  // The canvas: thin, page-level, tonal in both modes. `inverse.*` is the opposite-
-  // polarity ladder (a dark band on a light page). In HC every tier == the base.
+  // The canvas: thin, page-level, tonal in both modes. `inverse.background.*` is the
+  // opposite-polarity ladder (a dark band on a light page). In HC every tier == the base.
   putSurf('background.primary', cfg.bg.primary, 'Page surface — the canvas / base');
   putSurf('background.secondary', cfg.bg.secondary, 'Page surface, second tier — a slightly tinted page / band');
   putSurf('background.tertiary', cfg.bg.tertiary, 'Page surface, third tier');
-  putSurf('background.inverse.primary', cfg.bgInverse.primary, 'Inverse page surface — a dark band in light mode');
-  putSurf('background.inverse.secondary', cfg.bgInverse.secondary, 'Inverse page surface, second tier');
+  putSurf('inverse.background.primary', cfg.bgInverse.primary, 'Inverse page surface — a dark band in light mode');
+  putSurf('inverse.background.secondary', cfg.bgInverse.secondary, 'Inverse page surface, second tier');
   // The inverse floor as DERIVATION should see it — the override when there is one (#979). Bound
   // once so its five consumers below cannot drift apart on whether they honour it.
-  const invFloorRgb = asGround('background.inverse.secondary', cfg.bgInverse.secondary.rgb);
-  putSurf('background.inverse.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
+  const invFloorRgb = asGround('inverse.background.secondary', cfg.bgInverse.secondary.rgb);
+  putSurf('inverse.background.tertiary', cfg.bgInverse.tertiary, 'Inverse page surface, third tier');
   // scrim — semi-transparent backdrop behind modals/drawers (alpha; heavier in dark).
   const scrimStep = hc ? (cfg.family === 'light' ? 60 : 70) : (cfg.family === 'light' ? 40 : 60);
   put('scrim.default', { path: `${ns}.black-alpha.${scrimStep}`, rgb: BLACK, ratio: 1 },
@@ -726,15 +752,16 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   }
 
   // -------------------------------------------------------------- foregrounds
-  // Surfaces & fills placed on the canvas. Neutral tonal ladder + inverse + bold
-  // semantic fills + `-subtle` tints + the stateful `danger` fill. (`action` is
-  // top-level, below.) `foreground.primary` sits on `background.primary`.
+  // Surfaces & fills placed on the canvas. Neutral tonal ladder + bold semantic
+  // fills + `-subtle` tints + the stateful `danger` fill; the inverse ladder is
+  // `inverse.foreground.*`. (`action` is top-level, below.) `foreground.primary`
+  // sits on `background.primary`.
   putSurf('foreground.primary', cfg.fg.primary, 'Default surface placed on the page — a card');
   putSurf('foreground.secondary', cfg.fg.secondary, 'A second surface — a panel / nested container');
   putSurf('foreground.tertiary', cfg.fg.tertiary, 'A third surface step');
-  putSurf('foreground.inverse.primary', cfg.fgInverse.primary, 'Inverse / bold surface — a dark fill in light mode');
-  putSurf('foreground.inverse.secondary', cfg.fgInverse.secondary, 'Inverse surface, second tier');
-  putSurf('foreground.inverse.tertiary', cfg.fgInverse.tertiary, 'Inverse surface, third tier');
+  putSurf('inverse.foreground.primary', cfg.fgInverse.primary, 'Inverse / bold surface — a dark fill in light mode');
+  putSurf('inverse.foreground.secondary', cfg.fgInverse.secondary, 'Inverse surface, second tier');
+  putSurf('inverse.foreground.tertiary', cfg.fgInverse.tertiary, 'Inverse surface, third tier');
   // bold semantic fills (filled badge / banner / button at rest) — static.
   const fills: Partial<Record<Role, RatedNum>> = {};
   for (const r of ['brand', 'success', 'warning', 'info'] as const) {
@@ -760,18 +787,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // on a light page (100) and a dark one on a dark page (900), so the inverse band takes the opposite
   // end. A light tint is the readable one on a near-black hero.
   //
-  // `foreground.inverse` is already a group (`primary`/`secondary`/`tertiary`), so these are plain
+  // `inverse.foreground` is already a group (`primary`/`secondary`/`tertiary`), so these are plain
   // additions — no leaf-to-group promotion, unlike `border.inverse` in #891.
   // The five bold semantic fills for the inverse band (#892 step 5) — a solid danger badge inside a
   // dark hero. Gated against the INVERSE floor rather than the page floor, which is the whole reason
   // they cannot be the page fills reused: `paletteRole` picks the step that clears the bar on the
   // ground it is given, and the two grounds are at opposite ends of the ramp.
   for (const r of SEMANTICS)
-    put(`foreground.inverse.${r}`, paletteRole(r, invFloorRgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on the inverse floor`, 'background.inverse.secondary', fillFloorMin);
+    put(`inverse.foreground.${r}`, paletteRole(r, invFloorRgb, fillFloorMin), `Bold ${r} fill on an inverse surface — clears ${fillFloorMin}:1 on the inverse floor`, 'inverse.background.secondary', fillFloorMin);
   const invTintStep = cfg.family === 'light' ? 900 : 100;
   const subtleTintInverse = (r: Role): Cand => pStep(palOf(r2p[r]), invTintStep);
   for (const r of SEMANTICS)
-    putSurf(`foreground.inverse.${r}-subtle`, subtleTintInverse(r), `Subtle ${r} tint surface on an inverse surface — banners, badges and selected rows on a dark hero`);
+    putSurf(`inverse.foreground.${r}-subtle`, subtleTintInverse(r), `Subtle ${r} tint surface on an inverse surface — banners, badges and selected rows on a dark hero`);
   // danger — a bold semantic fill like the others (kept out of the loop above only to
   // preserve its position + set fills.danger for the on-danger ink pairing). Its stateful /
   // interactive expression now lives in `interactive.destructive.*` (docs/20), so the fill
@@ -874,19 +901,25 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
    * is held to the right bar rather than inheriting the ink's.
    */
   // `where` qualifies the description for the ground the edge is drawn on. It is a parameter
-  // rather than derived from `slot`, because the two callers differ in the GROUND they are
+  // rather than derived from `keyPrefix`, because the two callers differ in the GROUND they are
   // verified against, and that is the thing a reader of the description needs. Before #891 this
   // was one hardcoded sentence, so the inverse edge shipped prose verbatim identical to the page
   // edge — a description that never mentioned the dark band it exists for.
-  const iBorder = (name: string, inkByState: Record<string, Cand>, ground: RGB, slot: string, against: string, where = ''): void => {
+  //
+  // `keyPrefix` is `''` for the page and `'inverse.'` for the dark band (#1140). It used to be a
+  // `slot` argument holding `'border.'` or `'inverse.border.'`, i.e. the slot AND the context in one
+  // string — which was the only spelling available while the marker sat mid-path. Under Rule 1 the
+  // slot is always `border.` and the context is always a front prefix, so the parameter says one
+  // thing again.
+  const iBorder = (name: string, inkByState: Record<string, Cand>, ground: RGB, keyPrefix: string, against: string, where = ''): void => {
     for (const stKey of ['rest', 'hover', 'pressed'] as const)
-      put(`interactive.${name}.${slot}${stKey}`, rated(inkByState[stKey], ground),
+      put(`${keyPrefix}interactive.${name}.border.${stKey}`, rated(inkByState[stKey], ground),
         `${name} interactive border${where} — ${stKey} (the outline edge; follows the ink)`, against, cfg.nonTextMin);
   };
 
   // primary — the action palette, contrast-verified.
   iFill('primary', actionRest, r2p.action, fillFloorMin);
-  iBorder('primary', iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true), baseRgb, 'border.', 'background.primary');
+  iBorder('primary', iText('primary', paletteRole('action', baseRgb, cfg.secondaryMin), r2p.action, true), baseRgb, '', 'background.primary');
 
   // destructive — the danger palette (its own interactive column, no scavenging).
   // `destructiveAnchorStep` overrides the resolved anchor (docs/20 §3); unset keeps today's pick.
@@ -895,7 +928,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ? chromatic(r2p.danger, daAnchor, floorRgb, fillFloorMin, true)
     : paletteRole('danger', floorRgb, fillFloorMin);
   iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
-  iBorder('destructive', iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true), baseRgb, 'border.', 'background.primary');
+  iBorder('destructive', iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true), baseRgb, '', 'background.primary');
 
   // neutral — the achromatic column that was the historical miss (docs/20 §12). The
   // `neutralEmphasis` lever picks the fill: 'subtle' (default) a light grey (min 0 — a
@@ -924,7 +957,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     rest: nBdRest,
     hover: walk(r2p.neutral, nBdNum, 2, dir, nBdGuard),
     pressed: walk(r2p.neutral, nBdNum, 4, dir, nBdGuard),
-  }, baseRgb, 'border.', 'background.primary');
+  }, baseRgb, '', 'background.primary');
 
   // extensible interactive columns (docs/20 §3) — N opt-in `interactive.<name>.*` families, each
   // promoting a declared palette (the generalised accent lever). Same fill+states / text / border
@@ -939,7 +972,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     const pinned = modeAnchor(entry.name) !== undefined || !!entry.anchorPinned;
     const rest = chromatic(entry.palette, anchor, floorRgb, fillFloorMin, pinned);
     iFill(entry.name, rest, entry.palette, fillFloorMin);
-    iBorder(entry.name, iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true), baseRgb, 'border.', 'background.primary');
+    iBorder(entry.name, iText(entry.name, chromatic(entry.palette, anchor, baseRgb, cfg.secondaryMin), entry.palette, true), baseRgb, '', 'background.primary');
   }
 
   // inverse surface-context (docs/20 §9): the ink for an OUTLINE / TEXT interactive control
@@ -948,22 +981,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // theme; a light-only brand still needs it.
   //
   // UNCONDITIONAL since #895. It used to sit behind an `inverse` toggle — a lever whose off-state
-  // deleted 79 contract-GUARANTEED paths, so a consumer's `prism.text.on-inverse.primary` resolved to
+  // deleted 79 contract-GUARANTEED paths, so a consumer's `prism.inverse.text.primary` resolved to
   // nothing with no error anywhere. That is exactly the failure `CONTRACT_VERSION` exists to prevent,
   // and a lever cannot opt out of the guarantee the contract makes on its behalf. #892 grew the blast
   // radius from 30 paths to 79 without anyone re-deciding, which is what made removal the answer
   // rather than a warning in the description. What stays configurable is the inverse surface's own
-  // VALUE (the `background.inverse.primary` override) — that moves colours without removing names.
+  // VALUE (the `inverse.background.primary` override) — that moves colours without removing names.
   // The full inverse column (docs/20 §9) — a filled CTA + outline/text control placed on a dark hero /
-  // inverse band, generated + contrast-verified against `background.inverse.primary` (not a hand-mirrored
-  // twin). `inverse.text.{rest,hover,pressed}` = the light outline/text ink (states walk toward MORE
-  // contrast on the dark band); `inverse.fill.{rest,hover,pressed}` = a light filled CTA on the dark
-  // band (states walk toward the palette like the page fill); `inverse.on-fill` = the dark ink on it.
+  // inverse band, generated + contrast-verified against `inverse.background.primary` (not a hand-mirrored
+  // twin). `inverse.interactive.<c>.text.{rest,hover,pressed}` = the light outline/text ink (states walk
+  // toward MORE contrast on the dark band); `.fill.{rest,hover,pressed}` = a light filled CTA on the dark
+  // band (states walk toward the palette like the page fill); `.on-fill` = the dark ink on it.
   //
-  // The qualifier is `inverse`, not `on-inverse`, since #891. `on-` means exactly one thing in this
-  // tree — INK ON the named ground (`on-fill`, `text.on-brand`) — and a context qualifier wearing it
-  // put both senses in one path: `primary.on-inverse.on-fill` read as ink-on-ink. `inverse.fill.rest`
-  // is the case that settles it — the token is a FILL, and the old name called it ink.
+  // The qualifier is `inverse` and it is the FRONT SEGMENT (#891 dropped `on-`; #1140 moved it to the
+  // front). `on-` means exactly one thing in this tree — INK ON the named ground (`on-fill`,
+  // `text.on-brand`) — and a context qualifier wearing it put both senses in one path:
+  // `primary.on-inverse.on-fill` read as ink-on-ink. `inverse.interactive.primary.fill.rest` is the
+  // case that settles it — the token is a FILL, and the pre-#891 name called it ink.
   const invColumn = (name: string, palette: string | null, anchor: number): void => {
     const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
     const textNum = (textRest as RatedNum).num;
@@ -972,8 +1006,8 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = (st === 'default' || !palette) ? textRest
         : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
-      put(`interactive.${name}.inverse.text.${stKey}`, rated(c, invRgb),
-        `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'background.inverse.primary', cfg.secondaryMin);
+      put(`inverse.interactive.${name}.text.${stKey}`, rated(c, invRgb),
+        `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'inverse.background.primary', cfg.secondaryMin);
       invInk[stKey] = c;
     }
     // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
@@ -995,11 +1029,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = st === 'default' ? fillRest
         : walk(palette ?? r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
-      put(`interactive.${name}.inverse.fill.${stKey}`, rated(c, invRgb),
-        `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'background.inverse.primary', cfg.nonTextMin);
+      put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
+        `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
     }
-    put(`interactive.${name}.inverse.on-fill`, onColor(asGround(`interactive.${name}.inverse.fill.rest`, fillRest.rgb)),
-      `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `interactive.${name}.inverse.fill.rest`, onMin);
+    put(`inverse.interactive.${name}.on-fill`, onColor(asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb)),
+      `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
     // for the same reason the page border does — the intent "the edge matches its label" is no
     // less true on a dark hero, and `invInk` is already resolved and gated against `invRgb`.
@@ -1019,7 +1053,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     //
     // Neutral has no palette, so its ink is `pickMostExtreme` and its states collapse; it takes
     // the same own-anchor treatment as the page-ground neutral border above.
-    if (palette) iBorder(name, invInk, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
+    if (palette) iBorder(name, invInk, invRgb, 'inverse.', 'inverse.background.primary', ' on a dark / inverse surface');
     else {
       const iBdRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
       const iBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === iBdRest.path)!.num;
@@ -1028,7 +1062,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         rest: iBdRest,
         hover: walk(r2p.neutral, iBdNum, 2, -dir, iBdGuard),
         pressed: walk(r2p.neutral, iBdNum, 4, -dir, iBdGuard),
-      }, invRgb, 'inverse.border.', 'background.inverse.primary', ' on a dark / inverse surface');
+      }, invRgb, 'inverse.', 'inverse.background.primary', ' on a dark / inverse surface');
     }
   };
   invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
@@ -1072,7 +1106,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         // shape the type forbids.
         putWash(`interactive.${color}.overlay.${st}`,
           { path: `${ns}.${overlayPal}.${step}`, rgb: overlayBase, ratio },
-          `${color} interactive overlay — ${st} (${step}% neutral wash for the PAGE ground; the dark-band twin is interactive.${color}.inverse.overlay.${st})`,
+          `${color} interactive overlay — ${st} (${step}% neutral wash for the PAGE ground; the dark-band twin is inverse.interactive.${color}.overlay.${st})`,
           'background.primary', 'text.primary', cfg.secondaryMin, step / 100);
       }
     }
@@ -1091,11 +1125,11 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // ground they are for.
     const invOverlayPal = cfg.family === 'light' ? 'white-alpha' : 'black-alpha';
     const invOverlayBase = cfg.family === 'light' ? WHITE : BLACK;
-    const invContentRgb = asGround('text.on-inverse.primary', pickMostExtreme(textCands, invRgb).rgb);   // the strongest ink on the band
+    const invContentRgb = asGround('inverse.text.primary', pickMostExtreme(textCands, invRgb).rgb);   // the strongest ink on the band
     for (const color of overlayColors) {
       for (const [st, step] of OVERLAY_ALPHA) {
         const ratio = contrast(invContentRgb, composite(invRgb, invOverlayBase, step / 100));
-        // `putWash` since #963 — see the page twin above. `text.on-inverse.primary` moves from the
+        // `putWash` since #963 — see the page twin above. `inverse.text.primary` moves from the
         // `against` slot to `legibleFor`, which is the slot it always meant.
         //
         // Worth keeping the history attached to it: that argument read the bare `text.on-inverse`
@@ -1105,10 +1139,10 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         // definitively not measured on. Nothing complained because an `against` is data, not a
         // reference a compiler resolves. Both defects lived in this one argument, and they compounded:
         // the direction confusion is why a dangling reference sat here through a whole rename.
-        putWash(`interactive.${color}.inverse.overlay.${st}`,
+        putWash(`inverse.interactive.${color}.overlay.${st}`,
           { path: `${ns}.${invOverlayPal}.${step}`, rgb: invOverlayBase, ratio },
           `${color} interactive overlay on a dark / inverse surface — ${st} (${step}% wash, the opposite polarity to the page wash)`,
-          'background.inverse.primary', 'text.on-inverse.primary', cfg.secondaryMin, step / 100);
+          'inverse.background.primary', 'inverse.text.primary', cfg.secondaryMin, step / 100);
       }
     }
   }
@@ -1210,13 +1244,13 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // Five roles, so this is the GROUP default under the #892 context-node rule with nothing to argue:
   // the node has siblings the day it is born.
   const neutralLowInverse = (): Cand => pStep(r2p.neutral, cfg.family === 'light' ? 800 : 250);
-  putSurf('disabled.inverse.fill', neutralLowInverse(), 'Disabled control fill on an inverse surface — one muted neutral, any intent');
-  put('disabled.inverse.on-fill', pickMinPass(textCands, asGround('disabled.inverse.fill', neutralLowInverse().rgb), disabledTarget),
-    `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'disabled.inverse.fill', disabledTarget);
+  putSurf('inverse.disabled.fill', neutralLowInverse(), 'Disabled control fill on an inverse surface — one muted neutral, any intent');
+  put('inverse.disabled.on-fill', pickMinPass(textCands, asGround('inverse.disabled.fill', neutralLowInverse().rgb), disabledTarget),
+    `Label / icon on a disabled fill on an inverse surface — muted but clears ${disabledTarget}:1`, 'inverse.disabled.fill', disabledTarget);
   { const r = pickMinPass(textCands, invFloorRgb, disabledTarget);
-    put('disabled.inverse.text', r, `Disabled text on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'background.inverse.secondary', disabledTarget);
-    put('disabled.inverse.icon', r, `Disabled icon on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'background.inverse.secondary', disabledTarget); }
-  put('disabled.inverse.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'background.inverse.primary', 0);
+    put('inverse.disabled.text', r, `Disabled text on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'inverse.background.secondary', disabledTarget);
+    put('inverse.disabled.icon', r, `Disabled icon on an inverse surface — clears ${disabledTarget}:1 (${dBranch})`, 'inverse.background.secondary', disabledTarget); }
+  put('inverse.disabled.border', rated(neutralLowInverse(), invRgb), 'Disabled control border on an inverse surface — muted neutral', 'inverse.background.primary', 0);
 
   // ---- field — form-element chrome (docs/20 §17). Deliberately MINIMAL + gated: a field
   // surface, a PERCEIVABLE resting border, and a READABLE placeholder. Everything stateful
@@ -1229,7 +1263,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // deliberately" — the exact gap-versus-decision ambiguity #892 exists to remove. The rejected thing
   // is the TECHNIQUE (copy a page token, flip it by hand, ship it ungated), not the coverage. A
   // generated, contrast-verified inverse set is what the interactive column has always done, and
-  // `field.inverse.*` below now does the same.
+  // `inverse.field.*` below now does the same.
   putSurf('field.fill', cfg.bg.secondary, 'Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)');
   // Border is the one stateful field slot (rest + hover), same shape as interactive.*.fill.<state>.
   // Rest is a perceivable boundary; hover is a subtly STRONGER boundary — never the sole state
@@ -1261,22 +1295,22 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // ground swapped; nothing new is decided here.
   //
   // WHY FOUR AND NOT THE WHOLE FAMILY: the composition story above is unchanged, only re-pointed.
-  // Focus still swaps to a ring — `border.inverse.focus` (#891) — validation to
-  // `border.inverse.<semantic>`, disabled to `disabled.*`. What could NOT compose is the part that is
+  // Focus still swaps to a ring — `inverse.border.focus` — validation to
+  // `inverse.border.<semantic>`, disabled to `inverse.disabled.*`. What could NOT compose is the part that is
   // field-specific: the fill, the resting/hover boundary and the placeholder are gated against the
   // FIELD's own surface, and on a dark band that surface is a different colour.
   //
   // Tranche 1 is why this is first in #892's order: `checkbox`, `radio`, `switch` and `select` all
   // bind `field.*`, and until now a checkbox on an inverse band had no border, fill or placeholder
   // token to resolve to at all.
-  putSurf('field.inverse.fill', cfg.bgInverse.secondary, 'Form field fill on an inverse surface — the inverse ladder\'s second tier, the same one-step inset the page field takes');
+  putSurf('inverse.field.fill', cfg.bgInverse.secondary, 'Form field fill on an inverse surface — the inverse ladder\'s second tier, the same one-step inset the page field takes');
   // `-dir` throughout: on the page a stronger neutral steps toward the ink, and on the inverse band
   // that direction reverses. The same idiom the inverse interactive column already uses.
   const fieldInvRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
-  put('field.inverse.border.rest', fieldInvRest, `Form field resting border on an inverse surface — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.inverse.primary', cfg.nonTextMin);
+  put('inverse.field.border.rest', fieldInvRest, `Form field resting border on an inverse surface — a perceivable boundary, ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'inverse.background.primary', cfg.nonTextMin);
   const fieldInvRestNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === fieldInvRest.path)!.num;
-  put('field.inverse.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, invRgb), invRgb, cfg.nonTextMin)), invRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'background.inverse.primary', cfg.nonTextMin);
-  put('field.inverse.placeholder', pickMinPass(textCands, asGround('field.inverse.fill', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the inverse field fill`, 'field.inverse.fill', cfg.secondaryMin);
+  put('inverse.field.border.hover', rated(walk(r2p.neutral, fieldInvRestNum, 2, -dir, guardFrom(contrast(fieldInvRest.rgb, invRgb), invRgb, cfg.nonTextMin)), invRgb), `Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at ${cfg.nonTextMin}:1 (never the sole state carrier — KB §4)`, 'inverse.background.primary', cfg.nonTextMin);
+  put('inverse.field.placeholder', pickMinPass(textCands, asGround('inverse.field.fill', cfg.bgInverse.secondary.rgb), cfg.secondaryMin), `Form field placeholder ink on an inverse surface — a READABLE hint, ${cfg.secondaryMin}:1 on the inverse field fill`, 'inverse.field.fill', cfg.secondaryMin);
 
   // -------------------------------------------------------------- text (+ icon)
   // Ink. Built from a floor PROFILE so `text` (4.5:1) and `icon` can diverge: with
@@ -1355,8 +1389,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // `text.on-brand` is ink on a solid brand FILL, and the fill is its own ground — a brand-filled
     // badge inside a dark hero is still brand-filled, so the ink does not change. The case where a
     // fill DOES change on an inverse ground is already covered one tier over, by
-    // `interactive.<palette>.inverse.on-fill`. `on-inverse` itself is likewise absent from the
-    // inverse pass: it is the NAME of that pass's whole output, not a member of it.
+    // `inverse.interactive.<palette>.on-fill`. There is no `on-inverse` to be absent from the inverse
+    // pass any more (#1140): the context is the `inverse.` prefix on the pass's whole output, which is
+    // the same argument stated by the taxonomy instead of by an exception.
     if (g.page) {
       for (const r of SEMANTICS)
         T(`on-${r}`, onColor(asGround(`foreground.${r}`, fills[r]!.rgb)), `${p.label} on a solid ${r} fill`, `foreground.${r}`, onMin);
@@ -1402,7 +1437,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   //            inverse ladder's `secondary` is exactly that, one step off the inverse base in the
   //            inverse direction. Same construction, different ladder.
   //   dir    — reversed. A stronger neutral steps darker on a light page and lighter on a dark band.
-  //   tint   — `foreground.inverse.<r>-subtle`, added in step 3 precisely so this field has a value.
+  //   tint   — `inverse.foreground.<r>-subtle`, added in step 3 precisely so this field has a value.
   //            It is the second ground `semanticInkOn` gates against; without it the inverse status
   //            inks would gate on one ground while the page ones gate on two.
   //   muted  — mirrored across the ramp (`1000 - step`), the same way the tint step is. `chromatic`
@@ -1411,69 +1446,88 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // Both passes run for every brand. The second used to be gated by the `inverse` lever; #895 removed
   // it, so the inverse content set is now as unconditional as the page one.
   const pageGround: Ground = { base: baseRgb, baseName: 'background.primary', floor: floorRgb, floorName: cfg.floorName, dir, tint: subtleTint, mutedStep, page: true };
-  const inverseGround: Ground = { base: invRgb, baseName: 'background.inverse.primary', floor: invFloorRgb, floorName: 'background.inverse.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
+  const inverseGround: Ground = { base: invRgb, baseName: 'inverse.background.primary', floor: invFloorRgb, floorName: 'inverse.background.secondary', dir: -dir, tint: subtleTintInverse, mutedStep: 1000 - mutedStep, page: false };
 
   for (const s of buildContent(textProfile, pageGround)) put(`text.${s.key}`, s.r, s.desc, s.against, s.min);
   for (const s of buildContent(iconProfile, pageGround)) put(`icon.${s.key}`, s.r, s.desc, s.against, s.min);
 
-  // The inverse content set — 17 roles per family, under the name the single leaf used to occupy.
+  // The inverse content set — 17 roles per family, `inverse.` + the page name (Rule 1).
   //
-  // `text.on-inverse` WAS a leaf: one strongest-neutral ink for a dark band. It is a GROUP now, and
-  // the promoted leaf is `on-inverse.primary` — the same `pickMostExtreme` against the same ground,
-  // so the value does not move, only the path. That is principled rather than a new inconsistency:
-  // `on-brand` is ink on a FILL, a bounded element hosting one label, and one ink is all it can need;
-  // `on-inverse` is ink on a SURFACE, an unbounded region hosting a full type hierarchy, and a
-  // hierarchy needs the role set. `on-` still means exactly one thing — ink on the named ground.
+  // THESE TWO FAMILIES ARE WHY `on-inverse` HAD TO GO, and the argument is worth keeping because it
+  // reverses one #892 made in good faith. `text.on-inverse.*` kept the `on-` prefix on the grounds
+  // that `on-` means "ink on the named ground" and a dark band IS a ground, so these are the sixth
+  // member of the `on-brand`/`on-danger`/… family. That reading is defensible in isolation and wrong
+  // in the tree: `on-brand` names a FILL that ink sits on and has no non-`on-` twin, whereas the
+  // inverse band is a whole CONTEXT with a fill, a border, a field and an interactive column of its
+  // own — none of which is ink, and none of which could ever be spelled `on-inverse.*` without
+  // calling a fill ink (the exact defect #891 fixed one tier over). One context cannot be marked two
+  // ways depending on whether the role beneath it happens to be ink, so the marker is the prefix and
+  // `on-` is left meaning ink-on-a-ground exclusively (Rule 2). (#1140)
   //
-  // These two are the LAST context-node leaves in the tree: measured before writing them, seven of
-  // the nine already were groups. So this completes the one-at-a-time migration rather than
-  // continuing it, and the rule about how FUTURE context nodes are authored is a separate change.
-  for (const s of buildContent(textProfile, inverseGround)) put(`text.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
-  for (const s of buildContent(iconProfile, inverseGround)) put(`icon.on-inverse.${s.key}`, s.r, s.desc, s.against, s.min);
+  // The value does not move — same `pickMostExtreme` against the same ground — only the path.
+  for (const s of buildContent(textProfile, inverseGround)) put(`inverse.text.${s.key}`, s.r, s.desc, s.against, s.min);
+  for (const s of buildContent(iconProfile, inverseGround)) put(`inverse.icon.${s.key}`, s.r, s.desc, s.against, s.min);
 
   // ------------------------------------------------------------------- borders
-  // Neutral (primary/secondary), inverse, semantic, and the focus ring. In HC the
-  // border targets escalate — borders carry structure when surfaces flatten.
+  // Neutral (primary/secondary/tertiary), semantic, and the focus ring; the inverse
+  // set is `inverse.border.*` below. In HC the border targets escalate — borders
+  // carry structure when surfaces flatten.
   put('border.primary', pickClosest(ramp, baseRgb, cfg.borderTarget), `Default border — decorative, ~${cfg.borderTarget}:1`, 'background.primary', 0);
   put('border.secondary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2), 'Stronger border / divider', 'background.primary', 0);
-  // `border.inverse` is a GROUP, not a leaf: `default` is the decorative edge, `focus` the ring
-  // below. Promoted from a leaf in #891 so that context-before-role holds in every family that has
-  // an inverse variant — `background.inverse.<tier>`, `foreground.inverse.<tier>`,
-  // `interactive.<palette>.inverse.<role>.<state>` and now `border.inverse.<role>`. #892 adds the
-  // remaining seven roles into this container; the alternative shape (`border.<role>.inverse`) would
-  // have needed a leaf-to-group cascade per role and put context last in all of them.
-  put('border.inverse.default', pickClosest(ramp, invRgb, cfg.borderTarget), 'Border on inverse surfaces', 'background.inverse.primary', 0);
+  // A THIRD RUNG, because border was the only surface/ink family that stopped at two (#1140).
+  // `background`, `foreground`, `text` and `icon` all ship `primary`/`secondary`/`tertiary`, so a
+  // designer reaching for the third step of the neutral edge ladder found nothing and had to pick a
+  // palette step by hand — the exact leak the semantic layer exists to prevent.
+  //
+  // ONE MORE RUNG OF THE SAME LADDER, not a new rule: `secondary` is `borderTarget * 2.2` and this is
+  // `* 2.2` again. `pickClosest` clamps to what the ramp actually offers, which is what keeps HC
+  // honest — at `borderTarget` 4.5 the third rung asks for 21.78:1, above anything the neutral ramp
+  // can deliver, so it lands on the strongest available step rather than throwing. `test.ts` asserts
+  // the three rungs resolve to DISTINCT steps in every mode of every corpus brand; the ratio ladder is
+  // the derivation, the distinctness is the contract.
+  put('border.tertiary', pickClosest(ramp, baseRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider — the third rung of the neutral edge ladder', 'background.primary', 0);
   for (const r of SEMANTICS)
     put(`border.${r}`, rated(chromatic(r2p[r], 500, baseRgb, cfg.nonTextMin), baseRgb), `${r} border — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.primary', cfg.nonTextMin);
-  // The remaining seven inverse borders (#892 step 5), into the group #891 created when
-  // `border.inverse` stopped being a leaf. Same rules, inverse ground: the neutrals keep their
-  // decorative targets, the semantics keep the SC 1.4.11 floor. A danger border round a field on a
-  // dark hero was previously unbindable — the only inverse border that existed was the decorative
-  // `default` and the focus ring.
-  put('border.inverse.primary', pickClosest(ramp, invRgb, cfg.borderTarget), `Default border on an inverse surface — decorative, ~${cfg.borderTarget}:1`, 'background.inverse.primary', 0);
-  put('border.inverse.secondary', pickClosest(ramp, invRgb, cfg.borderTarget * 2.2), 'Stronger border / divider on an inverse surface', 'background.inverse.primary', 0);
-  for (const r of SEMANTICS)
-    put(`border.inverse.${r}`, rated(chromatic(r2p[r], 500, invRgb, cfg.nonTextMin), invRgb), `${r} border on an inverse surface — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'background.inverse.primary', cfg.nonTextMin);
   put('border.focus', rated(actionRest, baseRgb), 'Focus ring color (keyboard focus)', 'background.primary', cfg.nonTextMin);
-  // The same ring, for when it is drawn on an inverse surface. One ring cannot serve both grounds:
-  // measured against `background.inverse.primary`, the page-gated ring scored 3.46 (light) / 5.24
-  // (dark) but **2.09 (hc-light) / 2.40 (hc-dark)** — it failed SC 1.4.11 worst in exactly the two
-  // modes that exist to serve users who most depend on seeing focus. A ring gated against one ground
-  // and painted on another is the same shape of bug as #63 (ink gated on the page, placed on a tint)
-  // and #570 (a fixed rung that could not answer a raised bar): the gate measured a contrast the role
-  // was never asked to survive.
+
+  // The inverse edge set. Same rules, inverse ground: the neutrals keep their decorative targets, the
+  // semantics keep the SC 1.4.11 floor (#892 step 5).
   //
-  // Gated at `cfg.nonTextMin` against the INVERSE surface — deliberately NOT `border.inverse.default`'s
-  // `cfg.borderTarget` one line above, which is decorative. This is a focus indicator first and an
-  // inverse token second, so it keeps the accessibility floor its non-inverse sibling has; copying
-  // the neighbouring inverse border wholesale would silently pick the weaker gate. (#573)
+  // `border.inverse.default` USED TO SIT HERE AND #1140 DROPPED IT. It was `pickClosest(ramp, invRgb,
+  // cfg.borderTarget)` — character for character the derivation of `inverse.border.primary` just
+  // below, so the two were byte-identical in every mode of every corpus brand, verified on aurora
+  // before removal. It existed because #891 promoted the `border.inverse` LEAF to a group and named the
+  // promoted leaf `default` (following `text.link.default`), and then #892 added the seven remaining
+  // roles including a `primary` that meant the same thing. Two names for one value is the shape a
+  // picker cannot explain, so `primary` survives — it is the name the other three ladders use — and
+  // `default` gets a DEPRECATIONS entry pointing at it.
+  put('inverse.border.primary', pickClosest(ramp, invRgb, cfg.borderTarget), `Default border on an inverse surface — decorative, ~${cfg.borderTarget}:1`, 'inverse.background.primary', 0);
+  put('inverse.border.secondary', pickClosest(ramp, invRgb, cfg.borderTarget * 2.2), 'Stronger border / divider on an inverse surface', 'inverse.background.primary', 0);
+  put('inverse.border.tertiary', pickClosest(ramp, invRgb, cfg.borderTarget * 2.2 * 2.2), 'Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder', 'inverse.background.primary', 0);
+  for (const r of SEMANTICS)
+    put(`inverse.border.${r}`, rated(chromatic(r2p[r], 500, invRgb, cfg.nonTextMin), invRgb), `${r} border on an inverse surface — ${cfg.nonTextMin}:1 (SC 1.4.11)`, 'inverse.background.primary', cfg.nonTextMin);
+  // The same ring as `border.focus`, for when it is drawn on an inverse surface. One ring cannot serve
+  // both grounds: measured against `inverse.background.primary`, the page-gated ring scored 3.46
+  // (light) / 5.24 (dark) but **2.09 (hc-light) / 2.40 (hc-dark)** — it failed SC 1.4.11 worst in
+  // exactly the two modes that exist to serve users who most depend on seeing focus. A ring gated
+  // against one ground and painted on another is the same shape of bug as #63 (ink gated on the page,
+  // placed on a tint) and #570 (a fixed rung that could not answer a raised bar): the gate measured a
+  // contrast the role was never asked to survive.
+  //
+  // Gated at `cfg.nonTextMin` against the INVERSE surface — deliberately NOT `inverse.border.primary`'s
+  // `cfg.borderTarget` above, which is decorative. This is a focus indicator first and an inverse token
+  // second, so it keeps the accessibility floor its non-inverse sibling has; copying the neighbouring
+  // inverse border wholesale would silently pick the weaker gate. (#573)
   //
   // An authored action pin (#331) is honoured as the ANCHOR but not applied `exact` here: a pin is a
   // statement about the brand's action colour on the page, and reproducing it verbatim on a different
   // ground is precisely the fixed-value-cannot-answer-a-different-ground failure above. The gate is
   // free to walk it, so the ring clears 3:1 on the inverse surface in every mode.
-  put('border.inverse.focus', rated(chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, invRgb, cfg.nonTextMin), invRgb),
-      'Focus ring color on inverse surfaces (keyboard focus)', 'background.inverse.primary', cfg.nonTextMin);
+  //
+  // THIS IS THE ONE INVERSE ROLE A COMPONENT DEF BINDS BY NAME (`focus-ring`, via
+  // `UNALIASED_DEF_BINDINGS`), so it is the path a rename has to land cleanly on more than any other.
+  put('inverse.border.focus', rated(chromatic(r2p.action, paAnchor ?? theme.roleAnchorStep.action, invRgb, cfg.nonTextMin), invRgb),
+      'Focus ring color on inverse surfaces (keyboard focus)', 'inverse.background.primary', cfg.nonTextMin);
 
   // ---- per-mode colour override layer (Phase A1) ----
   // A brand may repoint a resolved role at an EXISTING primitive step in ANY palette (no raw
