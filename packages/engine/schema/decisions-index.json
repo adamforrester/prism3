@@ -86,6 +86,13 @@
       "title": "the media veil is its own family, `color.veil.*`, and it is appearance-invariant",
       "doc": "docs/20-interactive-color-system.md",
       "section": "8.1"
+    },
+    {
+      "date": "2026-08-28",
+      "issue": 1133,
+      "title": "inverse is name-encoded and bounded — the `inverse` mode comes off the pointer collection",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.8"
     }
   ]
 }

@@ -17,7 +17,7 @@ import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
 import { SizeStep, ControlSizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
-import { surfaceRowsFor, SURFACE_MODES } from './surface-rows';
+import { surfaceRowsFor } from './surface-rows';
 import { ENGINE_VERSION } from './version';
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -440,7 +440,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
 
   /**
-   * ---- the SURFACE ALIAS tier → `color.*` (#1013) ----
+   * ---- the POINTER tier → `color.*` (#1013, #1133) ----
    *
    * The tier a def binds and an app references. Every leaf is a POINTER into `color.appearance.*`,
    * which is why it composes with the appearance axis instead of multiplying against it: the name it
@@ -448,20 +448,24 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
    * Measured over 128 rows × 4 appearances × 5 corpus brands — 2560 cells agree, 0 disagree, where a
    * value-carrying projection of the same rows disagrees in 1510 (#1027).
    *
-   * ONE row set, shared with the Figma `color` collection via `surface-rows.ts`. The two formats are
-   * only reconcilable while the rows are identical, and a second derivation here would be a second
-   * expression of one fact with no gate able to say which was right (`docs/34`).
+   * ONE row set, shared with the Figma `color.surface` collection via `surface-rows.ts`. The two
+   * formats are only reconcilable while the rows are identical, and a second derivation here would be a
+   * second expression of one fact with no gate able to say which was right (`docs/34`).
+   *
+   * INVERSE IS NOT AN AXIS HERE, AND SINCE #1133 IT IS NOT ONE IN FIGMA EITHER. Each leaf is a plain
+   * 1:1 alias at the same path — `color.text.primary` → `color.appearance.text.primary`. An inverse
+   * role gets no pointer of its own (`isInverseRole`); it is bound by NAME at the appearance tier by
+   * the bounded set of components that declare an inverse variant, `focus-ring` being the shipped
+   * example. So this tier no longer withholds a second column and DTCG is no longer one column short of
+   * Figma — the two formats agree exactly, which is what #1129 was open about and what #1133 closed.
    *
    * WHAT THESE LEAVES DELIBERATELY DO NOT CARRY:
    *   · `modes` — a pointer does not vary by appearance, which is the finding above. So these leaves
    *     are absent from every appearance overlay, correctly, and `lint-overlay-completeness.ts`
    *     agrees by its own traversal rather than by an exemption.
-   *   · `contrast` / `against` — a ratio recorded here would be true on the DEFAULT surface only, and
-   *     the inverse column is where the same name resolves to a different value. The ratio lives on
-   *     the appearance leaf it points at, where it is unconditionally true.
-   *   · the `inverse` COLUMN — DTCG carries the default surface only. A surface overlay is #1027's
-   *     work (a fifth overlay file per brand, plus a decision about where the surface axis sits in
-   *     the extension namespace); the pairing lives in the Figma collection's second mode.
+   *   · `contrast` / `against` — a ratio belongs on the leaf that carries the VALUE, where it is
+   *     unconditionally true. Recording it on a pointer would restate it in a second place with
+   *     nothing keeping the two in step.
    */
   const surfaceRows = surfaceRowsFor(new Set(Object.keys(lightMode.roles)));
   const colorTier: Record<string, any> = { appearance: colorRoles };
@@ -477,10 +481,9 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     );
   for (const r of surfaceRows) {
     const target = `${root}.color.appearance.${r.role}`;
-    const leaf = aliasLeaf(target, `${lightMode.roles[r.role].description} — surface-context alias; resolves to ${r.default} on a default surface and ${r.inverse} on an inverse one`, {
+    const leaf = aliasLeaf(target, `${lightMode.roles[r.role].description} — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value`, {
       role: 'surface-alias',
-      surface: SURFACE_MODES[0],
-      figma: { collection: 'color', modes: [...SURFACE_MODES], note: 'one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)' },
+      figma: { collection: 'color.surface', modes: ['Default'], note: 'one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical' },
     });
     const parts = r.role.split('.');
     let node = colorTier;

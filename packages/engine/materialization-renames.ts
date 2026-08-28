@@ -156,10 +156,10 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     id: 'appearance-tier-1013',
     since: '0.26.0',
     why:
-      'The value tier gave up the short name `color` to the alias tier and its variables took the matching '
-      + 'prefix, so `color/text/primary` is now the POINTER that follows the surface axis and '
-      + '`color/appearance/text/primary` is one appearance\'s paint. A designer who binds the short name '
-      + 'gets the layer that re-themes; before #1013 they got the one that does not.',
+      'The value tier gave up the short name `color` to the pointer tier and its variables took the matching '
+      + 'prefix, so `color/text/primary` is now the POINTER and `color/appearance/text/primary` is one '
+      + 'appearance\'s paint. A designer who binds the short name gets the tier they should reach for '
+      + 'first; before #1013 they got the one holding the values.',
     domain: (collection, name) =>
       collection === 'color.appearance' && name.startsWith('color/') && !name.startsWith('color/appearance/'),
     map: (_collection, name) => `color/appearance/${name.slice('color/'.length)}`,
@@ -168,10 +168,13 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     id: 'surface-to-color-1013',
     since: '0.26.0',
     why:
-      'The alias tier kept its axis and changed its name: `surface/text/primary` became '
-      + '`color/text/primary`. The axis is still surface (two modes, `default` and `inverse`) — what moved '
-      + 'is which of the two tiers a designer reaches by default, which is the point of #1013 rather than '
-      + 'a side effect of it.',
+      'The pointer tier changed its name and kept its rows: `surface/text/primary` became '
+      + '`color/text/primary`. What moved is which of the two tiers a designer reaches by default, which is '
+      + 'the point of #1013 rather than a side effect of it. '
+      + 'THE RULE IS ABOUT NAMES, NOT MODES, AND #1133 IS WHY THAT IS WORTH SAYING: the collection carried '
+      + 'a second `inverse` mode when this rule was written and carries one mode now, and the rename is '
+      + 'unaffected either way. A designer\'s pre-#1013 `surface/*` variable still has to arrive at '
+      + '`color/*` or it is left behind, which is the only thing this rule promises.',
     // #1089 RENAMED THE COLLECTION THIS RULE RUNS IN, AND THE DOMAIN NAMES THE LIVE NAME, NOT THE
     // HISTORICAL ONE. `materialize` is always called with the collection the write plan is about to use,
     // so a domain keyed on `color` — what the alias tier was called between #1013 and #1089 — matches

@@ -1,92 +1,91 @@
 /**
- * Prism3 engine — the `color` Figma collection: the SURFACE ALIAS TIER (#893, #871, #1013).
+ * Prism3 engine — the `color.surface` Figma collection: the POINTER TIER (#893, #871, #1013, #1133).
  *
- * A collection with two modes — `default` and `inverse` — and **no colors of its own**. Every row
- * is an alias into the `color.appearance` collection: `default` points at the page token, `inverse`
- * at its inverse counterpart. Binding `color/text/primary` to a layer and switching the mode on an
- * ancestor frame swaps the whole subtree to its inverse-context values.
+ * A SINGLE-MODE collection with **no colors of its own**. Every row is an alias into the
+ * `color.appearance` collection, so a designer binds the short `color/text/primary` and the appearance
+ * mode on `color.appearance` picks the value one hop later.
  *
- * ── IT HOLDS THE NAME `color`, AND THAT IS THE POINT OF #1013 ────────────────────────────────────
+ * ── IT HAD A SECOND MODE, AND #1133 TOOK IT BACK OFF ────────────────────────────────────────────
  *
- * This layer used to be called `surface` and the value layer `color`. #1013 swapped them, in both
- * formats: the value layer is now `color.appearance` (Figma collection and DTCG tier alike) and this
- * one is `color` — spelled `color.surface` as a Figma collection since #1089, though the DTCG tier and
- * the variable prefix are both still `color/*`; see line 97. The names now say which layer a designer is
- * meant to reach for — the two-tier rule the rest of the emission already follows, where the `core`
- * primitives sit below `color` rather than beside it.
+ * From #893 until #1133 the collection carried two modes, `default` and `inverse`, and switching the
+ * mode on an ancestor frame flipped a whole subtree to its inverse-context values. That is reverted.
+ * Inverse is **name-encoded** again — a bounded set of components declares an inverse variant and binds
+ * `color.appearance.*.inverse.*` by name, the shape `focus-ring` has shipped all along.
  *
- * The consequence is the whole reason the swap was worth a MAJOR: **a component def that binds
- * `color.<role>` is surface-responsive with no def change at all**, because the name it already
- * binds resolves here, and the mode on an ancestor frame picks `default` or `inverse`.
+ * The reasoning is in `docs/20` §9.8, and the short version is that mode-encoding only pays if you flip
+ * EVERYTHING: #1128 measured 112 of 128 roles flipping, which is the number that makes a mode look
+ * obviously right, and the requirement is not a full-region flip. It is a bounded set of inverse atomic
+ * elements plus inverse variants of page-level blocks. No surveyed system ships an inverse mode or
+ * collection (Carbon, Material 3, Fluent, Atlassian all name it), and a bounded set is exactly what a
+ * name expresses and a mode cannot: a mode applies to every row in the collection or none.
  *
- * ── WHY IT IS AN ALIAS LAYER AND NOT A FOURTH COLOR SET ─────────────────────────────────────────
+ * What the revert does NOT touch, because none of it was about inverse:
+ *   · the appearance tier and its four modes, INCLUDING every inverse leaf — those are the values the
+ *     component variants bind, and they are the point of the whole model.
+ *   · the two-tier split itself (#1082/#1013). Its justification is appearance-INDEPENDENCE — a
+ *     consumer binds one stable short name and never resolves an appearance mode — and that argument
+ *     never mentioned inverse. The collection is single-mode now, which is what a pure indirection tier
+ *     should have been.
+ *   · the collection NAME. `.surface` was earned in #1089 by naming a second axis, and that rationale
+ *     is genuinely weaker with one mode; it is kept anyway, argued in `docs/20` §9.8, because renaming
+ *     it costs a `COLLECTION_RENAMES` entry that re-creates the chain #1097 removed and re-opens the
+ *     era ambiguity that already makes `color → color.surface` an entry the map refuses to hold.
+ *
+ * ── WHY IT IS A POINTER TIER AND NOT A FOURTH COLOR SET ─────────────────────────────────────────
  *
  * It stores POINTERS, not values, and that is the whole economic argument. The same row resolves to
  * `rgb(207,11,44)` in nb and `#007cbb` in aurora because the values live in the `color.appearance`
  * collection where they already are. So the collection is authored ONCE and shared by every brand: it
  * does not grow with brands, and it does not grow with appearance modes.
  *
- * That second property was measured end-to-end for #1013 and it is what made the swap safe to carry
- * into DTCG: over 128 rows × 4 appearances × 5 corpus brands, a POINTER-carrying surface projection
- * agrees with the appearance tier in 2560 of 2560 cells, where a VALUE-carrying one disagrees in
- * 1510. Composition is a property of the pointer, not of the axes — see #1027.
+ * That second property was measured end-to-end for #1013 and it is what made the tier safe to carry
+ * into DTCG: over 128 rows × 4 appearances × 5 corpus brands, a POINTER-carrying projection agrees with
+ * the appearance tier in 2560 of 2560 cells, where a VALUE-carrying one disagrees in 1510. Composition
+ * is a property of the pointer, not of the axes. **This is the measurement that survives #1133 intact**
+ * — it is about pointers versus values, not about how many modes the pointer collection has.
  *
  * The recipe, so the numbers are reproducible rather than folkloric: resolve each alias row in each
  * appearance mode and compare with the appearance tier's own value for that mode; the counterfactual
  * bakes the row's `light` value and compares the same way. The pointer column is 100% by construction
- * — that IS the finding, since the construction is what the swap chose.
+ * — that IS the finding, since the construction is what the tier chose.
  *
- * **The economy is sound only while every brand ships the identical inverse NAME set.** Measured
- * 113/113/113/113 with zero divergence across the four corpus brands, and held by
- * `token-contract.json`. What it does NOT test is a brand needing `inverse` to point at a
- * structurally DIFFERENT semantic role rather than a different value — see the header of `gate.ts`
- * and #893's acceptance check. Four generated brands agreeing cannot test that.
+ * ── DTCG CARRIES THIS TIER, PATH FOR PATH ───────────────────────────────────────────────────────
  *
- * ── DTCG CARRIES THIS TIER, BUT NOT ITS SECOND MODE ─────────────────────────────────────────────
+ * Before #1013 this collection was Figma-only. It is not any more: `tree.ts` emits the same rows as the
+ * DTCG `color.*` tier, so `color.background.primary` is an alias into `color.appearance.background.primary`
+ * in both formats and the two stay reconcilable. With one mode on each side of that pairing there is
+ * nothing left for DTCG to be missing — which is what #1129 was open about and what #1133 closed by
+ * removing the second mode rather than by projecting it.
  *
- * Before #1013 this collection was Figma-only. It is not any more: `tree.ts` emits the same 128 rows
- * as the DTCG `color.*` tier, so `color.background.primary` is an alias into
- * `color.appearance.background.primary` in both formats and the two stay reconcilable.
+ * ── THE ROLES WITH NO INVERSE COUNTERPART ───────────────────────────────────────────────────────
  *
- * What DTCG does NOT carry is the `inverse` MODE. Per `tools/exporter-comparison/axes.ts` the
- * conforming projection carries appearance overlays only; a surface overlay is a fifth overlay file
- * per brand and a decision about where the surface axis lives in the extension namespace, which is
- * #1027's work and deliberately not this file's. So the inverse pairing exists here, in this
- * collection's second mode, and in DTCG only as the default column.
+ * Eleven appearance roles have none, and they are registered with a reason in `inverse-coverage.ts`.
+ * That register no longer decides anything HERE — membership is uniform, every non-inverse role gets a
+ * row — because a single-mode row never has to answer "and on an inverse ground?". What the register
+ * bounds now is which components can declare an inverse variant at all, which is the question #1133
+ * makes central. `test.ts` checks it both directions, so a gap cannot appear silently.
  *
- * ── THE GAPS, AND WHY THIS FILE DOES NOT DECIDE THEM ────────────────────────────────────────────
- *
- * Eleven roles have no inverse counterpart. A row for one of them has to either point `inverse` at
- * the same token as `default` (SELF-ALIAS) or not exist (OMIT), and the two are not interchangeable:
- * self-aliasing makes every name resolve at the cost of making a deliberate gap look like a filled
- * one, while omitting keeps the gap legible at the cost of a name that does not resolve.
- *
- * The answer depends on WHY each gap exists, so it is read from `inverse-coverage.ts` per entry
- * rather than decided here or collapsed to one global rule. That register is checked both directions
- * by `test.ts`, so a disposition cannot rot into a claim about a gap that has since closed.
- *
- * The row DERIVATION itself lives in `surface-rows.ts`, not here, because `tree.ts` needs it too and
- * two derivations of "which roles pair" would be two expressions of one fact. Re-exported below so
+ * The row DERIVATION lives in `surface-rows.ts`, not here, because `tree.ts` needs it too and two
+ * derivations of "which roles get a pointer" would be two expressions of one fact. Re-exported below so
  * every existing importer of this module is unchanged.
  *
- * PURE — no `node:*`, no I/O. The shell in `emit-figma.ts` writes the files.
+ * PURE — no `node:*`, no I/O. The shell in `emit-figma.ts` writes the file.
  */
 import { Theme } from './theme';
 import { resolveAllModes } from './modes';
-import { INVERSE_GAP_PATHS, gapDisposition } from './inverse-coverage';
 import type { FigmaCollectionFile, FigmaVar } from './emit-figma-color';
 import { figName, parseColor } from './emit-figma-color';
-import { SURFACE_MODES, surfaceRows } from './surface-rows';
+import { surfaceRows } from './surface-rows';
 
-export {
-  SURFACE_MODES, type SurfaceMode, isInverseRole, inverseCounterpart, type SurfaceRow,
-  surfaceRows, surfaceRowsFor,
-} from './surface-rows';
+export { isInverseRole, type SurfaceRow, surfaceRows, surfaceRowsFor } from './surface-rows';
 
 /**
- * Build the two mode files. Every variable carries `alias` — the mode's target — and a `value` that
- * is the target's RESOLVED color, so a consumer that cannot follow aliases still renders correctly
- * (the same fallback contract every other emitted collection holds).
+ * Build the collection. Every variable carries `alias` — its target — and a `value` that is the
+ * target's RESOLVED color, so a consumer that cannot follow aliases still renders correctly (the same
+ * fallback contract every other emitted collection holds).
+ *
+ * Returns an ARRAY of one rather than a bare file, so `if (!light) return []` stays the guard it always
+ * was and `emit-figma.ts` keeps looping instead of gaining an `undefined` branch.
  */
 export const buildFigmaSurface = (theme: Theme): FigmaCollectionFile[] => {
   const modes = resolveAllModes(theme);
@@ -94,48 +93,51 @@ export const buildFigmaSurface = (theme: Theme): FigmaCollectionFile[] => {
   if (!light) return [];
   const rows = surfaceRows(theme);
 
-  return SURFACE_MODES.map((mode): FigmaCollectionFile => ({
-    // `color.surface` rather than `color` (#1089/#1097). The two tiers are two entries in the same
-    // picker, and only one of them named its axis: `color.appearance` said which axis it switches on
-    // and `color` said nothing, so the pair read as "the appearance one, and the default one" rather
-    // than as two axes. The variables inside keep their `color/*` names — the DTCG path does not move.
+  return [{
+    // `color.surface` rather than `color` (#1089/#1097/#1133). The suffix was earned by naming a second
+    // axis and that axis is gone, so it is now the weaker claim that this is one tier of an explicitly
+    // two-tier pair. Kept regardless: `color` named the VALUE tier before #1082 and would name the
+    // POINTER tier after a revert, `COLLECTION_RENAMES` has no era to tell those apart, and the entry
+    // would re-create the chain #1097 removed. Argued in full in `docs/20` §9.8.
     $collection: 'color.surface',
-    $mode: mode,
+    // `Default`, capitalized, exactly like the twelve other single-mode collections — Figma requires a
+    // mode name and this is the one prism3 uses. It is also what `AXIS_MODEL.none.baseMember` says, so
+    // classifying this collection `none` in `axes.ts` is now literally true rather than approximately.
+    $mode: 'Default',
     variables: rows.map((r): FigmaVar => {
-      const target = mode === 'default' ? r.default : r.inverse;
-      const resolved = light.roles[target];
+      const resolved = light.roles[r.role];
       return {
         // Built from the row's DTCG path, in full, because that is what the name IS: this row is
-        // `<root>.color.<role>` in the tree and its target is `<root>.color.appearance.<target>`.
+        // `<root>.color.<role>` in the tree and its target is `<root>.color.appearance.<role>`.
         // Before #1097 both were assembled by hand from a `figName` call that discarded the root —
         // which meant the leading `color/` here was replacing a segment `figName` had just removed.
         name: figName(`${theme.root}.color.${r.role}`),
         resolvedType: 'COLOR',
-        // ALL_SCOPES: the row stands in for whatever its target is scoped to, and a surface-context
-        // binding is applied at the layer rather than picked per slot. Narrowing here would be a
-        // second, weaker copy of the `color.appearance` collection's scoping, free to drift from it.
+        // ALL_SCOPES: the row stands in for whatever its target is scoped to, and a pointer is applied
+        // wherever its target could be. Narrowing here would be a second, weaker copy of the
+        // `color.appearance` collection's scoping, free to drift from it.
         scopes: [],
-        description: `${r.role} for the ${mode} surface context — an alias into the color.appearance collection${r.default === r.inverse ? ' (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)' : ''}`,
+        description: `${r.role} — a pointer into the color.appearance collection, where the appearance mode picks the value`,
         value: parseColor(resolved?.hex ?? '#000000'),
-        alias: { type: 'VARIABLE_ALIAS', name: figName(`${theme.root}.color.appearance.${target}`) },
+        alias: { type: 'VARIABLE_ALIAS', name: figName(`${theme.root}.color.appearance.${r.role}`) },
       };
     }),
-  }));
+  }];
 };
-
-/** Roles deliberately absent from the collection, for the emitter's summary line. */
-export const surfaceOmitted = (): string[] =>
-  [...INVERSE_GAP_PATHS].filter((p) => gapDisposition(p) === 'omit').sort();
 
 /**
  * ── DEF BINDINGS THIS LAYER DOES NOT CARRY (#871's parked follow-on) ────────────────────────────
  *
- * Before #1013 a binding outside this layer was silently non-responsive: the def kept resolving
- * against a real token, it just stopped tracking the surface, with **no error anywhere**. After the
- * swap it is louder but not loud enough to go unregistered — a binding outside the layer now has to
- * NAME the appearance tier (`color.appearance.<role>`), because the plain `color.<role>` spelling is
- * this layer and resolves here. So the register's question moved with the rename: it is no longer
- * "which def-bound role has no row" but "which def reaches past this layer into the value tier."
+ * A binding outside this layer has to NAME the appearance tier (`color.appearance.<role>`), because the
+ * plain `color.<role>` spelling is this layer and resolves here. So the register's question is "which
+ * def reaches past the pointer tier into the value tier", and every such reach should be a decision
+ * somebody made rather than a name that drifted.
+ *
+ * #1133 did not shrink this register's job, it broadened what an entry can mean. Under mode-encoding a
+ * reach past this layer was a def that had lost its surface-responsiveness. Under name-encoding it is a
+ * def binding an inverse leaf ON PURPOSE — which is the whole model — so an entry now records a
+ * deliberate name-encoded inverse binding, and the staleness arm is what stops that reading being
+ * assumed for a binding nobody argued.
  *
  * Measured across `componentDefs`: 57 distinct color bindings, 56 of them plain `color.<role>` paths
  * with a row here, one reaching into `color.appearance.*`.
@@ -160,10 +162,10 @@ export const UNALIASED_DEF_BINDINGS: UnaliasedBinding[] = [
     path: 'color.appearance.border.inverse.focus',
     boundBy: 'focus-ring:border.inverse',
     why:
-      'The only inverse path any def binds, and the only def-bound path this layer cannot carry — by construction, not by omission: `isInverseRole` excludes an inverse role from being a row, because inverse-ness is what the MODES express. A `border.inverse.focus` row would have to answer what its own inverse mode is, and there is no such thing as a double inverse. ' +
-      'So it is not a defect in either place. `focus-ring` declares `color: default | inverse` and binds the two ends explicitly, which was the right shape before this layer existed and is redundant after it: the row for `border.focus` already reads `default -> color.appearance.border.focus, inverse -> color.appearance.border.inverse.focus`, so a ring binding the plain path gets the SAME two values from the frame mode that the variant gets from a coordinate. ' +
-      'Removing the binding therefore costs no value and no token — the path stays emitted and stays contract-guaranteed; only this def stops naming it. What it costs is the axis: `color` is the ring\'s ONLY variant axis, and `figmaProperties.variantAxes` must be non-empty (measured against `figmaPropertyErrors`, which rejects `[]` outright), so dropping it un-projects the def — regressing #795 and breaking the five hosts that resolve `nests: \'focus-ring\'` by name. That prerequisite is a schema decision, not a binding edit — filed as #1028 — which is why this entry exists instead of the removal, and why the staleness arm matters more than the coverage arm: this entry is meant to die. ' +
-      '#1013 moved the path rather than the argument: the def now names `color.appearance.border.inverse.focus`, because after the swap the plain `color.border.inverse.focus` spelling would be a name this layer does not emit. Nothing above changes.',
+      'The only inverse path any def binds, and the only def-bound path this layer cannot carry — by construction, not by omission: `isInverseRole` excludes an inverse role from being a row, because an inverse role is bound BY NAME at the appearance tier. A `color.border.inverse.focus` pointer would be a second short spelling for a leaf whose whole point is that the component names it deliberately. ' +
+      '#1133 TURNED THIS ENTRY FROM AN EXCEPTION INTO THE TEMPLATE, and that is the one substantive change to this note since #1013. It used to read as a def that had missed out on surface-responsiveness and was waiting for #1028 to let it be deleted: the pointer row for `border.focus` carried `default -> color.appearance.border.focus, inverse -> color.appearance.border.inverse.focus`, so the frame mode gave a ring binding the plain path the same two values the variant got from a coordinate, and the explicit binding was redundant. ' +
+      'With the surface mode reverted there is no frame mode to get them from, so the redundancy is gone and the explicit binding is the ONLY way a ring on a dark band gets the right edge. `focus-ring` declares `color: default | inverse` and binds the two ends by name — precisely the bounded, name-encoded shape #1133 chose for every inverse component — so this entry is no longer meant to die. #1028 (making `figmaProperties.variantAxes` accept an empty axis list, which is what deleting the binding would have needed, since `color` is the ring\'s only variant axis and `figmaPropertyErrors` rejects `[]` outright) stops being a prerequisite for anything here. ' +
+      'It stays REGISTERED rather than being dropped from the register, because the register\'s arms are what distinguish this from a binding nobody argued: the coverage arm fails an unregistered reach into the value tier, and the staleness arm fails this entry if `focus-ring` stops naming the path. What changed is the expectation — the staleness arm now guards a binding meant to persist rather than announcing one meant to be removed.',
   },
 ];
 

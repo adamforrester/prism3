@@ -7889,7 +7889,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.scrim.default"
+        "color.appearance.scrim.default",
+        "color.scrim.default"
       ]
     },
     "core.palette.black-alpha.50": {
@@ -7910,6 +7911,7 @@
       "aliased_by": [
         "color.appearance.scrim.default",
         "color.appearance.veil.dark.body",
+        "color.scrim.default",
         "color.veil.dark.body"
       ]
     },
@@ -7921,6 +7923,7 @@
       "aliased_by": [
         "color.appearance.scrim.default",
         "color.appearance.veil.dark.enhanced",
+        "color.scrim.default",
         "color.veil.dark.enhanced"
       ]
     },

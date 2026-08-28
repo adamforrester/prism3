@@ -1,12 +1,12 @@
 {
   "$collection": "color.surface",
-  "$mode": "default",
+  "$mode": "Default",
   "variables": [
     {
       "name": "prism/color/background/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "background.primary for the default surface context — an alias into the color.appearance collection",
+      "description": "background.primary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -22,11 +22,11 @@
       "name": "prism/color/background/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "background.secondary for the default surface context — an alias into the color.appearance collection",
+      "description": "background.secondary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
-        "b": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
@@ -38,11 +38,11 @@
       "name": "prism/color/background/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "background.tertiary for the default surface context — an alias into the color.appearance collection",
+      "description": "background.tertiary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
-        "b": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
@@ -54,11 +54,11 @@
       "name": "prism/color/border/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.brand for the default surface context — an alias into the color.appearance collection",
+      "description": "border.brand — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0.4470588266849518,
+        "g": 0.4117647111415863,
+        "b": 0.7921568751335144,
         "a": 1
       },
       "alias": {
@@ -70,11 +70,11 @@
       "name": "prism/color/border/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.danger for the default surface context — an alias into the color.appearance collection",
+      "description": "border.danger — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
@@ -86,11 +86,11 @@
       "name": "prism/color/border/focus",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.focus for the default surface context — an alias into the color.appearance collection",
+      "description": "border.focus — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
@@ -102,7 +102,7 @@
       "name": "prism/color/border/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.info for the default surface context — an alias into the color.appearance collection",
+      "description": "border.info — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -118,11 +118,11 @@
       "name": "prism/color/border/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.primary for the default surface context — an alias into the color.appearance collection",
+      "description": "border.primary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
-        "b": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
@@ -134,11 +134,11 @@
       "name": "prism/color/border/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.secondary for the default surface context — an alias into the color.appearance collection",
+      "description": "border.secondary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.5529412031173706,
+        "r": 0.5568627715110779,
         "g": 0.5568627715110779,
-        "b": 0.5607843399047852,
+        "b": 0.572549045085907,
         "a": 1
       },
       "alias": {
@@ -150,11 +150,11 @@
       "name": "prism/color/border/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.success for the default surface context — an alias into the color.appearance collection",
+      "description": "border.success — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.26274511218070984,
         "g": 0.5137255191802979,
-        "b": 0.2666666805744171,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
@@ -166,11 +166,11 @@
       "name": "prism/color/border/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "border.warning for the default surface context — an alias into the color.appearance collection",
+      "description": "border.warning — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7176470756530762,
-        "g": 0.3607843220233917,
-        "b": 0.13725490868091583,
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
         "a": 1
       },
       "alias": {
@@ -182,11 +182,11 @@
       "name": "prism/color/disabled/border",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.border for the default surface context — an alias into the color.appearance collection",
+      "description": "disabled.border — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7529411911964417,
+        "r": 0.7568627595901489,
         "g": 0.7568627595901489,
-        "b": 0.7607843279838562,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -198,11 +198,11 @@
       "name": "prism/color/disabled/fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.fill for the default surface context — an alias into the color.appearance collection",
+      "description": "disabled.fill — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7529411911964417,
+        "r": 0.7568627595901489,
         "g": 0.7568627595901489,
-        "b": 0.7607843279838562,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -214,11 +214,11 @@
       "name": "prism/color/disabled/icon",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.icon for the default surface context — an alias into the color.appearance collection",
+      "description": "disabled.icon — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.501960813999176,
+        "r": 0.5058823823928833,
         "g": 0.5098039507865906,
-        "b": 0.5137255191802979,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
@@ -230,11 +230,11 @@
       "name": "prism/color/disabled/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.on-fill for the default surface context — an alias into the color.appearance collection",
+      "description": "disabled.on-fill — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.4156862795352936,
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
@@ -246,11 +246,11 @@
       "name": "prism/color/disabled/text",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "disabled.text for the default surface context — an alias into the color.appearance collection",
+      "description": "disabled.text — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.501960813999176,
+        "r": 0.5058823823928833,
         "g": 0.5098039507865906,
-        "b": 0.5137255191802979,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
@@ -262,11 +262,11 @@
       "name": "prism/color/field/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.border.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "field.border.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.45490196347236633,
-        "g": 0.4588235318660736,
-        "b": 0.46666666865348816,
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
         "a": 1
       },
       "alias": {
@@ -278,11 +278,11 @@
       "name": "prism/color/field/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.border.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "field.border.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.5529412031173706,
+        "r": 0.5568627715110779,
         "g": 0.5568627715110779,
-        "b": 0.5607843399047852,
+        "b": 0.572549045085907,
         "a": 1
       },
       "alias": {
@@ -294,11 +294,11 @@
       "name": "prism/color/field/fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.fill for the default surface context — an alias into the color.appearance collection",
+      "description": "field.fill — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
-        "b": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
@@ -310,11 +310,11 @@
       "name": "prism/color/field/placeholder",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "field.placeholder for the default surface context — an alias into the color.appearance collection",
+      "description": "field.placeholder — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.4156862795352936,
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
@@ -326,11 +326,11 @@
       "name": "prism/color/foreground/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.brand for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.brand — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0.3686274588108063,
+        "g": 0.29411765933036804,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -342,11 +342,11 @@
       "name": "prism/color/foreground/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.brand-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.brand-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.9411764740943909,
-        "g": 0.8196078538894653,
-        "b": 0.8117647171020508,
+        "r": 0.8549019694328308,
+        "g": 0.8549019694328308,
+        "b": 0.929411768913269,
         "a": 1
       },
       "alias": {
@@ -358,11 +358,11 @@
       "name": "prism/color/foreground/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.danger for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.danger — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
@@ -374,11 +374,11 @@
       "name": "prism/color/foreground/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.danger-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.danger-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.9490196108818054,
         "g": 0.8352941274642944,
-        "b": 0.8274509906768799,
+        "b": 0.8235294222831726,
         "a": 1
       },
       "alias": {
@@ -390,7 +390,7 @@
       "name": "prism/color/foreground/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.info for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.info — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.1921568661928177,
         "g": 0.48235294222831726,
@@ -406,7 +406,7 @@
       "name": "prism/color/foreground/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.info-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.info-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.7960784435272217,
         "g": 0.8705882430076599,
@@ -422,11 +422,11 @@
       "name": "prism/color/foreground/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.primary for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.primary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.9137254953384399,
         "g": 0.9137254953384399,
-        "b": 0.9137254953384399,
+        "b": 0.9176470637321472,
         "a": 1
       },
       "alias": {
@@ -438,11 +438,11 @@
       "name": "prism/color/foreground/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.secondary for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.secondary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.8588235378265381,
         "g": 0.8588235378265381,
-        "b": 0.8627451062202454,
+        "b": 0.8666666746139526,
         "a": 1
       },
       "alias": {
@@ -454,11 +454,11 @@
       "name": "prism/color/foreground/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.success for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.success — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.2862745225429535,
+        "r": 0.26274511218070984,
         "g": 0.5137255191802979,
-        "b": 0.2666666805744171,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
@@ -470,11 +470,11 @@
       "name": "prism/color/foreground/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.success-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.success-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.9254902005195618,
-        "b": 0.686274528503418,
+        "r": 0.6705882549285889,
+        "g": 0.9372549057006836,
+        "b": 0.6745098233222961,
         "a": 1
       },
       "alias": {
@@ -486,11 +486,11 @@
       "name": "prism/color/foreground/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.tertiary for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.tertiary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8078431487083435,
-        "b": 0.8117647171020508,
+        "b": 0.8156862854957581,
         "a": 1
       },
       "alias": {
@@ -502,11 +502,11 @@
       "name": "prism/color/foreground/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.warning for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.warning — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7176470756530762,
-        "g": 0.3607843220233917,
-        "b": 0.13725490868091583,
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
         "a": 1
       },
       "alias": {
@@ -518,11 +518,11 @@
       "name": "prism/color/foreground/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "foreground.warning-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "foreground.warning-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.9529411792755127,
-        "g": 0.8352941274642944,
-        "b": 0.7764706015586853,
+        "r": 0.95686274766922,
+        "g": 0.843137264251709,
+        "b": 0.6901960968971252,
         "a": 1
       },
       "alias": {
@@ -534,11 +534,11 @@
       "name": "prism/color/icon/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.brand for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.brand — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0.3686274588108063,
+        "g": 0.29411765933036804,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -550,11 +550,11 @@
       "name": "prism/color/icon/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.brand-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.brand-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.4901960790157318,
+        "g": 0.46666666865348816,
+        "b": 0.8078431487083435,
         "a": 1
       },
       "alias": {
@@ -566,11 +566,11 @@
       "name": "prism/color/icon/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.danger for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.danger — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6352941393852234,
-        "g": 0.2078431397676468,
-        "b": 0.2235294133424759,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
@@ -582,11 +582,11 @@
       "name": "prism/color/icon/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.danger-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.danger-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.32156863808631897,
-        "b": 0.33725491166114807,
+        "r": 0.8509804010391235,
+        "g": 0.3333333432674408,
+        "b": 0.2980392277240753,
         "a": 1
       },
       "alias": {
@@ -598,11 +598,11 @@
       "name": "prism/color/icon/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.info for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.info — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.12156862765550613,
-        "g": 0.3764705955982208,
-        "b": 0.5647059082984924,
+        "r": 0.1921568661928177,
+        "g": 0.48235294222831726,
+        "b": 0.6980392336845398,
         "a": 1
       },
       "alias": {
@@ -614,7 +614,7 @@
       "name": "prism/color/icon/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.info-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.info-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -630,11 +630,11 @@
       "name": "prism/color/icon/link/default",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.default for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.link.default — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
@@ -646,11 +646,11 @@
       "name": "prism/color/icon/link/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.focused for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.link.focused — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
@@ -662,11 +662,11 @@
       "name": "prism/color/icon/link/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.link.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -678,11 +678,11 @@
       "name": "prism/color/icon/link/visited",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.link.visited for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.link.visited — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
@@ -694,7 +694,7 @@
       "name": "prism/color/icon/on-brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-brand for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-brand — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -710,7 +710,7 @@
       "name": "prism/color/icon/on-danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-danger for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-danger — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -726,7 +726,7 @@
       "name": "prism/color/icon/on-info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-info for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-info — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -742,7 +742,7 @@
       "name": "prism/color/icon/on-success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-success for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-success — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -758,7 +758,7 @@
       "name": "prism/color/icon/on-warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.on-warning for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "icon.on-warning — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -774,7 +774,7 @@
       "name": "prism/color/icon/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.primary for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.primary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -790,11 +790,11 @@
       "name": "prism/color/icon/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.secondary for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.secondary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.4156862795352936,
+        "r": 0.5058823823928833,
+        "g": 0.5098039507865906,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
@@ -806,11 +806,11 @@
       "name": "prism/color/icon/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.success for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.success — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.20392157137393951,
-        "g": 0.40392157435417175,
-        "b": 0.1921568661928177,
+        "r": 0.26274511218070984,
+        "g": 0.5137255191802979,
+        "b": 0.27843138575553894,
         "a": 1
       },
       "alias": {
@@ -822,11 +822,11 @@
       "name": "prism/color/icon/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.success-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.success-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.32549020648002625,
-        "g": 0.5647059082984924,
-        "b": 0.30588236451148987,
+        "r": 0.3019607961177826,
+        "g": 0.5686274766921997,
+        "b": 0.3176470696926117,
         "a": 1
       },
       "alias": {
@@ -838,11 +838,11 @@
       "name": "prism/color/icon/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.tertiary for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.tertiary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.501960813999176,
+        "r": 0.5058823823928833,
         "g": 0.5098039507865906,
-        "b": 0.5137255191802979,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
@@ -854,11 +854,11 @@
       "name": "prism/color/icon/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.warning for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.warning — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.5764706134796143,
-        "g": 0.2705882489681244,
-        "b": 0.06666667014360428,
+        "r": 0.6235294342041016,
+        "g": 0.41960784792900085,
+        "b": 0,
         "a": 1
       },
       "alias": {
@@ -870,11 +870,11 @@
       "name": "prism/color/icon/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "icon.warning-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "icon.warning-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7803921699523926,
-        "g": 0.4000000059604645,
-        "b": 0.16862745583057404,
+        "r": 0.6823529601097107,
+        "g": 0.4627451002597809,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
@@ -886,11 +886,11 @@
       "name": "prism/color/interactive/destructive/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.border.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.border.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7137255072593689,
-        "g": 0.24705882370471954,
-        "b": 0.26274511218070984,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
@@ -902,11 +902,11 @@
       "name": "prism/color/interactive/destructive/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.border.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.border.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6352941393852234,
-        "g": 0.2078431397676468,
-        "b": 0.2235294133424759,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
@@ -918,11 +918,11 @@
       "name": "prism/color/interactive/destructive/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.border.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.border.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
@@ -934,11 +934,11 @@
       "name": "prism/color/interactive/destructive/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.focused for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.fill.focused — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7137255072593689,
-        "g": 0.24705882370471954,
-        "b": 0.26274511218070984,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
@@ -950,11 +950,11 @@
       "name": "prism/color/interactive/destructive/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.fill.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7137255072593689,
-        "g": 0.24705882370471954,
-        "b": 0.26274511218070984,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
@@ -966,11 +966,11 @@
       "name": "prism/color/interactive/destructive/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.fill.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6352941393852234,
-        "g": 0.2078431397676468,
-        "b": 0.2235294133424759,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
@@ -982,11 +982,11 @@
       "name": "prism/color/interactive/destructive/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.fill.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
@@ -998,11 +998,11 @@
       "name": "prism/color/interactive/destructive/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.fill.selected for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.fill.selected — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6352941393852234,
-        "g": 0.2078431397676468,
-        "b": 0.2235294133424759,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
@@ -1014,7 +1014,7 @@
       "name": "prism/color/interactive/destructive/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.on-fill for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.on-fill — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1030,7 +1030,7 @@
       "name": "prism/color/interactive/destructive/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.overlay.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.overlay.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1046,7 +1046,7 @@
       "name": "prism/color/interactive/destructive/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.overlay.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.overlay.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1062,7 +1062,7 @@
       "name": "prism/color/interactive/destructive/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.overlay.selected for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.overlay.selected — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1078,11 +1078,11 @@
       "name": "prism/color/interactive/destructive/text/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.text.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.text.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7137255072593689,
-        "g": 0.24705882370471954,
-        "b": 0.26274511218070984,
+        "r": 0.7098039388656616,
+        "g": 0.2549019753932953,
+        "b": 0.22745098173618317,
         "a": 1
       },
       "alias": {
@@ -1094,11 +1094,11 @@
       "name": "prism/color/interactive/destructive/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.text.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.text.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6352941393852234,
-        "g": 0.2078431397676468,
-        "b": 0.2235294133424759,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
@@ -1110,11 +1110,11 @@
       "name": "prism/color/interactive/destructive/text/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.destructive.text.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.destructive.text.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7921568751335144,
-        "g": 0.2862745225429535,
-        "b": 0.3019607961177826,
+        "r": 0.7882353067398071,
+        "g": 0.2980392277240753,
+        "b": 0.2666666805744171,
         "a": 1
       },
       "alias": {
@@ -1126,11 +1126,11 @@
       "name": "prism/color/interactive/neutral/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.border.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.border.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.45490196347236633,
-        "g": 0.4588235318660736,
-        "b": 0.46666666865348816,
+        "r": 0.4588235318660736,
+        "g": 0.4627451002597809,
+        "b": 0.47843137383461,
         "a": 1
       },
       "alias": {
@@ -1142,11 +1142,11 @@
       "name": "prism/color/interactive/neutral/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.border.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.border.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.3529411852359772,
+        "r": 0.3607843220233917,
         "g": 0.3607843220233917,
-        "b": 0.3686274588108063,
+        "b": 0.3803921639919281,
         "a": 1
       },
       "alias": {
@@ -1158,11 +1158,11 @@
       "name": "prism/color/interactive/neutral/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.border.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.border.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.5529412031173706,
+        "r": 0.5568627715110779,
         "g": 0.5568627715110779,
-        "b": 0.5607843399047852,
+        "b": 0.572549045085907,
         "a": 1
       },
       "alias": {
@@ -1174,11 +1174,11 @@
       "name": "prism/color/interactive/neutral/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.focused for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.fill.focused — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7529411911964417,
+        "r": 0.7568627595901489,
         "g": 0.7568627595901489,
-        "b": 0.7607843279838562,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -1190,11 +1190,11 @@
       "name": "prism/color/interactive/neutral/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.fill.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7529411911964417,
+        "r": 0.7568627595901489,
         "g": 0.7568627595901489,
-        "b": 0.7607843279838562,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -1206,11 +1206,11 @@
       "name": "prism/color/interactive/neutral/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.fill.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7019608020782471,
+        "r": 0.7058823704719543,
         "g": 0.7058823704719543,
-        "b": 0.7098039388656616,
+        "b": 0.7137255072593689,
         "a": 1
       },
       "alias": {
@@ -1222,11 +1222,11 @@
       "name": "prism/color/interactive/neutral/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.fill.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.8078431487083435,
         "g": 0.8078431487083435,
-        "b": 0.8117647171020508,
+        "b": 0.8156862854957581,
         "a": 1
       },
       "alias": {
@@ -1238,11 +1238,11 @@
       "name": "prism/color/interactive/neutral/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.fill.selected for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.fill.selected — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7019608020782471,
+        "r": 0.7058823704719543,
         "g": 0.7058823704719543,
-        "b": 0.7098039388656616,
+        "b": 0.7137255072593689,
         "a": 1
       },
       "alias": {
@@ -1254,7 +1254,7 @@
       "name": "prism/color/interactive/neutral/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.on-fill for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.on-fill — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1270,7 +1270,7 @@
       "name": "prism/color/interactive/neutral/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.overlay.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.overlay.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1286,7 +1286,7 @@
       "name": "prism/color/interactive/neutral/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.overlay.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.overlay.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1302,7 +1302,7 @@
       "name": "prism/color/interactive/neutral/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.overlay.selected for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.overlay.selected — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1318,7 +1318,7 @@
       "name": "prism/color/interactive/neutral/text/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.text.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.text.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1334,7 +1334,7 @@
       "name": "prism/color/interactive/neutral/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.text.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.text.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1350,7 +1350,7 @@
       "name": "prism/color/interactive/neutral/text/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.neutral.text.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.neutral.text.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1366,11 +1366,11 @@
       "name": "prism/color/interactive/primary/border/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.border.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.border.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -1382,11 +1382,11 @@
       "name": "prism/color/interactive/primary/border/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.border.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.border.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
@@ -1398,11 +1398,11 @@
       "name": "prism/color/interactive/primary/border/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.border.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.border.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
@@ -1414,11 +1414,11 @@
       "name": "prism/color/interactive/primary/fill/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.focused for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.fill.focused — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -1430,11 +1430,11 @@
       "name": "prism/color/interactive/primary/fill/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.fill.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -1446,11 +1446,11 @@
       "name": "prism/color/interactive/primary/fill/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.fill.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
@@ -1462,11 +1462,11 @@
       "name": "prism/color/interactive/primary/fill/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.fill.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
@@ -1478,11 +1478,11 @@
       "name": "prism/color/interactive/primary/fill/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.fill.selected for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.fill.selected — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
@@ -1494,7 +1494,7 @@
       "name": "prism/color/interactive/primary/on-fill",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.on-fill for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.on-fill — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1510,7 +1510,7 @@
       "name": "prism/color/interactive/primary/overlay/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.overlay.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.overlay.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1526,7 +1526,7 @@
       "name": "prism/color/interactive/primary/overlay/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.overlay.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.overlay.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1542,7 +1542,7 @@
       "name": "prism/color/interactive/primary/overlay/selected",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.overlay.selected for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.overlay.selected — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1558,11 +1558,11 @@
       "name": "prism/color/interactive/primary/text/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.text.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.text.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -1574,11 +1574,11 @@
       "name": "prism/color/interactive/primary/text/pressed",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.text.pressed for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.text.pressed — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
@@ -1590,11 +1590,11 @@
       "name": "prism/color/interactive/primary/text/rest",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "interactive.primary.text.rest for the default surface context — an alias into the color.appearance collection",
+      "description": "interactive.primary.text.rest — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.48627451062202454,
+        "b": 0.7333333492279053,
         "a": 1
       },
       "alias": {
@@ -1603,14 +1603,30 @@
       }
     },
     {
+      "name": "prism/color/scrim/default",
+      "resolvedType": "COLOR",
+      "scopes": [],
+      "description": "scrim.default — a pointer into the color.appearance collection, where the appearance mode picks the value",
+      "value": {
+        "r": 0,
+        "g": 0,
+        "b": 0,
+        "a": 1
+      },
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "prism/color/appearance/scrim/default"
+      }
+    },
+    {
       "name": "prism/color/text/brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.brand for the default surface context — an alias into the color.appearance collection",
+      "description": "text.brand — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0.3686274588108063,
+        "g": 0.29411765933036804,
+        "b": 0.7647058963775635,
         "a": 1
       },
       "alias": {
@@ -1622,11 +1638,11 @@
       "name": "prism/color/text/brand-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.brand-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "text.brand-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.8078431487083435,
-        "g": 0.239215686917305,
-        "b": 0.2666666805744171,
+        "r": 0.4901960790157318,
+        "g": 0.46666666865348816,
+        "b": 0.8078431487083435,
         "a": 1
       },
       "alias": {
@@ -1638,11 +1654,11 @@
       "name": "prism/color/text/danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.danger for the default surface context — an alias into the color.appearance collection",
+      "description": "text.danger — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6352941393852234,
-        "g": 0.2078431397676468,
-        "b": 0.2235294133424759,
+        "r": 0.6313725709915161,
+        "g": 0.21568627655506134,
+        "b": 0.1921568661928177,
         "a": 1
       },
       "alias": {
@@ -1654,11 +1670,11 @@
       "name": "prism/color/text/danger-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.danger-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "text.danger-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.32156863808631897,
-        "b": 0.33725491166114807,
+        "r": 0.8509804010391235,
+        "g": 0.3333333432674408,
+        "b": 0.2980392277240753,
         "a": 1
       },
       "alias": {
@@ -1670,7 +1686,7 @@
       "name": "prism/color/text/info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.info for the default surface context — an alias into the color.appearance collection",
+      "description": "text.info — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.12156862765550613,
         "g": 0.3764705955982208,
@@ -1686,7 +1702,7 @@
       "name": "prism/color/text/info-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.info-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "text.info-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.22745098173618317,
         "g": 0.529411792755127,
@@ -1702,11 +1718,11 @@
       "name": "prism/color/text/link/default",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.default for the default surface context — an alias into the color.appearance collection",
+      "description": "text.link.default — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -1718,11 +1734,11 @@
       "name": "prism/color/text/link/focused",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.focused for the default surface context — an alias into the color.appearance collection",
+      "description": "text.link.focused — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0.4313725531101227,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
@@ -1734,11 +1750,11 @@
       "name": "prism/color/text/link/hover",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.hover for the default surface context — an alias into the color.appearance collection",
+      "description": "text.link.hover — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7098039388656616,
-        "g": 0.0235294122248888,
-        "b": 0.15294118225574493,
+        "r": 0,
+        "g": 0.3803921639919281,
+        "b": 0.5333333611488342,
         "a": 1
       },
       "alias": {
@@ -1750,11 +1766,11 @@
       "name": "prism/color/text/link/visited",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.link.visited for the default surface context — an alias into the color.appearance collection",
+      "description": "text.link.visited — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.6313725709915161,
-        "g": 0,
-        "b": 0.125490203499794,
+        "r": 0,
+        "g": 0.3294117748737335,
+        "b": 0.4627451002597809,
         "a": 1
       },
       "alias": {
@@ -1766,7 +1782,7 @@
       "name": "prism/color/text/on-brand",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-brand for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-brand — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1782,7 +1798,7 @@
       "name": "prism/color/text/on-danger",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-danger for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-danger — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1798,7 +1814,7 @@
       "name": "prism/color/text/on-info",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-info for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-info — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1814,7 +1830,7 @@
       "name": "prism/color/text/on-success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-success for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-success — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1830,7 +1846,7 @@
       "name": "prism/color/text/on-warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.on-warning for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "text.on-warning — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -1846,7 +1862,7 @@
       "name": "prism/color/text/primary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.primary for the default surface context — an alias into the color.appearance collection",
+      "description": "text.primary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0.05098039284348488,
         "g": 0.05098039284348488,
@@ -1862,11 +1878,11 @@
       "name": "prism/color/text/secondary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.secondary for the default surface context — an alias into the color.appearance collection",
+      "description": "text.secondary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.40392157435417175,
-        "g": 0.4117647111415863,
-        "b": 0.4156862795352936,
+        "r": 0.40784314274787903,
+        "g": 0.40784314274787903,
+        "b": 0.4274509847164154,
         "a": 1
       },
       "alias": {
@@ -1878,11 +1894,11 @@
       "name": "prism/color/text/success",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.success for the default surface context — an alias into the color.appearance collection",
+      "description": "text.success — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.20392157137393951,
-        "g": 0.40392157435417175,
-        "b": 0.1921568661928177,
+        "r": 0.18431372940540314,
+        "g": 0.40784314274787903,
+        "b": 0.20000000298023224,
         "a": 1
       },
       "alias": {
@@ -1894,11 +1910,11 @@
       "name": "prism/color/text/success-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.success-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "text.success-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.32549020648002625,
-        "g": 0.5647059082984924,
-        "b": 0.30588236451148987,
+        "r": 0.3019607961177826,
+        "g": 0.5686274766921997,
+        "b": 0.3176470696926117,
         "a": 1
       },
       "alias": {
@@ -1910,11 +1926,11 @@
       "name": "prism/color/text/tertiary",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.tertiary for the default surface context — an alias into the color.appearance collection",
+      "description": "text.tertiary — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.501960813999176,
+        "r": 0.5058823823928833,
         "g": 0.5098039507865906,
-        "b": 0.5137255191802979,
+        "b": 0.5254902243614197,
         "a": 1
       },
       "alias": {
@@ -1926,11 +1942,11 @@
       "name": "prism/color/text/warning",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.warning for the default surface context — an alias into the color.appearance collection",
+      "description": "text.warning — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.5764706134796143,
-        "g": 0.2705882489681244,
-        "b": 0.06666667014360428,
+        "r": 0.4941176474094391,
+        "g": 0.32549020648002625,
+        "b": 0,
         "a": 1
       },
       "alias": {
@@ -1942,11 +1958,11 @@
       "name": "prism/color/text/warning-subtle",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "text.warning-subtle for the default surface context — an alias into the color.appearance collection",
+      "description": "text.warning-subtle — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
-        "r": 0.7803921699523926,
-        "g": 0.4000000059604645,
-        "b": 0.16862745583057404,
+        "r": 0.6823529601097107,
+        "g": 0.4627451002597809,
+        "b": 0.05098039284348488,
         "a": 1
       },
       "alias": {
@@ -1958,7 +1974,7 @@
       "name": "prism/color/veil/dark/body",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.dark.body for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.dark.body — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1974,7 +1990,7 @@
       "name": "prism/color/veil/dark/enhanced",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.dark.enhanced for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.dark.enhanced — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -1990,7 +2006,7 @@
       "name": "prism/color/veil/dark/large",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.dark.large for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.dark.large — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 0,
         "g": 0,
@@ -2006,7 +2022,7 @@
       "name": "prism/color/veil/light/body",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.light.body for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.light.body — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -2022,7 +2038,7 @@
       "name": "prism/color/veil/light/enhanced",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.light.enhanced for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.light.enhanced — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,
@@ -2038,7 +2054,7 @@
       "name": "prism/color/veil/light/large",
       "resolvedType": "COLOR",
       "scopes": [],
-      "description": "veil.light.large for the default surface context — an alias into the color.appearance collection (no inverse counterpart: the same token is correct in both modes, see inverse-coverage.ts)",
+      "description": "veil.light.large — a pointer into the color.appearance collection, where the appearance mode picks the value",
       "value": {
         "r": 1,
         "g": 1,

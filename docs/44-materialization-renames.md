@@ -86,7 +86,9 @@ variables appear in four mode files each, and the four are one name.
 > landing after this document was written, exactly the drift the paragraph below predicts; **(b)** 15 → 13
 > collections, which IS structural: #1097 folds `core-palette`/`core-dimension`/`core-font` into one `core`
 > (−2), and #1089 renames `color`→`color.appearance` and `surface`→`color.surface` (±0). Per collection
-> today: `core` 199 / 238 / 258, `color.appearance` 242 (× 4 mode files), `color.surface` 128 (× 2).
+> today: `core` 199 / 238 / 258, `color.appearance` 242 (× 4 mode files), `color.surface` 129 (× 1 —
+> #1133 took the `inverse` mode off the pointer tier and the row it had omitted, `scrim.default`, came back
+> with the collapse; `docs/20` §9.8).
 > **The argument the table exists to make is untouched** — the variance that decides the mechanism is
 > larger now, not smaller (`core` spans 199–258 where `core-palette` spanned 122–182). The old figures are
 > left standing rather than overwritten, because a document that silently restates its measurements to

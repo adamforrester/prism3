@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — THE INVERSE-COVERAGE REGISTER (#892 step 5, and #893's open decision).
+ * Prism3 engine — THE INVERSE-COVERAGE REGISTER (#892 step 5, #893, #1133).
  *
  * Every semantic colour role either has an inverse counterpart or is named here with the reason it
  * does not. That is the whole point: **a deliberate gap and an oversight must not look identical.**
@@ -9,34 +9,33 @@
  * the first stops a gap appearing silently, the second stops the register admitting one nobody
  * re-argued after the gap closed.
  *
- * ── WHY THIS IS DATA AND NOT A COMMENT ──────────────────────────────────────────────────────────
+ * ── WHAT THE REGISTER IS FOR NOW, AND WHY THAT SURVIVED #1133 ───────────────────────────────────
  *
- * #893 emits the ALIAS Figma collection whose every row is an alias, `default` → the page token and
- * `inverse` → its counterpart. (It was named `surface` until #1013 swapped the two tiers; it is `color`
- * now, and the value tier it points into is `color.appearance`. Nothing in this file depends on either
- * name — the register is keyed on ROLE paths, which the swap did not touch.) For a role with no
- * counterpart it has to do something, and the two options are not interchangeable:
+ * It used to carry a third field, `alias: 'self' | 'omit'`, telling #893's two-mode Figma collection
+ * what to do with a row whose role had no counterpart — self-alias it (every name resolves, at the cost
+ * of making a deliberate gap look filled) or omit it (the gap stays legible, at the cost of a name that
+ * does not resolve). **That field went with the surface MODE (#1133).** A single-mode pointer tier never
+ * asks "and in the inverse column?", so there is nothing left for a disposition to steer, and
+ * `surface-rows.ts` no longer imports this file at all.
  *
- *   - **OMIT** the row. The collection stays smaller and "no inverse behaviour" is the readable
- *     default — but a consumer binding the alias tier uniformly hits a name that does not resolve.
- *   - **SELF-ALIAS** — point `inverse` at the same token as `default`. Every name resolves in both
- *     modes, at the cost of making a deliberate gap indistinguishable from a filled one.
+ * The register itself is not about the pointer tier and never was. It is a statement about the
+ * APPEARANCE tier — which of its 242 roles have an inverse counterpart — and under name-encoding that
+ * is the load-bearing question rather than an incidental one: **an inverse component variant binds
+ * appearance-tier inverse leaves, so a role listed below is a role no inverse variant can bind.** The
+ * register is what bounds the bounded set. It is data and not a comment for the same reason it always
+ * was — `test.ts` reads it, both directions, so a gap cannot appear silently and an entry cannot
+ * outlive the gap it describes.
  *
- * The second cost is only real if nothing else records which is which. **This register is that
- * something**, which is why the decision is per-entry rather than global: the right answer depends on
- * WHY the gap exists, and that is exactly what an entry carries.
- *
- * `alias: 'self'` means the value genuinely does not change on an inverse ground — the row is
- * correct, not a placeholder. `alias: 'omit'` means nobody has decided yet, so the name must not
- * resolve; a consumer who binds it should get an error rather than a plausible wrong colour.
+ * Each `reason` must still distinguish STRUCTURAL ("the concept has no inverse form") from UNDECIDED
+ * ("nobody has argued it yet"), because that is the distinction a reader is here for. The consequence
+ * of `undecided` simply moved: it used to withhold a Figma row, and now it withholds an inverse
+ * variant.
  */
 
 /** One class of role with no inverse counterpart, and why. */
 export type InverseGap = {
   /** Roles below the configurable root, exactly as `modes.ts` emits them. */
   paths: string[];
-  /** What the alias collection does with these rows. See the header. */
-  alias: 'self' | 'omit';
   /** Why the gap exists. Must distinguish "the concept has no inverse form" from "not decided yet". */
   reason: string;
 };
@@ -49,52 +48,49 @@ export const INVERSE_GAPS: InverseGap[] = [
       'color.icon.on-brand', 'color.icon.on-danger', 'color.icon.on-info',
       'color.icon.on-success', 'color.icon.on-warning',
     ],
-    alias: 'self',
     reason:
       'STRUCTURAL, not undecided. These are ink on a solid semantic FILL, and the fill is the ground — '
       + 'a brand-filled badge inside a dark hero is still brand-filled, so the ink that sits on it does '
-      + 'not change. Self-aliasing is CORRECT here rather than a placeholder: the same token really is '
-      + 'the right answer in both modes. The case where a fill DOES change on an inverse ground is a '
-      + 'different family and is already covered — interactive.<palette>.inverse.on-fill. Excluded on '
-      + 'principle in #892 step 4, and it is the same principle that makes the self-alias sound.',
+      + 'not change. So there is nothing for an inverse counterpart to hold: the same token really is the '
+      + 'right answer on either ground, which makes the absence correct rather than a placeholder. The '
+      + 'case where a fill DOES change on an inverse ground is a different family and is already covered '
+      + '— interactive.<palette>.inverse.on-fill. Excluded on principle in #892 step 4, and it is the '
+      + 'same principle that makes the gap sound (#1133: an inverse variant of one of these components '
+      + 'would bind the identical token, so there is no variant to declare).',
   },
   {
     paths: ['color.scrim.default'],
-    alias: 'omit',
     reason:
-      'UNDECIDED, deliberately, and omitted so it cannot be bound by accident. docs/20 §8 classifies a '
-      + 'scrim as a VIEWPORT-level backdrop triggered by a modal opening — one veil over the whole page, '
-      + 'including any inverse band — which is a different shape from every other role here and may mean '
-      + 'it has no per-surface variant at all. The hero/image dim named in the same paragraph used to be '
-      + 'the alternative reading; since #1030 it is `color.veil.*`, its own family below, which removes '
-      + 'the ambiguity without deciding this row. Emitting a value either way would still be inventing '
-      + 'the answer; omitting the row makes a consumer who wants one ask. '
-      + '#1013 RAISED THE STAKE AND THE DISPOSITION SURVIVED IT. `omit` used to cost only a Figma row; '
-      + 'now that `color.*` IS the alias row set in both formats, it costs the short name too — this is '
-      + 'the one non-inverse role whose plain `color.scrim.default` spelling stops existing, and a '
-      + 'consumer has to write `color.appearance.scrim.default` instead. That is the ask, made louder '
-      + 'rather than quieter: the longer name says "I took the appearance value knowing there is no '
-      + 'per-surface answer yet."',
+      'UNDECIDED, deliberately. docs/20 §8 classifies a scrim as a VIEWPORT-level backdrop triggered by a '
+      + 'modal opening — one veil over the whole page, including any inverse band — which is a different '
+      + 'shape from every other role here and may mean it has no inverse form at all. The hero/image dim '
+      + 'named in the same paragraph used to be the alternative reading; since #1030 it is `color.veil.*`, '
+      + 'its own family below, which removes the ambiguity without deciding this one. '
+      + '#1133 CHANGED WHAT THE UNDECIDEDNESS COSTS, AND IT IS THE FIRST TIME IT COSTS A CONSUMER NOTHING. '
+      + 'While the pointer tier had a second mode, an undecided role had to be OMITTED from it — a row '
+      + 'would have had to answer "and on an inverse ground?" and inventing that answer is exactly what '
+      + 'was being avoided. So this was the one non-inverse role with no plain `color.scrim.default` '
+      + 'spelling, and a consumer had to write `color.appearance.scrim.default` to say "I know there is no '
+      + 'per-surface answer yet". With the mode reverted a pointer row asks nothing, so the short name is '
+      + 'emitted like every other role\'s and the open question moved to where it always belonged: whether '
+      + 'the APPEARANCE tier ever grows a `scrim.inverse.*`, and therefore whether a scrim can have an '
+      + 'inverse variant. Still nobody\'s call to make silently — the register is now the only thing '
+      + 'holding it, which is the job it was built for.',
   },
   {
     paths: [
       'color.veil.dark.large', 'color.veil.dark.body', 'color.veil.dark.enhanced',
       'color.veil.light.large', 'color.veil.light.body', 'color.veil.light.enhanced',
     ],
-    alias: 'self',
     reason:
       'STRUCTURAL, not undecided. A veil composites over a PHOTOGRAPH, and an inverse band does not '
       + 'change the photograph — so the same token really is the right answer on both grounds, which is '
-      + 'what makes self-aliasing correct here rather than a placeholder. The choice a designer is making '
+      + 'what makes the absence correct here rather than a placeholder. The choice a designer is making '
       + 'is already carried by the path: `dark` and `light` are both live in every mode because an image '
-      + 'has no polarity the theme can read, so the polarity a surface-context alias would supply is the '
-      + 'one thing the veil must not take from the surface. (#1030)',
+      + 'has no polarity the theme can read, so the polarity an inverse counterpart would supply is the '
+      + 'one thing the veil must not take from its surroundings. (#1030)',
   },
 ];
 
-/** Flattened, for the both-directions check in `test.ts` and for #893's emitter. */
+/** Flattened, for the both-directions check in `test.ts`. */
 export const INVERSE_GAP_PATHS = new Set(INVERSE_GAPS.flatMap((g) => g.paths));
-
-/** How the alias collection should treat a role with no counterpart. */
-export const gapDisposition = (path: string): 'self' | 'omit' | undefined =>
-  INVERSE_GAPS.find((g) => g.paths.includes(path))?.alias;
