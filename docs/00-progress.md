@@ -7,6 +7,126 @@
 
 ---
 
+## (2026-08-28) — one top-level `inverse.` group; `on-` takes a ground (#1140)
+
+All 113 inverse roles in `color.appearance` move to a single top-level `inverse.` group:
+`background.inverse.primary` → `inverse.background.primary`, `interactive.primary.inverse.fill.rest` →
+`inverse.interactive.primary.fill.rest`, `text.on-inverse.primary` → `inverse.text.primary`. **Rule 1** —
+`inverse(X) = inverse.` + X, no exceptions — and **Rule 2**, the half that has to be a rule rather than a
+rename: **`on-` takes a GROUND**, a fill (`on-fill`) or a status color (`text.on-brand`), never a role and
+never a rank, so `on-inverse`/`on-primary`/`on-disabled` are refused. Both are stated in `modes.ts`; Rule 2
+is `lint-context-nodes.ts` **arm C**, because the guardrail is against `on-fill` drifting to `on-primary`
+later, and prose does not stop that. Decision record: `docs/20` §9.9, `docs/42` row, superseded-in-part
+marker on §9.2. `ENGINE_VERSION` 0.28.0 / `CONTRACT_VERSION` **8.0.0**.
+
+`npm run verify`: **45/45 gates reached a verdict, 45 PASS / 0 FAIL / 0 SKIP / 0 ADVISORY** (118s).
+
+### What #1140 fixed is a taxonomy that could not be checked, not a taxonomy that looked untidy
+
+§9.2 (#891) collapsed three spellings into one segment but left it at three **depths**. The cost was not
+aesthetic: every consumer had to encode the position. `isInverseRole` matched three shapes. The
+coverage register's "does this role have a counterpart?" check had three candidate derivations and was
+therefore unable to distinguish a family named *correctly* from one named under a shape that happens to
+also be admitted — a gate that accepts three answers cannot fail the wrong two. One position makes the
+counterpart mechanically derivable, and the register's check became `inverse.` + the role, one candidate.
+
+### The two structural fixes, measured on aurora before being made
+
+**Dropped `border/inverse/default`** — byte-identical to `border/inverse/primary` in light *and* dark. It is
+deprecated onto `inverse.border.primary`, not deleted. **Added `border.tertiary` + `inverse.border.tertiary`**
+— border was the only surface/ink category stopping at secondary. The trap here is the intuition: for
+border, `tertiary` is the **strongest** rung. `primary` is the mode's `borderTarget`, `secondary` ×2.2,
+`tertiary` ×2.2 again; in HC that asks 21.78:1 and `pickClosest` clamps. The initial `$description` said
+"faintest … below 3:1" and was wrong in the opposite direction. A new `test.ts` arm (10g-ii) asserts the
+three rungs are **distinct hexes** on both grounds in every mode over the whole corpus — hex, not ratio,
+because two clamped rungs share a ratio *and* a colour and only the colour proves the ladder exists.
+
+The two fixes cancel in the count, which is why the inverse total reads 113 both before and after: 112
+relocate, one duplicate leaves, one new rung arrives. #1140's prose said 112; the extra one is the
+duplicate, which the issue counted as a relocation.
+
+### The contract cost was measured, not assumed: MAJOR
+
+The instruction was explicit that this is a measurement, and it is: a rename is a remove plus an add, so
+the only question is whether any renamed path is `guaranteed`. **104 of the 113 are; 0 are
+`brandDependent`.** So `CONTRACT_VERSION` 7.1.0 → **8.0.0**, with 113 `DEPRECATIONS` entries at that
+version. `guaranteed` 685 → **687**: three additions less one removal. The third addition is the one
+nobody writes — `color.border.tertiary`, which the pointer tier generates automatically from every
+non-inverse appearance role, so adding a neutral border rung silently adds a pointer row too. The
+prediction going in was 686; the measurement said 687, and the gap was exactly that generated row.
+
+### The defect this PR found, and it was in the migration record rather than the emission
+
+`version.ts`'s load-bearing rule is that a deprecation's `path` is history and never moves while
+`replacedBy` follows the **live** name. So the moment #1140 renamed the live paths, #1013's 113 short-name
+deprecations and #1140's own 113 value-tier deprecations began projecting **the same 226 Figma renames** —
+two entries of different vintage describing one operation. `planVariableRenames` groups by target, sees two
+live rows for one target, and returns `ambiguous-source`, which **refuses the group**. Net effect:
+**all 113 inverse renames would have been refused in a designer's file holding the old names** — the exact
+binding-stranding #893 sequenced the mechanism to prevent, arriving by a path with no gate on it.
+
+Fixed in `deriveVariableRenames` by collapsing rows identical in `(collection, from, to)`: **532 → 306**.
+The survivor keeps the **greatest** `since`, because that field answers *when did this Figma name stop being
+written*, and the later era is the truthful answer. Worth noting what was NOT done: `validateRenameMap`
+already permits exact-duplicate rows and refuses fan-*out*, so nothing was wrong with the map's *shape* —
+it was wrong at the point of *application*, one layer further on, which is why no existing arm saw it.
+
+### The materialization gate had a hole, and the fix was to read the register that already existed
+
+#1140 is the first contract-visible **role** rename since `lint-materialization-renames.ts` shipped (#1039).
+It produced **339 unaccounted removals** with nothing at all wrong. The tempting fix — a
+`MATERIALIZATION_RENAMES` rule — is the wrong one, and stating why is the point of this paragraph: a rename
+is already recorded, in `DEPRECATIONS`, and a second differently-derived record in front of one Figma
+operation is two things to keep in sync forever. The gate simply was not reading the record it had. So
+`accountFor` takes the contract's claims as a second source, and — deliberately — those claims **do** reach
+`claimedFrom`, so a key claimed by both a rule and the contract lands in `multiplyClaimed` and fails. That
+is what stops both registers being written for one rename. **#1140 therefore carries no materialization
+rule at all, and that absence is the correct state rather than an omission.** Gate output now reads
+`339 removed / 345 added, 3 rule(s) making 0 claim(s) …, plus 339 the contract already records`, with the 9
+genuinely-new additions being `border/tertiary`, `inverse/border/tertiary` and the pointer row × 3 brands.
+
+### Independence, mutation-tested — four mutations, every one failing BY NAME
+
+The #1139 review flagged the `docs/34` shape-1 hazard on exactly this PR: if `isInverseRole` or the register
+derives EXPECTED by calling the thing it checks, a rename moves both sides together and the arm goes green
+over a real break. So it was tested rather than reasoned about, committing before each mutation:
+
+| # | mutation | arm that failed, by name |
+|---|---|---|
+| M1 | `border.tertiary` collapsed onto `secondary` in `modes.ts` | (10g-ii) the three-rung edge ladder, on every corpus brand |
+| M2 | `isInverseRole`'s prefix → `inverse-MUTANT.` | both `surface:` row-set membership arms |
+| M3a | one `INVERSE_GAPS` path dropped, one bogus path added | both register arms — `UNREGISTERED: color.icon.on-warning` **and** `STALE: color.text.primary` |
+| M3c | `modes.ts` emits `foreground.inverse.primary` (marker back mid-path) | the register arm, reporting *both* `color.foreground.inverse.primary` and `color.foreground.primary` as uncovered — plus the guaranteed-inverse-path sweep and `NB_KNOWN_RENAMES`' stale arm in all four modes |
+
+M3c is the one that matters, because it is the failure mode the hazard predicts: the register derives the
+counterpart from a rule **written locally**, so a marker in the wrong position fails *both* directions —
+arm 1 reports roles as uncovered, arm 2 would report the register as stale if the local rule were the
+wrong one. An imported derivation would have agreed with the mutation.
+
+**Two weakened arms were repaired while sweeping**, both pre-existing and both invisible: the era arm's
+`!tierOnly.includes(d)` filter had become a no-op that would have passed 263 entries of any vintage (re-keyed
+on `since`), and two prefix-tightened scans needed **non-vacuity floors** — the `docs/34` shape-9 lesson that
+a tightened prefix **fails closed**: it matches nothing, the loop `continue`s, and the arm prints a pass for
+a contract it has stopped reading.
+
+### Incidental, and the studio's silent failure mode
+
+`disabled.inverse.*` had a scope bug; `ai-metadata.ts` gained descriptions for 9 roles that were falling back;
+and `apps/studio` hardcoded ~20 inverse role paths in the style-guide UI — including `border.inverse.default`,
+the duplicate this PR drops, used as both `line` and `line2`. All repointed, `typecheck` clean. **No gate
+covers studio role literals**, so an unresolvable path there renders a missing swatch and says nothing. That
+is #1124's gap with a concrete instance attached, and it is filed there rather than fixed here.
+
+### One trap for whoever re-verifies this
+
+`focus-ring`'s `paintKeys` slot is spelled `border.inverse` and **did not move**. It is a coordinate in the
+def's own variant space (`color: 'default' | 'inverse'` → `{slot}.{color}`), not a token path. The token path
+it resolves to is `color.appearance.inverse.border.focus`, and *that* moved, along with its
+`UNALIASED_DEF_BINDINGS` entry. A sweep treating the two as one string either misses the rename or breaks the
+def. The paint census confirms the split: focus-ring's projected rows are still 2, `color=default` unchanged
+at `color/border/focus` and `color=inverse` now at `color/appearance/inverse/border/focus` — same count,
+different target, which is exactly what `lint-paint` reported before the baseline was accepted.
+
 ## (2026-08-28) — inverse reverts from mode-encoding to bounded name-encoding (#1133)
 
 The `inverse` mode came off the `color.surface` pointer collection. That tier is single-mode (`Default`) now,

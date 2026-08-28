@@ -1118,7 +1118,7 @@ export const DEPRECATIONS: Deprecation[] = [
   // light and in dark, so it is dropped and its consumers are pointed at the twin. This makes the pair a
   // FAN-IN — two retired paths naming one live target — which the contract table holds happily and the
   // Figma rename map refuses to APPLY without disambiguation (`ambiguous-source`). That refusal is the
-  // right behaviour: a migration cannot silently pick which of two variables becomes the survivor.
+  // right behavior: a migration cannot silently pick which of two variables becomes the survivor.
   { path: `color.appearance.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.appearance.${INVERSE_DEDUPED.replacedBy}`, since: '8.0.0' },
   // ── #1102: THE `core` TIER ──────────────────────────────────────────────────────────────────────
   //

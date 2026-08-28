@@ -113,28 +113,41 @@ verifies every mode's contrast contracts (currently 488/488).
 against a nine-system field survey + the practice KB, refined by a UI-designer
 review. `background` is the canvas; `foreground` is what sits on it:
 - `background.*` — the **canvas** (thin, page-level): `primary`/`secondary`/
-  `tertiary` (**tonal in both modes** — light is no longer all white) + an
-  `inverse.{primary,secondary,tertiary}` sibling ladder.
+  `tertiary` (**tonal in both modes** — light is no longer all white). The inverse
+  sibling ladder is `inverse.background.{primary,secondary,tertiary}` (see
+  `inverse.*` below).
 - `scrim.default` — semi-transparent modal/drawer backdrop (alpha-based, heavier
   in dark). Backed by an `opacity.*` scale + `black-alpha`/`white-alpha` ramps.
 - `foreground.*` — the **surfaces/fills** on the canvas (Prism2's `surface`,
-  renamed): a tonal `primary`/`secondary`/`tertiary` ladder + `inverse.*` (dark
-  fills in light) + bold semantic fills (`brand`/`success`/`warning`/`danger`/`info`) +
+  renamed): a tonal `primary`/`secondary`/`tertiary` ladder + bold semantic fills
+  (`brand`/`success`/`warning`/`danger`/`info`) +
   `{semantic}-subtle` tints. `foreground.primary` sits on `background.primary`.
   (`danger` is a static bold fill like the others — its stateful / interactive
   expression is `interactive.destructive.*` below, not a per-state `danger.*`.)
 - `interactive.<color>.*` — **the interactive color family** (docs/20): `primary` · `neutral`
   · `destructive` (+ opt-in `accent`), each with `fill` (+ `rest`/hover/pressed/focused/selected
-  states), `on-fill`, `text`, `border`, `overlay.*` washes, and an `inverse.*` column. Cross-cutting
+  states), `on-fill`, `text`, `border`, and `overlay.*` washes. Cross-cutting
   `disabled.*` (fill/on-fill/text/icon/border) is one treatment for any intent, and is the
   SOLE disabled family. This is what components bind — the legacy top-level `action.*` fill and the
   scattered per-family disabled states are retired (task #14).
 - `text.*` / `icon.*` — **ink**: `primary/secondary/tertiary`, semantic +
-  `{semantic}-subtle` (muted), `on-{semantic}`/`on-inverse` pairs, and `link.*`
+  `{semantic}-subtle` (muted), `on-{semantic}` pairs, and `link.*`
   (no disabled). Disabled ink is the cross-cutting `disabled.text` / `disabled.icon`;
   the ink on a disabled fill is `disabled.on-fill` (Carbon's `text-on-color-disabled`,
   resolved against that fill). `icon` mirrors `text` unless `iconContrast: '3:1'`.
-- `border.*` — `primary`/`secondary` (neutral), `inverse`, semantic, and `focus`.
+- `border.*` — `primary`/`secondary`/`tertiary` (neutral), semantic, and `focus`.
+  The neutral ladder runs to `tertiary` since #1140, and `tertiary` is the
+  **strongest** rung: `primary` is the mode's border target, `secondary` ×2.2,
+  `tertiary` ×2.2 again (clamped in HC, where the target is already 4.5:1).
+- `inverse.*` — **the inverse form of every role above**, under one top-level group
+  since #1140: `inverse.background.*`, `inverse.foreground.*`, `inverse.text.*`,
+  `inverse.icon.*`, `inverse.interactive.<color>.*`, `inverse.border.*`,
+  `inverse.disabled.*`, `inverse.field.*`. One marker in one position —
+  `inverse(X) = inverse.` + X, no exceptions, so there is no `on-inverse` and no
+  per-family `.inverse.` segment. `on-` now takes only a **ground**: a fill
+  (`on-fill`) or a status color (`text.on-brand`), never a role or a rank.
+  113 roles, a bounded set rather than a mode — see `inverse-coverage.ts` for
+  which roles deliberately have no counterpart, and why.
 
 Elevation is **not** a color group: a component composes a `foreground` tier + a
 `shadow` step. In high contrast the neutral surface ladders flatten to the base —
@@ -163,8 +176,8 @@ pressed/focused/selected), plus `on-fill`, `text`, `border`, and `overlay.*`
 washes — with `text.link.*` and `border.focus` as its dedicated ink/edge
 expressions, and the cross-cutting `disabled.*` family (not a per-family
 disabled state) covering the disabled case for any intent. Role keys nest
-(`interactive.primary.fill.hover`, `foreground.danger.pressed`, `text.on-inverse`,
-`background.inverse.primary`).
+(`interactive.primary.fill.hover`, `foreground.danger.pressed`, `inverse.text.primary`,
+`inverse.background.primary`).
 
 **Contrast is measured against the floor surface, not the pure extreme.** The
 saturated, contract-bearing foregrounds (action + states, vivid semantic text,
