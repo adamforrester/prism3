@@ -65,7 +65,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildConsumer, buildProjected, SOURCE, OUT_ROOT } from './sd.consumer.mjs';
+import { buildConsumer, buildProjected, buildComposed, overlayTag, axisSelector, SOURCE, OUT_ROOT } from './sd.consumer.mjs';
 
 const CONFIG = resolve(dirname(fileURLToPath(import.meta.url)), 'sd.consumer.mjs');
 
@@ -79,6 +79,34 @@ const discoverBrands = () =>
     .filter((f) => f.endsWith('.tokens.json') && !/\.(base|[\w-]+\.overlay)\.tokens\.json$/.test(f))
     .map((f) => f.replace('.tokens.json', ''))
     .sort();
+
+/**
+ * The overlay artifacts on disk for one brand, as TAGS — what a consumer with only the output directory
+ * would find. Read back below against the axis maps in the source tree, so an overlay file this gate
+ * never opens fails rather than sitting unmeasured.
+ */
+const discoverOverlays = (brand) =>
+  readdirSync(OUT_ROOT)
+    .map((f) => new RegExp(`^${brand}\\.([\\w-]+)\\.overlay\\.tokens\\.json$`).exec(f)?.[1])
+    .filter(Boolean)
+    .sort();
+
+/**
+ * THE PROJECTED AXES, from the consumer's side (#1129).
+ *
+ * Two independent axes, each its own overlay set and its own selector attribute: `theme` (light default
+ * plus `dark` / `hc-light` / `hc-dark`) and `surface` (default plus `inverse`). `keys` reads the axis's
+ * own extension map off the SOURCE tree, so the mode list is never a literal here — a brand that adds a
+ * theme is covered, and an axis that stops being emitted goes to zero and fails the arm below.
+ *
+ * The engine has the same table in `emit-dtcg-overlay.ts`. It is not imported, for the reason stated on
+ * `DTCG_TYPES`: this package's whole value is answering "would someone else's build work?", and someone
+ * else does not have our source.
+ */
+const AXES = [
+  { axis: 'theme', keys: (src) => src.modes },
+  { axis: 'surface', keys: (src) => src.surfaces },
+];
 
 /**
  * The profiles this gate PROMISES to cover, and what each one exercises that the others do not.
@@ -115,6 +143,7 @@ const readSource = (brand, file = SOURCE(brand)) => {
   const tree = JSON.parse(readFileSync(file, 'utf8'));
   let leaves = 0;
   const modes = new Set();
+  const surfaces = new Set();
   const types = new Set();
   // Paths, not just a count: a non-conforming type has to be NAMED to be actionable, and a bare
   // number would leave whoever hits this failure hunting for which token it means.
@@ -129,6 +158,11 @@ const readSource = (brand, file = SOURCE(brand)) => {
       }
       const m = node.$extensions?.prism3?.modes;
       if (m) for (const k of Object.keys(m)) modes.add(k);
+      // The second axis (#1129). Read separately rather than merged into `modes`: they are scoped by
+      // different attributes and compose, so a single flat list would lose the only thing that matters
+      // about them — which of the two a given key belongs to.
+      const s = node.$extensions?.prism3?.surfaces;
+      if (s) for (const k of Object.keys(s)) surfaces.add(k);
       return;
     }
     for (const [k, v] of Object.entries(node)) if (!k.startsWith('$')) walk(v, path ? `${path}.${k}` : k);
@@ -141,7 +175,7 @@ const readSource = (brand, file = SOURCE(brand)) => {
     .filter(([t]) => !DTCG_TYPES.has(t))
     .flatMap(([t, paths]) => paths.map((p) => `${p} (\`${t}\`)`))
     .sort();
-  return { leaves, modes: [...modes].sort(), types: [...types].sort(), root, nonConforming };
+  return { leaves, modes: [...modes].sort(), surfaces: [...surfaces].sort(), types: [...types].sort(), root, nonConforming };
 };
 
 /** Variables in the emitted CSS, their values, and its selectors. Parses the CSS — NOT the JSON. */
@@ -226,8 +260,12 @@ for (const brand of brands) {
   const src = readSource(brand);
   const css = readEmitted(await buildConsumer(brand));
 
+  // Every overlay this brand should have, as (axis, key, tag) triples — derived from the source tree's
+  // own axis maps, then reconciled against the files on disk two arms down.
+  const projections = AXES.flatMap(({ axis, keys }) => keys(src).map((key) => ({ axis, key, tag: overlayTag(axis, key) })));
+
   console.log(`\n  ── ${brand} (root \`${src.root}\`) ─────────────────────────────`);
-  console.log(`     source leaves ${src.leaves} · modes ${src.modes.join(', ') || 'none'} (+ default) · css vars ${css.unique} · selectors ${css.selectors.join(', ')}`);
+  console.log(`     source leaves ${src.leaves} · themes ${src.modes.join(', ') || 'none'} (+ light) · surfaces ${src.surfaces.join(', ') || 'none'} (+ default) · css vars ${css.unique} · selectors ${css.selectors.join(', ')}`);
 
   ok(css.unique > 0, `${brand}: the build produces output at all`);
   ok(css.vars.some((v) => v.includes('color')), `${brand}: color roles reach the CSS`);
@@ -244,6 +282,20 @@ for (const brand of brands) {
     `${brand}: [#609] the only selector emitted is \`:root\` (got \`${css.selectors.join('|')}\`) — no per-mode blocks reach the consumer`);
   ok(src.modes.length > 0,
     `${brand}: the source DOES declare modes the consumer never sees (${src.modes.join(', ')}) — the gap is real, not vacuous`);
+  // Every axis has to CONTRIBUTE. Each per-projection arm below is a statement about one overlay, so all
+  // of them are satisfied for free by an axis that produces none — and the only visible trace would be a
+  // shorter passing list. `surfaces` arrived on 128 leaves that were already in every base file (#1129),
+  // so this is the arm that notices if the producer stops writing that map.
+  for (const { axis, keys } of AXES) {
+    ok(keys(src).length > 0,
+      `${brand}: [SCOPE] the \`${axis}\` axis is projected at all (${keys(src).join(', ') || 'NOTHING — every assertion about it below is vacuous'})`);
+  }
+  // And every overlay ON DISK is one this gate opened. Derived from the directory listing versus the
+  // axis maps: an artifact the gate never visits is unmeasured, and unmeasured reads as green.
+  const onDisk = discoverOverlays(brand);
+  const expectedTags = projections.map((p) => p.tag).sort();
+  ok(onDisk.join('|') === expectedTags.join('|'),
+    `${brand}: [SCOPE] every overlay artifact on disk is measured (disk: ${onDisk.join(', ')} · from the axis maps: ${expectedTags.join(', ')})`);
 
   // ---- VALUE INTEGRITY on the CANONICAL build. NOT a conformance promise — this tree is ours and
   // extension-based by #609's decision, and `spring` lives here on purpose. Kept measured so the
@@ -264,10 +316,10 @@ for (const brand of brands) {
   // assertion that fails the day another one ships, rather than the day someone remembers to re-measure.
   ok(baseSrc.nonConforming.length === 0,
     `${brand}: [RULE] every \`$type\` in the BASE projection is a DTCG type${baseSrc.nonConforming.length ? ` — ${baseSrc.nonConforming.join(', ')} cannot be resolved by a conforming consumer (#642)` : ''}`);
-  for (const mode of src.modes) {
-    const ov = readSource(brand, resolve(OUT_ROOT, `${brand}.${mode}.overlay.tokens.json`));
+  for (const { tag } of projections) {
+    const ov = readSource(brand, resolve(OUT_ROOT, `${brand}.${tag}.overlay.tokens.json`));
     ok(ov.nonConforming.length === 0,
-      `${brand}/${mode}: [RULE] every \`$type\` in the OVERLAY is a DTCG type${ov.nonConforming.length ? ` — ${ov.nonConforming.join(', ')} (#642)` : ''}`);
+      `${brand}/${tag}: [RULE] every \`$type\` in the OVERLAY is a DTCG type${ov.nonConforming.length ? ` — ${ov.nonConforming.join(', ')} (#642)` : ''}`);
   }
   // And the rule's consequence, read off the EMITTED CSS rather than the JSON: whatever the projection
   // still cannot serialize is standard-typed, so it is the consumer's gap and not ours. PINNED.
@@ -300,16 +352,16 @@ for (const brand of brands) {
   ok(baseDrift.length === 0,
     `${brand}: [#609] the base projection reproduces the canonical build value-for-value, for every token it carries${baseDrift.length ? ` — ${baseDrift.length} differ, e.g. ${baseDrift.slice(0, 2).join(', ')}` : ''}`);
 
-  for (const mode of src.modes) {
-    const m = readEmitted(await buildProjected(brand, mode));
+  for (const { axis, key, tag } of projections) {
+    const m = readEmitted(await buildProjected(brand, key, axis));
     const differing = Object.keys(base.byName).filter((k) => base.byName[k] !== m.byName[k]).length;
-    // Same subtraction as the base: a mode's build sources base + overlay, so it carries the projected
+    // Same subtraction as the base: an overlay build sources base + overlay, so it carries the projected
     // token set, not the canonical one (#642).
     ok(m.unique === src.leaves - src.nonConforming.length,
-      `${brand}/${mode}: [#609] every DTCG token present (${m.unique}/${src.leaves - src.nonConforming.length}) — nothing dropped`);
-    ok(m.refs > src.leaves * 0.5, `${brand}/${mode}: [#609] alias references survive (${m.refs})`);
-    ok(differing > 0, `${brand}/${mode}: [#609] actually differs from base (${differing} vars) — the overlay is not inert`);
-    ok(m.selectors.join('|') === `[data-theme="${mode}"]`, `${brand}/${mode}: [#609] emitted under its own selector (${m.selectors.join('|')})`);
+      `${brand}/${tag}: [#609] every DTCG token present (${m.unique}/${src.leaves - src.nonConforming.length}) — nothing dropped`);
+    ok(m.refs > src.leaves * 0.5, `${brand}/${tag}: [#609] alias references survive (${m.refs})`);
+    ok(differing > 0, `${brand}/${tag}: [#609] actually differs from base (${differing} vars) — the overlay is not inert`);
+    ok(m.selectors.join('|') === axisSelector(axis, key), `${brand}/${tag}: [#609] emitted under its own axis selector (${m.selectors.join('|')})`);
   }
 
   // A known page color, addressed through the brand's OWN root so this is not an `nb` assertion wearing
@@ -338,6 +390,32 @@ for (const brand of brands) {
     `${brand}: [#1013] the alias tier is appearance-INVARIANT — the short name a consumer binds emits the same pointer in every appearance build, and the value moves beneath it (${css.byName[aliasVar] ?? 'MISSING'} vs ${dark.byName[aliasVar] ?? 'MISSING'})`);
   ok(css.byName[aliasVar] === `var(${valueVar})`,
     `${brand}: [#1013] and it points at the value tier rather than carrying a colour of its own (${css.byName[aliasVar]})`);
+
+  // ── THE SECOND AXIS (#1129) — the same variable, on the axis it DOES move on ────────────────────
+  // Read this as the completion of the #1013 pair above. The pointer tier is appearance-INVARIANT (the
+  // value moves one tier down) and surface-RESPONSIVE (the pointer itself is repointed). Before this,
+  // the second half of that sentence was true in Figma and false in the DTCG: 128 pointer leaves, all
+  // hard-aliased to the default appearance target, and no inverse overlay — so `color.background.primary`
+  // meant "default only" to a consumer reading the layer developers actually read.
+  const invVar = `--${src.root}-color-appearance-background-inverse-primary`;
+  const inverse = readEmitted(await buildProjected(brand, 'inverse', 'surface'));
+  ok(inverse.byName[aliasVar] !== undefined && inverse.byName[aliasVar] !== css.byName[aliasVar],
+    `${brand}: [#1129] the pointer tier IS surface-responsive in code — the short name a consumer binds is repointed under ${axisSelector('surface', 'inverse')} (${css.byName[aliasVar] ?? 'MISSING'} → ${inverse.byName[aliasVar] ?? 'MISSING'})`);
+  ok(inverse.byName[aliasVar] === `var(${invVar})`,
+    `${brand}: [#1129] and it is repointed at the inverse column of the value tier, not given a colour of its own (${inverse.byName[aliasVar] ?? 'MISSING'})`);
+
+  // The two axes COMPOSE — base + dark + surface-inverse, one element, two attributes, no crossed
+  // artifact. This is what a `[data-theme][data-surface]` band on a dark page resolves to, and it is a
+  // property of the EMISSION rather than of Style Dictionary: the surface overlay overrides with an
+  // appearance-tier NAME, so the theme layer beneath it supplies the value (#1027). An overlay carrying
+  // resolved colours would paint a light-mode band on a dark page and pass every one-axis arm above.
+  const composed = readEmitted(await buildComposed(brand, [{ axis: 'theme', key: 'dark' }, { axis: 'surface', key: 'inverse' }]));
+  ok(composed.selectors.join('|') === `${axisSelector('theme', 'dark')}${axisSelector('surface', 'inverse')}`,
+    `${brand}: [#1129] two axes scope one element (${composed.selectors.join('|')})`);
+  ok(composed.byName[aliasVar] === `var(${invVar})`,
+    `${brand}: [#1129] composed, the pointer still resolves to the inverse column (${composed.byName[aliasVar] ?? 'MISSING'})`);
+  ok(composed.byName[invVar] !== undefined && composed.byName[invVar] === dark.byName[invVar] && composed.byName[invVar] !== base.byName[invVar],
+    `${brand}: [#1129] and the value beneath it is DARK's inverse column, not light's — the axes did not have to be crossed to get here (${base.byName[invVar] ?? 'MISSING'} → ${composed.byName[invVar] ?? 'MISSING'})`);
 
   ok(src.modes.length >= 3, `${brand}: [#609] the projection covers every declared mode (${src.modes.length})`);
 }

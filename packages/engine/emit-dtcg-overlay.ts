@@ -31,11 +31,11 @@
  *     per-mode namespace cannot express that — which is exactly where Token Press's model fails on
  *     our output (`docs/12 §10b`).
  *
- * SCOPE — read this before assuming the file does more than it does. The `modes` extension carries
- * the **theme axis only** (`dark` / `hc-light` / `hc-dark`). Breakpoint and viewport are represented
+ * SCOPE — read this before assuming the file does more than it does. TWO axes are projected, each from
+ * its own extension map (see `AXES`): the **theme** axis from `modes` (`dark` / `hc-light` / `hc-dark`)
+ * and the **surface** axis from `surfaces` (`inverse`, #1129). Breakpoint and viewport are represented
  * elsewhere in the tree (`$extensions.prism3.responsive`, and the layout token values themselves), so
- * there is nothing here to flatten them from. The overlay FORM generalizes to all three; this
- * implementation covers the one axis the mechanism currently expresses.
+ * there is nothing here to flatten them from.
  *
  * PURE — no `node:*`, no I/O. The writer lives in `emit-dtcg.ts`.
  */
@@ -44,6 +44,34 @@
 type Node = Record<string, unknown>;
 
 const isLeaf = (n: unknown): n is Node => !!n && typeof n === 'object' && '$value' in (n as Node);
+
+/**
+ * THE PROJECTED AXES — an axis name, and the `$extensions.prism3` map that carries its values.
+ *
+ * One table, because everything below is axis-agnostic and the only per-axis facts are "which map" and
+ * "what the file and the CSS selector are called". Adding breakpoint or viewport is a row here plus a
+ * producer that writes the map — no change to the walk, the value comparison, or the throw.
+ *
+ * WHY `surfaces` IS ITS OWN AXIS RATHER THAN THREE MORE `modes` ENTRIES (#1129). The two axes compose
+ * rather than multiply: a consumer sources `base + dark + surface-inverse` for a dark band on a dark
+ * page, which is 2 overlays for 8 combinations. Folded into `modes`, `inverse` would inherit the theme
+ * axis's semantics — ONE selection per document — and an inverse *region* is not a document state.
+ * That is #871's rejected `light-inverse` crossing arriving through the back door, and the same
+ * inheritance failure: the band is silently wrong the moment the page flips appearance.
+ */
+export const AXES = { theme: 'modes', surface: 'surfaces' } as const;
+export type OverlayAxis = keyof typeof AXES;
+const AXIS_MAPS: readonly string[] = Object.values(AXES);
+
+/**
+ * The overlay artifact's tag: `<brand>.<tag>.overlay.tokens.json`, and `[data-<axis>="<key>"]` in a
+ * consumer's CSS.
+ *
+ * The theme axis is unprefixed because its three files predate the second axis and renaming them would
+ * break every consumer for no gain. Every later axis IS prefixed, which is what keeps `dark` and
+ * `surface-inverse` distinguishable — an unprefixed `inverse` would read as a fourth theme.
+ */
+export const overlayTag = (axis: OverlayAxis, key: string): string => (axis === 'theme' ? key : `${axis}-${key}`);
 
 /**
  * The types the DTCG spec defines. A leaf typed outside this set is omitted from the projection (#642).
@@ -79,15 +107,15 @@ export const DTCG_TYPES: ReadonlySet<string> = new Set([
 /** Whether a leaf's `$type` is one a conforming consumer is defined to understand. */
 export const isConformingLeaf = (n: Node): boolean => typeof n.$type === 'string' && DTCG_TYPES.has(n.$type as string);
 
-/** Every mode named by any leaf's `modes` extension, sorted. Walks the tree rather than taking a
- *  caller's list — a mode present on one leaf and absent from the argument would vanish silently. */
-export const overlayModes = (tree: unknown): string[] => {
+/** Every key named by any leaf's map for `axis`, sorted. Walks the tree rather than taking a caller's
+ *  list — a key present on one leaf and absent from the argument would vanish silently. */
+export const overlayModes = (tree: unknown, axis: OverlayAxis = 'theme'): string[] => {
   const found = new Set<string>();
   const walk = (n: unknown): void => {
     if (!n || typeof n !== 'object') return;
     if (isLeaf(n)) {
-      const modes = (n.$extensions as Node | undefined)?.prism3 as Node | undefined;
-      for (const m of Object.keys((modes?.modes as Node | undefined) ?? {})) found.add(m);
+      const p3 = (n.$extensions as Node | undefined)?.prism3 as Node | undefined;
+      for (const m of Object.keys((p3?.[AXES[axis]] as Node | undefined) ?? {})) found.add(m);
       return;
     }
     for (const [k, v] of Object.entries(n as Node)) if (!k.startsWith('$')) walk(v);
@@ -97,20 +125,24 @@ export const overlayModes = (tree: unknown): string[] => {
 };
 
 /**
- * One leaf as the projection carries it: the `modes` extension removed.
+ * One leaf as the projection carries it: EVERY axis map removed.
  *
- * Removing it is not tidying — it is the whole contract. A consumer that reads this file must not be
+ * Removing them is not tidying — it is the whole contract. A consumer that reads this file must not be
  * able to find a second value it is silently ignoring; if `modes` rode along, the base would be the
  * canonical tree again and the projection would buy nothing. Everything else under `$extensions`
  * stays: it is descriptive (contrast ratings, provenance, Figma binding), not a hidden value.
+ *
+ * Driven off `AXES` rather than naming `modes`, because the rule is about hidden VALUES and not about
+ * one map. `surfaces` (#1129) is the second, and it arrived on 128 leaves that were already in every
+ * base file — so a `modes`-only strip would have shipped the inverse column into all four bases at
+ * once, in the ignorable corner, which is exactly the shape this function exists to prevent.
  */
 const projectLeaf = (n: Node): Node => {
   const out = { ...n };
   const ext = out.$extensions as Node | undefined;
   const p3 = ext?.prism3 as Node | undefined;
-  if (p3 && 'modes' in p3) {
-    const { modes: _drop, ...rest } = p3;
-    out.$extensions = { ...ext, prism3: rest };
+  if (p3 && AXIS_MAPS.some((m) => m in p3)) {
+    out.$extensions = { ...ext, prism3: Object.fromEntries(Object.entries(p3).filter(([k]) => !AXIS_MAPS.includes(k))) };
   }
   return out;
 };
@@ -139,8 +171,8 @@ export const buildBase = (tree: unknown): unknown => {
 
 /** The diagnostic for a mode entry the projector cannot read. Its own function so the message is one
  *  string rather than assembled at a throw site, and so a test can assert on it. */
-const unreadableMode = (mode: string, m: unknown): string =>
-  `emit-dtcg-overlay: mode entry '${mode}' exists but carries no $value ` +
+const unreadableMode = (mode: string, m: unknown, axis: OverlayAxis): string =>
+  `emit-dtcg-overlay: ${AXES[axis]} entry '${mode}' exists but carries no $value ` +
   `(got ${Array.isArray(m) ? 'a bare array — this is the #708 shape' : m === null ? 'null' : typeof m}). ` +
   `Every mode entry must wrap its value: { $value: … }. An unreadable entry is a DEFECT, never an ` +
   `absence — returning undefined here is what silently dropped every mode-varying shadow from every ` +
@@ -149,10 +181,15 @@ const unreadableMode = (mode: string, m: unknown): string =>
 /**
  * One mode's OVERLAY: only the leaves whose value differs from base, with empty groups pruned.
  *
- * A leaf that carries a `modes` entry EQUAL to its default is deliberately excluded — the engine
- * emits those (a mode can re-derive a value and land on the same one), and including them would make
- * every overlay look larger than the change it represents. Comparing values rather than trusting the
+ * A leaf that carries an axis entry EQUAL to its default is deliberately excluded — the engine emits
+ * those (a mode can re-derive a value and land on the same one), and including them would make every
+ * overlay look larger than the change it represents. Comparing values rather than trusting the
  * extension's presence is what keeps the overlay honest about what actually moves.
+ *
+ * That exclusion carries real weight on the surface axis (#1129) rather than covering a rare case: all
+ * 128 pointer leaves declare `surfaces.inverse`, and the 16 `inverse-coverage.ts` registers as `self`
+ * declare their own token — so the overlay lands at 112 because the VALUES match here, never because
+ * the pairing rule was applied a second time. Deleting this comparison would ship 16 inert overrides.
  *
  * THE #708 DIAGNOSIS, because it is the part a diff cannot show. This walk used to begin
  * `if (!m || !('$value' in m)) return undefined;` — a guard that was **correct about its own condition
@@ -164,7 +201,8 @@ const unreadableMode = (mode: string, m: unknown): string =>
  * read" (a defect). The producer is normalized now, so the throw below should be unreachable — it stays
  * because unreachable-by-construction is exactly what this guard believed about itself before.
  */
-export const buildOverlay = (tree: unknown, mode: string): unknown => {
+export const buildOverlay = (tree: unknown, mode: string, axis: OverlayAxis = 'theme'): unknown => {
+  const map = AXES[axis];
   const walk = (n: unknown): unknown => {
     if (!n || typeof n !== 'object') return undefined;
     if (isLeaf(n)) {
@@ -174,13 +212,13 @@ export const buildOverlay = (tree: unknown, mode: string): unknown => {
       // reach a conforming consumer through the overlay while being correctly absent from the base.
       if (!isConformingLeaf(n)) return undefined;
       const p3 = ((n.$extensions as Node | undefined)?.prism3) as Node | undefined;
-      const modes = p3?.modes as Node | undefined;
+      const modes = p3?.[map] as Node | undefined;
       // ABSENT means "this leaf does not vary in this mode" — the normal case, and the ONLY thing that
       // may return undefined here. Everything below is a shape question, and a shape we cannot read is
       // a defect rather than an absence (#708).
       if (!modes || !(mode in modes)) return undefined;
       const m = modes[mode] as Node | undefined;
-      if (!m || typeof m !== 'object' || !('$value' in m)) throw new Error(unreadableMode(mode, m));
+      if (!m || typeof m !== 'object' || !('$value' in m)) throw new Error(unreadableMode(mode, m, axis));
       if (JSON.stringify(m.$value) === JSON.stringify((n as Node).$value)) return undefined;
       // The leaf as the mode sees it — the mode's `$value`, and the base leaf's descriptive fields
       // so the overlay is a valid standalone DTCG token rather than a bare value.
@@ -206,8 +244,19 @@ export const leafCount = (n: unknown): number => {
   return c;
 };
 
-/** The whole projected set for one brand: the base plus one overlay per mode. */
-export const buildOverlaySet = (tree: unknown): { base: unknown; overlays: Array<{ mode: string; tree: unknown }> } => ({
+/**
+ * The whole projected set for one brand: the base plus one overlay per key of every axis in `AXES`.
+ *
+ * `tag` is what the writer names the file and what a consumer scopes on, so the two cannot disagree.
+ * `mode` is retained beside it — unprefixed, the axis's own key — because `test.ts` and the studio's
+ * export settings both address overlays by mode name and neither is about file naming.
+ */
+export const buildOverlaySet = (tree: unknown): {
+  base: unknown;
+  overlays: Array<{ axis: OverlayAxis; mode: string; tag: string; tree: unknown }>;
+} => ({
   base: buildBase(tree),
-  overlays: overlayModes(tree).map((mode) => ({ mode, tree: buildOverlay(tree, mode) })),
+  overlays: (Object.keys(AXES) as OverlayAxis[]).flatMap((axis) =>
+    overlayModes(tree, axis).map((mode) => ({ axis, mode, tag: overlayTag(axis, mode), tree: buildOverlay(tree, mode, axis) })),
+  ),
 });

@@ -31,7 +31,7 @@ import { previewSpec, previewTokenRefs, buildPreviewSpec } from './preview';
 import { resolvePreview } from './resolve-preview';
 import { exampleBrands, exampleBrandsJson, EXAMPLE_IDS } from './emit-brandinput';
 import { buildFigmaColor, buildFigmaFont, buildFigmaFontFluid, buildFigmaTextStyles, buildFigmaDims, buildFigmaLayout, buildFigmaShadow, buildFigmaGradient, fontStyleName, figName, parseColor, figmaArtifacts, COLOR_MODES, FONT_FLUID_MODES, LAYOUT_MODES } from './emit-figma';
-import { buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES } from './emit-dtcg-overlay';
+import { AXES, buildBase, buildOverlay, overlayModes, buildOverlaySet, leafCount, DTCG_TYPES, type OverlayAxis } from './emit-dtcg-overlay';
 import { callTool as mcpCallTool, unsafeOutDir, EXPORT_SECTIONS } from './mcp';
 import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
@@ -11205,13 +11205,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   }
 }
 
-// ---- #609: the conforming PROJECTION (base + per-mode overlays) --------------------------------
-// The canonical tree keeps `$extensions.prism3.modes` as the source of truth. These artifacts are the
-// projection a conforming consumer can actually read, since DTCG defines `$extensions` as ignorable.
+// ---- #609: the conforming PROJECTION (base + per-scope overlays) -------------------------------
+// The canonical tree keeps its axis maps (`$extensions.prism3.modes`, and since #1129 `.surfaces`) as
+// the source of truth. These artifacts are the projection a conforming consumer can actually read,
+// since DTCG defines `$extensions` as ignorable.
+//
+// EVERY ASSERTION BELOW IS PER-AXIS SINCE #1129, and the loop is driven by the projector's own `AXES`
+// rather than by a literal list, so a third axis is covered the day it is declared instead of the day
+// someone remembers this block. The one thing that cannot come from `AXES` is whether an axis produced
+// anything at all — `AXES` naming an axis and a tree declaring one leaf on it are different claims, and
+// the first satisfies every contents-shaped assertion vacuously (the hole `lint-overlay-completeness.ts`
+// arm E closes at the artifact level). So each axis's key list is asserted non-empty by name first.
 {
   const t = buildTree(brandTheme({ id: 'p', primary: { l: 0.55, c: 0.15, h: 262 }, neutral: { hue: 262, chroma: 0.008 } } as never)).tree;
-  const modes = overlayModes(t);
+  const axes = Object.keys(AXES) as OverlayAxis[];
+  ok(axes.length === 2 && axes.join(',') === 'theme,surface',
+    `overlay: the projector declares exactly the two axes this block covers (${axes.join(', ')})`);
+  const keysOf = (axis: OverlayAxis): string[] => overlayModes(t, axis);
+  for (const axis of axes) {
+    ok(keysOf(axis).length > 0,
+      `overlay: the '${axis}' axis is declared on real leaves, not just in AXES (${keysOf(axis).join(', ') || 'NOTHING'})`);
+  }
+  const modes = keysOf('theme');
   ok(modes.length >= 3, `overlay: every declared mode is found by walking the tree (${modes.join(', ')})`);
+  // Every (axis, key) the projection must cover — the subject of the per-overlay loop further down.
+  const scopes = axes.flatMap((axis) => keysOf(axis).map((key) => ({ axis, key, map: AXES[axis] })));
 
   const base = buildBase(t);
   // #642: the base carries every DTCG-typed leaf — not every leaf. The subtrahend is derived by walking
@@ -11243,22 +11261,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'overlay: the emptied group is PRUNED from the base, not left as `{}` (#642)');
   ok(groupAt(base, ['prism', 'motion', 'easing']) !== undefined,
     'overlay: ...and its conforming siblings survive — the pruning is not eating the parent');
-  // THE CONTRACT of the base: no `modes` survives. If it did, a consumer reading the base could still
-  // find a second value it is silently ignoring — which is the exact defect the projection exists to
-  // remove, and the base would be the canonical tree wearing a different filename.
+  // THE CONTRACT of the base: no axis map survives — not `modes`, and since #1129 not `surfaces`
+  // either. If one did, a consumer reading the base could still find a second value it is silently
+  // ignoring — which is the exact defect the projection exists to remove, and the base would be the
+  // canonical tree wearing a different filename. The `surfaces` half is not hypothetical: `projectLeaf`
+  // stripped `modes` by name, so the first draft of #1129 shipped the inverse column into all four base
+  // files, conforming and wrong.
   // STRUCTURAL, not a string match. The first draft asserted `!JSON.stringify(x).includes('"modes"')`
   // and failed on `$extensions.prism3.figma.modes` — a descriptive list of which Figma collection
   // modes exist, which is documentation, not a hidden value. A substring proxy for a structural
   // property matches whatever else happens to share the word.
-  const carriesModeValues = (n: unknown): boolean => {
+  const carriesAxisValues = (n: unknown, map: string): boolean => {
     if (!n || typeof n !== 'object') return false;
     const o = n as Record<string, any>;
-    if ('$value' in o) return !!o.$extensions?.prism3?.modes;
-    return Object.entries(o).some(([k, v]) => !k.startsWith('$') && carriesModeValues(v));
+    if ('$value' in o) return !!o.$extensions?.prism3?.[map];
+    return Object.entries(o).some(([k, v]) => !k.startsWith('$') && carriesAxisValues(v, map));
   };
-  ok(!carriesModeValues(base),
-    'overlay: the base carries NO per-mode VALUE map — a consumer cannot be silently ignoring a value');
-  ok(carriesModeValues(t), 'overlay: ...and the canonical tree still does (the check is not vacuous)');
+  for (const axis of axes) {
+    const map = AXES[axis];
+    ok(!carriesAxisValues(base, map),
+      `overlay: the base carries NO \`${map}\` VALUE map — a consumer cannot be silently ignoring a value`);
+    ok(carriesAxisValues(t, map),
+      `overlay: ...and the canonical tree still carries \`${map}\` (the check above is not vacuous)`);
+  }
   ok(JSON.stringify(base).includes('"contrast"'),
     'overlay: descriptive extensions SURVIVE in the base — only the hidden-value one is stripped');
 
@@ -11267,13 +11292,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // earlier draft asserted only "a strict subset", and a mutant that included every unchanged leaf
   // produced 553 of 575 and passed. 96% redundant is a strict subset, and it defeats the entire
   // reason overlays exist. A size assertion has to compare against a second derivation, not itself.
-  const expectedDelta = (mode: string): number => {
+  const expectedDelta = (map: string, key: string): number => {
     let n = 0;
     const walk = (x: unknown): void => {
       if (!x || typeof x !== 'object') return;
       const o = x as Record<string, any>;
       if ('$value' in o) {
-        const mv = o.$extensions?.prism3?.modes?.[mode];
+        const mv = o.$extensions?.prism3?.[map]?.[key];
         if (mv && '$value' in mv && JSON.stringify(mv.$value) !== JSON.stringify(o.$value)) n++;
         return;
       }
@@ -11282,14 +11307,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     walk(t);
     return n;
   };
-  for (const m of modes) {
-    const ov = buildOverlay(t, m);
+  for (const { axis, key: m, map } of scopes) {
+    const ov = buildOverlay(t, m, axis);
     const n = leafCount(ov);
-    ok(n === expectedDelta(m),
-      `overlay ${m}: exactly the leaves that changed (${n}, independently expected ${expectedDelta(m)})`);
+    ok(n === expectedDelta(map, m),
+      `overlay ${axis}/${m}: exactly the leaves that changed (${n}, independently expected ${expectedDelta(map, m)})`);
     ok(n > 0 && n < leafCount(t) * 0.5,
-      `overlay ${m}: a real delta, not a near-copy (${n} of ${leafCount(t)})`);
-    ok(!carriesModeValues(ov), `overlay ${m}: carries no per-mode value map either`);
+      `overlay ${axis}/${m}: a real delta, not a near-copy (${n} of ${leafCount(t)})`);
+    for (const other of axes) {
+      ok(!carriesAxisValues(ov, AXES[other]),
+        `overlay ${axis}/${m}: carries no \`${AXES[other]}\` value map either`);
+    }
 
     // ...and the VALUE each overlay leaf carries is the mode's, not the base's. Mutation found this
     // gap: making `buildOverlay` return the base leaf unchanged left every count above correct — the
@@ -11304,7 +11332,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const o = n as Record<string, any>;
       if ('$value' in o) {
         const canon = at(t, path);
-        const want = canon?.$extensions?.prism3?.modes?.[m]?.$value;
+        const want = canon?.$extensions?.prism3?.[map]?.[m]?.$value;
         if (JSON.stringify(o.$value) !== JSON.stringify(want)) valueFails.push(`${path.join('.')}=${JSON.stringify(o.$value)}≠${JSON.stringify(want)}`);
         else if (JSON.stringify(o.$value) === JSON.stringify(canon?.$value)) valueFails.push(`${path.join('.')}:unchanged-from-base`);
         return;
@@ -11313,7 +11341,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     };
     checkValues(ov, []);
     ok(valueFails.length === 0,
-      `overlay ${m}: every leaf carries the MODE's value, and it differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
+      `overlay ${axis}/${m}: every leaf carries the SCOPE's value, and it differs from base${valueFails.length ? ` — ${valueFails.slice(0, 3).join(', ')}` : ''}`);
   }
 
   // A leaf whose mode value EQUALS its default must not appear. The engine emits those, and including
@@ -11324,9 +11352,27 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const diffMode = { x: { $type: 'color', $value: '#fff', $extensions: { prism3: { modes: { dark: { $value: '#000' } } } } } };
   ok(leafCount(buildOverlay(diffMode, 'dark')) === 1,
     'overlay: a mode value that DIFFERS is included (the exclusion above is not blanket)');
+  // The same pair on the surface axis, because that is where the exclusion is load-bearing rather than
+  // incidental: all 128 pointer rows declare `surfaces.inverse`, and the 16 the `inverse-coverage.ts`
+  // register disposes as `self` declare their OWN token, so 112 is reached by this comparison alone
+  // (#1129). If the value test were skipped on this axis the overlay would be 128 and every count above
+  // would still agree with itself.
+  const equalSurface = { x: { $type: 'color', $value: '{a.b}', $extensions: { prism3: { surfaces: { inverse: { $value: '{a.b}' } } } } } };
+  ok(leafCount(buildOverlay(equalSurface, 'inverse', 'surface')) === 0,
+    'overlay: a surface value identical to the default is excluded too — the `self` dispositions drop here (#1129)');
+  const diffSurface = { x: { $type: 'color', $value: '{a.b}', $extensions: { prism3: { surfaces: { inverse: { $value: '{a.c}' } } } } } };
+  ok(leafCount(buildOverlay(diffSurface, 'inverse', 'surface')) === 1,
+    'overlay: ...and a surface value that DIFFERS is included (the exclusion above is not blanket)');
 
+  // THE SET covers every (axis, key) pair, not just the theme axis. Expected is the independently-built
+  // `scopes` list, and the tags are compared as a set so a duplicate cannot pad the count to agreement.
   const set = buildOverlaySet(t);
-  ok(set.overlays.length === modes.length, `overlay: the set carries one overlay per mode (${set.overlays.length})`);
+  ok(set.overlays.length === scopes.length,
+    `overlay: the set carries one overlay per (axis, key) across every declared axis (${set.overlays.length}, independently expected ${scopes.length})`);
+  const gotPairs = [...new Set(set.overlays.map((o) => `${o.axis}/${o.mode}`))].sort();
+  const wantPairs = [...new Set(scopes.map((s) => `${s.axis}/${s.key}`))].sort();
+  ok(gotPairs.join(',') === wantPairs.join(','),
+    `overlay: ...and they are the SAME pairs, each once — got [${gotPairs.join(', ')}], expected [${wantPairs.join(', ')}]`);
 }
 
 // ---- Arc 2's primitives: `icon` and `focus-ring` as real defs (#741) ---------------------------

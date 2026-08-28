@@ -58,6 +58,42 @@ A color role resolves differently per mode (`light` / `dark` / `hc-light` / `hc-
 carried in the role's `mode_overrides`. Bind the **role**; the mode drives the value. Never
 copy a resolved hex into your component — that pins one mode and breaks the others.
 
+**3b. There are two axes, and the second one is `surface`.**
+Appearance (`light` / `dark` / `hc-light` / `hc-dark`) is the axis you already know.
+**Surface** is the other one: `default` or `inverse`, meaning *this region sits on an inverted
+ground* — a light CTA on a dark hero, inside a page that may itself be light or dark. They are
+independent, they compose, and neither is a value of the other.
+
+Both are scoped overrides, so **you bind the same name either way**. `color.background.primary`
+is the page surface on a default region and the inverted page surface inside an inverse region;
+you don't switch to a different token to get there. What changes is the scope you're inside:
+
+| you want | the scope |
+|---|---|
+| dark appearance | `data-theme="dark"` |
+| an inverse region | `data-surface="inverse"` |
+| an inverse band on a dark page | both attributes, on the same element |
+
+Two consequences worth holding on to:
+
+- **Don't hand-pick an inverse role.** `text.on-inverse.primary` and its siblings exist, but they
+  are the *value* the pointer resolves to inside an inverse scope. Reaching for them directly
+  hardcodes the surface the way rule 3 forbids hardcoding the mode — the region then stops
+  inverting when it should, and inverts when it shouldn't.
+- **Set the scope on the container, once.** An inverse region is a *region*, so mark the hero or
+  the band and let every descendant inherit. Marking individual controls is how a band ends up
+  half-inverted.
+
+Where the scopes come from, if you are building the CSS yourself: the engine emits a **base** tree
+plus one **overlay** per scope — `<brand>.base.tokens.json`, then `<brand>.dark.overlay.tokens.json`
+and friends for appearance, and `<brand>.surface-inverse.overlay.tokens.json` for the inverse
+region. An overlay only carries the tokens that move, and it overrides paths rather than adding
+names, so composing two of them needs no crossed file. Source the base plus whichever overlays you
+want; any standard build tool's multi-source merge does the rest. (The single `<brand>.tokens.json`
+carries every scope at once in an extension a generic tool is defined to ignore, so a build reading
+*only* that file gets the default scope and no warning. Read it for metadata; build from the
+projection.)
+
 **4. Honor `avoid_when` — it is the highest-value field.**
 The sidecar's `avoid_when` encodes the traps the role's *name* can't. The portable ones
 that hold across brands:
@@ -88,7 +124,9 @@ List every **ink-on-surface color pairing** your component renders, each as
 - `kind: "large-text"` — ≥ 24px or ≥ 19px bold → needs **3:1**
 - `kind: "ui"` — borders, icons, focus rings, large graphics → needs **3:1**
 
-Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode**.
+Resolve `fg` and `bg` **per mode** and confirm the ratio clears the floor **in every mode** — and,
+for anything you place inside an inverse region, **in that surface too**: it is a second axis, so a
+pair that clears its floor on the default surface has not been checked on the inverse one.
 Only pair colors where a real contrast contract applies — a **decorative** border
 (`border.primary`), a **disabled** label, and pure decoration are exempt; don't score them
 as if they were text or a 3:1 UI edge. If a pair fails, you reached for the wrong role — the

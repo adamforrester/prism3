@@ -86,6 +86,13 @@
       "title": "the media veil is its own family, `color.veil.*`, and it is appearance-invariant",
       "doc": "docs/20-interactive-color-system.md",
       "section": "8.1"
+    },
+    {
+      "date": "2026-08-27",
+      "issue": 1129,
+      "title": "inverse reaches code as a scoped override — the surface axis of the DTCG projection",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.8"
     }
   ]
 }

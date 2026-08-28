@@ -55,10 +55,13 @@ export const emitTheme = (theme: Theme, outDir: string): { tree: any; modes: Mod
   // spec and a stock build otherwise sees one value per token. Base + overlay, composed by the
   // consumer's own multi-source merge — see `emit-dtcg-overlay.ts` for why overlays and not full
   // per-mode trees.
+  // Two axes since #1129 — three theme overlays plus `surface-inverse`. The file name comes from
+  // `overlayTag`, not from the key, so the artifact and the `[data-<axis>=…]` selector a consumer
+  // writes are named by one function rather than by two conventions that can drift.
   const projected = buildOverlaySet(built.tree);
   writeFileSync(resolve(outDir, `${theme.id}.base.tokens.json`), JSON.stringify(projected.base, null, 2) + '\n');
-  for (const { mode, tree } of projected.overlays) {
-    writeFileSync(resolve(outDir, `${theme.id}.${mode}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
+  for (const { tag, tree } of projected.overlays) {
+    writeFileSync(resolve(outDir, `${theme.id}.${tag}.overlay.tokens.json`), JSON.stringify(tree, null, 2) + '\n');
   }
   return built;
 };

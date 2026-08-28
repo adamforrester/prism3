@@ -15381,14 +15381,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.background.primary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.background.inverse.primary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15401,14 +15405,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.background.secondary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.background.inverse.secondary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15421,14 +15429,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.background.tertiary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.background.inverse.tertiary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15443,14 +15455,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.brand",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.brand}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15463,14 +15479,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.danger",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.danger}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15483,14 +15503,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.focus",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.focus}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15503,14 +15527,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.info",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.info}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15523,14 +15551,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.primary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.primary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15543,14 +15575,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.secondary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.secondary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15563,14 +15599,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.success",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.success}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15583,14 +15623,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.border.warning",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.border.inverse.warning}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15605,14 +15649,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.disabled.border",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.disabled.inverse.border}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15625,14 +15673,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.disabled.fill",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.disabled.inverse.fill}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15645,14 +15697,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.disabled.icon",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.disabled.inverse.icon}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15665,14 +15721,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.disabled.on-fill",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.disabled.inverse.on-fill}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15685,14 +15745,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.disabled.text",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.disabled.inverse.text}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15708,14 +15772,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.field.border.hover",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.field.inverse.border.hover}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -15728,14 +15796,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.field.border.rest",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.field.inverse.border.rest}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -15749,14 +15821,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.field.fill",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.field.inverse.fill}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15769,14 +15845,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.field.placeholder",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.field.inverse.placeholder}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15791,14 +15871,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.brand",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.brand}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15811,14 +15895,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.brand-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.brand-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15831,14 +15919,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.danger",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.danger}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15851,14 +15943,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.danger-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.danger-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15871,14 +15967,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.info",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.info}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15891,14 +15991,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.info-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.info-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15911,14 +16015,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.primary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.primary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15931,14 +16039,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.secondary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.secondary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15951,14 +16063,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.success",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.success}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15971,14 +16087,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.success-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.success-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -15991,14 +16111,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.tertiary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.tertiary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16011,14 +16135,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.warning",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.warning}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16031,14 +16159,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.foreground.warning-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.foreground.inverse.warning-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16053,14 +16185,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.brand",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.brand}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16073,14 +16209,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.brand-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.brand-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16093,14 +16233,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.danger",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.danger}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16113,14 +16257,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.danger-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.danger-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16133,14 +16281,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.info",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.info}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16153,14 +16305,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.info-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.info-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16174,14 +16330,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.icon.link.default",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.icon.on-inverse.link.default}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -16194,14 +16354,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.icon.link.focused",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.icon.on-inverse.link.focused}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -16214,14 +16378,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.icon.link.hover",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.icon.on-inverse.link.hover}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -16234,14 +16402,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.icon.link.visited",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.icon.on-inverse.link.visited}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -16255,14 +16427,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.on-brand",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-brand}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16275,14 +16451,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.on-danger",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-danger}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16295,14 +16475,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.on-info",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-info}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16315,14 +16499,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.on-success",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-success}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16335,14 +16523,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.on-warning",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-warning}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16355,14 +16547,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.primary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.primary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16375,14 +16571,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.secondary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.secondary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16395,14 +16595,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.success",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.success}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16415,14 +16619,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.success-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.success-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16435,14 +16643,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.tertiary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.tertiary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16455,14 +16667,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.warning",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.warning}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16475,14 +16691,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.icon.warning-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.icon.on-inverse.warning-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -16499,14 +16719,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.border.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.border.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16519,14 +16743,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.border.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.border.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16539,14 +16767,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.border.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.border.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16561,14 +16793,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.fill.focused",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.focused}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16581,14 +16817,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.fill.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16601,14 +16841,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.fill.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16621,14 +16865,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.fill.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16641,14 +16889,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.fill.selected",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.selected}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16662,14 +16914,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.interactive.destructive.on-fill",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.interactive.destructive.inverse.on-fill}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -16683,14 +16939,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.overlay.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.overlay.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16703,14 +16963,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.overlay.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.overlay.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16723,14 +16987,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.overlay.selected",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.overlay.selected}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16745,14 +17013,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.text.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.text.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16765,14 +17037,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.text.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.text.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16785,14 +17061,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.destructive.text.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.destructive.inverse.text.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16809,14 +17089,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.border.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.border.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16829,14 +17113,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.border.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.border.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16849,14 +17137,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.border.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.border.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16871,14 +17163,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.fill.focused",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.focused}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16891,14 +17187,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.fill.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16911,14 +17211,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.fill.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16931,14 +17235,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.fill.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16951,14 +17259,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.fill.selected",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.selected}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -16972,14 +17284,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.interactive.neutral.on-fill",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.interactive.neutral.inverse.on-fill}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -16993,14 +17309,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.overlay.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.overlay.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17013,14 +17333,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.overlay.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.overlay.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17033,14 +17357,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.overlay.selected",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.overlay.selected}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17055,14 +17383,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.text.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.text.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17075,14 +17407,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.text.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.text.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17095,14 +17431,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.neutral.text.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.neutral.inverse.text.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17119,14 +17459,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.border.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.border.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17139,14 +17483,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.border.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.border.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17159,14 +17507,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.border.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.border.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17181,14 +17533,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.fill.focused",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.fill.focused}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17201,14 +17557,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.fill.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.fill.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17221,14 +17581,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.fill.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.fill.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17241,14 +17605,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.fill.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.fill.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17261,14 +17629,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.fill.selected",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.fill.selected}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17282,14 +17654,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.interactive.primary.on-fill",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.interactive.primary.inverse.on-fill}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17303,14 +17679,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.overlay.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.overlay.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17323,14 +17703,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.overlay.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.overlay.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17343,14 +17727,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.overlay.selected",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.overlay.selected}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17365,14 +17753,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.text.hover",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.text.hover}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17385,14 +17777,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.text.pressed",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.text.pressed}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17405,14 +17801,18 @@
                 "prism3": {
                   "role": "surface-alias",
                   "aliasOf": "prism.color.appearance.interactive.primary.text.rest",
-                  "surface": "default",
+                  "surfaces": {
+                    "inverse": {
+                      "$value": "{prism.color.appearance.interactive.primary.inverse.text.rest}"
+                    }
+                  },
                   "figma": {
                     "collection": "color",
                     "modes": [
                       "default",
                       "inverse"
                     ],
-                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                   }
                 }
               }
@@ -17429,14 +17829,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.brand",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.brand}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17449,14 +17853,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.brand-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.brand-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17469,14 +17877,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.danger",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.danger}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17489,14 +17901,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.danger-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.danger-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17509,14 +17925,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.info",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.info}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17529,14 +17949,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.info-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.info-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17550,14 +17974,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.text.link.default",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.text.on-inverse.link.default}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17570,14 +17998,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.text.link.focused",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.text.on-inverse.link.focused}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17590,14 +18022,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.text.link.hover",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.text.on-inverse.link.hover}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17610,14 +18046,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.text.link.visited",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.text.on-inverse.link.visited}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17631,14 +18071,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.on-brand",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-brand}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17651,14 +18095,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.on-danger",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-danger}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17671,14 +18119,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.on-info",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-info}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17691,14 +18143,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.on-success",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-success}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17711,14 +18167,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.on-warning",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-warning}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17731,14 +18191,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.primary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.primary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17751,14 +18215,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.secondary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.secondary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17771,14 +18239,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.success",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.success}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17791,14 +18263,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.success-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.success-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17811,14 +18287,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.tertiary",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.tertiary}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17831,14 +18311,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.warning",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.warning}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17851,14 +18335,18 @@
             "prism3": {
               "role": "surface-alias",
               "aliasOf": "prism.color.appearance.text.warning-subtle",
-              "surface": "default",
+              "surfaces": {
+                "inverse": {
+                  "$value": "{prism.color.appearance.text.on-inverse.warning-subtle}"
+                }
+              },
               "figma": {
                 "collection": "color",
                 "modes": [
                   "default",
                   "inverse"
                 ],
-                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
               }
             }
           }
@@ -17874,14 +18362,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.veil.dark.body",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.veil.dark.body}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17894,14 +18386,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.veil.dark.enhanced",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.veil.dark.enhanced}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17914,14 +18410,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.veil.dark.large",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.veil.dark.large}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17936,14 +18436,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.veil.light.body",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.veil.light.body}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17956,14 +18460,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.veil.light.enhanced",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.veil.light.enhanced}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }
@@ -17976,14 +18484,18 @@
               "prism3": {
                 "role": "surface-alias",
                 "aliasOf": "prism.color.appearance.veil.light.large",
-                "surface": "default",
+                "surfaces": {
+                  "inverse": {
+                    "$value": "{prism.color.appearance.veil.light.large}"
+                  }
+                },
                 "figma": {
                   "collection": "color",
                   "modes": [
                     "default",
                     "inverse"
                   ],
-                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)"
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
                 }
               }
             }

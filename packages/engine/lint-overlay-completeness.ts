@@ -1,6 +1,6 @@
 /**
  * OVERLAY COMPLETENESS GATE (#708) — every leaf that varies in a mode reaches that mode's overlay,
- * and nothing else does.
+ * and nothing else does. Across every projected AXIS: `theme` and, since #1129, `surface`.
  *
  *   npx tsx packages/engine/lint-overlay-completeness.ts
  *
@@ -52,6 +52,13 @@
  *   the next brand that adds one. WHICH LEAVES belong in each mode — the actual claim — is computed
  *   below and imported from nowhere.
  *
+ *   `AXES` / `overlayTag` — WHICH axes exist and what their artifacts are called. Scoping again, and
+ *   deliberately cross-checked rather than trusted: `REQUIRED_AXES` below is this file's own list, and
+ *   the two must agree in BOTH directions. An axis removed from `AXES` fails here by name instead of
+ *   quietly emptying the loop, and an axis added there fails until someone has decided this gate covers
+ *   it. That is the cheap version of the hole `overlayModes` cannot see — a walk over an extension map
+ *   nobody writes any more returns `[]`, and a gate whose loop body never runs prints "clean".
+ *
  * ── THE ARMS ────────────────────────────────────────────────────────────────────────────────────
  *
  *   A  MISSING   — a leaf that varies in mode M and is absent from M's overlay.  ← the #708 defect
@@ -62,6 +69,10 @@
  *   D  SHAPE     — a canonical modes entry that is not the wrapped `{ $value: … }` form. This is the
  *                  #708 CAUSE rather than its symptom, caught one step upstream of arms A–C, and it
  *                  fires even in the world where some other projector happens to read both shapes.
+ *   E  AXIS      — an axis that produced no overlay at all for a brand. Arms A–D are all statements
+ *                  about the CONTENTS of an overlay and every one of them is vacuously satisfied by a
+ *                  brand that has none, so without this the surface axis could stop being emitted and
+ *                  the only visible change would be a shorter passing summary (#1129).
  *
  * Arm B matters more than it looks. A too-eager projector inflates every overlay with values a
  * consumer then applies for no reason, and because the extra values are real values, nothing
@@ -81,9 +92,15 @@
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { isConformingLeaf, overlayModes } from './emit-dtcg-overlay.ts';
+import { AXES, isConformingLeaf, overlayModes, overlayTag, type OverlayAxis } from './emit-dtcg-overlay.ts';
 
 const OUT = join(import.meta.dirname, 'out');
+
+/**
+ * The axes this gate claims to cover — spelled out here, and reconciled with `AXES` in both directions
+ * before anything else runs. See the header: this is the arm-E guard's own independent side.
+ */
+const REQUIRED_AXES: readonly OverlayAxis[] = ['theme', 'surface'];
 
 type Node = Record<string, unknown>;
 
@@ -97,12 +114,18 @@ const isLeaf = (n: unknown): n is Node => !!n && typeof n === 'object' && '$valu
  * leaf must meet to belong in mode M's overlay, each re-stated here rather than imported:
  *
  *   1. its `$type` is a DTCG type (the #642 conformance filter — scoping, imported);
- *   2. its `modes` extension has an entry for M;
+ *   2. its map for this axis has an entry for M;
  *   3. that entry's value DIFFERS from the leaf's base `$value`.
  *
  * Condition 3 is the one that makes this a real second opinion: an entry equal to base is emitted by
  * the engine (a mode can re-derive a value and land on the same one) and is correctly absent from the
  * overlay, so a gate that only checked for an entry's PRESENCE would report false missing leaves.
+ *
+ * On the SURFACE axis it does more than avoid a false positive — it is the whole count. All 128 pointer
+ * leaves declare `surfaces.inverse`; the 16 that `inverse-coverage.ts` registers as `self` declare
+ * their own token as the inverse one, so 112 differ. This gate reaches 112 by comparing values, having
+ * never heard of the register or of `inverseCounterpart` — which is what makes it an opinion about the
+ * pairing rule rather than a restatement of it.
  *
  * WHY THIS READS AN UNWRAPPED ENTRY INSTEAD OF REFUSING IT, which looks like exactly the tolerance
  * #708 was about and is the opposite: an entry that is not `{ $value: … }` is recorded as arm-D
@@ -115,14 +138,14 @@ const isLeaf = (n: unknown): n is Node => !!n && typeof n === 'object' && '$valu
  * it in a PRODUCER; `tree.ts` normalizes and `emit-dtcg-overlay.ts` throws, and neither should be
  * relaxed to match this.
  */
-const expectedLeaves = (tree: unknown, mode: string): { leaves: Map<string, unknown>; unwrapped: string[] } => {
+const expectedLeaves = (tree: unknown, mode: string, axis: OverlayAxis): { leaves: Map<string, unknown>; unwrapped: string[] } => {
   const leaves = new Map<string, unknown>();
   const unwrapped: string[] = [];
   const walk = (n: unknown, path: string): void => {
     if (!n || typeof n !== 'object') return;
     if (isLeaf(n)) {
       if (!isConformingLeaf(n)) return;
-      const modes = ((n.$extensions as Node | undefined)?.prism3 as Node | undefined)?.modes as Node | undefined;
+      const modes = ((n.$extensions as Node | undefined)?.prism3 as Node | undefined)?.[AXES[axis]] as Node | undefined;
       if (!modes || !(mode in modes)) return;
       const entry = modes[mode];
       const wrapped = !!entry && typeof entry === 'object' && !Array.isArray(entry) && '$value' in (entry as Node);
@@ -183,74 +206,100 @@ let modesChecked = 0;
 let leavesAsserted = 0;
 const perBrand: string[] = [];
 
+// The axis reconciliation, before any brand is read — arm E's independent side (see the header). Both
+// directions, because they fail differently: an axis gone from `AXES` means this gate silently stopped
+// checking one, and an axis added there means it never started.
+for (const axis of REQUIRED_AXES) {
+  if (!(axis in AXES)) failures.push(`axis '${axis}' is required by this gate but absent from AXES in emit-dtcg-overlay.ts — the projection stopped covering an axis the gate promises`);
+}
+for (const axis of Object.keys(AXES)) {
+  if (!REQUIRED_AXES.includes(axis as OverlayAxis)) failures.push(`axis '${axis}' is projected by emit-dtcg-overlay.ts but not listed in REQUIRED_AXES here — add it once you have decided this gate covers it, rather than letting it go unchecked`);
+}
+
 for (const brand of brands) {
   const canonical = read(`${brand}.tokens.json`);
-  const modes = overlayModes(canonical);
   const notes: string[] = [];
 
-  for (const mode of modes) {
-    const file = `${brand}.${mode}.overlay.tokens.json`;
-    let overlay: unknown;
-    try {
-      overlay = read(file);
-    } catch {
-      failures.push(`${brand}/${mode}: ${file} is missing, but the canonical tree declares mode '${mode}'`);
-      continue;
-    }
-    modesChecked++;
+  for (const axis of REQUIRED_AXES.filter((a) => a in AXES)) {
+    const modes = overlayModes(canonical, axis);
 
-    const { leaves: expected, unwrapped } = expectedLeaves(canonical, mode);
-    const actual = actualLeaves(overlay);
-    leavesAsserted += expected.size;
-
-    // ARM D — the cause, not the symptom. Reported before A–C because a shape divergence explains
-    // whatever those arms are about to say.
-    for (const path of unwrapped) {
+    // ARM E — the axis produced nothing. Every other arm is a statement about an overlay's contents and
+    // so is satisfied for free when there is no overlay.
+    if (!modes.length) {
       failures.push(
-        `${brand}/${mode}: UNWRAPPED modes entry — '${path}' carries its value bare instead of as ` +
-        `{ $value: … }. This is the #708 shape: two shapes for one concept, which is what let a ` +
-        `projector guard read one and silently drop the other. Normalize the producer (tree.ts).`,
+        `${brand}/${axis}: NO OVERLAY on this axis — no leaf in the canonical tree carries a ` +
+        `'${AXES[axis]}' entry, so the projector emitted nothing and arms A–D had nothing to check. ` +
+        `Either the producer stopped writing that map (see tree.ts) or the axis should not be in AXES.`,
       );
     }
 
-    // ARM A — varies in the canonical tree, absent from the overlay. This is #708.
-    for (const [path, want] of expected) {
-      if (!actual.has(path)) {
+    for (const mode of modes) {
+      // The overlay is addressed by its TAG, so the theme axis's `dark` and a later axis's own `dark`
+      // could never be read from the same file. Reported by tag too, for the same reason.
+      const tag = overlayTag(axis, mode);
+      const file = `${brand}.${tag}.overlay.tokens.json`;
+      let overlay: unknown;
+      try {
+        overlay = read(file);
+      } catch {
+        failures.push(`${brand}/${tag}: ${file} is missing, but the canonical tree declares ${axis} mode '${mode}'`);
+        continue;
+      }
+      modesChecked++;
+
+      const { leaves: expected, unwrapped } = expectedLeaves(canonical, mode, axis);
+      const actual = actualLeaves(overlay);
+      leavesAsserted += expected.size;
+
+      // ARM D — the cause, not the symptom. Reported before A–C because a shape divergence explains
+      // whatever those arms are about to say.
+      for (const path of unwrapped) {
         failures.push(
-          `${brand}/${mode}: MISSING from the overlay — '${path}' varies in this mode ` +
-          `(mode value ${JSON.stringify(want).slice(0, 72)}) but the overlay has no such leaf. ` +
-          `A consumer reading base + ${mode}.overlay gets the BASE value here.`,
+          `${brand}/${tag}: UNWRAPPED ${AXES[axis]} entry — '${path}' carries its value bare instead of ` +
+          `as { $value: … }. This is the #708 shape: two shapes for one concept, which is what let a ` +
+          `projector guard read one and silently drop the other. Normalize the producer (tree.ts).`,
         );
       }
-    }
 
-    // ARM B — present in the overlay, does not vary in the canonical tree. The reverse defect.
-    for (const path of actual.keys()) {
-      if (!expected.has(path)) {
-        failures.push(
-          `${brand}/${mode}: EXTRANEOUS in the overlay — '${path}' is present but does not vary in ` +
-          `this mode's canonical modes entry. Either the projector emitted a leaf it should not, or ` +
-          `the canonical entry lost a value it should carry.`,
-        );
+      // ARM A — varies in the canonical tree, absent from the overlay. This is #708.
+      for (const [path, want] of expected) {
+        if (!actual.has(path)) {
+          failures.push(
+            `${brand}/${tag}: MISSING from the overlay — '${path}' varies in this mode ` +
+            `(mode value ${JSON.stringify(want).slice(0, 72)}) but the overlay has no such leaf. ` +
+            `A consumer reading base + ${tag}.overlay gets the BASE value here.`,
+          );
+        }
       }
-    }
 
-    // ARM C — in both, but the overlay does not carry the mode's value.
-    for (const [path, want] of expected) {
-      if (!actual.has(path)) continue;
-      const got = actual.get(path);
-      if (JSON.stringify(got) !== JSON.stringify(want)) {
-        failures.push(`${brand}/${mode}: WRONG VALUE for '${path}' — ${divergence(got, want)}`);
+      // ARM B — present in the overlay, does not vary in the canonical tree. The reverse defect.
+      for (const path of actual.keys()) {
+        if (!expected.has(path)) {
+          failures.push(
+            `${brand}/${tag}: EXTRANEOUS in the overlay — '${path}' is present but does not vary in ` +
+            `this mode's canonical ${AXES[axis]} entry. Either the projector emitted a leaf it should ` +
+            `not, or the canonical entry lost a value it should carry.`,
+          );
+        }
       }
-    }
 
-    // Composites are the #708 blast radius — a bare structured value is the shape the old guard could
-    // not read — so report them per mode, making a regression to zero visible in the passing output
-    // rather than only in a failure. Detected BY RULE: a composite is a leaf whose value is structured
-    // rather than scalar. No list of type names, deliberately; `shadow` is the only composite carrying
-    // modes today and this line must not be the place that remembers that.
-    const composites = [...expected.values()].filter((v) => !!v && typeof v === 'object').length;
-    notes.push(`${mode}=${expected.size}${composites ? ` (${composites} composite)` : ''}`);
+      // ARM C — in both, but the overlay does not carry the mode's value.
+      for (const [path, want] of expected) {
+        if (!actual.has(path)) continue;
+        const got = actual.get(path);
+        if (JSON.stringify(got) !== JSON.stringify(want)) {
+          failures.push(`${brand}/${tag}: WRONG VALUE for '${path}' — ${divergence(got, want)}`);
+        }
+      }
+
+      // Composites are the #708 blast radius — a bare structured value is the shape the old guard could
+      // not read — so report them per mode, making a regression to zero visible in the passing output
+      // rather than only in a failure. Detected BY RULE: a composite is a leaf whose value is structured
+      // rather than scalar. No list of type names, deliberately; `shadow` is the only composite carrying
+      // modes today and this line must not be the place that remembers that.
+      const composites = [...expected.values()].filter((v) => !!v && typeof v === 'object').length;
+      notes.push(`${tag}=${expected.size}${composites ? ` (${composites} composite)` : ''}`);
+    }
   }
   perBrand.push(`  ${brand.padEnd(8)} ${notes.join('  ')}`);
 }
@@ -262,7 +311,7 @@ if (failures.length) {
   console.error(`\n✗ ${failures.length} overlay completeness failure(s):\n`);
   for (const f of failures) console.error(`  • ${f}`);
   console.error(
-    `\nEach is a mismatch between the canonical modes extension (the projector's INPUT) and an emitted ` +
+    `\nEach is a mismatch between a canonical axis extension (the projector's INPUT) and an emitted ` +
     `overlay (its OUTPUT). If the overlays look right and this gate is wrong, do not relax the ` +
     `comparison — the two sides are independent on purpose (#708, docs/34).`,
   );
@@ -270,6 +319,7 @@ if (failures.length) {
 }
 
 console.log(
-  `\n  ✓ clean — ${leavesAsserted} varying leaves across ${modesChecked} overlays in ${brands.length} brands: ` +
-  `every leaf that varies is in its overlay, with the mode's value, and nothing else is.`,
+  `\n  ✓ clean — ${leavesAsserted} varying leaves across ${modesChecked} overlays on ${REQUIRED_AXES.length} axes ` +
+  `(${REQUIRED_AXES.join(', ')}) in ${brands.length} brands: every leaf that varies is in its overlay, with the ` +
+  `mode's value, and nothing else is.`,
 );

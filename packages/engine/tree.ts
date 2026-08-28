@@ -459,9 +459,34 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
    *   · `contrast` / `against` — a ratio recorded here would be true on the DEFAULT surface only, and
    *     the inverse column is where the same name resolves to a different value. The ratio lives on
    *     the appearance leaf it points at, where it is unconditionally true.
-   *   · the `inverse` COLUMN — DTCG carries the default surface only. A surface overlay is #1027's
-   *     work (a fifth overlay file per brand, plus a decision about where the surface axis sits in
-   *     the extension namespace); the pairing lives in the Figma collection's second mode.
+   *
+   * WHAT THEY DO CARRY, SINCE #1129: `surfaces.inverse`, the inverse column as DATA.
+   *
+   * Before this the column existed only inside the `$description` sentence below — so the one fact a
+   * code consumer needs in order to render an inverse band was English prose, and `color.background
+   * .primary` meant *surface-responsive* in Figma and *default-only* in DTCG with nothing saying the
+   * split was intentional. Research run 3 settled the shape rather than leaving it open: no surveyed
+   * system encodes region-inverse in tokens at all — all five platform targets mode-encode it in the
+   * platform layer (Android `ThemeOverlay`, CSS custom-property scoping, nested `Theme` in Flutter and
+   * React Native, iOS traits) — so what a DTCG consumer needs is a SCOPED OVERRIDE, not 112 more names.
+   *
+   * `surfaces` is deliberately the exact shape of `modes`: a map of axis key → `{ $value }`, projected
+   * to a `base + <axis>-<key>.overlay` pair by the machinery that already ships three theme overlays
+   * per brand. Two consequences worth stating because they are easy to undo:
+   *
+   *   · It is a SECOND axis in that mechanism, not a fourth theme mode. `emit-dtcg-overlay.ts`'s
+   *     header always said the overlay FORM generalizes past the theme axis; this is the first use.
+   *     Putting `inverse` into `modes` instead would make it inherit theme's semantics — one selection
+   *     per document — which is the #871 conflation the crossed `light-inverse` alternative was
+   *     rejected for.
+   *   · The overlay is 112 leaves, not 128, and the 16 that drop out do so by VALUE COMPARISON in the
+   *     projector, not by re-applying the pairing rule. Every row carries `surfaces.inverse`, including
+   *     the 16 `inverse-coverage.ts` registers as `self` — where "the same token is the right answer on
+   *     both grounds" is an ANSWER a consumer can read, not an absence they have to interpret.
+   *
+   * Adds no token name: an overlay overrides paths the base already carries, so `CONTRACT_VERSION` is
+   * untouched. That is measured (`token-contract.ts --check`), and it is the half of #1129's framing
+   * that turned out to be wrong — the issue expected 112 new names.
    */
   const surfaceRows = surfaceRowsFor(new Set(Object.keys(lightMode.roles)));
   const colorTier: Record<string, any> = { appearance: colorRoles };
@@ -479,8 +504,16 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const target = `${root}.color.appearance.${r.role}`;
     const leaf = aliasLeaf(target, `${lightMode.roles[r.role].description} — surface-context alias; resolves to ${r.default} on a default surface and ${r.inverse} on an inverse one`, {
       role: 'surface-alias',
-      surface: SURFACE_MODES[0],
-      figma: { collection: 'color', modes: [...SURFACE_MODES], note: 'one Figma color variable per row, two surface modes; DTCG carries the default column only (#1027)' },
+      // `surfaces` REPLACES the flat `surface: 'default'` this leaf used to carry, and the swap is not
+      // cosmetic. A leaf's `$extensions.prism3` is copied into the overlay verbatim (only the axis maps
+      // are stripped), so `surface: 'default'` would have shipped on all 112 overlay leaves whose
+      // `$value` is the inverse column — the exact "says default, means otherwise" confusion #1129 is
+      // about, reproduced inside its own fix. The map says strictly more and cannot go stale that way:
+      // `$value` is the default column by construction, and `surfaces.inverse` names the other one.
+      // Nothing read the old field (checked). The theme overlays carry the same class of stale
+      // descriptive field in `aliasOf`, which is the mechanism's, not this axis's — filed as #1130.
+      surfaces: { [SURFACE_MODES[1]]: { $value: `{${root}.color.appearance.${r.inverse}}` } },
+      figma: { collection: 'color', modes: [...SURFACE_MODES], note: 'one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)' },
     });
     const parts = r.role.split('.');
     let node = colorTier;

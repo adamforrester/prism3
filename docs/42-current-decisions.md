@@ -75,6 +75,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | Overriding a ground re-derives its dependents' ratios; their values stay, and say so | 2026-08-23 | `docs/20-interactive-color-system.md` §9.7 | #964 |
 | A materialization rename is recorded as a rule; the emission diff forces the rule to exist | 2026-08-25 | `docs/44-materialization-renames.md` §5 | #1032 |
 | The media veil is its own family, `color.veil.*`, and it is appearance-invariant | 2026-08-25 | `docs/20-interactive-color-system.md` §8.1 | #1030 |
+| Inverse reaches code as a scoped override — the surface axis of the DTCG projection | 2026-08-27 | `docs/20-interactive-color-system.md` §9.8 | #1129 |
 
 ## Known gaps, named rather than silent
 

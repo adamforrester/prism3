@@ -7,6 +7,141 @@
 
 ---
 
+## (2026-08-27) — inverse reaches code: the surface axis of the DTCG projection (#1129)
+
+`prism.color.background.primary` meant two different things depending on who read it. In Figma it was
+surface-responsive — 128 pointer rows × 2 surface modes. In the DTCG it was **128 leaves, every one
+hard-aliased to its default appearance target, zero inverse leaves at that tier, and no inverse
+overlay**. `skills/prism3-consume/SKILL.md` said `surface` seven times and `inverse` zero. Nothing
+recorded the split as a decision, which is what #1129 was filed for.
+
+Closed by **option 1**: an `inverse` overlay per brand, as a **second axis** of the base + overlay
+projection (#609). Four new artifacts at **112 leaves each**; committed set 114 → 118.
+
+### Why option 1, and why the framing that makes it cheap is not the one the issue proposed
+
+Research run 3 is what settles it. **No surveyed system encodes region-inverse in tokens** — it lives
+in the platform layer, and all five targets mode-encode it: Android `ThemeOverlay`, CSS
+custom-property scoping, a nested `Theme` in Flutter and React Native, iOS traits. So a DTCG consumer
+wants inverse **compiled into a scoped override**, not bound to 112 distinct names. That is precisely
+the machinery we already emit three times per brand and gate with `lint-overlay-completeness.ts`, so
+this is its **fifth** use rather than a new mechanism — and it is *not* encoding-dependent: a scoped
+override is what code needs whichever way the Figma-side encoding question lands.
+
+**#1129's own cost estimate was wrong in the expensive direction, and the correction is the reason
+this was small.** The issue worried that "112 new leaves are 112 new names unless the overlay
+mechanism is exempt." An overlay **overrides existing paths**; it introduces no name. So the 112
+overrides add **zero** contract-guaranteed names, `CONTRACT_VERSION` does not move, and
+`token-contract.ts --check` passes untouched. Worth stating because the same mistake is easy to make
+about any future axis.
+
+### A second axis, not three more `modes` entries
+
+They compose instead of multiplying: `base + dark + surface-inverse` is a dark band on a dark page —
+two overlays covering eight combinations. Folded into `modes`, `inverse` would inherit the theme
+axis's semantics, **one selection per document**, and an inverse *region* is not a document state.
+That is #871's rejected `light-inverse` crossing arriving through the back door, with the identical
+inheritance failure: the band goes silently wrong the moment the page flips appearance.
+
+`$extensions.prism3.surfaces` is therefore deliberately the **exact shape** of `modes`, and `AXES` in
+`emit-dtcg-overlay.ts` is now one table mapping an axis to its map. Everything downstream — the walk,
+the value comparison, the `#708` throw — is axis-agnostic and unchanged. `overlayTag` names both the
+artifact and the `[data-<axis>="<key>"]` selector from one function, so the two cannot drift; the
+theme axis stays unprefixed because renaming its three shipped files buys nothing.
+
+### `projectLeaf` had to change, and this is the part a diff makes look trivial
+
+It stripped `modes` by name. `surfaces` arrived on 128 leaves **that were already in every base
+file**, so a `modes`-only strip would have shipped the inverse column into all four bases at once, in
+the ignorable corner — exactly the hidden-second-value shape that function exists to prevent. It is
+now driven off `AXES`, because the rule was always about hidden VALUES and never about one map.
+Verified by walking all four base files plus all sixteen overlays: **zero** axis maps in any of them.
+
+### 112, and why it is not 128
+
+All 128 pointer leaves declare `surfaces.inverse`. The 16 that `inverse-coverage.ts` registers as
+`self` declare **their own token** as the inverse one, so those entries equal base and the projector's
+value comparison drops them. Emitting all 128 was the deliberate choice: it mirrors `modes` exactly,
+it makes the register's `self` disposition readable as an ANSWER rather than an absence, and it makes
+the gate's value-differs condition load-bearing instead of decorative. `lint-overlay-completeness.ts`
+reaches 112 having never heard of `inverseCounterpart` or of the register.
+
+### Arm E — because arms A–D were all vacuously satisfiable
+
+Every existing arm is a statement about the **contents** of an overlay, so an axis that emitted
+nothing satisfied all four and the only visible trace was a shorter passing summary. Arm E asserts
+each axis produced an overlay at all, and `REQUIRED_AXES` is reconciled against the projector's `AXES`
+**in both directions** — a removed axis fails by name instead of quietly emptying the loop, an added
+one fails until someone has decided the gate covers it. Same guard added to
+`check-consumability.mjs`, plus a directory-listing arm so an overlay artifact the gate never opens
+fails rather than sitting unmeasured.
+
+**Six mutations, each confirmed to fail by name** (checkpoint-committed before each, per the standing
+rule): delete an overlay leaf → arm A; inject a `self` row into the overlay → arm B *(which is the
+register's dispositions becoming checkable)*; wrong `$value` → arm C; strip `surfaces` from a
+canonical tree → arm E; drop `surface` from `AXES` → the reconciliation's first direction; add an
+unlisted axis → its second.
+
+### The one gate the change broke, and it broke honestly
+
+`test.ts`'s #609 projection block asserted `set.overlays.length === modes.length` and went red at 4 vs
+3 — a real contract of `buildOverlaySet`, not a stale number, so it was rewritten rather than bumped.
+Every assertion in that block is now per-axis and the loop is driven by the projector's own `AXES`, so
+a third axis is covered the day it is declared instead of the day someone remembers this block. Three
+things it now says that it could not before: the base carries no `surfaces` map either (the same
+`projectLeaf` hole, caught at the function rather than only in the artifact); the value-differs
+exclusion holds on the **surface** axis specifically, which is where it is load-bearing rather than
+incidental; and the set's overlays are the same (axis, key) **pairs** as an independently-built list,
+compared as a set so a duplicate cannot pad the count into agreement.
+
+**Three more mutations, each confirmed failing by name**: revert `projectLeaf` to a `modes`-only strip
+→ the base's `surfaces` arm; restrict `buildOverlaySet` to `['theme']` → both set arms, reporting
+`3, independently expected 4`; stop declaring `surfaces` in `tree.ts` → the "declared on real leaves,
+not just in `AXES`" arm, which is arm E's shape inside the unit test.
+
+### The stock-Style-Dictionary proof, which is the load-bearing one
+
+`check-consumability.mjs` now builds `base + dark + surface-inverse` through a stock Style Dictionary
+— one more `source` entry, still no custom code — and asserts the composed variable resolves to
+**dark's** inverse column. On wendys, the light inverse page background is `neutral-950` and dark's is
+`neutral-025`; the composed build lands on the second.
+
+That is a property of the **emission**, not of the tool, and it is #1027's: the surface overlay
+overrides a pointer leaf with an appearance-tier **name**, never a colour, so the theme layer beneath
+supplies the value. An overlay carrying resolved colours would paint a light-mode band on a dark page
+and pass every single-axis assertion in the file. Mutation-confirmed — rewriting one overlay leaf to a
+literal hex fails two arms by name.
+
+The paired `#1013` assertion now has its complement: the pointer tier is appearance-**invariant** (the
+value moves one tier down) and surface-**responsive** (the pointer itself is repointed). Both are
+asserted on the same variable, per brand, so a future reader who weakens one fails the other.
+
+### What is deliberately still open
+
+**Which encoding a developer understands with no explanation.** That question could not be asked
+fairly while one candidate was unimplemented in the layer developers read, which is the second reason
+to land this rather than to state a Figma-only scope. The scoped override is now real; the comparison
+can be run.
+
+### Filed, not fixed (principle 3)
+
+- **Overlay leaves carry the base column's descriptive extension fields** — filed as **#1130**. Every overlay leaf inherits
+  `$extensions.prism3.aliasOf` from the base, so it names the default target while its `$value` is the
+  mode's. Pre-existing on the three theme overlays; mechanism-wide, not this axis's. What this PR *did*
+  do is decline to add a second instance: the pointer leaf's flat `surface: 'default'` field is
+  **replaced** by the `surfaces` map rather than kept, because copied verbatim into 112 overlay leaves
+  it would have said `default` beside an inverse value — #1129's own confusion reproduced inside its
+  fix. Nothing read the field (checked). The map says strictly more and cannot go stale that way.
+- **`.ai.json`'s `color` map is the appearance tier, keyed without the tier prefix** — filed as **#1131**. 242 keys, of
+  which **114 have no pointer-tier spelling** (113 inverse plus `scrim.default`). The skill's rule 1
+  sends an agent there for names; 114 of them must be written with the `appearance.` prefix and 128
+  must not, and no artifact says which is which.
+
+### Verification
+
+`npm run verify` — see the table in the PR body. `regen --check` reports **118**; `EXPECTED_ARTIFACTS`
+in `verify.ts` and the drift-coverage case in `ci.yml` both moved in this PR.
+
 ## (2026-08-27) — the brand namespace on every Figma variable, and the three claims it made checkable (#1097, #1102, #1108)
 
 Every Figma variable name now carries the brand root as its first segment — `nbds/core/palette/red/550`,

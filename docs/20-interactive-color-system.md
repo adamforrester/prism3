@@ -242,6 +242,26 @@ So the fix is not a new mechanism — it is the existing one extended to the ban
 
 **The gate was written first, and red.** The override cases were added to `lint-ratio-truth.ts` and confirmed failing — **226 failures** — *before* the fix that makes them pass. Every prior case built through `surfaces`, so arms A–C had never exercised the `overrides` route at all: the same blindness that left §9.5's refusal unheld until arm D was written for it. A gate authored after a fix cannot tell you the fix was needed.
 
+### 9.8 Decided (2026-08-27, #1129): inverse reaches code as a scoped override — the surface axis of the DTCG projection
+
+Everything above §9.7 is about Figma. In the DTCG the pointer tier carried **128 leaves, every one hard-aliased to its default appearance target, and zero inverse leaves** — so `prism.color.background.primary` meant *surface-responsive* to a designer and *default only* to a developer, and no artifact said so. `skills/prism3-consume/SKILL.md` said `surface` seven times and `inverse` zero.
+
+**Decided: an `inverse` overlay per brand, as a second AXIS of the base + overlay projection (#609) — not 112 new token names.**
+
+The framing comes from research run 3, and it is what makes the choice easy rather than a trade: **no surveyed system encodes region-inverse in tokens.** It lives in the platform layer, and all five targets mode-encode it — Android `ThemeOverlay`, CSS custom-property scoping, a nested `Theme` in Flutter and React Native, iOS traits. A DTCG consumer therefore wants inverse **compiled into a scoped override**, which is exactly the shape we already emit three times per brand and gate with `lint-overlay-completeness.ts`. The surface axis is the **fifth** use of that machinery, not a new mechanism.
+
+**What it costs is close to nothing, and #1129's own framing was wrong about the expensive part.** An overlay *overrides existing paths*; it introduces no name. So the 112 overrides add **zero** contract-guaranteed names and `CONTRACT_VERSION` does not move — the issue's worry that "112 new leaves are 112 new names unless the overlay mechanism is exempt" does not apply. Four new artifacts, 112 leaves each; 114 → 118 committed.
+
+**Why a second axis rather than three more `modes` entries.** The two compose instead of multiplying: `base + dark + surface-inverse` is a dark band on a dark page — two overlays covering eight combinations. Folded into `modes`, `inverse` would inherit the theme axis's semantics, **one selection per document**, and an inverse *region* is not a document state. That is §9.1's rejected `light-inverse` crossing arriving through the back door, with the identical inheritance failure.
+
+**The load-bearing property is #1027's, and it is now proved on the consumer side.** The surface overlay overrides a pointer leaf with an appearance-tier **name**, never a colour, so the theme layer beneath supplies the value. `check-consumability.mjs` builds `base + dark + surface-inverse` through a stock Style Dictionary and asserts the composed variable resolves to *dark's* inverse column: on wendys the light inverse page background is `neutral-950` and dark's is `neutral-025`, and the composed build lands on the second. An overlay carrying resolved colours would paint a light-mode band on a dark page and pass every single-axis assertion.
+
+**112 rather than 128 is reached by value comparison, not by re-applying the pairing rule.** All 128 pointer leaves declare `surfaces.inverse`; the 16 that `inverse-coverage.ts` registers as `self` declare their own token, so 16 entries equal base and the projector drops them. This makes the register's dispositions *checkable* — `lint-overlay-completeness.ts` arms A and B reach 112 having never heard of `inverseCounterpart`, and arm B fires by name when a `self` row is injected into an overlay.
+
+**One arm is new because arms A–D were all vacuously satisfiable.** Every existing arm is a statement about an overlay's contents, so an axis that emitted nothing passed them all and the only visible trace was a shorter summary. Arm E asserts each axis produced an overlay, and `REQUIRED_AXES` is reconciled against the projector's `AXES` in both directions — a removed axis fails by name instead of quietly emptying the loop, and an added one fails until someone decides the gate covers it.
+
+Still open, and deliberately not decided here: **which encoding a developer understands with no explanation.** That question needed both candidates to exist in the layer developers actually read, which is the second reason to land this rather than to state a Figma-only scope.
+
 ## 10. Levers (brand inputs)
 
 - **`outlineInteraction`** — `overlay-neutral` · `overlay-tint` (the colour's hue at low alpha) · `solid-tint` · `none`. How an outline/text control expresses hover (the "what do we fill it with" question, answered per brand). *(inc-2: `overlay-neutral` (default) generates the neutral washes + composited-contrast gate; `solid-tint`/`none` opt out. `overlay-tint` is scheduled — needs per-colour alpha ramps.)*

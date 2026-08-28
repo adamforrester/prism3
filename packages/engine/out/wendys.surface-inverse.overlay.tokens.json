@@ -1,0 +1,2186 @@
+{
+  "prism": {
+    "color": {
+      "background": {
+        "primary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.background.inverse.primary}",
+          "$description": "Page surface — the canvas / base — surface-context alias; resolves to background.primary on a default surface and background.inverse.primary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.background.primary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.background.inverse.secondary}",
+          "$description": "Page surface, second tier — a slightly tinted page / band — surface-context alias; resolves to background.secondary on a default surface and background.inverse.secondary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.background.secondary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.background.inverse.tertiary}",
+          "$description": "Page surface, third tier — surface-context alias; resolves to background.tertiary on a default surface and background.inverse.tertiary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.background.tertiary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      },
+      "border": {
+        "brand": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.brand}",
+          "$description": "brand border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.brand on a default surface and border.inverse.brand on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.brand",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.danger}",
+          "$description": "danger border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.danger on a default surface and border.inverse.danger on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.danger",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "focus": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.focus}",
+          "$description": "Focus ring color (keyboard focus) — surface-context alias; resolves to border.focus on a default surface and border.inverse.focus on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.focus",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.info}",
+          "$description": "info border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.info on a default surface and border.inverse.info on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.info",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "primary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.primary}",
+          "$description": "Default border — decorative, ~1.4:1 — surface-context alias; resolves to border.primary on a default surface and border.inverse.primary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.primary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.secondary}",
+          "$description": "Stronger border / divider — surface-context alias; resolves to border.secondary on a default surface and border.inverse.secondary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.secondary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.success}",
+          "$description": "success border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.success on a default surface and border.inverse.success on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.success",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.border.inverse.warning}",
+          "$description": "warning border — 3:1 (SC 1.4.11) — surface-context alias; resolves to border.warning on a default surface and border.inverse.warning on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.border.warning",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      },
+      "disabled": {
+        "border": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.disabled.inverse.border}",
+          "$description": "Disabled control border — muted neutral — surface-context alias; resolves to disabled.border on a default surface and disabled.inverse.border on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.disabled.border",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "fill": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.disabled.inverse.fill}",
+          "$description": "Disabled control fill — one muted neutral, any intent — surface-context alias; resolves to disabled.fill on a default surface and disabled.inverse.fill on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.disabled.fill",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "icon": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.disabled.inverse.icon}",
+          "$description": "Disabled icon — clears 3:1 (reduced contrast, legible) — surface-context alias; resolves to disabled.icon on a default surface and disabled.inverse.icon on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.disabled.icon",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "on-fill": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.disabled.inverse.on-fill}",
+          "$description": "Label / icon on a disabled fill — muted but clears 3:1 — surface-context alias; resolves to disabled.on-fill on a default surface and disabled.inverse.on-fill on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.disabled.on-fill",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "text": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.disabled.inverse.text}",
+          "$description": "Disabled text — clears 3:1 (reduced contrast, legible) — surface-context alias; resolves to disabled.text on a default surface and disabled.inverse.text on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.disabled.text",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      },
+      "field": {
+        "border": {
+          "hover": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.field.inverse.border.hover}",
+            "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4) — surface-context alias; resolves to field.border.hover on a default surface and field.inverse.border.hover on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.field.border.hover",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "rest": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.field.inverse.border.rest}",
+            "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border — surface-context alias; resolves to field.border.rest on a default surface and field.inverse.border.rest on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.field.border.rest",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          }
+        },
+        "fill": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.field.inverse.fill}",
+          "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears) — surface-context alias; resolves to field.fill on a default surface and field.inverse.fill on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.field.fill",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "placeholder": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.field.inverse.placeholder}",
+          "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder) — surface-context alias; resolves to field.placeholder on a default surface and field.inverse.placeholder on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.field.placeholder",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      },
+      "foreground": {
+        "brand": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.brand}",
+          "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.brand on a default surface and foreground.inverse.brand on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.brand",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.brand-subtle}",
+          "$description": "Subtle brand tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.brand-subtle on a default surface and foreground.inverse.brand-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.brand-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.danger}",
+          "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.danger on a default surface and foreground.inverse.danger on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.danger",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.danger-subtle}",
+          "$description": "Subtle danger tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.danger-subtle on a default surface and foreground.inverse.danger-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.danger-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.info}",
+          "$description": "Bold info fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.info on a default surface and foreground.inverse.info on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.info",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.info-subtle}",
+          "$description": "Subtle info tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.info-subtle on a default surface and foreground.inverse.info-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.info-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "primary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.primary}",
+          "$description": "Default surface placed on the page — a card — surface-context alias; resolves to foreground.primary on a default surface and foreground.inverse.primary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.primary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.secondary}",
+          "$description": "A second surface — a panel / nested container — surface-context alias; resolves to foreground.secondary on a default surface and foreground.inverse.secondary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.secondary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.success}",
+          "$description": "Bold success fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.success on a default surface and foreground.inverse.success on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.success",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.success-subtle}",
+          "$description": "Subtle success tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.success-subtle on a default surface and foreground.inverse.success-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.success-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.tertiary}",
+          "$description": "A third surface step — surface-context alias; resolves to foreground.tertiary on a default surface and foreground.inverse.tertiary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.tertiary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.warning}",
+          "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050) — surface-context alias; resolves to foreground.warning on a default surface and foreground.inverse.warning on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.warning",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.foreground.inverse.warning-subtle}",
+          "$description": "Subtle warning tint surface — banners, badges, selected rows — surface-context alias; resolves to foreground.warning-subtle on a default surface and foreground.inverse.warning-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.foreground.warning-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      },
+      "icon": {
+        "brand": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.brand}",
+          "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.brand on a default surface and icon.on-inverse.brand on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.brand",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.brand-subtle}",
+          "$description": "Muted brand icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.brand-subtle on a default surface and icon.on-inverse.brand-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.brand-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.danger}",
+          "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.danger on a default surface and icon.on-inverse.danger on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.danger",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.danger-subtle}",
+          "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.danger-subtle on a default surface and icon.on-inverse.danger-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.danger-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.info}",
+          "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.info on a default surface and icon.on-inverse.info on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.info",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.info-subtle}",
+          "$description": "Muted info icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.info-subtle on a default surface and icon.on-inverse.info-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.info-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.icon.on-inverse.link.default}",
+            "$description": "Link icon — default — surface-context alias; resolves to icon.link.default on a default surface and icon.on-inverse.link.default on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.icon.link.default",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.icon.on-inverse.link.focused}",
+            "$description": "Link icon — focused — surface-context alias; resolves to icon.link.focused on a default surface and icon.on-inverse.link.focused on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.icon.link.focused",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.icon.on-inverse.link.hover}",
+            "$description": "Link icon — hover — surface-context alias; resolves to icon.link.hover on a default surface and icon.on-inverse.link.hover on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.icon.link.hover",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.icon.on-inverse.link.visited}",
+            "$description": "Link icon — visited — surface-context alias; resolves to icon.link.visited on a default surface and icon.on-inverse.link.visited on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.icon.link.visited",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          }
+        },
+        "primary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.primary}",
+          "$description": "Primary icon — strongest neutral — surface-context alias; resolves to icon.primary on a default surface and icon.on-inverse.primary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.primary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.secondary}",
+          "$description": "Secondary icon — 4.5:1 on the floor — surface-context alias; resolves to icon.secondary on a default surface and icon.on-inverse.secondary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.secondary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.success}",
+          "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.success on a default surface and icon.on-inverse.success on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.success",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.success-subtle}",
+          "$description": "Muted success icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.success-subtle on a default surface and icon.on-inverse.success-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.success-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.tertiary}",
+          "$description": "Tertiary icon — 3:1 on the floor — surface-context alias; resolves to icon.tertiary on a default surface and icon.on-inverse.tertiary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.tertiary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.warning}",
+          "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to icon.warning on a default surface and icon.on-inverse.warning on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.warning",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.icon.on-inverse.warning-subtle}",
+          "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to icon.warning-subtle on a default surface and icon.on-inverse.warning-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.icon.warning-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      },
+      "interactive": {
+        "destructive": {
+          "border": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.border.hover}",
+              "$description": "destructive interactive border — hover (the outline edge; follows the ink) — surface-context alias; resolves to interactive.destructive.border.hover on a default surface and interactive.destructive.inverse.border.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.border.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.border.pressed}",
+              "$description": "destructive interactive border — pressed (the outline edge; follows the ink) — surface-context alias; resolves to interactive.destructive.border.pressed on a default surface and interactive.destructive.inverse.border.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.border.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.border.rest}",
+              "$description": "destructive interactive border — rest (the outline edge; follows the ink) — surface-context alias; resolves to interactive.destructive.border.rest on a default surface and interactive.destructive.inverse.border.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.border.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "fill": {
+            "focused": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.focused}",
+              "$description": "destructive interactive fill — focused — surface-context alias; resolves to interactive.destructive.fill.focused on a default surface and interactive.destructive.inverse.fill.focused on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.fill.focused",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.hover}",
+              "$description": "destructive interactive fill — hover — surface-context alias; resolves to interactive.destructive.fill.hover on a default surface and interactive.destructive.inverse.fill.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.fill.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.pressed}",
+              "$description": "destructive interactive fill — pressed — surface-context alias; resolves to interactive.destructive.fill.pressed on a default surface and interactive.destructive.inverse.fill.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.fill.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.rest}",
+              "$description": "destructive interactive fill — rest — surface-context alias; resolves to interactive.destructive.fill.rest on a default surface and interactive.destructive.inverse.fill.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.fill.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.fill.selected}",
+              "$description": "destructive interactive fill — selected — surface-context alias; resolves to interactive.destructive.fill.selected on a default surface and interactive.destructive.inverse.fill.selected on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.fill.selected",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "on-fill": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.interactive.destructive.inverse.on-fill}",
+            "$description": "Ink on the destructive interactive fill — surface-context alias; resolves to interactive.destructive.on-fill on a default surface and interactive.destructive.inverse.on-fill on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.interactive.destructive.on-fill",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "overlay": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.overlay.hover}",
+              "$description": "destructive interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.hover) — surface-context alias; resolves to interactive.destructive.overlay.hover on a default surface and interactive.destructive.inverse.overlay.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.overlay.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.overlay.pressed}",
+              "$description": "destructive interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.pressed) — surface-context alias; resolves to interactive.destructive.overlay.pressed on a default surface and interactive.destructive.inverse.overlay.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.overlay.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.overlay.selected}",
+              "$description": "destructive interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.destructive.inverse.overlay.selected) — surface-context alias; resolves to interactive.destructive.overlay.selected on a default surface and interactive.destructive.inverse.overlay.selected on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.overlay.selected",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "text": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.text.hover}",
+              "$description": "destructive interactive ink — hover (outline / text appearance) — surface-context alias; resolves to interactive.destructive.text.hover on a default surface and interactive.destructive.inverse.text.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.text.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.text.pressed}",
+              "$description": "destructive interactive ink — pressed (outline / text appearance) — surface-context alias; resolves to interactive.destructive.text.pressed on a default surface and interactive.destructive.inverse.text.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.text.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.destructive.inverse.text.rest}",
+              "$description": "destructive interactive ink — rest (outline / text appearance) — surface-context alias; resolves to interactive.destructive.text.rest on a default surface and interactive.destructive.inverse.text.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.destructive.text.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "neutral": {
+          "border": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.border.hover}",
+              "$description": "neutral interactive border — hover (the outline edge; follows the ink) — surface-context alias; resolves to interactive.neutral.border.hover on a default surface and interactive.neutral.inverse.border.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.border.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.border.pressed}",
+              "$description": "neutral interactive border — pressed (the outline edge; follows the ink) — surface-context alias; resolves to interactive.neutral.border.pressed on a default surface and interactive.neutral.inverse.border.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.border.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.border.rest}",
+              "$description": "neutral interactive border — rest (the outline edge; follows the ink) — surface-context alias; resolves to interactive.neutral.border.rest on a default surface and interactive.neutral.inverse.border.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.border.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "fill": {
+            "focused": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.focused}",
+              "$description": "neutral interactive fill — focused — surface-context alias; resolves to interactive.neutral.fill.focused on a default surface and interactive.neutral.inverse.fill.focused on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.fill.focused",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.hover}",
+              "$description": "neutral interactive fill — hover — surface-context alias; resolves to interactive.neutral.fill.hover on a default surface and interactive.neutral.inverse.fill.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.fill.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.pressed}",
+              "$description": "neutral interactive fill — pressed — surface-context alias; resolves to interactive.neutral.fill.pressed on a default surface and interactive.neutral.inverse.fill.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.fill.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.rest}",
+              "$description": "neutral interactive fill — rest — surface-context alias; resolves to interactive.neutral.fill.rest on a default surface and interactive.neutral.inverse.fill.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.fill.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.fill.selected}",
+              "$description": "neutral interactive fill — selected — surface-context alias; resolves to interactive.neutral.fill.selected on a default surface and interactive.neutral.inverse.fill.selected on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.fill.selected",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "on-fill": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.interactive.neutral.inverse.on-fill}",
+            "$description": "Ink on the neutral interactive fill — surface-context alias; resolves to interactive.neutral.on-fill on a default surface and interactive.neutral.inverse.on-fill on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.interactive.neutral.on-fill",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "overlay": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.overlay.hover}",
+              "$description": "neutral interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.hover) — surface-context alias; resolves to interactive.neutral.overlay.hover on a default surface and interactive.neutral.inverse.overlay.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.overlay.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.overlay.pressed}",
+              "$description": "neutral interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.pressed) — surface-context alias; resolves to interactive.neutral.overlay.pressed on a default surface and interactive.neutral.inverse.overlay.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.overlay.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.overlay.selected}",
+              "$description": "neutral interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.neutral.inverse.overlay.selected) — surface-context alias; resolves to interactive.neutral.overlay.selected on a default surface and interactive.neutral.inverse.overlay.selected on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.overlay.selected",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "text": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.text.hover}",
+              "$description": "neutral interactive ink — hover (outline / text appearance) — surface-context alias; resolves to interactive.neutral.text.hover on a default surface and interactive.neutral.inverse.text.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.text.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.text.pressed}",
+              "$description": "neutral interactive ink — pressed (outline / text appearance) — surface-context alias; resolves to interactive.neutral.text.pressed on a default surface and interactive.neutral.inverse.text.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.text.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.neutral.inverse.text.rest}",
+              "$description": "neutral interactive ink — rest (outline / text appearance) — surface-context alias; resolves to interactive.neutral.text.rest on a default surface and interactive.neutral.inverse.text.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.neutral.text.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "primary": {
+          "border": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.border.hover}",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink) — surface-context alias; resolves to interactive.primary.border.hover on a default surface and interactive.primary.inverse.border.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.border.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.border.pressed}",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink) — surface-context alias; resolves to interactive.primary.border.pressed on a default surface and interactive.primary.inverse.border.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.border.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.border.rest}",
+              "$description": "primary interactive border — rest (the outline edge; follows the ink) — surface-context alias; resolves to interactive.primary.border.rest on a default surface and interactive.primary.inverse.border.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.border.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "fill": {
+            "focused": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.fill.focused}",
+              "$description": "primary interactive fill — focused — surface-context alias; resolves to interactive.primary.fill.focused on a default surface and interactive.primary.inverse.fill.focused on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.fill.focused",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.fill.hover}",
+              "$description": "primary interactive fill — hover — surface-context alias; resolves to interactive.primary.fill.hover on a default surface and interactive.primary.inverse.fill.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.fill.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.fill.pressed}",
+              "$description": "primary interactive fill — pressed — surface-context alias; resolves to interactive.primary.fill.pressed on a default surface and interactive.primary.inverse.fill.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.fill.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.fill.rest}",
+              "$description": "primary interactive fill — rest — surface-context alias; resolves to interactive.primary.fill.rest on a default surface and interactive.primary.inverse.fill.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.fill.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.fill.selected}",
+              "$description": "primary interactive fill — selected — surface-context alias; resolves to interactive.primary.fill.selected on a default surface and interactive.primary.inverse.fill.selected on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.fill.selected",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "on-fill": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.interactive.primary.inverse.on-fill}",
+            "$description": "Ink on the primary interactive fill — surface-context alias; resolves to interactive.primary.on-fill on a default surface and interactive.primary.inverse.on-fill on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.interactive.primary.on-fill",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "overlay": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.overlay.hover}",
+              "$description": "primary interactive overlay — hover (10% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.hover) — surface-context alias; resolves to interactive.primary.overlay.hover on a default surface and interactive.primary.inverse.overlay.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.overlay.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.overlay.pressed}",
+              "$description": "primary interactive overlay — pressed (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.pressed) — surface-context alias; resolves to interactive.primary.overlay.pressed on a default surface and interactive.primary.inverse.overlay.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.overlay.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.overlay.selected}",
+              "$description": "primary interactive overlay — selected (20% neutral wash for the PAGE ground; the dark-band twin is interactive.primary.inverse.overlay.selected) — surface-context alias; resolves to interactive.primary.overlay.selected on a default surface and interactive.primary.inverse.overlay.selected on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.overlay.selected",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          },
+          "text": {
+            "hover": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.text.hover}",
+              "$description": "primary interactive ink — hover (outline / text appearance) — surface-context alias; resolves to interactive.primary.text.hover on a default surface and interactive.primary.inverse.text.hover on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.text.hover",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.text.pressed}",
+              "$description": "primary interactive ink — pressed (outline / text appearance) — surface-context alias; resolves to interactive.primary.text.pressed on a default surface and interactive.primary.inverse.text.pressed on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.text.pressed",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            },
+            "rest": {
+              "$type": "color",
+              "$value": "{prism.color.appearance.interactive.primary.inverse.text.rest}",
+              "$description": "primary interactive ink — rest (outline / text appearance) — surface-context alias; resolves to interactive.primary.text.rest on a default surface and interactive.primary.inverse.text.rest on an inverse one",
+              "$extensions": {
+                "prism3": {
+                  "role": "surface-alias",
+                  "aliasOf": "prism.color.appearance.interactive.primary.text.rest",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "default",
+                      "inverse"
+                    ],
+                    "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "text": {
+        "brand": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.brand}",
+          "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.brand on a default surface and text.on-inverse.brand on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.brand",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "brand-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.brand-subtle}",
+          "$description": "Muted brand text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.brand-subtle on a default surface and text.on-inverse.brand-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.brand-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.danger}",
+          "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.danger on a default surface and text.on-inverse.danger on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.danger",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "danger-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.danger-subtle}",
+          "$description": "Muted danger text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.danger-subtle on a default surface and text.on-inverse.danger-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.danger-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.info}",
+          "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.info on a default surface and text.on-inverse.info on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.info",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "info-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.info-subtle}",
+          "$description": "Muted info text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.info-subtle on a default surface and text.on-inverse.info-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.info-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "link": {
+          "default": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.text.on-inverse.link.default}",
+            "$description": "Link text — default — surface-context alias; resolves to text.link.default on a default surface and text.on-inverse.link.default on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.text.link.default",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "focused": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.text.on-inverse.link.focused}",
+            "$description": "Link text — focused — surface-context alias; resolves to text.link.focused on a default surface and text.on-inverse.link.focused on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.text.link.focused",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "hover": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.text.on-inverse.link.hover}",
+            "$description": "Link text — hover — surface-context alias; resolves to text.link.hover on a default surface and text.on-inverse.link.hover on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.text.link.hover",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          },
+          "visited": {
+            "$type": "color",
+            "$value": "{prism.color.appearance.text.on-inverse.link.visited}",
+            "$description": "Link text — visited — surface-context alias; resolves to text.link.visited on a default surface and text.on-inverse.link.visited on an inverse one",
+            "$extensions": {
+              "prism3": {
+                "role": "surface-alias",
+                "aliasOf": "prism.color.appearance.text.link.visited",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "default",
+                    "inverse"
+                  ],
+                  "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+                }
+              }
+            }
+          }
+        },
+        "primary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.primary}",
+          "$description": "Primary text — strongest neutral — surface-context alias; resolves to text.primary on a default surface and text.on-inverse.primary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.primary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "secondary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.secondary}",
+          "$description": "Secondary text — 4.5:1 on the floor — surface-context alias; resolves to text.secondary on a default surface and text.on-inverse.secondary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.secondary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.success}",
+          "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.success on a default surface and text.on-inverse.success on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.success",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "success-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.success-subtle}",
+          "$description": "Muted success text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.success-subtle on a default surface and text.on-inverse.success-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.success-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "tertiary": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.tertiary}",
+          "$description": "Tertiary text — 3:1 on the floor — surface-context alias; resolves to text.tertiary on a default surface and text.on-inverse.tertiary on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.tertiary",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.warning}",
+          "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint — surface-context alias; resolves to text.warning on a default surface and text.on-inverse.warning on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.warning",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        },
+        "warning-subtle": {
+          "$type": "color",
+          "$value": "{prism.color.appearance.text.on-inverse.warning-subtle}",
+          "$description": "Muted warning text — low-emphasis accent, 3:1 on the page — surface-context alias; resolves to text.warning-subtle on a default surface and text.on-inverse.warning-subtle on an inverse one",
+          "$extensions": {
+            "prism3": {
+              "role": "surface-alias",
+              "aliasOf": "prism.color.appearance.text.warning-subtle",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "default",
+                  "inverse"
+                ],
+                "note": "one Figma color variable per row, two surface modes; DTCG carries the default column as $value and the inverse column in $extensions.prism3.surfaces.inverse (#1129)"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
