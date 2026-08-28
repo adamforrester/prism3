@@ -71,6 +71,16 @@ written*, and the later era is the truthful answer. Worth noting what was NOT do
 already permits exact-duplicate rows and refuses fan-*out*, so nothing was wrong with the map's *shape* —
 it was wrong at the point of *application*, one layer further on, which is why no existing arm saw it.
 
+**The collapse fixes the cause and leaves a residue, measured rather than assumed: 111 of the 113 rows at
+8.0.0 migrate, and 2 refuse.** The two are `border/inverse/default` → `inverse/border/primary` (the dedup)
+and `border/inverse/primary` → `inverse/border/primary` (an ordinary relocation), which name one target and
+are therefore *genuine* fan-in — not the same-operation duplicate the collapse removes, so no collapse can
+help. `planVariableRenames` groups by target and refuses both. **That is right for one half and wrong for
+the other:** the dedup cannot be applied without the designer choosing which variable survives, while the
+relocation is in no doubt at all and is blocked only because an unrelated dedup shares its target, leaving
+its bindings on a variable the engine no longer writes. Filed as **#1142** (the fix is in
+`planVariableRenames`, not in `DEPRECATIONS`, which is correct as written); not fixed here.
+
 ### The materialization gate had a hole, and the fix was to read the register that already existed
 
 #1140 is the first contract-visible **role** rename since `lint-materialization-renames.ts` shipped (#1039).

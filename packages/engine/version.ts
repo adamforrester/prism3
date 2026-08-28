@@ -1117,8 +1117,21 @@ export const DEPRECATIONS: Deprecation[] = [
   // The dedupe, not a rename: `border.inverse.default` was byte-identical to `border.inverse.primary` in
   // light and in dark, so it is dropped and its consumers are pointed at the twin. This makes the pair a
   // FAN-IN — two retired paths naming one live target — which the contract table holds happily and the
-  // Figma rename map refuses to APPLY without disambiguation (`ambiguous-source`). That refusal is the
-  // right behavior: a migration cannot silently pick which of two variables becomes the survivor.
+  // Figma rename map refuses to APPLY without disambiguation (`ambiguous-source`).
+  //
+  // **THAT REFUSAL IS RIGHT FOR THIS ENTRY AND WRONG FOR ITS PARTNER, and it is one refusal covering
+  // both.** `planVariableRenames` groups by TARGET, so the group at `inverse/border/primary` holds two
+  // live rows in a designer's file and neither moves. For THIS row — the dedupe — that is correct: a
+  // migration cannot silently pick which of two variables becomes the survivor, and the designer has to
+  // choose. For the OTHER row it is a defect: `border/inverse/primary` → `inverse/border/primary` is an
+  // ordinary one-to-one relocation, in no doubt at all, blocked only by an unrelated dedupe that happens
+  // to name the same target. Its bindings are left pointing at a variable the engine no longer writes —
+  // the stranding #893 built the whole mechanism to prevent, arriving here through the shape of the
+  // group rather than through a missing row.
+  //
+  // Measured on the live map: **111 of the 113 rows at 8.0.0 migrate; these 2 refuse.** Filed as #1142 —
+  // the fix belongs in `planVariableRenames` (a group with one non-dedupe source can still migrate it),
+  // not in this table, which is a record of history and correct as written.
   { path: `color.appearance.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.appearance.${INVERSE_DEDUPED.replacedBy}`, since: '8.0.0' },
   // ── #1102: THE `core` TIER ──────────────────────────────────────────────────────────────────────
   //

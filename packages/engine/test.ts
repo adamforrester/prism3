@@ -5175,9 +5175,11 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 {
   for (const { id, theme } of corpus()) {
     const bad: string[] = [];
+    let pairs = 0;
     let checked = 0;
     for (const m of resolveAllModes(theme))
       for (const pre of ['border', 'inverse.border']) {
+        pairs++;
         const rungs = ['primary', 'secondary', 'tertiary'].map((r) => m.roles[`${pre}.${r}`]?.hex);
         if (rungs.some((h) => h === undefined)) { bad.push(`${m.mode}:${pre}:absent`); continue; }
         checked++;
@@ -5186,9 +5188,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     // The floor, for the same reason (10f-ii) has one: a renamed family makes every lookup `undefined`,
     // and without the count an arm that measured nothing would read as a clean pass. Two grounds × the
     // modes the brand declares, so the floor is stated as "more than one mode's worth".
+    //
+    // THE FAILURE LIST IS PRINTED WHOLE, AND `n of m` NAMES HOW MUCH OF IT THERE IS. It was truncated to
+    // the first four, which is worse than a shorter message: `bad` fills in `resolveAllModes` order ×
+    // two grounds, and every corpus brand declares four modes, so the four survivors were always
+    // `light` and `dark` and the two dropped were always `hc-light` and `hc-dark` — measured on all six
+    // brands. Those are the two the arm exists for (the paragraph above: *"it is why HC is the mode that
+    // matters"*), because HC is where the third rung asks for more ratio than the ramp holds and lands
+    // clamped on the endpoint. A truncation that reliably hides the informative half of the evidence is
+    // not a brevity tradeoff. Whole is affordable: the list is bounded at modes × 2 short strings.
     ok(bad.length === 0 && checked >= 4,
       `the neutral edge ladder's three rungs are distinct values on both grounds, in every mode — ${id} (${checked} ladder×mode pairs, floor 4)`
-      + (bad.length ? ` — COLLAPSED: ${bad.slice(0, 4).join(', ')}` : ''));
+      + (bad.length ? ` — COLLAPSED ${bad.length} of ${pairs}: ${bad.join(', ')}` : ''));
   }
 }
 
