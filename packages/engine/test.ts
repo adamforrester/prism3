@@ -1637,7 +1637,7 @@ for (const b of brands) {
       ok(unregistered.length === 0,
         `surface: every def-bound color.* path either resolves in the alias layer or is registered in UNALIASED_DEF_BINDINGS (${bound.size} bound, ${bound.size - outside.length} aliased, ${outside.length} outside, ${UNALIASED_PATHS.size} registered)` +
         (unregistered.length
-          ? ` — UNREGISTERED, and each one silently loses surface-responsiveness at the collection rename: ${unregistered.map((p) => `${p} (${bound.get(p)!.join(', ')})`).join('; ')}`
+          ? ` — UNREGISTERED, each an unargued reach past the pointer tier into \`color.appearance.*\`: since #1133 that reach is how a name-encoded inverse binding is spelled, so it belongs in the register as a decision rather than sitting here as drift: ${unregistered.map((p) => `${p} (${bound.get(p)!.join(', ')})`).join('; ')}`
           : ''));
 
       // Arm 2, and it has to check BOTH halves of an entry. A path that gained a row is stale; so is

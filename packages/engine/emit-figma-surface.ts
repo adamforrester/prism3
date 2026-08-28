@@ -59,7 +59,9 @@
  *
  * ── THE ROLES WITH NO INVERSE COUNTERPART ───────────────────────────────────────────────────────
  *
- * Eleven appearance roles have none, and they are registered with a reason in `inverse-coverage.ts`.
+ * Seventeen appearance roles have none, and they are registered with a reason in `inverse-coverage.ts`
+ * — which is where to read the count, not here: it was written as eleven and went stale when #1030's six
+ * `veil.*` roles joined the register, because nothing ties this sentence to `INVERSE_GAPS`.
  * That register no longer decides anything HERE — membership is uniform, every non-inverse role gets a
  * row — because a single-mode row never has to answer "and on an inverse ground?". What the register
  * bounds now is which components can declare an inverse variant at all, which is the question #1133
