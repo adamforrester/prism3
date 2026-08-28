@@ -284,7 +284,7 @@ export type SurfaceSpec = 'white' | 'black' | number;
 // `base`, rather than being reached through the `overrides` map, and that placement is the whole fix
 // in #956: **a ground is not a value.** Setting one has to re-derive everything measured against it,
 // and only this layer runs early enough. `resolve()` feeds it to the same `bgLadder`/`fgLadder` pair
-// `base` uses, so one number moves `background.inverse.*`, `foreground.inverse.*` and every one of
+// `base` uses, so one number moves `inverse.background.*`, `inverse.foreground.*` and every one of
 // the ~60 roles gated on the band together, each re-measured against where the band actually landed.
 //
 // The override post-pass structurally cannot do this: it runs after all derivation and rewrites a

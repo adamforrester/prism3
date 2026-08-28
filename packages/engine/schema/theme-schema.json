@@ -524,7 +524,7 @@
             { "type": "string", "enum": ["white", "black"] },
             { "type": "number", "description": "A neutral step number (e.g. 950)." }
           ],
-          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (NEAR the extreme, not at it: pure black reads muddy and pure white halates). Declared here rather than through `overrides` on purpose — a ground is not a value, so setting it must re-derive `background.inverse.*`, `foreground.inverse.*` and every role gated against the band. The `overrides` post-pass runs after derivation and cannot, which is why routing an inverse band through it reported contrast the tokens did not have. High-contrast modes ignore this and keep the pure extremes."
+          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (NEAR the extreme, not at it: pure black reads muddy and pure white halates). Declared here rather than through `overrides` on purpose — a ground is not a value, so setting it must re-derive `inverse.background.*`, `inverse.foreground.*` and every role gated against the band. The `overrides` post-pass runs after derivation and cannot, which is why routing an inverse band through it reported contrast the tokens did not have. High-contrast modes ignore this and keep the pure extremes."
         }
       }
     }

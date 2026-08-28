@@ -16,7 +16,8 @@
  *
  * The collection carried `default` and `inverse` modes from #993 until #1133 reverted inverse to
  * NAME-encoding: a bounded set of components declares an inverse variant and binds
- * `color.appearance.*.inverse.*` by name, rather than every row in the tier flipping with an ancestor
+ * `color.appearance.inverse.*` by name (one top-level group since #1140), rather than every row in the
+ * tier flipping with an ancestor
  * frame's mode (`docs/20` §9.8). The pointer tier is single-mode, `Default`.
  *
  * #993's criterion (2) — *switching the mode changes the resolved colour* — therefore has no subject
