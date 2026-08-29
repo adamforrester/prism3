@@ -10774,6 +10774,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(classify(base, { ...base.guaranteed }, [{ path: 'a', replacedBy: 'nope.nowhere', since: '2.0.0' }]).danglingDeprecations.length === 1,
     'contract: a deprecation pointing at a path the engine does not emit is caught');
 
+  // AND THE MIRROR (#1137). Written here rather than left to the corpus for a reason this PR is itself
+  // about: there is no live instance, so over the shipped 676 entries the arm scans everything, finds
+  // nothing, and its TRUE branch never runs in CI. A later refactor could neuter it with every gate
+  // green — which is exactly the "one half of a mirrored pair" rot the arm exists to stop, one level up.
+  ok(classify(base, { ...base.guaranteed, 'a': 'color' }, [{ path: 'a', replacedBy: 'space.100', since: '2.0.0' }]).liveDeprecations.length === 1,
+    'contract: a deprecation naming a path the engine STILL GUARANTEES is caught — the mirror of the dangling check');
+
+  // The NEGATIVE case is the valuable one, because it pins a DECISION rather than a mechanism: a path
+  // that left the guarantee but is still emitted brand-dependently has genuinely stopped being promised,
+  // so advising migration off it is correct and must NOT fire.
+  //
+  // THE INPUT IS DELIBERATELY CONTRADICTORY — `a` is in BOTH `live` and `brandDependent`, a state the
+  // real call site cannot produce — and that is the only way this arm can fail. The first draft passed
+  // a path that was in neither, so it returned 0 because `d.path in live` was already false, and would
+  // have passed identically with the conditional clause deleted: an assertion that cannot distinguish
+  // the reason for its own result. Putting the path in `live` makes the conditional clause the ONLY
+  // thing standing between this input and a hit, which is what makes the decision it pins falsifiable.
+  ok(classify(base, { ...base.guaranteed, 'a': 'color' }, [{ path: 'a', replacedBy: 'space.100', since: '2.0.0' }], ['a']).liveDeprecations.length === 0,
+    'contract: a deprecation on a BRAND-DEPENDENT path does not fire the mirror even when the path is live — it has stopped being guaranteed, so migrating off it is the right advice');
+
   const live = buildContract();
   const committed = JSON.parse(readFileSync(resolve(HERE, 'schema', 'token-contract.json'), 'utf8'));
   const guaranteedCount = Object.keys(live.guaranteed).length;

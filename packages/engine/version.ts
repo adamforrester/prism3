@@ -1467,6 +1467,22 @@ export type Diff = {
   /** Deprecation entries whose `replacedBy` does not exist AT ALL — a migration pointing nowhere. */
   danglingDeprecations: Deprecation[];
   /**
+   * Entries whose own `path` is STILL GUARANTEED — a deprecation telling consumers to migrate off a
+   * name that works (#1137).
+   *
+   * The mirror image of `danglingDeprecations`, and it was the unchecked half. That arm validates the
+   * DESTINATION exists; nothing validated that the SOURCE is gone. A deprecation is the justification
+   * for a removal — `migrated` is literally `removed.map(byPath.get)` — so an entry on a live path
+   * justifies nothing and is read by every consumer as an instruction to move off a working name.
+   *
+   * Brand-dependent paths are deliberately NOT flagged: a path that left the guarantee but is still
+   * emitted for some brands has genuinely stopped being promised, and telling a consumer to migrate is
+   * the right advice. The defect is specifically a path that is still GUARANTEED. The filter states
+   * that exclusion explicitly even though `live` already holds guaranteed paths only — the invariant
+   * belongs where the arm is read, not only at the call site that happens to supply it.
+   */
+  liveDeprecations: Deprecation[];
+  /**
    * Entries whose `replacedBy` is emitted but only `brandDependent` — a migration whose target
    * depends on a lever. Not rot (the check above would be wrong to fail them) and not clean either,
    * so it is REPORTED: widening the dangling check without this would be the same as deleting it for
@@ -1529,7 +1545,19 @@ export const classify = (
   // a conditional migration — real, and worth saying so rather than passing in silence.
   const danglingDeprecations = deprecations.filter((d) => !(d.replacedBy in live) && !conditional.has(d.replacedBy));
   const conditionalMigrations = deprecations.filter((d) => !(d.replacedBy in live) && conditional.has(d.replacedBy));
+  // And the mirror of the line above, which was missing (#1137): the DESTINATION was validated and the
+  // SOURCE never was. `path` is history and does not move — but history is what a name USED to be, and
+  // a `path` still in `live` is not history, it is the present.
+  //
+  // `!conditional.has(d.path)` IS A NO-OP TODAY AND IS WRITTEN ANYWAY. `live` holds the guaranteed
+  // surface only, so a brand-dependent path is already absent from it and the second clause can never
+  // change the answer. But that is a fact about the CALL SITE, not about this line — the comment above
+  // said "conditional is excluded on purpose" over a filter that excluded nothing, so the invariant was
+  // true and unstated where it is read. Spelled out, the exclusion is local: if `live` ever widens to
+  // include brand-dependent paths, this arm keeps meaning what its comment says instead of quietly
+  // starting to flag every demotion. The twin above carries the same clause for the same reason.
+  const liveDeprecations = deprecations.filter((d) => d.path in live && !conditional.has(d.path));
 
   const level: Level = removed.length || retyped.length ? 'major' : added.length ? 'minor' : 'none';
-  return { removed, retyped, added, migrated, demoted, danglingDeprecations, conditionalMigrations, level };
+  return { removed, retyped, added, migrated, demoted, danglingDeprecations, liveDeprecations, conditionalMigrations, level };
 };
