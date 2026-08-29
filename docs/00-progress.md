@@ -37,10 +37,16 @@ spelling is what a rename is for.
 The instruction said measure, don't assume, and the measurement moves in both directions at once.
 **225 `guaranteed` paths removed, 104 added, 0 demoted** → `CONTRACT_VERSION` **9.0.0**, with the baseline's
 `guaranteed` going 687 → **566**, `brandDependent` **255**, and `DEPRECATIONS` at **676** entries. The
-asymmetry is the thing to understand before quoting it: the 104 additions are the shortened inverse names,
-but the 225 removals are the old inverse names **plus every `color.surface` pointer row**, because a pointer
-row was a guaranteed path in its own right and the collection carrying it is gone. So the net is a *smaller*
-guaranteed surface for the same tokens — the collapse removed names, it did not just rename them. Emitted
+asymmetry is the thing to understand before quoting it — and the easy misreading to avoid is that the short
+consumer names were lost. They were not. **Every one of the 225 removals is a name under `color.appearance.`**,
+and each has a surviving twin: the 121 non-inverse removals de-tier to `color.*` (that is the rename), and the
+remaining 104 are the old `color.appearance.inverse.*` names, replaced 1:1 by the 104 shortened
+`color.inverse.*` additions. **No `color.surface` pointer row was removed — all 130 short spellings survive as
+the renamed collection's own value names**, which is the collapse's strongest compatibility property, not its
+cost. The guaranteed surface still shrinks (687 → **566**) because a token no longer carries *two* guaranteed
+spellings — the short pointer name and the `appearance`-qualified value name — but the one a consumer was ever
+told to type is the one that stays. It is MAJOR because the contract counts every guaranteed path, including
+the `color.appearance.*` spellings no consumer should have hard-coded; removing those is an honest MAJOR. Emitted
 artifacts 111 → **108**; `EXPECTED_ARTIFACTS` moved in `verify.ts` **and** in `ci.yml`, which is the pair
 `CLAUDE.md` deliberately declines to restate a numeral for.
 
