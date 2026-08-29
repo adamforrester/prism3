@@ -5360,25 +5360,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const fix = JSON.parse(readFileSync(resolve(FIXDIR, `${key}.json`), 'utf8'));
     const out = emitted[key];
     const fixByName = new Map<string, any>(fix.variables.map((v: any) => [v.name, v]));
-    // ── THE #1013 TIER PREFIX, STATED LITERALLY, ON THE ENGINE'S SIDE ONLY ──────────────────────────
+    // ── THE #1013 TIER PREFIX IS GONE AGAIN AT #1148, AND THE ARM IT NEEDED INVERTED ────────────────
     //
-    // Post-#1013 the engine spells the value tier `color/appearance/<role>`; the fixture is the FROZEN
-    // real NB Token Press export and spells the same role `color/<role>`. Both are right — one records
-    // what NB shipped, the other what we ship now — so what this comparison needs is the RELATION between
-    // them, and the one place it must not be recorded is inside the fixture. Rewriting 78 names × 4 modes
-    // to agree with our own rename would leave this gate reading a file the renaming change had itself
-    // edited: green on every future rename, which is the one thing it is here to catch. `docs/34` shape 6,
-    // and the same reason `NB_KNOWN_RENAMES` exists below rather than a fixture edit.
+    // Between #1013 and #1147 the engine spelled the value tier `color/appearance/<role>` while the fixture
+    // — the FROZEN real NB Token Press export — spelled the same role `color/<role>`, so this comparison
+    // carried a hand-typed de-tiering step plus an arm above it asserting every emitted row really had the
+    // prefix (a strip is satisfied by a name that never had it, so the strip alone would let an emitter
+    // that dropped the tier match the fixture perfectly).
     //
-    // Literal, one direction, and deliberately NOT `roleOf` from `rename-map.ts` or anything else the
-    // engine uses to build these names — importing the emission's own de-tiering would put one subject
-    // under both sides of the comparison (`docs/34` shape 11). A hand-typed prefix swap is a second
-    // expression of the change; the arm below is what stops it from being a silent no-op.
-    // ── AND #1097/#1102 ADD TWO MORE SEGMENTS TO THE SAME TRANSLATION ───────────────────────────────
+    // #1148 collapses the two colour tiers, so the emission spells the role `color/<role>` again and there
+    // is nothing to strip. **The de-tiering step and its precondition arm are both DELETED, and one arm is
+    // added in the opposite direction:** no emitted colour row may carry an `appearance` segment at all.
+    // That is not a strip-precondition — it is the statement that the collapse is complete on this file,
+    // and it is what a half-collapsed emission fails by NAME. Without it a re-tiered row would still fail,
+    // but as a `missing`/`extra` pair in the set arithmetic below, which reads as a fixture disagreement
+    // rather than as a tier that came back.
     //
-    // The emitted name is now `nbds/color/appearance/<role>` and, in the palette file,
-    // `nbds/core/palette/<step>`. Same situation as the tier and the same answer — the relation is stated
-    // here, not written into the fixture.
+    // What has not changed is where the relation is allowed to live. Rewriting 78 names × 4 modes to agree
+    // with our own rename would leave this gate reading a file the renaming change had itself edited: green
+    // on every future rename, which is the one thing it is here to catch (`docs/34` shape 6, the same reason
+    // `NB_KNOWN_RENAMES` exists below rather than a fixture edit).
+    // ── AND #1097/#1102's TWO SEGMENTS ARE STILL PART OF THE SAME TRANSLATION ───────────────────────
+    //
+    // The emitted name is `nbds/color/<role>` and, in the palette file, `nbds/core/palette/<step>`. Same
+    // situation the tier was in and the same answer — the relation is stated here, not written into the
+    // fixture — and these two still strip, so they still carry their preconditions.
     //
     // BUT THE DIRECTION IS A TRAP, AND THIS IS WHERE IT BITES. Translating the ENGINE'S name backwards
     // means stripping a prefix, and a strip is satisfied by a name that never had it: an emitter that
@@ -5403,15 +5409,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         `figma ${key}: every emitted palette variable sits under #1102's \`core\` tier (${coreRows}/${out.variables.length}) — same reason as the namespace arm above: the tier is asserted, then removed`);
     }
     if (key !== 'palette') {
-      const tiered = out.variables.filter((v: any) => v.name.startsWith(`${NB_ROOT}/color/appearance/`)).length;
-      ok(tiered === out.variables.length,
-        `figma ${key}: every emitted value-tier variable carries #1013's \`color/appearance/\` prefix (${tiered}/${out.variables.length}) — an untiered row would make the de-tiering above inert for it, and the fixture match would then be an accident rather than a translation`);
+      const tiered = out.variables.filter((v: any) => v.name.includes('/appearance/'));
+      ok(tiered.length === 0 && out.variables.length > 0,
+        `figma ${key}: NO emitted colour variable carries an \`appearance\` segment — #1148 collapsed the two tiers, so the role is spelled the way the frozen fixture spells it and there is no de-tiering step left to be inert (${out.variables.length} rows)${tiered.length ? ` — STILL TIERED: ${tiered.slice(0, 3).map((v: any) => v.name).join(', ')}` : ''}`);
     }
-    /** An emitted name (or alias target) in the FIXTURE's space: namespace off, `core` tier off, value tier de-prefixed. */
+    /** An emitted name (or alias target) in the FIXTURE's space: namespace off, `core` tier off. The colour
+     *  value tier needed a third step from #1013 to #1147 and needs none since #1148 — see above. */
     const deTier = (n: string): string => {
-      let t = n.startsWith(`${NB_ROOT}/`) ? n.slice(`${NB_ROOT}/`.length) : n;
-      if (t.startsWith('core/')) t = t.slice('core/'.length);
-      return t.startsWith('color/appearance/') ? `color/${t.slice('color/appearance/'.length)}` : t;
+      const t = n.startsWith(`${NB_ROOT}/`) ? n.slice(`${NB_ROOT}/`.length) : n;
+      return t.startsWith('core/') ? t.slice('core/'.length) : t;
     };
     const outByName = new Map<string, any>(out.variables.map((v: any) => [deTier(v.name), v]));
     ok(outByName.size === out.variables.length,
