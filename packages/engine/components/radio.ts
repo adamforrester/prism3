@@ -374,7 +374,10 @@ export const radio: ComponentDef = {
         nests: 'focus-ring',
         inset: 'ring-offset',
         strokeInset: 'ring-width',
-        nesting: { kind: 'nest-fixed', variant: { color: 'default' } },
+        // FIXED at `surface=default` (#1134): this def has no `surface` axis of its own, so there is no host
+        // coordinate to pass through. The ring's axis was renamed `color` -> `surface`; a `follow` here
+        // would be rejected, since `follow` names a host axis and this def declares none.
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
         note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the CONTROL so the ring surrounds the circle rather than the whole row.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`

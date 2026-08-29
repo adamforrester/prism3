@@ -1601,7 +1601,7 @@ ok(Number.isInteger(CHUNK) && CHUNK > 1 && CHUNK < 200, `CHUNK is a plausible ch
 // `nesting: nest-fixed` names a variant COORDINATE, `component-schema.ts` carries it, the plan projects it
 // as `nestVariant`, and both executors resolve it to a MEMBER of the set and nest that. So a set is no
 // longer a dead end — which means the four-way table below no longer reaches its own COMPONENT_SET row
-// through these plans: `button`'s ring part names `color=default`, so a file holding a set gets RESOLVED
+// through these plans: `button`'s ring part names `surface=default`, so a file holding a set gets RESOLVED
 // (or gets the fifth miss) and never the "found a COMPONENT_SET" sentence.
 //
 // The row is still reachable, and still worth gating, for the case that is now its only one: a def that
@@ -1727,7 +1727,7 @@ ok(nestResults.slice(1).every((r) => r.built === 21 && r.miss !== undefined),
 
 // ---- #681 RESOLUTION: the def named a coordinate, so a MEMBER gets nested -----------------------
 // The other half of #681, and the half the four cases above cannot reach. `button`'s ring part declares
-// `nesting: { kind: 'nest-fixed', variant: { color: 'default' } }`, the plan projects that as
+// `nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] } }`, the plan projects that as
 // `nestVariant`, and this executor resolves it against the set's members instead of reporting.
 //
 // Driven by `grid` — the REAL plans, coordinate included — where the table above needed `gridNoCoord`.
@@ -1762,26 +1762,26 @@ const ringSetRun = async (variants: string[]) => {
   };
 };
 
-// THE SUCCESS CASE. The set carries `color=default`, so the member is nested and no miss is reported.
-const resolvedRun = await ringSetRun(['color=default', 'color=inverse']);
+// THE SUCCESS CASE. The set carries `surface=default`, so the member is nested and no miss is reported.
+const resolvedRun = await ringSetRun(['surface=default', 'surface=inverse']);
 ok(resolvedRun.miss === undefined && resolvedRun.rings > 0 && resolvedRun.built === 21,
   `#681 a coordinate the set CARRIES resolves, and the member is nested — ${resolvedRun.rings} ring nodes built, no miss (${resolvedRun.miss ?? 'none'})`);
 
-// THE FIFTH MISS, wrong coordinate. Members exist and none carries `color=default`; the tempting behavior
+// THE FIFTH MISS, wrong coordinate. Members exist and none carries `surface=default`; the tempting behavior
 // is to nest the first child, which is #656. Nothing is built, and the message names the coordinate AND
 // the members — a rename in the file and a typo in the def produce the same lookup failure and different
 // fixes, so a message carrying only one of the two is unactionable.
-const wrongRun = await ringSetRun(['color=brand', 'color=inverse']);
-ok(wrongRun.miss !== undefined && wrongRun.miss.indexOf('no member matching color=default') >= 0
-  && wrongRun.miss.indexOf('color=brand') >= 0 && wrongRun.rings === 0 && wrongRun.built === 21,
+const wrongRun = await ringSetRun(['surface=brand', 'surface=inverse']);
+ok(wrongRun.miss !== undefined && wrongRun.miss.indexOf('no member matching surface=default') >= 0
+  && wrongRun.miss.indexOf('surface=brand') >= 0 && wrongRun.rings === 0 && wrongRun.built === 21,
   `#681 a coordinate the set does NOT carry reports the fifth miss, names the coordinate and the members, and nests nothing (${wrongRun.miss})`);
 
-// THE FIFTH MISS, UNDER-SPECIFIED. `{color:'default'}` against a color×size set would match two members,
+// THE FIFTH MISS, UNDER-SPECIFIED. `{surface:'default'}` against a surface×size set would match two members,
 // and every rule for choosing between them reduces to creation order — #656 one layer in from where
 // `nesting` was added to stop it. Refused rather than resolved, and the printed members are what show the
 // designer which axis the def forgot.
-const ambiguousRun = await ringSetRun(['color=default, size=md', 'color=default, size=lg']);
-ok(ambiguousRun.miss !== undefined && ambiguousRun.miss.indexOf('no member matching color=default') >= 0
+const ambiguousRun = await ringSetRun(['surface=default, size=md', 'surface=default, size=lg']);
+ok(ambiguousRun.miss !== undefined && ambiguousRun.miss.indexOf('no member matching surface=default') >= 0
   && ambiguousRun.miss.indexOf('size=lg') >= 0 && ambiguousRun.rings === 0,
   `#681 an UNDER-SPECIFIED coordinate is refused rather than resolved by creation order, and the members show the missing axis (${ambiguousRun.miss})`);
 

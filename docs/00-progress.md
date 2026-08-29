@@ -7,6 +7,85 @@
 
 ---
 
+## (2026-08-29) — Button ships its inverse variant, and `surface` becomes the one inverse axis (#1134, decision §9.11)
+
+`button` gets its inverse treatment — the first component in the bounded inverse set (docs/20 §9.8) — and
+the same change settles the set's convention: **the inverse-context axis is `surface` (`default | inverse`)
+everywhere, and its inverse paint is the projector's**. `button` gains a `surface` axis (set doubles 648 →
+**1296**); `focus-ring`'s axis is renamed `color` → `surface` and its explicit `border.inverse` key dropped,
+so both paint their inverse ground through one mechanism. On a `surface=inverse` coordinate the projector
+rewrites each resolved `color.*` ref to its `color.inverse.*` counterpart (§9.9's `inverse(X) = color.inverse.
++ X`), so an inverse component binds only default-ground roles and authors no inverse key. And because both
+host and ring spell the axis `surface`, a host **drives** the nested ring by name: `button`'s ring part
+carries `follow: ['surface']`, so a `surface=inverse` button nests the `surface=inverse` ring — which closes
+the ring-on-inverse gap (#1156) rather than deferring it.
+
+`npm run verify`: **45/45 PASS** on this head rebased onto `main` past #1159. Before that rebase this branch
+read 44/45, the one FAIL being `lint-materialization-renames` — **pre-existing and unrelated**, filed as
+**#1157** and fixed by #1159 (the gate-0 entry above), not by anything here (proven by `git stash` of this
+branch's edits leaving it red on the pre-#1159 base). See the last section.
+
+### Why the paint is a projector rewrite, not authored keys
+
+`focus-ring` authored explicit inverse keys through #1133 (`border.inverse` → `color.inverse.border.focus`,
+selected by `{slot}.{color}`) — which works only because it is single-slot and **stateless**. A stateful
+component cannot spell the inverse end in the key vocabulary, proven empirically against `validateComponentDef`:
+
+- A suffix form `primary.filled.fill.inverse` is 4 segments, so `paintKeyErrors`'s arity matcher tests it
+  against `{intent}.{appearance}.{slot}.{state}` and rejects it: *"state=inverse, nothing supplies it."*
+- A prefix form `inverse.disabled.fill` collides with `{intent}.{appearance}.{slot}`: *"intent=inverse."*
+- The disabled branch of `paintOf` bypasses `paintKeys` entirely, so no authored key reaches it anyway.
+
+So the inverse half lives in the projector (`anatomy-figma.ts`), keyed on `surface=inverse`. Zero new token
+keys on `button`; the def declares the axis, the transform supplies the values, uniformly across the disabled
+branch and every slot. With the transform in place `focus-ring`'s own `border.inverse` key became the
+redundant second mechanism, so #1134 dropped it — `focus-ring` now follows the same one shape as `button`.
+
+### The traps, for whoever re-verifies
+
+1. **The rename breaks FIVE nesters, not one.** `focus-ring` is nested by `button`, `icon-button`, `switch`,
+   `checkbox` and `radio`, each with `variant: { color: 'default' }` — a coordinate that matches nothing in a
+   `surface=…` member set. All five had to move: `button` to `variant: { surface: 'default' }, follow:
+   ['surface']` (it has a `surface` axis to drive from), the other four to a fixed `variant: { surface:
+   'default' }` (they gain no inverse variant, but a nester references the ring's axis by name).
+2. **The transform is keyed on the `surface` axis value, and that survives `lint-paint.ts`'s reachability
+   probe where "authors no inverse key" would not.** The probe swaps every colour ref for a sentinel
+   `color.probe-N`, so a def's authored refs are gone by the time the projector runs — a "does the def author
+   `color.inverse.*`" trigger would read the probed tokens and misfire. The axis value survives. It is safe
+   because no def authors an inverse-only key any more: a def relying on the rewrite binds only default-ground
+   roles (`border`, reached at `surface=default`), so the sentinel is never inverse-only.
+3. **`color` is REMOVED from `VARIANT_AXES`** (11 names again). It was the one entry that knowingly overlapped
+   another — a second name for the default|inverse distinction — tolerated only while `focus-ring` could
+   author its inverse keys and `button` could not. One mechanism retired the need for two names: `surface`
+   everywhere, `color` nowhere. Not kept as a dead available name; re-adding it is one line if a genuinely
+   distinct "which colour" axis is ever needed.
+4. **`follow` is a new `nesting` field** (`component-schema.ts`), resolved per member in `anatomy-figma.ts`'s
+   `nestVariantOf`: it names host axes whose value flows into the nested coordinate, with `variant` as the
+   fallback for a structure-only plan. Validated to name an axis the host declares — which is why only
+   `button` may `follow: ['surface']` and the other four nesters cannot.
+5. **The enforceable gap rule is a `test.ts` arm.** A def with a `surface` axis paints through the projector,
+   so `validateComponentDef` never resolves the inverse leg — a binding whose role has no inverse counterpart
+   would project a variable that does not exist, silently. The arm asserts every colour role a surface-axis
+   def binds (now `button` AND `focus-ring`) has an `inverse.` counterpart in the emitted role set, with a
+   committed mutation (`color.text.on-brand`, an `INVERSE_GAPS` structural gap) proving it fails by name.
+   Oracle is the emitted roles; subject is the bindings; the counterpart rule is authored in the arm, not
+   imported (docs/34 shape 1). A second arm reads the real projected plans and asserts a `surface=inverse`
+   button member nests the `surface=inverse` ring (the passthrough), both ends, so a dropped `follow` fails.
+
+### The pre-existing blocker this work sat behind — now fixed by #1159 (#1157)
+
+`lint-materialization-renames` was red for **every** PR branched off post-#1153 `main`, not just this one.
+`ACCOUNTING_COLLECTION_MOVES` still carried the #1089 entry `{ from: 'color', to: 'color.surface' }`, whose
+own comment licensed it as *"correct for every base this gate is run against … long past #1089."* That
+assumption held until #1148/#1153 **reintroduced `color` as the live collection name**: the post-#1153 merge
+base now emits `color`, and the single-step recollection mapped it *backward* to `color.surface`, reporting a
+phantom 729-key rename per brand. #1153's own CI was green because its base was pre-collapse (`ba3e0cf`).
+It was the "live 2-cycle" #1153's PR body flagged, tripping on the first PR after the merge. It was **not
+Button's** — filed as #1157, fixed by **#1159** (deleting the stale entry plus a steady-state guard; its own
+entry is directly below), and this branch was rebased onto `main` past that fix, which is why it now reads
+45/45. This entry keeps the account because it is the diagnosis that took the work from red to explained.
+
+
 ## (2026-08-29) — `main` was red: a stale accounting entry reactivated when #1153 reused a collection name (gate 0)
 
 **STATUS: shipped.** One deleted line in `ACCOUNTING_COLLECTION_MOVES`, three restated test arms, and a

@@ -199,11 +199,14 @@ export const iconButton: ComponentDef = {
         // Identical to Button's, and for the identical reason (#801) — the ring's inside-drawn stroke
         // consumes the offset, so the gap needs both numbers. See `PartDef.strokeInset`.
         strokeInset: 'ring-width',
-        // `nest-fixed`, naming the variant (#681). NOT inherited from the ring set's default, which is
-        // its first child and therefore an artifact of creation order — #656's inherit-vs-choose error
-        // one layer out, and equally invisible here because both variants are valid rings and nothing
-        // downstream notices the wrong one was nested.
-        nesting: { kind: 'nest-fixed', variant: { color: 'default' } },
+        // `nest-fixed` at `surface=default` (#681, #1134). NOT inherited from the ring set's default,
+        // which is its first child and therefore an artifact of creation order — #656's inherit-vs-choose
+        // error one layer out. FIXED, not `follow`ed: icon-button has no `surface` axis of its own yet (it
+        // is a later member of the bounded inverse set, docs/20 §9.8), so there is no host coordinate to
+        // pass through — every icon-button nests the default-ground ring. The ring's axis is `surface`
+        // (renamed from `color`, #1134); when icon-button gains its own `surface` axis this becomes
+        // `follow: ['surface']`, the same one line Button carries.
+        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
         note: 'The same absolutely-positioned sibling nesting the same shared `focus-ring` as Button, at the same bound offset. Its own stroke is the point: an icon-only control is the most likely to be `appearance=outline` in a dense toolbar, and a ring drawn on the target would have to win that border\'s single stroke away from it.',
       },
     },

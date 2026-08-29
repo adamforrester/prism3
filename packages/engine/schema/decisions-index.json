@@ -107,6 +107,13 @@
       "title": "ONE `color` collection, and (#1150) the roles are written in reading order with `inverse` last",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.10"
+    },
+    {
+      "date": "2026-08-29",
+      "issue": 1134,
+      "title": "the inverse-context axis is `surface`, everywhere, and its paint is the projector's",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "9.11"
     }
   ]
 }

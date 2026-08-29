@@ -674,6 +674,53 @@ export const figmaAnatomyPlan = (
   // that resolves nothing while looking like a real lookup.
   const paintCoord: VariantCoord = { ...coord, ...(size === undefined ? {} : { size }) };
 
+  // ON THE INVERSE GROUND (#1134), and the reason this is a projector rewrite rather than a parallel
+  // key table in the def. A control whose `surface` axis is `inverse` binds every colour role's inverse
+  // counterpart — `color.interactive.primary.fill.rest` becomes `color.inverse.interactive.primary.fill
+  // .rest` — which is docs/20 §9.9's rule stated once: inverse(X) = `color.inverse.` + the role. The def
+  // cannot express that as authored keys: a suffix form (`…fill.inverse`) collides with this grammar's
+  // `{state}` segment by arity and `paintKeyErrors` rejects it as "state=inverse, nothing supplies it";
+  // a prefix form (`inverse.disabled.fill`) collides with `{intent}.{appearance}.{slot}`. So the inverse
+  // half of a stateful component is unauthorable in the key vocabulary, and the transform belongs here,
+  // where every colour ref already resolves.
+  //
+  // KEYED ON THE `surface` AXIS BY NAME, which is the ONE inverse-context axis across the bounded set
+  // (#1134): both `button` and `focus-ring` declare `surface`, so both paint their inverse ground through
+  // this one rewrite rather than each authoring its own inverse keys. `focus-ring` used to author
+  // `border.inverse` → `color.inverse.border.focus` and select it with `{slot}.{color}`; #1134 dropped
+  // that key and renamed its axis `color` → `surface`, so its lone `border` → `color.border.focus`
+  // binding is rewritten here to `color.inverse.border.focus` at `surface=inverse` — the identical
+  // variable, now from the one mechanism.
+  //
+  // WHY THE TRIGGER IS THE AXIS VALUE AND NOT "AUTHORS NO INVERSE KEY": `lint-paint.ts`'s reachability
+  // probe swaps every colour ref for a sentinel `color.probe-N`, so a def's authored refs are gone by
+  // the time this runs — a "does the def author `color.inverse.*`" test would read the probed tokens and
+  // be wrong under the probe. The axis value survives the probe. And it is safe precisely because no def
+  // authors an inverse-only key any more: a def relying on the rewrite binds only default-ground roles
+  // (`border`, reached at `surface=default`), so the sentinel is never inverse-only and nothing reads as
+  // painting nothing. Any future stateful member of the set follows the same shape — declare `surface`,
+  // bind default-ground roles, let this supply the inverse.
+  const onInverse = axisValue('surface') === 'inverse';
+  const toInverse = (ref: string): string =>
+    ref.startsWith('color.') && !ref.startsWith('color.inverse.')
+      ? `color.inverse.${ref.slice('color.'.length)}`
+      : ref;
+  const paintVarName = (ref: string): string => figmaVarName(onInverse ? toInverse(ref) : ref);
+
+  // THE NESTED COORDINATE FOR THIS MEMBER (#1134, #1156). A `nest-fixed` part nests one coordinate on
+  // every host member; `follow` names host axes whose value flows into the nested coordinate instead, so
+  // a `surface=inverse` Button nests the `surface=inverse` ring rather than the fixed default. `variant`
+  // is the fallback where the host member does not carry the axis (a structure-only plan). Resolved here,
+  // where the coordinate is known per member, rather than projected as a constant.
+  const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[] }): Record<string, string> => {
+    const out: Record<string, string> = { ...nesting.variant };
+    for (const axis of nesting.follow ?? []) {
+      const v = axisValue(axis);
+      if (v !== undefined) out[axis] = v;
+    }
+    return out;
+  };
+
   // A PARTIAL COORDINATE IS AN ERROR, and generalizing this was the second half of #758. The old rule
   // was `intent and appearance must be given together`, which is this rule with Button's axes baked
   // in. Supplying some of a template's axes but not all makes every template needing the missing one
@@ -801,7 +848,10 @@ export const figmaAnatomyPlan = (
       // projector dispatches, so a def cannot smuggle an unreachable key in behind the qualifier.
       const onFill = INK.has(slot) && !!def.tokens['disabled.fill'] && restKey('fill');
       const key = (onFill && def.tokens[`disabled.${slot}.on-fill`] && `disabled.${slot}.on-fill`) || `disabled.${slot}`;
-      return def.tokens[key] ? figmaVarName(def.tokens[key]) : undefined;
+      // Same inverse rewrite as the template branch below: a disabled control on an inverse ground binds
+      // `color.inverse.disabled.*`, which exists for exactly this pairing (#1134). The cross-cutting
+      // branch never sees `{surface}`, so the rewrite happens on the resolved ref, not the key.
+      return def.tokens[key] ? paintVarName(def.tokens[key]) : undefined;
     }
     for (const template of def.paintKeys) {
       // A SLOT-FREE template answers only the part's primary paint slot — see `PRIMARY_PAINT_SLOTS`
@@ -809,7 +859,7 @@ export const figmaAnatomyPlan = (
       // variable it answered `fill`, and every glyph in the set came back outlined.
       if (!template.includes('{slot}') && !PRIMARY_PAINT_SLOTS.has(slot)) continue;
       const k = fillPaintKey(template, slot, paintCoord);
-      if (k && def.tokens[k]) return figmaVarName(def.tokens[k]);
+      if (k && def.tokens[k]) return paintVarName(def.tokens[k]);
     }
     return undefined;
   };
@@ -1149,7 +1199,7 @@ export const figmaAnatomyPlan = (
       // consumer's to drive and `swap` has no variants at all, so neither writes a coordinate here —
       // and the executors read the field's ABSENCE as "do not select", which is the only reading that
       // keeps an exposed nest from being silently pinned by its own projection.
-      ...(p.kind === 'absolute' && p.nesting?.kind === 'nest-fixed' ? { nestVariant: p.nesting.variant } : {}),
+      ...(p.kind === 'absolute' && p.nesting?.kind === 'nest-fixed' ? { nestVariant: nestVariantOf(p.nesting) } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
