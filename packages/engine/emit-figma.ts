@@ -23,15 +23,16 @@
  * on every use. A gradient STOP, though, binds a VARIABLE, so the stop IS rooted.
  *
  * SEMANTIC COLLECTIONS keep bare names (`space`, `radius`, `size`, `icon`, `control`, `border-width`,
- * `focus`, `opacity`, `layout`, `type-sets`) — except colour, split by #1089 into `color.appearance`
- * (the appearance-moded values) and `color.surface` (the pointers into them, single-mode since #1133).
- * `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`; only the COLLECTION of that name is
- * gone.
+ * `focus`, `opacity`, `layout`, `type-sets`) — and colour is one of them again. #1089 split it into
+ * `color.appearance` (the appearance-moded values) and `color.surface` (the pointers into them);
+ * #1148 collapsed the two into a single `color` collection carrying the values, so there is one colour
+ * collection and one binding surface. `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`;
+ * only the COLLECTION of that name is gone.
  *
- * See docs/00 + issue #66/#67 (Token Press), #1089, #1097, #1102.
+ * See docs/00 + issue #66/#67 (Token Press), #1089, #1097, #1102, #1148.
  *
  * Axes shipped:
- *   • COLOUR — `core` primitives (Default mode) + `color.appearance` semantics (4 modes),
+ *   • COLOUR — `core` primitives (Default mode) + `color` semantics (4 modes),
  *     every semantic a VARIABLE_ALIAS into a `<root>/core/palette/…` variable. Byte-reproduces
  *     `fixtures/figma/nb/{palette,color.<mode>}.json` (variable names/scopes/aliases/values) —
  *     modulo the root and the two tier prefixes, which `test.ts` states as a LITERAL translation on
@@ -115,7 +116,6 @@ export { buildFigmaDims, buildFigmaLayout, LAYOUT_MODES } from './emit-figma-dim
 // they bundle into the plugin. Imported for the CLI below + re-exported so every `from './emit-figma'`
 // importer (and `test.ts`) stay unchanged.
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
-import { buildFigmaSurface } from './emit-figma-surface';
 export type {
   FigmaEffect, FigmaEffectStyle, FigmaEffectStylesFile,
   FigmaPaintStop, FigmaPaintStyle, FigmaPaintStylesFile,
@@ -240,17 +240,6 @@ export const figmaArtifacts = (theme: Theme): { artifacts: FigmaArtifact[]; summ
   add('shadow-styles.json', shadows);
   const gradients = buildFigmaGradient(theme);
   add('gradient-styles.json', gradients);
-  // The pointer tier (#893). One mode, no colours of its own — every row points into
-  // `color.appearance`. Emitted last because it READS the resolved colour set it aliases.
-  //
-  // NO MODE SEGMENT, since #1133 reverted the second mode: the stem is the collection name alone,
-  // `color.surface.json`, which is the same rule `radius` and `core.font` follow when a brand gives them
-  // one mode. The collection still comes off the FILE rather than being repeated here (#1013) — a
-  // hardcoded stem would be a second place the collection is named, free to contradict `$collection`,
-  // the one field every reader of `out/figma/` keys on.
-  const surface = buildFigmaSurface(theme);
-  for (const s of surface) add(`${s.$collection}.json`, s);
-
   const summary = `core ${palette.variables.length + dims.dimension.variables.length + fontFiles[0].variables.length} (palette ${palette.variables.length} + dimension ${dims.dimension.variables.length} + font ${fontFiles[0].variables.length}${fontFiles.length > 1 ? `×${fontFiles.length}modes` : ''}) + color ${color.length}×${color[0].variables.length} + font-fluid ${fluid.length}×${fluid[0].variables.length} + text-styles ${textStyles.styles.length} + dims ${dimsCount} (${Object.keys(dims).length - 1} colls) + layout ${layout.length}×${layout[0].variables.length} + shadow ${shadows.styles.length} + gradient ${gradients.styles.length}`;
   return { artifacts, summary };
 };

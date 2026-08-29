@@ -72,8 +72,8 @@ const verdict = verifyReadback(snap);
 console.log('plugin read-back (#109) — write → read → verify round-trip on the shim\n');
 
 // snapshot round-trips the plan
-ok(snap.collections.some((c) => c.name === 'core') && snap.collections.some((c) => c.name === 'color.appearance'),
-  'snapshot carries both collections (core + color.appearance)');
+ok(snap.collections.some((c) => c.name === 'core') && snap.collections.some((c) => c.name === 'color'),
+  'snapshot carries both collections (core + color)');
 ok(snap.palette.length === plan.palette.length,
   `palette round-trips: ${snap.palette.length}/${plan.palette.length} primitives`);
 ok(snap.color.length === plan.color.create.length,

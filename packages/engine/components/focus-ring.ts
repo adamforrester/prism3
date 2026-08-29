@@ -140,21 +140,23 @@ export const focusRing: ComponentDef = {
   // #1133 REMOVED THE FRAME MODE, so there is no second mechanism to be redundant WITH. A ring on a
   // dark band gets its edge from this binding or from nothing, which turns the pair of keys from a
   // leftover into the shape every inverse component now follows: declare a variant, bind the two ends
-  // by name. The long form of that argument, and why the entry stays REGISTERED rather than deleted,
-  // is in `UNALIASED_DEF_BINDINGS` (`emit-figma-surface.ts`) — one statement, not two.
+  // by name.
   //
-  // WHAT THE TWO KEYS SPELL, AND WHY THEY SIT IN DIFFERENT TIERS. `'border'` is `color.border.focus`,
-  // a pointer row, short and surface-tier. `'border.inverse'` is `color.appearance.inverse.border.focus`
-  // and reaches past the pointer tier by construction: `isInverseRole` excludes an inverse role from
-  // being a row, because an inverse role is bound BY NAME. #1140 moved the marker to a leading
-  // `inverse.` group, so the path is `…appearance.inverse.border.focus` where it read
-  // `…appearance.border.inverse.focus` — the ONE def-side edit that rename required, which is why this
-  // def was the one it had to land clean on.
+  // WHAT THE TWO KEYS SPELL, AND WHY THEY NO LONGER SIT IN DIFFERENT TIERS. Both are plain `color.*`
+  // paths in the one color tier: `color.border.focus` and `color.inverse.border.focus`. Until #1148
+  // they were not comparable — `'border'` was a short POINTER row and `'border.inverse'` reached past
+  // the pointer tier into `color.appearance.inverse.border.focus`, because `isInverseRole` withheld a
+  // pointer from every inverse role. That asymmetry needed a register entry to license it
+  // (`UNALIASED_DEF_BINDINGS`), and the collapse removed the asymmetry rather than the licence: one
+  // tier, so a ring's two ends are spelled the same way and neither is an exception. #1140 had already
+  // moved the marker to a leading `inverse.` group; between the two renames this pair went
+  // `…appearance.border.inverse.focus` → `…appearance.inverse.border.focus` → `…inverse.border.focus`,
+  // which is why this def is the one both renames had to land clean on.
   paintKeys: ['{slot}.{color}', '{slot}'],
 
   tokens: {
     'border': 'color.border.focus',
-    'border.inverse': 'color.appearance.inverse.border.focus',
+    'border.inverse': 'color.inverse.border.focus',
     'width': 'focus.ring.width',
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',

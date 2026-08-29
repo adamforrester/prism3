@@ -59,7 +59,7 @@ manifest fields via Context7 / the Figma MCP skill when the build starts.
 |---|---|---|
 | 1 ✅ | #106 | **Done (#119).** Extract the write-adapter seam (`apply(model)`) in the web UI — single-UI prerequisite |
 | 2 ✅ | #107 | **Done (#120).** Plugin scaffold — manifest + two-context split + typed postMessage bridge (vanilla) |
-| 3 ✅ | #108 | **Done.** Main-thread write adapter — pure `WritePlan` (`buildWritePlan`) → live `figma.variables`, idempotent; colour axis (the `core` primitives + `color.appearance`; `core-palette` + `color` when built, renamed by #1097/#1089) |
+| 3 ✅ | #108 | **Done.** Main-thread write adapter — pure `WritePlan` (`buildWritePlan`) → live `figma.variables`, idempotent; colour axis (the `core` primitives + `color`; `core-palette` + `color` when built, renamed by #1097/#1089 and collapsed back to two collections by #1148) |
 | 4 ✅ | #109 | **Done.** Read-back — `readFigmaVariables` → host-neutral `ReadbackSnapshot` + pure `verifyReadback` (contract check); seeds theming an existing file at #110 |
 | 5 ✅ | #110 | **Done.** One build, two outputs — the shared `apps/studio/src` UI bundles into the plugin iframe (host selected at build time via `PRISM3_HOST`); live knobs → #108 write, boot read-back → #109 seed panel. The no-fork thesis, proven. |
 | 6 ✅ | #131 | **Done.** Knob round-trip — persist the live `BrandInput` in `figma.root` shared-data on every apply; rehydrate the UI from it on boot (pure `persist-input.ts` version guard + `apps/plugin/src/persist-figma.ts` port + `restore-input` bridge msg). Closes #110's informational-only seed. |

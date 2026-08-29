@@ -17,7 +17,6 @@ import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
 import { SizeStep, ControlSizeStep } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
-import { surfaceRowsFor } from './surface-rows';
 import { ENGINE_VERSION } from './version';
 
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -36,6 +35,55 @@ const ALPHA_STEPS = [0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
 const bandName: Record<string, string> = {
   Highlights: 'Highlight', Quarter: 'Quarter-Tone', Mid: 'Mid-Tone',
   ThreeQuarter: 'Three-Quarter-Tone', Shadows: 'Shadow',
+};
+
+/**
+ * ---- THE ORDER THE COLOUR ROLE FAMILIES ARE WRITTEN IN (#1150) ----
+ *
+ * Figma lists a variable collection in CREATION order, not alphabetically, and the engine creates
+ * variables in the order `leaves()` walks the DTCG tree — which is object-key insertion order, which
+ * is the order this file writes them in. So the order below is the order a designer reads down the
+ * variables panel, and this is the only place it is stated.
+ *
+ * The order is the owner's and reads outward: the ground first (`background`, `foreground`), then
+ * what sits on it (`text`, `icon`), then what responds (`interactive`, `disabled`), then the drawn
+ * edge (`border`), then the two washes (`scrim`, `veil`), then the one composite family (`field`) —
+ * and `inverse` LAST, because since #1140 it re-states every family above for a flipped ground, so
+ * anywhere but the end splits each family into two places on screen.
+ *
+ * A family a brand does not resolve is skipped, not emitted empty. A family a brand DOES resolve but
+ * this list does not name is a throw, not a silent append: appending would place a new family
+ * wherever the resolver happened to build it, which is the one thing this list exists to prevent,
+ * and it would do it without telling anyone.
+ *
+ * **`appearance` must never be added here.** It is not a role family and never was — it was the
+ * middle segment of the two-tier colour split (#1013–#1148), and the materialization rule
+ * `color-one-collection-1148` still reads `<root>/color/appearance/*` in a designer's file as that
+ * historical tier marker. A live role family of that name would be renamed away by the migration.
+ * Leaving it unlisted is what enforces this: the throw below is the enforcement, not a comment.
+ */
+const COLOR_FAMILY_ORDER = [
+  'background', 'foreground', 'text', 'icon', 'interactive',
+  'disabled', 'border', 'scrim', 'veil', 'field', 'inverse',
+] as const;
+
+/**
+ * Role keys in declared family order, stable WITHIN each family — the family order is this file's
+ * decision, everything below the family stays the resolver's (docs/20 §9).
+ */
+const orderedRoleKeys = (keys: string[]): string[] => {
+  const rank = new Map<string, number>(COLOR_FAMILY_ORDER.map((f, i) => [f, i]));
+  const unlisted = [...new Set(keys.map((k) => k.split('.')[0]))].filter((f) => !rank.has(f));
+  if (unlisted.length)
+    throw new Error(
+      `tree: color role family/families absent from COLOR_FAMILY_ORDER: ${unlisted.join(', ')} — #1150 makes `
+      + 'the written order the order Figma lists the collection in, so an unranked family would land wherever '
+      + 'the resolver happened to build it. Add it at the position it should read in the variables panel.',
+    );
+  return keys
+    .map((k, i) => ({ k, i }))
+    .sort((a, b) => (rank.get(a.k.split('.')[0])! - rank.get(b.k.split('.')[0])!) || a.i - b.i)
+    .map((e) => e.k);
 };
 
 // Elevation is no longer a colour group: it's expressed as a foreground surface
@@ -386,15 +434,19 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const opacity: Record<string, Token> = {};
   for (const s of ALPHA_STEPS) opacity[String(s)] = numLeaf(round(s / 100, 2), `opacity ${s}% (${round(s / 100, 2)})`);
 
-  // ---- colour semantic (role) layer → `color.appearance.*` ----
+  // ---- colour semantic (role) layer → `color.*` ----
   // Mode-AGNOSTIC token names: one token per role, `light` is the canonical
   // `$value`, and dark / hc-light / hc-dark are value overrides in
   // `$extensions.prism3.modes` (each keeping its own contrast contract). This is
   // the same shape `shadow` already uses, and it maps 1:1 to a single Figma
   // colour variable with Light/Dark/HC modes. See docs/06 + docs/07.
   //
-  // #1013 moved this tier from `color.*` to `color.appearance.*`, and put the SURFACE ALIAS tier at
-  // `color.*` in its place — see the block below `colorRoles` for the tier the name now denotes.
+  // #1013 moved this tier to `color.appearance.*` and put a POINTER tier at `color.*`; **#1148 collapsed
+  // the two back into one.** There is one colour tier again, at `color.*`, and it is this one — the tier
+  // that carries the values, the appearance modes and the contrast contracts. The pointer tier's whole
+  // job was to give a designer a short name to bind, and it did that by restating 130 of these roles at
+  // a second path; the rename gives every role the short name directly, including the 113 inverse ones
+  // that never got a pointer at all (`docs/20` §9.9).
   const modes = resolveAllModes(theme);
   // light is canonical ($value); the rest carry per-mode overrides — only those the brand
   // opted into (docs/11 Pillar 1). A light-only brand emits no mode overrides.
@@ -419,7 +471,8 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   const byMode = new Map(modes.map((m) => [m.mode, m]));
   const lightMode = byMode.get('light')!;
   const colorRoles: Record<string, any> = {};
-  for (const [roleKey, lr] of Object.entries(lightMode.roles)) {
+  for (const roleKey of orderedRoleKeys(Object.keys(lightMode.roles))) {
+    const lr = lightMode.roles[roleKey];
     const modeOverrides: Record<string, any> = {};
     for (const m of OVERRIDE_MODES) {
       const rr = byMode.get(m)?.roles[roleKey];
@@ -431,7 +484,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const leaf = aliasLeaf(lr.path, lr.description, {
       contrast: round(lr.ratio, 2), against: lr.against, ...washFields(lr), ...(lr.min > 0 ? { min: lr.min } : {}),
       modes: modeOverrides,
-      figma: { collection: 'color.appearance', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
+      figma: { collection: 'color', modes: ['light', ...OVERRIDE_MODES], note: 'one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*' },
     });
     const parts = roleKey.split('.'); // property-led, may nest (group / variant / state)
     let node = colorRoles;
@@ -440,56 +493,25 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   }
 
   /**
-   * ---- the POINTER tier → `color.*` (#1013, #1133) ----
+   * ---- THERE IS NO POINTER TIER (#1148) ----
    *
-   * The tier a def binds and an app references. Every leaf is a POINTER into `color.appearance.*`,
-   * which is why it composes with the appearance axis instead of multiplying against it: the name it
-   * resolves to is the same in every appearance mode, so the mode picks the value one hop later.
-   * Measured over 128 rows × 4 appearances × 5 corpus brands — 2560 cells agree, 0 disagree, where a
-   * value-carrying projection of the same rows disagrees in 1510 (#1027).
+   * #1013 put a second `color.*` tier here: 130 leaves, each a 1:1 alias into `color.appearance.*`,
+   * existing so a designer had a SHORT name to bind. #1148 deleted it and renamed the value tier to
+   * `color` instead, which gives every role the short name directly — including the 113 inverse roles
+   * that never got a pointer at all, because `isInverseRole` withheld one (#1133).
    *
-   * ONE row set, shared with the Figma `color.surface` collection via `surface-rows.ts`. The two
-   * formats are only reconcilable while the rows are identical, and a second derivation here would be a
-   * second expression of one fact with no gate able to say which was right (`docs/34`).
+   * The measurement that justified the split still holds and is why the collapse is safe rather than a
+   * reversal: a pointer resolves to the same NAME in every appearance mode, so it composed with the
+   * appearance axis instead of multiplying against it (128 rows × 4 appearances × 5 brands — 2560
+   * cells agree; a value-carrying projection of the same rows disagrees in 1510, #1027). Renaming the
+   * value tier keeps that property by a shorter route: one name per role, the mode picks the value on
+   * the leaf itself, and nothing is restated at a second path for a gate to have to reconcile.
    *
-   * INVERSE IS NOT AN AXIS HERE, AND SINCE #1133 IT IS NOT ONE IN FIGMA EITHER. Each leaf is a plain
-   * 1:1 alias at the same path — `color.text.primary` → `color.appearance.text.primary`. An inverse
-   * role gets no pointer of its own (`isInverseRole`); it is bound by NAME at the appearance tier by
-   * the bounded set of components that declare an inverse variant, `focus-ring` being the shipped
-   * example. So this tier no longer withholds a second column and DTCG is no longer one column short of
-   * Figma — the two formats agree exactly, which is what #1129 was open about and what #1133 closed.
-   *
-   * WHAT THESE LEAVES DELIBERATELY DO NOT CARRY:
-   *   · `modes` — a pointer does not vary by appearance, which is the finding above. So these leaves
-   *     are absent from every appearance overlay, correctly, and `lint-overlay-completeness.ts`
-   *     agrees by its own traversal rather than by an exemption.
-   *   · `contrast` / `against` — a ratio belongs on the leaf that carries the VALUE, where it is
-   *     unconditionally true. Recording it on a pointer would restate it in a second place with
-   *     nothing keeping the two in step.
+   * What the collapse also fixes: the pointer tier's variables were emitted with `ALL_SCOPES`, so the
+   * tier a designer was told to bind was the one tier with no scoping — every pointer offered in every
+   * picker. The value tier has always been scoped per family (`emit-figma-color.ts`), and it is now the
+   * only tier, so the binding surface and the scoped surface are the same set.
    */
-  const surfaceRows = surfaceRowsFor(new Set(Object.keys(lightMode.roles)));
-  const colorTier: Record<string, any> = { appearance: colorRoles };
-  // `appearance` is now a RESERVED key under `color`, and a role family of that name would silently
-  // merge the two tiers into one namespace — the one collision this split can produce, so it is a
-  // throw rather than a comment. Checked against the role keys, not against a list of families.
-  const clash = Object.keys(lightMode.roles).filter((k) => k === 'appearance' || k.startsWith('appearance.'));
-  if (clash.length)
-    throw new Error(
-      `tree: ${clash.length} role(s) named under \`appearance\` (${clash.slice(0, 3).join(', ')}) — #1013 reserves `
-      + '`color.appearance.*` for the value tier, so a role family of that name would merge the value and '
-      + 'surface-alias tiers into one namespace with nothing distinguishing them. Rename the role family.',
-    );
-  for (const r of surfaceRows) {
-    const target = `${root}.color.appearance.${r.role}`;
-    const leaf = aliasLeaf(target, `${lightMode.roles[r.role].description} — the short name for this role; a pointer into color.appearance, where the appearance mode picks the value`, {
-      role: 'surface-alias',
-      figma: { collection: 'color.surface', modes: ['Default'], note: 'one Figma color variable per row, single-mode since #1133; the DTCG and Figma row sets are identical' },
-    });
-    const parts = r.role.split('.');
-    let node = colorTier;
-    for (let i = 0; i < parts.length - 1; i++) node = (node[parts[i]] ??= {});
-    node[parts[parts.length - 1]] = leaf;
-  }
 
   // ---- dimension axis ----
   const gridSet = new Set(theme.dims.grid);
@@ -943,7 +965,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // `opacity` stays at the top level deliberately: it is directly consumable (#79) and has no semantic
   // layer above it, so it is not a primitive in the sense this tier means — the same reason it is the
   // one ref-tier-looking collection that is NOT `hiddenFromPublishing` in Figma.
-  const brand = { core: { palette, dimension, font }, color: colorTier, opacity, motion, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, space, radius, 'border-width': borderWidth, focus, size, control };
+  const brand = { core: { palette, dimension, font }, color: colorRoles, opacity, motion, type: typeGroup, shadow, icon, ...(Object.keys(gradient).length ? { gradient } : {}), breakpoint, grid, container, space, radius, 'border-width': borderWidth, focus, size, control };
   const tree = {
     [root]: brand,
     $extensions: {

@@ -14,14 +14,14 @@
  * It used to carry a third field, `alias: 'self' | 'omit'`, telling #893's two-mode Figma collection
  * what to do with a row whose role had no counterpart — self-alias it (every name resolves, at the cost
  * of making a deliberate gap look filled) or omit it (the gap stays legible, at the cost of a name that
- * does not resolve). **That field went with the surface MODE (#1133).** A single-mode pointer tier never
- * asks "and in the inverse column?", so there is nothing left for a disposition to steer, and
- * `surface-rows.ts` no longer imports this file at all.
+ * does not resolve). **That field went with the surface MODE (#1133),** and the tier it steered went
+ * with #1148. A single-mode pointer tier never asked "and in the inverse column?", so there was nothing
+ * left for a disposition to steer; the pointer tier itself is now gone.
  *
- * The register itself is not about the pointer tier and never was. It is a statement about the
- * APPEARANCE tier — which of its 242 roles have an inverse counterpart — and under name-encoding that
- * is the load-bearing question rather than an incidental one: **an inverse component variant binds
- * appearance-tier inverse leaves, so a role listed below is a role no inverse variant can bind.** The
+ * The register was never about the pointer tier. It is a statement about the ROLE set — which of the
+ * 243 semantic colour roles have an inverse counterpart — and under name-encoding that is the
+ * load-bearing question rather than an incidental one: **an inverse component variant binds
+ * `color.inverse.*` leaves, so a role listed below is a role no inverse variant can bind.** The
  * register is what bounds the bounded set. It is data and not a comment for the same reason it always
  * was — `test.ts` reads it, both directions, so a gap cannot appear silently and an entry cannot
  * outlive the gap it describes.
@@ -41,7 +41,7 @@
  *
  * What did get simpler is the CHECK: `test.ts` re-derives the counterpart locally, and the derivation
  * is now `inverse.` + the role for every family, where it needed three shapes before. It stays a LOCAL
- * derivation rather than an import from `modes.ts` or `surface-rows.ts` — `docs/34` shape 1: a register
+ * derivation rather than an import from `modes.ts` or `inverse-roles.ts` — `docs/34` shape 1: a register
  * checked against the emitter's own expression of the same rule agrees with any bug in it.
  */
 
@@ -79,15 +79,15 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'shape from every other role here and may mean it has no inverse form at all. The hero/image dim '
       + 'named in the same paragraph used to be the alternative reading; since #1030 it is `color.veil.*`, '
       + 'its own family below, which removes the ambiguity without deciding this one. '
-      + '#1133 CHANGED WHAT THE UNDECIDEDNESS COSTS, AND IT IS THE FIRST TIME IT COSTS A CONSUMER NOTHING. '
+      + '#1133 CHANGED WHAT THE UNDECIDEDNESS COSTS, AND IT WAS THE FIRST TIME IT COST A CONSUMER NOTHING. '
       + 'While the pointer tier had a second mode, an undecided role had to be OMITTED from it — a row '
       + 'would have had to answer "and on an inverse ground?" and inventing that answer is exactly what '
       + 'was being avoided. So this was the one non-inverse role with no plain `color.scrim.default` '
-      + 'spelling, and a consumer had to write `color.appearance.scrim.default` to say "I know there is no '
-      + 'per-surface answer yet". With the mode reverted a pointer row asks nothing, so the short name is '
-      + 'emitted like every other role\'s and the open question moved to where it always belonged: whether '
-      + 'the APPEARANCE tier ever grows an `inverse.scrim.*`, and therefore whether a scrim can have an '
-      + 'inverse variant. Still nobody\'s call to make silently — the register is now the only thing '
+      + 'spelling, and a consumer had to reach into the value tier to say "I know there is no per-surface '
+      + 'answer yet". With the mode reverted a pointer row asked nothing, and since #1148 there is one '
+      + 'tier and therefore one spelling for every role, so the open question sits where it always '
+      + 'belonged: whether an `inverse.scrim.*` role is ever added, and therefore whether a scrim can '
+      + 'have an inverse variant. Still nobody\'s call to make silently — the register is the only thing '
       + 'holding it, which is the job it was built for.',
   },
   {

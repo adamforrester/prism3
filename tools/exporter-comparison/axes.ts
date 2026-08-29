@@ -138,11 +138,12 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
  * the three former `core-*` collections, not three.
  *
  * A collection missing from this table FAILS (see `classifyCollections`) — it is not assumed
- * `'none'`, even though 13 of the 16 entries are `'none'` and a default would be right 13 times out
- * of 16. Being right 13 times out of 16 by accident is the failure mode, not the success case: the
- * 14th is a new mode-varying collection, which is exactly when the guess is both wrong and silent.
- * (It was 12 of 16 until #1133 made `color.surface` single-mode, which is the majority getting SAFER
- * and the guess getting no better — the exact shape of drift a default hides.)
+ * `'none'`, even though 12 of the 15 entries are `'none'` and a default would be right 12 times out
+ * of 15. Being right 12 times out of 15 by accident is the failure mode, not the success case: the
+ * 13th is a new mode-varying collection, which is exactly when the guess is both wrong and silent.
+ * (The ratio has moved twice without the guess getting any better: #1133 made `color.surface`
+ * single-mode, and #1148 deleted that collection outright. Both times the majority got safer and the
+ * default got no more defensible — the exact shape of drift a default hides.)
  *
  * The three style collections carry NO modes at all (`text-styles`, `shadow-styles`,
  * `gradient-styles` have no `$mode` key), because Figma styles cannot have modes. That is not the
@@ -152,19 +153,17 @@ export const AXIS_MODEL: Record<Axis, { crossesAs: 'overlay' | 'path' | 'singula
  */
 export const COLLECTION_AXIS: Record<string, Axis> = {
   // -- multi-mode: the three axes #697 measured -------------------------------------------------
-  'color.appearance': 'appearance',
+  // The one colour collection since #1148. It was `color.appearance` from #1089, alongside a
+  // `color.surface` pointer collection classified `'none'` — that one had its OWN axis (`surface`, two
+  // modes) from #893 until #1133 reverted inverse to name-encoding, then one `Default` mode, then
+  // nothing: the collapse deleted it and renamed this one to `color`. The `surface` axis went with it,
+  // out of `AXIS_MODEL` too, since nothing else ever claimed it.
+  color: 'appearance',
   layout: 'breakpoint',
   'type-sets': 'viewport',
 
   // -- single-mode variable collections ---------------------------------------------------------
   'border-width': 'none',
-  // The pointer tier. It had its OWN axis (`surface`, two modes) from #893 until #1133 reverted inverse
-  // to name-encoding; with one `Default` mode it is a plain single-mode collection, and `'none'` is
-  // literally true of it rather than a convenient approximation. The `surface` axis is gone from
-  // `AXIS_MODEL` with it — nothing else claimed it. What makes this entry worth a comment is that it is
-  // the one collection here whose rows are all ALIASES: `none` classifies the MODE structure, and says
-  // nothing about whether a collection holds values or pointers.
-  'color.surface': 'none',
   // The merged primitive collection (#1097) — `palette/*`, `dimension/*` and `font/*` under one
   // `core`, arriving from three separate files that each declare it. One mode, `Default`, for all
   // three groups; if a brand ever gives one group a second mode the whole collection gains it, and
@@ -213,13 +212,14 @@ export const STYLE_AXIS_AS_NAME: { collection: string; prefix: string; axis: Axi
  * writing that down is a claim someone made about what the projection carries.
  *
  * ── ONE TRAP IF YOU EVER RE-ARM IT ───────────────────────────────────────────────────────────────
- * `compare.ts` applies this set to a path's FIRST SEGMENT (`k.split('.')[0]`), which was unambiguous
- * only while every collection's name was also a whole namespace: `surface` dropped `surface.*` and
- * nothing else. After #1013 the appearance tier lives UNDER the alias tier's name — `color` and
- * `color.appearance.*` share a first segment — so classifying `color` as `absent` today would drop
- * 370 paths per brand, not 128, and report it as agreement. Measured: 1110 unpaired across 3 brands.
- * A future `absent` collection whose name prefixes another's paths needs the drop keyed on the
- * namespace it projects, not on the collection name.
+ * `compare.ts` applies this set to a path's FIRST SEGMENT (`k.split('.')[0]`), which is unambiguous
+ * only while a collection's name is also a whole namespace. That held for `surface` (it dropped
+ * `surface.*` and nothing else), and it holds again now that `color` is one collection over the whole
+ * `color.*` namespace. It did NOT hold between #1013 and #1148, when the value tier lived under the
+ * pointer tier's name: `color` and `color.appearance.*` shared a first segment, so classifying `color`
+ * as `absent` would have dropped 370 paths per brand instead of 128 and reported it as agreement
+ * (measured: 1110 unpaired across 3 brands). The trap is the SHAPE, not that era — a future `absent`
+ * collection whose name prefixes another's paths needs the drop keyed on the namespace it projects.
  */
 export const absentFromProjection = (): Set<string> =>
   new Set(Object.entries(COLLECTION_AXIS).filter(([, ax]) => AXIS_MODEL[ax].crossesAs === 'absent').map(([c]) => c));

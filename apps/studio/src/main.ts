@@ -32,7 +32,7 @@ import { resolveAllModes, outlineFillFamily, outlineFillRole } from '@prism3/eng
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { surfaceRows, isInverseRole } from '@prism3/engine/surface-rows';
+import { isInverseRole } from '@prism3/engine/inverse-roles';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
@@ -506,48 +506,30 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
   input.onchange = () => { val.textContent = input.checked ? 'On' : 'Off'; onToggle(input.checked); };
   return knobBody(input, val);
 };
-/** WHICH TIER a colour role's DTCG path lives in (#1013), for every pill that shows one.
+/** The resolvable DTCG path for a colour role, for every pill that shows one. One tier, one rule.
  *
- *  The swap split `color.*` in two: the POINTER tier keeps the short name and carries every NON-INVERSE
- *  role (130 in the measured corpus since #1140 added `border.tertiary`), while the 113 inverse-band
- *  roles exist ONLY in the VALUE tier as `color.appearance.*`. A pill is a path a developer copies, so
- *  `color.background.inverse.primary` — correct before #1013 — is now a name that resolves to nothing.
+ *  This used to be a TIER LOOKUP, and it is worth knowing why it is not one any more, because a pill is
+ *  a path a developer copies and a wrong one resolves to nothing. #1013 split `color.*` in two: a
+ *  POINTER tier holding the short name for each of the 130 non-inverse roles, and a VALUE tier at
+ *  `color.appearance.*` where the 113 inverse-band roles existed ONLY. So the right path depended on
+ *  which side of that split a role fell, and this function asked `surfaceRows` — the one derivation both
+ *  materialisations read — rather than pattern-matching `inverse` locally, so a pill could not disagree
+ *  with the emitted tree.
  *
- *  Derived from `surfaceRows`, the ONE derivation both materialisations read (`tree.ts` for DTCG,
- *  `emit-figma-surface.ts` for the Figma collection), so the pill cannot disagree with the tree it
- *  names. Re-deriving the split here from a pattern match on `inverse` would answer correctly today and
- *  keep answering confidently the day the pointer tier's membership rule changes, which is the whole
- *  reason there is one derivation rather than two.
- *
- *  This comment carried two claims #1133 falsified and the code carried none, which is why nothing below
- *  it changed. It said the pointer tier held "the roles the surface axis pairs (128)" and that the 114th
- *  excluded role was `scrim.default`, "whose gap disposition is `omit`" — dispositions are gone with the
- *  surface axis, `scrim.default` has a pointer now, and 129 is the count. It also promised the richer
- *  story a pill withholds: that an inverse-band token is reachable as its page-role sibling under the
- *  collection's `inverse` mode, pending a DTCG surface overlay (#1027). There is no such mode and no such
- *  overlay — inverse is name-encoded, and `color.appearance.inverse.background.primary` IS the path a
- *  developer wants, which is what the pill already shows (`docs/20` §9.8). */
-let aliasTierCache: { of: Theme; set: Set<string> } | null = null;
-const aliasTierRoles = (): Set<string> => {
-  if (aliasTierCache?.of !== theme) {
-    aliasTierCache = { of: theme, set: new Set(surfaceRows(theme).map((r) => r.role)) };
-  }
-  return aliasTierCache.set;
-};
-/** The resolvable DTCG path for a colour role — `color.*` if the alias tier carries it, else
- *  `color.appearance.*`. See `aliasTierRoles`. */
-const colorPath = (role: string): string =>
-  aliasTierRoles().has(role) ? `color.${role}` : `color.appearance.${role}`;
+ *  #1148 collapsed the two tiers into one `color`, which gives every role the short name and leaves no
+ *  membership question to ask. The lookup is gone rather than kept returning true for everything: a
+ *  predicate that cannot say no is not a check (`docs/34` shape 9). */
+const colorPath = (role: string): string => `color.${role}`;
 
 /** A token-path chip (doc 24 C4) — the small mono pill that shows a DTCG/role path.
  *
  *  A long path ELIDES FROM THE LEFT instead of wrapping to two lines (#289): the CSS gives the pill
  *  `direction:rtl`, which moves where `text-overflow:ellipsis` bites to the start, so
- *  `color.appearance.inverse.background.primary` renders as `…erse.background.primary`.
+ *  `color.inverse.background.primary` renders as `…erse.background.primary`.
  *
  *  Why not the obvious right-truncation: these paths share long prefixes and differ only in the tail.
  *  `color.foreground.brand` and `color.foreground.brand-subtle` — or the six
- *  `color.appearance.inverse.interactive.destructive.{text,fill}.{rest,hover,pressed}`, whose first 48
+ *  `color.inverse.interactive.destructive.{text,fill}.{rest,hover,pressed}`, whose first 38
  *  characters are identical — all collapse to the SAME visual stub if you cut from the right. The
  *  discriminating information lives at the end, so that is the end worth keeping. The cost is that the
  *  namespace prefix is the part hidden when space is tight; `title` and (on style-guide pills) the

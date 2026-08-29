@@ -36,8 +36,10 @@
  * both directions. Before this the marker sat at depth 2, 3 or 4 depending on the
  * family and wore two different spellings, so every consumer that had to
  * recognize an inverse role carried its own three-shape case analysis; three of
- * them (`surface-rows.ts`, `emit-figma-color.ts`, `test.ts` (a3)) collapsed to a
- * single expression in the same diff, which is the evidence the shape is right.
+ * them (`inverse-roles.ts` — `surface-rows.ts` when #1140 shipped, renamed at
+ * #1148 when the tier it was named for went away — `emit-figma-color.ts`, and
+ * `test.ts` (a3)) collapsed to a single expression in the same diff, which is the
+ * evidence the shape is right.
  *
  * RULE 2 — `on-` TAKES A GROUND, NEVER A ROLE OR A RANK. `on-<x>` means "ink
  * placed on <x>", so `<x>` must name a thing ink sits on: the enclosing role's

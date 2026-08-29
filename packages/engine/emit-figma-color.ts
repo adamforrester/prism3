@@ -129,13 +129,15 @@ const FIELD_SLOT_SCOPES: Record<string, string[]> = {
 // color.<family>.… → scopes. `interactive` defers to its slot (segment[3]),
 // `disabled` / `field` to their slot (segment[2]).
 const colorScopes = (dotted: string): string[] => {
-  // ['color', family, …] — after #1013 the value tier is `color.appearance.<family>.…`, so the TIER
-  // segment is dropped explicitly rather than left to fall through. Getting this wrong is quiet in
-  // exactly the way the inverse qualifier below is: `seg[1] === 'appearance'` misses `COLOR_SCOPES`
-  // and every one of the 242 variables scopes as FRAME_FILL/SHAPE_FILL via the `??` fallback on the
-  // last line — the whole tier silently mis-scoped, no error, no test that reads a picker.
+  // ['color', family, …] — #1013 put a TIER segment here (`color.appearance.<family>.…`) which this
+  // function dropped explicitly, because leaving it to fall through was quiet in exactly the way the
+  // inverse qualifier below is: `seg[1] === 'appearance'` misses `COLOR_SCOPES` and all 243 variables
+  // scope as FRAME_FILL/SHAPE_FILL via the `??` fallback on the last line — the whole tier silently
+  // mis-scoped, no error, no test that reads a picker. #1148 removed the tier, so the segment is gone
+  // and the clause with it; the failure mode is worth keeping written down because the inverse clause
+  // below has the same shape and the same silence.
   //
-  // THE INVERSE MARKER IS DROPPED THE SAME WAY, AND THAT IS WHAT #1140 BOUGHT HERE. An inverse role
+  // THE INVERSE MARKER IS DROPPED, AND THAT IS WHAT #1140 BOUGHT HERE. An inverse role
   // scopes exactly like its page twin — a stroke is a stroke on a dark band — so the marker is noise to
   // this function and the honest expression is to remove it before dispatching. Under Rule 1 it is one
   // segment in one position, so one `filter` clause handles all 113 roles.
@@ -147,9 +149,7 @@ const colorScopes = (dotted: string): string[] => {
   // three inverse variables offering the wrong picker context with no error anywhere. Exactly the quiet
   // failure the note above warns about, sitting in the family the note does not mention. Fixed by the
   // restructure rather than by adding a fourth skip, which is the argument for the restructure.
-  const seg = stripNs(dotted).split('.')
-    .filter((s, i) => !(i === 1 && s === 'appearance'))
-    .filter((s, i) => !(i === 1 && s === 'inverse'));
+  const seg = stripNs(dotted).split('.').filter((s, i) => !(i === 1 && s === 'inverse'));
   if (seg[1] === 'interactive') return INTERACTIVE_SLOT_SCOPES[seg[3]] ?? INTERACTIVE_SLOT_SCOPES.fill;
   if (seg[1] === 'disabled') return DISABLED_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
   if (seg[1] === 'field') return FIELD_SLOT_SCOPES[seg[2]] ?? ['FRAME_FILL', 'SHAPE_FILL'];
@@ -278,10 +278,11 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
     })),
   };
 
-  // #1013: the VALUE tier is `color.appearance.*`, not `color.*`. `color.*` is now the surface ALIAS
-  // tier (`emit-figma-surface.ts`), so walking `tree[root].color` here would pull both tiers into one
-  // collection — 128 alias rows emitted a second time, in five appearance modes, aliasing themselves.
-  const colLeaves = leaves(tree[root].color.appearance, `${root}.color.appearance`);
+  // One colour tier again since #1148, so this walks `color.*` directly. Between #1013 and #1148 it had
+  // to walk `color.appearance.*`: `color.*` was a second, pointer tier, and walking the parent pulled
+  // both into one collection — 130 alias rows emitted again, in five appearance modes, aliasing
+  // themselves. The pointer tier is gone, so the parent IS the value tier and there is nothing to skip.
+  const colLeaves = leaves(tree[root].color, `${root}.color`);
   // Iterate only the modes THIS brand ships (respects BrandInput.modes opt-out — Pillar 1a).
   // Canonical order: the built-ins in their fixed COLOR_MODES order first, then any user-added
   // custom modes (C1 — the modes in theme.modes that aren't built-ins) in declaration order. For a
@@ -290,7 +291,7 @@ export const buildFigmaColor = (theme: Theme): { palette: FigmaCollectionFile; c
   const customModes = theme.modes.filter((m) => !(COLOR_MODES as readonly string[]).includes(m));
   const emittedModes = [...builtinModes, ...customModes];
   const color: FigmaCollectionFile[] = emittedModes.map((mode) => ({
-    $collection: 'color.appearance',
+    $collection: 'color',
     $mode: mode,
     variables: colLeaves.map(([dotted, leaf]) => {
       const ext = leaf.$extensions?.prism3 ?? {};

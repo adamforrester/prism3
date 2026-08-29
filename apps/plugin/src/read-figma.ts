@@ -2,7 +2,7 @@
  * Prism3 Figma plugin — the MAIN-THREAD read adapter (docs/22 Phase 4 / #109).
  *
  * The inverse of `write-figma.ts`'s `applyWritePlan`: reads the current file's `core` +
- * `color.appearance` collections back out of `figma.variables.*` into a host-neutral `ReadbackSnapshot`
+ * `color` collections back out of `figma.variables.*` into a host-neutral `ReadbackSnapshot`
  * (engine `read-back.ts`). Two uses: (a) seed the shared UI from an existing themed file at #110,
  * and (b) feed the pure `verifyReadback` so the materialisation contract can be checked live.
  *
@@ -45,15 +45,15 @@ const isRgb = (v: ReadVarValue): v is { r: number; g: number; b: number; a?: num
 
 /**
  * Read the live colour variables into a `ReadbackSnapshot`. Only the two colour axes (`core/palette` +
- * `color.appearance`) are read — the scope this lane materialises. Vars in other collections, and in the
+ * `color`) are read — the scope this lane materialises. Vars in other collections, and in the
  * other groups of the `core` collection, are ignored here and read by their own axis below. An alias whose
  * target var can't be found is surfaced as `{ alias: null }` rather than a fabricated name, so
  * `verifyReadback`'s dangling-alias check stays honest.
  *
- * `color.appearance` and not `color` since #1013 — the value tier is what `verifyReadback` checks, and
- * it is the tier that carries the appearance modes and the palette aliases. The alias tier that took the
- * short name is still unread here, which is the pre-existing hole the swap relocated rather than opened;
- * see `read-back.ts`'s header.
+ * `color` again since #1148 — it was `color.appearance` from #1013, while the short name belonged to a
+ * pointer tier this reader never read. That was a real hole, and the collapse CLOSED it rather than moving
+ * it: there is one colour collection now, so the tier `verifyReadback` checks and the tier a designer
+ * binds are the same tier, and there is no second one left to go unread. See `read-back.ts`'s header.
  */
 export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesReadApi): Promise<ReadbackSnapshot> => {
   const collections = await vars.getLocalVariableCollectionsAsync();
@@ -66,7 +66,7 @@ export const readFigmaVariables = async (vars: VariablesApi, styles?: StylesRead
 
   const PALETTE_AXIS = 'core/palette';
   const palCol = collections.find((c) => c.name === axisSource(PALETTE_AXIS).collection);
-  const colCol = collections.find((c) => c.name === 'color.appearance');
+  const colCol = collections.find((c) => c.name === 'color');
 
   const inPalette = inAxis(PALETTE_AXIS);
   const palette = palCol
