@@ -366,7 +366,7 @@ ok(crRes.misses.length === 0, '#1013 collection rename: the write itself is unaf
 // variable cannot be re-parented and a fan-in is not a rename. So `color.surface` is left in the designer's
 // file, holding 130 variables and every binding made against them, in a collection the engine will never
 // write again — reported by nothing, because each executor only walks the collection it wrote. That is
-// #1148's accepted consequence, filed as its own issue, and asserted BY ID below so a green suite records
+// #1148's accepted consequence, filed as #1152, and asserted BY ID below so a green suite records
 // the orphan rather than implying it was handled.
 //
 // **This block used to be about ORDER, and since #1097 it is not.** The map's entries were once a chain

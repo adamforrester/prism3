@@ -423,7 +423,7 @@ export const COLLECTION_RENAMES: CollectionRename[] = [
   //   · A file written at 0.27.0–0.29.0 holds `color.appearance` + `color.surface`. This entry migrates,
   //     and `color.surface` is left ORPHANED — Figma cannot merge it, so it keeps its variables and its
   //     bindings, which go on resolving through their aliases. Nothing reports it now that
-  //     `applySurfacePlan`'s `orphans` is gone; filed as its own issue rather than papered over.
+  //     `applySurfacePlan`'s `orphans` is gone; filed as #1152 rather than papered over.
   //   · A file written in the narrow 0.26.x window — after #1013, before #1089 named the pointer tier's
   //     axis — holds `color.appearance` + `color`, because the pointer tier was briefly called `color`.
   //     This entry's target is occupied by a collection that is NOT another entry's product, so

@@ -7,6 +7,113 @@
 
 ---
 
+## (2026-08-29) — ONE `color` collection, and the roles are written in reading order (#1148, #1150)
+
+The three colour tiers become two. `color.surface` — the pointer tier, one `Default` mode, 130 rows of
+1:1 alias — is **deleted**, and `color.appearance` is **renamed to `color`**, carrying its values and its
+four appearance modes with it. Everything binds `color/*` directly: `color/background/primary` on the
+default side, `color/inverse/background/primary` on the inverse side. The short consumer-facing names
+survive the collapse *because* of the rename; the inverse names shorten by one segment. #1150 rides
+along: the role families are emitted in reading order — background, foreground, text, icon, interactive,
+disabled, border, scrim, veil, field, **inverse last** — which `COLOR_FAMILY_ORDER` (`tree.ts`) drives for
+both formats at once. Decision record: `docs/20` §9.10, `docs/42` row, addenda in `docs/44` §2/§3/§8.
+Supersedes #1135 and #1136. `ENGINE_VERSION` 0.29.0 → **0.30.0** / `CONTRACT_VERSION` 8.0.0 → **9.0.0**.
+
+`npm run verify`: **45/45 gates reached a verdict, 45 PASS · 0 FAIL · 0 SKIP · 0 ADVISORY** (113s).
+
+### The pointer tier was deleted rather than replaced, because the rename buys what it was buying
+
+What `color.surface` bought was a **short, stable name for a consumer** — `color.background.primary` with
+no appearance segment in it, so a designer binds one row and the mode switch happens a tier below. That is
+worth a collection only while the tier holding the values is named something a consumer should not have to
+type. Rename that tier to `color` and the short name *is* the value's name: same string, one fewer
+indirection, and the appearance modes land on the collection the designer is already bound to. #1133 had
+already taken the `inverse` mode off the pointer collection and #1140 had already put every inverse role
+under one `inverse.` group, so by this point the pointer tier's remaining job was a spelling — and a
+spelling is what a rename is for.
+
+### The contract cost, measured: MAJOR, and larger than the rename alone suggests
+
+The instruction said measure, don't assume, and the measurement moves in both directions at once.
+**225 `guaranteed` paths removed, 104 added, 0 demoted** → `CONTRACT_VERSION` **9.0.0**, with the baseline's
+`guaranteed` going 687 → **566**, `brandDependent` **255**, and `DEPRECATIONS` at **676** entries. The
+asymmetry is the thing to understand before quoting it: the 104 additions are the shortened inverse names,
+but the 225 removals are the old inverse names **plus every `color.surface` pointer row**, because a pointer
+row was a guaranteed path in its own right and the collection carrying it is gone. So the net is a *smaller*
+guaranteed surface for the same tokens — the collapse removed names, it did not just rename them. Emitted
+artifacts 111 → **108**; `EXPECTED_ARTIFACTS` moved in `verify.ts` **and** in `ci.yml`, which is the pair
+`CLAUDE.md` deliberately declines to restate a numeral for.
+
+### The migration is a collection rename, and the one thing it cannot do
+
+`COLLECTION_RENAMES` (`rename-map.ts`) gains exactly **one** entry — `color.appearance` → `color` @ 0.30.0 — and
+`MATERIALIZATION_RENAMES` gains `color-one-collection-1148`, whose domain is
+`collection === 'color' && name.startsWith(root + '/color/appearance/')`. It is **structurally disjoint on
+the root** from the surviving `namespace-and-core-tier-1097` rule, whose domain names no collection at all,
+so `multiplyClaimed` is 0 everywhere rather than 0 by luck.
+
+**What it cannot do is fan in.** `Variable.variableCollectionId` is `readonly`
+(`@figma/plugin-typings/plugin-api.d.ts:11454`) — a variable can never be re-parented — so the pointer rows
+cannot merge into the renamed collection. They are **orphaned**: a designer upgrading an existing file gets
+one `color` collection carrying the values and a leftover `color.surface` sitting beside it, bound to
+nothing. That is asserted BY ID in both `test-write.ts` and the plan suite, with the arm stating why
+nothing else can see it — **a collection no executor walks contributes to no orphan report and to no
+count**, so the only thing that can record it is an arm naming it. Filed as **#1152** rather than noted
+here (principle 3: prose in a write-up is not filing).
+
+The second consequence is a **refusal, not corruption**: a file still on 0.26.x names carry the
+post-rename spelling already, so the rename pass reports `target-occupied` and — because the pass is atomic
+— neuters the whole pass rather than half-applying it. Recovery is one manual rename. Both consequences are
+recorded in `docs/20` §9.10 and `docs/44` §2.
+
+### Two findings in the migration machinery, neither of which this PR fixes
+
+- **`ACCOUNTING_COLLECTION_MOVES` contains a live 2-cycle.** Its 6 entries include `color` → `color.surface`
+  → `color`, so `recollect`'s single-step contract is backed by **non-termination**: at an even hop count a
+  walk lands back where it started and reads as a no-op while being wrong. The single-step contract holds
+  today and this is why it must keep holding, which is a stronger statement than the map being acyclic.
+- **`account` does not chain rules** (`materialization-renames.ts:319-351`). Composing hops is
+  `materialize`'s job, via a fixpoint capped at `rules.length + 1`. Worth knowing before reading an
+  `isTotal` result as "every path a rule could reach": `isTotal` is
+  `unaccountedRemovals === 0 && contradictedClaims === 0 && multiplyClaimed === 0`, all measured on
+  single-hop claims.
+
+### The consumability arms were replaced, not dropped — and both mutations were run
+
+`check-consumability.mjs` carried two #1013 arms asserting the pointer tier's short name was **stable**
+across appearance. #1148 removes the tier that made that true, so the property they protected is now
+delivered by the rename and the arms would have been vacuous. They are replaced by a **three-arm set**, none
+of which is sufficient alone: (1) `--<root>-color-background-primary` resolves; (2) it **differs** between
+the canonical and `dark` builds — the short name is now the one that *moves*, and identical strings there
+mean a pointer tier is back under this name; (3) the converse, and the one that cannot be satisfied by
+accident — **no** `--<root>-color-appearance-*` reaches the consumer in any form.
+
+Both new arms were mutation-tested, each after committing first (the rule that exists because the *next*
+mutation's `git checkout --` restore reaches back to `HEAD`). Pointing arm 3's prefix at a live family made
+it fail by name for all four brands with a count and three named examples; pointing arm 2's variable at an
+appearance-invariant primitive made it fail by name for all four (`#ffffff vs #ffffff`). A blank named grep
+would have been a failed mutation, not a quiet pass (#986).
+
+### #1150: the write order is confirmed; that the PANEL follows it is the owner's check
+
+`COLOR_FAMILY_ORDER` drives DTCG key insertion order *and* the Figma `variables[]` creation order from one
+list, and it is module-private on purpose — `test.ts` does not import it, because a gate that reads the
+order from the thing it checks asserts `table === table` (`docs/34` shape 11). The order is pinned by a test
+block that names the eleven families in both formats. **The verification boundary is stated rather than
+blurred**: reordering the list and re-emitting moves both formats, which confirms write order drives
+emission order; that Figma's variables panel *renders* that order is the owner's check in Figma and is not
+claimed here.
+
+### One trap worth carrying forward
+
+**`lint-decisions-index.ts` silently ignores a heading naming two issues.** Its detector admits exactly one
+`#NNN` — `Decided (YYYY-MM-DD, #NNN): title` — so a heading written `Decided (2026-08-29, #1148 + #1150):`
+matches nothing at all, is not indexed, and the gate reports **clean**. It was caught before it could report
+that, and the fix is the shape the convention already wants: one issue in the heading, the second named in
+the title text. Also worth knowing: the brief pointed at `write-plan.ts:145` as hardcoding
+`'color.appearance'` — that line is a doc comment. The hardcoded literal was
+`upsertCollection(vars, 'color.appearance', …)` in `apps/plugin/src/write-figma.ts`, now `'color'`.
+
 ## (2026-08-28) — one top-level `inverse.` group; `on-` takes a ground (#1140)
 
 All 113 inverse roles in `color.appearance` move to a single top-level `inverse.` group:

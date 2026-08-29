@@ -100,7 +100,7 @@ variables appear in four mode files each, and the four are one name.
 > things about the mechanism, both measured: the fan-in is *not* a migration — `Variable.variableCollectionId`
 > is `readonly`, so the pointer collection's rows cannot be folded into the value collection and the map
 > renames the VALUE tier onto `color` and leaves `color.surface` orphaned in a designer's file (the accepted
-> consequence, filed separately) — and the variance argument this section rests on is again unaffected,
+> consequence, filed as **#1152**) — and the variance argument this section rests on is again unaffected,
 > because a colour collection's row count was never the varying one.
 
 The three remaining collections — `text-styles`, `shadow-styles`, `gradient-styles` — hold **zero
