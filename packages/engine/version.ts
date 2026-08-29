@@ -102,6 +102,28 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.29.0: ONE `inverse` GROUP (#1140). Every inverse colour role relocates to a single top-level
+ * `inverse.` group — `color.appearance.background.inverse.primary` becomes
+ * `color.appearance.inverse.background.primary`, `…text.on-inverse.primary` becomes
+ * `…inverse.text.primary` — so the inverse form of any role is `inverse.` + the role, with nothing to
+ * look up. 113 emitted paths move; `main` at 0.28.0 emits none under `appearance/inverse/` and this
+ * emits 1,356 occurrences of it across the artifact set. The edge ladder also gains a third rung
+ * (`border.tertiary`, `inverse.border.tertiary`, and the pointer row `color.border.tertiary` the surface
+ * tier generates from the new non-inverse role) and drops `border.inverse.default`, which was
+ * byte-identical to its `primary` twin. Reasoning in `docs/20` §9.9; the name surface is
+ * `CONTRACT_VERSION` 8.0.0 below, which is the MAJOR this rename forces.
+ *
+ * A MINOR rather than a PATCH by the ordinary rule — a consumer reading `out/**` sees 113 different
+ * names — and the bump is recorded here rather than assumed, because IT WAS MISSED. #1141 shipped the
+ * whole rename with this constant still reading 0.28.0, so every regenerated tree carried #1139's
+ * generator stamp: an artifact set claiming to have been produced by code that could not have produced
+ * it. Nothing caught it. The gates all compare the emission to ITSELF (`regen --check`) or to the
+ * contract baseline, and no gate asserts that a moved emission moves `ENGINE_VERSION` — the one
+ * assertion that would have. It was caught in review, by diffing the emitted paths against `main`.
+ * Whether that earns a gate is a separate call and deliberately not made here; the shape of it is
+ * awkward for the usual reason (`docs/34`), since the obvious implementation derives "did the emission
+ * move" from the emission the same regen produces.
+ *
  * 0.28.0: INVERSE GOES BACK TO A NAME (#1133). The `color.surface` pointer collection loses its second
  * mode: `default`/`inverse` becomes one `Default`, and the per-brand `color.surface.{default,inverse}.json`
  * pair becomes a single `color.surface.json`. Three brands × two files → three files, so the ARTIFACT
@@ -594,7 +616,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.28.0';
+export const ENGINE_VERSION = '0.29.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

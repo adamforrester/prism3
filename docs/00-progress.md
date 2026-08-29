@@ -55,6 +55,18 @@ nobody writes — `color.border.tertiary`, which the pointer tier generates auto
 non-inverse appearance role, so adding a neutral border rung silently adds a pointer row too. The
 prediction going in was 686; the measurement said 687, and the gap was exactly that generated row.
 
+**`ENGINE_VERSION` 0.28.0 → 0.29.0, and it was missed the first time.** The rename shipped for review with
+the constant untouched, so every regenerated tree carried #1139's stamp — an artifact set claiming to have
+been produced by code that could not have produced it. The two versions are independent by design and the
+whole of this section is about the other one, which is exactly how the miss happens: `CONTRACT_VERSION` was
+measured carefully because a rename obviously moves the name surface, and the question `ENGINE_VERSION`
+answers ("what code produced this?") never got asked. **No gate asks it either.** `regen --check` compares
+the emission to itself and `token-contract --check` compares names to the baseline; neither can see that a
+moved emission left the generator stamp behind, and the baseline's own `engineVersion` field moves *with*
+the constant rather than against it. Caught in review by diffing emitted paths against `main`. Whether it
+earns a gate is deliberately left open — the obvious implementation is a `docs/34` shape-1 hazard, since
+"did the emission move" would be derived from the same regen that stamped it.
+
 ### The defect this PR found, and it was in the migration record rather than the emission
 
 `version.ts`'s load-bearing rule is that a deprecation's `path` is history and never moves while
