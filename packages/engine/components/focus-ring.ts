@@ -143,7 +143,7 @@ export const focusRing: ComponentDef = {
   // by name.
   //
   // WHAT THE TWO KEYS SPELL, AND WHY THEY NO LONGER SIT IN DIFFERENT TIERS. Both are plain `color.*`
-  // paths in the one colour tier: `color.border.focus` and `color.inverse.border.focus`. Until #1148
+  // paths in the one color tier: `color.border.focus` and `color.inverse.border.focus`. Until #1148
   // they were not comparable — `'border'` was a short POINTER row and `'border.inverse'` reached past
   // the pointer tier into `color.appearance.inverse.border.focus`, because `isInverseRole` withheld a
   // pointer from every inverse role. That asymmetry needed a register entry to license it

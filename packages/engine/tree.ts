@@ -76,7 +76,7 @@ const orderedRoleKeys = (keys: string[]): string[] => {
   const unlisted = [...new Set(keys.map((k) => k.split('.')[0]))].filter((f) => !rank.has(f));
   if (unlisted.length)
     throw new Error(
-      `tree: colour role family/families absent from COLOR_FAMILY_ORDER: ${unlisted.join(', ')} — #1150 makes `
+      `tree: color role family/families absent from COLOR_FAMILY_ORDER: ${unlisted.join(', ')} — #1150 makes `
       + 'the written order the order Figma lists the collection in, so an unranked family would land wherever '
       + 'the resolver happened to build it. Add it at the position it should read in the variables panel.',
     );

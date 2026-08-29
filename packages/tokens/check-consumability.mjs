@@ -316,28 +316,30 @@ for (const brand of brands) {
   // a loop. The canonical build must show the DEFAULT value, not a mode's — checked by comparing it
   // against the dark projection of the same variable rather than against a hard-coded color.
   //
-  // ── WHICH TIER TO ASK, AND WHY THE OBVIOUS ONE IS THE WRONG ONE (#1013) ────────────────────────
-  // The variable is `color.appearance.background.primary`, NOT the shorter `color.background.primary`
-  // a consumer binds. The swap gave the short name to the surface-ALIAS tier, whose leaf is a POINTER:
-  // in CSS it emits `var(--<root>-color-appearance-background-primary)`, the same string in every
-  // appearance build, because appearance varies one level down. So asking the short name here compares
-  // a pointer against itself and fails with two identical strings in the message — which is how this
-  // was found, and would read as "the overlay is inert" rather than "wrong tier asked".
+  // ── ONE TIER, AND THE SHORT NAME IS NOW THE ONE THAT VARIES (#1148) ────────────────────────────
+  // Until #1148 there were two colour tiers and this block had to ask the LONGER one: the swap (#1013)
+  // gave the short name to a surface-ALIAS tier whose leaf was a POINTER, so in CSS it emitted
+  // `var(--<root>-color-appearance-background-primary)` — the same string in every appearance build,
+  // because appearance varied one level down. Asking the short name then compared a pointer against
+  // itself and failed with two identical strings in the message, reading as "the overlay is inert"
+  // rather than "wrong tier asked". That is the trap this comment exists to keep visible, and #1148
+  // removed the tier that caused it: `color.background.primary` is the value now, and it moves.
   //
-  // The two arms below are a PAIR and neither is sufficient. The first is the original assertion, moved
-  // to the tier where appearance actually varies. The second states the property that broke the first —
-  // the alias tier is appearance-INVARIANT — so a future reader who repoints arm 1 back at the short
-  // name fails arm 2 by name instead of quietly weakening the gate to a tautology.
-  const valueVar = `--${src.root}-color-appearance-background-primary`;
-  const aliasVar = `--${src.root}-color-background-primary`;
+  // The three arms below are a SET and none is sufficient. Arm 1 is the original assertion at the only
+  // tier there is. Arm 2 is the property that broke it before — the value must MOVE between appearance
+  // builds — which is what a re-introduced pointer under this name would fail. Arm 3 is the converse
+  // and the one that cannot be satisfied by accident: the long spelling must be ABSENT, so an emitter
+  // that revived the two-tier split fails here by name rather than passing arms 1 and 2 unchanged while
+  // silently adding a second surface for consumers to choose between.
+  const valueVar = `--${src.root}-color-background-primary`;
+  const retiredPrefix = `--${src.root}-color-appearance-`;
   const dark = readEmitted(await buildProjected(brand, 'dark'));
   ok(css.byName[valueVar] !== undefined, `${brand}: the page background resolves (${valueVar} = ${css.byName[valueVar] ?? 'MISSING'})`);
   ok(css.byName[valueVar] !== dark.byName[valueVar],
-    `${brand}: the canonical build shows the DEFAULT page background, not dark's (${css.byName[valueVar]} vs ${dark.byName[valueVar]})`);
-  ok(css.byName[aliasVar] !== undefined && css.byName[aliasVar] === dark.byName[aliasVar],
-    `${brand}: [#1013] the alias tier is appearance-INVARIANT — the short name a consumer binds emits the same pointer in every appearance build, and the value moves beneath it (${css.byName[aliasVar] ?? 'MISSING'} vs ${dark.byName[aliasVar] ?? 'MISSING'})`);
-  ok(css.byName[aliasVar] === `var(${valueVar})`,
-    `${brand}: [#1013] and it points at the value tier rather than carrying a colour of its own (${css.byName[aliasVar]})`);
+    `${brand}: [#1148] the canonical build shows the DEFAULT page background, not dark's, and the SHORT name is what moves (${css.byName[valueVar]} vs ${dark.byName[valueVar]}) — identical strings here mean a pointer tier is back under this name`);
+  const retired = Object.keys(css.byName).filter((n) => n.startsWith(retiredPrefix));
+  ok(retired.length === 0,
+    `${brand}: [#1148] and the retired \`color.appearance.*\` tier reaches the consumer in NO form (${retired.length ? `${retired.length} still do, e.g. ${retired.slice(0, 3).join(', ')}` : 'none'}) — one collection means one name per role, and a consumer choosing between two spellings of the same value is the state the collapse removed`);
 
   ok(src.modes.length >= 3, `${brand}: [#609] the projection covers every declared mode (${src.modes.length})`);
 }

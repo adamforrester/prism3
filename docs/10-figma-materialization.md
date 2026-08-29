@@ -24,14 +24,17 @@
 > migration path from the three old collections to `core`: `Variable.variableCollectionId` is `readonly`
 > (`@figma/plugin-typings/plugin-api.d.ts:11454`), so the fan-in applies to fresh emission only (#1108).
 >
-> **The colour semantics are two collections** since #1089: `color.appearance` (appearance-moded) and
-> `color.surface` (single-mode `Default` — it carried a two-mode `surface` axis until #1133 reverted inverse
-> to name-encoding, `docs/20` §9.8). Both hold `color/*` variables — a collection name and a variable prefix are
-> independent here too. `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`; only the COLLECTION
-> of that name is gone.
+> **The colour semantics are ONE collection, named `color`** since #1148 (`docs/20` §9.10). It is
+> appearance-moded (`light`/`dark`/`hc-light`/`hc-dark`) and holds every colour role, inverse included, as
+> `color/*` variables — a collection name and a variable prefix are independent here too. The two-collection
+> layout #1089 shipped — `color.appearance` (the values) plus a `color.surface` pointer tier aliasing 1:1 into
+> it — is gone: the pointer tier bought a stable short name, the rename buys the same name outright, and one
+> collection is one place to look. `font-fluid/*` remains a live VARIABLE prefix inside `type-sets`; only the
+> COLLECTION of that name is gone.
 >
 > **When reading the tables and prose below**, translate `core-palette`/`core-dimension`/`core-font` → `core`,
-> `color` → `color.appearance`, and add the `<root>/` prefix to every variable name. The `fixtures/figma/nb`
+> and add the `<root>/` prefix to every variable name — the colour collection is `color` again, as the tables
+> below already say, but its 243 rows are the VALUES rather than #1089's 129 pointers. The `fixtures/figma/nb`
 > byte-repro target keeps the OLD labels AND the unrooted, untiered names on purpose: it is the frozen real
 > Token Press export, and `test.ts` states the translation on the ENGINE's side, asserting each prefix is
 > present *before* stripping it — a strip is satisfied by a name that never had the prefix, so an emitter that

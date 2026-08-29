@@ -93,6 +93,15 @@ variables appear in four mode files each, and the four are one name.
 > larger now, not smaller (`core` spans 199–258 where `core-palette` spanned 122–182). The old figures are
 > left standing rather than overwritten, because a document that silently restates its measurements to
 > match today cannot be checked against the reasoning it once supported.
+>
+> **And it has moved again (#1148, 2026-08-29), by one collection.** The two colour collections are now
+> ONE, named `color`, holding the VALUES: **243** rows × 4 mode files, with the 1:1 pointer tier deleted
+> rather than renamed. **12 collections**, and the per-brand corpus drops by the pointer tier's rows. Two
+> things about the mechanism, both measured: the fan-in is *not* a migration — `Variable.variableCollectionId`
+> is `readonly`, so the pointer collection's rows cannot be folded into the value collection and the map
+> renames the VALUE tier onto `color` and leaves `color.surface` orphaned in a designer's file (the accepted
+> consequence, filed separately) — and the variance argument this section rests on is again unaffected,
+> because a colour collection's row count was never the varying one.
 
 The three remaining collections — `text-styles`, `shadow-styles`, `gradient-styles` — hold **zero
 variables**. They materialize as Figma *styles*, where a rename is a different call on a different
@@ -147,6 +156,13 @@ written by that call (`write-figma.ts:330`). Post-swap the value layer is writte
 fully migrates. So the chain would work, for a reason documented as being about **alias resolution**,
 with nothing anywhere recording that a migration depends on it. A future executor reordering breaks it
 into a reported refusal. Filed as **#1035**, with the measured table.
+
+> **#1148 (2026-08-29) removed both halves of that coincidence, and the second removal is the durable one.**
+> `applySurfacePlan` is deleted — one collection needs one executor — so there is no second call whose order
+> could be a coincidence. And the shipped map is now a SINGLE entry, so it holds no chain to mis-order. Both
+> facts make this section's *hazard* unreachable rather than fixed, which is why #1035's guarantee (the
+> ordered pre-pass, computed from the dependencies) stays: the next map with two entries inherits it, and a
+> guarantee that only exists while the data happens to be one row is not one.
 
 So the answer to *"is that a sort or a redesign?"* is **a guarantee relocation**, and it splits cleanly
 in two:
@@ -421,7 +437,11 @@ pre-pass from §3 — which is theirs, not the mechanism's.
   `MATERIALIZATION_RENAMES` now carries its first real entries. *(#1102 later made the parenthetical
   read the other way and thereby confirmed the rule: the DTCG path became `core.palette.*`, so the
   variables became `core/palette/*` — the name tracked the path, as stated, rather than the collection
-  label, which is now the bare `core`.)*
+  label, which is now the bare `core`.)* **#1148 then reversed the swap's OUTCOME while leaving its rule
+  intact:** the pointer tier is deleted and the DTCG value tier moves back to `color.*`, so the variables
+  are `color/*` again — the name still tracks the path, and the third instance of that rule is the one that
+  moved a name *back*. What #1013 decided was "which tier owns the short name"; #1148's answer is that with
+  one tier the question does not arise.
 - Whether the three renames land as one migration or three. #1032 argued one, on the grounds that each
   costs a full-file migration and a manual Figma verification. **Practice contradicted it**: #1013
   shipped the swap alone, because it is the only one of the three with a token-model consequence (which

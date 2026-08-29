@@ -211,7 +211,7 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     id: 'color-one-collection-1148',
     since: '0.30.0',
     why:
-      'The two colour tiers became one, and the surviving tier is the one holding the VALUES, so its '
+      'The two color tiers became one, and the surviving tier is the one holding the VALUES, so its '
       + 'variables gave up the `appearance/` segment #1013 gave them: `<root>/color/appearance/text/primary` '
       + 'is now `<root>/color/text/primary`. The short names are not new — they are the names the pointer '
       + 'tier had, taken over by the tier that can actually re-theme, which is the whole of #1148. The '
