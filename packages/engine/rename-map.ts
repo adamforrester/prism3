@@ -39,11 +39,12 @@
  * **invisible to `DEPRECATIONS`** — the Figma collection name is a materialisation choice, not a
  * contract path — so `COLLECTION_RENAMES` is *authored*, and stays small for the same reason: it can
  * only ever hold the handful of names the engine itself chose. #1013 gave it its first two entries
- * (`color` → `color.appearance` and `surface` → `color`), which between them were a CHAIN. **#1097
- * retargeted the second to `surface` → `color.surface` and the chain is gone** — neither target is any
- * entry's source now, so the map holds no ordering question at all. The ordering machinery below stays,
- * and its coverage moved to a fixture in the same change; the paragraphs are about a shape the map HELD,
- * which is worth knowing precisely because the next entry could reintroduce it.
+ * (`color` → `color.appearance` and `surface` → `color`), which between them were a CHAIN; #1097
+ * retargeted the second to `surface` → `color.surface` and the chain went. **#1148 retired both and the
+ * map holds ONE entry, `color.appearance` → `color`** — see the register for why retiring them was
+ * forced rather than tidy. The ordering machinery below stays, and its coverage lives in a fixture; the
+ * paragraphs are about a shape the map HELD, which is worth knowing precisely because the next entry
+ * could reintroduce it.
  *
  * Ordering is the sharp difference, and since #1013 it is a GUARANTEE rather than a coincidence. A
  * collection rename must run **before** the find-by-name lookup it exists to fix, or
@@ -165,23 +166,27 @@ export type RenameOutcome = {
 export const isRefusal = (s: RenameStatus): boolean =>
   s === 'target-occupied' || s === 'target-not-planned' || s === 'ambiguous-source';
 
-/**
- * The colour ROLE set is materialised into two collections, so one renamed contract path can carry
- * **two** Figma names and a one-collection map leaves the twin silently orphaned — measured at 3 of the
- * live entries before #1013. Both projections are emitted; the twin with no counterpart in a given file
- * reports `source-absent`, so over-projecting is self-correcting and under-projecting is not.
+/* ── THERE IS NO MIRROR (#1148) ────────────────────────────────────────────────────────────────────
  *
- * Since #1013 the two are `color.appearance` (the VALUE tier — 242 roles, one mode per appearance) and
- * the alias tier — the 128 roles that have an inverse counterpart, two surface modes. They were `color`
- * and `surface`; #1089 then named the alias tier's axis, so it is `color.surface`. The measured subset
- * relation is unchanged by either rename: 128 of the 242 roles are also alias-tier roles, and every
- * alias-tier role is a value-tier role.
+ * `MIRRORED_COLLECTIONS` — `{ color: ['color.appearance', 'color.surface'] }` — is DELETED rather than
+ * reduced to `{ color: ['color'] }`, and the distinction is `docs/34` shape 9: an identity mirror is a
+ * register that mirrors nothing, and the next reader has to derive that from its contents instead of
+ * reading it. `projectionsOf`'s `?? [root]` fallback is now the only path, which is what "one collection"
+ * means expressed as code.
  *
- * **The value tier is listed first, and that is not cosmetic.** `color.appearance` is where a renamed
- * role's variable actually lives in every brand; the alias tier holds it only for the 128. A reader
- * scanning the projections should meet the one that fires first.
+ * WHAT THE MIRROR WAS FOR, so its loss is not mistaken for a simplification. The colour role set was
+ * materialised TWICE — `color.appearance` (the value tier, one mode per appearance) and `color.surface`
+ * (the pointer tier, the non-inverse roles only) — so one renamed contract path carried TWO Figma names,
+ * and a one-collection map left the twin silently orphaned (measured at 3 of the live entries before
+ * #1013). Emitting both projections fixed that: the twin with no counterpart in a given file reported
+ * `source-absent`, so over-projecting was self-correcting and under-projecting was not.
+ *
+ * #1148 removes the second materialisation, not the safeguard's reasoning. One role is one variable in
+ * one collection, so there is no twin left to under-project — the asymmetry the mirror existed to
+ * absorb is gone with the tier that created it. If a second colour collection ever returns, this is
+ * the register to bring back, and `planVariableRenames`'s branch-order comment (#1087) is where the
+ * over-projection was absorbed.
  */
-export const MIRRORED_COLLECTIONS: Record<string, readonly string[]> = { color: ['color.appearance', 'color.surface'] };
 
 /**
  * Contract roots that are ALSO the name of an emitted Figma variable collection — measured, 9 of the 16
@@ -219,23 +224,38 @@ export const PROJECTED_ROOTS: readonly string[] = [
 ];
 
 /**
- * A root's TIER segment — the one segment that sits between the root and the role in the value tier's
+ * A root's TIER segment — the one segment that sat between the root and the role in the value tier's
  * variable names. Per-root and closed, rather than "strip a second segment when it looks like a tier":
- * only the colour axis has two tiers, `appearance` is not any role's first segment in any brand, and
- * there is no `space/appearance/*`. A guess would be a rule about a naming convention; this is a fact
- * about two collections.
+ * only the colour axis ever had two tiers, `appearance` is not any role's first segment in any brand,
+ * and there is no `space/appearance/*`. A guess would be a rule about a naming convention; this is a
+ * fact about the emission.
+ *
+ * **HISTORICAL SINCE #1148, AND LOAD-BEARING FOR EXACTLY THAT REASON.** No live variable carries an
+ * `appearance` segment any more — there is one colour collection and its names are `color/<role>`. The
+ * entry stays because `DEPRECATIONS` spells each `path` in the era that retired it, and two eras' worth
+ * of them are spelled `color.appearance.<role>`. Delete it and `roleOf` reads `appearance/` as part of
+ * the role, so the TIER-ONLY guard in `projectionsOf` stops firing and #1148's own 243 entries project
+ * `color/appearance/<role>` → `color/<role>` as contract renames. Those spellings are not wrong — they
+ * are the materialisation rule `color-one-collection-1148` states, arrived at from the other register —
+ * which is the failure: two differently-derived records in front of one Figma operation, reported by
+ * `lint-materialization-renames.ts` as CLAIMED BY MORE THAN ONE RULE. Loud, then, rather than silent,
+ * which is the only reason this note can be short.
  */
 const TIER_SEGMENT: Record<string, string> = { color: 'appearance' };
 
 /**
  * The ROLE a Figma variable name carries, with its tier prefix stripped.
  *
- * `color/text/primary` (alias tier) and `color/appearance/text/primary` (value tier) are the same role
- * materialised twice, and the tier prefix is the only difference — so the ROLE is what a contract rename
- * projects, never the raw name. Stripping is also what makes the projection era-independent: a
- * deprecation recorded before #1013 spells its path with no `appearance` segment and one recorded after
- * spells it with one, and re-rooting the raw name would produce `color.appearance/text/primary` (a dot
- * where the emission has a slash) from the first and `color/appearance/appearance/…` from the second.
+ * Stripping is what makes the projection ERA-INDEPENDENT, and that is now its whole job. A deprecation
+ * recorded before #1013 spells its path with no `appearance` segment, one recorded between #1013 and
+ * #1148 spells it with one, and one recorded since spells it without again; re-rooting the raw name
+ * would produce `color.appearance/text/primary` (a dot where the emission has a slash) from the middle
+ * era. Reduced to the role, all three eras name the same thing, which is what a contract rename is
+ * actually about.
+ *
+ * It also used to reconcile the two live materialisations of one role — `color/text/primary` in the
+ * pointer tier and `color/appearance/text/primary` in the value tier. #1148 left one, so that half of
+ * the reason is history; see the note where `MIRRORED_COLLECTIONS` was.
  */
 const roleOf = (figmaName: string): string => {
   const seg = figmaName.split('/');
@@ -243,39 +263,38 @@ const roleOf = (figmaName: string): string => {
   return seg.slice(tier !== undefined && seg[1] === tier ? 2 : 1).join('/');
 };
 
-/**
- * WHERE A COLLECTION'S NAME AND ITS VARIABLES' NAME PREFIX DISAGREE (#1089) — one entry, and it is an
- * exception to a rule that held for every other projected root.
+/* ── AND NO `NAME_PREFIX` EXCEPTION EITHER (#1148) ──────────────────────────────────────────────────
  *
- * `reRoot` below spelled the prefix by splitting the COLLECTION name on dots, which was a fact about the
- * emission while a collection was named after the tier its variables carry: `color.appearance` holds
- * `color/appearance/*`, `space` holds `space/*`. #1089 named the alias tier's AXIS instead — the
- * collection is `color.surface` and its variables kept their `color/*` tails, because no DTCG path moved.
+ * `NAME_PREFIX` — `{ 'color.surface': ['color'] }` — went with the collection it was about. It existed
+ * because #1089 named the pointer tier's AXIS (`color.surface`) while its variables kept their `color/*`
+ * tails, so `reRoot`'s split-the-collection-name-on-dots rule would have spelled `color/surface/<role>`,
+ * a name no brand emitted — and silently, since a row whose target is absent is a reported no-op by
+ * design. With one collection named `color` holding `color/*`, the split rule is simply true again.
  *
- * The derivation would now spell `color/surface/<role>`, a name no brand emits, so all 40 projecting rows
- * would resolve nowhere — silently, since a row whose target is absent is a reported no-op by design.
+ * It is DELETED rather than left as an empty record, same reason as the mirror above: an empty lookup is
+ * `docs/34` shape 9, a vocabulary that reads as a pass. If a collection is ever again named something
+ * other than the prefix its variables carry, this is the exception to reinstate.
  */
-const NAME_PREFIX: Record<string, readonly string[]> = { 'color.surface': ['color'] };
 
-/** Spell one role into one collection. The collection name is the tier prefix, dots to slashes, EXCEPT
- *  where `NAME_PREFIX` says otherwise: `color.appearance` holds `color/appearance/*`, `color.surface`
- *  holds `color/*`, `space` holds `space/*`. `core` holding `palette/*`, `dimension/*` and `font/*` is
- *  the counterexample that keeps `PROJECTED_ROOTS` a closed list rather than "every collection".
+/** Spell one role into one collection: the collection name is the variables' prefix, dots to slashes —
+ *  `color` holds `color/*`, `space` holds `space/*`. `core` holding `palette/*`, `dimension/*` and
+ *  `font/*` is the counterexample that keeps `PROJECTED_ROOTS` a closed list rather than "every
+ *  collection".
  *
  *  The BRAND ROOT is deliberately absent here (#1097). Every emitted name carries it, and these rows do
  *  not: they are tails, derived from `DEPRECATIONS`, where nothing is brand-specific.
  *  `composeVariableRenames` is the one layer that puts it on — see its header. */
 const reRoot = (figmaName: string, collection: string): string =>
-  [...(NAME_PREFIX[collection] ?? collection.split('.')), roleOf(figmaName)].join('/');
+  [...collection.split('.'), roleOf(figmaName)].join('/');
 
 /**
  * Every candidate Figma projection of one deprecation: the ROLE, spelled into each collection the root
  * materialises into. Empty for a root that materialises no variable collection, for a cross-root
  * rename, and for a tier-only move.
  *
- * `from` is spelled in the CURRENT materialisation (`color/appearance/<role>`), not in whatever spelling
- * a given file happens to hold. A pre-#1013 file holds `color/<role>` there instead, and the
- * MATERIALIZATION rules are what carry it to the current spelling — the executor composes the two in
+ * `from` is spelled in the CURRENT materialisation (`color/<role>` since #1148), not in whatever spelling
+ * a given file happens to hold. A #1013-to-#1147 file holds `color/appearance/<role>` there instead, and
+ * the MATERIALIZATION rules are what carry it to the current spelling — the executor composes the two in
  * that order (materialisation first, then contract) so a variable needing both moves in one step rather
  * than through an intermediate name no plan asks for. See `applyVariableRenames` in `write-figma.ts`.
  *
@@ -291,20 +310,22 @@ export const projectionsOf = (d: Deprecation): VarRename[] => {
   // A rename that moves between roots would change which collection the variable lives in — that is
   // a move, not a rename, and Figma has no such operation. Refuse to project it at all.
   if (d.replacedBy.split('.')[0] !== root) return [];
-  // TIER-ONLY: the contract path moved and the ROLE did not. #1013's 114 entries are all of this shape
-  // (`color.background.inverse.primary` → `color.appearance.background.inverse.primary`). There is no
-  // variable rename to derive from one: what changed on the Figma side is the tier prefix on every
-  // variable in the collection, which is a MATERIALIZATION rename and is recorded as a rule in
-  // `materialization-renames.ts`. Projecting it anyway would emit 228 self-renames — which
-  // `validateRenameMap` refuses, so it would be loud rather than silent — and, worse, would put two
-  // differently-derived records in front of one Figma operation.
+  // TIER-ONLY: the contract path moved and the ROLE did not. There is no variable rename to derive from
+  // one: what changed on the Figma side is the tier prefix on every variable in the collection, which is
+  // a MATERIALIZATION rename and is recorded as a rule in `materialization-renames.ts`. Projecting it
+  // anyway would emit self-renames — which `validateRenameMap` refuses, so it would be loud rather than
+  // silent — and, worse, would put two differently-derived records in front of one Figma operation.
+  //
+  // TWO ERAS OF ENTRIES ARE THIS SHAPE, IN OPPOSITE DIRECTIONS, and the guard is one line for both.
+  // #1013's 114 added the tier (`color.background.inverse.primary` → `color.appearance.…`) and #1148's
+  // 243 take it away again (`color.appearance.background.primary` → `color.background.primary`). `roleOf`
+  // is what makes the direction irrelevant; `TIER_SEGMENT` is what makes `roleOf` work, and its note
+  // says what a deletion there costs.
   if (roleOf(from) === roleOf(to)) return [];
-  return (MIRRORED_COLLECTIONS[root] ?? [root]).map((collection) => ({
-    collection,
-    from: reRoot(from, collection),
-    to: reRoot(to, collection),
-    since: d.since,
-  }));
+  // ONE row, because one role is one variable — the root IS the collection since #1148. This read
+  // `(MIRRORED_COLLECTIONS[root] ?? [root]).map(...)` while the colour axis materialised twice; the note
+  // where that register was says what the mirror bought and what would bring it back.
+  return [{ collection: root, from: reRoot(from, root), to: reRoot(to, root), since: d.since }];
 };
 
 /** Strictly newer, in terms of the one semver comparator this repo owns — `'patch'` accepts an
@@ -345,61 +366,71 @@ export const deriveVariableRenames = (deps: readonly Deprecation[] = DEPRECATION
 };
 
 /**
- * Authored collection renames. Empty was the honest state while #1013 Q4 was open; #1013 took the
- * decision, and these are its first two entries.
- *
- * **They are a CHAIN, deliberately, and the order they must apply in is not the order they are written
- * in — it is computed.** `color` has to be vacated before `surface` can be renamed into it, so
- * `planCollectionRenames` topologically orders the map and the executor applies the whole thing as one
- * pre-pass. Reordering this array changes nothing; that is the point (docs/44 §3 measured that there was
- * no map order to sort in the first place).
+ * Authored collection renames. Empty was the honest state while #1013 Q4 was open; #1013 gave it two
+ * entries, and **#1148 retired both and left one.**
  *
  * `since` is an **`ENGINE_VERSION`**, not a `CONTRACT_VERSION`: a collection name is a materialisation
  * choice the contract cannot see, so the version that means anything here is the one that answers "what
  * code produced this file?"
  *
- * **That stamping is asserted, and only became asserted after it had already gone wrong.** Both entries
- * first shipped reading `0.25.0` — the version of a different, concurrent change — because
- * `MATERIALIZATION_RENAMES` was gated against exactly this drift and this map was not. `test.ts` now
- * carries the mirror arm; it is a tripwire on the next version bump rather than a durable rule, and the
+ * **That stamping is asserted, and only became asserted after it had already gone wrong.** #1013's two
+ * entries first shipped reading `0.25.0` — the version of a different, concurrent change — because
+ * `MATERIALIZATION_RENAMES` was gated against exactly this drift and this map was not. `test.ts` carries
+ * the mirror arm; it is a tripwire on the next version bump rather than a durable rule, and the
  * reasoning for why that is the right shape today is at the assertion.
  *
- * **When that arm goes red after a version bump, restamping these entries to the new version is the
- * wrong fix** — it is the false provenance record all over again. The stamps below are historical and
- * should stay put; the arm is what expires. Its failure message says so at length.
+ * **When that arm goes red after a version bump, restamping an entry to the new version is the wrong
+ * fix** — it is the false provenance record all over again. A stamp is historical and stays put; the arm
+ * is what expires. Its failure message says so at length. (#1097 established the corollary: a RETARGET
+ * is not a restamp either — it moved the alias entry's target and left its `since` alone, because the
+ * field answers when the SOURCE name was retired, not when the entry was last edited.)
  *
- * **And a retarget is not a restamp.** #1097 moved the alias-tier entry's TARGET and left its `since` at
- * `0.26.0`, because the field answers when the SOURCE name was retired — `surface` stopped being a
- * collection the engine writes when #1013's code shipped — not when the entry was last edited. The arm
- * went red on the changed key, which is what it is for; the fix was a new key in its table, not a new
- * version on the data.
+ * ── WHY #1148 RETIRED THE TWO #1013 ENTRIES, WHICH IS FORCED AND NOT TIDYING ─────────────────────
+ *
+ * Retiring an entry from a MIGRATION list normally strands whoever has not migrated yet, so neither
+ * removal is casual. Both are compelled, for different reasons, and each would break something if left:
+ *
+ *   · **`color` → `color.appearance` would form a CYCLE** with the new entry — `color.appearance` →
+ *     `color` → `color.appearance`. `closesLoop` refuses a cycle statically, and `validateRenameMap`'s
+ *     result aborts the whole pass before any write, so leaving it in place does not strand one
+ *     collection: it neuters every rename in the map, variables included. This is the one edit in #1148
+ *     that fails loudly if got wrong, and it fails on the FIRST run rather than on some file's shape.
+ *   · **`surface` → `color.surface` would rename a designer's collection INTO A NAME NOTHING WRITES.**
+ *     That is precisely the #1108 stranding this entry was retargeted to fix, arriving again from the
+ *     other direction: #1089 moved the target out from under it, and #1148 deletes the target outright.
+ *     Left standing, a pre-#1013 file's `surface` collection is renamed to `color.surface`, no executor
+ *     ever writes that collection again, and every variable and binding in it is stranded in a
+ *     collection nothing owns — reported by nothing.
+ *
+ * **A pre-#1013 `surface` collection is therefore no longer migrated at all, and that is the honest
+ * outcome rather than a gap.** It held the ALIAS tier, which #1148 deletes; there is nothing left for it
+ * to become. It is left in place, holding stale aliases, exactly as a hand-made collection would be —
+ * see the note in `write-figma.ts` about what the deletion of `applySurfacePlan` takes with it.
  */
 export const COLLECTION_RENAMES: CollectionRename[] = [
-  // The VALUE tier vacates the short name. It keeps every variable and every id; only the collection's
-  // own name moves, so a designer's bindings into it are untouched by this entry alone.
-  { from: 'color', to: 'color.appearance', since: '0.26.0' },
-  // The ALIAS tier follows the name #1089 gave it. **This entry's target moved with #1097, and the
-  // rewrite is deliberate rather than a restamp** (contrast the `since` note above, which says a
-  // historical stamp must stay put — that is about the VERSION field, not about a target that is now
-  // simply wrong).
+  // The VALUE tier takes the short name back. It keeps every variable and every id — only the
+  // collection's own name moves — so every binding a designer made into `color.appearance` survives
+  // untouched, which is the whole reason the collapse renames this tier rather than the pointer tier.
   //
-  // It read `surface → color` from #1013 until #1089 renamed the alias tier's collection to
-  // `color.surface`, so both tiers name their axis in the mode picker. From that moment the entry
-  // pointed at a collection nothing writes: the pre-pass moved the designer's `surface` collection to
-  // `color`, `applySurfacePlan` created a FRESH `color.surface` beside it, and every variable and every
-  // binding in the original was stranded in a collection nothing owns — reported by nothing, because
-  // each executor only walks the collection it wrote. `apps/plugin/test-write.ts`'s (vii) block found it
-  // and #1108 recorded it.
+  // **THE DIRECTION IS FORCED BY THE FIGMA API AND IS NOT A PREFERENCE.**
+  // `Variable.variableCollectionId` is `readonly` (`@figma/plugin-typings`), so a variable can never be
+  // re-parented: the only way one collection's contents end up under another collection's NAME is to
+  // rename that collection. Renaming the POINTER tier onto `color` instead would orphan the values and
+  // all four appearance modes — strictly worse, and unrecoverable by any later run.
   //
-  // Retargeting is the whole fix, and it also removes the CHAIN this map used to carry: neither
-  // `color.appearance` nor `color.surface` is anyone's source, so no ordering question arises and
-  // `closesLoop` above has nothing to walk. Simpler than what it replaces.
-  //
-  // **`color → color.surface` is NOT the entry, and the reason is not just the duplicate-source
-  // refusal.** `color` names the VALUE tier before #1082 and the POINTER tier after it, and this map has
-  // no era: one entry cannot mean "the pre-#1082 `color`" while another means the post-#1082 one. The
-  // source that is unambiguous across both eras is `surface`, which only ever named the alias tier.
-  { from: 'surface', to: 'color.surface', since: '0.26.0' },
+  // TWO CONSEQUENCES FOR AN EXISTING FILE, both refuse-or-report rather than corruption, and both
+  // measured rather than reasoned about:
+  //   · A file written at 0.27.0–0.29.0 holds `color.appearance` + `color.surface`. This entry migrates,
+  //     and `color.surface` is left ORPHANED — Figma cannot merge it, so it keeps its variables and its
+  //     bindings, which go on resolving through their aliases. Nothing reports it now that
+  //     `applySurfacePlan`'s `orphans` is gone; filed as its own issue rather than papered over.
+  //   · A file written in the narrow 0.26.x window — after #1013, before #1089 named the pointer tier's
+  //     axis — holds `color.appearance` + `color`, because the pointer tier was briefly called `color`.
+  //     This entry's target is occupied by a collection that is NOT another entry's product, so
+  //     `planCollectionRenames` returns `target-occupied` and the executor's atomicity rule applies NONE
+  //     of the map. Safe, loud, and the recovery is one manual rename of that stale `color` collection
+  //     out of the way. A two-phase temp name is the only mechanical fix and this module does not do one.
+  { from: 'color.appearance', to: 'color', since: '0.30.0' },
 ];
 
 /** The map the executor uses. */
@@ -461,7 +492,14 @@ export const validateRenameMap = (map: RenameMap): string[] => {
     //     `planCollectionRenames` computes it. This used to refuse anyway, and the reason was honest:
     //     the apply order was the executor's sequence of `upsertCollection` calls, not the map's to
     //     choose. #1035 hoisted the renames into one pre-pass, which is where that ordering became the
-    //     map's — so a chain now PASSES, and `COLLECTION_RENAMES` ships one.
+    //     map's — so a chain PASSES. `COLLECTION_RENAMES` shipped one at #1013 and holds one entry
+    //     since #1148, so today nothing exercises this from the live map; the fixture in `test.ts` is
+    //     deliberate rather than redundant, and its own comment says so.
+    //
+    // **THE CYCLE BRANCH IS WHY #1148 COULD NOT SIMPLY ADD ITS ENTRY.** `color.appearance` → `color`
+    // beside #1013's `color` → `color.appearance` is a 2-cycle, which is refused here — and
+    // `validateRenameMap`'s non-empty result aborts the pass before any write, so the cost is not one
+    // stranded collection but every rename in the map. See `COLLECTION_RENAMES`.
     //
     // The walk is a walk and not a one-hop test because a two-entry probe cannot tell a 3-cycle from a
     // 3-chain: mutating `closesLoop` to a single hop reports every entry of `a→b→c→a` as a chain, which
@@ -522,9 +560,15 @@ export const planVariableRenames = (
     //
     // This module's own header already described the correct behaviour: *"the mirror that has no
     // counterpart in a given file simply reports `source-absent`, so over-projecting is
-    // self-correcting."* That is the design; the branch order was not it. `projectionsOf` over-projects
-    // DELIBERATELY (`MIRRORED_COLLECTIONS`), and this is where the over-projection is supposed to be
-    // absorbed quietly.
+    // self-correcting."* That is the design; the branch order was not it. `projectionsOf` over-projected
+    // DELIBERATELY, and this is where the over-projection was supposed to be absorbed quietly.
+    //
+    // **#1148 REMOVED THE OVER-PROJECTION AND THE BRANCH ORDER IS STILL THE FIX.** One colour collection
+    // means one row per rename, so none of the 37 mirror no-ops exists any more and the measurement above
+    // is history. The order stays because the reason generalises past the mirror: a fresh file has NO
+    // sources for any row, and reporting all of them as refusals would make a clean first run read as
+    // dozens of failures. Restoring the old order would go quiet on that until someone ran the plugin on
+    // an empty file — which is #1087's own failure mode, one register later.
     //
     // A source that IS present with an unplanned target is still `target-not-planned` — a real refusal,
     // because a variable exists and cannot be renamed to a name the plan does not write. That case is
@@ -570,17 +614,22 @@ export type MaterializationStep = {
  * a PAIRING and two pairings for one name is an ambiguity, not a composition. That is right for a record
  * of one commit's diff: the merge base is a single point in time and every key moved once.
  *
- * A designer's file is not a single point in time. It can sit two eras back — `surface/text/primary` in a
- * pre-#1013 file has to reach `<root>/color/text/primary`, which is #1013's rule and then #1097's. Applying
- * only the first match would leave `color/text/primary`, an un-namespaced name no plan contains, so
- * `planVariableRenames` would report `target-not-planned` and migrate nothing — a correct record and a
- * refused migration, which is the failure this function exists to avoid.
+ * A designer's file is not a single point in time. It can sit two eras back — `color/appearance/text/primary`
+ * in a #1013-to-#1096 file has to reach `<root>/color/text/primary`, which is #1097's rule and then #1148's.
+ * Applying only the first match would leave `<root>/color/appearance/text/primary`, a name no plan contains
+ * since the collapse, so `planVariableRenames` would report `target-not-planned` and migrate nothing — a
+ * correct record and a refused migration, which is the failure this function exists to avoid.
+ *
+ * **The two hops #1013 introduced are gone and this is still a chain, which is the useful part.** #1148
+ * retired both `-1013` rules (see `MATERIALIZATION_RENAMES`), so the example above is a NEW pair rather than
+ * the old one restated — the mechanism outlived the rules it was written for, and a reader should expect the
+ * next era to need it too rather than assume the chain is vestigial.
  *
  * Exactly the same shape as `recollect` versus `planCollectionRenames`, one layer down and in the same
  * direction: the side that reads a snapshot is single-step, the side that walks a live file composes.
  *
- * Terminating because every rule's domain excludes its own image — #1013's two by an explicit
- * `!startsWith` clause, #1097's because a rooted name is already rooted. The cap and the self-map guard are
+ * Terminating because every rule's domain excludes its own image — #1097's because a rooted name is already
+ * rooted, #1148's because no role group is called `appearance`. The cap and the self-map guard are
  * belt-and-braces for a future rule that forgets: a malformed rule stops the walk instead of spinning, and
  * the name it stopped at then fails `planVariableRenames` visibly.
  *
@@ -609,19 +658,20 @@ const materialize = (
 /**
  * Compose the two kinds of rename into ONE per-collection list, for one collection's live names.
  *
- * A variable can need both: `surface/text/primary` in a pre-#1013 file has to reach
- * `color/text/primary` (materialization) and would then also follow any contract rename of that role.
+ * A variable can need both: `color/appearance/on-inverse/text/primary` in a #1013-to-#1139 file has to
+ * reach `<root>/color/inverse/text/primary` — the `appearance/` segment is materialization (#1148) and the
+ * `on-inverse` → `inverse` relocation is a contract rename (#1140).
  *
  * ── MATERIALIZATION FIRST, THEN CONTRACT — AND WHY IT IS ONE STEP, NOT TWO ────────────────────────
  *
  * The two are composed into a single `{from, to}` per live name, so a variable needing both moves ONCE.
- * Applying them as two passes would route it through an intermediate name — `color/text/primary` on the
- * way to wherever the contract sends it — and that intermediate is not in the write plan, so the first
+ * Applying them as two passes would route it through an intermediate name — `<root>/color/on-inverse/text/primary`
+ * on the way to wherever the contract sends it — and that intermediate is not in the write plan, so the first
  * pass would report `target-not-planned` and refuse, and the second would find its source absent. Two
  * correct rules, composed in the obvious way, migrating nothing and reporting a refusal for each.
  *
  * The ORDER within the composition is fixed and is not a preference: `projectionsOf` spells its `from`
- * side in the CURRENT materialisation (`color/appearance/<role>`), because that is what the emission
+ * side in the CURRENT materialisation (`color/<role>` since #1148), because that is what the emission
  * writes today. So a contract row can only be matched after the materialization step has carried the
  * live name into today's spelling.
  *
@@ -636,9 +686,11 @@ const materialize = (
  * ── WHY EVERY CONTRACT ROW STILL PASSES THROUGH ──────────────────────────────────────────────────
  *
  * Rows whose source is not live are appended rather than dropped, so `planVariableRenames` still reports
- * them as `source-absent`. The mirror over-projects on purpose (see `MIRRORED_COLLECTIONS`) and that is
- * only safe while an absent source is a reported no-op; silently filtering them here would make the
- * report say "checked, none" where it should say "checked, not present."
+ * them as `source-absent`. The map is a record of every rename since 2.0.0 and most of it is absent from
+ * any given file — a fresh file matches none of it — so "not present" is the common case and must read as
+ * one. Silently filtering these here would make the report say "checked, none" where it should say
+ * "checked, not present." (Until #1148 the mirror over-projected on purpose too, which made this the
+ * mechanism absorbing that as well; the mirror is gone and the rule is unchanged.)
  *
  * ── FAN-IN IS LEFT TO `planVariableRenames`, DELIBERATELY (#1056) ─────────────────────────────────
  *
@@ -731,12 +783,12 @@ const topoOrder = (renames: readonly CollectionRename[]): CollectionRename[] => 
  *
  * ── THE THREE STATES, AND THE ONE THAT LOOKS LIKE A CONFLICT ─────────────────────────────────────
  *
- * **#1097 retargeted the alias entry to `color.surface`, so the shipped map no longer produces any of
- * this: no source is another entry's target, `topoOrder` has nothing to reorder, and the
- * `targets.has(entry.from)` branch below is unreachable from `COLLECTION_RENAMES` alone.** The branch
- * and this table both stay — the state is reachable from any future chain, and the `test.ts` arms that
- * cover it drive an authored pair rather than the live map, deliberately. Read the rest of this section
- * as the shape the mechanism handles, not as a description of today's data.
+ * **Unreachable from `COLLECTION_RENAMES` since #1097 and still unreachable at #1148, for a second
+ * reason: the map holds ONE entry, so no source can be another entry's target, `topoOrder` has nothing
+ * to reorder, and the `targets.has(entry.from)` branch below cannot fire.** The branch and this table
+ * both stay — the state is reachable from any future chain, and the `test.ts` arms that cover it drive an
+ * authored pair rather than the live map, deliberately. Read the rest of this section as the shape the
+ * mechanism handles, not as a description of today's data.
  *
  * A file sits somewhere on the chain, and the middle name is present in two of the three states:
  *
@@ -746,13 +798,25 @@ const topoOrder = (renames: readonly CollectionRename[]): CollectionRename[] => 
  *   | `color.appearance`, `surface` | half-migrated    | source-absent (the other entry migrates)  |
  *   | `color.appearance`, `color`   | already migrated | source present AND target present         |
  *
- * That last row is the trap, and it is the one a fresh post-#1013 file is in. One entry at a time,
+ * That last row is the trap, and it is the one a fresh post-#1013 file was in. One entry at a time,
  * `color` is present and `color.appearance` is present, which reads as `target-occupied` — a permanent
  * refusal on a healthy file. It is not a conflict: the `color` seen there is the OTHER entry's product.
  * The test says exactly that — a source that is itself another entry's target, with this entry's target
  * already present, means this entry has already applied. A genuine conflict (a hand-made
- * `color.appearance` beside a pre-#1013 `color` and `surface`) is still caught, by the second entry,
+ * `color.appearance` beside a pre-#1013 `color` and `surface`) was still caught, by the second entry,
  * whose source is nobody's target.
+ *
+ * ── AND AT #1148 THAT SHAPE APPEARS FOR REAL, WHICH IS THE OPPOSITE CASE ─────────────────────────
+ *
+ * The single entry is `color.appearance` → `color`, so a file holding BOTH now reads `target-occupied`
+ * and means it: `color.appearance` is the source, `color` is nobody's product, and the two collections
+ * are genuinely distinct things competing for one name. **Do not reach for the `targets.has` escape
+ * hatch here** — it exists to recognise a rename that has already applied, and nothing has applied. The
+ * file is a 0.26.x artefact whose pointer tier was briefly called `color` (before #1089 named its axis),
+ * and the honest outcome is the refusal, with the atomicity rule above discarding the whole map. One
+ * manual rename clears it. Widening the branch to cover this would silently merge a designer's stale
+ * pointer collection into the value tier and lose one side's bindings, which is the exact loss
+ * `target-occupied` was introduced to prevent.
  */
 export const planCollectionRenames = (
   existing: Iterable<string>,

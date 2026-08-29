@@ -216,7 +216,8 @@ const beforeKeys = new Set<VarKey>([...beforeByBrand].flatMap(([b, ks]) => [...k
 // ---- recollect the BEFORE side through the collection renames (#1013) ----------------------------
 //
 // A rule's `map` returns a NAME and never a collection, so a key whose COLLECTION was renamed is beyond
-// the reach of every rule: `color :: color/text/primary` and `color.appearance :: color/appearance/text/primary`
+// the reach of every rule: `color.appearance :: <root>/color/appearance/text/primary` and
+// `color :: <root>/color/text/primary` (the #1148 hop)
 // share no side of any name-only claim. `recollect` moves each before-side key into the collection its
 // variable now lives in — one hop, for the reason stated at `recollect` — so the rules are asked the only
 // question they can answer.

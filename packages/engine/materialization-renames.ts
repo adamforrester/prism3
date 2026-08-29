@@ -19,10 +19,10 @@
  * which is a pairing stated twice and checkable in neither. One rule states the final name once.
  *
  * The colour swap needed both halves of the record at once, which is the clearest available statement of
- * why they are one mechanism. The COLLECTION renames live in `rename-map.ts`'s `COLLECTION_RENAMES`
- * (`color` → `color.appearance`, `surface` → `color`); the VARIABLE renames inside those collections are
- * the rules here. Figma treats the two as independent operations, so a record covering only one of them
- * describes a migration that half-happens.
+ * why they are one mechanism. The COLLECTION rename lives in `rename-map.ts`'s `COLLECTION_RENAMES`
+ * (`color.appearance` → `color` since #1148, which retired the two entries #1013 shipped); the VARIABLE
+ * renames inside that collection are the rules here. Figma treats the two as independent operations, so a
+ * record covering only one of them describes a migration that half-happens.
  *
  * ── WHY A RULE AND A DIFF, WHEN NEITHER WORKS ALONE ─────────────────────────────────────────────
  *
@@ -140,51 +140,39 @@ const CORE_TIER = 'core';
 const CORE_GROUPS: readonly string[] = ['palette', 'dimension', 'font'];
 
 /**
- * #1039 shipped this EMPTY, because `docs/44` §8 left open whether the value tier's 242 variables would
- * move to `color/appearance/*` at the swap or keep `color/*` under a renamed collection. **#1013 decided
- * it: both the collections and the variables inside them are renamed**, and these are the two rules that
- * record it. §8's first open question is closed.
+ * #1039 shipped this EMPTY, because `docs/44` §8 left open whether the value tier's variables would move
+ * to `color/appearance/*` at the swap or keep `color/*` under a renamed collection. **#1013 decided it:
+ * both the collections and the variables inside them are renamed.** §8's first open question is closed.
  *
- * Both transformations are stated LITERALLY — a string prefix swapped for a string prefix, with no
- * emitter in scope to call. That is `docs/34` shape 11 and it is the whole reason the accounting can
- * check anything: a rule written as "whatever `figName` now does" would sit below both sides of the
- * comparison. The prefixes below are therefore a SECOND expression of the change, and if the emitters
- * move without these moving, check 1 reports the unaccounted removals by name.
+ * Every transformation is stated LITERALLY — a string prefix swapped for a string prefix, with no emitter
+ * in scope to call. That is `docs/34` shape 11 and it is the whole reason the accounting can check
+ * anything: a rule written as "whatever `figName` now does" would sit below both sides of the comparison.
+ * The prefixes below are therefore a SECOND expression of the change, and if the emitters move without
+ * these moving, check 1 reports the unaccounted removals by name.
+ *
+ * ── #1148 RETIRED THE TWO `-1013` RULES, AND THIS LIST IS NOT APPEND-ONLY (contrast the one below) ──
+ *
+ * `ACCOUNTING_COLLECTION_MOVES` keeps stale entries because a stale entry there goes INERT — its `from`
+ * is a collection no base emits, so it claims nothing. **A stale rule here is not inert, it is a claim
+ * against a live before-set**, and the accounting fails a key two rules both claim. So the two rules
+ * #1013 wrote are deleted rather than left as history:
+ *
+ *   · `appearance-tier-1013` — `color/text/primary` → `color/appearance/text/primary`, in the
+ *     `color.appearance` collection. Its IMAGE is a spelling the emission no longer contains, so every
+ *     claim it made would be a contradicted claim; and its domain names a collection nothing writes, so
+ *     on the apply side `materialize` can never call it. Dead in both directions.
+ *   · `surface-to-color-1013` — `surface/text/primary` → `color/text/primary`, in `color.surface`. Same
+ *     two reasons, plus a third: the tier it migrated INTO is what #1148 deletes. `COLLECTION_RENAMES`
+ *     retired the `surface` → `color.surface` entry in the same change, for the reason stated there, so
+ *     nothing ever reaches this domain again.
+ *
+ * **Neither retirement strands anyone, and the reason is worth stating because it reads like it should.**
+ * A pre-#1013 file's value tier is a collection called `color` holding `color/<role>` — which is exactly
+ * what #1148 emits again, one namespace along. So that file needs NO collection rename and only
+ * `namespace-and-core-tier-1097`'s rule, and the two hops #1013 introduced cancel out. Measured in
+ * `test.ts` rather than reasoned about here.
  */
 export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
-  {
-    id: 'appearance-tier-1013',
-    since: '0.26.0',
-    why:
-      'The value tier gave up the short name `color` to the pointer tier and its variables took the matching '
-      + 'prefix, so `color/text/primary` is now the POINTER and `color/appearance/text/primary` is one '
-      + 'appearance\'s paint. A designer who binds the short name gets the tier they should reach for '
-      + 'first; before #1013 they got the one holding the values.',
-    domain: (collection, name) =>
-      collection === 'color.appearance' && name.startsWith('color/') && !name.startsWith('color/appearance/'),
-    map: (_collection, name) => `color/appearance/${name.slice('color/'.length)}`,
-  },
-  {
-    id: 'surface-to-color-1013',
-    since: '0.26.0',
-    why:
-      'The pointer tier changed its name and kept its rows: `surface/text/primary` became '
-      + '`color/text/primary`. What moved is which of the two tiers a designer reaches by default, which is '
-      + 'the point of #1013 rather than a side effect of it. '
-      + 'THE RULE IS ABOUT NAMES, NOT MODES, AND #1133 IS WHY THAT IS WORTH SAYING: the collection carried '
-      + 'a second `inverse` mode when this rule was written and carries one mode now, and the rename is '
-      + 'unaffected either way. A designer\'s pre-#1013 `surface/*` variable still has to arrive at '
-      + '`color/*` or it is left behind, which is the only thing this rule promises.',
-    // #1089 RENAMED THE COLLECTION THIS RULE RUNS IN, AND THE DOMAIN NAMES THE LIVE NAME, NOT THE
-    // HISTORICAL ONE. `materialize` is always called with the collection the write plan is about to use,
-    // so a domain keyed on `color` — what the alias tier was called between #1013 and #1089 — matches
-    // nothing the engine writes and the rule is unreachable: a pre-#1013 `surface/*` name would compose
-    // to nothing, be planned under no name, and the variable would be left behind silently. `since` is a
-    // different question and correctly still reads `0.26.0`: the RENAME this rule performs shipped then,
-    // and only the collection it is looked up under has moved since.
-    domain: (collection, name) => collection === 'color.surface' && name.startsWith('surface/'),
-    map: (_collection, name) => `color/${name.slice('surface/'.length)}`,
-  },
   {
     id: 'namespace-and-core-tier-1097',
     since: '0.27.0',
@@ -218,6 +206,40 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     domain: (_collection, name, root) => !name.startsWith(`${root}/`),
     map: (_collection, name, root) =>
       CORE_GROUPS.includes(name.split('/')[0]) ? `${root}/${CORE_TIER}/${name}` : `${root}/${name}`,
+  },
+  {
+    id: 'color-one-collection-1148',
+    since: '0.30.0',
+    why:
+      'The two colour tiers became one, and the surviving tier is the one holding the VALUES, so its '
+      + 'variables gave up the `appearance/` segment #1013 gave them: `<root>/color/appearance/text/primary` '
+      + 'is now `<root>/color/text/primary`. The short names are not new — they are the names the pointer '
+      + 'tier had, taken over by the tier that can actually re-theme, which is the whole of #1148. The '
+      + 'pointer tier itself is DELETED rather than renamed, and its 130 rows leaving the emission is a '
+      + 'REMOVAL this rule deliberately does not claim: they are claimed by exactly the same keys arriving '
+      + 'from the value tier, one per short name, so claiming them here would put two claims on one name. '
+      + 'THE DIRECTION IS FORCED BY THE FIGMA API, not chosen: `Variable.variableCollectionId` is readonly, '
+      + 'so a variable can never be re-parented and only the collection holding the values can take the '
+      + 'short name. See `COLLECTION_RENAMES` in `rename-map.ts` for the collection half.',
+    // ROOTED ON BOTH SIDES, which is what keeps this rule and #1097's disjoint rather than competing for
+    // the same key: #1097's domain is `!startsWith(root)` and this one's requires the root, so no key is
+    // ever in both and `multiplyClaimed` has nothing to report. A pre-#1097 `color/appearance/*` name
+    // therefore needs BOTH, in that order, and `materialize`'s chain is what supplies it — the accounting
+    // is single-application by design and reports such a key as unaccounted, which is correct for a
+    // one-commit diff and is why `test.ts`'s fixtures are per-hop.
+    //
+    // The domain names the collection `color` — the LIVE name, the one the write plan is about to use, and
+    // the same reading `surface-to-color-1013` got wrong for three releases before #1089 caught it. At the
+    // merge base the keys arrive under `color.appearance`; `ACCOUNTING_COLLECTION_MOVES` is what carries
+    // them here first, and that ordering is asserted rather than assumed.
+    //
+    // Terminating without a `!startsWith` clause of its own: the image is `<root>/color/<role>`, and no
+    // role's first segment is `appearance` (they are background, foreground, text, icon, interactive,
+    // disabled, border, scrim, veil, field, inverse — `tree.ts`'s `COLOR_FAMILY_ORDER`). A future role
+    // group called `appearance` would make this rule claim its own image; `materialize`'s self-map guard
+    // stops the walk and `planVariableRenames` then reports it, rather than spinning.
+    domain: (collection, name, root) => collection === 'color' && name.startsWith(`${root}/color/appearance/`),
+    map: (_collection, name, root) => `${root}/color/${name.slice(`${root}/color/appearance/`.length)}`,
   },
 ];
 
@@ -518,16 +540,23 @@ export type CollectionMove = { from: string; to: string };
  * one was safe until #1013 and unsafe after it:
  *
  *   · `COLLECTION_RENAMES` is a MIGRATION list. Each entry is relative to whenever that rename shipped,
- *     and it is applied to a designer's file, which may sit anywhere in that history. It holds
- *     `color → color.appearance`, because a PRE-#1013 file's `color` is the value tier.
+ *     and it is applied to a designer's file, which may sit anywhere in that history. Between #1013 and
+ *     #1148 it held `color → color.appearance`, because a PRE-#1013 file's `color` is the value tier.
  *   · this list is an ACCOUNTING list. Every entry is relative to the MERGE BASE, which is a single
  *     commit, and it is applied to names read out of git at that commit. A POST-#1013 base's `color` is
- *     the ALIAS tier, so the same `from` has to go to `color.surface`.
+ *     the ALIAS tier, so the same `from` had to go to `color.surface`.
  *
  * One `from`, two answers, both correct in their own frame. `recollect` is single-step and takes the FIRST
  * match, so putting both in one array makes the answer depend on array order — a silent misattribution of
  * all 128 alias-tier keys per brand, reported as unaccounted removals against rules that are correct.
  * `test.ts` asserts no `from` appears twice here, because that ambiguity is the whole reason this exists.
+ *
+ * **#1148 removed that particular collision and did not remove the need for two lists.** The migration list
+ * no longer holds a `color` entry at all, so `from: 'color'` is unambiguous today — but the two frames are
+ * still different, and the new pair below is the demonstration: this list needs `color.surface → color`
+ * (that is where the accounting has to look for the pointer tier's keys) and the migration list must NOT
+ * hold it, because two sources onto one target is a static refusal and Figma has no re-parent to perform.
+ * Same shape as the `core-*` fan-in, one release later.
  *
  * The lane that added the `core` entries ships **no `COLLECTION_RENAMES` entry for them, and cannot** — the
  * three-into-one shape is the reason, not a decision that could have gone the other way:
@@ -550,10 +579,15 @@ export type CollectionMove = { from: string; to: string };
  *
  * ── STALE ENTRIES GO INERT RATHER THAN WRONG, WHICH IS WHY THIS IS APPEND-ONLY ──────────────────────
  *
- * Once #1097 is on `main` the merge base emits `core` and `color.surface`, so no key carries a `from`
- * below and every entry claims nothing. That is the same property `COLLECTION_RENAMES` relies on and it is
- * what makes leaving them here safe. Do not prune them: a reader landing on a `core-palette` in an old
- * emission needs to find the record, and an entry that has gone inert costs nothing.
+ * Once #1097 is on `main` the merge base emits `core` and `color.surface`, so the first four entries carry
+ * no key and claim nothing. That is the same property `COLLECTION_RENAMES` relies on and it is what makes
+ * leaving them here safe. Do not prune them: a reader landing on a `core-palette` in an old emission needs
+ * to find the record, and an entry that has gone inert costs nothing.
+ *
+ * **The last two are the live ones, and they will go inert the same way one release after #1148.** So the
+ * count of ACTIVE entries is never a fact about this list — do not assert one, and do not read a `from` here
+ * as evidence that the collection still exists. `test.ts` asserts the one property that survives every
+ * release: no `from` appears twice.
  */
 export const ACCOUNTING_COLLECTION_MOVES: readonly CollectionMove[] = [
   // #1097 — the three primitive collections merged into one. `core.palette.json`, `core.dimension.json`
@@ -565,6 +599,32 @@ export const ACCOUNTING_COLLECTION_MOVES: readonly CollectionMove[] = [
   // #1089 — the alias tier names its axis, so both colour collections do. The variables inside kept their
   // `color/*` tails and no DTCG path moved; only the mode picker's label did.
   { from: 'color', to: 'color.surface' },
+  // #1148 — the two colour tiers became ONE, called `color`, and BOTH old names point at it. This is the
+  // first entry pair here that is a fan-in rather than a rename, and it is the same shape as the `core-*`
+  // three above: `COLLECTION_RENAMES` ships one entry for the VALUE tier only, because a fan-in is not a
+  // Figma operation (`variableCollectionId` is readonly) and `validateRenameMap` refuses two sources onto
+  // one target statically. So the second line below has no migration counterpart, deliberately.
+  //
+  // WHAT EACH LINE DOES TO THE ACCOUNTING, because the two are not symmetric and the asymmetry is what
+  // keeps the claim count honest:
+  //   · `color.appearance` → `color` puts the 243 value keys under the live collection, still spelled
+  //     `<root>/color/appearance/<role>`, where `color-one-collection-1148` claims every one of them.
+  //   · `color.surface` → `color` puts the 130 pointer keys under the live collection, where they are
+  //     spelled `<root>/color/<role>` — which is EXACTLY what the value tier now emits. So those keys are
+  //     in both sides of the comparison and are not removals at all. **That is why the rule above claims
+  //     243 keys and not 373**: the pointer tier's rows do not need claiming, because the short names they
+  //     held did not leave. One tier lost its values and one lost its names, and only the second is a
+  //     rename. Measured in `test.ts` (243 removed / 113 added / 130 keys in both sets).
+  //
+  // THE SINGLE-STEP LIMIT NOW BITES A REAL PAIR, AND IS STILL NOT WORTH A WALK. A pre-#1089 base's `color`
+  // matches the entry above and stops at `color.surface`, never arriving at `color`. Correct for every base
+  // this gate is run against (the merge base is `main`, long past #1089) and wrong for a hypothetical
+  // archaeological run — and the fix is NOT a `while` loop, for the reason `recollect`'s header gives: the
+  // entries describe different collections moving at different moments, so following them transitively
+  // misattributes rather than composes. If an archaeological base ever matters, retarget the `#1089` entry
+  // the way #1097 retargeted `surface`, one hop, in one place.
+  { from: 'color.appearance', to: 'color' },
+  { from: 'color.surface', to: 'color' },
 ];
 
 /**

@@ -8,9 +8,9 @@
  *
  * Faithful to the materialisation contract (docs/10 §3):
  *   1. `core`'s palette slice — one Default mode, literal RGBA, primitives hidden from publishing.
- *   2. `color.appearance` create — rename mode[0] + add the rest; every var gets a literal per-mode
+ *   2. `color` create — rename mode[0] + add the rest; every var gets a literal per-mode
  *      fallback value (pass A: every alias TARGET exists before any alias binds).
- *   3. `color.appearance` aliases — bind each mode to its OWN target (pass B — the collapse-guard).
+ *   3. `color` aliases — bind each mode to its OWN target (pass B — the collapse-guard).
  *
  * A COLLECTION IS NO LONGER ONE PLAN'S TO OWN (#1097). `core` holds the palette, dimension and font
  * primitives, written by three different executors in three separate calls. So `upsertCollection` scopes
@@ -37,7 +37,7 @@
  * the minimal slice of `figma.variables` the executor touches, so the whole pass sequence is
  * unit-testable against an in-memory shim (see `apps/plugin/test-write.mjs`) with no real Figma.
  */
-import type { WritePlan, Rgba, SurfacePlan, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
+import type { WritePlan, Rgba, FloatCollectionPlan, VarCollectionPlan } from '@prism3/engine/write-plan';
 import {
   renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, isRefusal,
   type RenameMap, type RenameOutcome, type MaterializationStep,
@@ -179,11 +179,12 @@ export type Migration = {
  * and the value tier's own rename is refused — half-applied, with the two tiers' variables merged into
  * one collection and no way back. `planCollectionRenames` computes the order.
  *
- * **#1097 retargeted the second entry to `surface → color.surface`, so the shipped map is no longer a
- * chain — and the pre-pass is still the right place for it.** The reason it moved out of
- * `upsertCollection` was never only the chain: this function is also where atomicity lives (below), and
- * that obligation is independent of how many entries the map holds. A future entry can reintroduce a
- * chain without any change here, which is the property worth having.
+ * **#1097 retargeted the second entry to `surface → color.surface` and #1148 retired both, leaving one
+ * entry (`color.appearance → color`) — so the shipped map is not a chain, and the pre-pass is still the
+ * right place for it.** The reason it moved out of `upsertCollection` was never only the chain: this
+ * function is also where atomicity lives (below), and that obligation is independent of how many entries
+ * the map holds. A future entry can reintroduce a chain without any change here, which is the property
+ * worth having.
  *
  * **ATOMICITY IS THIS FUNCTION'S OBLIGATION, and it is what makes "refused, not half-applied" true
  * rather than aspirational.** `planCollectionRenames` is pure — it plans the whole ordered sequence
@@ -337,13 +338,14 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     v.setValueForMode(palModeId, row.value);
   }
 
-  // ---- pass 2: color.appearance create (N modes, literal per-mode fallback values) ----
-  // `color.appearance` and not `color` since #1013: this is the VALUE tier, one mode per appearance
-  // (`light`/`dark`/`hc-*`), and the short name `color` now belongs to the surface ALIAS tier written by
-  // `applySurfacePlan`. Hardcoded here rather than read off the plan because `plan.color` carries no
-  // name — see `SurfacePlan.name` in `write-plan.ts` for the other half of that asymmetry.
+  // ---- pass 2: color create (N modes, literal per-mode fallback values) ----
+  // `color` — one collection, one mode per appearance (`light`/`dark`/`hc-*`). It was `color.appearance`
+  // between #1013 and #1148, while the short name belonged to a pointer tier written by a separate
+  // executor; the collapse deleted that tier and gave this one the short name back. Hardcoded here
+  // rather than read off the plan because `plan.color` carries no name — the one collection name in this
+  // file that is not `plan.name`, which is why this line had to be edited by both renames.
   const { modes, create, aliases } = plan.color;
-  const col = await upsertCollection(vars, 'color.appearance', create.map((r) => r.name), mig);
+  const col = await upsertCollection(vars, 'color', create.map((r) => r.name), mig);
   const colPreExisting = [...col.byName.keys()];   // snapshot before creates (and after migration)
   // Mode[0] is the collection's initial mode (rename it); the rest are added or reused by name.
   col.collection.renameMode(col.collection.modes[0].modeId, modes[0]);
@@ -394,149 +396,36 @@ export const applyWritePlan = async (plan: WritePlan, vars: VariablesApi, mig?: 
     // statement about all 199 variables in it.
     orphans: [
       { name: `${CORE_COLLECTION}/palette`, names: orphansOf(palPreExisting, paletteNames) },
-      { name: 'color.appearance', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
+      { name: 'color', names: orphansOf(colPreExisting, create.map((r) => r.name)) },
     ],
   };
 };
 
-/** What the SURFACE executor did (#993). `bound` counts alias bindings actually written; `total × modes`
- *  is what a fully-resolved run binds, so `bound < total * 2` always has a matching entry in `misses`. */
-export type SurfaceApplyResult = {
-  total: number;
-  created: number;
-  bound: number;
-  /** Unresolved alias targets, named. See `applySurfacePlan` for why this can never be a silent skip. */
-  misses: string[];
-  orphans: string[];
-};
-
-/**
- * Read a collection's variables WITHOUT creating it — `upsertCollection`'s read-only twin.
+/* ── THERE IS NO SURFACE EXECUTOR (#1148) ────────────────────────────────────────────────────────
  *
- * The surface executor needs this rather than `upsertCollection` for a specific reason: an absent
- * `color.appearance` collection is the ORDERING FAILURE this whole executor is sequenced to avoid, and
- * creating an empty one would convert that into a silent success — the collection would exist, every
- * target lookup would still miss, and the next `applyWritePlan` would quietly adopt the empty shell. So
- * the absence is diagnosed, not repaired.
+ * `applySurfacePlan` (#993), its `SurfaceApplyResult`, and the read-only `findCollection` it needed all
+ * went with the pointer tier. One collection carries the values, so there is no second collection to
+ * alias INTO — and with the cross-call target lookup gone, so is the ordering dependency that made this
+ * a separate executor in the first place. `applyWritePlan`'s pass 3 resolves its targets against the
+ * palette + colour vars it created moments earlier, like every other pass in this file.
  *
- * It takes no `Migration` for the same ordering reason, not by omission: the only collection it reads is
- * `color.appearance`, which `applyWritePlan` has already migrated by the time this runs. Migrating here
- * as well would be a second write to the same names, with the first pass's result as its input.
+ * TWO THINGS THE DELETION TAKES WITH IT, STATED because neither is replaced:
+ *
+ *   · The NAMED MISS. Each pointer row was written with a literal fallback first, so a row whose target
+ *     had vanished kept a colour that was correct on the day it was written and then silently stopped
+ *     tracking the brand — the #866 shape. `misses` was the only signal that existed for it. One tier
+ *     needs no such signal: a role's value IS its value, so there is no pointer left to go dead. That is
+ *     a property of the collapse, not an omission here.
+ *   · The MIGRATION of the short names. A designer's existing file has 130 `color/*` variables in a
+ *     `color.surface` collection and 243 `color/appearance/*` in `color.appearance`. Figma's
+ *     `Variable.variableCollectionId` is readonly, so a variable cannot be re-parented: the rename pass
+ *     moves the VALUE collection onto `color` and strips the `appearance/` segment, which leaves
+ *     `color.surface` orphaned rather than merged. Every binding a designer made to a short name keeps
+ *     resolving — those variables still exist and still alias into the renamed value variables — but
+ *     nothing reports the orphaned collection now that this executor's `orphans` is gone. Filed
+ *     separately; the alternative (renaming the pointer tier onto `color`) would orphan the values and
+ *     all four modes, which is strictly worse.
  */
-const findCollection = async (
-  vars: VariablesApi,
-  name: string,
-): Promise<{ collection: VarCollection; byName: Map<string, Variable> } | null> => {
-  const collection = (await vars.getLocalVariableCollectionsAsync()).find((c) => c.name === name);
-  if (!collection) return null;
-  const byName = new Map(
-    (await vars.getLocalVariablesAsync())
-      .filter((v) => v.variableCollectionId === collection.id)
-      .map((v) => [v.name, v] as const),
-  );
-  return { collection, byName };
-};
-
-/**
- * Materialise the surface axis into `figma.variables` (#993 — #893's unbuilt half). Since #1013 the
- * collection it writes is named **`color`** and its targets live in **`color.appearance`**; the plan
- * carries the name (`plan.name`), so the swap did not touch a line of this function's body.
- *
- * Two modes, `default` and `inverse`, whose every row is an ALIAS into the `color.appearance`
- * collection. This is the axis that makes surface context work at all: bind a layer to
- * `color/text/primary`, switch the mode on an ancestor frame, and the whole subtree resolves to its
- * inverse-context values — and after #1013 that short name is the one a designer reaches for by
- * default, which is the point of the swap rather than a side effect of it.
- *
- * ── THE ORDERING DEPENDENCY, WHICH IS THE WHOLE REASON THIS IS ITS OWN EXECUTOR ──────────────────
- *
- * Every other alias pass here resolves its targets against a name map built INSIDE THE SAME CALL —
- * `applyWritePlan` maps the palette + colour vars it created moments earlier; `applyFloatPlan` and
- * `applyVarCollectionPlan` fold each collection into one `byNameGlobal` as they go. This executor
- * cannot: its targets are `color/appearance/*` variables written by a DIFFERENT call. So it reads the
- * `color.appearance` collection back out of the file, which means **it must run after `applyWritePlan`**
- * — and `main.ts` sequences it that way.
- *
- * The target map is scoped to the `color.appearance` collection ALONE, deliberately, and not merged with
- * this collection's own vars. A global map would let a target name that happened to collide resolve to a
- * `color/*` variable — an alias pointing into the collection it lives in, which would resolve but track
- * nothing. Scoping removes that class rather than defending against it. #1013 made that scoping load
- * MORE weight, not less: the two collections' variable names now differ by a single inserted segment
- * (`color/text/primary` vs `color/appearance/text/primary`), so a collision is a typo away rather than a
- * coincidence away.
- *
- * ── AN UNRESOLVED TARGET IS A REPORTED MISS — NEVER SILENT, NEVER THROWN ─────────────────────────
- *
- * Pass A writes each row's literal fallback colour before any alias binds, exactly as the other three
- * executors do. For this collection that fallback has a sharp edge: a row whose target is missing keeps
- * a literal that is CORRECT ON THE DAY IT IS WRITTEN and then silently stops tracking the brand. It
- * renders right, it passes every visual check, and it is indistinguishable from a working pointer by
- * eye — the #866 shape, where field-label's discarded text refs rendered from defaults while the
- * property sat unwired and nothing said so.
- *
- * So the miss is the only signal that exists, and it is named: `misses` joins `main.ts`'s tally, which
- * flips `ok`. Not thrown — one missing target must not cost the other 121 rows — and not skipped, since
- * a skipped row and a written one are the same thing from outside.
- *
- * The corpus measures 0 unresolved targets out of 244 per brand, which means the healthy path CANNOT
- * exercise the miss branch. `test-write.mjs` drives it deliberately, both ways: a file with no `color`
- * collection at all, and a file whose `color` collection is missing one target.
- */
-export const applySurfacePlan = async (
-  plan: SurfacePlan,
-  vars: VariablesApi,
-  mig?: Migration,
-): Promise<SurfaceApplyResult> => {
-  const misses: string[] = [];
-  // Nothing to write (a theme with no `light` mode — `buildFigmaSurface` returns no files). Return
-  // before upserting, so an empty `color` collection is never created as a side effect.
-  if (plan.create.length === 0) return { total: 0, created: 0, bound: 0, misses, orphans: [] };
-
-  // ---- pass A: create/update every row with its literal per-mode fallback colour ----
-  // The surface half of the mirror (#1013): a renamed contract path carries a second Figma name here,
-  // and an appearance-only migration would leave this one orphaned without saying so.
-  const surf = await upsertCollection(vars, plan.name, plan.create.map((r) => r.name), mig);
-  const preExisting = [...surf.byName.keys()];   // snapshot before creates (and after migration)
-  surf.collection.renameMode(surf.collection.modes[0].modeId, plan.modes[0]);
-  const modeIds: Record<string, string> = { [plan.modes[0]]: surf.collection.modes[0].modeId };
-  for (let i = 1; i < plan.modes.length; i++) {
-    const existing = surf.collection.modes.find((m) => m.name === plan.modes[i]);
-    modeIds[plan.modes[i]] = existing ? existing.modeId : surf.collection.addMode(plan.modes[i]);
-  }
-  let created = 0;
-  for (const row of plan.create) {
-    let v = surf.byName.get(row.name);
-    if (!v) { v = vars.createVariable(row.name, surf.collection, 'COLOR'); surf.byName.set(row.name, v); created++; }
-    v.scopes = row.scopes;
-    v.description = row.description;
-    plan.modes.forEach((m, i) => v!.setValueForMode(modeIds[m], row.valuesByMode[i]));
-  }
-
-  // ---- pass B: bind each mode to its OWN target in the `color.appearance` collection ----
-  const col = await findCollection(vars, 'color.appearance');
-  if (!col) {
-    // ONE named miss, not one per target. With no collection present every target fails for the same
-    // single reason, and 244 restatements of it would read in the summary as 244 independent problems.
-    // `bound: 0` against `total` says the rest.
-    misses.push(`collection:color.appearance absent — color aliases cannot resolve (written before the appearance axis?)`);
-    return { total: plan.create.length, created, bound: 0, misses, orphans: orphansOf(preExisting, plan.create.map((r) => r.name)) };
-  }
-  let bound = 0;
-  for (const row of plan.aliases) {
-    const v = surf.byName.get(row.name);
-    if (!v) { misses.push(`var:${row.name}`); continue; }
-    plan.modes.forEach((m, i) => {
-      const target = row.targetsByMode[i];
-      if (!target) return; // literal-only for this mode — leave the pass-A value
-      const tv = col.byName.get(target);
-      if (!tv) { misses.push(`${row.name} @${m} -> ${target}`); return; }
-      v.setValueForMode(modeIds[m], vars.createVariableAlias(tv));
-      bound++;
-    });
-  }
-
-  return { total: plan.create.length, created, bound, misses, orphans: orphansOf(preExisting, plan.create.map((r) => r.name)) };
-};
 
 /** What the FLOAT executor did — surfaced to the UI + asserted by the harness (#146). */
 export type FloatApplyResult = {

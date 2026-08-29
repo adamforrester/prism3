@@ -9,16 +9,18 @@
  * `verifyReadback` ports the checks the `materialise-to-figma.ts` `verifyPass` string-emitter has
  * always encoded (the API-probe read-back), so the same guarantees hold whether the read runs via the
  * paste-path or the live plugin:
- *   - **modesDistinct** — `color/appearance/background/primary` binds a DIFFERENT target per mode (the
+ *   - **modesDistinct** — `color/background/primary` binds a DIFFERENT target per mode (the
  *     collapse guard: the #85 round-trip caught a script that collapsed every mode to one target).
  *   - **aliasesResolve** — every alias target name a colour var references exists (palette or color).
  *
- * **The collection it reads is `color.appearance` since #1013, and the alias tier that took the short
- * name `color` is NOT read at all.** That is a hole, not a decision: `read-figma.ts` has only ever read
- * the palette primitives + the value tier, so the surface axis went unverified from the day it shipped (#993) —
- * the swap did not create the gap, it moved the gap onto the collection a designer binds first. Filed
- * separately; the names below are the value tier's and are spelled in full for the reason `docs/34`
- * gives: a shared prefix constant would make one stale segment read as forty independent absences.
+ * **The collection it reads is `color`, and since #1148 that is the only colour collection there is.**
+ * Between #1013 and #1148 it read `color.appearance` and did not read the pointer tier that held the
+ * short `color` name at all — a hole rather than a decision, since `read-figma.ts` had only ever read
+ * the palette primitives plus the value tier, so the pointer axis went unverified from the day it
+ * shipped (#993). The collapse closes it by removing the unread tier: the collection a designer binds
+ * and the collection this reads are now the same one. The names below are spelled in full for the
+ * reason `docs/34` gives: a shared prefix constant would make one stale segment read as forty
+ * independent absences.
  *   - **slot scopes** — the per-slot scope contract (docs/10 §3 / docs/20) survived the round-trip.
  *   - **fieldFamilyPresent / retiredRolesAbsent / renamedRolesAbsent / bareDangerPresent** — the
  *     role-set shape (#86 renames, retired roles gone, bare `foreground/danger` present).
@@ -26,7 +28,7 @@
  *
  * ── EVERY NAME BELOW IS A **TAIL**, NOT A VARIABLE NAME (#1097) ───────────────────────────────────
  *
- * Since the namespace landed, a variable is `<root>/color/appearance/background/primary` where `<root>`
+ * Since the namespace landed, a variable is `<root>/color/background/primary` where `<root>`
  * is the brand's own — `nbds`, `prism`, or a client's. So the expected-name lists here are the part BELOW
  * that root, and the checks compare `tailOf(v.name)`. That is what keeps one list correct for every brand
  * instead of one list per brand, and it is why no root is spelled in this file. `figma-names.ts` carries
@@ -160,26 +162,26 @@ export type ReadbackVerdict = {
 // TAILS, not variable names (#1097): every key here is what follows the brand's own root, so one list
 // serves `nbds`, `prism` and a client namespace nobody here has seen. See this file's header.
 const EXPECTED_SLOT_SCOPES: Record<string, string[]> = {
-  'color/appearance/interactive/primary/text/rest': ['TEXT_FILL'],
+  'color/interactive/primary/text/rest': ['TEXT_FILL'],
   // All three border states, mirroring `field/border/*` below — the edge is stateful (#576).
-  'color/appearance/interactive/primary/border/rest': ['STROKE_COLOR'],
-  'color/appearance/interactive/primary/border/hover': ['STROKE_COLOR'],
-  'color/appearance/interactive/primary/border/pressed': ['STROKE_COLOR'],
-  'color/appearance/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
-  'color/appearance/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
-  'color/appearance/disabled/text': ['TEXT_FILL'],
-  'color/appearance/disabled/icon': ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
-  'color/appearance/disabled/border': ['STROKE_COLOR'],
-  'color/appearance/field/fill': ['FRAME_FILL', 'SHAPE_FILL'],
-  'color/appearance/field/border/rest': ['STROKE_COLOR'],
-  'color/appearance/field/border/hover': ['STROKE_COLOR'],
-  'color/appearance/field/placeholder': ['TEXT_FILL'],
+  'color/interactive/primary/border/rest': ['STROKE_COLOR'],
+  'color/interactive/primary/border/hover': ['STROKE_COLOR'],
+  'color/interactive/primary/border/pressed': ['STROKE_COLOR'],
+  'color/disabled/fill': ['FRAME_FILL', 'SHAPE_FILL'],
+  'color/disabled/on-fill': ['FRAME_FILL', 'SHAPE_FILL', 'TEXT_FILL'],
+  'color/disabled/text': ['TEXT_FILL'],
+  'color/disabled/icon': ['FRAME_FILL', 'SHAPE_FILL', 'STROKE_COLOR'],
+  'color/disabled/border': ['STROKE_COLOR'],
+  'color/field/fill': ['FRAME_FILL', 'SHAPE_FILL'],
+  'color/field/border/rest': ['STROKE_COLOR'],
+  'color/field/border/hover': ['STROKE_COLOR'],
+  'color/field/placeholder': ['TEXT_FILL'],
 };
-const FIELD_FAMILY = ['color/appearance/field/fill', 'color/appearance/field/border/rest', 'color/appearance/field/border/hover', 'color/appearance/field/placeholder'];
+const FIELD_FAMILY = ['color/field/fill', 'color/field/border/rest', 'color/field/border/hover', 'color/field/placeholder'];
 // Retired by role-set changes — must be absent (docs/20 / #86).
-const RETIRED_ROLES = ['color/appearance/action/default', 'color/appearance/text/on-action', 'color/appearance/text/on-disabled', 'color/appearance/foreground/danger/default'];
+const RETIRED_ROLES = ['color/action/default', 'color/text/on-action', 'color/text/on-disabled', 'color/foreground/danger/default'];
 // Renamed by #86 (.surface → .fill / .on-disabled → .on-fill; field/border went flat → border/{rest,hover}).
-const RENAMED_ROLES = ['color/appearance/disabled/surface', 'color/appearance/disabled/on-disabled', 'color/appearance/field/surface', 'color/appearance/field/border'];
+const RENAMED_ROLES = ['color/disabled/surface', 'color/disabled/on-disabled', 'color/field/surface', 'color/field/border'];
 
 const sortScopes = (s: string[]): string => [...s].sort().join(',');
 const isAlias = (v: ReadValue): v is { alias: string | null } => typeof v === 'object' && v !== null && 'alias' in v;
@@ -197,10 +199,10 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
   const colorByTail = new Map(snap.color.map((v) => [tailOf(v.name), v]));
   const has = (n: string): boolean => colorByTail.has(n);
   const allNames = new Set<string>([...snap.palette.map((p) => p.name), ...snap.color.map((c) => c.name)]);
-  const colModes = snap.collections.find((c) => c.name === 'color.appearance')?.modes ?? [];
+  const colModes = snap.collections.find((c) => c.name === 'color')?.modes ?? [];
 
   // modesDistinct — background/primary must bind a different TARGET per mode (the collapse guard).
-  const bg = colorByTail.get('color/appearance/background/primary');
+  const bg = colorByTail.get('color/background/primary');
   const backgroundPrimaryByMode: Record<string, string> = {};
   for (const m of colModes) {
     const val = bg?.valuesByMode[m];
@@ -231,7 +233,7 @@ export const verifyReadback = (snap: ReadbackSnapshot): ReadbackVerdict => {
     fieldFamilyPresent: FIELD_FAMILY.every(has),
     retiredRolesAbsent: RETIRED_ROLES.every((n) => !has(n)),
     renamedRolesAbsent: RENAMED_ROLES.every((n) => !has(n)),
-    bareDangerPresent: has('color/appearance/foreground/danger'),
+    bareDangerPresent: has('color/foreground/danger'),
     primitivesHidden: snap.palette.length > 0 && snap.palette.every((p) => p.hidden),
   };
 

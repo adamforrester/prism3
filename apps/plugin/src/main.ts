@@ -24,7 +24,7 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain } from './messages';
-import { applyWritePlan, applySurfacePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
@@ -35,7 +35,7 @@ import { chunkLine, summaryLines, measureSettle, verdictBeforeSettle } from './b
 import { readFigmaVariables } from './read-figma';
 import { listFamilyStyleCounts } from './list-fonts';
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
-import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, buildFontVarPlan, buildTextStylePlan } from '@prism3/engine/write-plan';
 import { verifyReadback } from '@prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '@prism3/engine/theme';
@@ -120,7 +120,7 @@ void (async (): Promise<void> => {
 /**
  * Materialise a brand into `figma.variables` (#108) — the theme now comes LIVE from the shared UI's
  * knobs (a `BrandInput`), not a bundled fixture. Same pure core, same executor: only the source of
- * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color.appearance`).
+ * the theme changed (#110). Idempotent find-by-name; colour axis (`core` + `color`).
  */
 const applyTheme = async (input: BrandInput): Promise<void> => {
   try {
@@ -141,18 +141,17 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // one because the static validation must happen once, before any write, and because a designer
     // reads a single list of what moved — not four. Since #1035 constructing it also RENAMES THE
     // COLLECTIONS, in one topologically-ordered, all-or-nothing pre-pass — so it must be awaited here,
-    // before the first executor, and not moved below one of them: `color → color.appearance` and
-    // `surface → color` are a chain, and an executor that renamed its own collection on the way past
-    // would apply half of it. The atomicity obligation is stated at `beginMigration`.
+    // before the first executor, and not moved below one of them: while #1013's map held
+    // `color → color.appearance` and `surface → color` it was a CHAIN, and an executor that renamed its
+    // own collection on the way past would apply half of it. #1148 retired both entries, so the shipped
+    // map is no longer a chain — the pre-pass stays here because the atomicity obligation stated at
+    // `beginMigration` is independent of how many entries the map holds, and a future entry can
+    // reintroduce a chain without a change on this line.
     const mig = await beginMigration(figma.variables);
-    // Colour axis (#108): the `core` palette slice + color.appearance, per-mode alias-bound.
+    // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
+    // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
+    // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
     const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables, mig);
-    // SURFACE axis (#993): the `default`/`inverse` alias layer, written into the collection now named
-    // `color` (#1013). MUST run after the line above — every row is a pointer into `color.appearance`,
-    // resolved by NAME out of the file, so the targets have to be there already. An unresolved one is
-    // reported in `misses`, never thrown.
-    const surfacePlan = buildSurfaceWritePlan(theme);
-    const sf = await applySurfacePlan(surfacePlan, figma.variables, mig);
     // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
     const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables, mig);
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
@@ -183,12 +182,12 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // the file does not now carry, which is precisely what a miss means here. Deliberately counted as a
     // miss rather than as a soft skip — a skipped TEXT STYLE leaves the token layer intact, while a
     // refused VARIABLE write leaves a hole in it, so this one should flip `ok` and the other should not.
-    // `sf.misses` joins the tally for the same reason `s.misses` does, and it is the one axis where a miss
-    // is INVISIBLE without the report (#993): a surface row whose alias target is absent keeps the literal
-    // fallback pass A wrote, so it renders the right colour today and silently stops tracking the brand.
-    // A pointer that looks fine and points nowhere — the #866 shape. Counted as a miss, so it flips `ok`.
+    // The pointer tier's `sf.misses` left this tally with #1148, and the loss is not a gap: it was the
+    // one axis where a miss was INVISIBLE without the report (#993), because a pointer row whose target
+    // was absent kept the literal fallback pass A wrote and silently stopped tracking the brand — the
+    // #866 shape. One tier has no pointer that can go dead, so there is nothing left to report.
     const misses =
-      r.misses.length + sf.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length + tv.refused.length;
+      r.misses.length + f.misses.length + tv.misses.length + ts.misses.length + s.misses.length + tv.refused.length;
     // Orphan report (#479): variables in a collection the plan owns that the plan does not contain.
     // The write path is create-or-update-by-name, so it cannot see a rename — the new name is created
     // and the old one is never touched again. Reported, never deleted: this cannot distinguish a stale
@@ -196,13 +195,14 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // unrecoverable from here. Surfaced in the summary rather than a return field alone, because drift
     // nobody reads is drift nobody fixes — the live file had ~106 ghosts across two collections and
     // every prior run reported success.
+    // The pointer tier's entry is gone with the tier (#1148), and it is the one collection this report no
+    // longer covers: Figma cannot re-parent a variable, so a designer's existing `color.surface` is
+    // orphaned WHOLE rather than merged, and nothing here counts it. Their bindings keep resolving —
+    // those variables still alias into the renamed value collection — but the stale collection is
+    // unreported. Filed separately rather than papered over with a hardcoded name, which is the mistake
+    // #1089 fixed here twice: the label a designer reads must come from something that knows.
     const allOrphans = [
       ...r.orphans,
-      // Read off the PLAN, not spelled (#1089): the label is what a designer reads in the summary, so a
-      // stale one names a collection their file does not contain — which is exactly what happened when
-      // this said `surface` after #1013 renamed it to `color`, and would have happened again now that
-      // #1089 has renamed it to `color.surface`. The plan is the only thing that knows.
-      { name: surfacePlan.name, names: sf.orphans },
       ...f.collections.map((c) => ({ name: c.name, names: c.orphans })),
       ...tv.collections.map((c) => ({ name: c.name, names: c.orphans })),
     ].filter((o) => o.names.length);
@@ -246,11 +246,10 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       : '';
     const summary =
       `palette ${r.paletteTotal} (+${r.paletteCreated}), color ${r.colorTotal} (+${r.colorCreated}), ` +
-      `surface ${sf.total} (+${sf.created}, ${sf.bound} aliased), ` +
       `dims/layout ${f.collections.length} collections (+${floatCreated}), ` +
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
-      `${r.bound + sf.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
+      `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
       renameNote + orphanNote + resolvedNote + skippedNote + fontNote + refusedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the

@@ -11,15 +11,15 @@
  * fiddly to hand-roll — this shell makes it one deterministic `tsx` invocation.
  *
  * It encodes the hard-won materialisation rules (see docs/10 §3 + the #84 round-trip):
- *   - **Collection ordering** — `core/palette` (primitives) first; the `color.appearance` collection's
+ *   - **Collection ordering** — `core/palette` (primitives) first; the `color` collection's
  *     aliases can only bind once the palette var IDs exist.
  *   - **A COLLECTION NO LONGER IDENTIFIES AN AXIS (#1097).** The palette, dimension and font primitives
  *     share one `core` collection, so every pass and every report below is keyed by AXIS — a collection
  *     name, or `core/<group>` for one slice of it. Three passes write `core`; that is fine for
  *     create-or-update-by-name, which only ever looks its own rows up. It is NOT fine for `verify`'s
  *     orphan diff, which subtracts a name set and would report the other two slices as orphans.
- *   - **Variable names carry the brand root (#1097).** `nbds/color/appearance/background/primary`, not
- *     `color/appearance/background/primary`. `verify` therefore indexes by TAIL, so the contract names
+ *   - **Variable names carry the brand root (#1097).** `nbds/color/background/primary`, not
+ *     `color/background/primary`. `verify` therefore indexes by TAIL, so the contract names
  *     it states stay literal and the one segment it cannot know stays unspelled.
  *   - **Two-pass colour write** — pass A creates every var + literal fallback values in all
  *     modes; pass B rebinds aliases. Alias targets must exist before binding.
@@ -59,8 +59,9 @@
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass color-aliases
  *   npx tsx packages/engine/materialise-to-figma.ts <brand> --pass verify
  *
- * Scope: ALL FIVE write axes the plugin executor writes — colour (`core/palette` + `color.appearance`,
- * renamed from `color` by #1013 and NOT the surface alias tier, which this path has never written), the ten
+ * Scope: ALL FIVE write axes the plugin executor writes — colour (`core/palette` + `color`, which #1013
+ * renamed to `color.appearance` and #1148 renamed back when it collapsed the two colour tiers into
+ * one — so the pointer tier this path never wrote no longer exists), the ten
  * FLOAT collections (#342), and as of #464 the typography variables (`core/font` + `type-sets`), the
  * Text Styles, and the Effect/Paint styles. The five-vs-two asymmetry is the reason the last three
  * landed: this CLI is the ONLY write path an MCP-driven session can use, so an agent could theme a
@@ -138,7 +139,7 @@ const load = (brand: string, file: string): FigmaCollectionFile => {
 
 // Which colour modes did this brand emit? (light/dark/hc-* always; wireframe if opted in.)
 const colourModes = (brand: string): string[] =>
-  MODE_ORDER.filter((m) => existsSync(resolve(HERE, `out/figma/${brand}/color.appearance.${m}.json`)));
+  MODE_ORDER.filter((m) => existsSync(resolve(HERE, `out/figma/${brand}/color.${m}.json`)));
 
 // The disk-read SHELL: read the emitted raw-figma files → collections → the pure `buildWritePlan`.
 // Every pass below (and `aliasRows`) projects THIS plan, so the CLI paste-path and the live plugin
@@ -147,7 +148,7 @@ const colourModes = (brand: string): string[] =>
 const planFor = (brand: string): WritePlan =>
   buildWritePlan({
     palette: load(brand, 'core.palette.json'),
-    color: colourModes(brand).map((m) => load(brand, `color.appearance.${m}.json`)),
+    color: colourModes(brand).map((m) => load(brand, `color.${m}.json`)),
   });
 
 // ---- the FLOAT axes (#342) -------------------------------------------------------------
@@ -335,8 +336,8 @@ const colorRows = (brand: string): ColorRow[] =>
 const colorCreateJs = (modes: string[], C: ColorRow[]): string => `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const C=${JSON.stringify(C)};
-let col=await findCol('color.appearance');
-if(!col)col=figma.variables.createVariableCollection('color.appearance');
+let col=await findCol('color');
+if(!col)col=figma.variables.createVariableCollection('color');
 col.renameMode(col.modes[0].modeId,MODES[0]);
 const modeIds={[MODES[0]]:col.modes[0].modeId};
 for(let i=1;i<MODES.length;i++){const m=col.modes.find(x=>x.name===MODES[i]);modeIds[MODES[i]]=m?m.modeId:col.addMode(MODES[i]);}
@@ -348,7 +349,7 @@ for(const [name,sc,desc,vals] of C){
   v.scopes=decode(sc);v.description=desc;
   MODES.forEach((m,i)=>v.setValueForMode(modeIds[m],vals[i]));
 }
-return {collection:'color.appearance',modes:MODES,total:C.length,created};
+return {collection:'color',modes:MODES,total:C.length,created};
 `;
 
 /**
@@ -439,7 +440,7 @@ const MODES=${JSON.stringify(modes)};
 const A=${JSON.stringify(A)};
 const vars=await figma.variables.getLocalVariablesAsync();
 const byName=new Map(vars.map(v=>[v.name,v]));
-const col=await findCol('color.appearance');
+const col=await findCol('color');
 const modeIds={};for(const m of MODES){const mm=col.modes.find(x=>x.name===m);modeIds[m]=mm&&mm.modeId;}
 let bound=0;const misses=[];
 for(const [name,targets] of A){
@@ -723,7 +724,7 @@ const verifyPass = (brand: string): string => {
   return `${PRELUDE}
 const MODES=${JSON.stringify(modes)};
 const vars=await figma.variables.getLocalVariablesAsync();
-const col=await findCol('color.appearance');
+const col=await findCol('color');
 const cvars=vars.filter(v=>v.variableCollectionId===col.id);
 // Indexed by TAIL — the variable name minus its leading brand-root segment (#1097). Every name
 // literal in this pass is a contract this pass states for itself, and the root is the one segment it
@@ -735,7 +736,7 @@ const byTail=new Map(cvars.map(v=>[tailOf(v.name),v]));
 const modeIds={};MODES.forEach(m=>{const mm=col.modes.find(x=>x.name===m);modeIds[m]=mm&&mm.modeId;});
 const targetOf=(val)=>val&&val.type==='VARIABLE_ALIAS'?(vars.find(x=>x.id===val.id)||{}).name:JSON.stringify(val);
 // modes-distinct guard: background/primary must NOT be identical across modes (the collapse bug)
-const probe=byTail.get('color/appearance/background/primary');
+const probe=byTail.get('color/background/primary');
 const perMode=Object.fromEntries(MODES.map(m=>[m,targetOf(probe&&probe.valuesByMode[modeIds[m]])]));
 const modesDistinct=new Set(Object.values(perMode)).size>1;
 const scope=(n)=>{const v=byTail.get(n);return v?[...v.scopes].sort().join(','):'ABSENT';};
@@ -757,7 +758,7 @@ const orphanReason=(name,planned)=>planned.some(p=>p.indexOf(name+'/')===0)?'pat
 const pruneReport=(existingNames,planned)=>{const keep=new Set(planned);return existingNames.filter(n=>!keep.has(n)).sort().map(n=>({name:n,reason:orphanReason(n,planned)}));};
 const orphans={
   ${JSON.stringify(PALETTE_AXIS)}:pruneReport(palVars.map(v=>v.name),PLANNED_PALETTE),
-  'color.appearance':pruneReport(cvars.map(v=>v.name),PLANNED_COLOR),
+  'color':pruneReport(cvars.map(v=>v.name),PLANNED_COLOR),
 };
 return {
   colorVars:cvars.length,
@@ -765,26 +766,26 @@ return {
   modesDistinct,
   backgroundPrimaryByMode:perMode,
   slotScopes:{
-    'interactive/primary/text':scope('color/appearance/interactive/primary/text'),
-    'interactive/primary/border/rest':scope('color/appearance/interactive/primary/border/rest'),
-    'interactive/primary/border/hover':scope('color/appearance/interactive/primary/border/hover'),
-    'interactive/primary/border/pressed':scope('color/appearance/interactive/primary/border/pressed'),
-    'disabled/fill':scope('color/appearance/disabled/fill'),
-    'disabled/on-fill':scope('color/appearance/disabled/on-fill'),
-    'disabled/text':scope('color/appearance/disabled/text'),
-    'disabled/icon':scope('color/appearance/disabled/icon'),
-    'disabled/border':scope('color/appearance/disabled/border'),
-    'field/fill':scope('color/appearance/field/fill'),
-    'field/border/rest':scope('color/appearance/field/border/rest'),
-    'field/border/hover':scope('color/appearance/field/border/hover'),
-    'field/placeholder':scope('color/appearance/field/placeholder'),
+    'interactive/primary/text':scope('color/interactive/primary/text'),
+    'interactive/primary/border/rest':scope('color/interactive/primary/border/rest'),
+    'interactive/primary/border/hover':scope('color/interactive/primary/border/hover'),
+    'interactive/primary/border/pressed':scope('color/interactive/primary/border/pressed'),
+    'disabled/fill':scope('color/disabled/fill'),
+    'disabled/on-fill':scope('color/disabled/on-fill'),
+    'disabled/text':scope('color/disabled/text'),
+    'disabled/icon':scope('color/disabled/icon'),
+    'disabled/border':scope('color/disabled/border'),
+    'field/fill':scope('color/field/fill'),
+    'field/border/rest':scope('color/field/border/rest'),
+    'field/border/hover':scope('color/field/border/hover'),
+    'field/placeholder':scope('color/field/placeholder'),
   },
-  fieldFamilyPresent:['color/appearance/field/fill','color/appearance/field/border/rest','color/appearance/field/border/hover','color/appearance/field/placeholder'].every(n=>byName.has(n)),
-  retiredRolesAbsent:['color/appearance/action/default','color/appearance/text/on-action','color/appearance/text/on-disabled','color/appearance/foreground/danger/default'].every(absent),
+  fieldFamilyPresent:['color/field/fill','color/field/border/rest','color/field/border/hover','color/field/placeholder'].every(n=>byName.has(n)),
+  retiredRolesAbsent:['color/action/default','color/text/on-action','color/text/on-disabled','color/foreground/danger/default'].every(absent),
   // renamed by #86 (.surface -> .fill / .on-disabled -> .on-fill) + field never used .surface — all must be gone.
   // field/border also went flat-leaf -> border/{rest,hover} (stateful slot), so the flat leaf must be gone too.
-  renamedRolesAbsent:['color/appearance/disabled/surface','color/appearance/disabled/on-disabled','color/appearance/field/surface','color/appearance/field/border'].every(absent),
-  bareDangerPresent:byName.has('color/appearance/foreground/danger'),
+  renamedRolesAbsent:['color/disabled/surface','color/disabled/on-disabled','color/field/surface','color/field/border'].every(absent),
+  bareDangerPresent:byName.has('color/foreground/danger'),
   orphans,
 };
 `;

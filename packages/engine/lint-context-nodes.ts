@@ -228,7 +228,7 @@ const EXPECTED_CONTEXT_NODES = 1;
 const MIN_INVERSE_CHILDREN = 8;
 const total = seen.size;
 if (total !== EXPECTED_CONTEXT_NODES) {
-  failures.push(`found ${total} context node(s) across ${brands.length} brand(s), expected exactly ${EXPECTED_CONTEXT_NODES} — \`color.appearance.inverse\`. #1140 relocated every inverse role under ONE top-level group; more than one means the marker is back at a per-family depth, and fewer means this scan is asserting over an empty set. Found: ${[...seen.keys()].join(', ') || '(none)'}`);
+  failures.push(`found ${total} context node(s) across ${brands.length} brand(s), expected exactly ${EXPECTED_CONTEXT_NODES} — \`color.inverse\`. #1140 relocated every inverse role under ONE top-level group; more than one means the marker is back at a per-family depth, and fewer means this scan is asserting over an empty set. Found: ${[...seen.keys()].join(', ') || '(none)'}`);
 }
 for (const [path, n] of arity) {
   if (n < MIN_INVERSE_CHILDREN) {

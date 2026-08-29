@@ -26,7 +26,6 @@
 import type { FigmaCollectionFile, FigmaColor, FigmaVar } from './emit-figma-color';
 import { CORE_COLLECTION } from './emit-figma-color';
 import type { Theme } from './theme';
-import { buildFigmaSurface } from './emit-figma-surface';
 import { buildFigmaDims, buildFigmaLayout } from './emit-figma-dims';
 import { buildFigmaShadow, buildFigmaGradient } from './emit-figma-styles';
 import type { FigmaEffect, FigmaEffectStylesFile, FigmaPaintStylesFile } from './emit-figma-styles';
@@ -117,81 +116,20 @@ export const buildWritePlan = (
 };
 
 // ---------------------------------------------------------------------------
-// THE POINTER TIER (#993 — #893's unbuilt half). The `color.surface` collection: ONE mode, `Default`,
-// whose every row is an alias into the `color.appearance` collection, so a designer binds the short
-// `color/text/primary` and the appearance mode resolves the value one hop later.
+// THERE IS NO POINTER-TIER PLAN (#1148). `SurfacePlan` + `buildSurfaceWritePlan` described the
+// `color.surface` collection — one `Default` mode whose every row aliased into `color.appearance`, so a
+// designer bound the short `color/text/primary` and the appearance mode resolved the value a hop later.
+// The collapse renamed the value tier to `color`, which gives every row that short name directly, so
+// the plan, its type and `applySurfacePlan` are gone rather than kept describing a collection nothing
+// emits.
 //
-// It carried a SECOND mode (`default`/`inverse`) from #893 until #1133 reverted it — inverse is
-// name-encoded again, bound at the appearance tier by a bounded set of component variants (`docs/20`
-// §9.8). Nothing in the plan or the executor changed for that: both are generic over `modes.length`,
-// which is why a two-mode collection becoming a one-mode collection is a prose diff here. Worth saying
-// out loud, because "the code did not need to change" is otherwise indistinguishable from "the code was
-// not checked".
-//
-// The type below is still `SurfacePlan` and the builder still `buildSurfaceWritePlan`, matching the
-// collection name it writes. Reading the tier names as interchangeable is the trap #1013 exists to
-// remove: `color.surface` is the collection of pointers and `color.appearance` the collection of paints.
-//
-// It reuses `ColorCreateRow`/`ColorAliasRow` verbatim rather than declaring its own pair, because it
-// IS a colour collection in the plan's terms — COLOR-typed, literal-per-mode then aliased-per-mode.
-// The one thing that makes it different is invisible in the plan and lives entirely in the executor:
-// its alias targets are in ANOTHER collection written by ANOTHER call, so the targets cannot be
-// resolved against anything this plan describes. See `applySurfacePlan`.
-// ---------------------------------------------------------------------------
-
-/** The pointer tier's materialisation plan — the `color.surface` collection. Same two-pass shape as
- *  `plan.color`, named like a `FloatCollectionPlan` so the executor's collection handling reads the same.
- *
- *  `name` is carried in the plan rather than hardcoded in the executor, which is why #1013's swap cost
- *  one line here and none there — and why `applySurfacePlan` passes `plan.name` to `upsertCollection`.
- *  The value-tier executor hardcodes its own name instead, so that one had to be edited. */
-export type SurfacePlan = {
-  name: string;
-  modes: string[];
-  create: ColorCreateRow[];
-  aliases: ColorAliasRow[];
-};
-
-/**
- * Reshape `buildFigmaSurface(theme)`'s mode file(s) into the host-neutral pointer plan.
- *
- * Mirrors the colour reshape exactly — walk the first mode's variables, read each mode's value and
- * alias at the same index. Written over `files` rather than over one file DELIBERATELY, and kept that
- * way through #1133's revert to a single mode: it is the same code path the colour and FLOAT reshapes
- * use, and the invariant it relies on (every mode file carries the same variable order, because
- * `buildFigmaSurface` maps one `surfaceRows(theme)` array) is a property of the emitter rather than of
- * the mode count.
- *
- * Every row carries BOTH a literal `valuesByMode` entry and an alias target. The literal is the
- * emitter's stated fallback contract, not redundancy: it is what a row keeps when its alias target is
- * not in the file, which is the one case where this collection can go wrong. **That fallback is also
- * what makes an unresolved target invisible to the eye** — the row still renders the right colour on the
- * day it is written, and simply stops tracking the brand afterwards. Hence `applySurfacePlan` reports a
- * missing target as a named MISS: nothing else distinguishes a live pointer from a dead one.
- */
-export const buildSurfaceWritePlan = (theme: Theme): SurfacePlan => {
-  const files = buildFigmaSurface(theme);
-  const modes = files.map((f) => f.$mode);
-  const base = files[0]?.variables ?? [];
-  const create: ColorCreateRow[] = base.map((v, i) => ({
-    name: v.name,
-    scopes: v.scopes,
-    description: v.description,
-    valuesByMode: files.map((f) => rgba(f.variables[i].value as FigmaColor)),
-  }));
-  const aliases: ColorAliasRow[] = base.map((v, i) => ({
-    name: v.name,
-    targetsByMode: files.map((f) => (f.variables[i] as FigmaVar).alias?.name ?? null),
-  }));
-  // Off the FILE, not spelled here (#1097/#1089, same reason as `buildFloatWritePlan`). #1089 renamed
-  // this collection `color.surface` and a literal at this line would have been the second place its
-  // name is stated — the one the emitter can move out from under. It is `plan.name` the executor
-  // upserts, so a stale literal writes 128 correct pointers into a collection nobody binds, with no
-  // gate reading a collection label. That is not hypothetical: the literal was `'color'` here while
-  // the emitter had already moved to `color.surface`.
-  return { name: files[0].$collection, modes, create, aliases };
-};
-
+// ONE THING THE DELETION TAKES WITH IT, stated because it was load-bearing and is not replaced: each
+// pointer row carried BOTH a literal colour and an alias target, and the literal was the emitter's
+// fallback contract, not redundancy — a row whose target was missing from the file still rendered the
+// right colour on the day it was written and silently stopped tracking the brand afterwards. Nothing
+// else distinguished a live pointer from a dead one, which is why `applySurfacePlan` reported a missing
+// target as a named MISS. With one tier there is no cross-collection pointer to go dead: a value row's
+// target is a `core` primitive, and `applyWritePlan` already reports those.
 // ---------------------------------------------------------------------------
 // FLOAT-VARIABLE AXES (#146) — the geometric/dimensional layer beyond colour.
 // The engine already builds these as FLOAT `FigmaCollectionFile`s (`buildFigmaDims` +
