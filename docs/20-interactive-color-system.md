@@ -288,7 +288,7 @@ So the fix is not a new mechanism — it is the existing one extended to the ban
 
 **One trap for whoever re-verifies this — and it was resolved by #1134, recorded here because the earlier text is what a re-verifier will find in an old checkout.** Through #1133 `focus-ring`'s `paintKeys` carried a slot spelled `border.inverse` — a coordinate in the def's own variant space (`color: 'default' | 'inverse'` → `{slot}.{color}`), not a token path — which a name sweep could confuse with the token `color.appearance.inverse.border.focus`. **#1134 removed that key entirely** (see §9.11): the ring now binds only `border` → `color.border.focus` and its inverse ground comes from the projector's `color.*` → `color.inverse.*` rewrite, and its axis was renamed `color` → `surface`. So there is no longer a `border.inverse` def coordinate to confuse with a token, and no `UNALIASED_DEF_BINDINGS` register (the #1148 collapse removed it). The trap is gone; the token `color.inverse.border.focus` is still emitted, as the rewrite's target.
 
-### 9.10 Decided (2026-08-29, #1148): ONE `color` collection, and (#1150) the roles are written in reading order with `inverse` last
+### 9.10 Decided (2026-08-29, #1148 + #1150): ONE `color` collection, and the roles are written in reading order with `inverse` last
 
 §9.8 filed two questions rather than settling them: whether the 113 inverse roles should gain pointer-tier short names (#1135), and whether `color.surface` was still the right collection name now that #1089's rationale had narrowed (#1136). Both are **superseded** here, because the collapse dissolves the question each was about.
 

@@ -7,6 +7,108 @@
 
 ---
 
+## (2026-08-29) — `lint-decisions-index` admitted one issue per decision, and a two-issue heading was invisible (gate 2)
+
+**STATUS: shipped.** The heading parse, the baseline's issue field, one doc heading, and the row that
+indexes it. Gates stay at **46**; `test.ts` unchanged. Nothing emitted moves.
+
+── THE DEFECT IS NOT "A HEADING WAS REJECTED" ──────────────────────────────────────────────────
+
+`HEADING_RE` ended `(?:,\s*#(\d+))?\)` — at most one `#NNN`, with the closing paren required right
+after it. A heading owning two issues did not fail the *issue group*; it failed the **whole pattern**,
+because after `#1148` the regex wanted `)` and found ` + #1150)`. The optional group backtracked to
+matching nothing, `)` still did not follow the date, and the line **was not a `Decided` heading at
+all**.
+
+That is worse than a rejection, and the difference is the finding. Arm B checks that every `Decided`
+heading has a baseline row. A heading the pattern cannot see is not an *unmatched* heading — it is not
+a heading — so arm B has nothing to say and the gate reports clean. **A decision recorded in the docs
+and absent from the index passes.** `docs/34` shape 9: a detector anchored on a spelling its subject is
+free to move past.
+
+── WHAT THE CORPUS SHOWS, WHICH IS THE PART WORTH KEEPING ──────────────────────────────────────
+
+Nothing is rejected today. Not because the gate is adequate — **because the convention bent around
+it.** `docs/20` §9.10 was written:
+
+> `### 9.10 Decided (2026-08-29, #1148): ONE color collection, and (#1150) the roles are written in …`
+
+The second issue pushed into the **title**, where it is prose rather than a citation and unreachable by
+any query over the index. *A gate that cannot express a real case does not stop the case arising; it
+deforms how the case gets written, somewhere the gate is not looking.* The heading is now spelled
+`Decided (2026-08-29, #1148 + #1150)` and the row carries `issues: [1148, 1150]`.
+
+── TWO SPELLINGS, ON PURPOSE, WITH THE DRIFT SHUT ──────────────────────────────────────────────
+
+Rows keep `issue: n` for the common single case and gain `issues: [...]` for several, normalized in one
+place (`issuesOf`). Forcing all fifteen rows to arrays would churn every one of them to express
+nothing, and `--accept` is append-only and refuses to rewrite an existing row — so a field migration
+could not go through the tool that maintains the file. **A row carrying BOTH is a failure**, because
+whichever the reader preferred, the other would be a live value nothing reads, which is exactly how two
+spellings of one fact drift apart.
+
+── AND A REAL BUG I SHIPPED INTO THE PR, FOUND BY REVIEW'S TYPECHECK ───────────────────────────
+
+The rename `{issue}` → `{issues}` reached the READER and not the WRITER. `--accept` still built rows
+as `issue: h.issue`, a field `Heading` no longer has — so it wrote `undefined`, and **`JSON.stringify`
+drops an undefined value.** `--accept` appended rows with **no ref at all**, and the next run failed
+them as `ROW NOT FOUND` + `UNINDEXED`. The gate's own remedy text says *"run `--accept`"*, so the
+failure walked the user straight back into the thing that caused it.
+
+**Single-ref rows were hit too** — `#1140` lost its ref — which is the tell that this was a *write-path*
+bug rather than a multi-ref one. Reproduced before fixing: two rows dropped, `--accept` run, both
+written ref-less, next run red on both.
+
+**No gate saw it.** Engine sources outside `components/` are not typechecked, and `tsc --strict` flags
+it at `318:51`. A reviewer's typecheck found what the suite could not.
+
+So the fix ships with a **round-trip guard** rather than a corrected line: the writer and the reader
+must agree for zero, one and several refs, asserted **through `JSON.stringify`** because that is where
+the value vanished — an `undefined` field survives in memory and disappears on serialization, which is
+exactly how the write path lost every ref while looking correct in the object it built. The writer now
+calls the same `rowFor` the guard exercises, so the two cannot drift apart again. Mutating it back to
+the bug fires the guard by name: *wrote `{date,title,doc,section}` · read back `[]` · expected `[1140]`*.
+
+*And the first draft of that guard called a `die` this file does not have* — the identical slip a
+mutation caught in the both-spellings check earlier in this same PR. Twice, in one file, in one day.
+
+── ONE CANONICAL SEPARATOR, AND ONE DEFORMATION LEFT BEHIND ────────────────────────────────────
+
+The parse accepted `+` or `,` while `citeIssues` only ever renders ` + `, so a comma-written heading
+would round-trip into a citation spelled unlike its source. Narrowed to `+` — accept exactly what is
+emitted, the same argument that forbids a row carrying both `issue` and `issues`.
+
+And `docs/42-current-decisions.md` still carried `(#1150)` as inline title prose with its issue column
+reading `#1148` alone — **the exact deformation this PR removes from `docs/20`, one file over, and
+`docs/42` is exempt from the scan so nothing detects it.** The row now reads `#1148 + #1150`.
+
+── MUTATIONS, AND M4 IS THE ONE THAT EARNS THE CHANGE ──────────────────────────────────────────
+
+| # | mutation | result |
+|---|---|---|
+| M1 | drop the multi-ref heading's baseline row | `UNINDEXED DECISION`, by name |
+| M2 | change only the **second** ref (`#1150` → `#1151`) | `ROW NOT FOUND` + `UNINDEXED`, by name |
+| M3 | drop the second ref from the heading | both arms, by name |
+| **M4** | **restore the old single-ref regex, keep the multi-ref heading, drop its row** | **`✓ clean`, exit 0** |
+| M5 | a row carrying both `issue` and `issues` | fails by name |
+
+M2 is what proves the second ref is genuinely *compared* rather than merely tolerated by a wider
+regex. **M4 is the necessity proof:** under the old parse the same corpus reports `corpus: 14
+headings` and a confident clean — the decision is not counted, not matched, not missed. Invisible.
+
+── AND A CRASH IN MY OWN GUARD, FOUND BY M5 ────────────────────────────────────────────────────
+
+The both-spellings check was first raised from inside `issuesOf`, which `same()` calls deep in the
+comparison. M5 did not report a failure — it threw `ReferenceError: die is not defined`, because this
+gate has no `die`; it collects into `failures[]`. **A crash is not a failure**: it aborts the run, so
+the more malformed the index the *fewer* problems get reported (`docs/34`, #680). Moved to an up-front
+validation on the gate's own reporting path, where a malformed row reads as a defect in the index
+rather than a mismatch on whichever decision happened to reach it first.
+
+*I wrote the trap this sweep exists to close, into a gate written to close it, and only the mutation
+found it.*
+
+
 ## (2026-08-29) — the emission cannot move without ENGINE_VERSION moving (#1141's miss, gate 1 of the hardening sweep)
 
 **STATUS: shipped.** One new gate, `packages/engine/lint-emission-version.ts`, and its five authored
