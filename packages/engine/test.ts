@@ -8681,26 +8681,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // THE SUCCESS CASE, and it is asserted on the BUILT TREE rather than on an empty `misses` — a payload
       // that silently skipped the ring reports nothing either. The ring node being present is the only
       // evidence that a member was instantiated.
-      const resolved = await ringSet(['color=default', 'color=inverse']);
+      const resolved = await ringSet(['surface=default', 'surface=inverse']);
       ok(resolved.miss === '(no miss reported)' && resolved.kids.includes('focusRing'),
         `anatomy/ring #681: a coordinate the set CARRIES resolves, and the member is nested — the ring node exists (${JSON.stringify(resolved.kids)}, miss: ${resolved.miss})`);
 
-      // THE FIFTH MISS, wrong coordinate: members exist, none carries `color=default`. The tempting
+      // THE FIFTH MISS, wrong coordinate: members exist, none carries `surface=default`. The tempting
       // behavior here is to nest the first child, which is #656 — so nothing is built, and the message
       // names both the coordinate asked for and the members present, because either alone is unactionable.
-      const wrongCoord = await ringSet(['color=brand', 'color=inverse']);
-      ok(wrongCoord.miss.indexOf('no member matching color=default') >= 0
-        && wrongCoord.miss.indexOf('color=brand') >= 0 && !wrongCoord.kids.includes('focusRing'),
+      const wrongCoord = await ringSet(['surface=brand', 'surface=inverse']);
+      ok(wrongCoord.miss.indexOf('no member matching surface=default') >= 0
+        && wrongCoord.miss.indexOf('surface=brand') >= 0 && !wrongCoord.kids.includes('focusRing'),
         `anatomy/ring #681: a coordinate the set does NOT carry reports the fifth miss, naming the coordinate AND the members, and nests nothing (${wrongCoord.miss})`);
 
       // THE FIFTH MISS, UNDER-SPECIFIED coordinate — the case that arrives by accident, and the reason
-      // `nestVariantMatch` refuses a partial claim rather than taking the first hit. `{color:'default'}`
-      // against a color×size set would match two members, and every rule for choosing between them reduces
+      // `nestVariantMatch` refuses a partial claim rather than taking the first hit. `{surface:'default'}`
+      // against a surface×size set would match two members, and every rule for choosing between them reduces
       // to creation order: #656 again, one layer in from where `nesting` was added to stop it. The member
-      // list in the message is what makes the missing axis visible on sight — `color=default, size=md`
-      // printed beside a request for `color=default` shows the designer which axis the def forgot.
-      const ambiguous = await ringSet(['color=default, size=md', 'color=default, size=lg']);
-      ok(ambiguous.miss.indexOf('no member matching color=default') >= 0
+      // list in the message is what makes the missing axis visible on sight — `surface=default, size=md`
+      // printed beside a request for `surface=default` shows the designer which axis the def forgot.
+      const ambiguous = await ringSet(['surface=default, size=md', 'surface=default, size=lg']);
+      ok(ambiguous.miss.indexOf('no member matching surface=default') >= 0
         && ambiguous.miss.indexOf('size=md') >= 0 && ambiguous.miss.indexOf('size=lg') >= 0
         && !ambiguous.kids.includes('focusRing'),
         `anatomy/ring #681: an UNDER-SPECIFIED coordinate is refused rather than resolved by creation order, and the members it printed show the missing axis (${ambiguous.miss})`);
@@ -8712,8 +8712,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // the file that changed. Refusing now costs an edit; refusing later costs a wrong ring in a shipped
       // library. This is the assertion that pins the choice, since a matcher relying on `hits.length` alone
       // passes every other case in this block.
-      const oneMember = await ringSet(['color=default, size=md']);
-      ok(oneMember.miss.indexOf('no member matching color=default') >= 0 && !oneMember.kids.includes('focusRing'),
+      const oneMember = await ringSet(['surface=default, size=md']);
+      ok(oneMember.miss.indexOf('no member matching surface=default') >= 0 && !oneMember.kids.includes('focusRing'),
         `anatomy/ring #681: a coordinate naming ONE of a member's two axes is refused even when the set holds a single member — under-specification is latent ambiguity, not a near miss (${oneMember.miss})`);
 
       // AXIS ORDER IS FIGMA'S, not the def's — asserted on the matcher directly, because the def names one
@@ -10314,7 +10314,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     noCoord('an EMPTY variantAxes list throws — the fold yields one member named `""`, which pastes a component that LOOKS built and carries no coordinate (#795)',
       { figmaProperties: { ...focusRing.figmaProperties!, variantAxes: [] } });
     noCoord('a declared axis with NO values in `variants` throws too — the declaration read fine and the enumeration produced a blank coordinate',
-      { variants: { ...focusRing.variants, color: [] } });
+      { variants: { ...focusRing.variants, surface: [] } });
     setThrows('figmaAnatomySet: an unprojectable SLOT axis throws too (the same hole from the other side)',
       () => figmaAnatomySet({ ...button, figmaProperties: { ...fp, slotAxes: [...fp.slotAxes!, { name: 'badge', part: 'leadingVisual' }] } } as ComponentDef));
     setThrows('figmaAnatomySet: a def with no figmaProperties block throws — nothing declares what to project',
@@ -11744,20 +11744,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // opposite of what it meant before #1013 — which is why it is pinned here against the emitted tree
   // rather than reasoned about from the tier's name.
   //
-  // THE SLOT KEY DID NOT MOVE WITH IT, and the asymmetry on this line is the point rather than a typo.
-  // `border.inverse` is a coordinate in the def's own variant space — `{slot}.{color}` from
-  // `paintKeys`, where `color` is the `default | inverse` axis — not a token path with a marker in it.
-  // Renaming it to match the token would couple the def's axis vocabulary to the token taxonomy, which
-  // is exactly the coupling `paintKeys` exists to avoid. Pinned as two independent literals here so a
-  // drift on either side fails: the slot comes from `focus-ring.ts`, the path from the emitted tree.
-  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.inverse.border.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
+  // ONE colour key now (#1134). The ring binds `border` → `color.border.focus`, the DEFAULT ground, and
+  // nothing else; the inverse-ground edge comes from the projector's `color.*` → `color.inverse.*`
+  // rewrite at `surface=inverse` (docs/20 §9.9), not from an authored `border.inverse` key. Through #1133
+  // this loop pinned a second row, `['border.inverse', 'color.inverse.border.focus']` — a coordinate in
+  // the def's own `{slot}.{color}` space — and dropping it is the def moving onto the one inverse
+  // mechanism the whole bounded set uses. `color.inverse.border.focus` is still EMITTED (the transform's
+  // target); it just is not a key this def authors. Pinned as literals so a drift on either side fails:
+  // the slot comes from `focus-ring.ts`, the path from the emitted tree.
+  for (const [slot, path] of [['border', 'color.border.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
     ok(focusRing.tokens[slot] === path && paths.has(path),
       `focus-ring: '${slot}' binds ${path}, which the engine EMITS — the ring's skin is no longer whatever a Figma file happens to hold`);
   }
-  // The two axes exist because the token tier already emitted exactly two of each — docs/32's evidence
-  // that the ring was always one shared thing with a per-context parameter.
-  ok(focusRing.variants.color.join(',') === 'default,inverse',
-    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / color.inverse.border.focus)');
+  // The ring authors NO `border.inverse` key — the inverse edge is the projector's, and this pins that
+  // the def does not smuggle one back in (which would be two mechanisms for one ground again).
+  ok(!('border.inverse' in focusRing.tokens),
+    'focus-ring: authors no `border.inverse` key — the inverse ground is the projector transform (#1134), so a re-added key would be the redundant second mechanism');
+  // The inverse-ground target the transform produces IS emitted, checked independently of the def.
+  ok(paths.has('color.inverse.border.focus'),
+    'focus-ring: `color.inverse.border.focus` is emitted — the transform rewrites `border` to it at surface=inverse, so the ring is not left binding a name nothing holds');
+  // `surface` (renamed from `color`, #1134) and `offset` — the two axes the token tier's per-context
+  // pairs justify (docs/32).
+  ok(focusRing.variants.surface.join(',') === 'default,inverse',
+    'focus-ring: the surface axis is the default|inverse ground, the ONE inverse-context axis the bounded set uses (#1134)');
   ok(focusRing.variants.offset.join(',') === 'control,field',
     'focus-ring: the offset axis mirrors the emitted pair (focus.ring.offset / offset-field)');
   ok(focusRing.states.length === 0,
@@ -11772,8 +11781,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //
   // `figmaProperties` is PRESENT now, and the shape is the claim: `color` listed, `size` deliberately
   // absent, which since #795 is what suppresses the `size=` segment rather than a projector default.
-  ok(focusRing.figmaProperties?.variantAxes.join(',') === 'color',
-    `focus-ring: declares variantAxes ['color'] — this block was absent until #795 because it would have validated clean and thrown at projection (got [${focusRing.figmaProperties?.variantAxes.join(', ')}])`);
+  ok(focusRing.figmaProperties?.variantAxes.join(',') === 'surface',
+    `focus-ring: declares variantAxes ['surface'] — this block was absent until #795 because it would have validated clean and thrown at projection (got [${focusRing.figmaProperties?.variantAxes.join(', ')}])`);
   ok(!focusRing.figmaProperties!.variantAxes.includes('size') && !('size' in (focusRing.variants ?? {})),
     'focus-ring: declares NO size axis and does not list one — under #795 the omission is what makes the member name carry no `size=`, so it is the load-bearing half of the declaration');
   ok(figmaPropertyErrors(focusRing).length === 0,
@@ -11784,8 +11793,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // this def now ships, and the fabrication was the only reason the throw could be observed.
   const ringSet = figmaAnatomySet(focusRing);
   const ringNames = ringSet.map(planComponentName);
-  ok(ringNames.join(' | ') === 'color=default | color=inverse',
-    `focus-ring wall 2: figmaAnatomySet ENUMERATES the 'color' axis — two members, named for the only axis this def projects (got '${ringNames.join(' | ')}')`);
+  ok(ringNames.join(' | ') === 'surface=default | surface=inverse',
+    `focus-ring wall 2: figmaAnatomySet ENUMERATES the 'surface' axis — two members, named for the only axis this def projects (got '${ringNames.join(' | ')}')`);
   ok(ringSet.every((p) => p.size === undefined),
     'focus-ring wall 3: every projected plan carries NO size — `figmaAnatomyPlan` no longer requires one, so `AnatomyPlan.size` is genuinely absent rather than an invented rung');
   // Wall 3 — DOWN, and this is the assertion whose PREVIOUS version is the reason the wall was liftable
@@ -11795,12 +11804,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // from the projector, and Button's coordinate is still read off Button's own `nesting`.
   const buttonNest = button.anatomy!.parts.focusRing.nesting;
   const wanted = buttonNest?.kind === 'nest-fixed' ? buttonNest.variant : {};
-  ok(nestVariantMatch(wanted, ['color=default', 'color=inverse']) === 'color=default',
-    'focus-ring wall 3a: Button\'s nest coordinate matches a HAND-BUILT color set — which is what #734\'s live run resolved against (#749)');
+  ok(nestVariantMatch(wanted, ['surface=default', 'surface=inverse']) === 'surface=default',
+    'focus-ring wall 3a: Button\'s nest fallback coordinate matches a HAND-BUILT surface set — which is what #734\'s live run resolved against (#749)');
   ok(!ringNames.some((n) => /(^|, )size=/.test(n)),
     `focus-ring wall 3b: planComponentName writes NO 'size=' coordinate for this def's plans, because the def did not list the axis (got '${ringNames.join(' | ')}')`);
-  ok(nestVariantMatch(wanted, ringNames) === 'color=default',
+  ok(nestVariantMatch(wanted, ringNames) === 'surface=default',
     `focus-ring wall 3c: Button's declared coordinate now resolves against the ENGINE-PROJECTED set ('${ringNames.join(' | ')}') — the nest is satisfiable by our own members, not only by a hand-built ring`);
+  // THE SURFACE PASSTHROUGH (#1134, #1156). `wanted` above is only Button's static FALLBACK
+  // (`{surface:'default'}`); the projected nest coordinate follows Button's own `surface` per member,
+  // because its `focusRing` part declares `follow: ['surface']`. So a `surface=inverse` Button member
+  // nests the `surface=inverse` ring and a `surface=default` one the default ring — which is what closes
+  // the ring-on-inverse gap (#1156) rather than pasting the light ring on a dark band. Read off the real
+  // projected plans, and both ends asserted so a `follow` that silently dropped would fail here.
+  ok(buttonNest?.kind === 'nest-fixed' && buttonNest.follow?.join(',') === 'surface',
+    'focus-ring passthrough: Button\'s ring nesting declares follow: [\'surface\'] — the ground is driven, not fixed');
+  const ringNestAt = (surface: string): string | null => {
+    const m = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }).find(
+      (p) => p.coord.surface === surface && p.coord.state === 'focus-visible' && p.coord.intent === 'primary' && p.coord.appearance === 'filled' && p.size === 'medium' && p.slots.leading === false && p.slots.trailing === false);
+    const findRing = (n: any): any => n.nestTarget === 'focus-ring' ? n : (n.children ?? []).map(findRing).find(Boolean);
+    const ring = m ? findRing(m.root) : undefined;
+    return ring?.nestVariant ? nestVariantMatch(ring.nestVariant, ringNames) : null;
+  };
+  ok(ringNestAt('inverse') === 'surface=inverse',
+    `focus-ring passthrough: a surface=inverse Button member nests the surface=inverse ring (got ${ringNestAt('inverse')})`);
+  ok(ringNestAt('default') === 'surface=default',
+    `focus-ring passthrough: a surface=default Button member nests the surface=default ring (got ${ringNestAt('default')})`);
   // Wall 1 — STILL STANDING, and it is the reason those two members are not yet rings. `PartDef` has no
   // stroke field, so the ring's entire visual substance has nowhere to be
   // declared. Read from the SCHEMA DECLARATION, not from this def, and not via a runtime validation
@@ -11853,8 +11881,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   for (const axis of ringUnprojected)
     ok(focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith(axis)),
       `focus-ring: the '${axis}' axis is ADMITTED by a codeOnly entry leading with its name — the omission is a decision on the record, not a gap`);
-  ok(!focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith('color')),
-    'focus-ring: `color` has NO codeOnly entry — it projects, so admitting it as a Figma ceiling would be the false-claim defect #795 exists to correct');
+  ok(!focusRing.anatomy!.codeOnly.some((c) => c.trim().startsWith('surface')),
+    'focus-ring: `surface` has NO codeOnly entry — it projects, so admitting it as a Figma ceiling would be the false-claim defect #795 exists to correct');
   ok(icon.anatomy!.codeOnly.some((c) => c.trim().startsWith('tone')),
     'icon: the `tone` axis is admitted in codeOnly, leading with the axis name (figmaPropertyErrors requires the lead, not a mention)');
   // THE REAL DELIVERABLE OF #741. Button's entry used to close "Accepted deliberately, because the
@@ -11877,14 +11905,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // template with and which slots it dispatches); the subject is the ring's own bindings. Two artifacts,
   // neither derived from the other, per docs/34. Deriving this by calling `paintOf` would reproduce any
   // bug in `paintOf` on both sides.
-  const ringPaintResolves = (focusRing.variants.color ?? []).map((color) => {
-    const key = focusRing.paintKeys!
-      .map((t) => fillPaintKey(t, 'border', { color }))
-      .find((k) => k !== undefined && focusRing.tokens[k] !== undefined);
-    return { color, key };
-  });
-  ok((PAINT_SLOTS as readonly string[]).includes('border') && ringPaintResolves.every((r) => r.key),
-    `focus-ring: the ring's stroke COLOUR resolves at every color coordinate through the dispatched 'border' slot (${ringPaintResolves.map((r) => `${r.color}→${r.key}`).join(', ')}) — so paint is no longer one of this ceiling's causes`);
+  // Since #1134 the ring binds ONE key, `border` (the default ground), and the inverse ground is the
+  // projector's rewrite — so "resolves at every coordinate" is now MEASURED on the projected members
+  // rather than on the def's own key table: the `surface=default` member must stroke `color/border/focus`
+  // and the `surface=inverse` member `color/inverse/border/focus`. That the key `border` is a dispatched
+  // slot is the def-side half; that the transform reaches the inverse target is the projector-side half.
+  const ringStrokeAt = (surface: string): string | undefined =>
+    ringSet.find((p) => p.coord.surface === surface)?.root.paints?.strokes;
+  ok((PAINT_SLOTS as readonly string[]).includes('border')
+      && !!fillPaintKey('{slot}', 'border', {}) && focusRing.tokens['border'] === 'color.border.focus'
+      && ringStrokeAt('default') === 'color/border/focus'
+      && ringStrokeAt('inverse') === 'color/inverse/border/focus',
+    `focus-ring: the ring's stroke COLOUR resolves at both grounds through the dispatched 'border' slot — default→${ringStrokeAt('default')}, inverse→${ringStrokeAt('inverse')} (the inverse via the #1134 transform) — so paint is no longer one of this ceiling's causes`);
   ok(/#758/.test(ringCeiling) && /#784/.test(ringCeiling) && /CLOSED/.test(ringCeiling),
     'button: the ring ceiling records the paint gap as CLOSED (#758 → #784) rather than naming it a live cause — the measurement above is what makes that true');
   // And the cause that IS live has to be the one still measured above. This assertion used to require

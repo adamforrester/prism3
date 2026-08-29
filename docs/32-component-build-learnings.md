@@ -1287,13 +1287,13 @@ survive a mode switch, and the answer is not uniform across them.
 > **Resolved 2026-08-12 (#741), and worth reading with the resolution attached because the ORIGINAL
 > DIAGNOSIS WAS RIGHT ABOUT THE GAP AND WRONG ABOUT WHERE IT WAS.** The schema can now say it:
 > `packages/engine/components/focus-ring.ts` is a real def, and Button's `focusRing` part nests it via
-> `kind: 'absolute'` + `nests` + `nesting: { kind: 'nest-fixed', variant: { color: 'default' } }`
+> `kind: 'absolute'` + `nests` + `nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface'] }`
 > (#681's field, and the `absolute` kind rather than the fifth part kind proposed below).
 >
 > **What #741 measured that this section did not predict.** The remaining gap is not in `anatomy.parts`
 > at all — it is three walls further down, and the third is the one nobody would guess:
 > `planComponentName` **always** writes a `size=` coordinate, and a ring has no size axis. So a
-> projected ring's members are named `size=…` while Button's declared coordinate is `color=default`,
+> projected ring's members are named `size=…` while Button's declared coordinate is `surface=default`,
 > and `nestVariantMatch` requires a coordinate to account for every axis in the member name.
 > **Button's nest is therefore satisfiable only by a hand-built component**, which is what #734's live
 > run was resolving against all along (#749). The other two: `paintOf` keys paint as

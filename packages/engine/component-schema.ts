@@ -131,10 +131,21 @@ export type PaddingDef = {
  * The coordinate is a `Record` rather than a string because a set can have more than one axis, and
  * because this is the shape the consumer API takes: Figma's `InstanceNode.setProperties` accepts
  * exactly `{ axis: value }`.
+ *
+ * `follow` — THE HOST DRIVES A NESTED AXIS (#1134, #1156). A `nest-fixed` part normally nests the SAME
+ * coordinate on every host member (which ring a normal button gets is one decision). But when the host
+ * itself carries an axis the nested set also has — Button's `surface` and the ring's `surface`, both
+ * `default | inverse` — a fixed coordinate would nest a light-ground ring under a `surface=inverse`
+ * button, losing the ring's own 3:1 contrast on a dark band. `follow` names the axes whose value flows
+ * from the host member into the nested coordinate: at a `surface=inverse` host member the ring nested is
+ * `surface=inverse`, at `surface=default` it is `surface=default`. `variant` is the FALLBACK, used where
+ * the host coordinate does not carry that axis (a structure-only plan). The axis is shared by NAME, which
+ * is why the bounded inverse set standardises on `surface` for both host and nested (docs/20 §9.11) — a
+ * host spelling it `surface` and a ring spelling it `color` could not pass one through the other.
  */
 export type NestingRelation =
   | { kind: 'swap' }
-  | { kind: 'nest-fixed'; variant: Record<string, string> }
+  | { kind: 'nest-fixed'; variant: Record<string, string>; follow?: readonly string[] }
   | { kind: 'nest-exposed' };
 
 export type PartDef = {
@@ -1597,24 +1608,24 @@ export type State = (typeof STATES)[number];
  * what makes it safe at that width: a values census over `name` reads
  * the icon set, so the synonym-sitting-in-a-census failure mode this list guards has no way in here.
  *
- * ── `surface`: THE INVERSE GROUND, AND THE ONE ENTRY THAT KNOWINGLY OVERLAPS ANOTHER (#1134) ──────
+ * ── `surface`: THE ONE INVERSE-GROUND AXIS, AND WHY `color` IS GONE (#1134) ───────────────────────
  *
  * `surface` (`default | inverse`) is the ground a control sits on — a normal page, or a dark/brand-
- * filled band where the control binds its `color.inverse.*` counterparts (docs/20 §9.8, the bounded
- * inverse set). It is added for `button`, the first STATEFUL member of that set, and it is the honest
- * exception to this list's anti-synonym rule: `focus-ring` already carries the SAME default|inverse
- * distinction under the name `color`, so by the letter of the bar above `surface` is a second name for
- * one kind of distinction — the failure mode this list exists to catch. It earns the entry anyway, and
- * the ground is that `color` is unavailable on any component that already has one: `button`'s reconciled
- * model spells its intent axis "color" in docs/20 (`appearance × color {primary,neutral,destructive}`)
- * and the token family is `interactive.<color>.*`, so a second axis literally named `color` on the same
- * def would collide with the word the palette already owns. `focus-ring` reached for `color` because it
- * has no palette axis to collide with; a control that does needs a distinct name for the ground, and
- * `surface` is it. The overlap is real and is left legible here rather than hidden — this is the
- * decided cost (#1134), not an oversight, and unifying the two names later is a `focus-ring` change.
+ * filled band where the control binds its `color.inverse.*` counterparts (docs/20 §9.8/§9.11, the
+ * bounded inverse set). It is the SINGLE name that distinction takes across the set: `button` declares
+ * it, `focus-ring` declares it, and a host passes it into a component it nests BY NAME (`follow`), which
+ * only works if both spell it the same. `focus-ring` carried this distinction under the name `color`
+ * until #1134 renamed it to `surface` and removed `color` from this list — it had been the one entry
+ * that knowingly overlapped another (a second name for one distinction, the failure mode this list
+ * exists to catch), tolerated only while `focus-ring`'s stateless single-slot shape could author its
+ * inverse keys by name and `button`'s could not. #1134 moved every inverse component onto one mechanism
+ * (the projector's `color.*` → `color.inverse.*` rewrite, keyed on `surface`), which retired the need
+ * for two names: `surface` everywhere, `color` nowhere. The name `color` is deliberately NOT kept as an
+ * available-but-unused entry — a dead axis name reads as a claim nobody makes, and re-adding it later is
+ * one line if a genuinely distinct "which colour" axis is ever needed.
  */
 export const VARIANT_AXES = [
-  'size', 'intent', 'appearance', 'tone', 'color',
+  'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
   'name', 'surface',
 ] as const;
@@ -2351,6 +2362,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // one would reasonably believe it took effect.
     if (p.nesting?.kind === 'nest-fixed' && !Object.keys(p.nesting.variant).length)
       e.push(`anatomy part '${n}' declares nesting 'nest-fixed' with an empty variant — the whole point of 'fixed' is that the def picks the coordinate rather than inheriting the nested set's first child (#656)`);
+    // `follow` names a HOST axis whose value the nested coordinate takes per member (#1134). Each entry
+    // must be an axis THIS def declares in `variants` — a followed axis the host does not carry has no
+    // value to pass through, so it would silently fall back to `variant` at every coordinate and read as
+    // a passthrough that never fires. (That the NESTED set also has the axis is checked at projection,
+    // against the members' own names, by `nestVariantMatch`.)
+    if (p.nesting?.kind === 'nest-fixed' && p.nesting.follow)
+      for (const axis of p.nesting.follow)
+        if (!(axis in (def.variants ?? {})))
+          e.push(`anatomy part '${n}' declares nesting 'follow' on '${axis}', which is not an axis this def declares in variants [${Object.keys(def.variants ?? {}).join(', ')}] — a followed axis the host does not carry never passes a value through`);
     // An `absolute` part cannot be a `swap`: it materializes as an INSTANCE of the component `nests`
     // names, and a swap is the caller nominating a target per file. The two are different
     // materialization paths, and `NESTED_INSTANCE` is the one this kind takes.

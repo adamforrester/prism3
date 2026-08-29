@@ -171,17 +171,6 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'drift while both still passed.',
   },
   {
-    axis: 'color',
-    values: ['default', 'inverse'],
-    defs: ['focus-ring'],
-    relation: 'sole',
-    reason:
-      'The two grounds a ring is drawn on, and it is the component-tier spelling of the token tier\'s own '
-      + 'context-node vocabulary (#891): `default` is the page surface, `inverse` the dark ground. Named for '
-      + 'the GROUND rather than for the ring\'s own ink, because the ring\'s job is to be visible against '
-      + 'what is behind it.',
-  },
-  {
     axis: 'indicator',
     values: ['none', 'required', 'optional'],
     defs: ['field-label'],
@@ -302,15 +291,17 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button'],
+    defs: ['button', 'focus-ring'],
     relation: 'sole',
     reason:
-      'The two grounds a stateful control sits on (#1134): `default` the page, `inverse` a dark or brand-'
-      + 'filled band. Value-identical to `focus-ring`\'s `color` set and deliberately a SEPARATE axis rather '
-      + 'than shared — `focus-ring` has no palette axis so `color` is free there, while `button` spells its '
-      + 'palette "color" (docs/20 `interactive.<color>.*`), so the ground needs the distinct name `surface`. '
-      + 'ORDER matters as everywhere here: `default` is the rest coordinate the projector\'s inverse rewrite '
-      + 'falls through to (an `inverse` coordinate binds `color.inverse.*`, a `default` one the bare role).',
+      'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
+      + 'ONE name the bounded inverse set uses (docs/20 §9.11), so a host and a component it nests share it '
+      + 'by name and can pass it through — `button` carries `surface` and its nested `focus-ring` carries '
+      + '`surface`, which is what lets `button`\'s `follow: [\'surface\']` drive the ring\'s coordinate. '
+      + '`focus-ring`\'s axis was `color` until #1134 renamed it here; the two are one entry now because they '
+      + 'are one distinction. ORDER matters as everywhere here: `default` is the rest coordinate the '
+      + 'projector\'s inverse rewrite falls through to (an `inverse` coordinate binds `color.inverse.*`, a '
+      + '`default` one the bare role).',
   },
   {
     axis: 'tone',

@@ -166,7 +166,7 @@ anatomy:
     trailingVisual: { kind: slot, optional: true, size: icon.size.*, nesting: { kind: swap } }
     trailingAction: { kind: slot, optional: true, note: "dropdown caret — distinct from trailingVisual" }
     spinner:        { kind: overlay, replaces: leadingVisual, nesting: { kind: swap }, note: "width-preserved" }
-    focusRing:      { kind: absolute, nests: focus-ring, nesting: { kind: nest-fixed, variant: { color: default } } }
+    focusRing:      { kind: absolute, nests: focus-ring, nesting: { kind: nest-fixed, variant: { surface: default }, follow: [surface] } }
   derived:
     min-width: "height × minWidthMultiplier"
   code-only:
@@ -254,8 +254,8 @@ there is *latent* rather than absent, and it becomes real the day someone adds a
 which point the def that changed meaning is not the file that changed.
 
 **Members are matched axis by axis, never by string equality against a reassembled name.** Figma
-writes a member's axes in the order *it* chose, so `color=default, size=md` and `size=md,
-color=default` are the same member and only one of them equals a def-built string. Equality would
+writes a member's axes in the order *it* chose, so `surface=default, size=md` and `size=md,
+surface=default` are the same member and only one of them equals a def-built string. Equality would
 fail **invisibly** — as a miss about a def that is correct.
 
 **A member is what gets instantiated, never the set.** Figma has no "instance of a set", and
