@@ -13354,62 +13354,91 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // two already here, so the comparison is per-rule from here on. IF A STAMP IS WHAT MOVED, DO NOT
   // RESTAMP IT: this arm cannot tell a stale stamp from a correct historical one, and after a version bump
   // the arm is what is obsolete rather than the data.
+  //
+  // **#1148 RETIRED TWO IDS, AND THIS LIST IS NOT APPEND-ONLY — WHICH IS THE ONE THING THE PARAGRAPH ABOVE
+  // DOES NOT COVER.** Everything above is about a STAMP that must not move. This is about an ENTRY that must
+  // go: `appearance-tier-1013` and `surface-to-color-1013` are deleted from the artifact, so their keys are
+  // deleted here. The two are not the same edit and the difference is mechanical rather than editorial — a
+  // stale stamp is a false record, while a stale RULE is a live claim against a live before-set, and the
+  // accounting fails a key two rules both claim. `materialization-renames.ts`'s own header carries the
+  // per-rule argument for each retirement (dead domain, dead image, and for rule 2 a dead target tier).
+  // If you are here because the arm went red after adding a rule: add the id, do not delete the era column.
   const EXPECTED_SINCE: Record<string, string> = {
-    'appearance-tier-1013': '0.26.0',
-    'surface-to-color-1013': '0.26.0',
     'namespace-and-core-tier-1097': '0.27.0',
+    'color-one-collection-1148': '0.30.0',
   };
-  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'appearance-tier-1013 | surface-to-color-1013 | namespace-and-core-tier-1097'
-      && MATERIALIZATION_RENAMES.every((r) => r.since === EXPECTED_SINCE[r.id] && r.why.length > 120),
-    `#1039/#1013/#1097: the artifact ships exactly the three rules, each stamped with the version that made ITS change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately NOT what the stamps are compared to).`
-    + `\n    Three properties in one arm, so read the values above before changing anything: the ids, the stamps against`
-    + `\n    the literal table beside this arm, and that each rule carries a real \`why\`. #1097 is one rule and not two`
-    + `\n    (namespace + \`core\` tier) because \`multiplyClaimed\` FAILS a key two rules both claim, and every name the`
-    + `\n    tier moves is a name the namespace moves as well — see the rule's own \`why\`.`);
+  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'namespace-and-core-tier-1097 | color-one-collection-1148'
+      && MATERIALIZATION_RENAMES.every((r) => r.since === EXPECTED_SINCE[r.id] && r.why.length > 120)
+      && Object.keys(EXPECTED_SINCE).length === MATERIALIZATION_RENAMES.length,
+    `#1039/#1097/#1148: the artifact ships exactly the two rules, each stamped with the version that made ITS change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately NOT what the stamps are compared to).`
+    + `\n    Four properties in one arm, so read the values above before changing anything: the ids, the stamps against`
+    + `\n    the literal table beside this arm, that each rule carries a real \`why\`, and that the table holds no key for`
+    + `\n    a rule that has been retired. #1097 is one rule and not two (namespace + \`core\` tier) because`
+    + `\n    \`multiplyClaimed\` FAILS a key two rules both claim, and every name the tier moves is a name the namespace`
+    + `\n    moves as well — see the rule's own \`why\`.`);
 
   // Each rule's transformation on a LITERAL witness, with both directions of its domain boundary. The
   // negative halves are not padding: each one is a defect that check 2 would report as a wall of noise.
   //
-  //   · rule 1 must not match its own IMAGE. `color/appearance/text/primary` starts with `color/`, so
-  //     without the `!startsWith('color/appearance/')` clause every one of the 242 migrated variables is
-  //     a live domain member — a rule claiming the current emission moved, applied a second time as
-  //     `color/appearance/appearance/text/primary`.
-  //   · rule 2 must not match ITS own image either, for the same reason under a different prefix: it
-  //     writes `color/*` into the very collection it reads `surface/*` from.
-  //   · and neither may reach across into the other's collection, which is what keeps them disjoint and
-  //     `multiplyClaimed` empty — asserted over the real corpus in the end-to-end arm below.
-  //
-  //   · rule 3 (#1097) must not match its own image either, and its image is where the namespace makes
-  //     this sharper than the other two: applied twice, `prism/color/text/primary` becomes
+  //   · the #1097 rule must not match its own image, and its image is where the namespace makes this
+  //     sharper than a prefix swap: applied twice, `prism/color/text/primary` becomes
   //     `prism/prism/color/text/primary`, which is what a plugin re-running against a file it already
   //     wrote would produce. The `!startsWith(`${root}/`)` domain is the whole of the idempotence.
+  //   · the #1148 rule must not match ITS own image either. Its image is `<root>/color/<role>`, and the
+  //     thing that keeps that outside the domain is not a `!startsWith` clause but a fact about the role
+  //     vocabulary: no role group is called `appearance`. That is a weaker guarantee than #1097's and the
+  //     arm below is where it is checked rather than trusted.
+  //   · and the #1148 rule may not reach a collection that is not `color`, which is what keeps the two
+  //     disjoint and `multiplyClaimed` empty — asserted over the real corpus in the end-to-end arm below.
+  //
+  // TWO WITNESSES WERE DELETED HERE AT #1148, AND WHAT THEY WERE FOR IS NOT LOST. `appearance-tier-1013`
+  // and `surface-to-color-1013` are gone from the artifact, so `ruleApply` would return `null` for them and
+  // an arm kept "for the history" would assert `null === null` — `docs/34` shape 9, and it would read as
+  // coverage of two rules that no longer exist. The PROPERTY each one carried is what matters and both are
+  // re-stated on the live rule below: exclude-your-own-image (rule 1's, and rule 2's under another prefix)
+  // and do-not-reach-another-collection (the arm both shared). What genuinely goes is the pair's mutual
+  // disjointness, because there is no longer a pair; the surviving disjointness is #1097-vs-#1148, and it
+  // is a stronger statement than the old one — `!startsWith(root)` against `startsWith(root)` cannot
+  // overlap for ANY name, where the old pair relied on two collection names staying distinct.
   //
   // THE ROOT IS A PARAMETER OF THE WITNESSES TOO, and it is `zzwitness` — a root no brand uses, same
-  // reasoning as the table's `zzclient` below (`docs/44` §7). The two #1013 rules predate #1097 and must
-  // IGNORE it: the names they were written against carried no root at all. Passing a root they should not
-  // consult, and asserting the same images as before, is what says so.
+  // reasoning as the table's `zzclient` below (`docs/44` §7).
   const WROOT = 'zzwitness';
   const ruleApply = (id: string, collection: string, name: string, root: string): string | null => {
     const r = MATERIALIZATION_RENAMES.find((x) => x.id === id);
     if (!r) return null;
     return r.domain(collection, name, root) ? r.map(collection, name, root) : null;
   };
-  ok(ruleApply('appearance-tier-1013', 'color.appearance', 'color/text/primary', WROOT) === 'color/appearance/text/primary'
-      && ruleApply('appearance-tier-1013', 'color.appearance', 'color/appearance/text/primary', WROOT) === null
-      && ruleApply('appearance-tier-1013', 'color', 'color/text/primary', WROOT) === null,
-    '#1013 rule 1: the value tier takes the `color/appearance/` prefix — and the rule excludes its own image, so it is not still claiming the 242 variables it already moved. Given a `root` it must not consult, its images are unchanged');
-  // Rule 2's COLLECTION is `color.surface`, not `color`, and the mismatch between that and the rule's own
-  // id is deliberate. The rule performs #1013's rename (`surface/text/primary` → `color/text/primary`) and
-  // is stamped `0.26.0` for it; #1089 then renamed the collection it runs in, and `materialize` is always
-  // called with the collection the write plan is about to use — so the domain names the LIVE collection
-  // while the id and `since` name the change. Keyed on the historical `color` the rule is unreachable and
-  // a pre-#1013 `surface/*` variable is left behind in silence, which is the third arm below stated in
-  // reverse: `color.appearance` is not the collection, and neither is `color` any more.
-  ok(ruleApply('surface-to-color-1013', 'color.surface', 'surface/text/primary', WROOT) === 'color/text/primary'
-      && ruleApply('surface-to-color-1013', 'color.surface', 'color/text/primary', WROOT) === null
-      && ruleApply('surface-to-color-1013', 'color.appearance', 'surface/text/primary', WROOT) === null
-      && ruleApply('surface-to-color-1013', 'color', 'surface/text/primary', WROOT) === null,
-    '#1013 rule 2: the alias tier trades `surface/` for `color/` in the collection it already occupies (`color.surface` since #1089) — and does not re-match what it just wrote, nor reach the value tier, nor the bare `color` name no collection holds any more');
+  // A FLOOR ON THE HELPER, because `ruleApply` returns `null` for BOTH "outside the domain" and "no such
+  // rule" — so every negative arm below would pass against a typo in an id, and the two deleted #1013 arms
+  // are the proof that the collision is not hypothetical. This is the arm that tells the two apart.
+  const R4 = 'color-one-collection-1148';
+  ok(MATERIALIZATION_RENAMES.some((r) => r.id === R4) && ruleApply(R4, 'color', `${WROOT}/color/appearance/x`, WROOT) !== null,
+    `#1148: the witness ids below name rules that EXIST — \`ruleApply\` cannot distinguish an absent rule from an excluded name, so a mistyped id would turn every negative arm here into a silent pass (ids: ${MATERIALIZATION_RENAMES.map((r) => r.id).join(', ')})`);
+  // #1148's witness. The positive half is the whole rename — the `appearance/` segment goes, the root and
+  // the `color` group stay. The three negative halves are each a defect check 2 would report as noise:
+  // matching its own image (a rule claiming the current emission moved), reaching the orphaned
+  // `color.surface` collection a 0.27.0–0.29.0 file retains, and firing on an UN-rooted name, which is
+  // #1097's job and would put two claims on one key.
+  ok(ruleApply(R4, 'color', `${WROOT}/color/appearance/text/primary`, WROOT) === `${WROOT}/color/text/primary`
+      && ruleApply(R4, 'color', `${WROOT}/color/text/primary`, WROOT) === null
+      && ruleApply(R4, 'color.surface', `${WROOT}/color/appearance/text/primary`, WROOT) === null
+      && ruleApply(R4, 'color', 'color/appearance/text/primary', WROOT) === null,
+    '#1148: the surviving colour tier gives up the `appearance/` segment — and the rule excludes its own image, does not reach the orphaned `color.surface` collection, and requires the root, which is what keeps it disjoint from #1097 rather than competing for the same key');
+  // AND THE FACT THE EXCLUSION RESTS ON, CHECKED RATHER THAN TRUSTED. #1148's rule has no `!startsWith`
+  // clause of its own; it is outside its own domain only because no colour role group is spelled
+  // `appearance`. That is a property of the ROLE VOCABULARY and not of this rule, so it is read from the
+  // EMISSION — not from `tree.ts`'s `COLOR_FAMILY_ORDER`, which is neither exported nor the right source:
+  // importing the producer's own list would put this arm below the thing it is checking (`docs/34` shape 11,
+  // and the #1150 block below refuses the same import for the same reason). What reached disk is the
+  // independent statement, and a family added to the resolver without anyone thinking about this rule shows
+  // up here rather than in `materialize`'s self-map guard at apply time.
+  const nbColorPfx = `${rootOf('nb')}/color/`;
+  const nbFamilies = [...new Set([...nbKeys]
+    .filter((k) => parseVarKey(k).collection === 'color' && parseVarKey(k).name.startsWith(nbColorPfx))
+    .map((k) => parseVarKey(k).name.slice(nbColorPfx.length).split('/')[0]))].sort();
+  ok(nbFamilies.length > 5 && !nbFamilies.includes('appearance'),
+    `#1148: no colour family in the EMISSION is called \`appearance\`, which is the ONLY reason the de-tier rule is outside its own domain — a group by that name would make \`<root>/color/appearance/…\` both the rule's image and a live role path (${nbFamilies.length} families: ${nbFamilies.join(', ')})`);
 
   // #1097's witnesses. FOUR properties, and the two negative ones are where the single-rule design is
   // load-bearing rather than convenient:
@@ -13771,13 +13800,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   };
   const ruleColorOnly: MaterializationRule = {
     id: 'fixture-ns-color-only', since: '0.0.0-fixture',
-    // `color.surface` since #1089, and it has to be a collection the emission ACTUALLY HAS. Left as
-    // `color` this rule matched nothing, `renamed(before, c => c === 'color')` renamed nothing, and rows 2
-    // and 3 both went quiet: row 3's contradiction arm is gated on the emission having moved, so a rule
-    // that claims everything over an emission that moved nowhere reports ZERO contradictions. The
-    // over-claiming row — the one the whole-set clause exists for — would have passed by claiming nothing.
-    why: 'fixture: the under-covering rule — claims only the `color.surface` collection',
-    domain: (c) => c === 'color.surface', map: nsAll,
+    // THE COLLECTION NAMED HERE MUST BE ONE THE EMISSION ACTUALLY HAS, and this line has now been wrong in
+    // BOTH directions — which is why the hazard is stated rather than the name simply corrected. At #1089
+    // it read `color` after the emission had moved to `color`; #1148 folded the two tiers back into
+    // one and made `color` the dead name, so it read `color` after the emission had moved
+    // to `color`. The failure mode is identical either way and it is silent in the direction that matters:
+    // the rule matches nothing, `renamed(before, …)` renames nothing, and rows 2 and 3 both go quiet —
+    // row 3's contradiction arm is gated on the emission having moved, so a rule that claims everything
+    // over an emission that moved nowhere reports ZERO contradictions. The over-claiming row, the one the
+    // whole-set clause exists for, would pass by claiming nothing. **The name is checked by the row-2 and
+    // row-3 counts being > 0, which is the only reason either wrong spelling was ever caught.**
+    why: 'fixture: the under-covering rule — claims only the `color` collection',
+    domain: (c) => c === 'color', map: nsAll,
   };
   /** Apply the namespace to a chosen subset of collections — the EMISSION side of the fixture. */
   const renamed = (keys: ReadonlySet<VarKey>, which: (c: string) => boolean): Set<VarKey> => {
@@ -13792,7 +13826,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const rows: string[] = [];
   for (const brand of brands) {
     const before = emissionOf(brand);
-    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color.surface').length;
+    const nonColor = [...before].filter((k) => parseVarKey(k).collection !== 'color').length;
 
     // ROW 1 — complete rule, complete rename → TOTAL.
     const r1 = accountFor(before, renamed(before, () => true), [ruleAll], parseVarKey, rootOf(brand));
@@ -13804,15 +13838,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const r2 = accountFor(before, renamed(before, () => true), [ruleColorOnly], parseVarKey, rootOf(brand));
     const unaccounted2 = r2.unaccountedRemovals.length + r2.unaccountedAdditions.length;
     ok(unaccounted2 === nonColor * 2 && unaccounted2 > 0,
-      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color.surface\` keys) — the forcing function fires`);
-    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color.surface :: ')),
+      `#1039 table row 2 (${brand}): an under-covering rule leaves ${unaccounted2} unaccounted (expected ${nonColor * 2} = 2 × ${nonColor} non-\`color\` keys) — the forcing function fires`);
+    ok(r2.unaccountedRemovals.some((k) => !k.startsWith('color :: ')),
       `#1039 table row 2 (${brand}): and names them individually rather than counting them — e.g. ${r2.unaccountedRemovals[0]}`);
 
     // ROW 3 — OVER-CLAIMING rule, `color`-only rename. The row the whole-set clause exists for.
-    const colorOnlyEmission = renamed(before, (c) => c === 'color.surface');
+    const colorOnlyEmission = renamed(before, (c) => c === 'color');
     const r3 = accountFor(before, colorOnlyEmission, [ruleAll], parseVarKey, rootOf(brand));
     ok(r3.contradictedClaims.length === nonColor && nonColor > 0,
-      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color.surface\` key the rule said moved and did not`);
+      `#1039 table row 3 (${brand}): an over-claiming rule is contradicted ${r3.contradictedClaims.length} times (expected ${nonColor}) — every non-\`color\` key the rule said moved and did not`);
 
     // AND THE CONTRAST THAT IS THE EVIDENCE: the diff-driven accounting reports TOTAL on the same input.
     // Without this the whole-set clause is a sentence in a comment; with it, it is two numbers that
@@ -13847,10 +13881,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const spanHi = Math.max(...unaccountedAll);
   const perBrandTwice = brands.map((b) => {
     const before = emissionOf(b);
-    return [...before].filter((k) => parseVarKey(k).collection !== 'color.surface').length * 2;
+    return [...before].filter((k) => parseVarKey(k).collection !== 'color').length * 2;
   });
   ok(spanLo === Math.min(...perBrandTwice) && spanHi === Math.max(...perBrandTwice) && spanLo > 0,
-    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color.surface\` population at its extremes `
+    `#1053: the under-covering span ${spanLo}–${spanHi} IS 2 × the non-\`color\` population at its extremes `
     + `(${perBrandTwice.join(' / ')}) — derived, so a token addition moves the figure without failing a test about renames. `
     + `\`docs/44\` §5 records 846–964 as the snapshot at 2,076 keys (${rows.join(' | ')})`);
 }
