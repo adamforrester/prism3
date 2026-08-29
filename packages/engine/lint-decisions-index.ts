@@ -90,13 +90,86 @@ const repo = join(import.meta.dirname, '../..');
 const BASELINE = 'packages/engine/schema/decisions-index.json';
 const EXEMPT = new Set(['docs/00-progress.md', 'docs/42-current-decisions.md']);
 
-type Decision = { date: string; issue: number | null; title: string; doc: string; section: string | null };
+/**
+ * A baseline row. `issue` (one) and `issues` (several) are BOTH accepted and normalized on read —
+ * see `issuesOf`. One decision owning two issues is real (#1148 + #1150 is the instance), and the
+ * single-issue spelling is the overwhelmingly common case, so forcing every row to an array would
+ * churn fifteen unrelated rows to express nothing. A row carrying BOTH is refused rather than
+ * silently preferring one.
+ */
+type Decision = {
+  date: string;
+  issue?: number | null;
+  issues?: number[];
+  title: string;
+  doc: string;
+  section: string | null;
+};
 
 /** A `Decided (...)` heading, wherever it appears. `section` is the heading's own leading `N.M`
- *  prefix if it has one, else null — never invented. */
-type Heading = { doc: string; date: string; issue: number | null; title: string; section: string | null; line: number };
+ *  prefix if it has one, else null — never invented. `issues` is in heading order, and `[]` for a
+ *  heading with no owning issue. */
+type Heading = { doc: string; date: string; issues: number[]; title: string; section: string | null; line: number };
 
-const HEADING_RE = /^(#{2,4})\s+(?:([\d.]+)\s+)?Decided\s*\((\d{4}-\d{2}-\d{2})(?:,\s*#(\d+))?\)\s*:\s*(.+?)\s*$/;
+/**
+ * ── THE PARSE ADMITS SEVERAL ISSUES, AND THE OLD ONE SILENTLY ADMITTED THE HEADING TO NOTHING ────
+ *
+ * This used to end `(?:,\s*#(\d+))?\)` — at most ONE `#NNN`, with the closing paren required
+ * immediately after it. A heading owning two issues did not fail the ISSUE group; it failed the
+ * WHOLE pattern, because after `#1148` the regex wanted `)` and found ` + #1150)`. The optional group
+ * then backtracked to matching nothing, the `)` still did not appear after the date, and the line was
+ * not a `Decided` heading at all.
+ *
+ * **That is the defect, and its shape is worse than a rejected heading.** Arm B checks that every
+ * `Decided (...)` heading in the corpus has a baseline row; a heading the pattern cannot see is not
+ * an unmatched heading, it is not a heading — so arm B has nothing to complain about and the gate
+ * reports clean. A decision recorded in the docs and absent from the index passes. `docs/34` shape 9:
+ * the detector is anchored on a spelling its subject is free to move past.
+ *
+ * The corpus shows what that cost: nothing is rejected today because the convention BENT AROUND the
+ * gate. `docs/20` §9.10 was written `Decided (2026-08-29, #1148): … and (#1150) …` — the second issue
+ * pushed into the TITLE, where it is prose rather than a citation, unreachable by any query over the
+ * index. A gate that cannot express a real case does not stop that case arising; it deforms how the
+ * case gets written, somewhere the gate is not looking.
+ *
+ * Now: one or more refs separated by `+`, captured as a list and split.
+ *
+ * ONE SEPARATOR, NOT TWO. The first version also accepted `,` — tolerant input, and wrong for the same
+ * reason a row may not carry both `issue` and `issues`: `citeIssues` only ever RENDERS ` + `, so a
+ * heading written with commas would round-trip through `--accept` into a citation spelled differently
+ * from the heading it came from, and two spellings of one fact drift apart. Accept exactly what is
+ * emitted.
+ */
+const HEADING_RE = /^(#{2,4})\s+(?:([\d.]+)\s+)?Decided\s*\((\d{4}-\d{2}-\d{2})(?:,\s*(#\d+(?:\s*\+\s*#\d+)*))?\)\s*:\s*(.+?)\s*$/;
+
+/** Every `#NNN` in a captured ref list, in heading order. */
+const refsIn = (group: string | undefined): number[] =>
+  group ? [...group.matchAll(/#(\d+)/g)].map((m) => Number(m[1])) : [];
+
+/**
+ * A baseline row's issues, normalized — and the ONE place the two spellings are reconciled, so no
+ * other reader has to know there are two. A row carrying both is a defect rather than a preference:
+ * whichever this function chose, the other would be a live value nothing reads, which is how the two
+ * drift apart.
+ */
+const issuesOf = (d: Decision): number[] => {
+  if (d.issues !== undefined) return [...d.issues];
+  return d.issue === null || d.issue === undefined ? [] : [d.issue];
+};
+
+/** A row carrying BOTH spellings — checked ONCE, up front, rather than inside `issuesOf`.
+ *
+ *  The first version of this raised the error from inside `issuesOf`, which is called from `same()`
+ *  deep in the comparison. Two things were wrong with that and a mutation found both: `die` is not in
+ *  scope there, so the guard CRASHED with a `ReferenceError` instead of reporting — and a crash is not
+ *  a failure, it aborts before the rest of the run and reports fewer problems the more broken the
+ *  input is (`docs/34`, #680). Validating the baseline before any comparison also puts the message
+ *  where a reader expects it: a malformed index is a fact about the file, not about one row's match. */
+const bothSpellings = (d: Decision): boolean =>
+  d.issues !== undefined && d.issue !== undefined && d.issue !== null;
+
+const sameIssues = (a: number[], b: number[]): boolean =>
+  a.length === b.length && a.every((n, i) => n === b[i]);
 
 function headingsIn(doc: string, src: string): Heading[] {
   const out: Heading[] = [];
@@ -107,7 +180,7 @@ function headingsIn(doc: string, src: string): Heading[] {
         doc,
         section: m[2] ?? null,
         date: m[3],
-        issue: m[4] ? Number(m[4]) : null,
+        issues: refsIn(m[4]),
         title: m[5],
         line: i + 1,
       });
@@ -117,16 +190,65 @@ function headingsIn(doc: string, src: string): Heading[] {
 }
 
 const same = (h: Heading, d: Decision): boolean =>
-  h.doc === d.doc && h.date === d.date && h.issue === d.issue && h.title === d.title;
+  h.doc === d.doc && h.date === d.date && sameIssues(h.issues, issuesOf(d)) && h.title === d.title;
+
+/** `#a + #b` is the heading spelling, so the citation reads back as what a reader would search for. */
+const citeIssues = (ns: number[]): string => (ns.length ? `, ${ns.map((n) => `#${n}`).join(' + ')}` : '');
+
+/** A `Heading` is the one with a source line; everything else here is a baseline `Decision`. */
+const isHeading = (d: Decision | Heading): d is Heading => 'line' in d;
 
 const cite = (d: Decision | Heading): string =>
-  `${d.doc} — Decided (${d.date}${d.issue ? `, #${d.issue}` : ''}): ${d.title}`;
+  `${d.doc} — Decided (${d.date}${citeIssues(isHeading(d) ? d.issues : issuesOf(d))}): ${d.title}`;
+
+/**
+ * THE WRITE PATH ROUND-TRIPS ITS OWN READ, asserted before either runs (#1160 review).
+ *
+ * `--accept` builds baseline rows from `Heading`s and the reader turns them back into issue lists. The
+ * two were written at different times and the rename to `issues` reached only the reader: the writer
+ * still emitted `issue: h.issue`, which `Heading` no longer has, so it wrote `undefined` — and
+ * `JSON.stringify` DROPS an undefined value, appending rows with no ref at all. Single-ref decisions
+ * lost their ref too, which is the tell that this was a WRITE-path bug and not a multi-ref one, and
+ * the next run failed them as ROW NOT FOUND + UNINDEXED. The gate's own remedy text says "run
+ * --accept", so the failure walked the user straight back into it.
+ *
+ * **No gate saw it: engine sources outside `components/` are not typechecked.** A reviewer's
+ * `tsc --strict` found it. This asserts the property at runtime instead of relying on that — the two
+ * functions must agree for both shapes, and the round trip is the only thing that can say so.
+ */
+const rowFor = (h: Heading): Decision => ({
+  date: h.date,
+  ...(h.issues.length > 1 ? { issues: h.issues } : { issue: h.issues[0] ?? null }),
+  title: h.title,
+  doc: h.doc,
+  section: h.section,
+});
+
+for (const probe of [[], [1140], [1148, 1150]] as number[][]) {
+  const h: Heading = { doc: 'x', date: '2026-01-01', issues: probe, title: 't', section: null, line: 1 };
+  const round = issuesOf(JSON.parse(JSON.stringify(rowFor(h))) as Decision);
+  if (!sameIssues(round, probe)) {
+    // `console.error` + `process.exit`, this file's own idiom — there is no `die` here. Worth the
+    // sentence: the FIRST draft of this guard called one, which is the same slip a mutation caught in
+    // the both-spellings check on this very PR. A guard that throws instead of reporting is not a
+    // guard (`docs/34`, #680).
+    console.error(`\n✗ the --accept writer and the baseline reader disagree for ${probe.length} ref(s).`);
+    console.error(`    wrote ${JSON.stringify(rowFor(h))} · read back ${JSON.stringify(round)} · expected ${JSON.stringify(probe)}`);
+    console.error(
+      '\n  A row this gate writes must be a row it can read. The JSON round trip is deliberate: an\n' +
+        '  `undefined` field survives in memory and vanishes through `JSON.stringify`, which is exactly\n' +
+        '  how the write path lost every ref while looking correct in the object it built.',
+    );
+    process.exit(1);
+  }
+}
 
 const accept = process.argv.includes('--accept');
 const baseline = JSON.parse(readFileSync(join(repo, BASELINE), 'utf8')) as {
   document: string;
   decisions: Decision[];
 };
+
 
 const tracked = execSync('git ls-files docs', { cwd: repo, encoding: 'utf8' })
   .trim()
@@ -145,6 +267,21 @@ for (const f of tracked) {
 }
 
 const failures: string[] = [];
+
+// A baseline row carrying BOTH `issue` and `issues` — a fact about the FILE, checked before any row is
+// compared, and reported through this gate's own `failures` path rather than a bespoke exit.
+//
+// The first version raised this from inside `issuesOf`, which `same()` calls deep in the comparison,
+// and a mutation found two things wrong with it at once: there is no `die` in this file, so the guard
+// threw a `ReferenceError` — and a crash is not a failure. It aborts the run, so the more malformed the
+// index is the FEWER problems get reported (`docs/34`, #680). Placed here, a malformed row reads as
+// what it is: a defect in the index, not a mismatch on whichever decision happened to reach it first.
+for (const d of baseline.decisions.filter(bothSpellings))
+  failures.push(
+    `BASELINE ROW CARRIES BOTH \`issue\` AND \`issues\`: ${d.doc} — ${d.title}. One of the two would be a ` +
+      'value nothing reads, which is how two spellings of one fact drift apart. Use `issues` for a ' +
+      'decision owning several and `issue` for one; never both on a row.',
+  );
 const lines: string[] = [];
 
 // ---- the baseline's own integrity, before it is used as an oracle ---------------------------
@@ -208,8 +345,8 @@ lines.push(`  baseline: ${baseline.decisions.length} decision(s) across ${KNOWN_
 lines.push(`  corpus:   ${allHeadings.length} 'Decided (...)' heading(s) found across ${tracked.length} scanned file(s)`);
 
 if (accept) {
-  const knownKeys = new Set(baseline.decisions.map((d) => `${d.doc}|${d.date}|${d.issue ?? ''}|${d.title}`));
-  const added = allHeadings.filter((h) => !knownKeys.has(`${h.doc}|${h.date}|${h.issue ?? ''}|${h.title}`));
+  const knownKeys = new Set(baseline.decisions.map((d) => `${d.doc}|${d.date}|${issuesOf(d).join('+')}|${d.title}`));
+  const added = allHeadings.filter((h) => !knownKeys.has(`${h.doc}|${h.date}|${h.issues.join('+')}|${h.title}`));
   const conflicts = failures.filter((f) => f.startsWith('ROW NOT FOUND') || f.startsWith('SECTION POINTER STALE'));
   if (conflicts.length) {
     console.error('✗ --accept refuses: an EXISTING row disagrees with the docs, which is not an append.\n');
@@ -226,7 +363,13 @@ if (accept) {
   }
   baseline.decisions = [
     ...baseline.decisions,
-    ...added.map((h) => ({ date: h.date, issue: h.issue, title: h.title, doc: h.doc, section: h.section })),
+    // Writes back in the SAME two spellings the reader accepts (#1160 review): `issues` for a decision
+    // owning several, `issue` for one or none. Emitting `h.issue` here — which `Heading` has not had
+    // since the multi-ref parse landed — is `undefined`, and `JSON.stringify` DROPS an undefined value,
+    // so `--accept` appended rows with no ref at all and the next run failed them as ROW NOT FOUND +
+    // UNINDEXED. Single-ref decisions were hit too, which is the tell that this was a write-path bug
+    // rather than a multi-ref one.
+    ...added.map(rowFor),
   ];
   writeFileSync(join(repo, BASELINE), `${JSON.stringify(baseline, null, 2)}\n`);
   console.log(`✓ appended ${added.length} decision(s):`);

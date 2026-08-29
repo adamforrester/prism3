@@ -77,7 +77,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | The media veil is its own family, `color.veil.*`, and it is appearance-invariant | 2026-08-25 | `docs/20-interactive-color-system.md` §8.1 | #1030 |
 | Inverse is name-encoded and bounded — the `inverse` mode comes off the pointer collection | 2026-08-28 | `docs/20-interactive-color-system.md` §9.8 | #1133 |
 | One top-level `inverse.` group — `inverse(X) = inverse.` + X — and `on-` takes a ground, never a role or a rank | 2026-08-28 | `docs/20-interactive-color-system.md` §9.9 | #1140 |
-| ONE `color` collection — the pointer tier is deleted and the values take the short name — and (#1150) the roles are written in reading order with `inverse` last *(supersedes #1135 and #1136)* | 2026-08-29 | `docs/20-interactive-color-system.md` §9.10 | #1148 |
+| ONE `color` collection — the pointer tier is deleted and the values take the short name — and the roles are written in reading order with `inverse` last *(supersedes #1135 and #1136)* | 2026-08-29 | `docs/20-interactive-color-system.md` §9.10 | #1148 + #1150 |
 | The inverse-context axis is `surface` everywhere (projected `surface=default`/`surface=inverse`), its inverse paint is the projector's `color.*` → `color.inverse.*` rewrite, and a host drives a nested component's `surface` by name (`follow`); `focus-ring`'s `color` axis is renamed and `color` leaves `VARIANT_AXES` | 2026-08-29 | `docs/20-interactive-color-system.md` §9.11 | #1134 |
 
 ## Known gaps, named rather than silent
