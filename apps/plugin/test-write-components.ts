@@ -1156,7 +1156,7 @@ const rVer = await run(grid, { ...full(), page: verPage });
 ok(rVer.stale === 0 && rVer.skipped === 21,
   `a member stamped by a different engine build but the same PLAN is still correct — comparing the version half would flag a whole file stale on a value change (stale=${rVer.stale}, skipped=${rVer.skipped})`);
 
-// (5) `main.ts` IS WIRED TO ALL OF THIS, gated by source text only — the same limit `applySurfacePlan`'s
+// (5) `main.ts` IS WIRED TO ALL OF THIS, gated by source text only — the same limit `applyWritePlan`'s
 // suite states. `main.ts` calls `figma.showUI` at module scope so it cannot be imported, and every count
 // above is inert if the panel never receives it. This cannot see a reordering that preserves textual
 // order, and it is not a substitute for running the plugin in a real file.
