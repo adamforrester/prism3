@@ -300,6 +300,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'The cost of an axis of one is real (`modifiers`, #845) and it is being paid deliberately here.',
   },
   {
+    axis: 'surface',
+    values: ['default', 'inverse'],
+    defs: ['button'],
+    relation: 'sole',
+    reason:
+      'The two grounds a stateful control sits on (#1134): `default` the page, `inverse` a dark or brand-'
+      + 'filled band. Value-identical to `focus-ring`\'s `color` set and deliberately a SEPARATE axis rather '
+      + 'than shared — `focus-ring` has no palette axis so `color` is free there, while `button` spells its '
+      + 'palette "color" (docs/20 `interactive.<color>.*`), so the ground needs the distinct name `surface`. '
+      + 'ORDER matters as everywhere here: `default` is the rest coordinate the projector\'s inverse rewrite '
+      + 'falls through to (an `inverse` coordinate binds `color.inverse.*`, a `default` one the bare role).',
+  },
+  {
     axis: 'tone',
     values: [
       'inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info',

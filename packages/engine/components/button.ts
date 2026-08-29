@@ -48,6 +48,7 @@ export const button: ComponentDef = {
     { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'primary', required: false, description: 'Semantic color, drawn from interactive.<intent>.* (docs/20). Defaults to primary — the brand color is the expected look of a button, so an unqualified <Button> should be on-brand rather than gray. EMPHASIS IS THE APPEARANCE AXIS, NOT THIS ONE: a form with three actions is typically three primaries at filled / outline / text, not one primary and two grays. Use neutral when the control genuinely carries no brand weight (a toolbar, a dense table row); destructive for delete/remove. accent is available when the brand declares one. (Reconciled from the old primary/secondary/danger/ghost — secondary→neutral, danger→destructive, ghost retired to intent=neutral appearance=text.)' },
     { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Control size — drives height, padding, and label type.' },
+    { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
     { name: 'fullWidth', type: 'boolean', default: false, required: false, description: 'Stretch to container. Aliases: block / isFullWidth.' },
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`.' },
@@ -65,6 +66,18 @@ export const button: ComponentDef = {
     appearance: ['filled', 'outline', 'text'],
     size: ['small', 'medium', 'large'],
     width: ['auto', 'full'],
+    // THE INVERSE GROUND (#1134), and the bindings for it are NOT in `tokens` below — that is the whole
+    // mechanism, not an omission. An inverse control binds every role's inverse counterpart, which
+    // docs/20 §9.9 defines as `color.inverse.` + the role. Expressed as authored keys that would collide
+    // with this def's own grammar by arity: `primary.filled.fill.inverse` fills the `{state}` segment
+    // with `inverse` (not a state) and `inverse.disabled.fill` fills `{intent}` with `inverse` (not an
+    // intent), both rejected by `paintKeyErrors`. So the whole inverse half is unauthorable here and is
+    // applied by the projector instead — `anatomy-figma.ts` rewrites each resolved `color.*` ref to its
+    // `color.inverse.*` counterpart at any coordinate where `surface=inverse`. This def declares the
+    // axis; the transform supplies the values. `focus-ring` carries the same distinction under `color`
+    // (it has no palette axis to collide with); a control that spells its palette "color" — as docs/20
+    // does for `intent` — needs the distinct name, which is why `surface` earns a VARIANT_AXES entry.
+    surface: ['default', 'inverse'],
   },
   // NO `modifiers` AXIS (#845), and its three values were three different things, which is the whole
   // defect: an axis's values are mutually exclusive coordinates along ONE dimension, and a button can
@@ -345,8 +358,11 @@ export const button: ComponentDef = {
       // and the hyphenated compound is what keeps the term from being a leading whole word. Any future
       // entry about an axis-and-state INTERACTION needs the same care — lead with a compound, never the
       // bare axis name.
-      'intent-at-disabled redundancy (#612) — all three intents render ONE row at `state=disabled`, so 36 groups of 3 are byte-identical. Accepted, not fixed: `disabled.*` is cross-cutting by design (docs/20 §7 — `color.disabled.fill` has no intent in the path), so one disabled skin serving every intent is the token tier being correct, and the projection reporting it faithfully is a feature. The coordinate stays MEANINGFUL — a designer selecting intent=destructive, state=disabled finds it where they look for it and gets the right pixels; they are merely the same pixels as the other two intents. Pruning the 72 redundant rows would make the set\'s shape depend on a per-coordinate measurement, which is a new class of thing to gate for a 11% row saving.',
-      'inverse (a button on a dark hero / inverse section) — NOT modelled by this def, and #784 is where that became explicit rather than half-true. Three keys used to bind `interactive.<intent>.on-inverse.text.rest` — the family was spelled `on-inverse` until #891 renamed it to `inverse`, and the old spelling is kept here because it is what those keys literally said — as though the qualifier were an APPEARANCE value; it is not one — `variants.appearance` is filled/outline/text, so the coordinate never occurred and all three were reached at no point in the 5184-coordinate grid. They were removed rather than renamed, because there is no value to rename them to: the surface a control sits on is a fourth axis this def does not declare, and inventing one would multiply the projected set by two to encode a context the HOST knows and the button does not. The token family is real, emitted, and gated per mode against `background.inverse.primary` independently of any def (`test.ts` (a)/(a2)), so nothing about the contract is lost — what is missing is a def that can ask for it, which needs a surface axis and is a design decision, not a rename. Until then a button on a dark band is a designer override on the instance, the same answer `focus-ring`\'s `color=inverse` gets from this def.',
+      'intent-at-disabled redundancy (#612) — all three intents render ONE row at `state=disabled`, so 72 groups of 3 are byte-identical (36 on each `surface` ground). Accepted, not fixed: `disabled.*` is cross-cutting by design (docs/20 §7 — `color.disabled.fill` has no intent in the path, and its inverse counterpart `color.inverse.disabled.fill` has none either), so one disabled skin serving every intent is the token tier being correct, and the projection reporting it faithfully is a feature. The coordinate stays MEANINGFUL — a designer selecting intent=destructive, state=disabled finds it where they look for it and gets the right pixels; they are merely the same pixels as the other two intents. Pruning the 144 redundant rows would make the set\'s shape depend on a per-coordinate measurement, which is a new class of thing to gate for a 11% row saving.',
+      // NOT led by "surface" on purpose: `surface` PROJECTS (it is in `variantAxes`), so a leading
+      // `admits()` entry would falsely license dropping it. This entry admits the one thing the inverse
+      // variant CANNOT yet do, which is a nesting-mechanism gap, not the axis.
+      'focus-ring-on-inverse (#1156) — an inverse button pastes the DEFAULT focus ring, not the inverse one. The ring is nested `nest-fixed` at `color=default` (`parts.focusRing`), and a fixed coordinate is one value for every member — so the `surface=inverse` half of the set nests a ring tuned for a light ground, where a ring on a dark/brand band needs `color=inverse` for its own 3:1 non-text contrast (1.4.11, the reason `focus-ring` has the axis at all). The token is NOT the gap — `color.inverse.border.focus` is emitted and gated; the gap is that `nest-fixed` cannot make the nested coordinate a FUNCTION of the host coordinate (`surface=inverse` → ring `color=inverse`). The ring still projects and is still offset-correct on the inverse ground; only its ink is one step off. Filed as #1156, and general to every stateful member of the bounded inverse set, so it is a schema change rather than a per-def one.',
       'inactive — a real state (isInactive), deliberately NOT a Figma variant. Its whole delta from `disabled` is behavioral: it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus. None of that is paint, so a variant has nothing to encode. At the TOKEN tier its intended visual is `disabled`\'s by an explicit decision (docs/03 item 3, resolved 2026-06-24: `disabledStrategy: \'accessible\'` IS the KB\'s contrast-preserving `inactive`; docs/06 defines `text.disabled` as "disabled / inactive ink"). The EMITTER does not implement that yet — `anatomy-figma.ts` special-cases `state === \'disabled\'` only, so `inactive` falls through to the `rest` paints, which is worse than a duplicate: the column would have read as a normal enabled button. Either way it is unprojectable, and the two facts fail it independently.',
     ],
   },
@@ -357,7 +373,13 @@ export const button: ComponentDef = {
   // validator enforces that pairing). The slot-presence axis §4 calls for is future def work, so it
   // is absent rather than stubbed.
   figmaProperties: {
-    variantAxes: ['intent', 'appearance', 'size'],
+    // `surface` PROJECTS (#1134) — it doubles the set (648 → 1296) so a designer can pick a button for a
+    // dark band from the same component, which is the deliverable. It is a real axis a variant carries,
+    // unlike `width` (a drag, admitted in codeOnly): the two grounds are genuinely different pixels, and
+    // Figma has no way to publish "inverse context" to a nested instance, so an explicit coordinate is
+    // the only thing that can carry it. Its inverse paints come from the projector's `color.inverse.*`
+    // rewrite (see `variants.surface`), not from keys in `tokens`.
+    variantAxes: ['intent', 'appearance', 'size', 'surface'],
     // Six of the seven in `states` above — still the single source (#487 §0.4). The legacy sheet's
     // six (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
     // for `pressed`, `focus-visible` and `pending`.
@@ -430,6 +452,7 @@ export const button: ComponentDef = {
       'Keep exactly one FILLED button per view; demote the rest to outline / text on the same intent, so a form of three actions is three primaries at three appearances',
       'Reach for neutral when the control carries no brand weight at all — a toolbar, a dense table row — not merely because it is secondary in rank',
       'Pair a destructive button with an adjacent neutral escape ("Cancel"/"Keep")',
+      'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve isDisabled for the irrelevant',
     ],
     dont: [

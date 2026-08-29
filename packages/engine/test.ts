@@ -7211,6 +7211,42 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(vnb.warnings.length === 0 && vau.warnings.length === 0, `component: ${name} binds only semantic roles, no primitive-tier leak${[...vnb.warnings, ...vau.warnings].length ? ' — ' + [...vnb.warnings, ...vau.warnings].join('; ') : ''}`);
   }
 
+  // (#1134) THE BOUNDED INVERSE SET BINDS ONLY COVERED ROLES — the enforceable half of the gap rule, one
+  // tier below the token register (a3). A def carrying a `surface` axis with an `inverse` value paints its
+  // `color.inverse.*` counterparts through the projector's rewrite (`anatomy-figma.ts`), NOT through keys
+  // in `tokens` — so `validateComponentDef` resolves the default leg and never sees the inverse one, and a
+  // binding whose role has no inverse counterpart would project a Figma variable that does not exist, with
+  // nothing to report it. (a3) bounds which ROLES have counterparts; this bounds which DEFS may rely on
+  // them, which is what makes "every component that can go inverse has been checked" a gate rather than a
+  // memory. The ORACLE is the emitted role set; the SUBJECT is the def's colour bindings; the counterpart
+  // name is the literal `inverse.` + role rule (docs/20 §9.9) authored HERE rather than imported from the
+  // projector's `toInverse`, so the check and the thing it checks are not one expression (docs/34 shape 1).
+  {
+    const roleKeys = new Set(Object.keys(resolveAllModes(nbTheme()).find((m) => m.mode === 'light')!.roles));
+    const roleOf = (ref: string): string | undefined =>
+      ref.startsWith('color.') && !ref.startsWith('color.inverse.') ? ref.slice('color.'.length) : undefined;
+    const rolesBound = (d: ComponentDef): string[] => Object.values(d.tokens).flatMap((ref) => { const r = roleOf(ref); return r ? [r] : []; });
+    const inverseDefs = componentDefs.filter((d) => (d.variants?.surface ?? []).includes('inverse'));
+    ok(inverseDefs.length >= 1,
+      `inverse-variant: the bounded set is LIVE — at least one def declares a surface=inverse variant (${inverseDefs.map((d) => d.id).join(', ') || 'NONE — the loop below would assert nothing'})`);
+    for (const d of inverseDefs) {
+      const roles = [...new Set(rolesBound(d))];
+      ok(roles.length > 0, `inverse-variant: ${d.id} binds colour roles its surface axis can flip (${roles.length})`);
+      const uncovered = roles.filter((r) => !roleKeys.has(`inverse.${r}`)).sort();
+      ok(uncovered.length === 0,
+        `inverse-variant: every colour role ${d.id} binds has a color.inverse.* counterpart, so surface=inverse paints a real variable rather than a name nothing emits (uncovered: ${uncovered.join(', ') || 'none'})`);
+    }
+    // MUTATION, because "every bound role is covered" passes vacuously over an empty set: point one Button
+    // binding at a role registered as a STRUCTURAL inverse gap (`color.text.on-brand`, #892 step 4 — ink on
+    // a solid fill does not change on an inverse ground, so it has no counterpart by design) and confirm the
+    // arm names it. This fails on an UNCOVERED counterpart, not on any error, which is what distinguishes it
+    // from the projector simply throwing.
+    const mutated = { ...button, tokens: { ...button.tokens, 'primary.filled.label': 'color.text.on-brand' } } as ComponentDef;
+    const mutatedUncovered = [...new Set(rolesBound(mutated))].filter((r) => !roleKeys.has(`inverse.${r}`));
+    ok(mutatedUncovered.includes('text.on-brand') && INVERSE_GAP_PATHS.has('color.text.on-brand'),
+      'inverse-variant: binding an INVERSE_GAPS role is CAUGHT — the arm fails on an uncovered counterpart, and that role is registered as a deliberate structural gap');
+  }
+
   // Button carries the reconciled two-axis model bound to interactive.* (docs/20): intent
   // {primary,neutral,destructive} × appearance {filled,outline,text}, PRIMARY default.
   //
@@ -9492,20 +9528,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         });
 
         // THE FULL SET'S SHAPE, as two literals a hand-count justifies rather than a product of
-        // `.length`s. 648 = 3 intent × 3 appearance × 3 size × 6 state × 2 leading × 2 trailing; with
-        // `state` across, that is 6 columns and 648/6 = 108 rows. Written as literals deliberately: a
-        // shape computed from the axes is the declaration restating itself, which is the defect the
-        // 189-vs-756 miscount already cost this repo once.
+        // `.length`s. 1296 = 3 intent × 3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2
+        // trailing; with `state` across, that is 6 columns and 1296/6 = 216 rows. The `surface` axis
+        // (#1134) doubled both the member count and the row count, which is the price a variant a
+        // designer selects is worth paying. Written as literals deliberately: a shape computed from the
+        // axes is the declaration restating itself, which is the defect the 189-vs-756 miscount already
+        // cost this repo once.
         const fullLayout = planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), '#656 full');
-        ok(fullLayout.colKey === 'state' && fullLayout.rows === 108 && fullLayout.cols === 6,
-          `#656: the full Button set lays out 108 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 324×2, measured live at 320×23304px)`);
+        ok(fullLayout.colKey === 'state' && fullLayout.rows === 216 && fullLayout.cols === 6,
+          `#656: the full Button set lays out 216 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 648×2, measured live at 320×23304px)`);
         ok(JSON.stringify(fullLayout.colVals) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
           `#656: the columns run in the def's own state order, so the table reads left to right the way the states are declared — got ${JSON.stringify(fullLayout.colVals)}`);
         // And the row keys are every OTHER varying axis. `rowKeys` used to be `varying.slice(0, -1)`,
         // which is only correct while the column axis is the last element — the exact assumption that
         // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
         // every member of a row in one cell.
-        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['intent', 'appearance', 'size', 'leading', 'trailing']),
+        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['intent', 'appearance', 'surface', 'size', 'leading', 'trailing']),
           `#656: the rows combine every varying axis EXCEPT the column one — got ${JSON.stringify(fullLayout.rowKeys)}`);
 
         // ON CANVAS, because a cell index is not a coordinate. Run table 1's set through the real
@@ -10176,12 +10214,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       'figmaProperties gate: an entry LEADING with a bare axis name WOULD launder the axis drop (so #612 leads with `intent-at-disabled`, a compound) — this is the shape where a declaration satisfies the check it exempts you from');
 
     // The count, stated so a change to any axis has to move a number a reviewer can see. 189 before
-    // the slot-presence axes, 756 with them, and 648 now that `inactive` is code-only — the 108 rows
-    // it would have contributed each render as their `rest` sibling, since `anatomy-figma.ts` has no
-    // `inactive` paint branch (the shared-paint intent is a TOKEN-tier decision the emitter has not
-    // implemented; #563 review measured this).
+    // the slot-presence axes, 756 with them, 648 once `inactive` went code-only, and 1296 now that
+    // `surface` (#1134) doubles the set for the inverse ground — the 108 `inactive` rows it would have
+    // contributed each render as their `rest` sibling, since `anatomy-figma.ts` has no `inactive` paint
+    // branch (the shared-paint intent is a TOKEN-tier decision the emitter has not implemented; #563
+    // review measured this).
     const projected = figmaVariantCount(button);
-    ok(projected === 648, `figmaProperties: Button projects ${projected} variants (3 intent × 3 appearance × 3 size × 6 state × 2 leading × 2 trailing)`);
+    ok(projected === 1296, `figmaProperties: Button projects ${projected} variants (3 intent × 3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing)`);
 
     // THE GATE THAT WOULD HAVE CAUGHT THE GAP, and the reason the count above is now derived rather
     // than restated. `projected === 189` was computed from `variantAxes × stateAxis` — the same
@@ -10191,42 +10230,45 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     //
     // Parses the real plan name rather than trusting a list, so any axis added to either side without
     // the other shows up here — for the next axis, not just this one.
-    const emittedAxes = planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true, intent: 'primary', appearance: 'filled', state: 'rest' }))
+    const emittedAxes = planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true, intent: 'primary', appearance: 'filled', surface: 'default', state: 'rest' }))
       .split(', ').map((kv) => kv.split('=')[0]);
     ok(emittedAxes.slice().sort().join(',') === figmaAxisNames(button).slice().sort().join(','),
       `figmaProperties: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(button).join(', ')}] vs emitted [${emittedAxes.join(', ')}])`);
-    ok(emittedAxes.length === 6, `figmaProperties: six axes reach the Figma name (${emittedAxes.join(', ')})`);
+    ok(emittedAxes.length === 7, `figmaProperties: seven axes reach the Figma name (${emittedAxes.join(', ')})`);
 
     // ---- figmaAnatomySet: the enumerator the plugin's trigger calls (#483) ----------------------
     // It exists because the six nested loops above were hand-written at three call sites in THIS file and
     // `apps/plugin/src/main.ts` would have been a fourth — one no test in this repo can reach, since
     // `main.ts` calls `figma.showUI` at module scope. The loops are now in the engine, gated here.
     //
-    // THE COUNT IS THE LITERAL 648, not `figmaVariantCount(button)`. Both derive from the same
+    // THE COUNT IS THE LITERAL 1296, not `figmaVariantCount(button)`. Both derive from the same
     // declaration, so comparing them is a gate agreeing with itself — exactly the shape the note above
     // records as the #487 §5 failure. The literal is a number a reviewer has to change on purpose.
     //
     // It is not a number transcribed from a run, either — derive it by hand: 3 intent × 3 appearance ×
-    // 3 size × 6 state × 4 slot (2 leading × 2 trailing) = 648. THE 6 IS THE STEP TO CHECK: `states`
-    // declares SEVEN and `stateAxis` projects six, because `inactive` is deliberately code-only and
-    // never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 756 and
-    // makes the gate look wrong when it is the derivation that is.
-    const set648 = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
-    ok(set648.length === 648, `figmaAnatomySet: enumerates 648 plans for Button (${set648.length})`);
+    // 3 size × 2 surface × 6 state × 4 slot (2 leading × 2 trailing) = 1296. THE 6 IS THE STEP TO CHECK:
+    // `states` declares SEVEN and `stateAxis` projects six, because `inactive` is deliberately code-only
+    // and never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 1512 and
+    // makes the gate look wrong when it is the derivation that is. THE 2 IS THE surface AXIS (#1134).
+    const fullSet = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
+    ok(fullSet.length === 1296, `figmaAnatomySet: enumerates 1296 plans for Button (${fullSet.length})`);
     // Every coordinate distinct. A loop that pins an axis instead of iterating it produces N plans with
     // ONE name, which `planSetLayout` later refuses as a duplicate — but by then it is a runtime failure
     // inside Figma rather than a test failure here.
-    ok(new Set(set648.map(planComponentName)).size === 648,
-      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(set648.map(planComponentName)).size}/648)`);
+    ok(new Set(fullSet.map(planComponentName)).size === 1296,
+      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(fullSet.map(planComponentName)).size}/1296)`);
     // And the plans are the SAME plans the hand-written loops produce — byte-identical, in order. This is
     // what makes the extraction a refactor rather than a second implementation: if the two ever disagree,
-    // the three call sites below and the plugin's trigger are building different sets from one def.
+    // the three call sites below and the plugin's trigger are building different sets from one def. The
+    // loop nesting mirrors `figmaAnatomySet`'s fold exactly — gridAxes (intent, appearance, surface) in
+    // declaration order, then size, then state, then the two slot booleans — so `surface` sits between
+    // `appearance` and `size`, not at the end (#1134).
     const handRolled: AnatomyPlan[] = [];
-    for (const i of button.variants.intent!) for (const ap of button.variants.appearance!) for (const sz of button.variants.size)
-      for (const st of fp.stateAxis!.values) for (const ld of [true, false]) for (const tr of [true, false])
-        handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st }));
-    ok(JSON.stringify(handRolled) === JSON.stringify(set648),
-      `figmaAnatomySet: byte-identical to the hand-written six loops, in order (${handRolled.length} vs ${set648.length})`);
+    for (const i of button.variants.intent!) for (const ap of button.variants.appearance!) for (const su of button.variants.surface!)
+      for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const ld of [true, false]) for (const tr of [true, false])
+        handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, surface: su, state: st }));
+    ok(JSON.stringify(handRolled) === JSON.stringify(fullSet),
+      `figmaAnatomySet: byte-identical to the hand-written seven loops, in order (${handRolled.length} vs ${fullSet.length})`);
 
     // WHAT PROTECTS THE 189-VS-756 RULE NOW (#795). Until #795 this pair asserted that a fifth declared
     // variant axis THREW, because `figmaAnatomySet` enumerated `intent` and `appearance` from two
@@ -10242,8 +10284,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(threw, label);
     };
     const fifthAxis = figmaAnatomySet({ ...button, variants: { ...button.variants, tone: ['a', 'b'] }, figmaProperties: { ...fp, variantAxes: [...fp.variantAxes, 'tone'] } } as ComponentDef, { swapTarget: 'FPO-default-icon' });
-    ok(fifthAxis.length === 648 * 2,
-      `figmaAnatomySet: a FIFTH declared variant axis is enumerated, not refused — 648 × 2 tone values (got ${fifthAxis.length})`);
+    ok(fifthAxis.length === 1296 * 2,
+      `figmaAnatomySet: a FIFTH declared variant axis is enumerated, not refused — 1296 × 2 tone values (got ${fifthAxis.length})`);
     // AND IT REACHES THE NAME, which is the half that matters. A set of 1296 whose members carry no
     // `tone=` segment is precisely the silent omission the old throw prevented: the count doubles, every
     // plan is distinct on some other axis, and the axis the def declared is nowhere. Asserted on the
@@ -10251,8 +10293,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // `planSetLayout` both read — a coord entry nothing writes into the name is invisible downstream.
     ok(fifthAxis.every((p) => /(^|, )tone=(a|b)(,|$)/.test(planComponentName(p))),
       'figmaAnatomySet: every member of that set is NAMED for the fifth axis — the count alone would pass while the axis vanished, which is the 189-vs-756 shape');
-    ok(new Set(fifthAxis.map(planComponentName)).size === 648 * 2,
-      `figmaAnatomySet: all 1296 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
+    ok(new Set(fifthAxis.map(planComponentName)).size === 1296 * 2,
+      `figmaAnatomySet: all 2592 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
     // THE NO-COORDINATE GATE (#795, and #802's class exactly: every layer accepted and nothing read the
     // count). Both shapes are covered because they are different authoring mistakes: an EMPTY axis list,
     // and a declared axis whose `variants` entry is empty. The second is the one no other check can see.

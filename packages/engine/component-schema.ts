@@ -1596,11 +1596,27 @@ export type State = (typeof STATES)[number];
  * which for `button` would be four figures. And it is the first axis a def does not spell out, which is
  * what makes it safe at that width: a values census over `name` reads
  * the icon set, so the synonym-sitting-in-a-census failure mode this list guards has no way in here.
+ *
+ * ── `surface`: THE INVERSE GROUND, AND THE ONE ENTRY THAT KNOWINGLY OVERLAPS ANOTHER (#1134) ──────
+ *
+ * `surface` (`default | inverse`) is the ground a control sits on — a normal page, or a dark/brand-
+ * filled band where the control binds its `color.inverse.*` counterparts (docs/20 §9.8, the bounded
+ * inverse set). It is added for `button`, the first STATEFUL member of that set, and it is the honest
+ * exception to this list's anti-synonym rule: `focus-ring` already carries the SAME default|inverse
+ * distinction under the name `color`, so by the letter of the bar above `surface` is a second name for
+ * one kind of distinction — the failure mode this list exists to catch. It earns the entry anyway, and
+ * the ground is that `color` is unavailable on any component that already has one: `button`'s reconciled
+ * model spells its intent axis "color" in docs/20 (`appearance × color {primary,neutral,destructive}`)
+ * and the token family is `interactive.<color>.*`, so a second axis literally named `color` on the same
+ * def would collide with the word the palette already owns. `focus-ring` reached for `color` because it
+ * has no palette axis to collide with; a control that does needs a distinct name for the ground, and
+ * `surface` is it. The overlap is real and is left legible here rather than hidden — this is the
+ * decided cost (#1134), not an oversight, and unifying the two names later is a `focus-ring` change.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone', 'color',
   'width', 'style', 'indicator', 'offset', 'selection',
-  'name',
+  'name', 'surface',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

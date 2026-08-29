@@ -7,6 +7,75 @@
 
 ---
 
+
+## (2026-08-29) — Button ships its inverse variant (#1134)
+
+The first component in the bounded inverse set (docs/20 §9.8) gets its inverse treatment. `button` gains
+a `surface: default | inverse` axis; on the `inverse` ground every colour role resolves to its
+`color.inverse.*` counterpart, so fill, ink, border, overlay and the disabled treatment keep contrast on
+a dark or brand-filled band. The set doubles, 648 → **1296** members, which is the price a variant a
+designer selects is worth paying (a mode cannot say *which* elements invert — §9.8). Precedent is
+`focus-ring`; the mechanism is not, for a reason worth reading before the next member (icon-button,
+snackbar, tooltip) is built.
+
+`npm run verify`: **44/45 PASS · 1 FAIL** (187s). The one FAIL is `lint-materialization-renames`, and it
+is **pre-existing and unrelated** — filed as **#1157**, proven by `git stash` of this branch's edits
+leaving it red. See the last section.
+
+### The diagnosis that made the mechanism: `focus-ring`'s pattern does not scale to a stateful def
+
+`focus-ring` authors explicit inverse keys (`border.inverse` → `color.inverse.border.focus`) and selects
+them with `paintKeys: ['{slot}.{color}', '{slot}']`. That works because it is single-slot and **stateless**.
+`button` is neither, and its key grammar (`{intent}.{appearance}.{slot}.{state}`) makes the explicit-key
+approach **unauthorable** — proven empirically, not argued:
+
+- A suffix form `primary.filled.fill.inverse` is 4 segments, so `paintKeyErrors`'s arity matcher tests it
+  against `{intent}.{appearance}.{slot}.{state}` and rejects it: *"state=inverse, nothing supplies it."*
+- A prefix form `inverse.disabled.fill` collides with `{intent}.{appearance}.{slot}`: *"intent=inverse."*
+- The disabled branch of `paintOf` bypasses `paintKeys` entirely, so no authored key can reach it anyway.
+
+So the inverse half of a stateful component cannot live in the key vocabulary. It lives in the projector:
+`anatomy-figma.ts` rewrites each resolved `color.*` ref to `color.inverse.*` at any coordinate where
+`surface=inverse` (docs/20 §9.9's rule, `inverse(X) = color.inverse. + X`, applied once). Zero new token
+keys on `button` — the def declares the axis, the transform supplies the values. This handles the disabled
+branch and every slot uniformly, and generalises to the whole bounded set for free.
+
+### The traps, for whoever re-verifies
+
+1. **Keyed on the `surface` axis by NAME, not on "any variant value is `inverse`."** The first draft used
+   the general form and broke `focus-ring` on `lint-paint.ts`'s reachability probe: that probe swaps each
+   colour ref for a sentinel `color.probe-N`, which the `color.inverse.` idempotence guard cannot recognise
+   as already-inverse, so a general trigger rewrote the sentinel to `color.inverse.probe-N` and `focus-ring`'s
+   `border.inverse` — reached only at `color=inverse` — read as painting nothing. `focus-ring` uses a
+   `color` axis and a *different* mechanism (explicit keys); it must not be transformed. Keyed on `surface`,
+   it is untouched and byte-identical, and every stateful inverse member declares `surface`.
+2. **`surface` earns a `VARIANT_AXES` entry despite being value-identical to `focus-ring`'s `color`** — a
+   knowing exception to the anti-synonym rule, decided in #1134. `color` is unavailable on a def that already
+   spells its palette "color" (docs/20 `interactive.<color>.*`), so an intent-bearing control needs the
+   distinct ground name. The overlap is left legible in `VARIANT_AXES`'s header, not hidden.
+3. **The nested focus ring stays `color=default` on an inverse button** — `nest-fixed` is one coordinate for
+   every member, and coordinate-dependent nesting does not exist. Admitted in `button`'s `codeOnly`
+   (`focus-ring-on-inverse`) and filed as **#1156**; the ring's offset and geometry are correct on the
+   inverse ground, only its ink is one step off, and the token (`color.inverse.border.focus`) exists.
+4. **The enforceable gap rule is a new `test.ts` arm.** A def with a `surface` axis paints through the
+   projector, so `validateComponentDef` never resolves the inverse leg — a binding whose role has no inverse
+   counterpart would project a variable that does not exist, silently. The arm asserts every colour role a
+   surface-axis def binds has an `inverse.` counterpart in the emitted role set, with a committed mutation
+   (`color.text.on-brand`, an `INVERSE_GAPS` structural gap) proving it fails by name. Oracle is the emitted
+   roles; subject is the bindings; the counterpart rule is authored in the arm, not imported (docs/34 shape 1).
+
+### The pre-existing blocker this work sits behind (#1157)
+
+`lint-materialization-renames` is red for **every** PR branched off post-#1153 `main`, not just this one.
+`ACCOUNTING_COLLECTION_MOVES` still carries the #1089 entry `{ from: 'color', to: 'color.surface' }`, whose
+own comment licenses it as *"correct for every base this gate is run against … long past #1089."* That
+assumption held until #1148/#1153 **reintroduced `color` as the live collection name**: the post-#1153 merge
+base now emits `color`, and the single-step recollection maps it *backward* to `color.surface`, reporting a
+phantom 729-key rename per brand. #1153's own CI was green because its base was pre-collapse (`ba3e0cf`).
+It is the "live 2-cycle" #1153's PR body flagged, tripping on the first PR after the merge. Left for its
+owner (#1157) — a load-bearing accounting map with its own independence gate, unrelated to Button.
+
+
 ## (2026-08-29) — `main` was red: a stale accounting entry reactivated when #1153 reused a collection name (gate 0)
 
 **STATUS: shipped.** One deleted line in `ACCOUNTING_COLLECTION_MOVES`, three restated test arms, and a

@@ -674,6 +674,33 @@ export const figmaAnatomyPlan = (
   // that resolves nothing while looking like a real lookup.
   const paintCoord: VariantCoord = { ...coord, ...(size === undefined ? {} : { size }) };
 
+  // ON THE INVERSE GROUND (#1134), and the reason this is a projector rewrite rather than a parallel
+  // key table in the def. A control whose `surface` axis is `inverse` binds every colour role's inverse
+  // counterpart — `color.interactive.primary.fill.rest` becomes `color.inverse.interactive.primary.fill
+  // .rest` — which is docs/20 §9.9's rule stated once: inverse(X) = `color.inverse.` + the role. The def
+  // cannot express that as authored keys: a suffix form (`…fill.inverse`) collides with this grammar's
+  // `{state}` segment by arity and `paintKeyErrors` rejects it as "state=inverse, nothing supplies it";
+  // a prefix form (`inverse.disabled.fill`) collides with `{intent}.{appearance}.{slot}`. So the inverse
+  // half of a stateful component is unauthorable in the key vocabulary, and the transform belongs here,
+  // where every colour ref already resolves.
+  //
+  // KEYED ON THE `surface` AXIS BY NAME, and that is the mechanism boundary, not a shortcut. The rewrite
+  // is what the `surface` axis MEANS; `focus-ring` carries the same default|inverse distinction under a
+  // `color` axis and a DIFFERENT mechanism — it AUTHORS `border.inverse` → `color.inverse.border.focus`
+  // and resolves that ref directly, so it must not be rewritten. A general "any variant value is
+  // `inverse`" trigger conflates the two and breaks `focus-ring` on `lint-paint.ts`'s reachability probe:
+  // that probe swaps each colour ref for a sentinel `color.probe-N`, which the `color.inverse.` guard
+  // cannot recognise as already-inverse, so a general trigger rewrites the sentinel to
+  // `color.inverse.probe-N` and the key `border.inverse` — reached only at `color=inverse` — reads as
+  // painting nothing. Keyed on `surface`, `focus-ring` (no `surface` axis) is untouched and byte-
+  // identical, and every stateful member of the bounded inverse set declares `surface`, so it is covered.
+  const onInverse = axisValue('surface') === 'inverse';
+  const toInverse = (ref: string): string =>
+    ref.startsWith('color.') && !ref.startsWith('color.inverse.')
+      ? `color.inverse.${ref.slice('color.'.length)}`
+      : ref;
+  const paintVarName = (ref: string): string => figmaVarName(onInverse ? toInverse(ref) : ref);
+
   // A PARTIAL COORDINATE IS AN ERROR, and generalizing this was the second half of #758. The old rule
   // was `intent and appearance must be given together`, which is this rule with Button's axes baked
   // in. Supplying some of a template's axes but not all makes every template needing the missing one
@@ -801,7 +828,10 @@ export const figmaAnatomyPlan = (
       // projector dispatches, so a def cannot smuggle an unreachable key in behind the qualifier.
       const onFill = INK.has(slot) && !!def.tokens['disabled.fill'] && restKey('fill');
       const key = (onFill && def.tokens[`disabled.${slot}.on-fill`] && `disabled.${slot}.on-fill`) || `disabled.${slot}`;
-      return def.tokens[key] ? figmaVarName(def.tokens[key]) : undefined;
+      // Same inverse rewrite as the template branch below: a disabled control on an inverse ground binds
+      // `color.inverse.disabled.*`, which exists for exactly this pairing (#1134). The cross-cutting
+      // branch never sees `{surface}`, so the rewrite happens on the resolved ref, not the key.
+      return def.tokens[key] ? paintVarName(def.tokens[key]) : undefined;
     }
     for (const template of def.paintKeys) {
       // A SLOT-FREE template answers only the part's primary paint slot — see `PRIMARY_PAINT_SLOTS`
@@ -809,7 +839,7 @@ export const figmaAnatomyPlan = (
       // variable it answered `fill`, and every glyph in the set came back outlined.
       if (!template.includes('{slot}') && !PRIMARY_PAINT_SLOTS.has(slot)) continue;
       const k = fillPaintKey(template, slot, paintCoord);
-      if (k && def.tokens[k]) return figmaVarName(def.tokens[k]);
+      if (k && def.tokens[k]) return paintVarName(def.tokens[k]);
     }
     return undefined;
   };
