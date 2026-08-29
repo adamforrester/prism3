@@ -93,6 +93,14 @@ jobs:
       - name: A materialization rename is recorded as a rule, and the accounting over it is total
         run: npx --yes tsx@4 packages/engine/lint-materialization-renames.ts
 
+      # The second gate that reads git HISTORY, and for the same reason the first one does: the two
+      # facts it needs — did the emitted bytes move, did ENGINE_VERSION move — are indistinguishable
+      # inside a single commit, because every in-tree copy of the version is STAMPED FROM the constant
+      # and therefore agrees with it at every commit including the broken ones. Also covered by the
+      # job-level `fetch-depth: 0` above.
+      - name: The emission moved only with ENGINE_VERSION
+        run: npx --yes tsx@4 packages/engine/lint-emission-version.ts
+
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the
       # baseline to agree with the deletion and both gates would go green. The baseline is only

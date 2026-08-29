@@ -7,6 +7,117 @@
 
 ---
 
+## (2026-08-29) — the emission cannot move without ENGINE_VERSION moving (#1141's miss, gate 1 of the hardening sweep)
+
+**STATUS: shipped.** One new gate, `packages/engine/lint-emission-version.ts`, and its five authored
+list entries. Gates **45 → 46**. No engine behavior changed; nothing emitted moves.
+
+**The miss.** #1141 relocated 113 paths and the version very nearly shipped unchanged — caught in review,
+by eye, like every other miss in the colour arc. This is the class, mechanised.
+
+── WHY NO GATE COULD HAVE CAUGHT IT, WHICH IS THE WHOLE DESIGN ─────────────────────────────────
+
+Every in-tree copy of the engine version is **stamped from** `ENGINE_VERSION`: each emitted tree's
+`$extensions.generator.version`, and the contract baseline's `engineVersion`. So a gate comparing any
+stamp to the constant compares `ENGINE_VERSION` to itself. It agrees perfectly at every commit —
+**including the ones where the bump was forgotten.** `docs/34` shape 1, arrived at by construction
+rather than discovered afterwards: bump the constant and every stamp follows; forget it and every stamp
+agrees it was not bumped.
+
+**The two facts are only distinguishable ACROSS commits**, so the gate reads git:
+
+| | |
+|---|---|
+| SUBJECT | `git diff --name-only <merge-base> HEAD -- <regen's artifact universe>` — did emitted bytes move? |
+| ORACLE | `ENGINE_VERSION` parsed from `version.ts` **at the merge base**, against the constant this process imported |
+
+Fail iff **content moved and the version did not**. The converse is legal and deliberately unchecked —
+a plugin-side change bumps the version and produces no `out/` diff at all.
+
+Scope is imported from `regen.ts` (`ENGINE_ARTIFACTS`, `SCHEMA_ARTIFACTS`) the same way
+`lint-us-english` does it, so a new emitted artifact is covered without a second edit here.
+
+── THE MUTATION THAT MATTERS IS M5, AND IT IS ABOUT NECESSITY RATHER THAN FIRING ────────────────
+
+| # | mutation | result |
+|---|---|---|
+| M1 | hand-edit an artifact, no bump | **FAIL by name**, naming the file |
+| M2 | artifact changed **and** version bumped | PASS — not merely an artifact-change detector |
+| M3 | version bumped, no artifact change | PASS — the legal direction stays legal |
+| M4 | `GITHUB_BASE_REF` unresolvable | **dies**; "cannot run" never reads as "clean" |
+| **M5** | **a real engine change, honestly regenerated, no bump** | **the one that matters** |
+
+M1 proves the gate fires, but M1 also trips `drift` — a hand-edited artifact no longer matches what the
+engine emits, so a reader could conclude the existing suite already covers this. **It does not, and M5 is
+the proof.** With the engine changed and `regen.ts` run properly, the artifacts match the code exactly:
+`regen --check` reports **`✓ in sync — 108 committed artifacts byte-match`, exit 0**, and 8 artifacts
+have moved at an unchanged `0.30.0`. Every other gate is green. **This gate is the only thing that
+fires.** That is the difference between "the suite went red" and "my gate is why", and it is the entire
+justification for adding a 46th.
+
+Full suite under M1: `lint-emission-version` **among the failures by name**, alongside `drift` and
+`drift-coverage` for their own separate reasons.
+
+── AND THE HONEST NUMBER, BECAUSE IT CUTS AGAINST THE GATE ─────────────────────────────────────
+
+**Across the last 120 commits on `main`, this gate would have fired zero times.** Not once. Recorded
+rather than buried, because `docs/34`'s own shape-index header sets the standard: *"a hazard with zero
+incidents is a different thing from a recurring defect."*
+
+The reading that survives that number: merged `main` is *post-review*, so zero firings there is what a
+hazard caught reliably by hand looks like — not evidence the hazard is absent. #1141's own near-miss is
+the instance, and it was caught by a person. What this gate buys is moving that from a human catch to a
+mechanical one; what it does **not** buy is a defect currently shipping. Anyone weighing whether the
+46th gate is worth its runtime should weigh it on that basis, not on a firing history it does not have.
+
+── AND THE NIT REVIEW FOUND, WHICH IS THIS SWEEP'S OWN THEME INSIDE ONE OF ITS GATES ───────────
+
+Importing `SCOPE` from `regen.ts` removes one rot and adds another. A new emitted artifact is covered
+with no edit here — **and an empty import degrades the gate in silence.** `SCHEMA_ARTIFACTS` and
+`ENGINE_ARTIFACTS` going to `[]` leaves `SCOPE` as `['packages/engine/out']`: every later run still
+passes, over a narrower surface, printing the same success line. Nothing in the diff or the output would
+say the gate stopped looking at two thirds of what regen writes.
+
+That is scope silence — *"a clean result from a gate that never looked"* — arriving **inside a gate
+written for this sweep**, which is the part worth recording. Fixed with the posture `lint-us-english`
+reached over #514 / #387 / #807: the promise is named by hand and checked in **both** directions.
+Forward, every promised surface contributes at least one pathspec, so an empty import fails. Converse,
+every pathspec is claimed by some surface, so widening the scope without widening the promise fails —
+and only the converse makes the list self-maintaining.
+
+**A count is deliberately not asserted.** Both lists are meant to grow; a pinned total would fail on
+every legitimate addition while proving nothing about coverage. Representation is the property.
+
+| # | mutation | result |
+|---|---|---|
+| M6 | `ENGINE_ARTIFACTS` imports `[]` | **dies**, naming that surface |
+| M7 | `SCHEMA_ARTIFACTS` imports `[]` | **dies**, naming that surface |
+| M8 | a pathspec added to `SCOPE` with no promise line | **dies**, naming the pathspec |
+
+── TWO LIMITS, IN THE HEADER AND HERE ──────────────────────────────────────────────────────────
+
+**It compares commits, not the working tree.** An uncommitted artifact change with no bump is invisible
+until committed — deliberate, since the question is what the PR merges, but it means a local run can be
+green on a tree CI will fail.
+
+**A brand-input edit moves the emission without moving the engine.** Editing `aurora.design.md` changes
+`out/` while no engine code changed, and this gate still demands a bump. Whether that is right is a real
+question, answered empirically rather than argued: in 120 commits there is **not one** that moved a regen
+artifact without also moving `ENGINE_VERSION`. The convention enforced is the convention the history
+already follows, and a brand-only PR wanting an exemption should argue it in the open rather than find a
+carve-out pre-granted here.
+
+*Retroactive note on #1114:* that PR removed the artifact-count numeral from `CLAUDE.md` on the argument
+that a number in prose is a site that drifts. The count has since moved **114 → 111 → 108**, twice in
+three days. The sentence that names the site instead of the count is still true; a numeral there would
+have been wrong twice by now.
+
+*Rebase note.* This branch was built on `ba3e0cf` and rebased onto `52b8de2` (#1153, the one-`color`
+collapse) before review. Every figure above was re-measured on the new base rather than carried: the
+artifact count is **108**, `ENGINE_VERSION` is **0.30.0**, and M5 was re-run end to end. Carrying the
+old numbers would have been this file's own shape 21 — a measured entry with one unmeasured line.
+
+
 ## (2026-08-29) — Button ships its inverse variant, and `surface` becomes the one inverse axis (#1134, decision §9.11)
 
 `button` gets its inverse treatment — the first component in the bounded inverse set (docs/20 §9.8) — and

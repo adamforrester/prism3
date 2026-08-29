@@ -160,6 +160,17 @@ npx tsx packages/engine/lint-ratio-truth.ts          # every reported contrast r
                                                     # counted in its own output — they model `against`
                                                     # in the OPPOSITE direction (the role is the wash,
                                                     # `against` names the ink on top of it)
+npx tsx packages/engine/lint-emission-version.ts
+                                                    # the emission moved only with
+                                                    # ENGINE_VERSION (#1141's miss). Reads GIT,
+                                                    # because every in-tree copy of the version
+                                                    # is STAMPED FROM the constant and therefore
+                                                    # agrees with it at every commit — including
+                                                    # the ones where the bump was forgotten
+                                                    # (docs/34 shape 1). Content-changed and
+                                                    # version-changed are only distinguishable
+                                                    # ACROSS commits, so the base ref is the
+                                                    # oracle and an unresolvable one FAILS
 npx tsx packages/engine/lint-materialization-renames.ts
                                                     # a materialization rename — one the CONTRACT
                                                     # cannot see, because a Figma collection name and

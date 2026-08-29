@@ -372,6 +372,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-materialization-renames.ts'),
   },
   {
+    id: 'lint-emission-version',
+    ciStep: 'The emission moved only with ENGINE_VERSION',
+    cmd: engine('lint-emission-version.ts'),
+  },
+  {
     id: 'drift-coverage',
     ciStep: 'Drift gate still covers the full artifact set',
     after: ['drift'],
