@@ -7,6 +7,89 @@
 
 ---
 
+## (2026-08-29) — `main` was red: a stale accounting entry reactivated when #1153 reused a collection name (gate 0)
+
+**STATUS: shipped.** One deleted line in `ACCOUNTING_COLLECTION_MOVES`, three restated test arms, and a
+new steady-state guard. **No engine behavior changed and nothing emitted moves** — `regen --check` was
+green throughout. This was a gate-only defect, and the emission was correct the whole time.
+
+**`lint-materialization-renames` failed on `main` at `52b8de2`**, blocking every PR in the hardening
+sweep. Reproduced on a clean detached checkout with its own `npm ci`, no branch commits present:
+
+```
+ba3e0cf (pre-#1153) : ✓ PASS  — 2121 keys → 2121, 0 removed / 0 added, 3 rules
+52b8de2 (post-#1153): ❌ FAIL — 1731 keys → 1731, 729 removed / 729 added, 2 rules
+```
+
+── THE MECHANISM, AND IT IS A PREMISE FAILING RATHER THAN A TYPO ───────────────────────────────
+
+`ACCOUNTING_COLLECTION_MOVES` held `{ from: 'color', to: 'color.surface' }` from #1089. `recollect` is
+single-step and first-match, so on a post-collapse base every key in the merged `color` collection hopped
+to `color.surface` — **a collection the same release deleted** — landing outside every rule's domain and
+fabricating 729 phantom removals no rule could claim.
+
+The list's whole append-only argument is that a stale entry goes **inert**, because its `from` names a
+collection nothing emits any more. **That argument assumes a retired name stays retired.** #1153 reused
+`color`, and the entry stopped being inert and became a live claim with a meaning from a different era.
+
+**The comment above the entry already named the failure** — *"correct for every base this gate is run
+against (the merge base is `main`, long past #1089)"* — true until #1153 made `main` itself post-collapse.
+Right sentence, and the world moved under it.
+
+── DELETED, NOT RETARGETED, AND THE REASON IS THAT THE HOPS CANCEL ─────────────────────────────
+
+`color → color.surface` composed with #1148's `color.surface → color` is the **identity**. A pre-#1089
+base's `color` and today's `color` want the same collection, so the correct move is no move. Retargeting
+to `{ from: 'color', to: 'color' }` would spell that out and cost a first-match shadow over the real
+entries; deleting says the same thing and cannot shadow anything.
+
+**What is genuinely lost, stated rather than glossed:** an archaeological run against a base in the
+#1013..#1089 window can no longer tell that era's alias-tier `color` from today's merged `color`. The
+ambiguity is in the data, not in the list — collection name alone cannot separate them — and the same
+acceptance is already on the record for the `core-*` fan-in (#1108).
+
+── THE TRIPWIRE FIRED EXACTLY AS ITS AUTHOR INTENDED, WHICH IS THE NICE PART ───────────────────
+
+The 2-cycle arm closed with: *"If someone retargets the #1089 entry and breaks the cycle, this fails BY
+NAME and the single-step contract needs its justification restated rather than quietly weakened."* It
+did, and three arms failed by name. **Restated rather than deleted:**
+
+Single-step is no longer justified by *"a walk cannot terminate"*. It is justified by something stronger
+and checkable: the list is now **acyclic and chain-free** — no entry's `to` is any entry's `from` — so one
+step already *is* the fixed point and a `while` loop would be equivalent rather than dangerous. Asserted
+off the shipped list, plus a per-entry check that a second hop is a no-op.
+
+── THE REAL DELIVERABLE: A GUARD FOR THE CLASS, NOT THE INSTANCE ───────────────────────────────
+
+**The class is "green on every PR, red on merged `main`."** A gate whose merge-base assumption flips when
+a merge changes what `main` emits is invisible to every PR that could have caught it: each PR's base is
+the *old* `main`, where the assumption still holds. #1153's own run was green and correct.
+
+So the guard exercises the accounting at **base == HEAD** — the post-merge steady state, the one
+configuration no PR ever runs:
+
+- **Arm A, the class (sharper):** no entry's `from` may name a collection **the live emission still
+  writes**. An entry is inert only while its source is dead; a reused name turns every stale entry
+  pointing at it into a live claim. Oracle is the emission on disk, subject is the authored list — two
+  independent origins.
+- **Arm B, the instance as a number:** with the live emission on *both* sides, the accounting must find
+  **0 removed / 0 added**. Any non-zero is manufactured by recollection alone, which is what 729 was.
+
+Mutation — reintroduce the #1089 entry: **9 failures, every one naming #1153**, Arm A by name and Arm B
+reporting `243 removed / 243 added` per brand (3 × 243 = the 729 seen on `main`).
+
+── AND THE #680 TRAP, WALKED INTO WHILE PROVING THE GUARD ──────────────────────────────────────
+
+The first mutation run reported **nothing from the guard at all**. Not a pass — a **crash**: reintroducing
+the entry left the `MOVE_EXPECT` table without a row for it, which threw at line 13856 and aborted the
+file before the summary printed. `docs/34` records this exactly — *"a crashing assertion is not a failing
+one… the mutation that breaks the fix hardest reports the fewest failures"* — and a blank named grep is a
+failed mutation, not a quiet pass (#986).
+
+Re-run with the table row added so nothing crashed first, and the guard fired. **The evidence above is
+from the second run; the first proved only that the file stopped early.**
+
+
 ## (2026-08-29) — ONE `color` collection, and the roles are written in reading order (#1148, #1150)
 
 The three colour tiers become two. `color.surface` — the pointer tier, one `Default` mode, 130 rows of

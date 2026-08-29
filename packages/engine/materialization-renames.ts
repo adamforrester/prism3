@@ -596,9 +596,31 @@ export const ACCOUNTING_COLLECTION_MOVES: readonly CollectionMove[] = [
   { from: 'core-palette', to: 'core' },
   { from: 'core-dimension', to: 'core' },
   { from: 'core-font', to: 'core' },
-  // #1089 — the alias tier names its axis, so both colour collections do. The variables inside kept their
-  // `color/*` tails and no DTCG path moved; only the mode picker's label did.
-  { from: 'color', to: 'color.surface' },
+  // #1089's entry — `{ from: 'color', to: 'color.surface' }` — WAS HERE AND IS DELETED (#1153's fallout).
+  //
+  // Read this before adding it back, because it looks like a missing record rather than a removed hazard.
+  // It said: a base between #1013 and #1089 calls the ALIAS tier `color`, so move those keys to
+  // `color.surface`. True of that era, inert afterwards — and the list's whole append-only argument is that
+  // a stale entry goes inert because its `from` names a collection nothing emits any more.
+  //
+  // **That argument assumes a retired name stays retired, and #1153 REUSED `color`.** The moment `main`
+  // emitted one merged `color` collection again, this entry stopped being inert and became a claim against
+  // a LIVE before-set: `recollect` is single-step and first-match, so every key in the merged tier hopped
+  // to `color.surface` — a collection the same release deleted — and the accounting reported 729 phantom
+  // removals no rule claimed. Green on the #1153 PR (its merge base was pre-collapse, where the entry was
+  // genuinely inert) and red on `main` the moment it merged.
+  //
+  // DELETED RATHER THAN RETARGETED, and the two hops are why: `color → color.surface` composed with
+  // #1148's `color.surface → color` is the IDENTITY. There is nothing left to record — a pre-#1089 base's
+  // `color` and today's `color` want the same collection, so the correct move is no move. Retargeting it to
+  // `{ from: 'color', to: 'color' }` would spell that identity out and cost a first-match shadow over the
+  // real entries; deleting it says the same thing and cannot shadow anything.
+  //
+  // WHAT IS GENUINELY LOST, stated rather than glossed: an archaeological run against a base in the
+  // #1013..#1089 window can no longer distinguish that era's alias-tier `color` from today's merged
+  // `color`, and will account the former as the latter. Collection name alone cannot separate them — the
+  // ambiguity is in the data, not in this list — and the same acceptance is already on the record for the
+  // `core-*` fan-in (#1108). The gate runs against `main`'s merge base, which is past that window forever.
   // #1148 — the two colour tiers became ONE, called `color`, and BOTH old names point at it. This is the
   // first entry pair here that is a fan-in rather than a rename, and it is the same shape as the `core-*`
   // three above: `COLLECTION_RENAMES` ships one entry for the VALUE tier only, because a fan-in is not a
