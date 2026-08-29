@@ -93,6 +93,9 @@ export const leverManifest: Lever[] = [
   { key: 'density', group: 'form', label: 'Density', control: 'enum', default: 'comfortable',
     options: enumOpts(['comfortable', 'Comfortable'], ['compact', 'Compact'], ['spacious', 'Spacious']),
     description: 'Drives component sizes (control height + paired padding). The name stays stable; the metrics shift.' },
+  { key: 'controlShape', group: 'form', label: 'Control shape', control: 'enum', default: 'rounded',
+    options: enumOpts(['rounded', 'Rounded'], ['pill', 'Pill']),
+    description: 'Corner shape for pill-able controls like buttons. Rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.' },
   { key: 'baseMd', group: 'form', label: 'Radius anchor', control: 'slider', advanced: true, default: 4, min: 2, max: 12, step: 1, unit: 'px',
     description: 'The radius.md value (px) at scale 1.' },
 

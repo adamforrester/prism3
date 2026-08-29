@@ -51,6 +51,10 @@ export const GRID_BASE = 4;
 export const MIN_TARGET_PX = 24;
 
 export type Density = 'comfortable' | 'compact' | 'spacious';
+/** The `controlShape` FORM lever (#1163): the corner shape a pill-able control takes. `rounded`
+ *  follows the radius ramp; `pill` binds the shared pill rung (`radius.round`) so Figma clamps every
+ *  size to height ÷ 2. A brand-level choice, not a per-instance variant — see `applyControlShape`. */
+export type ControlShape = 'rounded' | 'pill';
 export type SpaceStep = { key: string; mult: number; px: number };
 export type RadiusStep = { name: string; px: number; pill?: boolean };
 export type SizeStep = { name: string; height: number; padX: number; padY: number; padXVisual: number; gap: number };

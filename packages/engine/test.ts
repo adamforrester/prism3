@@ -51,7 +51,8 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, type AnatomyPlan } from './anatomy-figma';
+import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
 // they agree. `write-components.ts` is pure TypeScript against a declared port — it touches no `figma`
@@ -7245,6 +7246,62 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const mutatedUncovered = [...new Set(rolesBound(mutated))].filter((r) => !roleKeys.has(`inverse.${r}`));
     ok(mutatedUncovered.includes('text.on-brand') && INVERSE_GAP_PATHS.has('color.text.on-brand'),
       'inverse-variant: binding an INVERSE_GAPS role is CAUGHT — the arm fails on an uncovered counterpart, and that role is registered as a deliberate structural gap');
+  }
+
+  // (#1163) THE controlShape LEVER SELECTS A DERIVATION BY NAME — and cannot reach the intrinsic pills.
+  //
+  // The mechanism is a def transform applied BEFORE projection (`applyControlShape`), which keeps the plan
+  // brand-agnostic (`figmaVarName`'s header). This arm proves the four things the issue asks: the pill-able
+  // SET is exactly the defs that declare the `pill-radius` derivation (button + icon-button); switch + radio
+  // are OUTSIDE it by construction and the lever cannot square them off; `pill` moves the radius binding
+  // from `radius.md` to `radius.round` BY NAME at every size; and `rounded` is the identity, so the default
+  // plan is byte-identical. The oracle is the projected plan (the wire the executor writes), read via
+  // `planBoundVars`, not `def.tokens` — the assertion is on what actually reaches Figma.
+  {
+    const radioDef = componentDefs.find((d) => d.id === 'radio')!;
+    const pillable = componentDefs.filter(isPillable).map((d) => d.id).sort();
+    ok(pillable.includes('button') && pillable.includes('icon-button'),
+      `controlShape: button + icon-button are the pill-able set — they declare the \`${PILL_RADIUS_DERIVATION}\` derivation (${pillable.join(', ')})`);
+    // THE EXCLUSION, asserted so the lever can never square them off. switch + radio declare no derivation,
+    // so `isPillable` is false and `applyControlShape(_, 'pill')` is the identity on them.
+    ok(!isPillable(switchDef) && !isPillable(radioDef),
+      'controlShape: switch + radio are NOT pill-able — their pill/circle is intrinsic (radius.round), not a brand choice');
+
+    const radiusBindings = (d: ComponentDef, size: string): string[] =>
+      [...new Set(planBoundVars(figmaAnatomyPlan(d, size, {}).root).filter((v) => v.startsWith('radius/')))].sort();
+
+    for (const id of ['button', 'icon-button']) {
+      const d = componentDefs.find((x) => x.id === id)!;
+      for (const size of d.variants?.size ?? []) {
+        const rounded = radiusBindings(applyControlShape(d, 'rounded'), size);
+        const pill = radiusBindings(applyControlShape(d, 'pill'), size);
+        ok(rounded.length === 1 && rounded[0] === 'radius/md',
+          `controlShape: ${id}@${size} rounded binds radius/md (${rounded.join(', ') || 'none'})`);
+        ok(pill.length === 1 && pill[0] === 'radius/round',
+          `controlShape: ${id}@${size} pill binds radius/round — the height ÷ 2 derivation selected BY NAME (${pill.join(', ') || 'none'})`);
+      }
+    }
+
+    // IDENTITY under rounded on the pill-able set (the byte-identical no-op default), and under pill on the
+    // excluded set — the same object back, not a rebuilt equal one, which is the strongest form of "unchanged".
+    ok(applyControlShape(button, 'rounded') === button && applyControlShape(iconButton, 'rounded') === iconButton,
+      'controlShape: rounded is the IDENTITY on pill-able defs — the same object, so the default plan is byte-identical');
+    ok(applyControlShape(switchDef, 'pill') === switchDef && applyControlShape(radioDef, 'pill') === radioDef,
+      'controlShape: pill is the IDENTITY on switch + radio — the excluded set cannot move');
+    for (const size of switchDef.variants?.size ?? [])
+      ok(radiusBindings(applyControlShape(switchDef, 'pill'), size).every((v) => v === 'radius/round'),
+        `controlShape: switch@${size} stays radius/round under pill — untouched`);
+
+    // NARROW: under pill, ONLY the radius binding moves. Every OTHER bound variable is identical between the
+    // rounded and pill plans, so the lever selects a derivation and changes nothing else about the component.
+    for (const id of ['button', 'icon-button']) {
+      const d = componentDefs.find((x) => x.id === id)!;
+      const size = (d.variants?.size ?? [])[0];
+      const nonRadius = (shape: ControlShape) => planBoundVars(figmaAnatomyPlan(applyControlShape(d, shape), size, {}).root)
+        .filter((v) => !v.startsWith('radius/')).sort();
+      ok(JSON.stringify(nonRadius('rounded')) === JSON.stringify(nonRadius('pill')),
+        `controlShape: ${id} pill moves ONLY the radius binding — every other bound var is identical to rounded`);
+    }
   }
 
   // Button carries the reconciled two-axis model bound to interactive.* (docs/20): intent

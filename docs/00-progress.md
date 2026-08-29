@@ -192,6 +192,60 @@ rather than a mismatch on whichever decision happened to reach it first.
 *I wrote the trap this sweep exists to close, into a gate written to close it, and only the mutation
 found it.*
 
+## (2026-08-29) — the `controlShape` brand lever: rounded | pill for pill-able controls (#1163)
+
+**STATUS: shipped.** A new FORM lever, `controlShape` (enum, default `rounded`, values `rounded | pill`),
+group `form`. `ENGINE_VERSION` 0.30.0 → 0.31.0; `CONTRACT_VERSION` stands at 9.0.0 (no token name moved).
+No new gate; the lever/schema agreement is carried by the existing lever-manifest arm in `test.ts`.
+
+**What the issue got right and the one thing it assumed.** #1163 framed this as "wiring, not new geometry":
+button and icon-button already carry a `derived['pill-radius']` note ("height ÷ 2"), the radius ladder
+already treats the pill as categorically distinct (`radiusScale: 0` collapses everything to sharp EXCEPT
+the pill), and switch/radio already render an intrinsic pill from `radius.round`. All true. The one thing to
+resolve was the assumption that "the plumbing is there; only the selector is missing" — because
+`anatomy.derived` is **inert prose** (copied at `anatomy-figma.ts:~1254`, never computed) and the radius
+binding resolves a **variable name**, not a literal. So "select the derivation" had to mean something
+concrete.
+
+**The mechanism, and why it is faithful.** `controlShape: pill` rebinds a pill-able control's `radius` from
+`radius.md` to the shared pill rung `radius.round`. That rung is `dimension.128` in every brand — a single
+very-large radius Figma **clamps** to min(w,h)/2 = height ÷ 2 at every size. This is the EXACT mechanism
+switch and radio already use for their intrinsic pill/circle, reused rather than re-tokenized. So acceptance
+#2's "height ÷ 2 per size, not a fixed token" is met: "not a fixed token" forbids **hand-authored
+per-component per-size literals** (the pattern the shared scale replaced), not binding the shared pill rung —
+the clamp does the per-size work.
+
+**Where it lives, and why NOT in the projector.** The plan is brand-agnostic on purpose (`figmaVarName`'s
+header: seven gates, the studio's member count and the plugin's set enumeration all call
+`figmaAnatomySet(def)` with a def and nothing else). `controlShape` IS a brand choice, so rather than thread
+a brand input through the projector, a small pure transform `applyControlShape(def, shape)` **materializes
+the def BEFORE projection** — repointing `def.tokens.radius` to `radius.round` under `pill`. The projector
+stays a pure function of its def; the brand-specificity lives in the transform. Under `rounded` (default) and
+for any non-pill-able def it is the **identity** (returns the same object), which is what makes `rounded`
+reproduce every plan byte-identically — acceptance #1's no-op-default independence check.
+
+**The pill-able set is the `pill-radius` derivation, made load-bearing.** `isPillable(def)` is
+`!!def.anatomy?.derived?.['pill-radius']` — today exactly {button, icon-button}. This turns the previously
+inert prose into the opt-in signal the issue names ("future chips/tags/segmented controls join by declaring
+the derivation"). switch/radio declare no derivation, so the lever is **structurally unable** to touch
+them — asserted in `test.ts` (`applyControlShape(switch,'pill') === switch`), which is the exclusion #1163
+demands "so the lever can never square them off."
+
+**Surfaces.** Studio: a "Control shape" block in the Size & radius page next to Corner softness / Density,
+with a rounded-vs-pill specimen (`paintControlShapePreview`). Plugin: `buildComponents` reads the persisted
+`BrandInput.controlShape` (the same `restoreInput` the knobs rehydrate from) and materializes the def, so a
+pill-built button matches the brand the file carries — `rounded`/absent/untrusted all fall to the identity.
+
+**Two open sub-decisions (issue asked to confirm, not bake): both taken as recommended.** (1) Lever name
+`controlShape` over `pillControls` — an enum is more extensible than a boolean. (2) The studio preview uses
+the **button** as the representative silhouette (it is the control a designer pictures when they say "pill")
+while the copy states the lever is global across pill-able controls.
+
+**Trap for whoever re-verifies.** The ENGINE bump forces two follow-on writes that are NOT the lever itself
+and read as unrelated churn: every emitted tree's `$extensions.generator.version` stamp (via `regen`) and
+the contract baseline's `engineVersion` field (via `token-contract.ts --accept`, which reports "no surface
+change" because `diff.level` is `none`). If `token-contract.ts --check` fails "informational fields only",
+it is that `engineVersion` drift, not a token-name change — re-accept, don't hunt for a rename.
 
 ## (2026-08-29) — the emission cannot move without ENGINE_VERSION moving (#1141's miss, gate 1 of the hardening sweep)
 

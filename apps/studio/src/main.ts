@@ -3994,6 +3994,10 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
   const perMode = currentMode !== 'light';
   return [
     { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
+    // controlShape is a GLOBAL brand lever (not per-mode) — `csLeverStack([…], false)` renders the plain
+    // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
+    // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).
+    { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
@@ -6427,6 +6431,35 @@ const paintRadiusPreview = (into: HTMLElement): void => {
     sw.style.borderRadius = `${Math.min(px, 26)}px`;   // cap so `round` reads as a pill without overflowing the swatch
     const cons = [...(consumers[step] ?? [])];
     cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
+    list.append(cell);
+  }
+  into.append(list);
+};
+
+/** The controlShape specimen: two control silhouettes — a ROUNDED bar at the current `radius.md`, and a
+ *  PILL bar at height ÷ 2 — with the brand's current choice marked. Reuses the `.rad-*` scaffold and the
+ *  `.rad-sw` swatch (widened inline into a control bar), so the shape difference reads without new CSS. The
+ *  lever is global across pill-able controls (button + icon-button today); the button is the representative
+ *  silhouette because it is the control a designer pictures when they say "pill". */
+const paintControlShapePreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const cur = String(getPath(brandState, 'controlShape') ?? 'rounded');
+  const roundedPx = rp.dims['radius.md'] ?? 0;
+  const shapes = [
+    { key: 'rounded', label: 'Rounded', radiusPx: Math.min(roundedPx, 16), ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
+    { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.round', note: 'radius.round · height ÷ 2' },
+  ];
+  const list = el('div', 'rad-list');
+  for (const s of shapes) {
+    const on = s.key === cur;
+    const cell = el('div', 'rad-cell');
+    if (on) cell.style.outline = '2px solid currentColor';
+    if (on) cell.style.borderRadius = '6px';
+    const bar = el('div', 'rad-sw');
+    bar.style.width = '96px';
+    bar.style.height = '32px';
+    bar.style.borderRadius = `${s.radiusPx}px`;
+    cell.append(bar, el('div', 'rad-lab mono', `${s.label}${on ? ' · selected' : ''}`), tokenPill(s.ref), el('div', 'rad-cons', s.note));
     list.append(cell);
   }
   into.append(list);

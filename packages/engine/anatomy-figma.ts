@@ -24,6 +24,7 @@
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
 import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
+import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
@@ -1272,6 +1273,47 @@ export const figmaAnatomyPlan = (
  *  empty-set check at the end of `figmaAnatomySet`: the failure it guarded against was a set that
  *  quietly omits an axis, and a set with no members is the same defect with the count at zero. */
 const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
+
+/** The `derived` key a def carries to opt IN to `controlShape` (#1163). Its VALUE is inert prose ("height
+ *  ÷ 2 — …"); its PRESENCE is the selector. Today button + icon-button carry it; switch + radio do not, so
+ *  they are outside the pill-able set by construction (asserted in `test.ts`, so the lever can never square
+ *  them off). A future chip/tag/segmented control joins the set by declaring this key — nothing else. */
+export const PILL_RADIUS_DERIVATION = 'pill-radius';
+
+/** The shared rung a pill-able control binds under `controlShape: pill`. `radius.round` is `dimension.128`
+ *  in every brand — a single very-large radius that Figma clamps to min(w,h)/2 = height ÷ 2 at every size,
+ *  which is the "pill-radius derivation" the def documents rather than a per-component literal. It is the
+ *  SAME rung switch and radio bind intrinsically, reused rather than re-tokenized (#1163). */
+export const PILL_RADIUS_RUNG = 'radius.round';
+
+/** True when `def` is a pill-able control — it declares the `pill-radius` derivation. */
+export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[PILL_RADIUS_DERIVATION];
+
+/**
+ * Materialize a def for a brand's `controlShape` lever (#1163), BEFORE projection — this is why the choice
+ * does not thread through `figmaAnatomyPlan`/`figmaAnatomySet`.
+ *
+ * The plan is BRAND-AGNOSTIC on purpose (`figmaVarName`'s header): seven gates, the studio's member count
+ * and the plugin's set enumeration call `figmaAnatomySet(def)` with a def and nothing else, and a plan that
+ * asked "whose brand?" would break all of them. `controlShape` IS a brand choice, so rather than give the
+ * projector a brand input, the caller that knows the brand rewrites the DEF first and hands the projector a
+ * def as before. The projector stays a pure function of its def; the brand-specificity lives here.
+ *
+ * What it does: under `pill`, a pill-able control's `radius` binding key is repointed from its rounded rung
+ * (`radius.md`) to the shared pill rung (`radius.round`). `varOf` still resolves `radius` through
+ * `def.tokens` exactly as before — only the ref it finds there has moved — so no binding is bypassed and no
+ * per-component token is introduced. Under `rounded` (default) and for any def that is not pill-able, this
+ * is the IDENTITY: it returns the same object, which is what makes `rounded` reproduce every plan
+ * byte-identically (acceptance #1, the no-op-default independence check).
+ *
+ * NARROW BY CONSTRUCTION: it rewrites ONLY the `radius` key and ONLY for pill-able defs. `switch`/`radio`
+ * carry no `pill-radius` derivation, so `isPillable` is false and they pass through untouched — the lever
+ * cannot reach the one binding (`radius.round`) that already gives them their intrinsic pill/circle.
+ */
+export const applyControlShape = (def: ComponentDef, shape: ControlShape): ComponentDef => {
+  if (shape !== 'pill' || !isPillable(def)) return def;
+  return { ...def, tokens: { ...def.tokens, radius: PILL_RADIUS_RUNG } };
+};
 
 /**
  * Every variant the def's Figma projection DECLARES, as plans — the whole set, ready for either executor.

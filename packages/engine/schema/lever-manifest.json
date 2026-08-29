@@ -178,6 +178,24 @@
       "description": "Drives component sizes (control height + paired padding). The name stays stable; the metrics shift."
     },
     {
+      "key": "controlShape",
+      "group": "form",
+      "label": "Control shape",
+      "control": "enum",
+      "default": "rounded",
+      "options": [
+        {
+          "value": "rounded",
+          "label": "Rounded"
+        },
+        {
+          "value": "pill",
+          "label": "Pill"
+        }
+      ],
+      "description": "Corner shape for pill-able controls like buttons. Rounded follows corner softness; pill is a full height ÷ 2, whatever the softness."
+    },
+    {
       "key": "baseMd",
       "group": "form",
       "label": "Radius anchor",

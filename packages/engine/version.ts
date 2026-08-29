@@ -102,6 +102,17 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.31.0: the `controlShape` FORM lever (#1163). A brand can now choose `rounded` (default) or `pill`
+ * for its pill-able controls — today button and icon-button, tomorrow anything that declares a
+ * `pill-radius` derivation. `pill` rebinds those controls' corner from `radius.md` to the shared pill
+ * rung `radius.round`, which Figma clamps to height ÷ 2 at every size — the same derivation switch and
+ * radio already use intrinsically, reused rather than re-tokenized. No token VALUE and no NAME moves:
+ * the lever picks WHICH existing rung a control binds, so `CONTRACT_VERSION` stands and `rounded`
+ * reproduces every plan byte-identically. This is a behavior change (a new lever, a new projection under
+ * `pill`), which is why the engine version moves while the contract does not. `switch`/`radio` carry no
+ * `pill-radius` derivation and so are structurally outside the pill-able set — asserted in `test.ts` so
+ * the lever can never square them off. (#1163)
+ *
  * 0.30.0: ONE COLOUR COLLECTION (#1148/#1150). The two-tier colour split ends. `color.surface` — the
  * pointer tier, one alias per non-inverse role — is DELETED, and the value tier is renamed from
  * `color.appearance` to `color`, taking the short names with it: `nbds/color/appearance/text/primary`
@@ -654,7 +665,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.30.0';
+export const ENGINE_VERSION = '0.31.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

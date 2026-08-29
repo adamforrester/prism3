@@ -14,7 +14,7 @@
  *                     / hex; primitives under palette). This is what makes the system white-label.
  */
 import { generateRamp, peakChromaL, autoPlaceStep, Step } from './ramp';
-import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
+import { dimensionGrid, spaceScale, radiusScale, componentSizes, SpaceStep, RadiusStep, SizeStep, Density, ControlShape, iconSizes, IconSizeStep, controlSizes, ControlSizeStep, SPACE_BASE, GRID_BASE } from './scale';
 import { oklchToRgb, RGB, contrast, hex as rgbHex, inGamut, maxChroma } from './color';
 import type { ModeName, BuiltinModeName, ModeOverrides } from './modes';
 import { resolveVocabulary } from './vocabulary';
@@ -483,6 +483,7 @@ export type BrandInput = {
   density?: Density;                 // default 'comfortable' (drives component sizes)
   radiusScale?: number;              // 0=sharp … 1=default … 2=soft, default 1
   baseMd?: number;                   // radius.md anchor (px) at scale 1, default 4
+  controlShape?: ControlShape;       // 'rounded' (default) | 'pill' — corner shape for pill-able controls
 };
 
 /**
@@ -1875,6 +1876,7 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   // build with a clear diagnosis"), not two.
   const enumLevers: { path: string; value: unknown; options: readonly (string | number)[] }[] = [
     { path: 'density', value: input.density, options: DENSITY_VALUES },
+    { path: 'controlShape', value: input.controlShape, options: ['rounded', 'pill'] },
     { path: 'typography.typeScale', value: input.typography?.typeScale, options: ['compact', 'default', 'expressive'] },
     { path: 'typography.displayCeiling', value: input.typography?.displayCeiling, options: DISPLAY_VARIANTS },
     { path: 'typography.titleFloor', value: input.typography?.titleFloor, options: [16, 18] },
