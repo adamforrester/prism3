@@ -1,4 +1,1 @@
-wip: #1148 emitter + registers, before the version and test rework
-
-Not a shippable commit — banked so the mutation battery below has a HEAD to
-restore to. See the final message for the real description.
+wip: regen at 0.30.0, one color collection

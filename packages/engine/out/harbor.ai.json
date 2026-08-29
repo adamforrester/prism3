@@ -5833,46 +5833,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.primary",
-        "color.appearance.background.secondary",
-        "color.appearance.background.tertiary",
-        "color.appearance.field.fill",
-        "color.appearance.foreground.primary",
-        "color.appearance.foreground.secondary",
-        "color.appearance.foreground.tertiary",
-        "color.appearance.icon.on-brand",
-        "color.appearance.icon.on-danger",
-        "color.appearance.icon.on-info",
-        "color.appearance.icon.on-success",
-        "color.appearance.icon.on-warning",
-        "color.appearance.icon.primary",
-        "color.appearance.interactive.destructive.on-fill",
-        "color.appearance.interactive.neutral.on-fill",
-        "color.appearance.interactive.neutral.text.hover",
-        "color.appearance.interactive.neutral.text.pressed",
-        "color.appearance.interactive.neutral.text.rest",
-        "color.appearance.interactive.primary.on-fill",
-        "color.appearance.inverse.background.primary",
-        "color.appearance.inverse.background.secondary",
-        "color.appearance.inverse.background.tertiary",
-        "color.appearance.inverse.field.fill",
-        "color.appearance.inverse.foreground.primary",
-        "color.appearance.inverse.foreground.secondary",
-        "color.appearance.inverse.foreground.tertiary",
-        "color.appearance.inverse.icon.primary",
-        "color.appearance.inverse.interactive.destructive.on-fill",
-        "color.appearance.inverse.interactive.neutral.on-fill",
-        "color.appearance.inverse.interactive.neutral.text.hover",
-        "color.appearance.inverse.interactive.neutral.text.pressed",
-        "color.appearance.inverse.interactive.neutral.text.rest",
-        "color.appearance.inverse.interactive.primary.on-fill",
-        "color.appearance.inverse.text.primary",
-        "color.appearance.text.on-brand",
-        "color.appearance.text.on-danger",
-        "color.appearance.text.on-info",
-        "color.appearance.text.on-success",
-        "color.appearance.text.on-warning",
-        "color.appearance.text.primary",
         "color.background.primary",
         "color.background.secondary",
         "color.background.tertiary",
@@ -5892,6 +5852,21 @@
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
+        "color.inverse.background.primary",
+        "color.inverse.background.secondary",
+        "color.inverse.background.tertiary",
+        "color.inverse.field.fill",
+        "color.inverse.foreground.primary",
+        "color.inverse.foreground.secondary",
+        "color.inverse.foreground.tertiary",
+        "color.inverse.icon.primary",
+        "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.on-fill",
+        "color.inverse.interactive.neutral.text.hover",
+        "color.inverse.interactive.neutral.text.pressed",
+        "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.on-fill",
+        "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
@@ -5906,46 +5881,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.primary",
-        "color.appearance.background.secondary",
-        "color.appearance.background.tertiary",
-        "color.appearance.field.fill",
-        "color.appearance.foreground.primary",
-        "color.appearance.foreground.secondary",
-        "color.appearance.foreground.tertiary",
-        "color.appearance.icon.on-brand",
-        "color.appearance.icon.on-danger",
-        "color.appearance.icon.on-info",
-        "color.appearance.icon.on-success",
-        "color.appearance.icon.on-warning",
-        "color.appearance.icon.primary",
-        "color.appearance.interactive.destructive.on-fill",
-        "color.appearance.interactive.neutral.on-fill",
-        "color.appearance.interactive.neutral.text.hover",
-        "color.appearance.interactive.neutral.text.pressed",
-        "color.appearance.interactive.neutral.text.rest",
-        "color.appearance.interactive.primary.on-fill",
-        "color.appearance.inverse.background.primary",
-        "color.appearance.inverse.background.secondary",
-        "color.appearance.inverse.background.tertiary",
-        "color.appearance.inverse.field.fill",
-        "color.appearance.inverse.foreground.primary",
-        "color.appearance.inverse.foreground.secondary",
-        "color.appearance.inverse.foreground.tertiary",
-        "color.appearance.inverse.icon.primary",
-        "color.appearance.inverse.interactive.destructive.on-fill",
-        "color.appearance.inverse.interactive.neutral.on-fill",
-        "color.appearance.inverse.interactive.neutral.text.hover",
-        "color.appearance.inverse.interactive.neutral.text.pressed",
-        "color.appearance.inverse.interactive.neutral.text.rest",
-        "color.appearance.inverse.interactive.primary.on-fill",
-        "color.appearance.inverse.text.primary",
-        "color.appearance.text.on-brand",
-        "color.appearance.text.on-danger",
-        "color.appearance.text.on-info",
-        "color.appearance.text.on-success",
-        "color.appearance.text.on-warning",
-        "color.appearance.text.primary",
         "color.background.primary",
         "color.background.secondary",
         "color.background.tertiary",
@@ -5965,6 +5900,21 @@
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
+        "color.inverse.background.primary",
+        "color.inverse.background.secondary",
+        "color.inverse.background.tertiary",
+        "color.inverse.field.fill",
+        "color.inverse.foreground.primary",
+        "color.inverse.foreground.secondary",
+        "color.inverse.foreground.tertiary",
+        "color.inverse.icon.primary",
+        "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.on-fill",
+        "color.inverse.interactive.neutral.text.hover",
+        "color.inverse.interactive.neutral.text.pressed",
+        "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.on-fill",
+        "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",
         "color.text.on-info",
@@ -5979,10 +5929,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.brand-subtle",
-        "color.appearance.inverse.foreground.brand-subtle",
-        "color.appearance.inverse.interactive.primary.fill.rest",
-        "color.foreground.brand-subtle"
+        "color.foreground.brand-subtle",
+        "color.inverse.foreground.brand-subtle",
+        "color.inverse.interactive.primary.fill.rest"
       ]
     },
     "core.palette.primary.150": {
@@ -5997,15 +5946,11 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.link.visited",
-        "color.appearance.interactive.primary.fill.pressed",
-        "color.appearance.interactive.primary.fill.selected",
-        "color.appearance.inverse.interactive.primary.fill.pressed",
-        "color.appearance.inverse.interactive.primary.fill.selected",
-        "color.appearance.text.link.visited",
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.inverse.interactive.primary.fill.pressed",
+        "color.inverse.interactive.primary.fill.selected",
         "color.text.link.visited"
       ]
     },
@@ -6015,21 +5960,15 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.link.hover",
-        "color.appearance.interactive.primary.border.pressed",
-        "color.appearance.interactive.primary.fill.focused",
-        "color.appearance.interactive.primary.fill.hover",
-        "color.appearance.interactive.primary.text.pressed",
-        "color.appearance.inverse.icon.link.visited",
-        "color.appearance.inverse.interactive.primary.border.pressed",
-        "color.appearance.inverse.interactive.primary.text.pressed",
-        "color.appearance.inverse.text.link.visited",
-        "color.appearance.text.link.hover",
         "color.icon.link.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.pressed",
+        "color.inverse.icon.link.visited",
+        "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.text.pressed",
+        "color.inverse.text.link.visited",
         "color.text.link.hover"
       ]
     },
@@ -6039,23 +5978,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.focus",
-        "color.appearance.foreground.brand",
-        "color.appearance.icon.brand",
-        "color.appearance.icon.link.default",
-        "color.appearance.icon.link.focused",
-        "color.appearance.interactive.primary.border.hover",
-        "color.appearance.interactive.primary.fill.rest",
-        "color.appearance.interactive.primary.text.hover",
-        "color.appearance.inverse.icon.brand",
-        "color.appearance.inverse.icon.link.hover",
-        "color.appearance.inverse.interactive.primary.border.hover",
-        "color.appearance.inverse.interactive.primary.text.hover",
-        "color.appearance.inverse.text.brand",
-        "color.appearance.inverse.text.link.hover",
-        "color.appearance.text.brand",
-        "color.appearance.text.link.default",
-        "color.appearance.text.link.focused",
         "color.border.focus",
         "color.foreground.brand",
         "color.icon.brand",
@@ -6064,6 +5986,12 @@
         "color.interactive.primary.border.hover",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.text.hover",
+        "color.inverse.icon.brand",
+        "color.inverse.icon.link.hover",
+        "color.inverse.interactive.primary.border.hover",
+        "color.inverse.interactive.primary.text.hover",
+        "color.inverse.text.brand",
+        "color.inverse.text.link.hover",
         "color.text.brand",
         "color.text.link.default",
         "color.text.link.focused"
@@ -6075,31 +6003,23 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.brand-subtle",
-        "color.appearance.icon.link.visited",
-        "color.appearance.interactive.primary.border.pressed",
-        "color.appearance.interactive.primary.border.rest",
-        "color.appearance.interactive.primary.text.pressed",
-        "color.appearance.interactive.primary.text.rest",
-        "color.appearance.inverse.foreground.brand",
-        "color.appearance.inverse.icon.link.default",
-        "color.appearance.inverse.icon.link.focused",
-        "color.appearance.inverse.icon.link.visited",
-        "color.appearance.inverse.interactive.primary.border.pressed",
-        "color.appearance.inverse.interactive.primary.border.rest",
-        "color.appearance.inverse.interactive.primary.text.pressed",
-        "color.appearance.inverse.interactive.primary.text.rest",
-        "color.appearance.inverse.text.link.default",
-        "color.appearance.inverse.text.link.focused",
-        "color.appearance.inverse.text.link.visited",
-        "color.appearance.text.brand-subtle",
-        "color.appearance.text.link.visited",
         "color.icon.brand-subtle",
         "color.icon.link.visited",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.text.pressed",
         "color.interactive.primary.text.rest",
+        "color.inverse.foreground.brand",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.visited",
+        "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.text.pressed",
+        "color.inverse.interactive.primary.text.rest",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.visited",
         "color.text.brand-subtle",
         "color.text.link.visited"
       ]
@@ -6110,17 +6030,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.link.hover",
-        "color.appearance.interactive.primary.border.hover",
-        "color.appearance.interactive.primary.text.hover",
-        "color.appearance.inverse.icon.link.hover",
-        "color.appearance.inverse.interactive.primary.border.hover",
-        "color.appearance.inverse.interactive.primary.text.hover",
-        "color.appearance.inverse.text.link.hover",
-        "color.appearance.text.link.hover",
         "color.icon.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.text.hover",
+        "color.inverse.icon.link.hover",
+        "color.inverse.interactive.primary.border.hover",
+        "color.inverse.interactive.primary.text.hover",
+        "color.inverse.text.link.hover",
         "color.text.link.hover"
       ]
     },
@@ -6130,26 +6046,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.brand",
-        "color.appearance.icon.brand-subtle",
-        "color.appearance.icon.link.default",
-        "color.appearance.icon.link.focused",
-        "color.appearance.interactive.primary.border.rest",
-        "color.appearance.interactive.primary.fill.pressed",
-        "color.appearance.interactive.primary.fill.selected",
-        "color.appearance.interactive.primary.text.rest",
-        "color.appearance.inverse.icon.brand",
-        "color.appearance.inverse.icon.link.default",
-        "color.appearance.inverse.icon.link.focused",
-        "color.appearance.inverse.interactive.primary.border.rest",
-        "color.appearance.inverse.interactive.primary.text.rest",
-        "color.appearance.inverse.text.brand",
-        "color.appearance.inverse.text.link.default",
-        "color.appearance.inverse.text.link.focused",
-        "color.appearance.text.brand",
-        "color.appearance.text.brand-subtle",
-        "color.appearance.text.link.default",
-        "color.appearance.text.link.focused",
         "color.icon.brand",
         "color.icon.brand-subtle",
         "color.icon.link.default",
@@ -6158,6 +6054,14 @@
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.text.rest",
+        "color.inverse.icon.brand",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.text.rest",
+        "color.inverse.text.brand",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
         "color.text.brand",
         "color.text.brand-subtle",
         "color.text.link.default",
@@ -6170,19 +6074,14 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.brand",
-        "color.appearance.icon.brand-subtle",
-        "color.appearance.interactive.primary.fill.focused",
-        "color.appearance.interactive.primary.fill.hover",
-        "color.appearance.inverse.border.brand",
-        "color.appearance.inverse.border.focus",
-        "color.appearance.inverse.icon.brand-subtle",
-        "color.appearance.inverse.text.brand-subtle",
-        "color.appearance.text.brand-subtle",
         "color.border.brand",
         "color.icon.brand-subtle",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
+        "color.inverse.border.brand",
+        "color.inverse.border.focus",
+        "color.inverse.icon.brand-subtle",
+        "color.inverse.text.brand-subtle",
         "color.text.brand-subtle"
       ]
     },
@@ -6192,16 +6091,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.focus",
-        "color.appearance.foreground.brand",
-        "color.appearance.interactive.primary.fill.rest",
-        "color.appearance.inverse.border.focus",
-        "color.appearance.inverse.foreground.brand",
-        "color.appearance.inverse.icon.brand-subtle",
-        "color.appearance.inverse.text.brand-subtle",
         "color.border.focus",
         "color.foreground.brand",
-        "color.interactive.primary.fill.rest"
+        "color.interactive.primary.fill.rest",
+        "color.inverse.border.focus",
+        "color.inverse.foreground.brand",
+        "color.inverse.icon.brand-subtle",
+        "color.inverse.text.brand-subtle"
       ]
     },
     "core.palette.primary.600": {
@@ -6210,27 +6106,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.focus",
-        "color.appearance.foreground.brand",
-        "color.appearance.icon.brand",
-        "color.appearance.icon.link.default",
-        "color.appearance.icon.link.focused",
-        "color.appearance.interactive.primary.border.rest",
-        "color.appearance.interactive.primary.fill.rest",
-        "color.appearance.interactive.primary.text.rest",
-        "color.appearance.inverse.border.focus",
-        "color.appearance.inverse.foreground.brand",
-        "color.appearance.inverse.icon.brand",
-        "color.appearance.inverse.icon.link.default",
-        "color.appearance.inverse.icon.link.focused",
-        "color.appearance.inverse.interactive.primary.border.rest",
-        "color.appearance.inverse.interactive.primary.text.rest",
-        "color.appearance.inverse.text.brand",
-        "color.appearance.inverse.text.link.default",
-        "color.appearance.inverse.text.link.focused",
-        "color.appearance.text.brand",
-        "color.appearance.text.link.default",
-        "color.appearance.text.link.focused",
         "color.border.focus",
         "color.foreground.brand",
         "color.icon.brand",
@@ -6239,6 +6114,16 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
+        "color.inverse.foreground.brand",
+        "color.inverse.icon.brand",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.text.rest",
+        "color.inverse.text.brand",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
         "color.text.brand",
         "color.text.link.default",
         "color.text.link.focused"
@@ -6250,27 +6135,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.link.hover",
-        "color.appearance.interactive.primary.border.hover",
-        "color.appearance.interactive.primary.border.rest",
-        "color.appearance.interactive.primary.fill.focused",
-        "color.appearance.interactive.primary.fill.hover",
-        "color.appearance.interactive.primary.text.hover",
-        "color.appearance.interactive.primary.text.rest",
-        "color.appearance.inverse.foreground.brand",
-        "color.appearance.inverse.icon.brand-subtle",
-        "color.appearance.inverse.icon.link.default",
-        "color.appearance.inverse.icon.link.focused",
-        "color.appearance.inverse.icon.link.hover",
-        "color.appearance.inverse.interactive.primary.border.hover",
-        "color.appearance.inverse.interactive.primary.border.rest",
-        "color.appearance.inverse.interactive.primary.text.hover",
-        "color.appearance.inverse.interactive.primary.text.rest",
-        "color.appearance.inverse.text.brand-subtle",
-        "color.appearance.inverse.text.link.default",
-        "color.appearance.inverse.text.link.focused",
-        "color.appearance.inverse.text.link.hover",
-        "color.appearance.text.link.hover",
         "color.icon.link.hover",
         "color.interactive.primary.border.hover",
         "color.interactive.primary.border.rest",
@@ -6278,6 +6142,19 @@
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.foreground.brand",
+        "color.inverse.icon.brand-subtle",
+        "color.inverse.icon.link.default",
+        "color.inverse.icon.link.focused",
+        "color.inverse.icon.link.hover",
+        "color.inverse.interactive.primary.border.hover",
+        "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.text.hover",
+        "color.inverse.interactive.primary.text.rest",
+        "color.inverse.text.brand-subtle",
+        "color.inverse.text.link.default",
+        "color.inverse.text.link.focused",
+        "color.inverse.text.link.hover",
         "color.text.link.hover"
       ]
     },
@@ -6287,33 +6164,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.focus",
-        "color.appearance.foreground.brand",
-        "color.appearance.icon.brand",
-        "color.appearance.icon.link.default",
-        "color.appearance.icon.link.focused",
-        "color.appearance.icon.link.visited",
-        "color.appearance.interactive.primary.border.hover",
-        "color.appearance.interactive.primary.border.pressed",
-        "color.appearance.interactive.primary.fill.pressed",
-        "color.appearance.interactive.primary.fill.rest",
-        "color.appearance.interactive.primary.fill.selected",
-        "color.appearance.interactive.primary.text.hover",
-        "color.appearance.interactive.primary.text.pressed",
-        "color.appearance.inverse.icon.brand",
-        "color.appearance.inverse.icon.link.hover",
-        "color.appearance.inverse.icon.link.visited",
-        "color.appearance.inverse.interactive.primary.border.hover",
-        "color.appearance.inverse.interactive.primary.border.pressed",
-        "color.appearance.inverse.interactive.primary.text.hover",
-        "color.appearance.inverse.interactive.primary.text.pressed",
-        "color.appearance.inverse.text.brand",
-        "color.appearance.inverse.text.link.hover",
-        "color.appearance.inverse.text.link.visited",
-        "color.appearance.text.brand",
-        "color.appearance.text.link.default",
-        "color.appearance.text.link.focused",
-        "color.appearance.text.link.visited",
         "color.border.focus",
         "color.foreground.brand",
         "color.icon.brand",
@@ -6327,6 +6177,16 @@
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.pressed",
+        "color.inverse.icon.brand",
+        "color.inverse.icon.link.hover",
+        "color.inverse.icon.link.visited",
+        "color.inverse.interactive.primary.border.hover",
+        "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.text.hover",
+        "color.inverse.interactive.primary.text.pressed",
+        "color.inverse.text.brand",
+        "color.inverse.text.link.hover",
+        "color.inverse.text.link.visited",
         "color.text.brand",
         "color.text.link.default",
         "color.text.link.focused",
@@ -6339,21 +6199,15 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.link.hover",
-        "color.appearance.interactive.primary.border.pressed",
-        "color.appearance.interactive.primary.fill.focused",
-        "color.appearance.interactive.primary.fill.hover",
-        "color.appearance.interactive.primary.text.pressed",
-        "color.appearance.inverse.icon.link.visited",
-        "color.appearance.inverse.interactive.primary.border.pressed",
-        "color.appearance.inverse.interactive.primary.text.pressed",
-        "color.appearance.inverse.text.link.visited",
-        "color.appearance.text.link.hover",
         "color.icon.link.hover",
         "color.interactive.primary.border.pressed",
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.pressed",
+        "color.inverse.icon.link.visited",
+        "color.inverse.interactive.primary.border.pressed",
+        "color.inverse.interactive.primary.text.pressed",
+        "color.inverse.text.link.visited",
         "color.text.link.hover"
       ]
     },
@@ -6363,15 +6217,11 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.link.visited",
-        "color.appearance.interactive.primary.fill.pressed",
-        "color.appearance.interactive.primary.fill.selected",
-        "color.appearance.inverse.interactive.primary.fill.pressed",
-        "color.appearance.inverse.interactive.primary.fill.selected",
-        "color.appearance.text.link.visited",
         "color.icon.link.visited",
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
+        "color.inverse.interactive.primary.fill.pressed",
+        "color.inverse.interactive.primary.fill.selected",
         "color.text.link.visited"
       ]
     },
@@ -6387,10 +6237,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.brand-subtle",
-        "color.appearance.inverse.foreground.brand-subtle",
-        "color.appearance.inverse.interactive.primary.fill.rest",
-        "color.foreground.brand-subtle"
+        "color.foreground.brand-subtle",
+        "color.inverse.foreground.brand-subtle",
+        "color.inverse.interactive.primary.fill.rest"
       ]
     },
     "core.palette.primary.950": {
@@ -6399,8 +6248,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.interactive.primary.fill.focused",
-        "color.appearance.inverse.interactive.primary.fill.hover"
+        "color.inverse.interactive.primary.fill.focused",
+        "color.inverse.interactive.primary.fill.hover"
       ]
     },
     "core.palette.primary.025": {
@@ -6415,8 +6264,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.interactive.primary.fill.focused",
-        "color.appearance.inverse.interactive.primary.fill.hover"
+        "color.inverse.interactive.primary.fill.focused",
+        "color.inverse.interactive.primary.fill.hover"
       ]
     },
     "core.palette.neutral.100": {
@@ -6425,16 +6274,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.secondary",
-        "color.appearance.field.fill",
-        "color.appearance.foreground.primary",
-        "color.appearance.inverse.background.tertiary",
-        "color.appearance.inverse.foreground.secondary",
-        "color.appearance.inverse.interactive.neutral.fill.focused",
-        "color.appearance.inverse.interactive.neutral.fill.hover",
         "color.background.secondary",
         "color.field.fill",
-        "color.foreground.primary"
+        "color.foreground.primary",
+        "color.inverse.background.tertiary",
+        "color.inverse.foreground.secondary",
+        "color.inverse.interactive.neutral.fill.focused",
+        "color.inverse.interactive.neutral.fill.hover"
       ]
     },
     "core.palette.neutral.150": {
@@ -6443,15 +6289,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.tertiary",
-        "color.appearance.foreground.secondary",
-        "color.appearance.interactive.neutral.fill.rest",
-        "color.appearance.inverse.foreground.tertiary",
-        "color.appearance.inverse.interactive.neutral.fill.pressed",
-        "color.appearance.inverse.interactive.neutral.fill.selected",
         "color.background.tertiary",
         "color.foreground.secondary",
-        "color.interactive.neutral.fill.rest"
+        "color.interactive.neutral.fill.rest",
+        "color.inverse.foreground.tertiary",
+        "color.inverse.interactive.neutral.fill.pressed",
+        "color.inverse.interactive.neutral.fill.selected"
       ]
     },
     "core.palette.neutral.200": {
@@ -6460,19 +6303,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.primary",
-        "color.appearance.disabled.border",
-        "color.appearance.disabled.fill",
-        "color.appearance.foreground.tertiary",
-        "color.appearance.interactive.neutral.fill.focused",
-        "color.appearance.interactive.neutral.fill.hover",
-        "color.appearance.inverse.border.primary",
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
         "color.foreground.tertiary",
         "color.interactive.neutral.fill.focused",
-        "color.interactive.neutral.fill.hover"
+        "color.interactive.neutral.fill.hover",
+        "color.inverse.border.primary"
       ]
     },
     "core.palette.neutral.250": {
@@ -6481,17 +6318,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.secondary",
-        "color.appearance.border.tertiary",
-        "color.appearance.interactive.neutral.fill.pressed",
-        "color.appearance.interactive.neutral.fill.selected",
-        "color.appearance.inverse.border.secondary",
-        "color.appearance.inverse.disabled.border",
-        "color.appearance.inverse.disabled.fill",
         "color.border.secondary",
         "color.border.tertiary",
         "color.interactive.neutral.fill.pressed",
-        "color.interactive.neutral.fill.selected"
+        "color.interactive.neutral.fill.selected",
+        "color.inverse.border.secondary",
+        "color.inverse.disabled.border",
+        "color.inverse.disabled.fill"
       ]
     },
     "core.palette.neutral.300": {
@@ -6500,14 +6333,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.disabled.on-fill",
-        "color.appearance.icon.secondary",
-        "color.appearance.interactive.neutral.border.pressed",
-        "color.appearance.inverse.interactive.neutral.border.pressed",
-        "color.appearance.text.secondary",
         "color.disabled.on-fill",
         "color.icon.secondary",
         "color.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.border.pressed",
         "color.text.secondary"
       ]
     },
@@ -6517,16 +6346,14 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.field.placeholder",
-        "color.appearance.interactive.neutral.border.pressed",
-        "color.appearance.inverse.border.tertiary",
-        "color.appearance.inverse.disabled.on-fill",
-        "color.appearance.inverse.field.placeholder",
-        "color.appearance.inverse.icon.secondary",
-        "color.appearance.inverse.interactive.neutral.border.pressed",
-        "color.appearance.inverse.text.secondary",
         "color.field.placeholder",
-        "color.interactive.neutral.border.pressed"
+        "color.interactive.neutral.border.pressed",
+        "color.inverse.border.tertiary",
+        "color.inverse.disabled.on-fill",
+        "color.inverse.field.placeholder",
+        "color.inverse.icon.secondary",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.text.secondary"
       ]
     },
     "core.palette.neutral.400": {
@@ -6535,14 +6362,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.field.border.hover",
-        "color.appearance.interactive.neutral.border.hover",
-        "color.appearance.inverse.field.border.hover",
-        "color.appearance.inverse.field.border.rest",
-        "color.appearance.inverse.interactive.neutral.border.hover",
-        "color.appearance.inverse.interactive.neutral.border.rest",
         "color.field.border.hover",
-        "color.interactive.neutral.border.hover"
+        "color.interactive.neutral.border.hover",
+        "color.inverse.field.border.hover",
+        "color.inverse.field.border.rest",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.rest"
       ]
     },
     "core.palette.neutral.450": {
@@ -6551,28 +6376,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.secondary",
-        "color.appearance.disabled.icon",
-        "color.appearance.disabled.on-fill",
-        "color.appearance.disabled.text",
-        "color.appearance.field.border.hover",
-        "color.appearance.field.border.rest",
-        "color.appearance.field.placeholder",
-        "color.appearance.icon.secondary",
-        "color.appearance.icon.tertiary",
-        "color.appearance.interactive.neutral.border.hover",
-        "color.appearance.interactive.neutral.border.rest",
-        "color.appearance.inverse.disabled.icon",
-        "color.appearance.inverse.disabled.text",
-        "color.appearance.inverse.field.border.hover",
-        "color.appearance.inverse.field.placeholder",
-        "color.appearance.inverse.icon.secondary",
-        "color.appearance.inverse.icon.tertiary",
-        "color.appearance.inverse.interactive.neutral.border.hover",
-        "color.appearance.inverse.text.secondary",
-        "color.appearance.inverse.text.tertiary",
-        "color.appearance.text.secondary",
-        "color.appearance.text.tertiary",
         "color.border.secondary",
         "color.disabled.icon",
         "color.disabled.on-fill",
@@ -6584,6 +6387,15 @@
         "color.icon.tertiary",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.rest",
+        "color.inverse.disabled.icon",
+        "color.inverse.disabled.text",
+        "color.inverse.field.border.hover",
+        "color.inverse.field.placeholder",
+        "color.inverse.icon.secondary",
+        "color.inverse.icon.tertiary",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.text.secondary",
+        "color.inverse.text.tertiary",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -6594,25 +6406,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.primary",
-        "color.appearance.border.secondary",
-        "color.appearance.disabled.icon",
-        "color.appearance.disabled.text",
-        "color.appearance.field.border.rest",
-        "color.appearance.icon.tertiary",
-        "color.appearance.interactive.neutral.border.rest",
-        "color.appearance.inverse.border.primary",
-        "color.appearance.inverse.border.secondary",
-        "color.appearance.inverse.disabled.icon",
-        "color.appearance.inverse.disabled.on-fill",
-        "color.appearance.inverse.disabled.text",
-        "color.appearance.inverse.field.border.hover",
-        "color.appearance.inverse.field.border.rest",
-        "color.appearance.inverse.icon.tertiary",
-        "color.appearance.inverse.interactive.neutral.border.hover",
-        "color.appearance.inverse.interactive.neutral.border.rest",
-        "color.appearance.inverse.text.tertiary",
-        "color.appearance.text.tertiary",
         "color.border.primary",
         "color.border.secondary",
         "color.disabled.icon",
@@ -6620,6 +6413,17 @@
         "color.field.border.rest",
         "color.icon.tertiary",
         "color.interactive.neutral.border.rest",
+        "color.inverse.border.primary",
+        "color.inverse.border.secondary",
+        "color.inverse.disabled.icon",
+        "color.inverse.disabled.on-fill",
+        "color.inverse.disabled.text",
+        "color.inverse.field.border.hover",
+        "color.inverse.field.border.rest",
+        "color.inverse.icon.tertiary",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.rest",
+        "color.inverse.text.tertiary",
         "color.text.tertiary"
       ]
     },
@@ -6629,24 +6433,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.disabled.icon",
-        "color.appearance.disabled.on-fill",
-        "color.appearance.disabled.text",
-        "color.appearance.field.border.hover",
-        "color.appearance.field.border.rest",
-        "color.appearance.icon.tertiary",
-        "color.appearance.interactive.neutral.border.hover",
-        "color.appearance.interactive.neutral.border.rest",
-        "color.appearance.inverse.disabled.icon",
-        "color.appearance.inverse.disabled.text",
-        "color.appearance.inverse.field.border.rest",
-        "color.appearance.inverse.field.placeholder",
-        "color.appearance.inverse.icon.secondary",
-        "color.appearance.inverse.icon.tertiary",
-        "color.appearance.inverse.interactive.neutral.border.rest",
-        "color.appearance.inverse.text.secondary",
-        "color.appearance.inverse.text.tertiary",
-        "color.appearance.text.tertiary",
         "color.disabled.icon",
         "color.disabled.on-fill",
         "color.disabled.text",
@@ -6655,6 +6441,15 @@
         "color.icon.tertiary",
         "color.interactive.neutral.border.hover",
         "color.interactive.neutral.border.rest",
+        "color.inverse.disabled.icon",
+        "color.inverse.disabled.text",
+        "color.inverse.field.border.rest",
+        "color.inverse.field.placeholder",
+        "color.inverse.icon.secondary",
+        "color.inverse.icon.tertiary",
+        "color.inverse.interactive.neutral.border.rest",
+        "color.inverse.text.secondary",
+        "color.inverse.text.tertiary",
         "color.text.tertiary"
       ]
     },
@@ -6664,20 +6459,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.disabled.icon",
-        "color.appearance.disabled.text",
-        "color.appearance.field.border.hover",
-        "color.appearance.field.placeholder",
-        "color.appearance.icon.secondary",
-        "color.appearance.icon.tertiary",
-        "color.appearance.interactive.neutral.border.hover",
-        "color.appearance.inverse.border.secondary",
-        "color.appearance.inverse.disabled.on-fill",
-        "color.appearance.inverse.field.border.hover",
-        "color.appearance.inverse.interactive.neutral.border.hover",
-        "color.appearance.inverse.interactive.neutral.border.pressed",
-        "color.appearance.text.secondary",
-        "color.appearance.text.tertiary",
         "color.disabled.icon",
         "color.disabled.text",
         "color.field.border.hover",
@@ -6685,6 +6466,11 @@
         "color.icon.secondary",
         "color.icon.tertiary",
         "color.interactive.neutral.border.hover",
+        "color.inverse.border.secondary",
+        "color.inverse.disabled.on-fill",
+        "color.inverse.field.border.hover",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.pressed",
         "color.text.secondary",
         "color.text.tertiary"
       ]
@@ -6695,17 +6481,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.tertiary",
-        "color.appearance.disabled.on-fill",
-        "color.appearance.field.placeholder",
-        "color.appearance.interactive.neutral.border.pressed",
-        "color.appearance.inverse.field.placeholder",
-        "color.appearance.inverse.icon.secondary",
-        "color.appearance.inverse.text.secondary",
         "color.border.tertiary",
         "color.disabled.on-fill",
         "color.field.placeholder",
-        "color.interactive.neutral.border.pressed"
+        "color.interactive.neutral.border.pressed",
+        "color.inverse.field.placeholder",
+        "color.inverse.icon.secondary",
+        "color.inverse.text.secondary"
       ]
     },
     "core.palette.neutral.700": {
@@ -6714,17 +6496,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.secondary",
-        "color.appearance.icon.secondary",
-        "color.appearance.interactive.neutral.border.pressed",
-        "color.appearance.inverse.border.secondary",
-        "color.appearance.inverse.border.tertiary",
-        "color.appearance.inverse.disabled.on-fill",
-        "color.appearance.inverse.interactive.neutral.border.pressed",
-        "color.appearance.text.secondary",
         "color.border.secondary",
         "color.icon.secondary",
         "color.interactive.neutral.border.pressed",
+        "color.inverse.border.secondary",
+        "color.inverse.border.tertiary",
+        "color.inverse.disabled.on-fill",
+        "color.inverse.interactive.neutral.border.pressed",
         "color.text.secondary"
       ]
     },
@@ -6734,11 +6512,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.primary",
-        "color.appearance.disabled.border",
-        "color.appearance.disabled.fill",
-        "color.appearance.interactive.neutral.fill.pressed",
-        "color.appearance.interactive.neutral.fill.selected",
         "color.border.primary",
         "color.disabled.border",
         "color.disabled.fill",
@@ -6752,16 +6525,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.tertiary",
-        "color.appearance.interactive.neutral.fill.focused",
-        "color.appearance.interactive.neutral.fill.hover",
-        "color.appearance.inverse.border.primary",
-        "color.appearance.inverse.disabled.border",
-        "color.appearance.inverse.disabled.fill",
-        "color.appearance.inverse.foreground.tertiary",
         "color.foreground.tertiary",
         "color.interactive.neutral.fill.focused",
-        "color.interactive.neutral.fill.hover"
+        "color.interactive.neutral.fill.hover",
+        "color.inverse.border.primary",
+        "color.inverse.disabled.border",
+        "color.inverse.disabled.fill",
+        "color.inverse.foreground.tertiary"
       ]
     },
     "core.palette.neutral.850": {
@@ -6770,15 +6540,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.tertiary",
-        "color.appearance.foreground.secondary",
-        "color.appearance.interactive.neutral.fill.rest",
-        "color.appearance.inverse.background.tertiary",
-        "color.appearance.inverse.foreground.secondary",
-        "color.appearance.inverse.interactive.neutral.fill.rest",
         "color.background.tertiary",
         "color.foreground.secondary",
-        "color.interactive.neutral.fill.rest"
+        "color.interactive.neutral.fill.rest",
+        "color.inverse.background.tertiary",
+        "color.inverse.foreground.secondary",
+        "color.inverse.interactive.neutral.fill.rest"
       ]
     },
     "core.palette.neutral.900": {
@@ -6787,17 +6554,14 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.secondary",
-        "color.appearance.field.fill",
-        "color.appearance.foreground.primary",
-        "color.appearance.inverse.background.secondary",
-        "color.appearance.inverse.field.fill",
-        "color.appearance.inverse.foreground.primary",
-        "color.appearance.inverse.interactive.neutral.fill.focused",
-        "color.appearance.inverse.interactive.neutral.fill.hover",
         "color.background.secondary",
         "color.field.fill",
-        "color.foreground.primary"
+        "color.foreground.primary",
+        "color.inverse.background.secondary",
+        "color.inverse.field.fill",
+        "color.inverse.foreground.primary",
+        "color.inverse.interactive.neutral.fill.focused",
+        "color.inverse.interactive.neutral.fill.hover"
       ]
     },
     "core.palette.neutral.950": {
@@ -6806,26 +6570,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.primary",
-        "color.appearance.border.tertiary",
-        "color.appearance.icon.primary",
-        "color.appearance.interactive.neutral.on-fill",
-        "color.appearance.interactive.neutral.text.hover",
-        "color.appearance.interactive.neutral.text.pressed",
-        "color.appearance.interactive.neutral.text.rest",
-        "color.appearance.inverse.background.primary",
-        "color.appearance.inverse.border.tertiary",
-        "color.appearance.inverse.icon.primary",
-        "color.appearance.inverse.interactive.destructive.on-fill",
-        "color.appearance.inverse.interactive.neutral.fill.pressed",
-        "color.appearance.inverse.interactive.neutral.fill.selected",
-        "color.appearance.inverse.interactive.neutral.on-fill",
-        "color.appearance.inverse.interactive.neutral.text.hover",
-        "color.appearance.inverse.interactive.neutral.text.pressed",
-        "color.appearance.inverse.interactive.neutral.text.rest",
-        "color.appearance.inverse.interactive.primary.on-fill",
-        "color.appearance.inverse.text.primary",
-        "color.appearance.text.primary",
         "color.background.primary",
         "color.border.tertiary",
         "color.icon.primary",
@@ -6833,6 +6577,18 @@
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
+        "color.inverse.background.primary",
+        "color.inverse.border.tertiary",
+        "color.inverse.icon.primary",
+        "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.fill.pressed",
+        "color.inverse.interactive.neutral.fill.selected",
+        "color.inverse.interactive.neutral.on-fill",
+        "color.inverse.interactive.neutral.text.hover",
+        "color.inverse.interactive.neutral.text.pressed",
+        "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.on-fill",
+        "color.inverse.text.primary",
         "color.text.primary"
       ]
     },
@@ -6842,26 +6598,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.tertiary",
-        "color.appearance.icon.on-brand",
-        "color.appearance.icon.primary",
-        "color.appearance.interactive.neutral.on-fill",
-        "color.appearance.interactive.neutral.text.hover",
-        "color.appearance.interactive.neutral.text.pressed",
-        "color.appearance.interactive.neutral.text.rest",
-        "color.appearance.interactive.primary.on-fill",
-        "color.appearance.inverse.background.primary",
-        "color.appearance.inverse.border.tertiary",
-        "color.appearance.inverse.icon.primary",
-        "color.appearance.inverse.interactive.destructive.on-fill",
-        "color.appearance.inverse.interactive.neutral.on-fill",
-        "color.appearance.inverse.interactive.neutral.text.hover",
-        "color.appearance.inverse.interactive.neutral.text.pressed",
-        "color.appearance.inverse.interactive.neutral.text.rest",
-        "color.appearance.inverse.interactive.primary.on-fill",
-        "color.appearance.inverse.text.primary",
-        "color.appearance.text.on-brand",
-        "color.appearance.text.primary",
         "color.border.tertiary",
         "color.icon.on-brand",
         "color.icon.primary",
@@ -6870,6 +6606,16 @@
         "color.interactive.neutral.text.pressed",
         "color.interactive.neutral.text.rest",
         "color.interactive.primary.on-fill",
+        "color.inverse.background.primary",
+        "color.inverse.border.tertiary",
+        "color.inverse.icon.primary",
+        "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.on-fill",
+        "color.inverse.interactive.neutral.text.hover",
+        "color.inverse.interactive.neutral.text.pressed",
+        "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.on-fill",
+        "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.primary"
       ]
@@ -6880,12 +6626,11 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.background.primary",
-        "color.appearance.inverse.background.secondary",
-        "color.appearance.inverse.field.fill",
-        "color.appearance.inverse.foreground.primary",
-        "color.appearance.inverse.interactive.neutral.fill.rest",
-        "color.background.primary"
+        "color.background.primary",
+        "color.inverse.background.secondary",
+        "color.inverse.field.fill",
+        "color.inverse.foreground.primary",
+        "color.inverse.interactive.neutral.fill.rest"
       ]
     },
     "core.palette.success.100": {
@@ -6894,9 +6639,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.success-subtle",
-        "color.appearance.inverse.foreground.success-subtle",
-        "color.foreground.success-subtle"
+        "color.foreground.success-subtle",
+        "color.inverse.foreground.success-subtle"
       ]
     },
     "core.palette.success.150": {
@@ -6923,13 +6667,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.success",
-        "color.appearance.icon.success",
-        "color.appearance.inverse.icon.success",
-        "color.appearance.inverse.text.success",
-        "color.appearance.text.success",
         "color.foreground.success",
         "color.icon.success",
+        "color.inverse.icon.success",
+        "color.inverse.text.success",
         "color.text.success"
       ]
     },
@@ -6939,10 +6680,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.success-subtle",
-        "color.appearance.inverse.foreground.success",
-        "color.appearance.text.success-subtle",
         "color.icon.success-subtle",
+        "color.inverse.foreground.success",
         "color.text.success-subtle"
       ]
     },
@@ -6958,14 +6697,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.success",
-        "color.appearance.icon.success-subtle",
-        "color.appearance.inverse.icon.success",
-        "color.appearance.inverse.text.success",
-        "color.appearance.text.success",
-        "color.appearance.text.success-subtle",
         "color.icon.success",
         "color.icon.success-subtle",
+        "color.inverse.icon.success",
+        "color.inverse.text.success",
         "color.text.success",
         "color.text.success-subtle"
       ]
@@ -6976,17 +6711,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.success",
-        "color.appearance.foreground.success",
-        "color.appearance.icon.success-subtle",
-        "color.appearance.inverse.border.success",
-        "color.appearance.inverse.foreground.success",
-        "color.appearance.inverse.icon.success-subtle",
-        "color.appearance.inverse.text.success-subtle",
-        "color.appearance.text.success-subtle",
         "color.border.success",
         "color.foreground.success",
         "color.icon.success-subtle",
+        "color.inverse.border.success",
+        "color.inverse.foreground.success",
+        "color.inverse.icon.success-subtle",
+        "color.inverse.text.success-subtle",
         "color.text.success-subtle"
       ]
     },
@@ -6996,8 +6727,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.icon.success-subtle",
-        "color.appearance.inverse.text.success-subtle"
+        "color.inverse.icon.success-subtle",
+        "color.inverse.text.success-subtle"
       ]
     },
     "core.palette.success.600": {
@@ -7006,11 +6737,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.success",
-        "color.appearance.inverse.icon.success",
-        "color.appearance.inverse.text.success",
-        "color.appearance.text.success",
         "color.icon.success",
+        "color.inverse.icon.success",
+        "color.inverse.text.success",
         "color.text.success"
       ]
     },
@@ -7020,9 +6749,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.foreground.success",
-        "color.appearance.inverse.icon.success-subtle",
-        "color.appearance.inverse.text.success-subtle"
+        "color.inverse.foreground.success",
+        "color.inverse.icon.success-subtle",
+        "color.inverse.text.success-subtle"
       ]
     },
     "core.palette.success.700": {
@@ -7031,8 +6760,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.icon.success",
-        "color.appearance.inverse.text.success"
+        "color.inverse.icon.success",
+        "color.inverse.text.success"
       ]
     },
     "core.palette.success.750": {
@@ -7041,9 +6770,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.success",
-        "color.appearance.icon.success",
-        "color.appearance.text.success",
         "color.foreground.success",
         "color.icon.success",
         "color.text.success"
@@ -7067,9 +6793,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.success-subtle",
-        "color.appearance.inverse.foreground.success-subtle",
-        "color.foreground.success-subtle"
+        "color.foreground.success-subtle",
+        "color.inverse.foreground.success-subtle"
       ]
     },
     "core.palette.success.950": {
@@ -7096,9 +6821,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.warning-subtle",
-        "color.appearance.inverse.foreground.warning-subtle",
-        "color.foreground.warning-subtle"
+        "color.foreground.warning-subtle",
+        "color.inverse.foreground.warning-subtle"
       ]
     },
     "core.palette.warning.150": {
@@ -7125,13 +6849,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.warning",
-        "color.appearance.icon.warning",
-        "color.appearance.inverse.icon.warning",
-        "color.appearance.inverse.text.warning",
-        "color.appearance.text.warning",
         "color.foreground.warning",
         "color.icon.warning",
+        "color.inverse.icon.warning",
+        "color.inverse.text.warning",
         "color.text.warning"
       ]
     },
@@ -7141,10 +6862,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.warning-subtle",
-        "color.appearance.inverse.foreground.warning",
-        "color.appearance.text.warning-subtle",
         "color.icon.warning-subtle",
+        "color.inverse.foreground.warning",
         "color.text.warning-subtle"
       ]
     },
@@ -7160,14 +6879,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.warning",
-        "color.appearance.icon.warning-subtle",
-        "color.appearance.inverse.icon.warning",
-        "color.appearance.inverse.text.warning",
-        "color.appearance.text.warning",
-        "color.appearance.text.warning-subtle",
         "color.icon.warning",
         "color.icon.warning-subtle",
+        "color.inverse.icon.warning",
+        "color.inverse.text.warning",
         "color.text.warning",
         "color.text.warning-subtle"
       ]
@@ -7178,17 +6893,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.warning",
-        "color.appearance.foreground.warning",
-        "color.appearance.icon.warning-subtle",
-        "color.appearance.inverse.border.warning",
-        "color.appearance.inverse.foreground.warning",
-        "color.appearance.inverse.icon.warning-subtle",
-        "color.appearance.inverse.text.warning-subtle",
-        "color.appearance.text.warning-subtle",
         "color.border.warning",
         "color.foreground.warning",
         "color.icon.warning-subtle",
+        "color.inverse.border.warning",
+        "color.inverse.foreground.warning",
+        "color.inverse.icon.warning-subtle",
+        "color.inverse.text.warning-subtle",
         "color.text.warning-subtle"
       ]
     },
@@ -7198,8 +6909,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.icon.warning-subtle",
-        "color.appearance.inverse.text.warning-subtle"
+        "color.inverse.icon.warning-subtle",
+        "color.inverse.text.warning-subtle"
       ]
     },
     "core.palette.warning.600": {
@@ -7208,11 +6919,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.warning",
-        "color.appearance.inverse.icon.warning",
-        "color.appearance.inverse.text.warning",
-        "color.appearance.text.warning",
         "color.icon.warning",
+        "color.inverse.icon.warning",
+        "color.inverse.text.warning",
         "color.text.warning"
       ]
     },
@@ -7222,9 +6931,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.foreground.warning",
-        "color.appearance.inverse.icon.warning-subtle",
-        "color.appearance.inverse.text.warning-subtle"
+        "color.inverse.foreground.warning",
+        "color.inverse.icon.warning-subtle",
+        "color.inverse.text.warning-subtle"
       ]
     },
     "core.palette.warning.700": {
@@ -7233,13 +6942,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.warning",
-        "color.appearance.icon.warning",
-        "color.appearance.inverse.icon.warning",
-        "color.appearance.inverse.text.warning",
-        "color.appearance.text.warning",
         "color.foreground.warning",
         "color.icon.warning",
+        "color.inverse.icon.warning",
+        "color.inverse.text.warning",
         "color.text.warning"
       ]
     },
@@ -7267,9 +6973,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.warning-subtle",
-        "color.appearance.inverse.foreground.warning-subtle",
-        "color.foreground.warning-subtle"
+        "color.foreground.warning-subtle",
+        "color.inverse.foreground.warning-subtle"
       ]
     },
     "core.palette.warning.950": {
@@ -7296,9 +7001,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.info-subtle",
-        "color.appearance.inverse.foreground.info-subtle",
-        "color.foreground.info-subtle"
+        "color.foreground.info-subtle",
+        "color.inverse.foreground.info-subtle"
       ]
     },
     "core.palette.info.150": {
@@ -7325,13 +7029,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.info",
-        "color.appearance.icon.info",
-        "color.appearance.inverse.icon.info",
-        "color.appearance.inverse.text.info",
-        "color.appearance.text.info",
         "color.foreground.info",
         "color.icon.info",
+        "color.inverse.icon.info",
+        "color.inverse.text.info",
         "color.text.info"
       ]
     },
@@ -7341,10 +7042,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.info-subtle",
-        "color.appearance.inverse.foreground.info",
-        "color.appearance.text.info-subtle",
         "color.icon.info-subtle",
+        "color.inverse.foreground.info",
         "color.text.info-subtle"
       ]
     },
@@ -7360,14 +7059,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.info",
-        "color.appearance.icon.info-subtle",
-        "color.appearance.inverse.icon.info",
-        "color.appearance.inverse.text.info",
-        "color.appearance.text.info",
-        "color.appearance.text.info-subtle",
         "color.icon.info",
         "color.icon.info-subtle",
+        "color.inverse.icon.info",
+        "color.inverse.text.info",
         "color.text.info",
         "color.text.info-subtle"
       ]
@@ -7378,17 +7073,13 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.info",
-        "color.appearance.foreground.info",
-        "color.appearance.icon.info-subtle",
-        "color.appearance.inverse.border.info",
-        "color.appearance.inverse.foreground.info",
-        "color.appearance.inverse.icon.info-subtle",
-        "color.appearance.inverse.text.info-subtle",
-        "color.appearance.text.info-subtle",
         "color.border.info",
         "color.foreground.info",
         "color.icon.info-subtle",
+        "color.inverse.border.info",
+        "color.inverse.foreground.info",
+        "color.inverse.icon.info-subtle",
+        "color.inverse.text.info-subtle",
         "color.text.info-subtle"
       ]
     },
@@ -7398,8 +7089,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.icon.info-subtle",
-        "color.appearance.inverse.text.info-subtle"
+        "color.inverse.icon.info-subtle",
+        "color.inverse.text.info-subtle"
       ]
     },
     "core.palette.info.600": {
@@ -7408,11 +7099,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.info",
-        "color.appearance.inverse.icon.info",
-        "color.appearance.inverse.text.info",
-        "color.appearance.text.info",
         "color.icon.info",
+        "color.inverse.icon.info",
+        "color.inverse.text.info",
         "color.text.info"
       ]
     },
@@ -7422,9 +7111,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.foreground.info",
-        "color.appearance.inverse.icon.info-subtle",
-        "color.appearance.inverse.text.info-subtle"
+        "color.inverse.foreground.info",
+        "color.inverse.icon.info-subtle",
+        "color.inverse.text.info-subtle"
       ]
     },
     "core.palette.info.700": {
@@ -7433,13 +7122,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.info",
-        "color.appearance.icon.info",
-        "color.appearance.inverse.icon.info",
-        "color.appearance.inverse.text.info",
-        "color.appearance.text.info",
         "color.foreground.info",
         "color.icon.info",
+        "color.inverse.icon.info",
+        "color.inverse.text.info",
         "color.text.info"
       ]
     },
@@ -7467,9 +7153,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.info-subtle",
-        "color.appearance.inverse.foreground.info-subtle",
-        "color.foreground.info-subtle"
+        "color.foreground.info-subtle",
+        "color.inverse.foreground.info-subtle"
       ]
     },
     "core.palette.info.950": {
@@ -7496,10 +7181,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.danger-subtle",
-        "color.appearance.inverse.foreground.danger-subtle",
-        "color.appearance.inverse.interactive.destructive.fill.rest",
-        "color.foreground.danger-subtle"
+        "color.foreground.danger-subtle",
+        "color.inverse.foreground.danger-subtle",
+        "color.inverse.interactive.destructive.fill.rest"
       ]
     },
     "core.palette.danger.150": {
@@ -7514,12 +7198,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.fill.pressed",
-        "color.appearance.interactive.destructive.fill.selected",
-        "color.appearance.inverse.interactive.destructive.fill.pressed",
-        "color.appearance.inverse.interactive.destructive.fill.selected",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected"
+        "color.interactive.destructive.fill.selected",
+        "color.inverse.interactive.destructive.fill.pressed",
+        "color.inverse.interactive.destructive.fill.selected"
       ]
     },
     "core.palette.danger.250": {
@@ -7528,16 +7210,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.border.pressed",
-        "color.appearance.interactive.destructive.fill.focused",
-        "color.appearance.interactive.destructive.fill.hover",
-        "color.appearance.interactive.destructive.text.pressed",
-        "color.appearance.inverse.interactive.destructive.border.pressed",
-        "color.appearance.inverse.interactive.destructive.text.pressed",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.text.pressed"
+        "color.interactive.destructive.text.pressed",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.text.pressed"
       ]
     },
     "core.palette.danger.300": {
@@ -7546,21 +7224,15 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.danger",
-        "color.appearance.icon.danger",
-        "color.appearance.interactive.destructive.border.hover",
-        "color.appearance.interactive.destructive.fill.rest",
-        "color.appearance.interactive.destructive.text.hover",
-        "color.appearance.inverse.icon.danger",
-        "color.appearance.inverse.interactive.destructive.border.hover",
-        "color.appearance.inverse.interactive.destructive.text.hover",
-        "color.appearance.inverse.text.danger",
-        "color.appearance.text.danger",
         "color.foreground.danger",
         "color.icon.danger",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.text.hover",
+        "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
+        "color.inverse.text.danger",
         "color.text.danger"
       ]
     },
@@ -7570,22 +7242,16 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.danger-subtle",
-        "color.appearance.interactive.destructive.border.pressed",
-        "color.appearance.interactive.destructive.border.rest",
-        "color.appearance.interactive.destructive.text.pressed",
-        "color.appearance.interactive.destructive.text.rest",
-        "color.appearance.inverse.foreground.danger",
-        "color.appearance.inverse.interactive.destructive.border.pressed",
-        "color.appearance.inverse.interactive.destructive.border.rest",
-        "color.appearance.inverse.interactive.destructive.text.pressed",
-        "color.appearance.inverse.interactive.destructive.text.rest",
-        "color.appearance.text.danger-subtle",
         "color.icon.danger-subtle",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.text.pressed",
         "color.interactive.destructive.text.rest",
+        "color.inverse.foreground.danger",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.pressed",
+        "color.inverse.interactive.destructive.text.rest",
         "color.text.danger-subtle"
       ]
     },
@@ -7595,16 +7261,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.border.hover",
-        "color.appearance.interactive.destructive.fill.pressed",
-        "color.appearance.interactive.destructive.fill.selected",
-        "color.appearance.interactive.destructive.text.hover",
-        "color.appearance.inverse.interactive.destructive.border.hover",
-        "color.appearance.inverse.interactive.destructive.text.hover",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
-        "color.interactive.destructive.text.hover"
+        "color.interactive.destructive.text.hover",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover"
       ]
     },
     "core.palette.danger.450": {
@@ -7613,24 +7275,16 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.danger",
-        "color.appearance.icon.danger-subtle",
-        "color.appearance.interactive.destructive.border.rest",
-        "color.appearance.interactive.destructive.fill.focused",
-        "color.appearance.interactive.destructive.fill.hover",
-        "color.appearance.interactive.destructive.text.rest",
-        "color.appearance.inverse.icon.danger",
-        "color.appearance.inverse.interactive.destructive.border.rest",
-        "color.appearance.inverse.interactive.destructive.text.rest",
-        "color.appearance.inverse.text.danger",
-        "color.appearance.text.danger",
-        "color.appearance.text.danger-subtle",
         "color.icon.danger",
         "color.icon.danger-subtle",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
         "color.interactive.destructive.text.rest",
+        "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.rest",
+        "color.inverse.text.danger",
         "color.text.danger",
         "color.text.danger-subtle"
       ]
@@ -7641,19 +7295,14 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.border.danger",
-        "color.appearance.foreground.danger",
-        "color.appearance.icon.danger-subtle",
-        "color.appearance.interactive.destructive.fill.rest",
-        "color.appearance.inverse.border.danger",
-        "color.appearance.inverse.foreground.danger",
-        "color.appearance.inverse.icon.danger-subtle",
-        "color.appearance.inverse.text.danger-subtle",
-        "color.appearance.text.danger-subtle",
         "color.border.danger",
         "color.foreground.danger",
         "color.icon.danger-subtle",
         "color.interactive.destructive.fill.rest",
+        "color.inverse.border.danger",
+        "color.inverse.foreground.danger",
+        "color.inverse.icon.danger-subtle",
+        "color.inverse.text.danger-subtle",
         "color.text.danger-subtle"
       ]
     },
@@ -7663,18 +7312,14 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.border.rest",
-        "color.appearance.interactive.destructive.fill.focused",
-        "color.appearance.interactive.destructive.fill.hover",
-        "color.appearance.interactive.destructive.text.rest",
-        "color.appearance.inverse.icon.danger-subtle",
-        "color.appearance.inverse.interactive.destructive.border.rest",
-        "color.appearance.inverse.interactive.destructive.text.rest",
-        "color.appearance.inverse.text.danger-subtle",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.text.rest"
+        "color.interactive.destructive.text.rest",
+        "color.inverse.icon.danger-subtle",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.rest",
+        "color.inverse.text.danger-subtle"
       ]
     },
     "core.palette.danger.600": {
@@ -7683,21 +7328,15 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.icon.danger",
-        "color.appearance.interactive.destructive.border.hover",
-        "color.appearance.interactive.destructive.fill.pressed",
-        "color.appearance.interactive.destructive.fill.selected",
-        "color.appearance.interactive.destructive.text.hover",
-        "color.appearance.inverse.icon.danger",
-        "color.appearance.inverse.interactive.destructive.border.hover",
-        "color.appearance.inverse.interactive.destructive.text.hover",
-        "color.appearance.inverse.text.danger",
-        "color.appearance.text.danger",
         "color.icon.danger",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.pressed",
         "color.interactive.destructive.fill.selected",
         "color.interactive.destructive.text.hover",
+        "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
+        "color.inverse.text.danger",
         "color.text.danger"
       ]
     },
@@ -7707,21 +7346,17 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.border.pressed",
-        "color.appearance.interactive.destructive.border.rest",
-        "color.appearance.interactive.destructive.text.pressed",
-        "color.appearance.interactive.destructive.text.rest",
-        "color.appearance.inverse.foreground.danger",
-        "color.appearance.inverse.icon.danger-subtle",
-        "color.appearance.inverse.interactive.destructive.border.pressed",
-        "color.appearance.inverse.interactive.destructive.border.rest",
-        "color.appearance.inverse.interactive.destructive.text.pressed",
-        "color.appearance.inverse.interactive.destructive.text.rest",
-        "color.appearance.inverse.text.danger-subtle",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.border.rest",
         "color.interactive.destructive.text.pressed",
-        "color.interactive.destructive.text.rest"
+        "color.interactive.destructive.text.rest",
+        "color.inverse.foreground.danger",
+        "color.inverse.icon.danger-subtle",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.border.rest",
+        "color.inverse.interactive.destructive.text.pressed",
+        "color.inverse.interactive.destructive.text.rest",
+        "color.inverse.text.danger-subtle"
       ]
     },
     "core.palette.danger.700": {
@@ -7730,21 +7365,15 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.danger",
-        "color.appearance.icon.danger",
-        "color.appearance.interactive.destructive.border.hover",
-        "color.appearance.interactive.destructive.fill.rest",
-        "color.appearance.interactive.destructive.text.hover",
-        "color.appearance.inverse.icon.danger",
-        "color.appearance.inverse.interactive.destructive.border.hover",
-        "color.appearance.inverse.interactive.destructive.text.hover",
-        "color.appearance.inverse.text.danger",
-        "color.appearance.text.danger",
         "color.foreground.danger",
         "color.icon.danger",
         "color.interactive.destructive.border.hover",
         "color.interactive.destructive.fill.rest",
         "color.interactive.destructive.text.hover",
+        "color.inverse.icon.danger",
+        "color.inverse.interactive.destructive.border.hover",
+        "color.inverse.interactive.destructive.text.hover",
+        "color.inverse.text.danger",
         "color.text.danger"
       ]
     },
@@ -7754,16 +7383,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.border.pressed",
-        "color.appearance.interactive.destructive.fill.focused",
-        "color.appearance.interactive.destructive.fill.hover",
-        "color.appearance.interactive.destructive.text.pressed",
-        "color.appearance.inverse.interactive.destructive.border.pressed",
-        "color.appearance.inverse.interactive.destructive.text.pressed",
         "color.interactive.destructive.border.pressed",
         "color.interactive.destructive.fill.focused",
         "color.interactive.destructive.fill.hover",
-        "color.interactive.destructive.text.pressed"
+        "color.interactive.destructive.text.pressed",
+        "color.inverse.interactive.destructive.border.pressed",
+        "color.inverse.interactive.destructive.text.pressed"
       ]
     },
     "core.palette.danger.800": {
@@ -7772,12 +7397,10 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.fill.pressed",
-        "color.appearance.interactive.destructive.fill.selected",
-        "color.appearance.inverse.interactive.destructive.fill.pressed",
-        "color.appearance.inverse.interactive.destructive.fill.selected",
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected"
+        "color.interactive.destructive.fill.selected",
+        "color.inverse.interactive.destructive.fill.pressed",
+        "color.inverse.interactive.destructive.fill.selected"
       ]
     },
     "core.palette.danger.850": {
@@ -7792,10 +7415,9 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.foreground.danger-subtle",
-        "color.appearance.inverse.foreground.danger-subtle",
-        "color.appearance.inverse.interactive.destructive.fill.rest",
-        "color.foreground.danger-subtle"
+        "color.foreground.danger-subtle",
+        "color.inverse.foreground.danger-subtle",
+        "color.inverse.interactive.destructive.fill.rest"
       ]
     },
     "core.palette.danger.950": {
@@ -7804,8 +7426,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.interactive.destructive.fill.focused",
-        "color.appearance.inverse.interactive.destructive.fill.hover"
+        "color.inverse.interactive.destructive.fill.focused",
+        "color.inverse.interactive.destructive.fill.hover"
       ]
     },
     "core.palette.danger.025": {
@@ -7820,8 +7442,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.inverse.interactive.destructive.fill.focused",
-        "color.appearance.inverse.interactive.destructive.fill.hover"
+        "color.inverse.interactive.destructive.fill.focused",
+        "color.inverse.interactive.destructive.fill.hover"
       ]
     },
     "core.palette.black-alpha.5": {
@@ -7836,15 +7458,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.overlay.hover",
-        "color.appearance.interactive.neutral.overlay.hover",
-        "color.appearance.interactive.primary.overlay.hover",
-        "color.appearance.inverse.interactive.destructive.overlay.hover",
-        "color.appearance.inverse.interactive.neutral.overlay.hover",
-        "color.appearance.inverse.interactive.primary.overlay.hover",
         "color.interactive.destructive.overlay.hover",
         "color.interactive.neutral.overlay.hover",
-        "color.interactive.primary.overlay.hover"
+        "color.interactive.primary.overlay.hover",
+        "color.inverse.interactive.destructive.overlay.hover",
+        "color.inverse.interactive.neutral.overlay.hover",
+        "color.inverse.interactive.primary.overlay.hover"
       ]
     },
     "core.palette.black-alpha.20": {
@@ -7853,24 +7472,18 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.overlay.pressed",
-        "color.appearance.interactive.destructive.overlay.selected",
-        "color.appearance.interactive.neutral.overlay.pressed",
-        "color.appearance.interactive.neutral.overlay.selected",
-        "color.appearance.interactive.primary.overlay.pressed",
-        "color.appearance.interactive.primary.overlay.selected",
-        "color.appearance.inverse.interactive.destructive.overlay.pressed",
-        "color.appearance.inverse.interactive.destructive.overlay.selected",
-        "color.appearance.inverse.interactive.neutral.overlay.pressed",
-        "color.appearance.inverse.interactive.neutral.overlay.selected",
-        "color.appearance.inverse.interactive.primary.overlay.pressed",
-        "color.appearance.inverse.interactive.primary.overlay.selected",
         "color.interactive.destructive.overlay.pressed",
         "color.interactive.destructive.overlay.selected",
         "color.interactive.neutral.overlay.pressed",
         "color.interactive.neutral.overlay.selected",
         "color.interactive.primary.overlay.pressed",
-        "color.interactive.primary.overlay.selected"
+        "color.interactive.primary.overlay.selected",
+        "color.inverse.interactive.destructive.overlay.pressed",
+        "color.inverse.interactive.destructive.overlay.selected",
+        "color.inverse.interactive.neutral.overlay.pressed",
+        "color.inverse.interactive.neutral.overlay.selected",
+        "color.inverse.interactive.primary.overlay.pressed",
+        "color.inverse.interactive.primary.overlay.selected"
       ]
     },
     "core.palette.black-alpha.30": {
@@ -7885,7 +7498,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.scrim.default",
         "color.scrim.default"
       ]
     },
@@ -7895,7 +7507,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.veil.dark.large",
         "color.veil.dark.large"
       ]
     },
@@ -7905,8 +7516,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.scrim.default",
-        "color.appearance.veil.dark.body",
         "color.scrim.default",
         "color.veil.dark.body"
       ]
@@ -7917,8 +7526,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.scrim.default",
-        "color.appearance.veil.dark.enhanced",
         "color.scrim.default",
         "color.veil.dark.enhanced"
       ]
@@ -7947,15 +7554,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.overlay.hover",
-        "color.appearance.interactive.neutral.overlay.hover",
-        "color.appearance.interactive.primary.overlay.hover",
-        "color.appearance.inverse.interactive.destructive.overlay.hover",
-        "color.appearance.inverse.interactive.neutral.overlay.hover",
-        "color.appearance.inverse.interactive.primary.overlay.hover",
         "color.interactive.destructive.overlay.hover",
         "color.interactive.neutral.overlay.hover",
-        "color.interactive.primary.overlay.hover"
+        "color.interactive.primary.overlay.hover",
+        "color.inverse.interactive.destructive.overlay.hover",
+        "color.inverse.interactive.neutral.overlay.hover",
+        "color.inverse.interactive.primary.overlay.hover"
       ]
     },
     "core.palette.white-alpha.20": {
@@ -7964,24 +7568,18 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.interactive.destructive.overlay.pressed",
-        "color.appearance.interactive.destructive.overlay.selected",
-        "color.appearance.interactive.neutral.overlay.pressed",
-        "color.appearance.interactive.neutral.overlay.selected",
-        "color.appearance.interactive.primary.overlay.pressed",
-        "color.appearance.interactive.primary.overlay.selected",
-        "color.appearance.inverse.interactive.destructive.overlay.pressed",
-        "color.appearance.inverse.interactive.destructive.overlay.selected",
-        "color.appearance.inverse.interactive.neutral.overlay.pressed",
-        "color.appearance.inverse.interactive.neutral.overlay.selected",
-        "color.appearance.inverse.interactive.primary.overlay.pressed",
-        "color.appearance.inverse.interactive.primary.overlay.selected",
         "color.interactive.destructive.overlay.pressed",
         "color.interactive.destructive.overlay.selected",
         "color.interactive.neutral.overlay.pressed",
         "color.interactive.neutral.overlay.selected",
         "color.interactive.primary.overlay.pressed",
-        "color.interactive.primary.overlay.selected"
+        "color.interactive.primary.overlay.selected",
+        "color.inverse.interactive.destructive.overlay.pressed",
+        "color.inverse.interactive.destructive.overlay.selected",
+        "color.inverse.interactive.neutral.overlay.pressed",
+        "color.inverse.interactive.neutral.overlay.selected",
+        "color.inverse.interactive.primary.overlay.pressed",
+        "color.inverse.interactive.primary.overlay.selected"
       ]
     },
     "core.palette.white-alpha.30": {
@@ -7996,7 +7594,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.veil.light.large",
         "color.veil.light.large"
       ]
     },
@@ -8006,7 +7603,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.veil.light.body",
         "color.veil.light.body"
       ]
     },
@@ -8016,7 +7612,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.appearance.veil.light.enhanced",
         "color.veil.light.enhanced"
       ]
     },

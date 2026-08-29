@@ -616,7 +616,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.29.0';
+export const ENGINE_VERSION = '0.30.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -1044,9 +1044,9 @@ export const DEPRECATIONS: Deprecation[] = [
   // typing again: the inverse marker moved to a leading `inverse.` group, so the live path is
   // `color.appearance.inverse.interactive.<palette>.border.rest`. Three catches, same shape each time —
   // `INVERSE_GROUP_MOVES` above is where the live name is now stated once for every era that needs it.
-  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.appearance.inverse.interactive.primary.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.appearance.inverse.interactive.neutral.border.rest', since: '3.0.0' },
-  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.appearance.inverse.interactive.destructive.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.primary.on-inverse.border', replacedBy: 'color.inverse.interactive.primary.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.neutral.on-inverse.border', replacedBy: 'color.inverse.interactive.neutral.border.rest', since: '3.0.0' },
+  { path: 'color.interactive.destructive.on-inverse.border', replacedBy: 'color.inverse.interactive.destructive.border.rest', since: '3.0.0' },
   // #891 — the inverse-context qualifier drops `on-`. Generated rather than hand-typed: 30 entries
   // written out longhand is 30 chances to fat-finger a segment, and the pairing here is 1:1 by
   // construction. It is still checked rather than asserted — a wrong slot name makes `path` miss the
@@ -1056,7 +1056,7 @@ export const DEPRECATIONS: Deprecation[] = [
     ['text.rest', 'text.hover', 'text.pressed', 'fill.rest', 'fill.hover', 'fill.pressed',
      'border.rest', 'border.hover', 'border.pressed', 'on-fill'].map((slot) => ({
       path: `color.interactive.${c}.on-inverse.${slot}`,
-      replacedBy: `color.appearance.inverse.interactive.${c}.${slot}`,
+      replacedBy: `color.inverse.interactive.${c}.${slot}`,
       since: '4.0.0',
     }))),
   // #891 — `border` spelled the qualifier two ways at once; both become segments under one group.
@@ -1065,14 +1065,14 @@ export const DEPRECATIONS: Deprecation[] = [
   // `inverse.border.primary`, the path `border.inverse.default` was byte-identical to in every mode.
   // The only entry in this table whose target was DELETED rather than renamed, which is why it is called
   // out: had it been left alone it would have dangled, and `--check` names it.
-  { path: 'color.border.inverse', replacedBy: 'color.appearance.inverse.border.primary', since: '4.0.0' },
-  { path: 'color.border.focus-inverse', replacedBy: 'color.appearance.inverse.border.focus', since: '4.0.0' },
+  { path: 'color.border.inverse', replacedBy: 'color.inverse.border.primary', since: '4.0.0' },
+  { path: 'color.border.focus-inverse', replacedBy: 'color.inverse.border.focus', since: '4.0.0' },
   // #892 — the two leaves that became 17-role groups. The promoted tier is the honest replacement:
   // it carries the value the leaf had, so a consumer following the pointer keeps the same ink rather
   // than silently adopting a different tier. (#1140 moved the group: `on-inverse` is retired and the ink
   // sits under the one `inverse.` group, so the promoted tier is now `inverse.{text,icon}.primary`.)
-  { path: 'color.text.on-inverse', replacedBy: 'color.appearance.inverse.text.primary', since: '5.0.0' },
-  { path: 'color.icon.on-inverse', replacedBy: 'color.appearance.inverse.icon.primary', since: '5.0.0' },
+  { path: 'color.text.on-inverse', replacedBy: 'color.inverse.text.primary', since: '5.0.0' },
+  { path: 'color.icon.on-inverse', replacedBy: 'color.inverse.icon.primary', since: '5.0.0' },
   // ── #1013: THE TIER SWAP ────────────────────────────────────────────────────────────────────────
   //
   // `color.*` used to be the VALUE tier — one leaf per resolved role, varying by appearance mode.
@@ -1114,10 +1114,10 @@ export const DEPRECATIONS: Deprecation[] = [
   ...INVERSE_GROUP_MOVES.flatMap(([oldGroup, newGroup, leaves]) =>
     leaves.map((leaf) => ({
       path: `color.${oldGroup}.${leaf}`,
-      replacedBy: `color.appearance.${newGroup}.${leaf}`,
+      replacedBy: `color.${newGroup}.${leaf}`,
       since: '6.0.0',
     }))),
-  { path: `color.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.appearance.${INVERSE_DEDUPED.replacedBy}`, since: '6.0.0' },
+  { path: `color.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.${INVERSE_DEDUPED.replacedBy}`, since: '6.0.0' },
   // ── #1140: ONE `inverse` GROUP ──────────────────────────────────────────────────────────────────
   //
   // The 113 inverse roles move from three marker positions to one leading `inverse.` group:
@@ -1133,7 +1133,7 @@ export const DEPRECATIONS: Deprecation[] = [
   ...INVERSE_GROUP_MOVES.flatMap(([oldGroup, newGroup, leaves]) =>
     leaves.map((leaf) => ({
       path: `color.appearance.${oldGroup}.${leaf}`,
-      replacedBy: `color.appearance.${newGroup}.${leaf}`,
+      replacedBy: `color.${newGroup}.${leaf}`,
       since: '8.0.0',
     }))),
   // The dedupe, not a rename: `border.inverse.default` was byte-identical to `border.inverse.primary` in
@@ -1154,7 +1154,7 @@ export const DEPRECATIONS: Deprecation[] = [
   // Measured on the live map: **111 of the 113 rows at 8.0.0 migrate; these 2 refuse.** Filed as #1142 —
   // the fix belongs in `planVariableRenames` (a group with one non-dedupe source can still migrate it),
   // not in this table, which is a record of history and correct as written.
-  { path: `color.appearance.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.appearance.${INVERSE_DEDUPED.replacedBy}`, since: '8.0.0' },
+  { path: `color.appearance.${INVERSE_DEDUPED.group}.${INVERSE_DEDUPED.leaf}`, replacedBy: `color.${INVERSE_DEDUPED.replacedBy}`, since: '8.0.0' },
   // ── #1102: THE `core` TIER ──────────────────────────────────────────────────────────────────────
   //
   // The three RAW-PRIMITIVE groups move under one `core` tier: `palette.red.550` becomes
