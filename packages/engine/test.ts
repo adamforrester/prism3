@@ -12375,8 +12375,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   {
     const rowsFor = (c: string) => map.variables.filter((r) => r.collection === c);
     const colls = [...new Set(map.variables.map((r) => r.collection))];
-    ok(colls.length >= 2 && rowsFor(colls[0]).length > 0,
-      `rename-map(${brand}) #1087: the map spans ${colls.length} collection(s) with rows to plan — an empty map makes the two arms below vacuous`);
+    // THE SPAN IS ONE SINCE #1148, AND IT IS ASSERTED RATHER THAN TOLERATED. This read `>= 2` while the
+    // colour axis materialised into a mirror group, and the reason was non-vacuity: the arms below take
+    // `colls[0]`, so a span the block did not know about would leave rows uncovered. That reason is
+    // unchanged; only the number moved. Asserting `=== 1` keeps it — and pins the assumption the two arms
+    // below now rest on, so the day a second axis starts projecting this fails BY NAME instead of silently
+    // narrowing `live` to one collection's rows.
+    ok(colls.length === 1 && colls[0] === 'color' && rowsFor('color').length > 0,
+      `rename-map(${brand}) #1087: the map spans exactly one collection — \`color\`, ${rowsFor('color').length} rows — so \`colls[0]\` below is the whole map; an empty map makes the two arms below vacuous, and a SECOND collection here means a new axis began projecting and \`live\` has stopped covering all of it (got ${colls.join(', ') || 'none'})`);
 
     const onEmpty = colls.flatMap((c) => planVariableRenames([], [...(new Set<string>())], rowsFor(c)));
     ok(onEmpty.length > 0 && onEmpty.every((o) => o.status === 'source-absent'),
@@ -12957,12 +12963,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // retarget in #1097 made both targets terminal. Asserted as an explicit NOT rather than left to the
   // clean-validation arm, because "validates clean" is true of a chain too — the two statements are not
   // interchangeable, and the one that would rot silently is this one.
+  //
+  // **#1148 LEFT ONE ENTRY, WHICH MAKES THE CHAIN HALF OF THIS ARM A NEAR-TAUTOLOGY, AND THAT IS STATED
+  // HERE RATHER THAN LEFT FOR A READER TO DISCOVER.** With a single entry the only way a target can be a
+  // source is `from === to`, and `validateRenameMap` rejects that as a self-rename one line up — so the
+  // predicate cannot independently fail on today's data. It is KEPT, not deleted, because it costs nothing
+  // and becomes live again the moment a second entry lands (which is the only circumstance in which a
+  // chain can exist at all). What is live here today is the COUNT and the clean validation. **The chain
+  // property itself is tested — genuinely, both array orders — by the `chainRenames` FIXTURE above, and
+  // that is precisely why the note there calls the fixture load-bearing rather than historical.** Reading
+  // this arm as the chain coverage, and the fixture as redundant with it, is the inversion to avoid.
   const shippedTargets = COLLECTION_RENAMES.map((x) => x.to);
   const shippedSources = new Set(COLLECTION_RENAMES.map((x) => x.from));
-  ok(COLLECTION_RENAMES.length === 2
+  ok(COLLECTION_RENAMES.length === 1
     && validateRenameMap({ collections: COLLECTION_RENAMES, variables: [] }).length === 0
     && !shippedTargets.some((t) => shippedSources.has(t)),
-    `rename-map: the shipped COLLECTION_RENAMES is 2 entries, validates clean, and holds NO chain — no target is another entry's source, so there is no ordering question left in the map itself (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
+    `rename-map: the shipped COLLECTION_RENAMES is 1 entry, validates clean, and holds NO chain — no target is another entry's source, so there is no ordering question left in the map itself (${COLLECTION_RENAMES.map((x) => `${x.from}→${x.to}`).join(', ')})`);
   // And the entries are STAMPED with the version that made the change. This arm exists because its
   // ABSENCE was measurable: `MATERIALIZATION_RENAMES` has carried the equivalent since #1039, this map
   // carried nothing, and both entries duly shipped reading `0.25.0` — the media veil's version, which
@@ -12994,9 +13010,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // where that retired name POINTS, not when it died. Moving the stamp to `0.27.0` would be the false
   // provenance record in its subtler form — right that something changed in #1097, wrong about what the
   // field answers.
+  //
+  // **#1148 REMOVED TWO KEYS, AND REMOVING A KEY IS NOT RESTAMPING ONE.** The two entries this table
+  // stamped are DELETED from the shipped map, for two different reasons recorded in the map's own header:
+  // `color→color.appearance` has to go because the collection it named as a target is the one #1148 renames
+  // away, and leaving it would chain a pre-#1013 `color` onto a name nothing writes; `surface→color.surface`
+  // has to go because the alias tier it migrated INTO no longer exists at all. Neither stamp moved — a
+  // rename that stopped shipping leaves the table with nothing to stamp, which is the one edit the warning
+  // below does not cover and so is worth naming. The new entry arrives with its own era, `0.30.0`.
   const EXPECTED_COLLECTION_SINCE: Record<string, string> = {
-    'color→color.appearance': '0.26.0',
-    'surface→color.surface': '0.26.0',
+    'color.appearance→color': '0.30.0',
   };
   const sinceWrong = COLLECTION_RENAMES
     .filter((r) => EXPECTED_COLLECTION_SINCE[`${r.from}→${r.to}`] !== r.since)
@@ -13009,13 +13032,45 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     + `\n    prompt, not an obstacle. Do NOT restamp an existing entry to today's version to get green: \`since\``
     + `\n    records the version whose code made the rename, not the version in the file today, and moving a`
     + `\n    historical stamp forward is the false provenance record this arm exists to prevent.`);
-  // The SHIPPED entries against a pre-#1013 file. Its expectation is spelled out here rather than reusing
-  // `PRE` above, because #1097 moved the alias target and the two are no longer the same string: the
-  // fixture is a chain, the shipped map is not. Sharing one literal would have made this arm agree with
-  // the fixture by construction and hidden exactly that difference.
-  ok(cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES])
-      === 'color→color.appearance:migrated | surface→color.surface:migrated',
-    `rename-map: and the SHIPPED entries — not a constructed pair — migrate a pre-#1013 file completely, leaving unrelated collections alone (${cstat(['core', 'color', 'surface'], [...COLLECTION_RENAMES])})`);
+  // ---- The SHIPPED entry against the FOUR file states a real designer file can be in (#1148) ----
+  //
+  // Spelled out here rather than reusing `PRE` above: the fixture is a chain, the shipped map is not, and
+  // sharing one literal would make this arm agree with the fixture by construction and hide exactly that
+  // difference. Every expectation below is MEASURED off the planner and then authored, and each names the
+  // era of the file it describes, because "which file is this?" is the only question that separates the
+  // four outcomes — the map is one entry in all of them.
+  //
+  // **THE SECOND ARM IS THE ONE THAT CHANGED MEANING AT #1148, AND IT IS A DELIBERATE LOSS RATHER THAN A
+  // GAP.** It used to read *"the SHIPPED entries migrate a pre-#1013 file COMPLETELY"* — two entries, both
+  // migrated. #1148 deletes both, so a pre-#1013 file is now migrated by NOTHING and reports `source-absent`.
+  // That is the honest outcome (see the map's header): the collection such a file calls `surface` holds the
+  // ALIAS tier, which #1148 removes outright, so there is no name left for it to become. Retargeting the old
+  // expectation to keep it green — say by re-adding `color→color.appearance` — would migrate a pre-#1013
+  // value tier onto a name #1148 immediately renames away, i.e. restore the chain in order to keep an
+  // assertion about chains passing. The arm is re-aimed at what the planner now does, and the sentence above
+  // is the record of what it stopped promising.
+  const cstates: Array<[string, string[], string]> = [
+    // 0.27.0–0.29.0 — the ordinary upgrade. The value tier migrates; `color.surface` is NOT a source, so
+    // the plan does not mention it and it is left in place, orphaned. One outcome, not two: the absence of
+    // a second entry in this string is the ORPHAN, and it is the reason that consequence is filed as its
+    // own issue rather than treated as covered here.
+    ['0.27.0–0.29.0', ['core', 'color.appearance', 'color.surface'], 'color.appearance→color:migrated'],
+    // pre-#1013 — `color` is the value tier and `surface` the alias tier. Neither is this entry's source.
+    ['pre-#1013', ['core', 'color', 'surface'], 'color.appearance→color:source-absent'],
+    // the narrow 0.26.x window — the pointer tier was briefly called `color`, so the target is occupied by
+    // a collection that is not any entry's product. A refusal, and the executor's atomicity rule then
+    // applies NONE of the map. This is the state the map's header says needs one manual rename.
+    ['0.26.x', ['core', 'color.appearance', 'color'], 'color.appearance→color:target-occupied'],
+    // already collapsed — re-running is a reported no-op, never a refusal. Getting `target-occupied` here
+    // would mean the migration refuses every file it has already fixed, which is #1035's defect returning.
+    ['0.30.0 (already collapsed)', ['core', 'color'], 'color.appearance→color:source-absent'],
+  ];
+  const cWrong = cstates
+    .filter(([, existing, want]) => cstat(existing, [...COLLECTION_RENAMES]) !== want)
+    .map(([era, existing, want]) => `${era}: wanted ${want}, got ${cstat(existing, [...COLLECTION_RENAMES])}`);
+  ok(cWrong.length === 0 && new Set(cstates.map(([, , w]) => w.split(':')[1])).size === 3,
+    `rename-map: the SHIPPED entry — not a constructed pair — resolves each of the four file eras to its own right answer, and the four span THREE distinct statuses (migrated / source-absent / target-occupied), so no two eras are being read the same way`
+    + `${cWrong.length ? `\n    WRONG: ${cWrong.join('; ')}` : ` (${cstates.map(([era, e]) => `${era} → ${cstat(e, [...COLLECTION_RENAMES]).split(':')[1]}`).join(' | ')})`}`);
   ok(isRefusal('target-occupied') && isRefusal('ambiguous-source') && isRefusal('target-not-planned')
       && !isRefusal('migrated') && !isRefusal('source-absent'),
     'rename-map: isRefusal names exactly the three statuses a designer must see — a refusal that summarised as a clean run is the failure this operation cannot afford');
@@ -13038,40 +13093,70 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const comp = (collection: string, existing: string[], contract: ReturnType<typeof v>[] = []): string =>
     composeVariableRenames(collection, existing, contract, MATERIALIZATION_RENAMES, CROOT)
       .map((r) => `${r.from}→${r.to}`).sort().join(' | ');
-  ok(comp('color.appearance', ['color/background/primary']) === `color/background/primary→${CROOT}/color/appearance/background/primary`,
-    'rename-map: a pre-#1013 value-tier name in the value-tier collection composes to one row under the tier rule — this is the row that turns 242 orphans into 242 migrations');
-  ok(comp('color.surface', ['surface/border/brand']) === `surface/border/brand→${CROOT}/color/border/brand`,
-    'rename-map: and the alias tier composes under its own rule, in its own collection — the two rules are keyed to the collection they run in, so neither can reach into the other');
-  ok(comp('color.appearance', [`${CROOT}/color/appearance/background/primary`]) === '',
-    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding. Post-#1097 "already migrated" means ROOTED: the namespace rule is the last hop of the chain, so a name that has the root has been all the way through');
-  // AND THE TIER-ONLY HALF OF THAT, WHICH #1097 WOULD OTHERWISE HAVE HIDDEN. Before the namespace rule
-  // existed, `color/appearance/background/primary` in its own collection was a complete no-op and the arm
-  // above said so. Now it is NOT: it still needs the root, so it composes to one hop rather than none.
-  // Kept as its own arm because the difference is the whole of what #1097 does to an existing file, and
-  // folding it into the arm above would have deleted the observation.
-  ok(comp('color.appearance', ['color/appearance/background/primary']) === `color/appearance/background/primary→${CROOT}/color/appearance/background/primary`,
-    'rename-map: a name already in the right TIER but with no ROOT still composes — one hop, the namespace only. This is the #1097 migration on a file that is otherwise current, and it is the arm that would go silent if the namespace rule stopped firing on already-tiered names');
+  // #1148 — THE COLLECTION EVERY ARM BELOW NAMES IS `color`, AND THERE IS NOW ONLY ONE OF THEM. These
+  // arms read `color.appearance` (the value tier) and `color.surface` (the alias tier) until #1148 folded
+  // the two into one, so each was re-aimed rather than deleted, and where the property genuinely changed
+  // the change is named in the arm's own comment. The chain got LONGER, not shorter: a pre-#1097 name in
+  // the value tier now needs #1097's rule and then #1148's, which is the first time this fixture exercises
+  // `materialize`'s chaining on the shipped rules rather than on a constructed pair.
+  ok(comp('color', ['color/background/primary']) === `color/background/primary→${CROOT}/color/background/primary`,
+    'rename-map: a pre-#1097 value-tier name in the one colour collection composes to one row — the namespace only, because #1148 gave the value tier back the short spelling this name already has. A pre-#1013 file and a post-#1148 file agree on this name, which is why such a file needs no collection rename at all');
+  // THE TWO SHIPPED RULES, CHAINED. `color/appearance/background/primary` in a #1013-to-#1148 file is in
+  // BOTH domains in sequence — un-rooted (so #1097 fires) and then rooted-and-tiered (so #1148 fires) —
+  // and the two must fold into ONE row. This is the arm that would go red if `materialize` stopped
+  // chaining, and it is the only place the shipped rules compose with each other rather than with a
+  // fixture: applied as two passes this variable would be written to `<root>/color/appearance/…`, a name
+  // the post-#1148 plan does not contain, and refused as `target-not-planned`.
+  ok(comp('color', ['color/appearance/background/primary']) === `color/appearance/background/primary→${CROOT}/color/background/primary`,
+    'rename-map: a pre-#1097 name that is ALSO pre-#1148 composes through BOTH shipped rules into one hop — namespace then de-tier — and the intermediate `<root>/color/appearance/…` spelling is never written');
+  ok(comp('color', [`${CROOT}/color/background/primary`]) === '',
+    'rename-map: an already-migrated name composes to NOTHING — a self-rename is dropped rather than emitted, so a second run has no row to report and cannot read as work outstanding. Post-#1148 "already migrated" means ROOTED AND UN-TIERED: both rules have to have run, and a name carrying the root but still an `appearance/` segment is only half way (the arm below)');
+  // THE HALF-WAY FILE, AND IT IS THE COMMON ONE. This arm was the mirror of itself before #1148: it used
+  // to say a name already in the right TIER but with no ROOT still composes (#1097's migration). #1148
+  // inverts which half is outstanding — 0.27.0–0.29.0 wrote names that are ALREADY rooted and still
+  // tiered, so #1097 skips and #1148 alone fires. Kept as its own arm for the same reason as before: this
+  // is what the migration does to a file that is otherwise current, and folding it into the arm above
+  // would delete the observation.
+  ok(comp('color', [`${CROOT}/color/appearance/background/primary`]) === `${CROOT}/color/appearance/background/primary→${CROOT}/color/background/primary`,
+    'rename-map: a name already ROOTED but still carrying the `appearance/` tier composes — one hop, the de-tier only. This is the #1148 migration on a 0.27.0–0.29.0 file, and it is the arm that would go silent if the de-tier rule required an un-rooted name');
+  // THE COLLECTION IS PART OF THE DOMAIN, TESTED ON THE COLLECTION A REAL FILE ACTUALLY RETAINS. This arm
+  // read `comp('color.surface', ['color/background/primary'])` when the alias tier was live; `color.surface`
+  // is now the ORPHAN a 0.27.0–0.29.0 file keeps after the collection rename (see `COLLECTION_RENAMES`),
+  // which makes it a better subject than it was rather than a dead one — those variables are still in the
+  // file, and the de-tier rule must not reach into them just because their names match by prefix.
+  ok(comp('color.surface', [`${CROOT}/color/appearance/background/primary`]) === '',
+    'rename-map: an `appearance`-tiered name sitting in the ORPHANED `color.surface` collection is left alone — `color-one-collection-1148` tests the collection, not just the prefix, which is what keeps a stale collection out of its reach. Nothing composes at all here, because #1097 has already rooted it and #1148 declines it');
+  // …and the un-rooted version of the same, so the exemption is shown to be the DE-TIER's and not a
+  // blanket exemption for the collection: #1097 applies to every name in every collection, and a rule that
+  // exempted this one would leave an un-rooted variable behind.
   ok(comp('color.surface', ['color/background/primary']) === `color/background/primary→${CROOT}/color/background/primary`,
-    'rename-map: a value-tier SPELLING sitting in the alias collection is left alone BY THE TIER RULES — the tier rule tests the collection, not just the prefix, which is what keeps the post-swap alias collection out of its reach. It still takes the namespace, because #1097 applies to every name in every collection and a rule that exempted this one would leave an un-rooted variable behind');
-  // THE COMPOSITION-ORDER ARM. A contract row keyed on the POST-rule spelling must be reached by the
-  // name that only becomes that spelling once the rule has run. One row, one hop, and the intermediate
-  // name appears nowhere in the output.
-  const composed = composeVariableRenames('color.appearance', ['color/old'],
-    [v('color/appearance/old', 'color/appearance/new', 'color.appearance')], MATERIALIZATION_RENAMES, CROOT);
-  ok(composed.length === 1 && composed[0].from === 'color/old' && composed[0].to === `${CROOT}/color/appearance/new`
-      && composed.every((r) => r.to !== 'color/appearance/old' && r.to !== `${CROOT}/color/appearance/old`),
-    `rename-map: rule THEN contract, folded into one hop (${composed.map((r) => `${r.from}→${r.to}`).join(', ') || 'NOTHING'}) — the intermediate spelling is never written, because nothing plans it and a variable renamed to an unplanned name is an orphan manufactured out of a healthy one`);
+    'rename-map: …while the same collection DOES take the namespace — the two rules disagree about `color.surface` on purpose, and an arm that only showed the refusal could not tell a targeted domain from a skipped collection');
+  // THE COMPOSITION-ORDER ARM, NOW THREE HOPS. A contract row keyed on the POST-rule spelling must be
+  // reached by the name that only becomes that spelling once BOTH rules have run. One row, and neither
+  // intermediate name appears anywhere in the output.
+  const composed = composeVariableRenames('color', ['color/appearance/old'],
+    [v('color/old', 'color/new', 'color')], MATERIALIZATION_RENAMES, CROOT);
+  ok(composed.length === 1 && composed[0].from === 'color/appearance/old' && composed[0].to === `${CROOT}/color/new`
+      && composed.every((r) => r.to !== `${CROOT}/color/appearance/old` && r.to !== `${CROOT}/color/old`),
+    `rename-map: rules THEN contract, folded into one hop (${composed.map((r) => `${r.from}→${r.to}`).join(', ') || 'NOTHING'}) — neither intermediate spelling is written, because nothing plans them and a variable renamed to an unplanned name is an orphan manufactured out of a healthy one`);
   // And the shipped configuration cannot get into the state where that folding is ambiguous, because the
-  // two sources are disjoint: every contract row for a mirrored collection is keyed on a POST-swap name,
-  // which is precisely the domain each rule excludes. Measured against the derived map, not assumed —
-  // this is the precondition, and it is the thing that would quietly stop being true.
+  // rows and the rules are keyed on disjoint spellings: every contract row is keyed on the name the
+  // emission writes TODAY (short, since #1148), which is precisely the domain `color-one-collection-1148`
+  // excludes — it requires an `appearance/` segment. Measured against the derived map, not assumed — this
+  // is the precondition, and it is the thing that would quietly stop being true.
+  //
+  // ONE COUNT WHERE THERE WERE TWO, and the second is replaced rather than dropped. The old pair asked
+  // about the value tier's rows and the alias tier's separately, which was the only way to say "neither
+  // rule can reach the other's collection" while two existed. With one collection the live question is
+  // whether any row is keyed on a spelling a RULE would also rewrite, so the second half now asks that
+  // directly — of the whole map, not of a second collection.
   const shipped = renameMap().variables;
-  const valueRows = shipped.filter((r) => r.collection === 'color.appearance');
-  const aliasRowsHere = shipped.filter((r) => r.collection === 'color.surface');
-  ok(valueRows.length > 0 && valueRows.every((r) => r.from.startsWith('color/appearance/'))
-      && aliasRowsHere.length > 0 && aliasRowsHere.every((r) => !r.from.startsWith('surface/')),
-    `rename-map: the shipped contract rows (${valueRows.length} value-tier, ${aliasRowsHere.length} alias-tier) are keyed on POST-swap names, exactly the domain the two rules exclude — so no live name is claimed by both, and the fold has one answer`);
-  ok(comp('color.appearance', [], [v('color/appearance/a', 'color/appearance/b', 'color.appearance')]) === `${CROOT}/color/appearance/a→${CROOT}/color/appearance/b`,
+  const colorContractRows = shipped.filter((r) => r.collection === 'color');
+  const ruleReachable = colorContractRows.filter((r) =>
+    MATERIALIZATION_RENAMES.some((rule) => rule.domain('color', `${CROOT}/${r.from}`, CROOT)));
+  ok(colorContractRows.length > 0 && colorContractRows.length === shipped.length && ruleReachable.length === 0,
+    `rename-map: all ${colorContractRows.length} shipped contract rows are in \`color\` and NONE is keyed on a spelling a materialization rule would also rewrite — so no live name is claimed by both, and the fold has one answer${ruleReachable.length ? ` — REACHABLE: ${ruleReachable.slice(0, 3).map((r) => r.from).join(', ')}` : ''}`);
+  ok(comp('color', [], [v('color/a', 'color/b', 'color')]) === `${CROOT}/color/a→${CROOT}/color/b`,
     'rename-map: a contract row whose source is not live still comes through — it has to, or `source-absent` would stop being reported and "checked, nothing to do" would silently become "never checked"');
 }
 
