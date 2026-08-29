@@ -20,7 +20,7 @@ import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
 import { groundsOf } from './grounds';
 import { INVERSE_GAPS, INVERSE_GAP_PATHS } from './inverse-coverage';
-import { surfaceRows, UNALIASED_DEF_BINDINGS, UNALIASED_PATHS } from './emit-figma-surface';
+import { isInverseRole } from './inverse-roles';
 import { parseDesignMd, parseYamlSubset, toDesignMd } from './design-md';
 import { parseStandardDesignMd, standardToBrandInput, applyXPrism3 } from './standard-design-md';
 import { classifyColors } from './classify-colors';
@@ -36,7 +36,7 @@ import { buildTree, validateBrandInput } from './emit-dtcg';
 import { buildAiMetadata } from './ai-metadata';
 import { handleRpc, callTool, toolDefs, manifestRootKeys, LATEST_PROTOCOL_VERSION, SERVER_INFO } from './mcp';
 import { ENGINE_VERSION, CONTRACT_VERSION, classify, satisfiesBump, DEPRECATIONS } from './version';
-import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, MIRRORED_COLLECTIONS, type RenameMap } from './rename-map';
+import { renameMap, validateRenameMap, planVariableRenames, planCollectionRenames, composeVariableRenames, projectionsOf, PROJECTED_ROOTS, isRefusal, COLLECTION_RENAMES, type RenameMap } from './rename-map';
 import {
   MATERIALIZATION_RENAMES, accountFor, accountForDiffDriven, isTotal, keysFromEmittedFile, parseVarKey, varKey,
   recollect, recollectAll, ACCOUNTING_COLLECTION_MOVES,
@@ -46,7 +46,7 @@ import { buildContract, corpus, pathsOf, MINIMAL_BRAND, readBaseline } from './t
 import { scoreConsumption, scoreContractCompliance, tokenPaths, normalizeRef, isPrimitiveRef, PRIMITIVE_TIER, PRIMITIVE_GROUPS } from './eval';
 import { runEval, buildPrompt, extractRefs, extractPairs, SAMPLE_TASKS } from './eval-run';
 import { aliasRows, floatCollections, fontCollections, passJs, passOrder, passPayloads, colorCreateChunks, colorIndivisibleUnit, pruneReport } from './materialise-to-figma';
-import { buildWritePlan, buildSurfaceWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
+import { buildWritePlan, buildFloatWritePlan, buildStylesPlan, gradientTransformFor, buildFontVarPlan, buildTextStylePlan, fontVarPlanFrom, stylesPlanFromFiles, textStylePlanFromFiles } from './write-plan';
 import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, ReadbackSnapshot } from './read-back';
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
@@ -1574,116 +1574,27 @@ for (const b of brands) {
     const thin = INVERSE_GAPS.filter((g) => g.reason.trim().length < 120).map((g) => g.paths[0]);
     ok(thin.length === 0, `inverse: every INVERSE_GAPS entry states WHY, not merely that${thin.length ? ` — thin: ${thin.join(', ')}` : ''}`);
 
-    // (a4) EVERY DEF-BOUND `color.*` PATH RESOLVES IN THE ALIAS LAYER, OR IS REGISTERED (#871).
+    // (a4) WAS THE UNALIASED-BINDING REGISTER (#871), AND #1148 REMOVED THE QUESTION IT ASKED.
     //
-    // A def binds a CONTRACT path, and the plain `color.<role>` spelling is the pointer layer. So a
-    // binding the layer has no row for reaches past it into `color.appearance.*`, and the register's
-    // question is whether somebody decided that or a name drifted there.
+    // The arms compared two independent authors — the `color.*` paths `componentDefs` bind, against the
+    // rows the POINTER tier carried — because a binding the pointer tier had no row for reached PAST it
+    // into `color.appearance.*`, and the register recorded whether somebody had decided that or a name
+    // had drifted there. `UNALIASED_DEF_BINDINGS` named each reach with its cause and its prerequisite.
     //
-    // #1133 changed what an unregistered reach MEANS without changing what the arms have to do. It used
-    // to be a def that had silently lost surface-responsiveness: the pointer layer's `default`/`inverse`
-    // modes made every `color.<role>` binding flip with the frame, and a binding with no row went on
-    // resolving against a real token while quietly not tracking the surface — a wrong value that
-    // RESOLVES, #575's shape. With the layer single-mode there is nothing to fall out of, and a reach
-    // into the value tier is instead how a name-encoded inverse binding is spelled. That is a decision
-    // worth recording rather than a defect, which is why the register survived the revert intact —
-    // an unargued reach is still the thing neither reading wants.
+    // There is no tier to reach past. One `color` collection holds the values, every role has the short
+    // name, and `color.inverse.text.primary` is now a plain resolving path rather than a reach — so the
+    // register's denominator (`surfaceRows`) and its subject (paths outside the row set) both went with
+    // the tier. Left in place with an empty row rule it would have reported every binding as aliased and
+    // clean, which is `docs/34` shape 9: an empty vocabulary reading as a pass. DELETED, not emptied,
+    // for the same reason `surfaceRowsFor` was.
     //
-    // The two sides are independent authors, which is what makes the comparison worth anything: the
-    // bindings come from `componentDefs`, the rows from `surfaceRows`, and neither is derived from
-    // the other. Same both-directions standard as (a3) above — arm 1 fails a binding that drifts out
-    // of the layer, arm 2 fails an entry that has outlived the thing it described.
-    {
-      const bound = new Map<string, string[]>(); // contract path -> ['<def>:<slot>', …]
-      for (const def of componentDefs) {
-        for (const [slot, tok] of Object.entries((def as { tokens?: Record<string, string> }).tokens ?? {}))
-          if (typeof tok === 'string' && tok.startsWith('color.'))
-            bound.set(tok, [...(bound.get(tok) ?? []), `${def.id}:${slot}`].sort());
-      }
-      // A binding set that collapses to nothing would make every arm below agree over an empty
-      // vocabulary and report clean — "I could not look" spelled as "I looked and found nothing"
-      // (`docs/34` shape 9). The floor is named against the registry rather than a literal count, so
-      // a def gaining or losing a colour binding does not have to be remembered here.
-      ok(bound.size >= 40 && bound.size >= componentDefs.length,
-        `surface: the def corpus offers a real colour-binding vocabulary to check (${bound.size} distinct color.* paths across ${componentDefs.length} defs) — a floor, because every arm below would pass over an empty map`);
-
-      // Over the WHOLE corpus, and a path counts as aliased only if EVERY brand carries a row for it.
-      // The rename has to be free for every brand, so the intersection is the honest denominator — and
-      // taking it this way re-derives #871's load-bearing claim (all brands ship the identical inverse
-      // name set) instead of trusting it: if the row sets ever diverge, the next arm names the brand.
-      const perBrand = corpus().map(({ id, theme: t }) => ({ id, paths: new Set(surfaceRows(t).map((r) => `color.${r.role}`)) }));
-      ok(perBrand.length > 1, `surface: the corpus offers ${perBrand.length} brands to intersect — one brand would make the intersection a restatement of that brand`);
-      const allRowPaths = new Set(perBrand.flatMap((b) => [...b.paths]));
-      const shared = new Set([...allRowPaths].filter((p) => perBrand.every((b) => b.paths.has(p))));
-
-      // SUPPRESSED IS NOT DIVERGED (#957/#1102, and `token-contract.ts`'s "sparse is not the same as
-      // suppressed" one level along). The corpus gained `minimal-levers`, which pulls
-      // `outlineInteraction: 'none'` — a lever whose entire declared purpose is to emit no overlay tokens.
-      // So the intersection is now 9 rows short of every other member's set, and reading that as
-      // divergence would be reading a lever working as a corpus that disagrees.
-      //
-      // Two things must not be lost to that concession, so each is its own arm. First, the difference has
-      // to be EXACTLY these 9 paths — a row set drifting for any other reason still fails. Second, exactly
-      // ONE member may be short, and by exactly the recorded set: loosening this to "ignore any missing
-      // overlay row" would let a second lever start gating rows unnoticed, which is the whole failure mode.
-      //
-      // The list is written out here rather than derived from the lever, from `INVERSE_GAPS`, or from the
-      // short member's own diff. Derived from any of those it would agree with whatever suppression is
-      // happening and could not report a new one (`docs/34` shape 1).
-      const LEVER_SUPPRESSED_ROWS = (['primary', 'neutral', 'destructive'] as const)
-        .flatMap((c) => ['hover', 'pressed', 'selected'].map((st) => `color.interactive.${c}.overlay.${st}`)).sort();
-      const suppressed = new Set(LEVER_SUPPRESSED_ROWS);
-      const missingPer = perBrand.map((b) => ({ id: b.id, missing: [...allRowPaths].filter((p) => !b.paths.has(p)).sort() }));
-      const diverged = missingPer
-        .filter((b) => b.missing.some((p) => !suppressed.has(p)))
-        .map((b) => `${b.id} (${b.missing.filter((p) => !suppressed.has(p)).join(', ')})`);
-      ok(diverged.length === 0,
-        `surface: every brand's alias layer carries the same rows except where a named lever suppresses them, which is what lets one register cover the corpus${diverged.length ? ` — DIVERGED: ${diverged.join('; ')}` : ''}`);
-      const short = missingPer.filter((b) => b.missing.length > 0);
-      ok(short.length === 1 && short[0].missing.join('|') === LEVER_SUPPRESSED_ROWS.join('|'),
-        `surface: the row-set difference is attributable to ONE corpus member and to exactly the ${LEVER_SUPPRESSED_ROWS.length} rows \`outlineInteraction: 'none'\` suppresses (${short.length} member(s) short: ${short.map((b) => `${b.id}×${b.missing.length}`).join(', ') || 'none'})`);
-
-      // The register's denominator, and it FAILS CLOSED on purpose. Given the two arms above this equals
-      // the union — but written as `shared ∪ suppressed` rather than as the union, a row that drops out for
-      // an UNEXPLAINED reason is not in it, so a def binding that row is reported as unregistered rather
-      // than waved through. Spelling it `allRowPaths` would invert that.
-      const rowPaths = new Set([...shared, ...LEVER_SUPPRESSED_ROWS].filter((p) => allRowPaths.has(p)));
-      ok(rowPaths.size > 0 && shared.size > 0,
-        `surface: surfaceRows() yielded ${rowPaths.size} rows every brand carries or a named lever removes (${shared.size} shared by all ${perBrand.length}) — an empty layer would make every def binding read as unaliased`);
-
-      const outside = [...bound.keys()].filter((p) => !rowPaths.has(p)).sort();
-      const unregistered = outside.filter((p) => !UNALIASED_PATHS.has(p));
-      ok(unregistered.length === 0,
-        `surface: every def-bound color.* path either resolves in the alias layer or is registered in UNALIASED_DEF_BINDINGS (${bound.size} bound, ${bound.size - outside.length} aliased, ${outside.length} outside, ${UNALIASED_PATHS.size} registered)` +
-        (unregistered.length
-          ? ` — UNREGISTERED, each an unargued reach past the pointer tier into \`color.appearance.*\`: since #1133 that reach is how a name-encoded inverse binding is spelled, so it belongs in the register as a decision rather than sitting here as drift: ${unregistered.map((p) => `${p} (${bound.get(p)!.join(', ')})`).join('; ')}`
-          : ''));
-
-      // Arm 2, and it has to check BOTH halves of an entry. A path that gained a row is stale; so is
-      // a path no def binds any more, which is exactly what happens when the prerequisite lands and
-      // the binding is removed — the entry must then fail rather than sit here describing a binding
-      // that no longer exists.
-      const outsideSet = new Set(outside);
-      const stale = UNALIASED_DEF_BINDINGS.filter((b) => !outsideSet.has(b.path) || !bound.has(b.path))
-        .map((b) => `${b.path} (${!bound.has(b.path) ? 'no def binds it any more' : 'the alias layer now carries a row for it'})`).sort();
-      ok(stale.length === 0,
-        'surface: no UNALIASED_DEF_BINDINGS entry has outlived what it described' +
-        (stale.length ? ` — STALE: ${stale.join('; ')}` : ''));
-
-      // The entry must also still name its real binding site. `boundBy` is what a reader follows to
-      // find the code, and a register whose pointers rot is worse than none: it reads authoritative.
-      const misattributed = UNALIASED_DEF_BINDINGS
-        .filter((b) => bound.has(b.path) && !bound.get(b.path)!.includes(b.boundBy))
-        .map((b) => `${b.path}: entry says '${b.boundBy}', actually ${bound.get(b.path)!.join(', ')}`);
-      ok(misattributed.length === 0,
-        `surface: every UNALIASED_DEF_BINDINGS entry names the def and slot that actually binds it${misattributed.length ? ` — ${misattributed.join('; ')}` : ''}`);
-
-      // Same standard as INVERSE_GAPS' `thin` arm: the reason IS the entry. This one has a higher bar
-      // because it must carry the prerequisite as well as the cause — a reader who cannot tell from
-      // the entry why the binding is still here will re-derive the whole measurement.
-      const thinB = UNALIASED_DEF_BINDINGS.filter((b) => b.why.trim().length < 300).map((b) => b.path);
-      ok(thinB.length === 0, `surface: every UNALIASED_DEF_BINDINGS entry states WHY it is outside the layer and what would move it in${thinB.length ? ` — thin: ${thinB.join(', ')}` : ''}`);
-    }
+    // WHAT STILL CHECKS THE UNDERLYING THING, and it is not this arm's own machinery: the driver loop
+    // over `componentDefs` calls `validateComponentDef(def, nbTree, nbT.root)` and again for aurora, and
+    // that resolves EVERY token binding against the generated tree per brand — a def binding a colour
+    // path that resolves nowhere fails there, in two brands, by name. That check is stronger than the
+    // one deleted here (it covers every slot, not only `color.*`, and it demands resolution rather than
+    // membership in a row set); what is genuinely gone is the RECORD of a deliberate exception, and
+    // #1148 is why nothing needs one.
 
     // (a5) THE ENGINE'S GROUND DEFINITION COVERS EVERY EDGE (#985).
     //
@@ -1804,109 +1715,105 @@ for (const b of brands) {
         `override: derivation is a pure function of the input — a second pass computes the identical tree, so two passes are redundant${unstable.length ? ` — ${unstable.join('; ')}` : ''}`);
     }
 
-    // (a4) THE SURFACE COLLECTION (#893, single-mode since #1133). Read out of the COMMITTED emission,
-    // not re-derived from `buildFigmaSurface` — a re-derivation would be the emitter checked against a
-    // copy of itself. `surfaceRows` is imported only for the row-count cross-check, which is the one
-    // place the two halves are SUPPOSED to agree.
-    // The brands with a committed Figma emission — `regen`'s emit-figma step writes these three; a
-    // brand absent here is not a silent skip, the count below is asserted.
-    // THE FILENAME HAS MOVED THREE TIMES AND THE `existsSync` FILTER IS WHY THAT MATTERS: a stale stem
+    // (a4) THE ONE COLOUR COLLECTION (#893 → #1013 → #1133 → #1148). Read out of the COMMITTED emission,
+    // never re-derived from the builder — a re-derivation would be the emitter checked against a copy of
+    // itself (`docs/34` shape 1).
+    //
+    // WHAT THIS ARM USED TO BE, because the change is the point. There were two colour collections and
+    // these arms checked the POINTER tier: one row per non-inverse appearance role, every row a live
+    // alias into `color.appearance`, no dangling pointer (#893's stated failure — an alias at a name no
+    // variable carries pastes clean into Figma and resolves to nothing at bind time). #1148 deleted that
+    // tier, so a pointer that could dangle no longer exists and the arms that watched for one have
+    // nothing left to watch. They are REPLACED rather than deleted, because the collapse creates a new
+    // failure of exactly the same family, one level up: not a row pointing at a missing variable, but a
+    // retired ARTIFACT left sitting in `out/` after the collection that produced it went away.
+    //
+    // THE FILENAME HAS MOVED FOUR TIMES AND THE `existsSync` FILTER IS WHY THAT MATTERS: a stale stem
     // makes `figmaBrands` EMPTY and every per-brand arm below simply does not run. #1013 swapped the two
-    // collections' names; #1089 renamed this one `color` → `color.surface`, and an artifact filename
-    // follows its collection name; #1133 removed the second mode, so the mode segment goes with it and
-    // the stem is the bare collection name (`color.surface.json`), the same rule `radius` and
-    // `core.font` follow with one mode. The floor arm on the next line is the only thing between a
-    // fourth such move and a green suite — it is not decoration.
-    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.surface.json`)));
-    ok(figmaBrands.length >= 3, `surface: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
+    // collections' names; #1089 renamed the pointer tier `color` → `color.surface`; #1133 removed its
+    // second mode so the mode segment went with it; #1148 removed the tier and renamed the value tier
+    // onto `color`, so the stem is `color.<mode>.json` — one file per appearance mode, the shape the
+    // value tier always had, under the short name. The floor arm on the next line is the only thing
+    // between a fifth such move and a green suite — it is not decoration.
+    const figmaBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}/color.light.json`)));
+    ok(figmaBrands.length >= 3, `color: the emission covers ${figmaBrands.length} brands (floor 3) — a dropped brand must not read as a clean pass`);
     for (const brand of figmaBrands) {
       const dir = resolve(HERE, `./out/figma/${brand}`);
-      const colorVars = new Set<string>(
-        JSON.parse(readFileSync(resolve(dir, 'color.appearance.light.json'), 'utf8')).variables.map((v: any) => v.name));
 
-      // ONE FILE, AND NOT BECAUSE ONE WAS READ. The arm above proves `color.surface.json` exists; it
-      // cannot notice a `color.surface.inverse.json` sitting beside it, which is exactly what a partial
-      // revert — or a re-introduction — leaves behind. A directory scan is the only reading that fails
-      // on a file nobody asked for, and `regen --check` would not catch it either: an untracked extra
-      // artifact is a `git status` entry, not a byte diff.
-      const surfaceFiles = readdirSync(dir).filter((n) => /^color\.surface(\..+)?\.json$/.test(n)).sort();
-      ok(surfaceFiles.join(',') === 'color.surface.json',
-        `surface(${brand}): the pointer tier is ONE single-mode file since #1133 — found ${surfaceFiles.join(', ') || 'none'}`);
-
-      const file = JSON.parse(readFileSync(resolve(dir, 'color.surface.json'), 'utf8'));
-      ok(file.$collection === 'color.surface' && file.$mode === 'Default',
-        `surface(${brand}): declares \`color.surface\` / \`Default\` — the capitalised single-mode name every other one-mode collection uses (got ${file.$collection} / ${file.$mode})`);
-
-      // THE DEAD POINTER — the failure #893 says the whole sequencing exists to prevent. An alias at
-      // a name no variable carries pastes clean into Figma and resolves to nothing at bind time.
-      const dangling = file.variables
-        .filter((v: any) => !colorVars.has(v.alias?.name))
-        .map((v: any) => `${v.name}→${v.alias?.name ?? 'NO ALIAS'}`);
-      ok(dangling.length === 0,
-        `surface(${brand}): every alias resolves to a real color variable${dangling.length ? ` — DANGLING: ${dangling.slice(0, 3).join(', ')}` : ` (${file.variables.length} rows)`}`);
-
-      // MEMBERSHIP IS UNIFORM, AND THAT IS AN ASSERTION NOW RATHER THAN A CONSEQUENCE.
+      // EXACTLY THE FOUR APPEARANCE MODES, AND NOTHING RETIRED BESIDE THEM.
       //
-      // This arm replaces three that #1133 killed: "both modes carry the same rows", and the two that
-      // enforced the `omit`/`self` dispositions. All three were about what a row does when the mode
-      // flips, and there is no mode to flip. What is left to check is stronger and was never checked:
-      // the pointer tier carries EXACTLY the non-inverse rows of the tier it points into. Nothing else
-      // in the suite would notice 20 missing pointers — every arm above is satisfied by a subset.
+      // A directory scan is the only reading that fails on a file nobody asked for, and it is the arm
+      // #1148 most needs: the collapse RETIRES five stems per brand (`color.appearance.<mode>.json` × 4
+      // and `color.surface.json`), and a retired artifact left behind is invisible to everything else in
+      // the suite. `regen --check` compares what the engine writes against what is committed and would
+      // not see it either — an untracked leftover is a `git status` entry, not a byte diff — and its
+      // `EXPECTED_ARTIFACTS` count catches a MISSING file, not an extra one.
       //
-      // EXPECTED comes from `color.appearance.light.json`, a different file written by a different
-      // builder, with the inverse split re-derived HERE off the emitted Figma name (`/` segments) rather
-      // than by importing `isInverseRole`. Importing it would make this `isInverseRole === isInverseRole`
-      // with an emission in between (`docs/34` shape 1) — and the predicate the emitter uses is written
-      // over DTCG dot paths, so a local one over slash paths is not even the same expression.
-      //
-      // #1140 made the local one an exact POSITION rather than an any-depth segment scan: the marker is
-      // the segment immediately under the tier root, so `.../color/appearance/inverse/...` is the whole
-      // test where it used to be "any segment equals `inverse` or `on-inverse`". That is a real tightening
-      // for this arm — a role emitted as `background/inverse/primary` was admitted as inverse by the old
-      // scan and is now correctly counted as a NON-inverse appearance role with no pointer, which is what
-      // the `missing` half then reports. The floor below is what keeps the tightening from reading as a
-      // pass when it matches nothing.
-      const appearanceRoot = `${rootOfBrand(brand)}/color/appearance/`;
-      const invSeg = (n: string): boolean => n.startsWith(`${appearanceRoot}inverse/`);
-      const expected = new Set([...colorVars]
-        .filter((n) => n.startsWith(appearanceRoot) && !invSeg(n))
-        .map((n) => `${rootOfBrand(brand)}/color/${n.slice(appearanceRoot.length)}`));
-      const got = new Set<string>(file.variables.map((v: any) => v.name));
-      const missing = [...expected].filter((n) => !got.has(n)).sort();
-      const extra = [...got].filter((n) => !expected.has(n)).sort();
-      ok(missing.length === 0 && extra.length === 0,
-        `surface(${brand}): one pointer per NON-INVERSE appearance role, no more and no fewer (${expected.size} expected, ${got.size} emitted)` +
-        (missing.length ? ` — NO POINTER: ${missing.slice(0, 4).join(', ')}` : '') +
-        (extra.length ? ` — POINTER WITH NO ROLE: ${extra.slice(0, 4).join(', ')}` : ''));
-      // Floor on the DERIVATION, not on the emission: an appearance file whose names did not carry the
-      // rooted `color/appearance/` prefix would make `expected` empty and the arm above vacuous.
-      ok(expected.size > 100 && [...colorVars].some(invSeg),
-        `surface(${brand}): the appearance tier the arm above derives from is real (${expected.size} non-inverse of ${colorVars.size} rows, and inverse rows are present to be excluded)`);
+      // The regex admits any `color.*.json`, so a leftover `color.appearance.light.json` or
+      // `color.surface.json` lands in `got` and fails by name rather than being filtered out of view.
+      // The expected list is written LITERALLY, not built from `COLOR_MODES`: taken from the same
+      // constant the emitter loops over, this arm would agree with any set of modes the emitter happened
+      // to write, including none.
+      const colorFiles = readdirSync(dir).filter((n) => /^color\.[^/]+\.json$/.test(n)).sort();
+      ok(colorFiles.join(',') === 'color.dark.json,color.hc-dark.json,color.hc-light.json,color.light.json',
+        `color(${brand}): one file per appearance mode and no retired stem left beside them (#1148 retired \`color.appearance.<mode>.json\` × 4 and \`color.surface.json\`) — found ${colorFiles.join(', ') || 'none'}`);
 
-      // Floor: an empty or near-empty collection would pass every arm above trivially.
-      ok(file.variables.length > 100,
-        `surface(${brand}): the collection is populated (${file.variables.length} rows)`);
+      const file = JSON.parse(readFileSync(resolve(dir, 'color.light.json'), 'utf8'));
+      // The mode name is lower-case `light`, not the capitalised `Default` the pointer tier used. That is
+      // not a style choice either way: a single-mode collection has no meaningful mode and took Figma's
+      // own capitalised default, whereas these four are the APPEARANCE modes and carry the engine's own
+      // mode ids verbatim. The collapse keeps the value tier's spelling because it keeps the value tier.
+      ok(file.$collection === 'color' && file.$mode === 'light',
+        `color(${brand}): declares \`color\` / \`light\` — the value tier's own mode id, under the short name #1148 gave it (got ${file.$collection} / ${file.$mode})`);
+
+      // EVERY ROLE CARRIES THE SHORT NAME, which is the emission-side statement of the whole issue.
+      //
+      // One collection means one spelling, so a variable still carrying the `appearance/` segment is a
+      // half-applied collapse — and it would RESOLVE, since nothing checks the segment count. The scan
+      // is over the emitted name, not over the rule that produced it, so the materialisation rule and
+      // this arm are two independent expressions of the same claim.
+      const names: string[] = file.variables.map((v: any) => v.name);
+      const tiered = names.filter((n) => n.startsWith(`${rootOfBrand(brand)}/color/appearance/`));
+      ok(tiered.length === 0,
+        `color(${brand}): no variable carries the retired \`appearance/\` tier segment (#1148)${tiered.length ? ` — STILL TIERED: ${tiered.slice(0, 4).join(', ')}` : ''}`);
+
+      // THE INVERSE HALF IS PRESENT AND IS PART OF THIS COLLECTION NOW.
+      //
+      // Under two tiers the pointer collection EXCLUDED inverse roles and the arm here derived that
+      // exclusion. The collapse admits them: `color/inverse/<role>` is a plain member. Deriving the
+      // inverse split off the emitted slash name rather than by importing `isInverseRole` — whose test is
+      // written over DTCG dot paths, so a local one over slash paths is not even the same expression.
+      const invPfx = `${rootOfBrand(brand)}/color/inverse/`;
+      const inv = names.filter((n) => n.startsWith(invPfx));
+      ok(inv.length > 100 && names.length > 200 && names.length > inv.length,
+        `color(${brand}): the one collection carries both halves — ${inv.length} inverse and ${names.length - inv.length} page roles of ${names.length} (floors, because an empty or all-inverse collection would satisfy every arm above)`);
     }
-    // The brands ship the IDENTICAL row set — the property that lets the collection be authored once and
+    // The brands ship the IDENTICAL role set — the property that lets the collection be authored once and
     // shared. It is what zero divergence across the corpus buys, and it is NOT the acceptance check: a
     // brand needing a structurally DIFFERENT inverse mapping is only testable at the first hand-authored
     // client brand (#893, the Mistica case).
+    //
+    // NAMES ONLY SINCE #1148, and that is a narrowing worth stating. This compared `name→alias` pairs
+    // while the collection under test was the pointer tier, where the alias WAS the row's content. The
+    // value tier's leaves carry per-brand palette aliases and real per-mode values, so comparing those
+    // across brands would report divergence on every brand having its own colours — which is the one
+    // thing three different brands are supposed to disagree about. The row SET is still the shared
+    // property; the values were never meant to be.
     {
-      const rowSets = figmaBrands.map((b) =>
-        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.surface.json`), 'utf8'))
-          // #1097 — the ROW SET is compared across brands, and every name in it now begins with that
-          // brand's own root, so comparing the raw names would report three-way divergence on nothing but
-          // the namespace. The root is stripped, per brand, with its own configured value; a name that
-          // does NOT carry it survives with the root attached and so still diverges, which is the
-          // behaviour wanted — this de-roots what is there, it does not assume it.
-          .variables.map((v: any) => [v.name, v.alias?.name]
-            .map((n: string | undefined) => (n ?? 'NO ALIAS').replace(new RegExp(`^${rootOfBrand(b)}/`), ''))
-            .join('→')).sort().join('|'));
-      // `rowSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
+      const roleSets = figmaBrands.map((b) =>
+        JSON.parse(readFileSync(resolve(HERE, `./out/figma/${b}/color.light.json`), 'utf8'))
+          // #1097 — the ROLE SET is compared across brands, and every name in it begins with that brand's
+          // own root, so comparing the raw names would report three-way divergence on nothing but the
+          // namespace. The root is stripped, per brand, with its own configured value; a name that does
+          // NOT carry it survives with the root attached and so still diverges, which is the behaviour
+          // wanted — this de-roots what is there, it does not assume it.
+          .variables.map((v: any) => String(v.name).replace(new RegExp(`^${rootOfBrand(b)}/`), ''))
+          .sort().join('|'));
+      // `roleSets[0]` only exists if the floor arm above passed. Guarded rather than indexed blind: an
       // empty `figmaBrands` used to CRASH here, so the floor arm's failure was reported and then buried
       // under a stack trace that named this line instead — the diagnosis pointing at the wrong file.
-      ok(rowSets.length > 0 && new Set(rowSets).size === 1,
-        `surface: every emitted brand ships the identical row set — the shared-collection property (${rowSets[0]?.split('|').length ?? 0} rows)`);
+      ok(roleSets.length > 0 && new Set(roleSets).size === 1,
+        `color: every emitted brand ships the identical role set — the shared-collection property (${roleSets[0]?.split('|').length ?? 0} roles)`);
     }
     // Floor: a scan finding nothing to cover would pass both arms trivially (`docs/34` shape 9).
     ok(uncovered.length > 0 && roleSet.size > 100,
