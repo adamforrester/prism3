@@ -13464,7 +13464,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       && ruleApply(R3, 'core', 'zzwitness/core/palette/red/550', WROOT) === null,
     '#1097 rule 3: `font-fluid/*` is NOT a `core` group (whole-segment match, not a prefix), and an already-rooted name is outside the domain — the rule is idempotent by construction');
 
-  // ---- END-TO-END, ONE HOP AT A TIME (#1013, then #1097) ----
+  // ---- END-TO-END, ONE HOP AT A TIME (#1097, then #1148) ----
   //
   // WHERE THE TWO SIDES COME FROM IS THE WHOLE POINT (`docs/34` shape 11). Every before-set below is typed
   // out by hand, in the spelling of a specific past merge base and verifiable against `git show <ref>:…`.
@@ -13479,70 +13479,96 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the same question; it is a question this mechanism is built to refuse, and refusing it is correct: two
   // rules claiming one key is exactly the ambiguity that would misattribute a migration.
   //
-  // A pre-#1013 name like `color/background/primary` carries no brand root, so #1097's rule claims it too,
-  // on top of #1013's. That is asserted below rather than avoided, because "the fixture was split for a
-  // reason" is worth more as a number than as this paragraph.
+  // ── #1148 REPLACED FIXTURE A RATHER THAN DELETING IT, AND THE TWO ARE NOT THE SAME COVERAGE ──────
+  //
+  // Fixture A was the #1013 hop, run against the two `-1013` rules. Those rules are gone from the artifact
+  // (see `EXPECTED_SINCE` above and the rules module's own header), so every arm in it would have been
+  // `accountFor(…, [], …)` — an accounting with no rules, reporting whatever the fixture's own two sides
+  // happened to agree on. Kept as history it is `docs/34` shape 9 at fixture scale: four arms about a rule
+  // set that is empty, all green.
+  //
+  // So the SLOT is re-aimed at #1148's hop and the arms are re-derived rather than translated. What is
+  // genuinely lost is the pair's mutual disjointness (there is no pair), and it is replaced by something
+  // stronger: #1097's domain is `!startsWith(root)` and #1148's requires the root, so no key can be in both
+  // for ANY name or collection — a structural fact rather than two collection names happening to differ.
+  // That is what the two-hop arm now measures, and it measures 0 where the old one measured 4.
   //
   // What each fixture is for, then:
   //
-  //   A — the #1013 hop. Both sides hand-written, rules restricted to the two `-1013` ids. It keeps the
-  //       historical record exercised: the two rules, `COLLECTION_RENAMES`' one-hop recollection, and the
-  //       drop-one forcing function, all against the spelling that shipped.
+  //   A — the #1148 hop. Both sides hand-written in the merge-base spelling (rooted, `appearance`-tiered),
+  //       rules restricted to the `-1148` id. It carries the one-hop recollection, the drop-one forcing
+  //       function, the #1108 fan-in contrast, and the single-step claim.
   //   B — the #1097 hop. Before-set hand-written in the POST-#1013, PRE-#1097 spelling; after-set is
   //       `nbKeys`, the emitter's real current output. This is the fixture that bridges a hand-written past
-  //       to a generated present, and it runs all THREE rules — so "only #1097's rule claims here" is a
-  //       measured property of the rule set rather than a restriction the fixture imposed.
+  //       to a generated present, and it runs BOTH rules — so "only #1097's rule claims here" is a measured
+  //       property of the rule set rather than a restriction the fixture imposed.
   {
-    const era1013 = MATERIALIZATION_RENAMES.filter((r) => r.id.endsWith('-1013'));
-    ok(era1013.length === 2,
-      `#1013: the fixture below runs ${era1013.length} rules (expected the 2 \`-1013\` ids) — the filter is by id and not by count, so a third rule joining that era is included rather than silently dropped`);
+    const era1148 = MATERIALIZATION_RENAMES.filter((r) => r.id.endsWith('-1148'));
+    ok(era1148.length === 1,
+      `#1148: the fixture below runs ${era1148.length} rules (expected the 1 \`-1148\` id) — the filter is by id and not by count, so a second rule joining that era is included rather than silently dropped`);
 
+    // THE MERGE-BASE SPELLING, HAND-WRITTEN, AND IT CARRIES BOTH TIERS ON PURPOSE. `main` at 0.29.0 emitted
+    // two colour collections: `color.appearance` holding the VALUES under `<root>/color/appearance/<role>`,
+    // and `color.surface` holding the pointer rows under `<root>/color/<role>`. Two keys from each, and the
+    // pair from the pointer tier is what makes this fixture say something the rule's `why` only claims —
+    // that those rows are NOT removals. `inverse/*` is deliberately taken from the value tier only, because
+    // the pointer tier never carried the inverse block (that is why it was 130 rows against 243).
     const before = new Set<VarKey>([
-      varKey('color', 'color/background/primary'),
-      varKey('color', 'color/background/inverse/primary'),
-      varKey('surface', 'surface/background/primary'),
-      varKey('surface', 'surface/border/brand'),
+      varKey('color.appearance', `${WROOT}/color/appearance/background/primary`),
+      varKey('color.appearance', `${WROOT}/color/appearance/inverse/background/primary`),
+      varKey('color.surface', `${WROOT}/color/background/primary`),
+      varKey('color.surface', `${WROOT}/color/border/brand`),
     ]);
+    // ── THE MIGRATION LIST MOVES ONE TIER AND LEAVES THE OTHER, WHICH IS THE ORPHAN, AS A NUMBER ──────
+    //
+    // This arm used to assert that `COLLECTION_RENAMES` put BOTH tiers' keys in their live collection. It
+    // cannot say that any more and must not be made to: #1148 ships one entry, `color.appearance → color`,
+    // and no entry for the pointer tier — two sources onto one target is a static refusal and Figma has no
+    // re-parent to perform. So the pointer tier's keys come back UNCHANGED, in a collection nothing writes
+    // again. That is the orphaned `color.surface` a designer's file retains, and it is filed as its own
+    // issue rather than papered over; here it is two keys that did not move, which is the form a reader
+    // cannot mistake for coverage.
     const recollected = recollectAll(before, COLLECTION_RENAMES);
     ok([...recollected].sort().join(' | ') === [
-      varKey('color.surface', 'surface/background/primary'),
-      varKey('color.surface', 'surface/border/brand'),
-      varKey('color.appearance', 'color/background/inverse/primary'),
-      varKey('color.appearance', 'color/background/primary'),
+      varKey('color', `${WROOT}/color/appearance/background/primary`),
+      varKey('color', `${WROOT}/color/appearance/inverse/background/primary`),
+      varKey('color.surface', `${WROOT}/color/background/primary`),
+      varKey('color.surface', `${WROOT}/color/border/brand`),
     ].sort().join(' | '),
-      `#1013: the collection renames put both tiers' before-keys in the collection they now live in — ONE HOP each (got ${[...recollected].sort().join(' | ')})`);
+      `#1148: the MIGRATION list moves the VALUE tier to \`color\` and leaves the pointer tier where it is — the orphan, as two keys rather than as a paragraph (got ${[...recollected].sort().join(' | ')})`);
 
-    // ── ONE HOP REACHES TODAY'S RULE DOMAIN, AND THAT IS WHAT #1097 CHANGED (#1089, #1097) ────────────
+    // ── AND THE ACCOUNTING LIST REACHES BOTH, WHICH IS WHY THE TWO LISTS ARE STILL TWO (#1097, #1148) ──
     //
-    // `surface-to-color-1013`'s domain names `color.surface`, because `materialize` is called with the
-    // collection the write plan is about to use and that is the LIVE name (see the rule's own header).
-    // Between #1089 and #1097 `COLLECTION_RENAMES` sent the alias tier to `color` — the name it carried
-    // from #1013 to #1089 — so a #1013-era key could not reach that domain at all: the migration stopped
-    // one collection short, `applySurfacePlan` created a fresh `color.surface` beside it, and the
-    // designer's variables and bindings were stranded with nothing reporting it (#1108's finding).
-    // Retargeting the entry to `surface` → `color.surface` closes it in one hop.
-    //
-    // So the second record is now a NO-OP for the colour tiers, and that is asserted rather than assumed:
-    // an identity, not a re-statement of the expectation above. The reason `ACCOUNTING_COLLECTION_MOVES`
-    // still exists is the OTHER move it carries — `core-palette`/`core-dimension`/`core-font` → `core` —
-    // which no migration list can hold, and the arms below are about exactly that.
-    const inLiveCollections = recollectAll(recollected, ACCOUNTING_COLLECTION_MOVES);
-    ok([...inLiveCollections].sort().join(' | ') === [...recollected].sort().join(' | '),
-      `#1097: the accounting's collection moves are a NO-OP once the migration list reaches \`color.surface\` directly — both tiers were already in their final collection after one hop, and re-applying must not move either again (got ${[...inLiveCollections].sort().join(' | ')})`);
+    // This arm used to assert the second recollection was a NO-OP for the colour tiers — true while the
+    // migration list reached `color.surface` directly, and false the moment #1148 made the pointer tier a
+    // FAN-IN. `ACCOUNTING_COLLECTION_MOVES` holds `color.appearance → color` AND `color.surface → color`;
+    // the migration list holds only the first, and cannot hold the second. So the identity is replaced by
+    // the difference, which is the property that was always the reason both lists exist — asserted here on
+    // the colour pair, and again on the `core-*` fan-in below.
+    const inLiveCollections = recollectAll(before, ACCOUNTING_COLLECTION_MOVES);
+    ok([...inLiveCollections].sort().join(' | ') === [
+      varKey('color', `${WROOT}/color/appearance/background/primary`),
+      varKey('color', `${WROOT}/color/appearance/inverse/background/primary`),
+      varKey('color', `${WROOT}/color/background/primary`),
+      varKey('color', `${WROOT}/color/border/brand`),
+    ].sort().join(' | '),
+      `#1148: the ACCOUNTING list lands BOTH tiers on the one live \`color\` collection — a fan-in the migration list cannot perform, which is the whole reason the two lists are separate (got ${[...inLiveCollections].sort().join(' | ')})`);
 
-    // The post-#1013, pre-#1097 emission for these four, hand-written: the value tier prefixed, the alias
-    // tier's `surface/` traded for `color/`, both in the collection the two recollections just put them in.
-    const after1013 = new Set<VarKey>([
-      varKey('color.appearance', 'color/appearance/background/primary'),
-      varKey('color.appearance', 'color/appearance/background/inverse/primary'),
-      varKey('color.surface', 'color/background/primary'),
-      varKey('color.surface', 'color/border/brand'),
+    // The post-#1148 emission for these four, hand-written: the value tier's `appearance/` segment gone, the
+    // pointer tier's names unchanged — because the short spellings the pointer tier held are exactly what
+    // the value tier now emits.
+    const after1148 = new Set<VarKey>([
+      varKey('color', `${WROOT}/color/background/primary`),
+      varKey('color', `${WROOT}/color/inverse/background/primary`),
+      varKey('color', `${WROOT}/color/border/brand`),
     ]);
-    // The root is the one the corpus does not use: these rules must not consult it, and the images asserted
-    // through `isTotal` are the same either way only if that holds.
-    const acct = accountFor(inLiveCollections, after1013, era1013, parseVarKey, WROOT);
-    ok(isTotal(acct) && acct.claims.length === 4 && acct.removed.length === 4,
-      `#1013: the two rules account for the swap end-to-end — 4 hand-written pre-swap keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
+    // TWO CLAIMS FOR FOUR KEYS, AND THE SHORTFALL IS THE POINT. The two value keys left the emission and are
+    // claimed; the two pointer keys are in BOTH sides and are not removals at all, so claiming them would put
+    // two claims on one name. This is the rule's own `why` ("243 keys and not 373") reduced to four keys and
+    // measured, and it is the arm that fails if the rule is ever widened to claim the pointer tier as well.
+    const acct = accountFor(inLiveCollections, after1148, era1148, parseVarKey, WROOT);
+    ok(isTotal(acct) && acct.claims.length === 2 && acct.removed.length === 2 && acct.multiplyClaimed.length === 0,
+      `#1148: one rule accounts for the collapse end-to-end — 4 hand-written merge-base keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed. Two of the four are the pointer tier's short names, which are in BOTH sides and so are not renames`);
 
     // ── THE GAP THAT REMAINS, AND IT IS THE CORE FAN-IN — NOT THE COLOUR TIERS (#1108) ────────────────
     //
@@ -13568,72 +13594,107 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ].sort().join(' | '),
       `#1108: while the ACCOUNTING list does reach it — which is the whole reason the two lists are separate rather than one (got ${[...recollectAll(coreBefore, ACCOUNTING_COLLECTION_MOVES)].sort().join(' | ')})`);
 
-    // AND THE REASON THE FIXTURE IS RESTRICTED, AS A NUMBER. Run the same hop with all three rules and
-    // every key is claimed twice — #1097's rule matches any name without a root, and a pre-#1013 name has
-    // none. This is the mechanism working: composing two hops is what it refuses to do.
-    const twoHop = accountFor(inLiveCollections, after1013, MATERIALIZATION_RENAMES, parseVarKey, WROOT);
-    ok(!isTotal(twoHop) && twoHop.multiplyClaimed.length === 4,
-      `#1097: a TWO-HOP before-set is refused rather than accounted — ${twoHop.multiplyClaimed.length} of the 4 keys are claimed by both eras' rules (expected 4). Two rules claiming one key is the ambiguity that would misattribute a migration, so the fixtures are per-hop`);
+    // ── THE RESTRICTION IS NO LONGER LOAD-BEARING, AND THAT IS A MEASUREMENT, NOT A SIMPLIFICATION ─────
+    //
+    // This arm used to read `multiplyClaimed.length === 4`: the #1013 pair and the #1097 rule both matched
+    // an un-rooted pre-#1013 name, so running the fixture against the whole rule list claimed every key
+    // twice, and restricting the fixture by id was the only way to say anything. #1148 retired that pair,
+    // and the two surviving rules are disjoint by CONSTRUCTION rather than by coincidence:
+    // `namespace-and-core-tier-1097` requires `!name.startsWith(root + '/')` and
+    // `color-one-collection-1148` requires `name.startsWith(root + '/color/appearance/')`. No string can
+    // satisfy both, at any root, for any collection — so the overlap is not merely 0 on this fixture, it is
+    // 0 everywhere. Asserting that is worth more than asserting 4 was: the full shipped list must produce
+    // the IDENTICAL accounting to the id-restricted one, which is the property the per-hop restriction was
+    // standing in for. **The `multiplyClaimed` mechanism itself is still exercised against a rule that does
+    // overlap** — the `#1140` block builds `alsoARule` for exactly that and asserts the contradicted claim.
+    const twoHop = accountFor(inLiveCollections, after1148, MATERIALIZATION_RENAMES, parseVarKey, WROOT);
+    ok(isTotal(twoHop) && twoHop.multiplyClaimed.length === 0
+        && twoHop.claims.length === acct.claims.length && twoHop.removed.length === acct.removed.length,
+      `#1148: the whole shipped rule list accounts for this hop identically to the \`-1148\` subset — ${twoHop.claims.length} claims / ${twoHop.removed.length} removals against ${acct.claims.length} / ${acct.removed.length}, ${twoHop.multiplyClaimed.length} multiply claimed (expected 0). The two live rules are disjoint on the ROOT (\`!startsWith(root)\` against \`startsWith(root + '/color/appearance/')\`), so no key can be claimed twice at any root`);
 
-    // THE FORCING FUNCTION, on the real rules rather than on a fixture pair: drop either rule and the keys
-    // it covered are reported as unaccounted removals BY NAME. This is the arm that fails if a later
-    // simplification decides one rule is enough.
-    for (const dropped of era1013) {
-      const kept = era1013.filter((r) => r.id !== dropped.id);
-      const partial = accountFor(inLiveCollections, after1013, kept, parseVarKey, WROOT);
-      ok(!isTotal(partial) && partial.unaccountedRemovals.length === 2,
-        `#1013: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
+    // THE FORCING FUNCTION, on the real rule rather than on a fixture pair: drop it and the keys it covered
+    // are reported as unaccounted removals BY NAME. With one rule in the era this bottoms out at the EMPTY
+    // rule list, which is the direction that matters — an empty vocabulary must fail loudly here, because
+    // `docs/34`'s shape 9 is an empty register reading as a pass. It is the arm that fails if a later
+    // simplification decides the collapse needs no materialization rule at all.
+    for (const dropped of era1148) {
+      const kept = era1148.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(inLiveCollections, after1148, kept, parseVarKey, WROOT);
+      ok(kept.length === 0 && !isTotal(partial) && partial.unaccountedRemovals.length === 2,
+        `#1148: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} keys unaccounted (expected 2), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
     }
 
-    // AND THE RECOLLECTION'S SINGLE-STEP CLAIM, as a failure rather than as a comment. Follow a CHAIN to a
-    // fixed point and the alias tier lands in `color.appearance` — where that variable never went. The
-    // misattributed keys then match no rule (rule 1 wants a `color/` name) and read as unaccounted removals
-    // against rules that are correct. See `recollect`'s header for why the apply side needs the opposite
-    // treatment.
+    // ── AND THE RECOLLECTION'S SINGLE-STEP CLAIM, WHICH #1148 GAVE A HARDER BACKING THAN MISATTRIBUTION ─
     //
-    // **The chain is a FIXTURE here, and it is the map #1097 replaced.** `COLLECTION_RENAMES` was
-    // `surface → color` alongside `color → color.appearance` until #1097 retargeted the first to
-    // `color.surface`, which removed the chain — so driving this arm off the shipped map now makes
-    // transitivity a no-op and the arm passes vacuously, reporting `NOTHING`. That is what it did on the
-    // first run of this change. `recollectAll`'s one-hop contract is unchanged and still worth a failing
-    // arm, so the hazard is spelled out here instead of borrowed from data that no longer contains it —
-    // `docs/34`'s borrowed-backstop shape, caught in the act.
-    const CHAIN_FIXTURE: readonly { from: string; to: string }[] = [
-      { from: 'surface', to: 'color' },
-      { from: 'color', to: 'color.appearance' },
-    ];
-    const transitive = new Set([...before].map((k) => {
-      let cur = k;
-      for (let i = 0; i < CHAIN_FIXTURE.length; i++) cur = recollect(cur, CHAIN_FIXTURE);
-      return cur;
-    }));
-    const misattributed = accountFor(transitive, after1013, era1013, parseVarKey, WROOT);
-    ok(!isTotal(misattributed) && misattributed.unaccountedRemovals.some((k) => k === varKey('color.appearance', 'surface/background/primary')),
-      `#1013: a TRANSITIVE recollection misattributes the alias tier to \`color.appearance\` and the accounting refuses it — one hop is correct, a fixed point is wrong (${misattributed.unaccountedRemovals.join(' · ') || 'NOTHING'})`);
+    // This arm used to drive a hand-written `CHAIN_FIXTURE` — `surface → color` beside
+    // `color → color.appearance`, the map #1097 had already replaced — because the shipped lists no longer
+    // contained a chain, so driving the arm off them made transitivity a no-op that passed vacuously,
+    // reporting `NOTHING`. The fixture was honest about that, and it is now unnecessary. #1148 added
+    // `color.surface → color` beside #1089's `color → color.surface`, so **`ACCOUNTING_COLLECTION_MOVES`
+    // contains a live 2-CYCLE**. `recollect` is single-step and first-match, so a `color` key hops to
+    // `color.surface` and a `color.surface` key hops back — forever.
+    //
+    // That upgrades the contract's justification, and the upgrade is the reason this is worth re-aiming
+    // rather than deleting. Following these entries to a fixed point was previously *wrong* (it
+    // misattributed a variable to a collection it never entered); it is now *non-terminating*, and at an
+    // even hop count it is wrong while LOOKING like a no-op — which is the failure mode a `while` loop would
+    // present as success. So the arm asserts the oscillation directly, off the shipped list, with a bounded
+    // walk that must never settle. If someone retargets the #1089 entry and breaks the cycle, this fails BY
+    // NAME and the single-step contract needs its justification restated rather than quietly weakened.
+    const walk: VarKey[] = [varKey('color', `${WROOT}/color/background/primary`)];
+    for (let i = 0; i < 6; i++) walk.push(recollect(walk[walk.length - 1], ACCOUNTING_COLLECTION_MOVES));
+    const walkColls = walk.map((k) => parseVarKey(k).collection);
+    ok(walkColls.join(' → ') === 'color → color.surface → color → color.surface → color → color.surface → color'
+        && walk[1] !== walk[0] && walk[2] === walk[0],
+      `#1148: \`ACCOUNTING_COLLECTION_MOVES\` holds a 2-CYCLE, so a walk to a fixed point never terminates and an even number of hops is wrong while reading as a no-op — that is why \`recollect\` takes exactly one step (got ${walkColls.join(' → ')})`);
+    // And the single step itself, on the key the cycle is about: one hop from the merge-base spelling lands
+    // on the LIVE collection and stops, which is the hop the accounting above actually used. A second step
+    // would carry it to `color.surface`, out of every rule's domain, and every claim with it.
+    ok(recollect(varKey('color.appearance', `${WROOT}/color/appearance/background/primary`), ACCOUNTING_COLLECTION_MOVES)
+        === varKey('color', `${WROOT}/color/appearance/background/primary`)
+      && parseVarKey(recollect(varKey('color', `${WROOT}/color/appearance/background/primary`), ACCOUNTING_COLLECTION_MOVES)).collection === 'color.surface',
+      `#1148: one step from \`color.appearance\` lands on \`color\`; a second step leaves for \`color.surface\` and out of every rule domain — the composition this function refuses to perform`);
   }
 
-  // ---- FIXTURE B: THE #1097 HOP — a hand-written pre-#1097 base against the REAL emission ----
+  // ---- FIXTURE B: A HAND-WRITTEN BASE AGAINST THE REAL EMISSION — ONE KEY PER RULE-BEHAVIOUR ----
   //
-  // Seven keys, chosen so each one is a different way the rule has to behave, and every one of them is a
-  // name `git show <pre-#1097 ref>:packages/engine/out/figma/nb/…` still holds:
+  // Six keys, chosen so each one is a different way a rule has to behave, and every one of them is a name
+  // some real ref of `packages/engine/out/figma/nb/…` still holds:
   //
-  //   · a value-tier name, already `color/appearance/*` from #1013 — root only, no tier.
-  //   · an alias-tier name in the `color` collection that #1089 renamed to `color.surface` — the
-  //     COLLECTION moved and the NAME took a root, and the recollection is what lets one rule see both.
   //   · one name from each of the three merged primitive collections — root AND `core` tier, one image.
   //   · a name in a collection that did not move at all (`radius`) — root only, and it is the arm that
-  //     fails if the rule is ever narrowed to the collections this PR touched.
+  //     fails if #1097's rule is ever narrowed to the collections that PR touched.
   //   · `font-fluid/*`, which starts with `font` and must NOT be swept under `core` (see the witnesses).
+  //   · the colour value tier in the MERGE-BASE spelling — rooted and still `appearance`-tiered — which is
+  //     #1148's rule measured against what the emitter actually wrote.
+  //
+  // ── THE COLOUR KEY IS AT A DIFFERENT ERA FROM THE OTHER FIVE, AND IT HAS TO BE (#1148) ────────────────
+  //
+  // This fixture used to be seven pre-#1097 keys, two of them colour: the value tier as
+  // `color.appearance :: color/appearance/background/primary` and the alias tier as
+  // `color :: color/background/primary`, both un-rooted. Neither can be accounted for any more, and the
+  // reason is a property of `account` rather than of #1148: **rules are applied ONE AT A TIME, never
+  // composed.** `account` reads `to = varKey(collection, rule.map(...))` per rule, and `multiplyClaimed`
+  // exists to make two rules claiming one key a FAILURE. So an un-rooted, `appearance`-tiered name now
+  // needs two hops that the accounting will not compose — #1097 to take the root, #1148 to drop the tier —
+  // and #1097's rule alone claims an image (`nbds/color/appearance/…`) that #1148 stopped emitting. That is
+  // a contradicted claim, correctly.
+  //
+  // Composing hops is `materialize`'s job, not the accounting's, and `test.ts` covers it there: the (f3)
+  // compose arms drive both shipped rules through `composeVariableRenames` and assert the chained one-row
+  // result. What belongs HERE is one key per rule at the era that rule is FOR — so the colour key is
+  // written in the merge-base spelling, which is also the only spelling the live gate ever sees, `main`
+  // being 0.29.0. Fixture A carries the hand-written-both-sides version of the same hop.
   //
   // `ACCOUNTING_COLLECTION_MOVES` is the recollection map here, NOT `COLLECTION_RENAMES` — the two are
   // relative to different points in time and that module's header is where the distinction is argued. This
-  // is the fixture that would catch them being merged: `COLLECTION_RENAMES` sends `color` to
-  // `color.appearance`, and a post-#1013 base's `color` is the alias tier, so all 128 of its keys would
-  // read as unaccounted removals against a rule that is correct.
+  // is the fixture that would catch them being merged: `COLLECTION_RENAMES` has no entry for the pointer
+  // tier at all, so a base's `color.surface` keys would stay in a collection nothing emits and read as
+  // unaccounted removals against a rule that is correct.
   {
+    const NB = rootOf('nb');
     const before = new Set<VarKey>([
-      varKey('color.appearance', 'color/appearance/background/primary'),
-      varKey('color', 'color/background/primary'),
+      varKey('color.appearance', `${NB}/color/appearance/background/primary`),
       varKey('core-palette', 'palette/white'),
       varKey('core-dimension', 'dimension/0'),
       varKey('core-font', 'font/family/display'),
@@ -13642,49 +13703,90 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ]);
     const recollected = recollectAll(before, ACCOUNTING_COLLECTION_MOVES);
     ok([...recollected].sort().join(' | ') === [
-      varKey('color.appearance', 'color/appearance/background/primary'),
-      varKey('color.surface', 'color/background/primary'),
+      varKey('color', `${NB}/color/appearance/background/primary`),
       varKey('core', 'palette/white'),
       varKey('core', 'dimension/0'),
       varKey('core', 'font/family/display'),
       varKey('radius', 'radius/none'),
       varKey('type-sets', 'font-fluid/display/sm/strong'),
     ].sort().join(' | '),
-      `#1097: the accounting's collection moves merge the three \`core-*\` collections into one and name the alias tier's axis — ONE HOP each, and \`radius\`/\`type-sets\`/\`color.appearance\` are left alone (got ${[...recollected].sort().join(' | ')})`);
+      `#1097/#1148: the accounting's collection moves merge the three \`core-*\` collections into one and land the colour value tier on \`color\` — ONE HOP each, and \`radius\`/\`type-sets\` are left alone (got ${[...recollected].sort().join(' | ')})`);
 
-    const NB = rootOf('nb');
     const acct = accountFor(recollected, nbKeys, MATERIALIZATION_RENAMES, parseVarKey, NB);
-    ok(isTotal(acct) && acct.claims.length === 7 && acct.removed.length === 7 && acct.multiplyClaimed.length === 0,
-      `#1097: one rule accounts for the whole rename against the REAL nb emission — 7 hand-written pre-#1097 keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed. The after-set is what the emitter wrote, so a rule that agrees with itself and not with the emission fails here`);
+    ok(isTotal(acct) && acct.claims.length === 6 && acct.removed.length === 6 && acct.multiplyClaimed.length === 0,
+      `#1097/#1148: the rules account for the whole base against the REAL nb emission — 6 hand-written keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed. The after-set is what the emitter wrote, so a rule that agrees with itself and not with the emission fails here`);
 
-    // PER-RULE, NOT UNIFORM, and the asymmetry is the assertion. Dropping #1097's rule leaves all seven
-    // unaccounted; dropping either #1013 rule changes NOTHING, because this hop is not theirs. A uniform
-    // "drop one → 2 unaccounted" expectation of the kind fixture A carries would be wrong here, and wrong
-    // in the direction that hides things: it would pass on a rule set where the wrong rule did the work.
+    // PER-RULE, NOT UNIFORM, and the PARTITION is the assertion. Dropping #1097's rule strands the five
+    // pre-#1097 keys; dropping #1148's strands the one colour key; neither drop is a no-op and neither
+    // covers the other's keys. The old version of this arm expected the second rule to change NOTHING —
+    // true while the fixture held only pre-#1097 keys, and it would now PASS on a rule set where the wrong
+    // rule did the colour work, which is the direction that hides things. Keyed by id so a third rule
+    // arriving is a decision rather than a silent extra loop iteration.
+    const RULE_STRANDS: Record<string, number> = {
+      'namespace-and-core-tier-1097': 5,
+      'color-one-collection-1148': 1,
+    };
+    ok(Object.keys(RULE_STRANDS).length === MATERIALIZATION_RENAMES.length
+        && MATERIALIZATION_RENAMES.every((r) => r.id in RULE_STRANDS),
+      `#1148: every shipped rule has a declared strand count in this fixture (${MATERIALIZATION_RENAMES.map((r) => r.id).join(', ')} against ${Object.keys(RULE_STRANDS).join(', ')}) — a new rule must state which keys here are its own, rather than joining a loop that would pass by covering none of them`);
     for (const dropped of MATERIALIZATION_RENAMES) {
       const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
       const partial = accountFor(recollected, nbKeys, kept, parseVarKey, NB);
-      const mine = dropped.id === 'namespace-and-core-tier-1097';
-      ok(mine ? (!isTotal(partial) && partial.unaccountedRemovals.length === 7) : isTotal(partial),
-        `#1097: dropping \`${dropped.id}\` leaves ${partial.unaccountedRemovals.length} of the 7 keys unaccounted (expected ${mine ? 7 : 0}) — ${mine ? `named individually: ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}` : 'this hop is not that rule\'s, so removing it must change nothing — an arm that went red here would mean the wrong rule is doing the work'}`);
+      const want = RULE_STRANDS[dropped.id];
+      ok(!isTotal(partial) && partial.unaccountedRemovals.length === want,
+        `#1148: dropping \`${dropped.id}\` strands ${partial.unaccountedRemovals.length} of the 6 keys (expected ${want}), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
     }
 
     // THE COLLECTION-MOVE HALF, dropped one entry at a time — each entry is load-bearing or it is
     // decoration, and one arm per entry is what tells them apart.
     //
-    // IT FAILS AS A CONTRADICTED CLAIM, NOT AS AN UNACCOUNTED REMOVAL, and the distinction is worth
-    // pinning rather than papering over with `!isTotal`. A rule's `map` returns the NAME only (deliberately
-    // — see `MaterializationRule`), so the key keeps whichever collection the recollection left it in. With
-    // the move dropped, #1097's rule still claims `core-palette :: palette/white` and still produces the
-    // right name — but under the wrong collection, so the image is a key nothing emits. That is exactly the
-    // `target-not-planned` shape: a rule whose image resolves nowhere, which is inert at apply time.
+    // TWO FAILURE SHAPES, NOT ONE, and the difference is worth pinning rather than papering over with
+    // `!isTotal`:
+    //
+    //   · CONTRADICTED CLAIM, for the three `core-*` entries. A rule's `map` returns the NAME only
+    //     (deliberately — see `MaterializationRule`), so the key keeps whichever collection the
+    //     recollection left it in. With the move dropped, #1097's rule still claims
+    //     `core-palette :: palette/white` and still produces the right name — but under the wrong
+    //     collection, so the image is a key nothing emits. The `target-not-planned` shape: a rule whose
+    //     image resolves nowhere, inert at apply time.
+    //   · UNACCOUNTED REMOVAL, for `color.appearance → color`. #1148's domain names the LIVE collection, so
+    //     dropping the move takes the key out of the domain entirely and no claim is made at all. Not a
+    //     weaker failure — a different one, and reading them as interchangeable is how an arm ends up
+    //     asserting `!isTotal` and nothing else.
+    //
+    // AND TWO ENTRIES THIS FIXTURE CANNOT SEE, DECLARED RATHER THAN TOLERATED. `color → color.surface`
+    // (#1089) and `color.surface → color` (#1148) both need a base key in a collection no merge-base file
+    // holds: the first is pre-#1089 and past the point this accounting is ever run from, the second is
+    // #1148's orphan, which the emitter never writes again. Their rows read `0/0`, and the zero is backed
+    // by an assertion that the fixture holds no key in that collection — an unreachable entry stated as a
+    // measurement, not a loop iteration that happens to pass.
+    const MOVE_EXPECT: Record<string, { contradicted: number; unaccounted: number }> = {
+      'core-palette': { contradicted: 1, unaccounted: 0 },
+      'core-dimension': { contradicted: 1, unaccounted: 0 },
+      'core-font': { contradicted: 1, unaccounted: 0 },
+      'color.appearance': { contradicted: 0, unaccounted: 1 },
+      color: { contradicted: 0, unaccounted: 0 },
+      'color.surface': { contradicted: 0, unaccounted: 0 },
+    };
+    const beforeColls = new Set([...before].map((k) => parseVarKey(k).collection));
+    ok(Object.keys(MOVE_EXPECT).length === ACCOUNTING_COLLECTION_MOVES.length
+        && ACCOUNTING_COLLECTION_MOVES.every((m) => m.from in MOVE_EXPECT),
+      `#1148: every collection move has a declared expectation here (${ACCOUNTING_COLLECTION_MOVES.map((m) => m.from).join(', ')} against ${Object.keys(MOVE_EXPECT).join(', ')}) — a new entry has to state what dropping it does before the loop below will run`);
+    ok(Object.entries(MOVE_EXPECT)
+      .filter(([, e]) => e.contradicted === 0 && e.unaccounted === 0)
+      .every(([from]) => !beforeColls.has(from)),
+      `#1148: the only entries this fixture is silent about are the ones whose \`from\` collection it holds no key in (silent: ${Object.entries(MOVE_EXPECT).filter(([, e]) => !e.contradicted && !e.unaccounted).map(([f]) => f).join(', ') || 'NONE'}; held: ${[...beforeColls].sort().join(', ')}) — so a zero row is unreachable-by-construction rather than an entry gone quietly inert`);
     for (const move of ACCOUNTING_COLLECTION_MOVES) {
       const kept = ACCOUNTING_COLLECTION_MOVES.filter((m) => m.from !== move.from);
       const partial = accountFor(recollectAll(before, kept), nbKeys, MATERIALIZATION_RENAMES, parseVarKey, NB);
-      ok(!isTotal(partial) && partial.contradictedClaims.length === 1 && partial.unaccountedRemovals.length === 0
-          && /not emitted/.test(partial.contradictedClaims[0]?.contradiction ?? ''),
-        `#1097: dropping the \`${move.from} → ${move.to}\` collection move contradicts ${partial.contradictedClaims.length} claim (expected 1, and 0 unaccounted removals — got ${partial.unaccountedRemovals.length}): `
-        + `${partial.contradictedClaims.map((c) => `${c.from} → ${c.to}: ${c.contradiction}`).join(' · ') || 'NOTHING, so the entry is decoration'}`);
+      const want = MOVE_EXPECT[move.from];
+      const silent = want.contradicted === 0 && want.unaccounted === 0;
+      ok(partial.contradictedClaims.length === want.contradicted
+          && partial.unaccountedRemovals.length === want.unaccounted
+          && (silent ? isTotal(partial) : !isTotal(partial))
+          && (want.contradicted === 0 || /not emitted/.test(partial.contradictedClaims[0]?.contradiction ?? '')),
+        `#1097/#1148: dropping the \`${move.from} → ${move.to}\` collection move gives ${partial.contradictedClaims.length} contradicted / ${partial.unaccountedRemovals.length} unaccounted (expected ${want.contradicted} / ${want.unaccounted}): `
+        + `${partial.contradictedClaims.map((c) => `${c.from} → ${c.to}: ${c.contradiction}`).join(' · ') || partial.unaccountedRemovals.join(' · ') || (silent ? 'nothing, as declared — this fixture holds no key in that collection' : 'NOTHING, so the entry is decoration')}`);
     }
     // …and no `from` twice, which is the one way this list fails SILENTLY. `recollect` takes the FIRST
     // match, so a duplicate `from` makes the answer depend on array order — see that list's header for the
