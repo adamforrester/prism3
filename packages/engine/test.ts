@@ -13634,26 +13634,97 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // contains a live 2-CYCLE**. `recollect` is single-step and first-match, so a `color` key hops to
     // `color.surface` and a `color.surface` key hops back — forever.
     //
-    // That upgrades the contract's justification, and the upgrade is the reason this is worth re-aiming
-    // rather than deleting. Following these entries to a fixed point was previously *wrong* (it
-    // misattributed a variable to a collection it never entered); it is now *non-terminating*, and at an
-    // even hop count it is wrong while LOOKING like a no-op — which is the failure mode a `while` loop would
-    // present as success. So the arm asserts the oscillation directly, off the shipped list, with a bounded
-    // walk that must never settle. If someone retargets the #1089 entry and breaks the cycle, this fails BY
-    // NAME and the single-step contract needs its justification restated rather than quietly weakened.
-    const walk: VarKey[] = [varKey('color', `${WROOT}/color/background/primary`)];
-    for (let i = 0; i < 6; i++) walk.push(recollect(walk[walk.length - 1], ACCOUNTING_COLLECTION_MOVES));
-    const walkColls = walk.map((k) => parseVarKey(k).collection);
-    ok(walkColls.join(' → ') === 'color → color.surface → color → color.surface → color → color.surface → color'
-        && walk[1] !== walk[0] && walk[2] === walk[0],
-      `#1148: \`ACCOUNTING_COLLECTION_MOVES\` holds a 2-CYCLE, so a walk to a fixed point never terminates and an even number of hops is wrong while reading as a no-op — that is why \`recollect\` takes exactly one step (got ${walkColls.join(' → ')})`);
+    // THE CYCLE IS GONE, AND ITS DISAPPEARANCE IS THE FINDING RATHER THAN A REASON TO DELETE THIS ARM.
+    //
+    // The previous version asserted the oscillation directly: #1148's `color.surface → color` sat beside
+    // #1089's `color → color.surface`, so a `color` key hopped forever and an even hop count was wrong while
+    // reading as a no-op. It closed by saying that if someone retargeted the #1089 entry and broke the cycle,
+    // this arm would fail BY NAME and the single-step contract would need its justification restated rather
+    // than quietly weakened. **That is exactly what happened, and this is the restatement.**
+    //
+    // The #1089 entry was deleted (see `ACCOUNTING_COLLECTION_MOVES`): #1153 reused the name `color`, which
+    // turned a supposedly-inert entry into a live claim and fabricated 729 phantom removals on `main`. So
+    // single-step is no longer justified by *"a walk cannot terminate"*. It is justified by something
+    // stronger and checkable: **the list is ACYCLIC and has no chains at all**, so one step already IS the
+    // fixed point, and a `while` loop would be equivalent rather than merely dangerous.
+    //
+    // Asserted off the shipped list, both halves, so neither a re-introduced cycle nor a new chain can pass:
+    // no entry's `to` is any entry's `from` (acyclicity and chain-freedom in one), and a walk settles after
+    // exactly one hop for every entry in the list.
+    // ══ THE STEADY-STATE GUARD (#1153's real lesson) ═══════════════════════════════════════════════
+    //
+    // THE CLASS: a gate whose merge-base assumption flips silently when a merge changes what `main`
+    // emits. It is green on every PR — because each PR's merge base is the OLD `main`, where the
+    // assumption still holds — and red on `main` the instant that PR lands, because the base is now the
+    // new one. Nothing in a PR's own run can see it. #1153 is the instance: `ACCOUNTING_COLLECTION_MOVES`
+    // carried `{ from: 'color', to: 'color.surface' }` on the argument that a stale entry is INERT, which
+    // assumes a retired collection name stays retired. #1153 REUSED `color`, the entry reactivated against
+    // a live before-set, and 729 phantom removals appeared on `main` that no PR run could have shown.
+    //
+    // Both arms below exercise the accounting AT BASE == HEAD — the post-merge steady state — which is
+    // exactly the configuration no PR ever runs and the one that broke.
+    //
+    // ARM A, THE CLASS, and the sharper of the two: **no entry's `from` may name a collection the live
+    // emission still writes.** An entry is only inert while nothing emits its source; the moment a name is
+    // reused, every stale entry pointing at it becomes a live claim with the wrong meaning. Its oracle is
+    // the EMISSION ON DISK and its subject is the AUTHORED list — two independent origins, so this cannot
+    // agree with itself the way a check derived from the list alone would.
+    {
+      const liveColls = new Set<string>();
+      const gBrands = ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}`)));
+      ok(gBrands.length >= 3, `#1153 steady-state guard: reads ${gBrands.length} emitted brand(s) (floor 3) — an empty scan must not read as clean`);
+      for (const brand of gBrands)
+        for (const f of readdirSync(resolve(HERE, `./out/figma/${brand}`)).filter((n) => n.endsWith('.json'))) {
+          const j = JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/${f}`), 'utf8')) as { $collection?: string };
+          if (typeof j.$collection === 'string') liveColls.add(j.$collection);
+        }
+      const reactivated = ACCOUNTING_COLLECTION_MOVES.filter((m) => liveColls.has(m.from));
+      ok(liveColls.size > 0 && reactivated.length === 0,
+        `#1153: no ACCOUNTING_COLLECTION_MOVES entry names a collection the emission STILL WRITES — a stale entry is inert only while its source is dead, and a REUSED name turns it back into a live claim against the merge base (${liveColls.size} live collection(s); reactivated: ${reactivated.map((m) => `${m.from}->${m.to}`).join(', ') || 'none'})`);
+    }
+
+    // ARM B, THE INSTANCE, stated as the number the gate reports: with the live emission on BOTH sides —
+    // base == HEAD, nothing changed between them — the accounting must find NOTHING moved. Any non-zero
+    // here is manufactured by recollection alone, which is precisely what 729 phantom removals were.
+    {
+      const liveKeys = new Map<string, Set<VarKey>>();
+      for (const brand of ['nb', 'aurora', 'wendys'].filter((b) => existsSync(resolve(HERE, `./out/figma/${b}`)))) {
+        const ks = new Set<VarKey>();
+        for (const f of readdirSync(resolve(HERE, `./out/figma/${brand}`)).filter((n) => n.endsWith('.json')))
+          for (const k of keysFromEmittedFile(JSON.parse(readFileSync(resolve(HERE, `./out/figma/${brand}/${f}`), 'utf8')), f)) ks.add(k);
+        liveKeys.set(brand, ks);
+      }
+      for (const [brand, ks] of liveKeys) {
+        const root = BRAND_ROOTS[brand];
+        if (!root) throw new Error(`#1153 steady-state: no BRAND_ROOTS entry for ${brand} — an absent root reads as the whole emission having moved (see BRAND_ROOTS' header)`);
+        const a = accountFor(recollectAll(ks, ACCOUNTING_COLLECTION_MOVES), ks, MATERIALIZATION_RENAMES, parseVarKey, root);
+        ok(ks.size > 0 && a.removed.length === 0 && a.added.length === 0,
+          `#1153 steady-state (${brand}): base == HEAD must yield 0 removed / 0 added — ${ks.size} key(s) in, ${a.removed.length} removed / ${a.added.length} added. A non-zero here is a phantom manufactured by recollection, which is the shape that was green on the #1153 PR and red on main${a.removed.length ? ` (first: ${a.removed[0]})` : ''}`);
+      }
+    }
+
+    const froms = new Set(ACCOUNTING_COLLECTION_MOVES.map((m) => m.from));
+    const chained = ACCOUNTING_COLLECTION_MOVES.filter((m) => froms.has(m.to));
+    ok(chained.length === 0,
+      `#1153: \`ACCOUNTING_COLLECTION_MOVES\` is ACYCLIC AND CHAIN-FREE — no entry's target is another entry's source, which is what makes one step the fixed point and retires the 2-cycle #1089+#1148 used to hold (chained: ${chained.map((m) => `${m.from}->${m.to}`).join(', ') || 'none'})`);
+    for (const m of ACCOUNTING_COLLECTION_MOVES) {
+      const one = recollect(varKey(m.from, `${WROOT}/x/y`), ACCOUNTING_COLLECTION_MOVES);
+      const two = recollect(one, ACCOUNTING_COLLECTION_MOVES);
+      ok(one === varKey(m.to, `${WROOT}/x/y`) && two === one,
+        `#1153: one hop from \`${m.from}\` lands on \`${m.to}\` and a SECOND hop is a no-op — the fixed point single-step relies on (got ${parseVarKey(one).collection} then ${parseVarKey(two).collection})`);
+    }
     // And the single step itself, on the key the cycle is about: one hop from the merge-base spelling lands
     // on the LIVE collection and stops, which is the hop the accounting above actually used. A second step
     // would carry it to `color.surface`, out of every rule's domain, and every claim with it.
+    // And the single step on the key the old cycle was about. The second half of this used to assert that a
+    // second hop LEFT for `color.surface` and out of every rule's domain — the composition `recollect`
+    // refuses to perform. Post-#1153 the second hop is a NO-OP instead, which is strictly safer and is the
+    // property the deletion bought: `color` is the live collection and nothing moves a key out of it.
     ok(recollect(varKey('color.appearance', `${WROOT}/color/appearance/background/primary`), ACCOUNTING_COLLECTION_MOVES)
         === varKey('color', `${WROOT}/color/appearance/background/primary`)
-      && parseVarKey(recollect(varKey('color', `${WROOT}/color/appearance/background/primary`), ACCOUNTING_COLLECTION_MOVES)).collection === 'color.surface',
-      `#1148: one step from \`color.appearance\` lands on \`color\`; a second step leaves for \`color.surface\` and out of every rule domain — the composition this function refuses to perform`);
+      && recollect(varKey('color', `${WROOT}/color/appearance/background/primary`), ACCOUNTING_COLLECTION_MOVES)
+        === varKey('color', `${WROOT}/color/appearance/background/primary`),
+      `#1153: one step from \`color.appearance\` lands on the live \`color\`, and a second step is a no-op — where it used to leave for \`color.surface\` and out of every rule domain`);
   }
 
   // ---- FIXTURE B: A HAND-WRITTEN BASE AGAINST THE REAL EMISSION — ONE KEY PER RULE-BEHAVIOUR ----
@@ -13765,7 +13836,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       'core-dimension': { contradicted: 1, unaccounted: 0 },
       'core-font': { contradicted: 1, unaccounted: 0 },
       'color.appearance': { contradicted: 0, unaccounted: 1 },
-      color: { contradicted: 0, unaccounted: 0 },
+      // The `color` row is gone with #1089's entry (#1153 — see `ACCOUNTING_COLLECTION_MOVES`). The table
+      // is keyed by the SHIPPED list and asserted to match it exactly, so a deletion there has to be
+      // reflected here or this arm fails by name — which is how the deletion was checked.
       'color.surface': { contradicted: 0, unaccounted: 0 },
     };
     const beforeColls = new Set([...before].map((k) => parseVarKey(k).collection));
