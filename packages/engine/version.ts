@@ -102,6 +102,44 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.30.0: ONE COLOUR COLLECTION (#1148/#1150). The two-tier colour split ends. `color.surface` — the
+ * pointer tier, one alias per non-inverse role — is DELETED, and the value tier is renamed from
+ * `color.appearance` to `color`, taking the short names with it: `nbds/color/appearance/text/primary`
+ * becomes `nbds/color/text/primary` and there is nothing left to alias into. 243 variables in one
+ * collection with four appearance modes, where there were 243 + 130 in two. The artifact count goes
+ * 111 → 108: fifteen files leave (`color.appearance.<mode>.json` × 4 and `color.surface.json`, per
+ * Figma brand) and twelve arrive (`color.<mode>.json` × 4 × 3).
+ *
+ * WHAT THE COLLAPSE BUYS, and it is one thing said three ways. A designer picking a colour saw two
+ * collections and had to know which; a role bound from the pointer tier could not vary by appearance
+ * (that was the tier's whole limitation, and it is why every inverse role was excluded from it and had to
+ * be bound by name); and the pointer tier shipped `ALL_SCOPES` on every row, so it offered every variable
+ * everywhere Figma asks for a colour. One collection removes the choice, makes every role
+ * appearance-responsive including the 113 inverse ones, and puts the value tier's real scopes in front of
+ * the designer. #1013's argument for the split was appearance-INDEPENDENCE for consumers who want a fixed
+ * colour; nothing shipped ever wanted one.
+ *
+ * WHY THE VALUE TIER TAKES THE SHORT NAME RATHER THAN THE POINTER TIER KEEPING IT, and this is FORCED by
+ * the Figma API rather than chosen: `Variable.variableCollectionId` is `readonly`, so a variable can never
+ * be re-parented. Renaming the pointer collection onto `color` would strand the values and all four
+ * appearance modes in a collection called `color.appearance` with nothing pointing at them. The migration
+ * consequence for an existing file follows from the same fact — the old `color.surface` collection is
+ * ORPHANED rather than removed, because there is no operation that folds it in. See `COLLECTION_RENAMES`.
+ *
+ * #1150 RIDES ALONG BECAUSE IT IS THE SAME WRITE. Figma lists a collection in CREATION order, so the
+ * order the emitter writes role families in is the order a designer reads down the panel. It is now stated
+ * once, in `tree.ts`'s `COLOR_FAMILY_ORDER`, and drives BOTH the DTCG key order and the Figma write order
+ * — verified by mutation (reorder the list, re-emit, both follow) rather than by reading the code. The
+ * order is `background, foreground, text, icon, interactive, disabled, border, scrim, veil, field,
+ * inverse`: ground, then what sits on it, then what responds, then the edge, then the washes, then the one
+ * composite — and `inverse` LAST, since it re-states every family above and anywhere else splits each
+ * family into two places on screen. A resolved family the list does not name is a THROW, not a silent
+ * append. That the panel itself follows creation order is the owner's Figma check, not ours: the repo can
+ * only measure the write order.
+ *
+ * The name surface is `CONTRACT_VERSION` 9.0.0 below — 225 guaranteed paths removed, measured before the
+ * bump was chosen.
+ *
  * 0.29.0: ONE `inverse` GROUP (#1140). Every inverse colour role relocates to a single top-level
  * `inverse.` group — `color.appearance.background.inverse.primary` becomes
  * `color.appearance.inverse.background.primary`, `…text.on-inverse.primary` becomes
@@ -663,6 +701,38 @@ export const ENGINE_VERSION = '0.30.0';
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  *
+ * 9.0.0: THE `appearance` LEVEL IS DELETED AND THE VALUES TAKE THE SHORT NAMES BACK. 225 guaranteed paths
+ * removed, 104 added, 0 demoted, so MAJOR — every `color.appearance.<X>` is now `color.<X>`, and a consumer
+ * holding `color.appearance.text.primary` resolves to nothing. (687 → 566)
+ *
+ * THE MEASUREMENT CAME FIRST AND ITS SHAPE IS THE INTERESTING PART. 243 emitted value-tier paths move, and
+ * the naive reading is "243 removals, 243 additions". It is 225 and 104, for two independent reasons that
+ * happen to point the same way:
+ *
+ *   · 18 of the 243 are not GUARANTEED — the `overlay` slots 7.0.0 demoted, nine on each ground — so they
+ *     are not in the baseline's `guaranteed` and cannot be removals from it. 243 − 18 = 225.
+ *   · 130 of the 243 short target names ALREADY EXIST, because they are exactly the names the pointer tier
+ *     held. `color.text.primary` does not appear in `added`: it was guaranteed at 6.0.0 as a pointer and is
+ *     guaranteed now as a value, and what changed underneath it is that it can vary by appearance mode —
+ *     which is a `$value` fact and not a contract fact. So the additions are the inverse roles and nothing
+ *     else: 113 inverse paths minus the 9 brand-dependent ones = 104.
+ *
+ * **THAT SECOND BULLET IS THE MOST CONSEQUENTIAL SENTENCE IN THIS ENTRY.** A consumer who has been writing
+ * `color.text.primary` since before 3.0.0 is untouched by #1013 AND by #1148 — the short name never moved,
+ * only what stood behind it. The entire 225-path break falls on consumers who took #1013's advice and moved
+ * to the appearance tier. That is the cost of the split, paid on the way out, and it is why the guarantee
+ * is stated on names rather than on tiers.
+ *
+ * ALL 243 GET `DEPRECATIONS` ENTRIES ANYWAY, including the 18 no arm can check. The block says which lines
+ * carry a guarantee and which ride along; do not read that table as uniformly verified.
+ *
+ * NOTHING IS RETYPED and nothing is demoted, which is worth saying because a tier deletion sounds like it
+ * should shuffle the guarantee. It does not: every one of the 130 short names was already guaranteed across
+ * the whole corpus as a pointer, and a pointer and a value have the same `$type`.
+ *
+ * 8.0.0's entry below spells its paths `color.appearance.*`, deliberately — the record of what was decided
+ * then. Same rule the `DEPRECATIONS` table follows: history does not move, live names do. (#1148)
+ *
  * 8.0.0: EVERY INVERSE ROLE MOVES TO ONE TOP-LEVEL `inverse` GROUP. 104 guaranteed paths removed, 106
  * added, so MAJOR — a rename is a removal plus an addition, and a consumer holding
  * `color.appearance.text.on-inverse.primary` resolves to nothing after it. (685 → 687)
@@ -939,7 +1009,7 @@ export const ENGINE_VERSION = '0.30.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '8.0.0';
+export const CONTRACT_VERSION = '9.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -1221,6 +1291,139 @@ export const DEPRECATIONS: Deprecation[] = [
       path: `${group}.${leaf}`,
       replacedBy: `core.${group}.${leaf}`,
       since: '7.0.0',
+    }))),
+  // ── #1148: ONE COLOUR TIER ──────────────────────────────────────────────────────────────────────
+  //
+  // The `appearance` level is DELETED and the value tier takes the short names back. Every one of the
+  // 243 `color.appearance.<X>` paths becomes `color.<X>`. This is the exact inverse of #1013's move: the
+  // short names went to a pointer tier then and they come back to the values now, so a consumer who has
+  // been writing `color.text.primary` since before 3.0.0 is unaffected by either change and a consumer
+  // who followed #1013's advice to the appearance tier has to come back. That asymmetry is the cost of
+  // #1013 and it is being paid here rather than argued about.
+  //
+  // 225 of the 243 are GUARANTEED, which is the MAJOR (`CONTRACT_VERSION` 9.0.0 — measured with
+  // `token-contract.ts --check`, which reported exactly 225 removals, 0 demotions and 104 additions
+  // before this block was written). The other 18 are the `overlay` slots #957 demoted, nine on each
+  // ground.
+  //
+  // **THE 18 ARE CHECKED IN NEITHER DIRECTION, AND THEY ARE HERE ANYWAY.** Worth stating, because the
+  // rest of this table is load-bearing and these lines are not: a brand-dependent `path` is not in the
+  // baseline's `guaranteed`, so it never enters `removed` and no arm asks whether it was ever real; and
+  // its `replacedBy` is `brandDependent` too, which `classify` exempts from the dangling check by design
+  // (it reports them as `conditionalMigrations` instead). So a typo in one of those 18 tails passes every
+  // gate. They are included for the reason #1140's block included the same nine pairs: a consumer of a
+  // brand-dependent path is hit by this rename identically to a consumer of a guaranteed one, and
+  // splitting the record by which side of the guarantee a path fell on would answer "what happened to my
+  // token" for 225 people and not for the rest. The 225 checked lines are what makes the block trustworthy;
+  // these 18 ride along, and a reader should know which is which rather than assume uniform coverage.
+  //
+  // NO FIGMA ROWS COME OUT OF THIS BLOCK, and that is the point rather than an omission. `projectionsOf`
+  // strips the `appearance` tier segment from both sides via `TIER_SEGMENT`, so every entry here projects
+  // to `roleOf(from) === roleOf(to)` and yields NOTHING. The Figma half is
+  // `color-one-collection-1148` in `materialization-renames.ts` — one materialization rule, one record,
+  // which is the invariant `lint-materialization-renames.ts` enforces as `multiplyClaimed`. Writing the
+  // rename into both registers would fail that gate, by name, and rightly.
+  //
+  // WHY THE LIST IS LITERAL, for #1013's and #1102's reason and not a new one. The transform is a
+  // one-segment prefix strip, so importing whatever performed it would spell this table in a line and make
+  // it agree with any bug in the strip (`docs/34`). Written out, a wrong tail fails BOTH ways for the 225:
+  // `path` misses the removed set (an unjustified removal) and `color.<wrong tail>` misses the live set (a
+  // dangling deprecation). The two PREFIXES are computed, which is the same latitude #1102 takes — a
+  // constant carried into both columns still dangles if it is wrong.
+  ...([
+    ['background', [
+      'primary', 'secondary', 'tertiary',
+    ]],
+    ['border', [
+      'brand', 'danger', 'focus', 'info', 'primary', 'secondary', 'success', 'tertiary', 'warning',
+    ]],
+    ['disabled', [
+      'border', 'fill', 'icon', 'on-fill', 'text',
+    ]],
+    ['field', [
+      'border.hover', 'border.rest', 'fill', 'placeholder',
+    ]],
+    ['foreground', [
+      'brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'primary', 'secondary',
+      'success', 'success-subtle', 'tertiary', 'warning', 'warning-subtle',
+    ]],
+    ['icon', [
+      'brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default',
+      'link.focused', 'link.hover', 'link.visited', 'on-brand', 'on-danger', 'on-info', 'on-success',
+      'on-warning', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning',
+      'warning-subtle',
+    ]],
+    ['interactive', [
+      'destructive.border.hover', 'destructive.border.pressed', 'destructive.border.rest',
+      'destructive.fill.focused', 'destructive.fill.hover', 'destructive.fill.pressed',
+      'destructive.fill.rest', 'destructive.fill.selected', 'destructive.on-fill',
+      'destructive.overlay.hover', 'destructive.overlay.pressed', 'destructive.overlay.selected',
+      'destructive.text.hover', 'destructive.text.pressed', 'destructive.text.rest', 'neutral.border.hover',
+      'neutral.border.pressed', 'neutral.border.rest', 'neutral.fill.focused', 'neutral.fill.hover',
+      'neutral.fill.pressed', 'neutral.fill.rest', 'neutral.fill.selected', 'neutral.on-fill',
+      'neutral.overlay.hover', 'neutral.overlay.pressed', 'neutral.overlay.selected', 'neutral.text.hover',
+      'neutral.text.pressed', 'neutral.text.rest', 'primary.border.hover', 'primary.border.pressed',
+      'primary.border.rest', 'primary.fill.focused', 'primary.fill.hover', 'primary.fill.pressed',
+      'primary.fill.rest', 'primary.fill.selected', 'primary.on-fill', 'primary.overlay.hover',
+      'primary.overlay.pressed', 'primary.overlay.selected', 'primary.text.hover', 'primary.text.pressed',
+      'primary.text.rest',
+    ]],
+    ['inverse', [
+      'background.primary', 'background.secondary', 'background.tertiary', 'border.brand', 'border.danger',
+      'border.focus', 'border.info', 'border.primary', 'border.secondary', 'border.success',
+      'border.tertiary', 'border.warning', 'disabled.border', 'disabled.fill', 'disabled.icon',
+      'disabled.on-fill', 'disabled.text', 'field.border.hover', 'field.border.rest', 'field.fill',
+      'field.placeholder', 'foreground.brand', 'foreground.brand-subtle', 'foreground.danger',
+      'foreground.danger-subtle', 'foreground.info', 'foreground.info-subtle', 'foreground.primary',
+      'foreground.secondary', 'foreground.success', 'foreground.success-subtle', 'foreground.tertiary',
+      'foreground.warning', 'foreground.warning-subtle', 'icon.brand', 'icon.brand-subtle', 'icon.danger',
+      'icon.danger-subtle', 'icon.info', 'icon.info-subtle', 'icon.link.default', 'icon.link.focused',
+      'icon.link.hover', 'icon.link.visited', 'icon.primary', 'icon.secondary', 'icon.success',
+      'icon.success-subtle', 'icon.tertiary', 'icon.warning', 'icon.warning-subtle',
+      'interactive.destructive.border.hover', 'interactive.destructive.border.pressed',
+      'interactive.destructive.border.rest', 'interactive.destructive.fill.focused',
+      'interactive.destructive.fill.hover', 'interactive.destructive.fill.pressed',
+      'interactive.destructive.fill.rest', 'interactive.destructive.fill.selected',
+      'interactive.destructive.on-fill', 'interactive.destructive.overlay.hover',
+      'interactive.destructive.overlay.pressed', 'interactive.destructive.overlay.selected',
+      'interactive.destructive.text.hover', 'interactive.destructive.text.pressed',
+      'interactive.destructive.text.rest', 'interactive.neutral.border.hover',
+      'interactive.neutral.border.pressed', 'interactive.neutral.border.rest',
+      'interactive.neutral.fill.focused', 'interactive.neutral.fill.hover',
+      'interactive.neutral.fill.pressed', 'interactive.neutral.fill.rest',
+      'interactive.neutral.fill.selected', 'interactive.neutral.on-fill',
+      'interactive.neutral.overlay.hover', 'interactive.neutral.overlay.pressed',
+      'interactive.neutral.overlay.selected', 'interactive.neutral.text.hover',
+      'interactive.neutral.text.pressed', 'interactive.neutral.text.rest',
+      'interactive.primary.border.hover', 'interactive.primary.border.pressed',
+      'interactive.primary.border.rest', 'interactive.primary.fill.focused',
+      'interactive.primary.fill.hover', 'interactive.primary.fill.pressed', 'interactive.primary.fill.rest',
+      'interactive.primary.fill.selected', 'interactive.primary.on-fill',
+      'interactive.primary.overlay.hover', 'interactive.primary.overlay.pressed',
+      'interactive.primary.overlay.selected', 'interactive.primary.text.hover',
+      'interactive.primary.text.pressed', 'interactive.primary.text.rest', 'text.brand',
+      'text.brand-subtle', 'text.danger', 'text.danger-subtle', 'text.info', 'text.info-subtle',
+      'text.link.default', 'text.link.focused', 'text.link.hover', 'text.link.visited', 'text.primary',
+      'text.secondary', 'text.success', 'text.success-subtle', 'text.tertiary', 'text.warning',
+      'text.warning-subtle',
+    ]],
+    ['scrim', [
+      'default',
+    ]],
+    ['text', [
+      'brand', 'brand-subtle', 'danger', 'danger-subtle', 'info', 'info-subtle', 'link.default',
+      'link.focused', 'link.hover', 'link.visited', 'on-brand', 'on-danger', 'on-info', 'on-success',
+      'on-warning', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning',
+      'warning-subtle',
+    ]],
+    ['veil', [
+      'dark.body', 'dark.enhanced', 'dark.large', 'light.body', 'light.enhanced', 'light.large',
+    ]],
+  ] as Array<[string, readonly string[]]>).flatMap(([group, leaves]) =>
+    leaves.map((leaf) => ({
+      path: `color.appearance.${group}.${leaf}`,
+      replacedBy: `color.${group}.${leaf}`,
+      since: '9.0.0',
     }))),
 ];
 
