@@ -10,6 +10,22 @@
  * whole check — every rule evaluated over the entire before-set rather than only over what moved. The
  * accounting itself lives in `materialization-renames.ts`; this script only sources its two inputs.
  *
+ * ── TWO REGISTERS RECORD A RENAME, AND THIS GATE READS BOTH (#1140) ─────────────────────────────
+ *
+ * "Claimed by a rule" was the whole test until #1140, and it was never the whole truth. A rule covers a
+ * MATERIALIZATION move — the collection, the tier, the brand namespace. A CONTRACT rename moves the
+ * ROLE, and the role is the tail of every emitted variable name, so `DEPRECATIONS` is an equally
+ * authoritative record of a name leaving the emission. This gate now sources those claims too, from
+ * `rename-map.ts`'s projection, rooted per brand.
+ *
+ * **The hole was unreachable until #1140 and would have failed the FIRST honest PR that hit it.** Every
+ * contract-visible move between #1039 and #1140 was tier-or-namespace, i.e. already a rule; #1140 moved
+ * 113 roles and arrived as 339 unaccounted removals across three brands with nothing wrong — the rename
+ * was recorded, in the register the gate did not read. The wrong fix, which reads as the obvious one, is
+ * to write a materialization rule for it: that puts two differently-derived records in front of one
+ * Figma operation, one of which has a forcing function and one of which is performed by memory. Reading
+ * the contract is the fix; the report names which register claimed each removal so the two never blur.
+ *
  * ── WHY THE `from` SIDE IS GIT AND MUST STAY GIT ────────────────────────────────────────────────
  *
  * `docs/34` **shape 11** is this design's named risk: a rule stated as "what the emitter now does minus
@@ -58,8 +74,10 @@ import {
   parseVarKey,
   recollectAll,
   varKey,
+  type Claim,
   type VarKey,
 } from './materialization-renames';
+import { deriveVariableRenames } from './rename-map';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(HERE, '..', '..');
@@ -286,6 +304,22 @@ const rootOfBrand = (brand: string): string => {
   return roots[0];
 };
 
+// ---- the CONTRACT's own record of a rename, projected into this brand's names -----------------------
+//
+// `deriveVariableRenames()` rows are TAILS — brand-agnostic, because `DEPRECATIONS` is (see
+// `rename-map.ts`'s `reRoot`). Rooting them per brand is what makes them comparable with the emission,
+// and the root comes from the same `rootOfBrand` the rules use: from the DTCG tree, never from the Figma
+// names being accounted for.
+//
+// The `rule` id names the CONTRACT version, not an issue and not a materialization rule id, so a report
+// reader can tell which register claimed a removal at a glance — `contract:8.0.0` beside
+// `namespace-and-core-tier-1097`.
+const contractClaimsFor = (root: string): Claim[] => deriveVariableRenames().map((r) => ({
+  rule: `contract:${r.since}`,
+  from: varKey(r.collection, `${root}/${r.from}`),
+  to: varKey(r.collection, `${root}/${r.to}`),
+}));
+
 const brands = [...new Set([...beforeByBrand.keys(), ...afterByBrand.keys()])].sort();
 const empty = new Set<VarKey>();
 const per = brands.map((brand) => {
@@ -299,6 +333,7 @@ const per = brands.map((brand) => {
       MATERIALIZATION_RENAMES,
       parseVarKey,
       root,
+      contractClaimsFor(root),
     ),
   };
 });
@@ -316,6 +351,14 @@ const acct = {
   multiplyClaimed: per.flatMap((p) => p.a.multiplyClaimed.map((m) => ({ ...m, key: `${p.brand} · ${m.key}` }))),
 };
 
+// WHICH REGISTER CLAIMED, split for the report. "3 rule(s) making 339 claim(s)" was an honest summary
+// only while the rules were the sole register; at #1140 every one of the 339 is the CONTRACT's, and a
+// reader who cannot see that goes looking for a materialization rule that does not exist and should not.
+const ruleClaims = acct.claims.filter((c) => !c.rule.startsWith('contract:'));
+const contractClaims = acct.claims.filter((c) => c.rule.startsWith('contract:'));
+const claimTally = `${MATERIALIZATION_RENAMES.length} rule(s) making ${ruleClaims.length} claim(s) over the whole `
+  + `before-set, plus ${contractClaims.length} the contract already records`;
+
 const PRINT = 25;
 const listing = (label: string, xs: readonly string[]): string[] =>
   xs.length === 0 ? [] : [
@@ -332,7 +375,7 @@ if (!isTotal(acct)) {
     // #1097 rule's domain matches every live name and the report fills with contradictions that have
     // nothing to do with the diff. Seeing `nb@nbds` rules that out in one glance.
     `    brand roots (from the DTCG trees, not the emission): ${per.map((p) => `${p.brand}@${p.root}`).join(' · ')}`,
-    `    ${acct.removed.length} removed · ${acct.added.length} added · ${acct.claims.length} claim(s) evaluated over the whole before-set`,
+    `    ${acct.removed.length} removed · ${acct.added.length} added · ${claimTally}`,
     '',
     ...listing('UNACCOUNTED REMOVALS — a name left the emission and no rule claimed it', acct.unaccountedRemovals),
     // CONTEXT, NOT A CAUSE (#1053). Printed only inside an already-failing report, and labelled so no
@@ -352,6 +395,12 @@ if (!isTotal(acct)) {
     '  (`docs/44` §5). Add or correct one so the accounting is total. If a name really was DELETED rather',
     '  than renamed, that is not this gate\'s business and the rule should not claim it — but the deletion',
     '  then shows up here as an unaccounted removal, which is the conversation this gate exists to force.',
+    '',
+    '  A CONTRACT rename is not a rule and must not be given one. If the ROLE moved, the record is a',
+    '  `DEPRECATIONS` entry in `version.ts` (+ the `CONTRACT_VERSION` bump `token-contract.ts --accept`',
+    '  demands), and this gate reads it through `rename-map.ts` on its own — #1140 was the first of those.',
+    '  Writing a rule for one puts two differently-derived records in front of one Figma operation, and',
+    '  the key then fails here as CLAIMED BY MORE THAN ONE RULE rather than going quietly.',
   ];
   die(out);
 }
@@ -360,7 +409,7 @@ console.log(
   `✓ materialization renames accounted for — base ${base.slice(0, 8)} (${baseRef}, via ${baseVia}), `
   + `roots ${per.map((p) => `${p.brand}@${p.root}`).join(' · ')}: `
   + `${acct.beforeCount} keys → ${acct.afterCount}, ${acct.removed.length} removed / ${acct.added.length} added, `
-  + `${MATERIALIZATION_RENAMES.length} rule(s) making ${acct.claims.length} claim(s) over the whole before-set.`
+  + `${claimTally}.`
   // Said in the SUCCESS line, not only in the header, because this is where a reader meets the rule:
   // an additive change is the common case, and "6 added" sitting in a passing run needs to explain
   // itself or it reads as something the gate failed to notice.

@@ -68,12 +68,14 @@ never `foreground`; it is `text` / `icon`.
 | `background.primary` | white | neutral.950 | the page (the usual default) |
 | `background.secondary` | ~neutral.50 | neutral.900 | a slightly greyer page / page band |
 | `background.tertiary` | ~neutral.100 | neutral.850 | a third page-level step (reserve) |
-| `background.inverse.primary` | neutral.950 | white | inverse page context (a dark band on a light page) |
-| `background.inverse.secondary` | neutral.900 | ~neutral.50 | inverse, second step |
-| `background.inverse.tertiary` | neutral.850 | ~neutral.100 | inverse, third step |
+| `inverse.background.primary` | neutral.950 | white | inverse page context (a dark band on a light page) |
+| `inverse.background.secondary` | neutral.900 | ~neutral.50 | inverse, second step |
+| `inverse.background.tertiary` | neutral.850 | ~neutral.100 | inverse, third step |
 
 Capped at tertiary; **no `quaternary`, no `sunken`, no neutral `subtle`.** `inverse`
-is a parallel sibling ladder, not a `.default`/`.inverse` split on every leaf.
+is a parallel sibling ladder, not a `.default`/`.inverse` split on every leaf — and
+since #1140 the whole ladder hangs off **one** top-level `inverse.` group rather than
+a marker inside each family, so the inverse form of any role is `inverse.` + its name.
 
 ### `foreground.*` — surfaces & fills on the canvas (the deep layer)
 
@@ -82,7 +84,7 @@ is a parallel sibling ladder, not a `.default`/`.inverse` split on every leaf.
 | `foreground.primary` | ~white/neutral.25 | neutral.900 | the default surface placed on the page (a card) |
 | `foreground.secondary` | ~neutral.50 | neutral.850 | a second surface (a panel / nested) |
 | `foreground.tertiary` | ~neutral.100 | neutral.800 | a third surface step |
-| `foreground.inverse.primary…tertiary` | neutral.900…700 | … | dark surfaces in light mode (the strong/bold neutral fill; ex-`foreground.primary=950` lands here) |
+| `inverse.foreground.primary…tertiary` | neutral.900…700 | … | dark surfaces in light mode (the strong/bold neutral fill; ex-`foreground.primary=950` lands here) |
 | `foreground.{brand,success,warning,danger,info}` | semantic.600 | … | **bold** solid semantic fills (filled badge / banner / button) |
 | `foreground.{…}-subtle` | semantic.50 | … | **subtle** semantic tints (light-red banner surface, etc.) |
 
@@ -100,7 +102,7 @@ consistent.
 | `text.{brand,success,warning,danger,info}` | **bold** semantic ink |
 | `text.{…}-subtle` | **subtle / muted** semantic ink (the "quiet danger") — gated at the **large-text / non-text bar** (3:1, 4.5:1 in HC), not the 4.5:1 the bold form clears, so it is for large text and non-text accents rather than body copy (#570) |
 | `text.on-{semantic}` (e.g. `on-brand`/`on-success`/`on-danger`) | ink for *on top of* a solid semantic fill (paired contrast) |
-| `text.on-inverse` | ink on an inverse surface (renamed from `on-emphasis`; keeps `on-` because it IS ink-on — see #891) |
+| `inverse.text.*` | ink on an inverse surface — the same ladder as `text.*` above, relocated under the single `inverse.` group (#1140). It was `text.on-emphasis`, then `text.on-inverse` (#891); the `on-` is **gone** because the `inverse.` prefix already carries "on the inverse surface", and `on-` now takes only a GROUND — a fill (`on-fill`) or a status colour (`text.on-brand`) |
 | `text.link.{default,hover,visited,focused}` | interactive text (links) — **no `disabled`** (a disabled link is an anti-pattern) |
 
 `icon.*` mirrors `text.*`, diverging only when `iconContrast: '3:1'` lets
@@ -122,16 +124,23 @@ and `border.focus` are its text/border expressions.
 
 ### `border.*` — edges
 
-`border.primary / secondary` (neutral), `border.{semantic}`, `border.focus`
-(the focus ring colour) and `border.inverse.focus` (the same ring, for elements on an
+`border.primary / secondary / tertiary` (neutral), `border.{semantic}`, `border.focus`
+(the focus ring colour) and `inverse.border.focus` (the same ring, for elements on an
 inverse surface). In **high contrast** the border targets escalate (≥4.5:1)
 because borders — not surface tints — carry structure in HC (see §4).
 
+The neutral ladder runs to **tertiary** since #1140, on both grounds. It was the only
+surface/ink category stopping at secondary, and the rung it lacked is the *strongest*
+one: `primary` is the mode's border target, `secondary` is ×2.2, `tertiary` ×2.2 again.
+There is no `inverse.border.default` — the old `border.inverse.default` was
+byte-identical to `border.inverse.primary` in both light and dark, so #1140 dropped it
+rather than carry two names for one value.
+
 The focus ring is split by ground rather than shared because one value cannot clear
 3:1 on both: the page-gated ring measured **2.09:1 (hc-light) / 2.40:1 (hc-dark)**
-against `background.inverse.primary` — failing SC 1.4.11 worst in the two modes whose
+against `inverse.background.primary` — failing SC 1.4.11 worst in the two modes whose
 purpose is serving users who most depend on seeing focus. Both halves are gated at the
-non-text floor, *not* at `border.inverse`'s decorative target: a focus indicator keeps
+non-text floor, *not* at `inverse.border.*`'s decorative target: a focus indicator keeps
 its accessibility bar in every context (#573).
 
 ## 4. Per-mode resolution

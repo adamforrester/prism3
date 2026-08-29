@@ -10,7 +10,8 @@
  * From #893 until #1133 the collection carried two modes, `default` and `inverse`, and switching the
  * mode on an ancestor frame flipped a whole subtree to its inverse-context values. That is reverted.
  * Inverse is **name-encoded** again — a bounded set of components declares an inverse variant and binds
- * `color.appearance.*.inverse.*` by name, the shape `focus-ring` has shipped all along.
+ * `color.appearance.inverse.*` by name, the shape `focus-ring` has shipped all along. (The marker moved
+ * to a top-level `inverse/` group in #1140; it used to sit mid-path, per family.)
  *
  * The reasoning is in `docs/20` §9.8, and the short version is that mode-encoding only pays if you flip
  * EVERYTHING: #1128 measured 112 of 128 roles flipping, which is the number that makes a mode look
@@ -161,10 +162,11 @@ export type UnaliasedBinding = {
 
 export const UNALIASED_DEF_BINDINGS: UnaliasedBinding[] = [
   {
-    path: 'color.appearance.border.inverse.focus',
+    path: 'color.appearance.inverse.border.focus',
     boundBy: 'focus-ring:border.inverse',
     why:
-      'The only inverse path any def binds, and the only def-bound path this layer cannot carry — by construction, not by omission: `isInverseRole` excludes an inverse role from being a row, because an inverse role is bound BY NAME at the appearance tier. A `color.border.inverse.focus` pointer would be a second short spelling for a leaf whose whole point is that the component names it deliberately. ' +
+      'The only inverse path any def binds, and the only def-bound path this layer cannot carry — by construction, not by omission: `isInverseRole` excludes an inverse role from being a row, because an inverse role is bound BY NAME at the appearance tier. A `color.inverse.border.focus` pointer would be a second short spelling for a leaf whose whole point is that the component names it deliberately. ' +
+      'THE PATH MOVED IN #1140 AND THE `boundBy` DID NOT, which is worth stating because they look like the same rename. `path` is a ROLE path and inverse roles moved to a top-level `inverse.` group, so it is now `color.appearance.inverse.border.focus`. `boundBy` is `<def id>:<token slot>`, and a `focus-ring` token slot is `{slot}.{color}` off its own `paintKeys` — `border` plus the variant value `inverse` — which is a coordinate in the def\'s variant space and not a role name at all. It would only move if the ring renamed its variant. ' +
       '#1133 TURNED THIS ENTRY FROM AN EXCEPTION INTO THE TEMPLATE, and that is the one substantive change to this note since #1013. It used to read as a def that had missed out on surface-responsiveness and was waiting for #1028 to let it be deleted: the pointer row for `border.focus` carried `default -> color.appearance.border.focus, inverse -> color.appearance.border.inverse.focus`, so the frame mode gave a ring binding the plain path the same two values the variant got from a coordinate, and the explicit binding was redundant. ' +
       'With the surface mode reverted there is no frame mode to get them from, so the redundancy is gone and the explicit binding is the ONLY way a ring on a dark band gets the right edge. `focus-ring` declares `color: default | inverse` and binds the two ends by name — precisely the bounded, name-encoded shape #1133 chose for every inverse component — so this entry is no longer meant to die. #1028 (making `figmaProperties.variantAxes` accept an empty axis list, which is what deleting the binding would have needed, since `color` is the ring\'s only variant axis and `figmaPropertyErrors` rejects `[]` outright) stops being a prerequisite for anything here. ' +
       'It stays REGISTERED rather than being dropped from the register, because the register\'s arms are what distinguish this from a binding nobody argued: the coverage arm fails an unregistered reach into the value tier, and the staleness arm fails this entry if `focus-ring` stops naming the path. What changed is the expectation — the staleness arm now guards a binding meant to persist rather than announcing one meant to be removed.',

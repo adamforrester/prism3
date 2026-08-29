@@ -126,7 +126,8 @@ npx tsx packages/engine/lint-layout-claims.ts       # the docs describe the repo
                                                     # therefore requires editing CLAUDE.md's layer table,
                                                     # README.md and docs/09 §3 in the SAME PR — #669
                                                     # shipped a README.md with no `skills/` row at all
-npx tsx packages/engine/lint-context-nodes.ts        # a context node (`inverse` / `on-inverse`) is a
+npx tsx packages/engine/lint-context-nodes.ts        # a context node (since #1140, the one top-level
+                                                    # `inverse` group) is a
                                                     # GROUP unless named in LEAF_OK with a reason
                                                     # (#892). The default is asymmetric-cost, not
                                                     # taste: a leaf that later needs siblings is a
@@ -135,7 +136,11 @@ npx tsx packages/engine/lint-context-nodes.ts        # a context node (`inverse`
                                                     # fails, AND an entry whose node has since gained
                                                     # siblings fails as stale. The reason must say
                                                     # whether the node is single-valued BY CONCEPT or
-                                                    # merely so far; those age differently
+                                                    # merely so far; those age differently. Arm C is
+                                                    # #1140 Rule 2: `on-` takes a GROUND (a fill, or a
+                                                    # status colour), never a role or a rank — so
+                                                    # `on-fill` and `on-brand` pass and `on-inverse`,
+                                                    # `on-primary`, `on-disabled` are refused by name
 npx tsx packages/engine/lint-ratio-truth.ts          # every reported contrast ratio matches the color
                                                     # it was measured against (#956), recomputed from
                                                     # the FINAL emitted colors. `test.ts`'s contract

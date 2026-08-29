@@ -16,7 +16,8 @@
  *
  * The collection carried `default` and `inverse` modes from #993 until #1133 reverted inverse to
  * NAME-encoding: a bounded set of components declares an inverse variant and binds
- * `color.appearance.*.inverse.*` by name, rather than every row in the tier flipping with an ancestor
+ * `color.appearance.inverse.*` by name (one top-level group since #1140), rather than every row in the
+ * tier flipping with an ancestor
  * frame's mode (`docs/20` §9.8). The pointer tier is single-mode, `Default`.
  *
  * #993's criterion (2) — *switching the mode changes the resolved colour* — therefore has no subject
@@ -60,7 +61,7 @@
  *
  * ── AND THE MISS PATH, WHICH THE HEALTHY PATH CANNOT REACH ──────────────────────────────────────
  *
- * The corpus measures 0 unresolved targets out of 129 per brand, so a suite that only ran the happy
+ * The corpus measures 0 unresolved targets out of 130 per brand, so a suite that only ran the happy
  * path would leave the miss branch unexecuted and report that as a pass (#969). Three hosts drive it
  * deliberately: no `color.appearance` collection at all, one missing a single target, and the healthy
  * file — asserting in all three that the report matches what is actually in the file.
@@ -156,14 +157,16 @@ const byId = new Map(shim.vars.map((v) => [v.id, v]));
 const aliasVars = new Map(shim.vars.filter((v) => v.variableCollectionId === aliasCol.id).map((v) => [v.name, v]));
 const modeId = (c: ShimCollection, name: string): string => c.modes.find((m) => m.name === name)!.modeId;
 
-// The plan is the corpus fact this whole suite is scaled against — 129 rows × 1 mode. It was 128 × 2
+// The plan is the corpus fact this whole suite is scaled against — 130 rows × 1 mode. It was 128 × 2
 // until #1133: one mode instead of two, and one row MORE, because `color.scrim.default` had been the
-// register's single `omit` entry and there is no longer a per-mode behaviour for it to be undecided
-// about. Both halves of that are spelled out, because a bare `plan.create.length * plan.modes.length`
-// happens to be satisfied by 258 as readily as by 129.
+// register's single `omit` entry and there is no longer a per-mode behavior for it to be undecided
+// about. #1140 added the 130th, `color.border.tertiary` — the pointer tier generates a row per
+// NON-INVERSE appearance role, so a new neutral border rung arrives here without anything being
+// written for it. Every part of that is spelled out, because a bare
+// `plan.create.length * plan.modes.length` happens to be satisfied by 260 as readily as by 130.
 const expectedBound = plan.create.length * plan.modes.length;
-ok(plan.create.length === 129 && plan.modes.length === 1 && expectedBound === 129,
-  `the plan is 129 rows × 1 mode = 129 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
+ok(plan.create.length === 130 && plan.modes.length === 1 && expectedBound === 130,
+  `the plan is 130 rows × 1 mode = 130 bindings (got ${plan.create.length} × ${plan.modes.length} = ${expectedBound})`);
 
 // ---- ACCEPTANCE 1: exactly one mode, named `Default` ---------------------------------------
 ok(aliasCol.modes.map((m) => m.name).join(',') === SURFACE_MODES.join(','),
@@ -247,7 +250,7 @@ ok(rows.length === plan.create.length && rows.every((r) => r.resolved !== undefi
 // rows collapsing onto one target. It is the cheapest thing that distinguishes a real per-row mapping
 // from an executor that resolved the target lookup once and reused it, and NOTHING else here would
 // notice — the structural arm sees aliases, the referential arm sees a target in the right collection,
-// and both are satisfied by 129 aliases pointing at the same variable.
+// and both are satisfied by 130 aliases pointing at the same variable.
 const targetIds = [...aliasVars.values()].map((v) => v.valuesByMode[modeId(aliasCol, SURFACE_MODES[0])]).filter(isAlias).map((a) => a.id);
 ok(targetIds.length === expectedBound && new Set(targetIds).size === expectedBound,
   `#993(3) the ${expectedBound} rows alias ${expectedBound} DISTINCT variables — a per-row mapping, not one target reused (${new Set(targetIds).size} distinct)`);

@@ -52,8 +52,7 @@ const genMeaning = (group: string, variant: string): string => {
   if (variant === 'focus') return 'Keyboard focus indication';
   if (SIGNAL[variant]) return SIGNAL[variant];                                  // intent fill/text/icon/border (incl. danger)
   if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return `${SIGNAL[i] ?? cap(i)} (low-emphasis)`; }
-  if (variant.startsWith('on-')) { const x = variant.slice(3); return `Legible content on ${x === 'inverse' ? 'an inverse surface' : (INTENT[x] ?? x) + ' fills'}`; }
-  if (variant === 'inverse') return group === 'border' ? 'Inverted-surface separation' : group === 'background' ? 'Inverted page surface' : 'Inverted / bold surface';
+  if (variant.startsWith('on-')) { const x = variant.slice(3); return `Legible content on ${(INTENT[x] ?? x)} fills`; }
   if (group === 'background') return 'Page / canvas surface';
   if (group === 'foreground') return 'Surface / fill on the canvas';
   if (group === 'text' || group === 'icon') return 'Content hierarchy / reading emphasis';
@@ -62,25 +61,32 @@ const genMeaning = (group: string, variant: string): string => {
   if (group === 'veil') return 'Text legibility over a photograph';
   return `${cap(group)} role`;
 };
-// the on-color target an on-* label sits on
-const onTarget = (x: string): string => x === 'inverse' ? 'background.inverse.primary' : `foreground.${x}`;
+// the on-color target an on-* label sits on. Every `on-<x>` is a STATUS FILL since #1140 — `on-inverse`
+// is retired, because an inverse surface is a context and `on-` names a ground that gets painted.
+const onTarget = (x: string): string => `foreground.${x}`;
 
 /** Generate the prose + relationship fields for one semantic role. The key splits
- *  as [group, variant, state]; nested ladders (background.inverse.primary,
- *  text.link.hover) put the tier/state in `state`. */
+ *  as [group, variant, state]; nested ladders (background.secondary, text.link.hover)
+ *  put the tier/state in `state`.
+ *
+ *  IT NEVER SEES AN INVERSE ROLE, and that is #1140's doing rather than an omission. An inverse role is
+ *  its page twin plus one leading `inverse.` segment, so it splits into the same [group, variant, state]
+ *  and gets the same description, DECORATED — see `onInverseGround` below. Before the restructure this
+ *  function carried four bespoke inverse branches (background, foreground, border, and the `on-`
+ *  spelling) plus a fifth in `describeInteractive`, each re-stating the same "on a dark band" idea in its
+ *  own words, and `disabled`/`field` had none at all so their five and four inverse roles fell through to
+ *  the generic fallback. One prefix strip covers all 113 and closes those nine by construction. */
 const describe = (group: string, variant: string, state: string | undefined): { desc: string; when_to_use: string; avoid_when: string; paired_with?: string[] } => {
   const st = state ? ` (${state} state)` : '';
   const intent = INTENT[variant];
 
   // background — the CANVAS (thin, page-level)
   if (group === 'background') {
-    if (variant === 'inverse') { const tier = state ?? 'primary'; return { desc: `Inverse page surface (tier ${TIER_N[tier] ?? 1})`, when_to_use: 'Inverted page sections — a dark band on a light page (or vice-versa).', avoid_when: 'Do not place mode-default ink on it — use the text.on-inverse.* set.', paired_with: ['text.on-inverse.primary', 'border.inverse.default'] }; }
     if (TIER_N[variant]) return { desc: `Page / canvas surface (tier ${TIER_N[variant]})`, when_to_use: variant === 'primary' ? 'The page / base canvas.' : variant === 'secondary' ? 'A slightly tinted page or page band.' : 'A third page-level surface step.', avoid_when: 'Do not use for surfaces placed on the page (use foreground.*) or for ink (use text/icon).', paired_with: ['foreground.primary', 'text.primary', 'border.primary'] };
   }
 
   // foreground — SURFACES & FILLS placed on the canvas
   if (group === 'foreground') {
-    if (variant === 'inverse') { const tier = state ?? 'primary'; return { desc: `Inverse / bold surface (tier ${TIER_N[tier] ?? 1})`, when_to_use: 'Strong / inverse fills — a dark callout, a solid neutral button, an emphasis surface in light mode.', avoid_when: 'Do not use for the page (use background.*) or for ink (use text/icon).', paired_with: ['text.on-inverse.primary'] }; }
     if (TIER_N[variant]) return { desc: `Surface placed on the canvas (tier ${TIER_N[variant]})`, when_to_use: variant === 'primary' ? 'Cards — the default surface placed on the page.' : variant === 'secondary' ? 'Panels / nested containers.' : 'A third surface step.', avoid_when: 'Do not use for the page itself (use background.*) or for ink (use text/icon).', paired_with: ['text.primary', 'border.primary'] };
     if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return { desc: `Subtle ${INTENT[i] ?? i} tint surface`, when_to_use: `Low-emphasis ${i} surfaces — banners, badges, selected rows.`, avoid_when: `Do not use as a solid ${i} fill (use foreground.${i}) or for ${i} ink (use text.${i}).`, paired_with: [`text.${i}`, `icon.${i}`] }; }
     if (intent) return { desc: `Bold solid ${intent} fill`, when_to_use: `Filled ${variant} elements — badges, banners, status chips.`, avoid_when: `Do not use for ${variant} ink (use text.${variant}) or as a subtle tint (use foreground.${variant}-subtle).`, paired_with: [`text.on-${variant}`, `icon.on-${variant}`] };
@@ -93,7 +99,7 @@ const describe = (group: string, variant: string, state: string | undefined): { 
     // (disabled ink is the cross-cutting disabled.text / disabled.icon, group === 'disabled' below.)
     if (variant === 'link') return { desc: `Link (interactive ${k})${st}`, when_to_use: `Hyperlinks and interactive ${k}${sc(state)}.`, avoid_when: `Do not use for non-interactive ${k} (use ${k}.primary).` };
     if (variant.endsWith('-subtle')) { const i = variant.replace('-subtle', ''); return { desc: `Muted ${INTENT[i] ?? i} ${k}`, when_to_use: `Low-emphasis ${i} ${k} — secondary status text / quiet accents.`, avoid_when: `For safety-critical ${i} messaging use the bold ${k}.${i}; verify contrast for body text.`, paired_with: ['background.primary'] }; }
-    if (variant.startsWith('on-')) { const x = variant.slice(3); return { desc: `${cap(k)} on ${x === 'inverse' ? 'an inverse surface' : `a solid ${INTENT[x] ?? x} fill`}`, when_to_use: `${cap(k)} placed on the ${x === 'inverse' ? 'inverse surface' : x + ' fill'} it is paired with.`, avoid_when: `Do not use on standard surfaces — use ${k}.primary/secondary.`, paired_with: [onTarget(x)] }; }
+    if (variant.startsWith('on-')) { const x = variant.slice(3); return { desc: `${cap(k)} on a solid ${INTENT[x] ?? x} fill`, when_to_use: `${cap(k)} placed on the ${x} fill it is paired with.`, avoid_when: `Do not use on standard surfaces — use ${k}.primary/secondary.`, paired_with: [onTarget(x)] }; }
     if (intent) return { desc: `${cap(intent)} ${k}`, when_to_use: `${cap(variant)} ${k} on standard surfaces (e.g. inline error/success text).`, avoid_when: `Do not use on a solid ${variant} fill — use ${k}.on-${variant}.`, paired_with: ['background.primary'] };
   }
 
@@ -101,14 +107,12 @@ const describe = (group: string, variant: string, state: string | undefined): { 
   if (group === 'border') {
     if (variant === 'primary') return { desc: 'Default / decorative border', when_to_use: 'Dividers, card outlines, low-emphasis separation.', avoid_when: 'Do not use where a 3:1 non-text contrast is required (use border.secondary / border.focus).' };
     if (variant === 'secondary') return { desc: 'Stronger divider border', when_to_use: 'Higher-emphasis dividers and separators; control borders.', avoid_when: 'Do not use as a faint hairline (use border.primary).' };
-    // `border.inverse` is a group since #891 — `default` (decorative) and `focus` (the ring), with
-    // the role dispatched off `state` because it is the third segment. The old flat
-    // `border.focus-inverse` is gone; #892 fills the rest of the container.
-    if (variant === 'inverse') {
-      if (state === 'focus') return { desc: 'Focus ring color on inverse surfaces', when_to_use: 'The keyboard-focus indicator on elements sitting on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces (use border.focus), or as a decorative border on an inverse surface (use border.inverse.default).', paired_with: ['background.inverse.primary'] };
-      return { desc: 'Border on inverse surfaces', when_to_use: 'Borders on background.inverse / foreground.inverse.', avoid_when: 'Do not use on default surfaces, or as a focus ring on one (use border.inverse.focus).', paired_with: ['background.inverse.primary'] };
-    }
-    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary), or on an inverse surface (use border.inverse.focus).', paired_with: ['background.primary'] };
+    // `border.inverse` HAD A BESPOKE BRANCH HERE UNTIL #1140, dispatching `default` (decorative) versus
+    // `focus` (the ring) off the third segment. Both are ordinary `border` roles now —
+    // `inverse.border.primary` and `inverse.border.focus` — so they take the branches below and the
+    // inverse decoration, and `default` is gone entirely: it was byte-identical to `primary`.
+    if (variant === 'tertiary') return { desc: 'Strongest divider border', when_to_use: 'The most prominent structural edge — a table outline, a section rule, the boundary that has to read as deliberate.', avoid_when: 'Do not use as a hairline (use border.primary) or as a focus ring (use border.focus) — the ring has its own hue for a reason.' };
+    if (variant === 'focus') return { desc: 'Focus ring color', when_to_use: 'The keyboard-focus indicator on interactive elements.', avoid_when: 'Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).', paired_with: ['background.primary'] };
     if (intent) return { desc: `${cap(intent)} validation border`, when_to_use: `Validation/state borders for ${variant} (e.g. invalid fields).`, avoid_when: `Do not use as ${variant} ink or fill — use text.${variant} / foreground.${variant}.` };
   }
 
@@ -131,7 +135,7 @@ const describe = (group: string, variant: string, state: string | undefined): { 
     if (variant === 'placeholder') return { desc: 'Form field placeholder ink', when_to_use: 'Placeholder / hint text inside a field — readable (4.5) on the field fill.', avoid_when: 'Do not use as a label (a11y anti-pattern) or for the entered value (use text.primary).', paired_with: ['field.fill'] };
   }
 
-  if (group === 'scrim') return { desc: 'Semi-transparent backdrop behind modals / drawers', when_to_use: 'The dimming layer behind a modal, dialog, or drawer.', avoid_when: 'Do not use as a solid surface or for any opaque element.', paired_with: ['foreground.inverse.primary'] };
+  if (group === 'scrim') return { desc: 'Semi-transparent backdrop behind modals / drawers', when_to_use: 'The dimming layer behind a modal, dialog, or drawer.', avoid_when: 'Do not use as a solid surface or for any opaque element.', paired_with: ['inverse.foreground.primary'] };
 
   // veil — the media wash (#1030). `variant` is the polarity, `state` the rung. A rung is a contrast
   // floor, so the guidance is decision-shaped: pick by the text you are placing, then by the image.
@@ -142,7 +146,7 @@ const describe = (group: string, variant: string, state: string | undefined): { 
       desc: `Media veil (${variant}) — ${floor}:1 for ${state === 'large' ? 'large text' : state === 'body' ? 'body text' : 'enhanced contrast'}`,
       when_to_use: `A wash over a photograph or video so ${ink} text on top clears ${floor}:1 at the image's worst pixel. Pick the polarity from the image (${variant} veil under ${ink} text), then the rung from the text.`,
       avoid_when: 'Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.',
-      paired_with: [variant === 'dark' ? 'text.on-inverse.primary' : 'text.primary'],
+      paired_with: [variant === 'dark' ? 'inverse.text.primary' : 'text.primary'],
     };
   }
 
@@ -170,22 +174,60 @@ const describeInteractive = (color: string, slot: string, state: string | undefi
     const st = state && state !== 'rest' ? ` (${state} state)` : '';
     return { desc: `${cap(c)} interactive border — the outline edge${st}`, when_to_use: `The border of an OUTLINE ${c} interactive element${sc(state)}.`, avoid_when: `Do not use as ink (use interactive.${c}.text) or as a page divider (use border.primary).`, paired_with: [`interactive.${c}.text.${state ?? 'rest'}`, 'background.primary'] };
   }
-  // The inverse column nests its real slot one deeper (`inverse.<slot>.<state>`), so the sub-slot is
-  // what `state` carries here and the actual state sits a segment further on. Describing the whole
-  // column as one thing is how "on-inverse means ink" got established in the first place (#891):
-  // three of its four slots are not ink — `fill` is a filled CTA, `border` is an edge, and `on-fill`
-  // is the ink ON that fill. So it dispatches, and each sub-slot names its own inverse-context twin.
-  if (slot === 'inverse') {
-    const sub = state ?? 'text';
-    const onInv = 'placed on a dark hero / inverse section';
-    if (sub === 'fill') return { desc: `${cap(c)} interactive fill on an inverse surface`, when_to_use: `The fill of a FILLED ${c} control ${onInv} — a light CTA on dark.`, avoid_when: `Do not use on the standard page (use interactive.${c}.fill).`, paired_with: [`interactive.${c}.inverse.on-fill`, 'background.inverse.primary'] };
-    if (sub === 'on-fill') return { desc: `Ink on the ${c} inverse fill`, when_to_use: `The label / icon on a filled ${c} control ${onInv}.`, avoid_when: `Do not use on the standard page (use interactive.${c}.on-fill).`, paired_with: [`interactive.${c}.inverse.fill.rest`] };
-    if (sub === 'border') return { desc: `${cap(c)} interactive border on an inverse surface — the outline edge`, when_to_use: `The border of an OUTLINE ${c} control ${onInv}.`, avoid_when: `Do not use on the standard page (use interactive.${c}.border) or as a divider on a dark band (use border.inverse).`, paired_with: [`interactive.${c}.inverse.text.rest`, 'background.inverse.primary'] };
-    if (sub === 'overlay') return { desc: `${cap(c)} interactive overlay on an inverse surface`, when_to_use: `The hover / pressed / selected wash for an outline or text ${c} control ${onInv}. Opposite polarity to the page wash, because the band is the opposite lightness.`, avoid_when: `Do not use on the standard page (use interactive.${c}.overlay.*) — a light wash on a light page is invisible, which is the same failure in reverse.`, paired_with: ['text.on-inverse.primary', 'background.inverse.primary'] };
-    return { desc: `${cap(c)} interactive ink on an inverse surface`, when_to_use: `The ink for an outline/text ${c} control ${onInv} — a light CTA on dark.`, avoid_when: `Do not use on the standard page (use interactive.${c}.text) or on a ${c} fill (use interactive.${c}.inverse.on-fill).`, paired_with: ['background.inverse.primary'] };
-  }
-  if (slot === 'overlay') return { desc: `${cap(c)} interactive overlay${state ? ` — ${state}` : ''}`, when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.`, avoid_when: `Do not use as an opaque fill (use interactive.${c}.fill.* or foreground.${c}-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use interactive.${c}.inverse.overlay.* there.`, paired_with: ['text.primary'] };
+  // A `slot === 'inverse'` BLOCK STOOD HERE UNTIL #1140, and it was the clearest single argument for the
+  // restructure. The inverse column nested its real slot one deeper (`inverse.<slot>.<state>`), so `state`
+  // carried the sub-slot and the actual state sat a segment further on — which meant the block had to
+  // re-implement `fill`/`on-fill`/`border`/`overlay`/`text` a second time, off a shifted index, and it
+  // silently dropped the state from all five (`fill.hover` and `fill.rest` got the same prose). With the
+  // marker moved to a leading `inverse.` segment the column splits identically to the page column, so the
+  // five branches below serve both grounds, states included, and the decoration says which ground.
+  if (slot === 'overlay') return { desc: `${cap(c)} interactive overlay${state ? ` — ${state}` : ''}`, when_to_use: `A translucent ${c} ${state ?? 'interaction'} wash for outline/text controls and hover/pressed/selected rows, menus, cards, on the PAGE ground.`, avoid_when: `Do not use as an opaque fill (use interactive.${c}.fill.* or foreground.${c}-subtle), as a modal backdrop (use scrim.*), or on a dark hero — the page wash is the page's polarity, so use inverse.interactive.${c}.overlay.* there.`, paired_with: ['text.primary'] };
   return { desc: `${cap(c)} interactive ${slot}`, when_to_use: `The ${slot} of a ${c} interactive element.`, avoid_when: `Do not use outside the ${c} interactive family.` };
+};
+
+/**
+ * ── THE INVERSE DECORATION (#1140) ──────────────────────────────────────────────────────────────
+ *
+ * `inverse.<X>` is described as `<X>` and then decorated, because that is exactly what the name now
+ * claims: the leading group says "same role, other ground", so a second body of prose for each inverse
+ * role would be a second answer to a question the name already answers. Six bespoke branches went in
+ * exchange for this one function, and nine roles (`disabled` ×5, `field` ×4) gained a real description
+ * they never had.
+ *
+ * The decoration is deliberately thin — it names the GROUND and the page twin to reach for instead, and
+ * leaves the role's own guidance alone. Rewriting the borrowed `avoid_when` would mean re-deciding, per
+ * role, whether each named alternative has an inverse counterpart, which is precisely the per-family
+ * bespoke work the restructure removed.
+ *
+ * `paired_with` IS remapped, and it is the one field that has to be, because a pairing is a concrete
+ * token a consumer will bind: an inverse fill paired with `background.primary` would send ink to the
+ * wrong ground. The remap is driven by the EMITTED role set (`known`) rather than by
+ * `inverse-coverage.ts` — a role whose counterpart does not exist keeps the page pairing, which is the
+ * right answer for the seventeen registered gaps (a veil over a photograph really does pair with the
+ * same ink on either ground) without this function needing to know why any individual gap exists.
+ */
+type Described = { desc: string; when_to_use: string; avoid_when: string; paired_with?: string[] };
+
+/** The one leading segment that marks a role as living on the inverse ground (#1140 Rule 1). */
+const INVERSE_GROUP = 'inverse';
+
+/** Extra guidance that is genuinely about the GROUND rather than the role, keyed by the segment it
+ *  applies to. Kept tiny on purpose: an entry here is a claim the page prose cannot make. */
+const INVERSE_NOTE: Record<string, string> = {
+  overlay: ' Its polarity is the opposite of the page wash, because the band is the opposite lightness — a light wash on a light page is invisible, and this is that failure in reverse.',
+};
+
+const onInverseGround = (d: Described, pageKey: string, known: (role: string) => boolean): Described => {
+  const note = pageKey.split('.').map((s) => INVERSE_NOTE[s]).find(Boolean) ?? '';
+  return {
+    desc: `${d.desc}, on an inverse surface`,
+    when_to_use: `${d.when_to_use} Only on an INVERSE ground — a dark band on a light page, or the reverse.${note}`,
+    avoid_when: `Do not use on the page ground; that is \`${pageKey}\`. ${d.avoid_when}`,
+    paired_with: d.paired_with?.map((p) => {
+      const twin = `${INVERSE_GROUP}.${p}`;
+      return known(twin) ? twin : p;
+    }),
+  };
 };
 
 // ---- primitive tier (simplified) -------------------------------------------
@@ -263,17 +305,25 @@ export const buildAiMetadata = (theme: Theme, tree: any) => {
 
   const colorRoles: Record<string, AiToken> = {};
   for (const [roleKey, perMode] of Object.entries(byRole)) {
-    const [group, variant, state] = roleKey.split('.');
+    // #1140: an inverse role is its page twin with one leading segment, so it is split, described and
+    // meant AS its page twin, then decorated. Everything downstream of `pageKey` is ground-agnostic.
+    const inverse = roleKey.startsWith(`${INVERSE_GROUP}.`);
+    const pageKey = inverse ? roleKey.slice(INVERSE_GROUP.length + 1) : roleKey;
+    const [group, variant, state] = pageKey.split('.');
     const light = perMode.light;
     // interactive.<color>.<slot>.<state?> carries a 4th segment — describe it whole.
-    const d = group === 'interactive'
-      ? describeInteractive(variant, state, roleKey.split('.')[3])
+    const base = group === 'interactive'
+      ? describeInteractive(variant, state, pageKey.split('.')[3])
       : describe(group, variant, state);
+    const d = inverse ? onInverseGround(base, pageKey, (r) => r in byRole) : base;
     const mode_overrides: Record<string, string> = {};
     for (const [mode, r] of Object.entries(perMode)) mode_overrides[mode] = `{${r.path}}`;
     const ai: AiToken = {
       $description: `${cap(d.desc)}.`,                 // what it IS (plain)
-      meaning: group === 'interactive' ? 'Interactivity / actions' : genMeaning(group, variant), // what it SIGNIFIES / is for
+      // what it SIGNIFIES / is for. The inverse ground is a suffix on the page role's meaning, for the
+      // same reason the description is decorated rather than rewritten: the role signifies the same thing.
+      meaning: (group === 'interactive' ? 'Interactivity / actions' : genMeaning(group, variant))
+        + (inverse ? ' (inverse ground)' : ''),
       when_to_use: d.when_to_use,
       avoid_when: d.avoid_when,
       // Same condition as `contrast_with` below, on purpose — the level IS the presence of a real

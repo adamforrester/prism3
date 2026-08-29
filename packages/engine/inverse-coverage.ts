@@ -1,5 +1,5 @@
 /**
- * Prism3 engine — THE INVERSE-COVERAGE REGISTER (#892 step 5, #893, #1133).
+ * Prism3 engine — THE INVERSE-COVERAGE REGISTER (#892 step 5, #893, #1133, #1140).
  *
  * Every semantic colour role either has an inverse counterpart or is named here with the reason it
  * does not. That is the whole point: **a deliberate gap and an oversight must not look identical.**
@@ -30,6 +30,19 @@
  * ("nobody has argued it yet"), because that is the distinction a reader is here for. The consequence
  * of `undecided` simply moved: it used to withhold a Figma row, and now it withholds an inverse
  * variant.
+ *
+ * ── #1140 MOVED NO DATA HERE, AND THAT IS WORTH STATING ─────────────────────────────────────────
+ *
+ * #1140 relocated all 113 inverse roles to a top-level `inverse.` group. Not one path below changed,
+ * because every path below is a role that HAS NO inverse counterpart — the register stores the
+ * uncovered role, never the counterpart it lacks. So the rename passes straight through the data and
+ * touches only the prose that quotes a counterpart's SHAPE (`inverse.interactive.<palette>.on-fill`
+ * below, `inverse.scrim.*`).
+ *
+ * What did get simpler is the CHECK: `test.ts` re-derives the counterpart locally, and the derivation
+ * is now `inverse.` + the role for every family, where it needed three shapes before. It stays a LOCAL
+ * derivation rather than an import from `modes.ts` or `surface-rows.ts` — `docs/34` shape 1: a register
+ * checked against the emitter's own expression of the same rule agrees with any bug in it.
  */
 
 /** One class of role with no inverse counterpart, and why. */
@@ -54,7 +67,7 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'not change. So there is nothing for an inverse counterpart to hold: the same token really is the '
       + 'right answer on either ground, which makes the absence correct rather than a placeholder. The '
       + 'case where a fill DOES change on an inverse ground is a different family and is already covered '
-      + '— interactive.<palette>.inverse.on-fill. Excluded on principle in #892 step 4, and it is the '
+      + '— inverse.interactive.<palette>.on-fill. Excluded on principle in #892 step 4, and it is the '
       + 'same principle that makes the gap sound (#1133: an inverse variant of one of these components '
       + 'would bind the identical token, so there is no variant to declare).',
   },
@@ -73,7 +86,7 @@ export const INVERSE_GAPS: InverseGap[] = [
       + 'spelling, and a consumer had to write `color.appearance.scrim.default` to say "I know there is no '
       + 'per-surface answer yet". With the mode reverted a pointer row asks nothing, so the short name is '
       + 'emitted like every other role\'s and the open question moved to where it always belonged: whether '
-      + 'the APPEARANCE tier ever grows a `scrim.inverse.*`, and therefore whether a scrim can have an '
+      + 'the APPEARANCE tier ever grows an `inverse.scrim.*`, and therefore whether a scrim can have an '
       + 'inverse variant. Still nobody\'s call to make silently — the register is now the only thing '
       + 'holding it, which is the job it was built for.',
   },

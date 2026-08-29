@@ -208,7 +208,9 @@ ok(realRenames.length >= 40,
 
 // FAN-IN IS IN THE SHIPPED MAP, and the two files below exist because of it. Two historical paths really
 // do point at one live path (a 3.0.0 entry and a 4.0.0 entry both landing on
-// `color/interactive/<palette>/inverse/border/rest`), so "seed every source" and "seed a realistic file"
+// `color/inverse/interactive/<palette>/border/rest` — spelled
+// `color/interactive/<palette>/inverse/border/rest` until #1140 moved the marker to the front, which
+// changes the target's name and nothing about the fan-in), so "seed every source" and "seed a realistic file"
 // are DIFFERENT files with different correct answers. Driven from the real map rather than a synthetic
 // one, because the whole question is whether the map the engine actually ships is migratable.
 const byTarget = new Map<string, typeof realRenames>();

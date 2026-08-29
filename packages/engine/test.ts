@@ -1417,22 +1417,23 @@ for (const b of brands) {
 
 // INVERSE + neutralEmphasis + accentPalette (docs/20 §9/§10/§3, increment 4).
 {
-  // (a) inverse surface-context: interactive.<color>.inverse present + gated against the
+  // (a) inverse surface-context: inverse.interactive.<color> present + gated against the
   //     inverse surface in every mode. Unconditional since #895 — see (a2).
   const modes = resolveAllModes(nbTheme());
   const invFails: string[] = [];
   for (const m of modes)
     for (const c of ['primary', 'neutral', 'destructive']) {
-      const r = m.roles[`interactive.${c}.inverse.text.rest`];
+      const r = m.roles[`inverse.interactive.${c}.text.rest`];
       if (!r) { invFails.push(`${m.mode}:${c}:absent`); continue; }
-      if (r.against !== 'background.inverse.primary') invFails.push(`${m.mode}:${c}:against=${r.against}`);
+      if (r.against !== 'inverse.background.primary') invFails.push(`${m.mode}:${c}:against=${r.against}`);
       if (r.min > 0 && r.ratio < r.min) invFails.push(`${m.mode}:${c}:${r.ratio.toFixed(2)}<${r.min}`);
     }
-  ok(invFails.length === 0, 'inverse: interactive.<color>.inverse.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
+  ok(invFails.length === 0, 'inverse: inverse.interactive.<color>.text.rest gated on the inverse surface in every mode' + (invFails.length ? ` — ${invFails.slice(0, 3).join(',')}` : ''));
   // (a2) NO LEVER GATES THE INVERSE VOCABULARY (#895). This replaces the test that asserted the
   // opposite — `inverse: false` emits no inverse inks — because that behaviour WAS the defect: a
-  // toggle that deleted 79 contract-GUARANTEED paths, so `prism.text.on-inverse.primary` resolved to
-  // nothing with no error and no `CONTRACT_VERSION` bump. The old gate could not see it: the corpus
+  // toggle that deleted 79 contract-GUARANTEED paths, so `prism.inverse.text.primary` resolved to
+  // nothing with no error and no `CONTRACT_VERSION` bump (spelled `prism.text.on-inverse.primary` at
+  // the time; #1140 moved the marker, which changes nothing about the defect). The old gate could not see it: the corpus
   // runs every lever at its DEFAULT, so `token-contract.ts --check` never builds a brand with the
   // lever off. A gate that only ever observes the default cannot find a defect that lives off it.
   //
@@ -1441,7 +1442,7 @@ for (const b of brands) {
   // and asks which committed-guaranteed inverse paths went missing.
   //
   // EQUALITY, not "is empty", and that is deliberate in both directions. The answer today is not zero:
-  // `outlineInteraction` at `solid-tint` / `none` removes the 9 `interactive.<c>.inverse.overlay.*`
+  // `outlineInteraction` at `solid-tint` / `none` removes the 9 `inverse.interactive.<c>.overlay.*`
   // paths, because emitting no overlay tokens is that lever's entire declared purpose. That is the
   // SAME structural defect wearing a different disposition — the honest fix there is almost certainly
   // to demote those paths to `brandDependent` (the contract is wrong, not the lever), which is a
@@ -1454,7 +1455,12 @@ for (const b of brands) {
       for (const k of ks.slice(0, -1)) { if (typeof c[k] !== 'object' || c[k] === null) c[k] = {}; c = c[k]; }
       c[ks[ks.length - 1]] = v;
     };
-    const isInv = (p: string) => /(^|\.)inverse(\.|$)|(^|\.)on-inverse(\.|$)/.test(p);
+    // #1140 — the marker is ONE segment, immediately under the value tier, so this is an exact prefix
+    // where it used to be a two-alternative any-depth match (`(^|\.)inverse(\.|$)` OR the same for
+    // `on-inverse`, which no longer exists as a spelling). A prefix that matched nothing would satisfy
+    // "no lever removes a guaranteed inverse path" vacuously, which is exactly what the `>= 100` floor
+    // two assertions down is for — it is load-bearing for this line, not decoration.
+    const isInv = (p: string) => p.startsWith('color.appearance.inverse.');
     const guaranteedInv = Object.keys(readBaseline().guaranteed).filter(isInv);
     const removable = new Set<string>();
     for (const l of leverManifest) {
@@ -1470,7 +1476,7 @@ for (const b of brands) {
     }
     // KNOWN IS NOW EMPTY, AND THAT IS THE FIX THIS ARM ASKED FOR (#957, landing with #1102).
     //
-    // It used to hold 9 paths — `interactive.<c>.inverse.overlay.{hover,pressed,selected}` — with the note
+    // It used to hold 9 paths — `inverse.interactive.<c>.overlay.{hover,pressed,selected}` — with the note
     // that "the honest fix is almost certainly to demote those paths to `brandDependent` (the contract is
     // wrong, not the lever)". That demotion has now happened, so the paths are no longer in
     // `readBaseline().guaranteed`, `guaranteedInv` never offers them, and the equality assertion fired
@@ -1485,7 +1491,10 @@ for (const b of brands) {
     // satisfiable by demoting every inverse path there is.
     //
     // The SWEPT count is 104, down from 113, and the arithmetic is the whole story: 113 − 9 demoted. It
-    // survived #1013's tier rename unchanged at 113, which was that rename's useful reading here.
+    // survived #1013's tier rename unchanged at 113, which was that rename's useful reading here, and
+    // #1140's marker relocation the same way: 103 guaranteed paths were renamed one-for-one and
+    // `inverse.border.tertiary` arrived as the offset for the deduped `border.inverse.default`, so the
+    // count of guaranteed inverse paths is the same 104 on both sides of a 104-removed / 106-added diff.
     const KNOWN: string[] = [];
     const got = [...removable].sort();
     const unexpected = got.filter((p) => !KNOWN.includes(p));
@@ -1501,7 +1510,7 @@ for (const b of brands) {
     // which is where the demotion has to land for the arm above to be honest — if they had been DELETED
     // instead, `KNOWN: []` would pass for the wrong reason and nothing here would notice.
     const demotedOverlays = (['primary', 'neutral', 'destructive'] as const)
-      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.interactive.${c}.inverse.overlay.${s}`)).sort();
+      .flatMap((c) => ['hover', 'pressed', 'selected'].map((s) => `color.appearance.inverse.interactive.${c}.overlay.${s}`)).sort();
     const bd = new Set(readBaseline().brandDependent);
     const notDemoted = demotedOverlays.filter((p) => !bd.has(p));
     ok(notDemoted.length === 0,
@@ -1517,7 +1526,8 @@ for (const b of brands) {
   // What the register is FOR moved with #1133 and the arms did not, which is worth stating because it
   // is the reason they survived a revert. Under mode-encoding the register instructed the pointer tier
   // per row: omit this one, or point its `inverse` mode at the same token. There is no `inverse` mode
-  // now — inverse is name-encoded, bound by a bounded set of components at `color.appearance.*` — so
+  // now — inverse is name-encoded under one top-level `inverse` group since #1140, bound by a bounded
+  // set of components at `color.appearance.inverse.*` — so
   // the register's consumer is no longer an emitter, it is a component author: a role listed below is
   // a role no inverse variant can bind. That makes the register what BOUNDS the bounded set, and both
   // directions still matter for the same reasons.
@@ -1532,14 +1542,23 @@ for (const b of brands) {
   // namespaces are reconciled here in one place rather than by storing the engine-internal spelling.
   {
     const roleSet = new Set(modes.find((m) => m.mode === 'light')!.roles ? Object.keys(modes.find((m) => m.mode === 'light')!.roles) : []);
-    const isInv = (k: string) => /(^|\.)inverse(\.|$)|(^|\.)on-inverse(\.|$)/.test(k);
-    const covered = (k: string): boolean => {
-      const seg = k.split('.');
-      const cands = [[seg[0], 'inverse', ...seg.slice(1)].join('.')];
-      if (seg[0] === 'interactive' && seg.length > 1) cands.push([seg[0], seg[1], 'inverse', ...seg.slice(2)].join('.'));
-      if (seg[0] === 'text' || seg[0] === 'icon') cands.push([seg[0], 'on-inverse', ...seg.slice(1)].join('.'));
-      return cands.some((c) => roleSet.has(c));
-    };
+    // THE COUNTERPART RULE IS ONE LINE SINCE #1140, AND IT IS SPELLED OUT HERE ON PURPOSE.
+    //
+    // It used to be three candidate shapes, because the marker sat in three different segment positions
+    // depending on the family: `<group>.inverse.<rest>`, `interactive.<palette>.inverse.<rest>`, and
+    // `{text,icon}.on-inverse.<rest>`. A role was "covered" if ANY of the three resolved, which meant the
+    // arm could not tell a family whose counterpart is named correctly from one named under a shape that
+    // happens to also be admitted. Rule 1 — `inverse(X) = inverse. + X`, no exceptions — makes that one
+    // candidate, so a counterpart under any other spelling now reads as UNCOVERED, which is the answer.
+    //
+    // Both `isInv` and `covered` build the name from a rule WRITTEN HERE rather than by calling anything
+    // that produces names (`isInverseRole`, `modes.ts`). That is deliberate and it is the docs/34 shape-1
+    // hazard for this arm: derive the expected counterpart from the emitter and a rename moves both sides
+    // together, so the arm reports green over a taxonomy that has come apart. A literal rule fails BOTH
+    // ways — if `modes.ts` emits a marker anywhere but the front, arm 1 reports every role as uncovered;
+    // if this rule is the one that is wrong, arm 2 reports the whole register as stale.
+    const isInv = (k: string) => k === 'inverse' || k.startsWith('inverse.');
+    const covered = (k: string): boolean => roleSet.has(`inverse.${k}`);
     const uncovered = [...roleSet].filter((k) => !isInv(k) && !covered(k)).map((k) => `color.${k}`).sort();
     const unregistered = uncovered.filter((k) => !INVERSE_GAP_PATHS.has(k));
     ok(unregistered.length === 0,
@@ -1671,7 +1690,7 @@ for (const b of brands) {
     // "Is this role a ground" is answered in two places, for two jobs: `engineGrounds` decides what
     // the override layer REFUSES, and `lint-ratio-truth`'s `groundsOf` decides what that gate SWEEPS.
     // They forked — #963 added `legibleFor` as a second ground-edge and only the gate learned about
-    // it, so `text.primary` and `text.on-inverse.primary` (nine overlay dependents each) were
+    // it, so `text.primary` and `inverse.text.primary` (nine overlay dependents each) were
     // invisible to the refusal for two releases.
     //
     // HELD rather than collapsed, deliberately: making one call the other would end the divergence by
@@ -1764,7 +1783,7 @@ for (const b of brands) {
         ['text.primary', 'neutral', '500'],
         ['foreground.brand', 'neutral', '100'],
         ['interactive.primary.fill.rest', 'neutral', '300'],
-        ['background.inverse.secondary', 'neutral', '500'],
+        ['inverse.background.secondary', 'neutral', '500'],
       ];
       const impure: string[] = [], unstable: string[] = [];
       for (const [role, palette, step] of probes) {
@@ -1837,10 +1856,18 @@ for (const b of brands) {
       // EXPECTED comes from `color.appearance.light.json`, a different file written by a different
       // builder, with the inverse split re-derived HERE off the emitted Figma name (`/` segments) rather
       // than by importing `isInverseRole`. Importing it would make this `isInverseRole === isInverseRole`
-      // with an emission in between (`docs/34` shape 1) — and the regex the emitter uses is written over
-      // DTCG dot paths, so a local one over slash paths is not even the same expression.
-      const invSeg = (n: string): boolean => n.split('/').some((sg) => sg === 'inverse' || sg === 'on-inverse');
+      // with an emission in between (`docs/34` shape 1) — and the predicate the emitter uses is written
+      // over DTCG dot paths, so a local one over slash paths is not even the same expression.
+      //
+      // #1140 made the local one an exact POSITION rather than an any-depth segment scan: the marker is
+      // the segment immediately under the tier root, so `.../color/appearance/inverse/...` is the whole
+      // test where it used to be "any segment equals `inverse` or `on-inverse`". That is a real tightening
+      // for this arm — a role emitted as `background/inverse/primary` was admitted as inverse by the old
+      // scan and is now correctly counted as a NON-inverse appearance role with no pointer, which is what
+      // the `missing` half then reports. The floor below is what keeps the tightening from reading as a
+      // pass when it matches nothing.
       const appearanceRoot = `${rootOfBrand(brand)}/color/appearance/`;
+      const invSeg = (n: string): boolean => n.startsWith(`${appearanceRoot}inverse/`);
       const expected = new Set([...colorVars]
         .filter((n) => n.startsWith(appearanceRoot) && !invSeg(n))
         .map((n) => `${rootOfBrand(brand)}/color/${n.slice(appearanceRoot.length)}`));
@@ -1898,12 +1925,12 @@ for (const b of brands) {
   for (const m of modes)
     for (const c of ['primary', 'neutral', 'destructive'])
       for (const st of ['rest', 'hover', 'pressed']) {
-        const r = m.roles[`interactive.${c}.inverse.border.${st}`];
+        const r = m.roles[`inverse.interactive.${c}.border.${st}`];
         if (!r) { invBdFails.push(`${m.mode}:${c}:${st}:absent`); continue; }
-        if (r.against !== 'background.inverse.primary') invBdFails.push(`${m.mode}:${c}:${st}:against=${r.against}`);
+        if (r.against !== 'inverse.background.primary') invBdFails.push(`${m.mode}:${c}:${st}:against=${r.against}`);
         if (r.min > 0 && r.ratio < r.min) invBdFails.push(`${m.mode}:${c}:${st}:${r.ratio.toFixed(2)}<${r.min}`);
       }
-  ok(invBdFails.length === 0, 'inverse: interactive.<color>.inverse.border.{rest,hover,pressed} each gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
+  ok(invBdFails.length === 0, 'inverse: inverse.interactive.<color>.border.{rest,hover,pressed} each gated on the inverse surface in every mode' + (invBdFails.length ? ` — ${invBdFails.slice(0, 3).join(',')}` : ''));
 
   // (b) neutralEmphasis 'strong' → a bold neutral fill that clears the non-text floor, on-fill still gated.
   const strong = resolveAllModes({ ...nbTheme(), neutralEmphasis: 'strong' });
@@ -1917,12 +1944,21 @@ for (const b of brands) {
   ok(strongFails.length === 0, 'neutralEmphasis: strong gives a floor-clearing neutral fill with a gated on-ink' + (strongFails.length ? ` — ${strongFails.slice(0, 2).join(',')}` : ''));
 
   // (c) interactivePalettes: opt-in → a full interactive.<name>.* column, all contracts hold; absent by default.
-  const noAccent = resolveAllModes(nbTheme()).flatMap((m) => Object.keys(m.roles)).filter((k) => k.startsWith('interactive.accent'));
+  // BOTH SPELLINGS OF "AN ACCENT ROLE", and #1140 is what split them. The accent column has a page half
+  // (`interactive.accent.*`) and an inverse half that now leads with the marker
+  // (`inverse.interactive.accent.*`), so a single `startsWith('interactive.accent')` sweep silently stops
+  // covering the inverse half — the column's contracts would go unchecked with the arm still green.
+  const isAccentRole = (k: string): boolean => k.startsWith('interactive.accent') || k.startsWith('inverse.interactive.accent');
+  const noAccent = resolveAllModes(nbTheme()).flatMap((m) => Object.keys(m.roles)).filter(isAccentRole);
   ok(noAccent.length === 0, 'accent: no extra column with an empty interactivePalettes (never falls back to primary)' + (noAccent.length ? ` — ${noAccent.slice(0, 2).join(',')}` : ''));
   const acc = resolveAllModes({ ...nbTheme(), interactivePalettes: [{ name: 'accent', palette: 'green', anchorStep: 500 }] });
   const accLight = acc.find((m) => m.mode === 'light')!.roles;
-  const accMissing = ['fill.rest', 'on-fill', 'text.rest', 'border.rest', 'border.hover', 'border.pressed', 'inverse.text.rest', 'inverse.fill.rest', 'inverse.on-fill', 'overlay.hover'].filter((s) => !(`interactive.accent.${s}` in accLight));
-  const accFails = acc.flatMap((m) => Object.entries(m.roles).filter(([k, r]) => k.startsWith('interactive.accent') && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
+  const accMissing = [
+    ...['fill.rest', 'on-fill', 'text.rest', 'border.rest', 'border.hover', 'border.pressed', 'overlay.hover']
+      .map((s) => `interactive.accent.${s}`),
+    ...['text.rest', 'fill.rest', 'on-fill'].map((s) => `inverse.interactive.accent.${s}`),
+  ].filter((k) => !(k in accLight));
+  const accFails = acc.flatMap((m) => Object.entries(m.roles).filter(([k, r]) => isAccentRole(k) && r.min > 0 && r.ratio < r.min).map(([k]) => `${m.mode}.${k}`));
   ok(accMissing.length === 0 && accFails.length === 0, 'accent: opt-in emits a full gated interactive.accent.* column' + (accMissing.length ? ` — MISSING ${accMissing.join(',')}` : '') + (accFails.length ? ` — FAILS ${accFails.slice(0, 2).join(',')}` : ''));
 
   // (d) BACK-COMPAT accentPalette must differ from the action palette (no two identical columns).
@@ -3915,7 +3951,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // the relationship rule: a foreground surface differs from the page under it
   ok(p(L, 'foreground.primary') !== p(L, 'background.primary'), 'foreground.primary differs from background.primary');
   // inverse ladders on both layers
-  ok(p(L, 'background.inverse.primary') && p(L, 'foreground.inverse.primary'), 'inverse ladders present on both layers');
+  ok(p(L, 'inverse.background.primary') && p(L, 'inverse.foreground.primary'), 'inverse ladders present on both layers');
   // legacy interactive fills gone (action.* retired task #14; foreground.interactive earlier)
   ok(p(L, 'action.default') === undefined, 'legacy action.* removed (components bind interactive.*)');
   ok(L['foreground.interactive.default'] === undefined, 'legacy foreground.interactive removed');
@@ -3923,10 +3959,13 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!Object.keys(L).some((k) => k.startsWith('elevation')), 'no elevation.* colour group');
   ok(L['background.subtle'] === undefined && L['background.sunken'] === undefined && L['background.quaternary'] === undefined, 'background.subtle/sunken/quaternary removed');
   // renames
-  // `on-inverse` became a GROUP in #892, so the surviving name is its promoted tier. Asserted on
-  // `.primary` rather than loosened to a prefix match: the point of this check is that the RENAME
-  // landed, and a prefix would pass on any member appearing under that path.
-  ok(L['text.on-inverse.primary'] !== undefined && L['text.on-emphasis'] === undefined, 'text.on-emphasis → on-inverse');
+  // `on-inverse` became a GROUP in #892 and was RETIRED as a spelling in #1140 — the marker moved to a
+  // leading `inverse` group and `on-` went back to meaning "on this ground" only. Both the original
+  // rename's target and its replacement are asserted absent, so neither spelling can quietly return.
+  // Asserted on `.primary` rather than loosened to a prefix match: the point of this check is that the
+  // RENAME landed, and a prefix would pass on any member appearing under that path.
+  ok(L['inverse.text.primary'] !== undefined && L['text.on-emphasis'] === undefined && L['text.on-inverse.primary'] === undefined,
+    'text.on-emphasis → on-inverse → inverse.text');
   ok(L['text.link.default'] !== undefined && L['text.interactive.default'] === undefined, 'links use text.link.*');
   // subtle semantic foreground + ink present (suffix form)
   ok(L['foreground.danger-subtle'] !== undefined && L['text.danger-subtle'] !== undefined, 'subtle semantic foreground + ink present');
@@ -3955,14 +3994,14 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       .filter(([, r]: any) => isBlack(r.path) && (!isOnFill(r) || r.ratio < r.min)).map(([k]) => k);
     ok(badBlacks.length === 0, `${m}: every pure black is ink on a fill and clears its min (${badBlacks.join(', ') || 'none'})`);
   }
-  ok(!isBlack(p(L, 'background.inverse.primary')), 'light inverse surface is near-black, not pure black');
-  ok(!isWhite(p(D, 'background.inverse.primary')), 'dark inverse surface is near-white, not pure white');
+  ok(!isBlack(p(L, 'inverse.background.primary')), 'light inverse surface is near-black, not pure black');
+  ok(!isWhite(p(D, 'inverse.background.primary')), 'dark inverse surface is near-white, not pure white');
   ok(isWhite(p(L, 'background.primary')), 'light base page stays pure white (the one allowed pure extreme)');
   // on-fill softening: dark interactive on-fill is near-black (950), light keeps pure white; HC keeps pure
   ok(!isBlack(p(D, 'interactive.primary.on-fill')), 'dark interactive on-fill is softened (near-black, not pure)');
   ok(isWhite(p(L, 'interactive.primary.on-fill')), 'light interactive on-fill stays pure white (user preference)');
   ok(isWhite(p(HCD, 'interactive.primary.on-fill')) || isBlack(p(HCD, 'interactive.primary.on-fill')), 'HC keeps pure extremes for on-fill (max contrast)');
-  ok(isBlack(p(HCL, 'background.inverse.primary')), 'HC inverse stays a pure extreme (max contrast)');
+  ok(isBlack(p(HCL, 'inverse.background.primary')), 'HC inverse stays a pure extreme (max contrast)');
   // (the ink on a disabled fill is the cross-cutting disabled.on-fill — tested in the DISABLED block above.)
 }
 
@@ -5053,9 +5092,9 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
     for (const m of resolveAllModes(theme)) {
       // The ring must EXIST on both grounds — a missing inverse ring is the defect itself, so its
       // absence has to fail rather than skip (the (10d) lesson: a legal skip hides a removal).
-      const inv = m.roles['border.inverse.focus'];
-      if (!inv) { bad.push(`${m.mode}: border.inverse.focus missing`); continue; }
-      if (inv.min < 3) bad.push(`${m.mode}: border.inverse.focus min ${inv.min} — a focus ring below the SC 1.4.11 floor`);
+      const inv = m.roles['inverse.border.focus'];
+      if (!inv) { bad.push(`${m.mode}: inverse.border.focus missing`); continue; }
+      if (inv.min < 3) bad.push(`${m.mode}: inverse.border.focus min ${inv.min} — a focus ring below the SC 1.4.11 floor`);
       for (const [key, r] of Object.entries(m.roles)) {
         if (!key.startsWith('border.') || r.min <= 0) continue;
         const ground = m.roles[r.against];
@@ -5072,7 +5111,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // (10f-ii) #573 — a role whose NAME claims an inverse context must be MEASURED against an inverse
 // surface. This exists because (10f) above has a blind spot I only found by mutating into it: it
 // trusts each role's own `against` string, so a role can satisfy it by declaring an easier ground.
-// Mutating `border.inverse.focus` to gate against `background.primary` while keeping its name — a
+// Mutating `inverse.border.focus` to gate against `background.primary` while keeping its name — a
 // one-word edit, self-consistent, and still distinct from `border.focus` so (10g) stays quiet — slips
 // through both. The resulting ring measures **1.00:1 on the surface it is painted on** (wendys,
 // minimal, every mode): perfectly invisible, and reported as a comfortable 5.94 pass.
@@ -5083,18 +5122,26 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 {
   for (const { id, theme } of corpus()) {
     const bad: string[] = [];
+    let checked = 0;
     for (const m of resolveAllModes(theme))
       for (const [key, r] of Object.entries(m.roles)) {
-        // `.inverse.` as a segment and `-inverse` as a suffix both mark "for use on an inverse
-        // surface". Since #891 the interactive column uses the segment form too, so there is no
-        // longer an `on-inverse` spelling to normalize away before this test.
-        if (!/(^|[.-])inverse([.-]|$)/.test(key)) continue;
-        if (key.startsWith('background.inverse') || key.startsWith('foreground.inverse')) continue; // the surfaces themselves
+        // ONE LEADING SEGMENT since #1140. This used to be `/(^|[.-])inverse([.-]|$)/` — an any-depth
+        // segment OR a `-inverse` suffix — because the marker genuinely appeared in three positions and
+        // in a suffix form. Rule 1 retired all of that: `inverse(X) = inverse. + X`, so a name claiming
+        // an inverse context can only claim it here, and anything else is not an inverse role at all.
+        if (!key.startsWith('inverse.')) continue;
+        if (key.startsWith('inverse.background.') || key.startsWith('inverse.foreground.')) continue; // the surfaces themselves
         if (r.min <= 0) continue;                                    // ungated by design — (10f) covers the gated set
-        if (!/inverse/.test(r.against)) bad.push(`${m.mode} ${key}: gated against '${r.against}', which is not an inverse surface`);
+        checked++;
+        if (!r.against.startsWith('inverse.')) bad.push(`${m.mode} ${key}: gated against '${r.against}', which is not an inverse surface`);
       }
     ok(bad.length === 0, `every gated inverse-context role is measured on an inverse surface — ${id}`
       + (bad.length ? ` — FAIL: ${bad.slice(0, 4).join('; ')}` : ''));
+    // The floor the tightening needs, and the reason it is new here (`docs/34` shape 9). An any-depth
+    // regex fails open — it over-matches, so a taxonomy change leaves it still finding roles. An exact
+    // prefix fails CLOSED: move the marker and this loop `continue`s over every role, `bad` stays empty,
+    // and the arm above prints a pass for a contract it stopped reading. The count is what refuses that.
+    ok(checked > 0, `the inverse-context sweep found gated inverse roles to measure — ${id} (${checked} role×mode pairs)`);
   }
 }
 
@@ -5106,9 +5153,53 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 {
   for (const { id, theme } of corpus()) {
     const modes = resolveAllModes(theme);
-    const differs = modes.filter((m) => m.roles['border.focus']?.hex !== m.roles['border.inverse.focus']?.hex);
+    const differs = modes.filter((m) => m.roles['border.focus']?.hex !== m.roles['inverse.border.focus']?.hex);
     ok(differs.length > 0, `the inverse focus ring is its own value — ${id}`
       + (differs.length ? ` (${differs.length}/${modes.length} modes)` : ' — FAIL: identical to border.focus in every mode'));
+  }
+}
+
+// (10g-ii) #1140 — the NEUTRAL EDGE LADDER has three DISTINCT rungs, on both grounds, in every mode.
+//
+// `border` was the only surface/ink family that stopped at `secondary`, so #1140 added `tertiary` at
+// `borderTarget * 2.2 * 2.2` — one more rung of the same ratio ladder rather than a new rule. The ratio
+// is the derivation; DISTINCTNESS is the contract, and the two are not the same claim: `pickClosest`
+// CLAMPS to what the neutral ramp actually offers, and in HC the third rung asks for 21.78:1 against a
+// `borderTarget` of 4.5 — above anything the ramp can deliver. A clamp that ran out of ramp would collapse
+// `tertiary` onto `secondary` silently, leaving a token a picker offers and a designer cannot tell apart
+// from its neighbour. That is what this measures, and it is why HC is the mode that matters.
+//
+// Compared as HEX and not as ratios, deliberately. Two rungs can sit at different computed targets and
+// still resolve to one ramp step, which is exactly the collapse; a ratio comparison would report the
+// targets diverging and say nothing about the step they landed on.
+{
+  for (const { id, theme } of corpus()) {
+    const bad: string[] = [];
+    let pairs = 0;
+    let checked = 0;
+    for (const m of resolveAllModes(theme))
+      for (const pre of ['border', 'inverse.border']) {
+        pairs++;
+        const rungs = ['primary', 'secondary', 'tertiary'].map((r) => m.roles[`${pre}.${r}`]?.hex);
+        if (rungs.some((h) => h === undefined)) { bad.push(`${m.mode}:${pre}:absent`); continue; }
+        checked++;
+        if (new Set(rungs).size !== 3) bad.push(`${m.mode}:${pre}:${rungs.join('=')}`);
+      }
+    // The floor, for the same reason (10f-ii) has one: a renamed family makes every lookup `undefined`,
+    // and without the count an arm that measured nothing would read as a clean pass. Two grounds × the
+    // modes the brand declares, so the floor is stated as "more than one mode's worth".
+    //
+    // THE FAILURE LIST IS PRINTED WHOLE, AND `n of m` NAMES HOW MUCH OF IT THERE IS. It was truncated to
+    // the first four, which is worse than a shorter message: `bad` fills in `resolveAllModes` order ×
+    // two grounds, and every corpus brand declares four modes, so the four survivors were always
+    // `light` and `dark` and the two dropped were always `hc-light` and `hc-dark` — measured on all six
+    // brands. Those are the two the arm exists for (the paragraph above: *"it is why HC is the mode that
+    // matters"*), because HC is where the third rung asks for more ratio than the ramp holds and lands
+    // clamped on the endpoint. A truncation that reliably hides the informative half of the evidence is
+    // not a brevity tradeoff. Whole is affordable: the list is bounded at modes × 2 short strings.
+    ok(bad.length === 0 && checked >= 4,
+      `the neutral edge ladder's three rungs are distinct values on both grounds, in every mode — ${id} (${checked} ladder×mode pairs, floor 4)`
+      + (bad.length ? ` — COLLAPSED ${bad.length} of ${pairs}: ${bad.join(', ')}` : ''));
   }
 }
 
@@ -5182,7 +5273,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // measured against something that is no longer there.
 //
 // This is the trap that fixing (10h)'s bug walks into. The style guide switches the Outline row's ink
-// to `inverse.text.*` on an inverse preview ground, which is right for the translucent wash — it
+// to `inverse.interactive.<c>.text.*` on an inverse preview ground, which is right for the translucent wash — it
 // composites, so the band is still the ground. The `solid-tint` fill is a real palette step: from
 // `hover` onward the ground is a page-tuned tint, and the band's ink fails on it in **79 of 80**
 // corpus combinations, worst measured 1.32:1. The engine gates the tint against the control's own
@@ -5202,7 +5293,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
           const tint = m.roles[`interactive.${color}.subtle-fill.${st}`];
           if (!tint) continue;
           const pageInk = m.roles[`interactive.${color}.text.${st}`];
-          const bandInk = m.roles[`interactive.${color}.inverse.text.${st}`];
+          const bandInk = m.roles[`inverse.interactive.${color}.text.${st}`];
           // The page ink is what the engine gated this tint against — it must hold.
           if (pageInk) {
             const r = contrast(hexToRgb(pageInk.hex), hexToRgb(tint.hex));
@@ -5399,50 +5490,87 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // pinned for shape/scope in the dedicated interactive block below, not here — so this
     // gate still fails on a spurious var inside a REAL family. (Fixture-character decision,
     // 2026-07-06; pairs with #67.)
-    // `color/{text,icon}/on-inverse/` join them in #892. NB's export carries ONE leaf at each — a
-    // single strongest-neutral ink for a dark band — and it is renamed rather than dropped (see
-    // `NB_KNOWN_RENAMES` below, which keeps it value-checked under its new name). The other sixteen
-    // members of each group are engine-invented, exactly like `interactive/`. This is a SUB-family
-    // prefix, not `color/text/`: it waives the inverse subtree, where every member is engine-added by
-    // construction, and leaves the rest of a family NB really defines fully pinned.
+    // `color/inverse/{text,icon}/` join them in #892 (as `color/{text,icon}/on-inverse/`, relocated by
+    // #1140). NB's export carries ONE leaf at each — a single strongest-neutral ink for a dark band —
+    // and it is renamed rather than dropped (see `NB_KNOWN_RENAMES` below, which keeps it value-checked
+    // under its new name). The other sixteen members of each group are engine-invented, exactly like
+    // `interactive/`. This is a SUB-family prefix, not `color/text/`: it waives the inverse subtree,
+    // where every member is engine-added by construction, and leaves the rest of a family NB really
+    // defines fully pinned.
     // `color/veil/` (#1030) is waived by PREFIX rather than by exact name, and that is the rule above
     // applied rather than relaxed: NB's export defines no `veil` var at all, so the prefix waives
     // nothing real and the gate keeps its whole point — noticing a spurious var in a family NB DOES
-    // define. That is what separates it from `color/border/inverse/focus` one block down.
-    const ENGINE_ADDED_FAMILIES = ['color/interactive/', 'color/disabled/', 'color/field/', 'color/text/on-inverse/', 'color/icon/on-inverse/', 'color/veil/'];
+    // define. That is what separates it from `color/inverse/border/focus` one block down.
+    //
+    // #1140 DOUBLED THREE OF THESE PREFIXES RATHER THAN WIDENING ONE, and that is the whole decision
+    // here. Relocating the marker to a leading group split each all-engine-added family in two — the
+    // page half stayed at `color/interactive/`, the band half moved to `color/inverse/interactive/` —
+    // so a prefix list left untouched would have kept waiving the page half and started reporting
+    // every band row as EXTRA. The tempting fix is one `color/inverse/` prefix covering the lot; it is
+    // wrong by the rule stated above, because NB really exports 9 rows that now live under it (the
+    // three background tiers, the three foreground tiers, and the border / text / icon leaves), and a
+    // waiver spanning them would stop this gate noticing a spurious var beside a row NB does define.
+    const ENGINE_ADDED_FAMILIES = [
+      'color/interactive/', 'color/inverse/interactive/',
+      'color/disabled/', 'color/inverse/disabled/',
+      'color/field/', 'color/inverse/field/',
+      'color/inverse/text/', 'color/inverse/icon/',
+      'color/veil/',
+    ];
     // Engine-added vars inside a REAL family, allow-listed by EXACT name rather than by prefix.
-    // `color/border/inverse/focus` (#573, renamed #891) is the accessibility fix for a ring NB never had: NB's
-    // export carries one `color/border/focus`, which measured 2.09:1 on hc-light's inverse surface.
-    // Deliberately not widened to a `color/border/` prefix — that would stop this gate noticing a
-    // spurious var anywhere in a family the fixture really does define, which is the one thing it is
-    // here to do. An exact name costs a line per addition and keeps the rest of the family pinned.
-    // `color/foreground/inverse/<sem>-subtle` (#892) join it for the same reason and by the same
-    // rule — EXACT names, not a `color/foreground/` prefix. `foreground` is a family NB really
+    // `color/inverse/border/focus` (#573, renamed #891, relocated #1140) is the accessibility fix for a
+    // ring NB never had: NB's export carries one `color/border/focus`, which measured 2.09:1 on
+    // hc-light's inverse surface.
+    // Deliberately not widened to a `color/inverse/border/` prefix — that would stop this gate noticing
+    // a spurious var anywhere in a sub-family the fixture really does define a row in, which is the one
+    // thing it is here to do. An exact name costs a line per addition and keeps the rest pinned.
+    // `color/inverse/foreground/<sem>-subtle` (#892) join it for the same reason and by the same
+    // rule — EXACT names, not a `color/inverse/foreground/` prefix. `foreground` is a family NB really
     // exports, so a prefix waiver would stop this gate noticing a spurious var anywhere in it, which
     // is the one thing it is here to do. Five lines for five additions is the intended cost.
     const ENGINE_ADDED_VARS = [
-      'color/border/inverse/focus',
-      'color/foreground/inverse/brand-subtle',
-      'color/foreground/inverse/danger-subtle',
-      'color/foreground/inverse/info-subtle',
-      'color/foreground/inverse/success-subtle',
-      'color/foreground/inverse/warning-subtle',
-      // #892 step 5 — the seven remaining inverse borders and the five bold inverse fills. Still
-      // EXACT names rather than a `color/{border,foreground}/inverse/` prefix, and the reason is
-      // sharper here than it was for the subtles: those two groups also contain vars NB really
-      // exports (`border/inverse` renamed to `.../default`, and `foreground/inverse/{primary,
-      // secondary,tertiary}`), so a prefix would waive REAL rows alongside the engine-added ones.
-      // Twelve lines is the price of the gate still failing on a spurious var in a family NB defines.
-      'color/border/inverse/brand', 'color/border/inverse/danger', 'color/border/inverse/info',
-      'color/border/inverse/primary', 'color/border/inverse/secondary',
-      'color/border/inverse/success', 'color/border/inverse/warning',
-      'color/foreground/inverse/brand', 'color/foreground/inverse/danger',
-      'color/foreground/inverse/info', 'color/foreground/inverse/success',
-      'color/foreground/inverse/warning',
+      // #1140 — the third rung of the neutral edge ladder, on both grounds. `border` was the only
+      // surface/ink category stopping at secondary. Two exact names rather than any prefix: `border` is
+      // a family NB fully defines, so the whole value of pinning it is that a spurious sibling fails.
+      'color/border/tertiary',
+      'color/inverse/border/tertiary',
+      'color/inverse/border/focus',
+      'color/inverse/foreground/brand-subtle',
+      'color/inverse/foreground/danger-subtle',
+      'color/inverse/foreground/info-subtle',
+      'color/inverse/foreground/success-subtle',
+      'color/inverse/foreground/warning-subtle',
+      // #892 step 5 — the remaining inverse borders and the five bold inverse fills. Still EXACT names
+      // rather than a `color/inverse/{border,foreground}/` prefix, and the reason is sharper here than
+      // it was for the subtles: those two groups also contain vars NB really exports (`border/inverse`
+      // and `foreground/inverse/{primary,secondary,tertiary}`, all renamed below), so a prefix would
+      // waive REAL rows alongside the engine-added ones.
+      //
+      // `inverse/border/primary` IS NOT ON THIS LIST ANY MORE, and #1140 is why. The list used to carry
+      // both `border/inverse/primary` (engine-added) and a rename of NB's `color/border/inverse` leaf to
+      // `border/inverse/default` — two names for one measured value, which is exactly the duplicate this
+      // PR dropped. `primary` is now the rename TARGET, so it is covered by `renamedTo` and value-checked
+      // through the map; leaving it here as well would waive the row that the rename entry is asserting.
+      'color/inverse/border/brand', 'color/inverse/border/danger', 'color/inverse/border/info',
+      'color/inverse/border/secondary',
+      'color/inverse/border/success', 'color/inverse/border/warning',
+      'color/inverse/foreground/brand', 'color/inverse/foreground/danger',
+      'color/inverse/foreground/info', 'color/inverse/foreground/success',
+      'color/inverse/foreground/warning',
     ];
-    // A var NB really exports that the engine still emits under a DIFFERENT NAME. #891 promoted
-    // `color/border/inverse` from a leaf to a group, so the same value now lives at
-    // `color/border/inverse/default`.
+    // A var NB really exports that the engine still emits under a DIFFERENT NAME.
+    //
+    // #1140 TOOK THIS FROM 3 ENTRIES TO 9 — every inverse row NB really exports, because the marker
+    // moved for all of them at once. Six of the nine were previously name-identical to NB's export and
+    // needed no entry: `background/inverse/{primary,secondary,tertiary}` and the same three under
+    // `foreground/`. They now live one group up, so each is a rename, and each one being HERE rather
+    // than waived is what keeps its value checked against real NB — the point of the whole fixture.
+    //
+    // The other three were already renames and are re-pointed: #891 promoted `color/border/inverse` from
+    // a leaf to a group (`.../default`), and #892 did the same to the `on-inverse` text and icon leaves.
+    // `border/inverse` now lands on `inverse/border/primary` because #1140 dropped `default` as a
+    // byte-identical duplicate of `primary` — so this is the one entry whose TARGET changed for a reason
+    // other than the relocation, and the value it checks is unchanged in both light and dark.
     //
     // Declared here rather than fixed by editing the fixture, and the distinction is the point: the
     // fixture is the FROZEN real NB export, so rewriting it to agree with our rename would leave
@@ -5451,12 +5579,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // checked: the scope / alias / value loop below runs on the renamed var through this map, so a
     // rename that also moved a colour still fails.
     const NB_KNOWN_RENAMES: Record<string, string> = {
-      'color/border/inverse': 'color/border/inverse/default',
+      'color/border/inverse': 'color/inverse/border/primary',
       // #892 — the two leaves that became groups. The promoted tier keeps the value the leaf had
       // (`pickMostExtreme` against the same ground), so these must stay value-checked, which is what
       // the map buys over simply waiving them by prefix.
-      'color/text/on-inverse': 'color/text/on-inverse/primary',
-      'color/icon/on-inverse': 'color/icon/on-inverse/primary',
+      'color/text/on-inverse': 'color/inverse/text/primary',
+      'color/icon/on-inverse': 'color/inverse/icon/primary',
+      // #1140 — the six that were name-identical until the marker moved. Written out one per line and
+      // not generated from a `['primary','secondary','tertiary']` loop over the two groups: a loop would
+      // express the relocation rule, and this map's whole job is to be the INDEPENDENT statement of what
+      // the emitter did (`docs/34` shape 1). Spelled wrong, each of these fails both ways — the source
+      // name goes MISSING and the target reads as EXTRA.
+      'color/background/inverse/primary': 'color/inverse/background/primary',
+      'color/background/inverse/secondary': 'color/inverse/background/secondary',
+      'color/background/inverse/tertiary': 'color/inverse/background/tertiary',
+      'color/foreground/inverse/primary': 'color/inverse/foreground/primary',
+      'color/foreground/inverse/secondary': 'color/inverse/foreground/secondary',
+      'color/foreground/inverse/tertiary': 'color/inverse/foreground/tertiary',
     };
     const renamedTo = new Set(Object.values(NB_KNOWN_RENAMES));
     const missing = [...fixByName.keys()].filter((n) => !outByName.has(n) && !outByName.has(NB_KNOWN_RENAMES[n] ?? '\0'));
@@ -11617,16 +11756,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // This is what the def actually accomplishes. docs/32 measured the hand-authored ring carrying
   // hardcoded #2D65D4 / #AFC7F3 fills, radius 0, and a stroke weight bound to a REMOTE New Balance
   // variable — all placeholders. These four now resolve against the emitted tree for every brand.
-  // `border.inverse` names the VALUE tier since #1013 — `color.border.inverse.focus` is not a name the
-  // engine emits any more, because `color.*` is the surface tier and it carries no inverse roles.
-  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.appearance.border.inverse.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
+  // The inverse ring names the VALUE tier since #1013 — `color.border.inverse.focus` is not a name the
+  // engine emits any more, because `color.*` is the surface tier and it carries no inverse roles. #1140
+  // then moved the marker to the front of the ROLE: `color.appearance.inverse.border.focus`.
+  //
+  // THE SLOT KEY DID NOT MOVE WITH IT, and the asymmetry on this line is the point rather than a typo.
+  // `border.inverse` is a coordinate in the def's own variant space — `{slot}.{color}` from
+  // `paintKeys`, where `color` is the `default | inverse` axis — not a token path with a marker in it.
+  // Renaming it to match the token would couple the def's axis vocabulary to the token taxonomy, which
+  // is exactly the coupling `paintKeys` exists to avoid. Pinned as two independent literals here so a
+  // drift on either side fails: the slot comes from `focus-ring.ts`, the path from the emitted tree.
+  for (const [slot, path] of [['border', 'color.border.focus'], ['border.inverse', 'color.appearance.inverse.border.focus'], ['width', 'focus.ring.width'], ['style', 'focus.ring.style'], ['offset.control', 'focus.ring.offset'], ['offset.field', 'focus.ring.offset-field']] as [string, string][]) {
     ok(focusRing.tokens[slot] === path && paths.has(path),
       `focus-ring: '${slot}' binds ${path}, which the engine EMITS — the ring's skin is no longer whatever a Figma file happens to hold`);
   }
   // The two axes exist because the token tier already emitted exactly two of each — docs/32's evidence
   // that the ring was always one shared thing with a per-context parameter.
   ok(focusRing.variants.color.join(',') === 'default,inverse',
-    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / color.appearance.border.inverse.focus)');
+    'focus-ring: the color axis mirrors the emitted pair (color.border.focus / color.appearance.inverse.border.focus)');
   ok(focusRing.variants.offset.join(',') === 'control,field',
     'focus-ring: the offset axis mirrors the emitted pair (focus.ring.offset / offset-field)');
   ok(focusRing.states.length === 0,
@@ -12501,10 +12648,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   //      per-path one. They are ALSO cross-root (`palette` → `core`), so reason 3 would catch them if
   //      reason 1 did not; the root check fires first, and the families are pinned by name below so
   //      neither reason can absorb a fourth silently.
-  //   2. TIER-ONLY — #1013's moves (114). The contract path moved and the ROLE did not, so there is no
+  //   2. TIER-ONLY — #1013's moves. The contract path moved and the ROLE did not, so there is no
   //      variable rename to derive: the Figma-side change is the tier prefix on every variable in the
   //      collection, which is a MATERIALIZATION rename and lives as a rule in `materialization-renames.ts`.
   //      Without the skip these would emit 228 self-renames, which `validateRenameMap` refuses.
+  //      **EMPTY since #1140, at 114 → 113 → 0.** All 113 that were left were inverse roles, and #1140
+  //      moved the marker to the front of every one of them; `replacedBy` follows the LIVE name by rule,
+  //      so each of those entries now names a role delta as well as a tier and projects like any other
+  //      rename. The bucket is asserted EMPTY rather than deleted, and the skip it guards is asserted on
+  //      a CONSTRUCTED pair — the same shape reason 3 has used since it went to zero, for the same reason:
+  //      a guard with no live case is a guard with no arm, and an empty bucket that only ever reads
+  //      `length === 0` cannot tell "no case today" from "the predicate stopped matching" (`docs/34`
+  //      shape 9).
   //   3. CROSS-ROOT — 0 today; asserted on a constructed pair above, since a guard with no live case is
   //      a guard with no arm.
   //
@@ -12532,38 +12687,106 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `rename-map: the ${unprojectedRoot.length} deprecations on an unprojected ROOT break down exactly as authored (expected 167 = ${Object.entries(UNPROJECTED_FAMILIES).map(([f, n]) => `${n} ${f}*`).join(' + ')}) — Figma has no easing variable, and the core tier moves by materialization rule rather than per path${famWrong.length ? ` — WRONG: ${famWrong.join('; ')}` : ''}`);
   const tierOnly = DEPRECATIONS.filter((d) => d.replacedBy === `color.appearance.${d.path.slice('color.'.length)}`);
   const tierOnlyProjecting = tierOnly.filter((d) => projectionsOf(d).length > 0);
-  // 113, and it was 114 until #1133. The 114th was `color.scrim.default` — the one NON-inverse role
-  // #1013 moved, because the coverage register disposed its inverse gap as `omit` and so no pointer row
-  // kept its short name. The revert made the pointer tier's membership uniform, `color.scrim.default` is
-  // emitted again, and its DEPRECATIONS entry is retired: a deprecation for a live path is the one rot
-  // `classify` cannot see (it checks `replacedBy` against the live set, never `path`). So all 113 left are
-  // inverse roles, which is now the honest description of this bucket rather than a coincidence.
-  ok(tierOnly.length === 113 && tierOnlyProjecting.length === 0,
-    `rename-map: all ${tierOnly.length} of #1013's tier-only moves project NOTHING (expected 113) — the contract path moved, the role did not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
+  // EMPTY, AND THAT IS THE FINDING — 114 at #1013, 113 after #1133, 0 after #1140.
+  //
+  // The 114th was `color.scrim.default` — the one NON-inverse role #1013 moved, because the coverage
+  // register disposed its inverse gap as `omit` and so no pointer row kept its short name. The revert made
+  // the pointer tier's membership uniform, `color.scrim.default` is emitted again, and its DEPRECATIONS
+  // entry is retired: a deprecation for a live path is the one rot `classify` cannot see (it checks
+  // `replacedBy` against the live set, never `path`). That left 113, all of them inverse roles.
+  //
+  // #1140 moved the inverse marker to the front of every one of those 113, and `replacedBy` follows the
+  // LIVE name by rule — so each entry now names a ROLE delta on top of the tier delta and projects like
+  // any other rename. Nothing was rewritten to make that happen; it fell out of the rule, which is why
+  // the bucket emptied without anyone touching this predicate.
+  //
+  // So the arm keeps the derivation and asserts the bucket is EMPTY, plus a CONSTRUCTED pair proving the
+  // skip it guards still works. `length === 0` alone would be satisfied by a predicate that stopped
+  // matching anything at all — `docs/34` shape 9 — and the constructed half is the same answer reason 3
+  // has carried since it went to zero.
+  ok(tierOnly.length === 0 && tierOnlyProjecting.length === 0
+      && projectionsOf({ path: 'color.a.b', replacedBy: 'color.appearance.a.b', since: '9.9.9' }).length === 0,
+    `rename-map: the tier-only bucket is EMPTY since #1140 (found ${tierOnly.length}) and the skip still refuses a CONSTRUCTED tier-only move — the contract path moves, the role does not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => d.path).join(', ')}` : ''}`);
   const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
   const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
-  ok(noProjection.length === 280 && unaccounted.length === 0,
-    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 167 unprojected root + 113 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(noProjection.length === 167 && unaccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — 167 unprojected root + 0 tier-only, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
   // least one live variable. Per-ROW this is deliberately false — the mirror over-projects, see (c) — so
   // the claim is per-deprecation, and it is the one whose failure mode is a derivation quietly aiming at
   // names the emission stopped writing.
+  //
+  // 40 → 266 at #1140, and the jump is the whole of what that change did to this file: 113 of #1013's
+  // entries started projecting (see the bucket above) and #1140 wrote 113 of its own. The two sets project
+  // the SAME 226 rows — one role reached from two contract paths — which is a fact this block asserts
+  // rather than tolerates, three arms down.
   const projecting = DEPRECATIONS.filter((d) => projectionsOf(d).length > 0);
   const projectedButDead = projecting.filter((d) => projectionsOf(d).every((p) => !nbIdx.has(`${NB_ROOT}/${p.to}`)));
-  ok(projecting.length === 40 && projectedButDead.length === 0,
-    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 40)${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(projecting.length === 266 && projectedButDead.length === 0,
+    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 266)${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
-  // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT. 150 deprecations now name a
-  // `color.appearance.*` replacement, but only 113 of them are #1013's own; the other 37 are older renames
-  // (3.0.0–5.0.0) whose `replacedBy` was carried into the new tier by the swap. Those must still project,
-  // because a real role change is buried inside them — `interactive/primary/on-inverse/border` →
-  // `interactive/primary/inverse/border/rest` — and it is `roleOf` stripping the tier from BOTH sides that
-  // separates the two cases. A derivation keyed on the tier segment instead of the role would lose all 37.
+  // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT. 263 deprecations name a
+  // `color.appearance.*` replacement across three eras, and every one must project both mirrors, because a
+  // real role change is buried inside each — `interactive/primary/on-inverse/border` →
+  // `interactive/primary/inverse/border/rest` for the oldest, `background/inverse/primary` →
+  // `inverse/background/primary` for the newest. It is `roleOf` stripping the tier from BOTH sides that
+  // separates those from a tier-only move; a derivation keyed on the tier segment instead of the role
+  // would lose all three eras at once.
+  //
+  // KEYED ON `since`, NOT ON "NOT TIER-ONLY". This arm read `intoNewTier.filter((d) => !tierOnly.includes(d))`
+  // until #1140, which was a correct era split for exactly as long as #1013's entries were the tier-only
+  // ones. The moment that bucket emptied the filter passed everything and the arm stopped distinguishing
+  // anything — it would have gone green on 263 entries of any vintage. `since` is the field that actually
+  // records the era, so each is now pinned by its own count and an era the table does not name reports as
+  // `UNKNOWN` rather than landing in whichever number happens to be a floor (the same lesson the
+  // unprojected-families table above is written from).
+  const ERAS: Record<string, number> = { 'pre-#1013': 37, '6.0.0': 113, '8.0.0': 113 };
+  const eraOf = (d: { since: string }): string => (d.since === '6.0.0' || d.since === '8.0.0' ? d.since : 'pre-#1013');
   const intoNewTier = DEPRECATIONS.filter((d) => d.replacedBy?.startsWith('color.appearance.'));
-  const olderRepointed = intoNewTier.filter((d) => !tierOnly.includes(d));
-  ok(intoNewTier.length === 150 && olderRepointed.length === 37 && olderRepointed.every((d) => projectionsOf(d).length === 2),
-    `rename-map: the ${olderRepointed.length} PRE-#1013 deprecations repointed into the new tier still project both mirrors (${intoNewTier.length} name the new tier, ${tierOnly.length} of them tier-only) — the projection follows the ROLE, so it does not care which era the record was written in`);
+  const eraCount = new Map<string, number>();
+  for (const d of intoNewTier) eraCount.set(eraOf(d), (eraCount.get(eraOf(d)) ?? 0) + 1);
+  const eraWrong = [...new Set([...Object.keys(ERAS), ...eraCount.keys()])]
+    .filter((e) => (ERAS[e] ?? 0) !== (eraCount.get(e) ?? 0))
+    .map((e) => `${e} expected ${ERAS[e] ?? 0}, got ${eraCount.get(e) ?? 0}`);
+  ok(intoNewTier.length === 263 && eraWrong.length === 0 && intoNewTier.every((d) => projectionsOf(d).length === 2),
+    `rename-map: all ${intoNewTier.length} deprecations naming the value tier project both mirrors, in every era (expected ${Object.entries(ERAS).map(([e, n]) => `${n} ${e}`).join(' + ')}) — the projection follows the ROLE, so it does not care which era the record was written in${eraWrong.length ? ` — WRONG: ${eraWrong.join('; ')}` : ''}`);
+
+  // ONE ROLE, TWO CONTRACT PATHS, ONE FIGMA OPERATION — the #1140 hazard, and the arm that keeps the
+  // collapse in `deriveVariableRenames` honest.
+  //
+  // `projectionsOf` follows the ROLE, and `replacedBy` follows the LIVE name, so a role that moves in
+  // release N is claimed by every historical entry whose replacement path contains it as well as by the
+  // entry release N writes for itself. Measured here: 113 roles claimed twice — #1013's short-name entry
+  // and #1140's value-tier entry — 226 duplicate rows in a 532-row map.
+  //
+  // Left uncollapsed that is not noise, it is a REFUSAL: `planVariableRenames` groups by target and reads
+  // two live rows as `ambiguous-source`, so all 113 inverse renames would be declined in a designer's file
+  // that held the old names, and the bindings stranded. Which is why this arm asserts BOTH halves — that
+  // the map the executor gets is duplicate-free, and that the duplication it is collapsing is really
+  // there. Assert only the first and the day `projectionsOf` stops projecting is the day this goes green.
+  {
+    const raw = DEPRECATIONS.flatMap(projectionsOf);
+    const claims = new Map<string, string[]>();
+    for (const d of DEPRECATIONS) for (const p of projectionsOf(d)) {
+      const k = `${p.collection}|${p.from}|${p.to}`;
+      claims.set(k, [...(claims.get(k) ?? []), d.path]);
+    }
+    const twice = [...claims.entries()].filter(([, paths]) => paths.length > 1);
+    const shippedRows = renameMap().variables;
+    const dupShipped = shippedRows
+      .map((r) => `${r.collection}|${r.from}|${r.to}`)
+      .filter((k, i, a) => a.indexOf(k) !== i);
+    ok(raw.length === 532 && twice.length === 226 && twice.every(([, p]) => p.length === 2)
+        && shippedRows.length === 306 && dupShipped.length === 0,
+      `rename-map: ${twice.length} Figma renames are claimed by exactly two deprecations each (one role, two contract paths) and the map the executor gets collapses them — ${raw.length} projected, ${shippedRows.length} shipped${dupShipped.length ? ` — STILL DUPLICATED: ${dupShipped.slice(0, 3).join(' · ')}` : ''}`);
+    // And the collapse keeps the NEWEST `since`, because the field answers when the Figma name stopped
+    // being written and that is the later of the two claims. Checked on a row this PR created rather than
+    // on the rule, so a survivor picked by array order instead of by version fails here.
+    const row = shippedRows.find((r) => r.collection === 'color.appearance'
+      && r.to === 'color/appearance/inverse/background/primary');
+    ok(row?.since === '8.0.0', `rename-map: the surviving row for a twice-claimed rename carries the NEWEST \`since\` (got ${row?.since ?? 'NO ROW'}, expected 8.0.0)`);
+  }
 
   // ---- (c) the SURFACE mirror — one contract path, two Figma names ----
   // The alias tier carries a subset of the value tier's suffixes, so a renamed contract path can exist
@@ -13425,6 +13648,60 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1053: a rule whose image never appears is a CONTRADICTED CLAIM in check 1 — not a check-2 arm, because check 2 cannot see a domain member that has already left the emission (got ${broken.contradictedClaims.length})`);
     ok(!isTotal(broken),
       '#1053: …and it still fails, so dropping the addition arm did not take the broken-rule case with it');
+  }
+
+  // ---- THE SECOND REGISTER: a CONTRACT rename accounts for a removal (#1140) ----
+  //
+  // A rule covers a MATERIALIZATION move — collection, tier, brand namespace. A contract rename moves the
+  // ROLE, which is the tail of every emitted name, so `DEPRECATIONS` records a name leaving the emission
+  // just as authoritatively and the accounting has to read both. #1140 is the first contract-visible ROLE
+  // rename since the gate shipped (#1039): it arrived as 339 unaccounted removals across three brands
+  // with nothing wrong at all, because the rename was recorded in the register the gate did not read.
+  //
+  // DRIVEN ON A CONSTRUCTED PAIR, not on the live corpus, and that is the independence that matters here.
+  // The gate feeds itself `deriveVariableRenames()` and the emission; an arm built the same way would
+  // agree with any bug in the projection (`docs/34` shape 1). These four keys are hand-written in the
+  // spelling #1140 moved between, so the mechanism is exercised against a statement of the rename that
+  // does not come from the thing making it.
+  //
+  // BOTH DIRECTIONS, because "the claim makes it total" alone is satisfied by an accounting that claims
+  // everything. The same removal with no contract claim must still fail as unaccounted.
+  {
+    const K = (n: string): VarKey => varKey('color.appearance', `${WROOT}/${n}`);
+    const oldName = 'color/appearance/background/inverse/primary';
+    const newName = 'color/appearance/inverse/background/primary';
+    const before = new Set([K(oldName), K('color/appearance/background/primary')]);
+    const after = new Set([K(newName), K('color/appearance/background/primary')]);
+    const claim = { rule: 'contract:8.0.0', from: K(oldName), to: K(newName) };
+
+    const unread = accountFor(before, after, [], parseVarKey, WROOT);
+    ok(!isTotal(unread) && unread.unaccountedRemovals.length === 1,
+      '#1140: a ROLE rename with the contract register unread is an UNACCOUNTED REMOVAL — the state the gate was in when 113 roles moved, and the reason it is not a skip');
+    const read = accountFor(before, after, [], parseVarKey, WROOT, [claim]);
+    ok(isTotal(read) && read.claims.length === 1 && read.unaccountedAdditions.length === 0,
+      `#1140: …and the contract's own record accounts for it — the removal claimed, the arrival its image (${read.claims.length} claim(s), ${read.unaccountedRemovals.length} unaccounted)`);
+
+    // ONE OPERATION, ONE RECORD. Writing a materialization rule for a contract rename is the fix that
+    // reads as obvious and is wrong: two differently-derived records in front of one Figma operation, one
+    // with a forcing function and one performed by memory. It fails by NAME rather than going quietly,
+    // and this is the arm that says so.
+    const alsoARule: MaterializationRule = {
+      id: 'test-duplicates-the-contract', since: '0.0.0-fixture',
+      why: 'fixture: a materialization rule stating a rename the contract already records',
+      domain: (c, n) => c === 'color.appearance' && n === `${WROOT}/${oldName}`,
+      map: () => `${WROOT}/${newName}`,
+    };
+    const both = accountFor(before, after, [alsoARule], parseVarKey, WROOT, [claim]);
+    ok(!isTotal(both) && both.multiplyClaimed.length === 1
+        && both.multiplyClaimed[0].rules.join(',') === 'test-duplicates-the-contract,contract:8.0.0',
+      `#1140: a removal claimed by a rule AND by the contract is MULTIPLY CLAIMED — the pairing must have exactly one record (got [${both.multiplyClaimed[0]?.rules.join(', ') ?? 'none'}])`);
+
+    // A claim about a key this comparison does not hold is not an error — the projection spans brands and
+    // mirror collections by design, and one accounting covers one brand. It must neither fire nor count.
+    const elsewhere = accountFor(before, after, [], parseVarKey, WROOT,
+      [claim, { rule: 'contract:8.0.0', from: K('color/appearance/not/here'), to: K('color/appearance/nor/there') }]);
+    ok(isTotal(elsewhere) && elsewhere.claims.length === 1,
+      `#1140: a contract claim about a key outside this brand's before-set neither fires nor inflates the denominator (${elsewhere.claims.length} claim(s), expected 1)`);
   }
 
   // ---- THE TABLE (`docs/44` §5), derived here rather than cited from the doc ----

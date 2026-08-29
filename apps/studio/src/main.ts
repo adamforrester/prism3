@@ -32,7 +32,7 @@ import { resolveAllModes, outlineFillFamily, outlineFillRole } from '@prism3/eng
 import { parseDesignMd, toDesignMd } from '@prism3/engine/design-md';
 import { parseStandardDesignMd, standardToBrandInput, isStandardDesignMd } from '@prism3/engine/standard-design-md';
 import { buildTree, deref, subNode, numOf, remPxOf, familyOf, type TreeNode } from '@prism3/engine/tree';
-import { surfaceRows } from '@prism3/engine/surface-rows';
+import { surfaceRows, isInverseRole } from '@prism3/engine/surface-rows';
 import { ENGINE_VERSION } from '@prism3/engine/version';
 import { componentDefs } from '@prism3/engine/components/index';
 import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
@@ -509,9 +509,9 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
 /** WHICH TIER a colour role's DTCG path lives in (#1013), for every pill that shows one.
  *
  *  The swap split `color.*` in two: the POINTER tier keeps the short name and carries every NON-INVERSE
- *  role (129 in the measured corpus), while the 113 inverse-band roles exist ONLY in the VALUE tier as
- *  `color.appearance.*`. A pill is a path a developer copies, so `color.background.inverse.primary` —
- *  correct before #1013 — is now a name that resolves to nothing.
+ *  role (130 in the measured corpus since #1140 added `border.tertiary`), while the 113 inverse-band
+ *  roles exist ONLY in the VALUE tier as `color.appearance.*`. A pill is a path a developer copies, so
+ *  `color.background.inverse.primary` — correct before #1013 — is now a name that resolves to nothing.
  *
  *  Derived from `surfaceRows`, the ONE derivation both materialisations read (`tree.ts` for DTCG,
  *  `emit-figma-surface.ts` for the Figma collection), so the pill cannot disagree with the tree it
@@ -525,7 +525,7 @@ const toggleField = (checked: boolean, onToggle: (checked: boolean) => void): HT
  *  surface axis, `scrim.default` has a pointer now, and 129 is the count. It also promised the richer
  *  story a pill withholds: that an inverse-band token is reachable as its page-role sibling under the
  *  collection's `inverse` mode, pending a DTCG surface overlay (#1027). There is no such mode and no such
- *  overlay — inverse is name-encoded, and `color.appearance.background.inverse.primary` IS the path a
+ *  overlay — inverse is name-encoded, and `color.appearance.inverse.background.primary` IS the path a
  *  developer wants, which is what the pill already shows (`docs/20` §9.8). */
 let aliasTierCache: { of: Theme; set: Set<string> } | null = null;
 const aliasTierRoles = (): Set<string> => {
@@ -543,11 +543,11 @@ const colorPath = (role: string): string =>
  *
  *  A long path ELIDES FROM THE LEFT instead of wrapping to two lines (#289): the CSS gives the pill
  *  `direction:rtl`, which moves where `text-overflow:ellipsis` bites to the start, so
- *  `color.background.inverse.primary` renders as `…kground.inverse.primary`.
+ *  `color.appearance.inverse.background.primary` renders as `…erse.background.primary`.
  *
  *  Why not the obvious right-truncation: these paths share long prefixes and differ only in the tail.
  *  `color.foreground.brand` and `color.foreground.brand-subtle` — or the six
- *  `color.interactive.destructive.inverse.{text,fill}.{rest,hover,pressed}`, whose first 40
+ *  `color.appearance.inverse.interactive.destructive.{text,fill}.{rest,hover,pressed}`, whose first 48
  *  characters are identical — all collapse to the SAME visual stub if you cut from the right. The
  *  discriminating information lives at the end, so that is the end worth keeping. The cost is that the
  *  namespace prefix is the part hidden when space is tight; `title` and (on style-guide pills) the
@@ -1892,7 +1892,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     { key: 'background.secondary', label: 'Page, second tier', ink: 'text.primary', line: 'border.primary', line2: 'border.secondary', tiered: true },
     // The inverse band has ONE on-color ink, so the supporting tiers collapse onto it rather than
     // borrowing a page-gated role that was never measured against this ground.
-    { key: 'background.inverse.primary', label: 'Inverse', ink: 'text.on-inverse.primary', line: 'border.inverse.default', line2: 'border.inverse.default', tiered: false },
+    { key: 'inverse.background.primary', label: 'Inverse', ink: 'inverse.text.primary', line: 'inverse.border.primary', line2: 'inverse.border.primary', tiered: false },
   ];
   const surf = SG_SURFACES.find((x) => x.key === sgSurface) ?? SG_SURFACES[0];
 
@@ -1957,11 +1957,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Background
   const secBg = palSection('Background', 'The base page planes, their inverse counterparts, and the scrim that dims them behind a modal.');
   secBg.append(subHead('Base'), grid(3, ([['Primary', 'background.primary'], ['Secondary', 'background.secondary'], ['Tertiary', 'background.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.primary'))));
-  // The Inverse Primary card carries `text.on-inverse.primary` as an extra pill, the same pairing the Bold and
+  // The Inverse Primary card carries `inverse.text.primary` as an extra pill, the same pairing the Bold and
   // Subtle rows use. That ink was painting every inverse card here AND the Surfaces page's Inverse
   // example, and was named in neither — the one role the gallery used without ever showing.
-  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'background.inverse.primary'], ['Secondary', 'background.inverse.secondary'], ['Tertiary', 'background.inverse.tertiary']] as Array<[string, string]>)
-    .map(([n, k], i) => surfaceCard(k, n, 'text.on-inverse.primary', i === 0 ? 'On-inverse text' : undefined, i === 0 ? [sgPill('text.on-inverse.primary')] : []))));
+  secBg.append(subHead('Inverse'), grid(3, ([['Primary', 'inverse.background.primary'], ['Secondary', 'inverse.background.secondary'], ['Tertiary', 'inverse.background.tertiary']] as Array<[string, string]>)
+    .map(([n, k], i) => surfaceCard(k, n, 'inverse.text.primary', i === 0 ? 'Inverse text' : undefined, i === 0 ? [sgPill('inverse.text.primary')] : []))));
   secBg.append(subHead('Scrim'), grid(3, [scrimCard('scrim.default')]));
   host.append(ground(secBg));
 
@@ -1971,7 +1971,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Inverse — bold dark surfaces PLACED on the page (a dark card), as distinct from the inverse page
   // BAND above. Background already split Base / Inverse; Foreground had only Base, so this whole tier
   // resolved for every mode and appeared nowhere.
-  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'foreground.inverse.primary'], ['Secondary', 'foreground.inverse.secondary'], ['Tertiary', 'foreground.inverse.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'text.on-inverse.primary'))));
+  secFg.append(subHead('Inverse'), grid(3, ([['Primary', 'inverse.foreground.primary'], ['Secondary', 'inverse.foreground.secondary'], ['Tertiary', 'inverse.foreground.tertiary']] as Array<[string, string]>).map(([n, k]) => surfaceCard(k, n, 'inverse.text.primary'))));
   secFg.append(subHead('Bold'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}`, n, `text.on-${s}`, 'On-color text', [sgPill(`text.on-${s}`)]))));
   secFg.append(subHead('Subtle'), grid(5, SEM.map(([n, s]) => surfaceCard(`foreground.${s}-subtle`, n, `text.${s}`, 'On-color text', [sgPill(`text.${s}`)]))));
   host.append(ground(secFg));
@@ -2015,12 +2015,17 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
 
   // Border
   const secBorder = palSection('Border', 'Neutral separators, the focus ring, and semantic borders — their own category, not a surface.');
-  // `border.inverse.focus` sits beside `border.focus` rather than with the other inverse borders: the pair a
+  // `inverse.border.focus` sits beside `border.focus` rather than with the other inverse borders: the pair a
   // reader needs to compare is the two focus rings, and the inverse GROUND is already selectable for
   // the whole section (the `sgSurface` picker), which is the honest way to view an inverse role — its
   // own ink and border set come with it, rather than one card faking a ground the rest of the row lacks.
-  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.inverse.default'].map((k) => borderCard(k))));
-  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'border.inverse.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
+  //
+  // `border.tertiary` is new in #1140 — border was the only surface/ink category stopping at secondary,
+  // and the row it belongs in is this one. The inverse column still shows only its PRIMARY rung, as it
+  // did when that rung was spelled `border.inverse.default`: the other inverse borders have never had
+  // cards here, and the ground picker is how this section shows an inverse role honestly.
+  secBorder.append(subHead('Neutral'), grid(3, ['border.primary', 'border.secondary', 'border.tertiary', 'inverse.border.primary'].map((k) => borderCard(k))));
+  secBorder.append(subHead('Focus & semantic'), grid(3, ['border.focus', 'inverse.border.focus', 'border.brand', 'border.danger', 'border.success', 'border.warning', 'border.info'].map((k) => borderCard(k))));
   host.append(ground(secBorder));
 
   // Icon
@@ -2052,11 +2057,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     if (foot.length) { const f = el('div', 'sg-tlfoot'); foot.forEach((n) => f.append(n)); lab.append(f); }
     const bs = el('div', 'sg-btns' + (inv ? ' sg-inv' : ''));
     if (inv) {
-      // #555 — the strip's own ground is `background.inverse.primary` for the CURRENT mode, and that
+      // #555 — the strip's own ground is `inverse.background.primary` for the CURRENT mode, and that
       // is not always dark: in a Dark mode, the inverse of dark is light, so a state label ink fixed
       // to a light gray (correct for the light-in-Light-mode case) went invisible on it. Pick the ink
       // from the resolved strip color instead of assuming which side of light/dark it lands on.
-      const invBg = paint(cur, 'background.inverse.primary');
+      const invBg = paint(cur, 'inverse.background.primary');
       bs.style.setProperty('--sg-invp', invBg);
       bs.style.setProperty('--sg-invp-ink', legibleInkOn(invBg, '#191920', '#c9ccce'));
     }
@@ -2067,7 +2072,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // Is the chosen preview ground itself an inverse band? Both the background and foreground inverse
   // tiers qualify — what matters is that the ground is the dark one the `inverse` column was
   // measured against, not which collection it came from.
-  const onInverseGround = surf.key.includes('inverse');
+  //
+  // `isInverseRole`, the engine's own predicate, not a local `.includes('inverse')`. That substring
+  // test was the only spelling available while the marker sat mid-path in three different positions;
+  // #1140 makes it a single leading segment, so the question has one answer and one place to ask it.
+  const onInverseGround = isInverseRole(surf.key);
   const outlineFill = outlineFillFamily(theme.outlineInteraction);
   const paletteBlock = (nm: string, c: string): HTMLElement => {
     const block = el('div', 'sg-pblock');
@@ -2086,7 +2095,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // fill, so it is the one that breaks when the preview ground stops being the page. On the
     // inverse band `interactive.<c>.text.rest` rendered #0e0d0c on #0e0d0c — 1.00:1, the identical
     // colour, text that is not merely low-contrast but literally invisible. The engine already
-    // resolves `inverse.text.*` for exactly this ground, so the row asks for the ink that matches
+    // resolves `inverse.interactive.<c>.text.*` for exactly this ground, so the row asks for the ink that matches
     // where it is being shown. Filled and Inverse need no such switch: their ink is `on-fill`,
     // measured against the button's own fill, which the ground behind it cannot change.
     // The EDGE takes the same switch, for the same reason and now with a token to switch to. #461
@@ -2104,24 +2113,26 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     // fallback here, it is the measured-correct answer. Reading the right role and keeping the
     // row-wide ink switch would have traded a visible bug for an invisible one — the exact
     // gated-ground/painted-ground family as #63, #570 and #573.
+    // The marker is a PREFIX since #1140, so the conditional moved to the front of the key rather
+    // than into the middle of it. Same two candidate roles, one segment position.
     const onBand = (s: string): boolean => onInverseGround && !(outlineFill.opaque && fillRole(s));
-    const otxt = (s: string) => `interactive.${c}.${onBand(s) ? 'inverse.' : ''}text.${s}`;
+    const otxt = (s: string) => `${onBand(s) ? 'inverse.' : ''}interactive.${c}.text.${s}`;
     // The edge is now stateful too (#576), so this appends the state exactly as `otxt` does. #575
     // had already made this function per-state — it took `s` only to choose the GROUND, and returned
     // the same single border for all three. The state key is the half that was missing.
-    const obdFor = (s: string) => `interactive.${c}.${onBand(s) ? 'inverse.' : ''}border.${s}`;
+    const obdFor = (s: string) => `${onBand(s) ? 'inverse.' : ''}interactive.${c}.border.${s}`;
     // The footer pill names the REST edge — the state whose ground is the row's own, and the one a
     // reader is looking at when they read the label.
     const obd = obdFor('rest');
     const outline = STATES.map((s) => bcol(bgFor[s], paint(cur, otxt(s)), paint(cur, obdFor(s)), s, otxt(s), `text.${s}`));
-    const inv = STATES.map((s) => bcol(paint(cur, `interactive.${c}.inverse.fill.${s}`), paint(cur, `interactive.${c}.inverse.on-fill`), null, s, `interactive.${c}.inverse.fill.${s}`, `fill.${s}`));
+    const inv = STATES.map((s) => bcol(paint(cur, `inverse.interactive.${c}.fill.${s}`), paint(cur, `inverse.interactive.${c}.on-fill`), null, s, `inverse.interactive.${c}.fill.${s}`, `fill.${s}`));
     block.append(trow('Filled', [footLine('text', sgPill(`interactive.${c}.on-fill`, 'on-fill'))], filled, false));
     block.append(trow('Outline', [footLine('border', sgPill(obd, 'border'))], outline, false));
     // The Inverse row paints its own inverse band so the inverse-column variants have the ground they
     // were measured against. When the PREVIEW ground is already that band, painting it again is a
     // dark rectangle on an identical dark rectangle: the row loses its edges and reads as "still
     // dark" rather than as a distinct treatment. On that ground the row simply uses the page's.
-    block.append(trow('Inverse', [footLine('text', sgPill(`interactive.${c}.inverse.on-fill`, 'on-fill'))], inv, !onInverseGround));
+    block.append(trow('Inverse', [footLine('text', sgPill(`inverse.interactive.${c}.on-fill`, 'on-fill'))], inv, !onInverseGround));
     return block;
   };
   secInt.append(paletteBlock('Primary', 'primary'), paletteBlock('Neutral', 'neutral'), paletteBlock('Destructive', 'destructive'));
@@ -2417,9 +2428,9 @@ const wirePress = (n: HTMLElement): void => {
 // resolved for the CURRENT mode fell through to the studio's own always-light chrome behind it), and
 // `.exbox.dark` hardcoded `#0d0d10` (correct only when "inverse" means dark, which is false in a Dark
 // mode — dark's inverse resolves LIGHT). Both specimens are meant to sit on the ground their ink was
-// actually measured against: `background.primary` for the regular treatment, `background.inverse.primary`
+// actually measured against: `background.primary` for the regular treatment, `inverse.background.primary`
 // for the inverse one, both read for `currentMode` so they track whichever way that mode's inverse falls.
-const exGround = (dark: boolean): string => iRoles()[dark ? 'background.inverse.primary' : 'background.primary']?.hex ?? (dark ? '#0d0d10' : '#ffffff');
+const exGround = (dark: boolean): string => iRoles()[dark ? 'inverse.background.primary' : 'background.primary']?.hex ?? (dark ? '#0d0d10' : '#ffffff');
 const exBtn = (bg: string, fg: string, dark = false, label = 'Button', hover?: string, pressed?: string): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
   const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', bg); b.style.color = fg;
@@ -2521,10 +2532,14 @@ const iRow = (o: { lead?: boolean; swatchBg?: string; label?: string; srcLabel?:
   return row;
 };
 
-/** An override-backed slot row (every slot except fill · rest, which anchors). null when it doesn't resolve. */
-const slotRow = (o: { name: string; slot: string; label: string; palette: string; desc: string; example: (roles: RoleMap) => HTMLElement; badgeRole?: string; states?: Array<[string, string]> }): HTMLElement | null => {
+/** An override-backed slot row (every slot except fill · rest, which anchors). null when it doesn't resolve.
+ *
+ *  `inverse` is a flag rather than part of `slot` because #1140 moved the marker OUT of the slot and to
+ *  the front of the role: `inverse.interactive.<name>.<slot>`, where it used to be
+ *  `interactive.<name>.inverse.<slot>` and a caller could spell it inside `slot` unaided. */
+const slotRow = (o: { name: string; slot: string; label: string; palette: string; desc: string; example: (roles: RoleMap) => HTMLElement; badgeRole?: string; states?: Array<[string, string]>; inverse?: boolean }): HTMLElement | null => {
   const roles = iRoles();
-  const roleKey = `interactive.${o.name}.${o.slot}`;
+  const roleKey = `${o.inverse ? 'inverse.' : ''}interactive.${o.name}.${o.slot}`;
   const r = roles[roleKey]; if (!r) return null;
   return iRow({
     swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
@@ -2638,33 +2653,36 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
   if (col.onRemove) head.append(removeButton(col.onRemove, 'Remove interactive color', 'rmv'));
   sec.append(head, el('p', 'psec-d', col.desc));
   if (col.lead) sec.append(col.lead);
-  const P = col.palette, nm = col.name, inv = `${nm}.inverse`, nPal = theme.roleToPalette.neutral;
+  // `inv` is the whole inverse role PREFIX, not a name fragment — since #1140 the marker leads the
+  // path (`inverse.interactive.primary.fill.rest`), so there is nothing for a `interactive.${…}` outer
+  // template to wrap and every lookup below reads `${inv}.<slot>` directly.
+  const P = col.palette, nm = col.name, inv = `inverse.interactive.${nm}`, nPal = theme.roleToPalette.neutral;
   const rows: Array<HTMLElement | null> = [
     fillRestRow(col),
-    slotRow({ name: nm, slot: 'inverse.fill.rest', label: 'Fill · inverse', palette: P,
+    slotRow({ name: nm, slot: 'fill.rest', inverse: true, label: 'Fill · inverse', palette: P,
       desc: 'The button fill on a dark / inverse surface — a light fill. Derived, or pin a step.',
-      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true, 'Button',
-        rs[`interactive.${inv}.fill.hover`]?.hex, rs[`interactive.${inv}.fill.pressed`]?.hex),
-      badgeRole: `interactive.${inv}.on-fill`,
-      states: [['Hover', `interactive.${inv}.fill.hover`], ['Pressed', `interactive.${inv}.fill.pressed`]] }),
+      example: (rs) => exBtn(rs[`${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`${inv}.on-fill`]?.hex ?? '#000000', true, 'Button',
+        rs[`${inv}.fill.hover`]?.hex, rs[`${inv}.fill.pressed`]?.hex),
+      badgeRole: `${inv}.on-fill`,
+      states: [['Hover', `${inv}.fill.hover`], ['Pressed', `${inv}.fill.pressed`]] }),
     slotRow({ name: nm, slot: 'text.rest', label: 'Text · rest', palette: P,
       desc: 'Text links & text buttons on light surfaces.',
       example: (rs) => exLink(rs[`interactive.${nm}.text.rest`]?.hex ?? '#000000', false,
         rs[`interactive.${nm}.text.hover`]?.hex, rs[`interactive.${nm}.text.pressed`]?.hex),
       states: [['Hover', `interactive.${nm}.text.hover`], ['Pressed', `interactive.${nm}.text.pressed`]] }),
-    slotRow({ name: nm, slot: 'inverse.text.rest', label: 'Text · inverse', palette: P,
+    slotRow({ name: nm, slot: 'text.rest', inverse: true, label: 'Text · inverse', palette: P,
       desc: 'Text links & text buttons on dark / inverse surfaces.',
-      example: (rs) => exLink(rs[`interactive.${inv}.text.rest`]?.hex ?? '#ffffff', true,
-        rs[`interactive.${inv}.text.hover`]?.hex, rs[`interactive.${inv}.text.pressed`]?.hex),
-      states: [['Hover', `interactive.${inv}.text.hover`], ['Pressed', `interactive.${inv}.text.pressed`]] }),
+      example: (rs) => exLink(rs[`${inv}.text.rest`]?.hex ?? '#ffffff', true,
+        rs[`${inv}.text.hover`]?.hex, rs[`${inv}.text.pressed`]?.hex),
+      states: [['Hover', `${inv}.text.hover`], ['Pressed', `${inv}.text.pressed`]] }),
     overlayRow(col),
     subtleFillRow(col),   // #288 — the opaque sibling; only one of the two is ever non-null
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
       desc: 'The ink on the fill — auto-picked to clear contrast on the button surface.',
       example: (rs) => exBtn(rs[`interactive.${nm}.fill.rest`]?.hex ?? '#000000', rs[`interactive.${nm}.on-fill`]?.hex ?? '#ffffff') }),
-    slotRow({ name: nm, slot: 'inverse.on-fill', label: 'On-fill text · inverse', palette: nPal,
+    slotRow({ name: nm, slot: 'on-fill', inverse: true, label: 'On-fill text · inverse', palette: nPal,
       desc: 'The ink on the inverse (light) fill — button text on a dark surface.',
-      example: (rs) => exBtn(rs[`interactive.${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`interactive.${inv}.on-fill`]?.hex ?? '#000000', true) }),
+      example: (rs) => exBtn(rs[`${inv}.fill.rest`]?.hex ?? '#ffffff', rs[`${inv}.on-fill`]?.hex ?? '#000000', true) }),
   ];
   for (const rw of rows) if (rw) sec.append(rw);
   return sec;
@@ -5756,11 +5774,11 @@ const sfCtlBlock = (label: string, control: HTMLElement): HTMLElement => { const
 // The text color is the resolved role for THIS surface, not a hardcoded invert flag — a custom
 // mode's Primary can be either light or dark, and a hardcoded dark ink went invisible on a dark
 // custom-mode surface (near-black on near-black). `textHex` is `text.primary` (against
-// background.primary) or `text.on-inverse.primary` (against background.inverse.primary) — whichever the
+// background.primary) or `inverse.text.primary` (against inverse.background.primary) — whichever the
 // caller's surface actually is.
 //
 // No accent dot any more (owner request). It painted `foreground.brand` on the Primary specimen and
-// `foreground.inverse.primary` on the Inverse one, so the two swatches were showing DIFFERENT roles
+// `inverse.foreground.primary` on the Inverse one, so the two swatches were showing DIFFERENT roles
 // under identical treatment — and neither is what this section edits. On the inverse band the dot was
 // near-invisible besides (a dark neutral on a near-black band), which is how it read as an unidentifiable
 // smudge. The specimen's job here is to show the SURFACE and that its ink is legible on it; a swatch for
@@ -5874,15 +5892,18 @@ const renderSurfacesEditor = (): HTMLElement => {
   // left those roles carrying ratios for a surface that was gone — measured at neutral 300, 53 of 53
   // gated roles claimed contrast they did not have, with no warning, because the warning was computed
   // from the same stale number. The engine now refuses that route by name; this control does not take
-  // it. `background.inverse.primary` is generated for every mode, so the `if` is a defensive guard.
-  const invHex = roles['background.inverse.primary']?.hex;
+  // it. `inverse.background.primary` is generated for every mode, so the `if` is a defensive guard.
+  const invHex = roles['inverse.background.primary']?.hex;
   if (invHex) {
-    // `text.on-inverse.primary` is measured against `background.inverse.primary` exactly — the correct ink
+    // `inverse.text.primary` is measured against `inverse.background.primary` exactly — the correct ink
     // for this band regardless of which mode's inverse this is.
-    const invText = roles['text.on-inverse.primary']?.hex ?? '#f2f2f6';
+    const invText = roles['inverse.text.primary']?.hex ?? '#f2f2f6';
     const invRow = (controls: HTMLElement, desc: string): void => {
       sec.append(sfRow({
-        swatchHex: invHex, name: 'Inverse', tokenPath: 'color.background.inverse.primary', desc, controls,
+        // `colorPath`, not a hand-spelled path: an inverse role lives ONLY in the value tier, so the
+        // literal `color.background.inverse.primary` this row carried has not resolved since #1013 —
+        // the one pill on this page that was not asking the derivation the rest of them ask.
+        swatchHex: invHex, name: 'Inverse', tokenPath: colorPath('inverse.background.primary'), desc, controls,
         example: sfExSurface(invHex, 'Primary Inverse Background', invText),
       }));
     };
@@ -5899,7 +5920,7 @@ const renderSurfacesEditor = (): HTMLElement => {
       // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
       // `baselineStepOf` (#330), not `stepKeyOf(r.path)` — the live role already reflects `cur` when a
       // band is set, so naming Auto off `r.path` would have it echo the very value it clears.
-      const invSel = stepPicker(nPal, nSteps, baselineStepOf('background.inverse.primary', mode),
+      const invSel = stepPicker(nPal, nSteps, baselineStepOf('inverse.background.primary', mode),
         cur == null ? undefined : String(cur),
         (step) => { setPath(brandState, `surfaces.${mode}.inverseBase`, step == null ? undefined : Number(step)); applyFull(); });
       // "Step" is retained even though this is no longer an override: the control still picks a step
@@ -5966,7 +5987,7 @@ const TEXT_DERIVED_ROLES: Array<{ role: string; label: string; from: string; why
   { role: 'text.on-warning', label: 'On warning fill', from: 'Follows the warning fill', why: 'A near-black or near-white pick, whichever clears AA on the warning fill.', onRole: 'foreground.warning', sample: 'On warning' },
   { role: 'text.on-danger', label: 'On danger fill', from: 'Follows the danger fill', why: 'A near-black or near-white pick, whichever clears AA on the danger fill.', onRole: 'foreground.danger', sample: 'On danger' },
   { role: 'text.on-info', label: 'On info fill', from: 'Follows the info fill', why: 'A near-black or near-white pick, whichever clears AA on the info fill.', onRole: 'foreground.info', sample: 'On info' },
-  { role: 'text.on-inverse.primary', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'background.inverse.primary', sample: 'On inverse' },
+  { role: 'inverse.text.primary', label: 'On inverse surface', from: 'Follows the inverse surface', why: 'The strongest neutral against the inverse surface — repoint Backgrounds › Inverse to move it.', onRole: 'inverse.background.primary', sample: 'On inverse' },
   { role: 'text.link.hover', label: 'Link — hover', from: 'Link, one step on', why: 'Link walked one palette step. Repoint Link above to move it.', sample: 'Hovered link' },
   { role: 'text.link.visited', label: 'Link — visited', from: 'Link, two steps on', why: 'Link walked two palette steps. Repoint Link above to move it.', sample: 'Visited link' },
   { role: 'text.link.focused', label: 'Link — focused', from: 'Link, unchanged', why: 'Identical to Link at rest by design — focus is carried by the ring, not a color shift.', sample: 'Focused link' },
