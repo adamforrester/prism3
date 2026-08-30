@@ -197,6 +197,20 @@ const main = (): void => {
     for (const d of diff.danglingDeprecations) console.error(`    ${d.path} → ${d.replacedBy} (missing)`);
     process.exit(1);
   }
+  // The mirror of the check above (#1137). That one asks whether the DESTINATION exists; this asks
+  // whether the SOURCE is actually gone. Both are rot in the same table and only one was checked.
+  if (diff.liveDeprecations.length) {
+    console.error(`\n✗ ${diff.liveDeprecations.length} deprecation(s) name a path the engine STILL GUARANTEES:`);
+    for (const d of diff.liveDeprecations) console.error(`    ${d.path} (still emitted) → ${d.replacedBy}`);
+    console.error(
+      '  A deprecation is the justification for a REMOVAL — `migrated` is `removed` matched against this\n' +
+        '  table — so an entry on a live path justifies nothing, and tells every consumer to migrate off a\n' +
+        '  name that works. Either the path really is going (remove it, and this entry explains why) or the\n' +
+        '  entry is wrong and should go. A path that merely stopped being GUARANTEED while some brands\n' +
+        '  still emit it is brand-dependent, is excluded here, and needs no change.',
+    );
+    process.exit(1);
+  }
 
   const report = (): void => {
     const demoted = new Set(diff.demoted);

@@ -7,6 +7,90 @@
 
 ---
 
+## (2026-08-29) — a deprecation's DESTINATION was validated and its SOURCE never was (#1137, gate 3)
+
+**STATUS: shipped.** One arm in `classify`, one refusal in `token-contract.ts`. Gates stay at **46**;
+no engine behavior changes and nothing emitted moves. No live instance exists today — this closes the
+class before it recurs.
+
+── THE UNCHECKED HALF ──────────────────────────────────────────────────────────────────────────
+
+`classify` already had `danglingDeprecations`: an entry whose `replacedBy` the engine does not emit —
+*"the table keeps telling consumers to migrate to something that no longer exists."* Its mirror was
+never written. **Nothing checked that a deprecation's own `path` is actually gone.**
+
+The asymmetry matters because of what a deprecation *is* here. `migrated` is literally
+`removed.map(byPath.get)` — the table is the **justification for a removal**. An entry whose path is
+still guaranteed justifies nothing, and reads to every consumer as an instruction to migrate off a name
+that works. Rot in the same table, in the opposite direction, and only one direction was gated.
+
+`liveDeprecations = deprecations.filter((d) => d.path in live)`, sitting beside the arm it mirrors.
+
+**Brand-dependent paths are deliberately excluded, and that is a decision rather than an omission.** A
+path that left the guarantee while some brands still emit it has genuinely stopped being promised, so
+advising migration off it is *correct*. The defect is specifically a path that is still **guaranteed**.
+Confirmed by mutation, not assumed.
+
+── THE MIRROR NEEDED ITS OWN UNIT TEST, WHICH IS THIS ENTRY'S OWN THESIS ONE LEVEL UP ──────────
+
+Review caught that the twin `danglingDeprecations` has a unit test and this arm had none. With no live
+instance, the arm scans all 676 entries, finds nothing, and **its true branch never runs in CI** — so a
+later refactor could neuter it with every gate green. *Writing one half of a mirrored pair is how rot
+starts* is the argument this PR is built on; shipping the mirror untested would have been the same
+mistake one level up. `classify` is a pure exported function, so the arms sit beside the twin.
+
+**And the negative arm's first draft could not fail.** It passed a path that was in neither `live` nor
+the guarantee, so it returned 0 because `d.path in live` was already false — it would have passed
+identically with the conditional clause deleted. An assertion that cannot distinguish the reason for
+its own result. The input is now **deliberately contradictory** — the path is in *both* `live` and
+`brandDependent`, a state the real call site cannot produce — because that is the only arrangement in
+which the conditional clause is the one thing standing between the input and a hit.
+
+| # | mutation | result |
+|---|---|---|
+| M6 | `liveDeprecations` neutered to `[]` | the **positive** arm fails by name |
+| M7 | the `!conditional.has(d.path)` clause dropped | the **negative** arm fails by name |
+
+M7 is what the falsifiability fix bought: before it, that mutation passed silently.
+
+── AND THE NIT, WHICH WAS A TRUE COMMENT OVER A FILTER THAT DID NOTHING ────────────────────────
+
+The comment said *"conditional is excluded on purpose"* above `deprecations.filter((d) => d.path in
+live)` — which excludes nothing. The exclusion was real but came entirely from `live` holding
+guaranteed paths only, a fact about the **call site**, not about the line. `&& !conditional.has(d.path)`
+is a no-op today and is written anyway: if `live` ever widens, the arm keeps meaning what its comment
+says instead of quietly starting to flag every demotion. *An invariant belongs where the code is read,
+not only where it happens to be supplied.*
+
+── THE NECESSITY PROOF IS M4/M5, AND THE FIRST ATTEMPT AT IT WAS WEAK ──────────────────────────
+
+| # | mutation | result |
+|---|---|---|
+| M1 | a deprecation's `path` set to a live guaranteed path | **FAIL by name**, naming the path |
+| M2 | same, my arm removed | exit 1 — **but for someone else's reason** |
+| M3 | a deprecation on a **brand-dependent** path | my arm **silent**, as designed |
+| **M4** | **live-path entry + `--accept`, my arm removed** | **`--accept` exits 0, `--check` exits 0 — it SHIPS** |
+| **M5** | **same, my arm present** | **`--accept` exits 1 and names it** |
+
+**M2 looked like a necessity proof and was not.** With the arm removed the run still exited 1 — because
+the baseline records all 676 deprecations, so *any* edit to the table shows as contract drift and asks
+you to review. That is a different question and a much weaker one: it cannot tell a legitimate new entry
+from a live-path one, and its remedy is `--accept`.
+
+So the real test is whether `--accept` launders it. **It does.** Without this arm, `--accept` exits 0,
+rewrites the baseline, and the following `--check` is green with the defect in the table. With the arm,
+`--accept` refuses. *A gate whose only backstop is "review the diff, then accept" is protected by
+attention, not by a check* — and this is the second time this sweep that a red run turned out to be red
+for a neighbour's reason (`docs/34` shape 18).
+
+*Rebase note.* Built on `9a18d22` and rebased onto `28e49ff` (gate 2) before review. The gate count in
+the line above was **re-measured**, not carried: the old base predated gate 1, which added `lint-emission-version` as
+the 46th; gate 2 widened an existing gate rather than adding one, and this branch adds none of its own.
+So the suite is 46 and the pre-rebase entry's 45 was stale — this file's own shape 21 if left alone. `lint-emission-version`
+was re-run rather than assumed: 0 artifacts moved, `ENGINE_VERSION` 0.30.0 unchanged, so the version
+this branch edits is a source-only edit the gate correctly declines to bill.
+
+
 ## (2026-08-29) — `lint-decisions-index` admitted one issue per decision, and a two-issue heading was invisible (gate 2)
 
 **STATUS: shipped.** The heading parse, the baseline's issue field, one doc heading, and the row that
