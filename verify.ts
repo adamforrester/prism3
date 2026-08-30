@@ -586,6 +586,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-overlay-completeness.ts'),
   },
   {
+    id: 'lint-figma-destination',
+    ciStep: "A leaf's declared Figma destination is the one it materializes into",
+    cmd: engine('lint-figma-destination.ts'),
+  },
+  {
     id: 'lint-paint',
     ciStep: 'Component paint is where the defs say it is',
     cmd: engine('lint-paint.ts'),

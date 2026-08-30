@@ -410,6 +410,26 @@ jobs:
       - name: Overlays carry exactly the leaves that vary per mode
         run: npx --yes tsx@4 packages/engine/lint-overlay-completeness.ts
 
+      # #1138: every pointer-tier leaf carries `$extensions.prism3.figma.{collection,mode(s),variable}`
+      # — its own claim about where it materializes in Figma, and the ONLY place a DTCG consumer can
+      # learn that. `tree.ts` writes those as literals; `emit-figma-*.ts` writes `$collection`/`$mode`/
+      # variable names as ITS OWN literals. #1089 renamed the Figma collection `surface` ->
+      # `color.surface` and left tree.ts's literal alone, so 128 leaves per brand in three brands named
+      # a collection that did not exist, for weeks. Every gate was legitimately green: overlay
+      # completeness reads a DIFFERENT extension, the exporter harness reads the Figma side and never
+      # the DTCG side, and `regen --check` diffs bytes of what the engine writes — the engine wrote the
+      # wrong value CONSISTENTLY, so it was stable and reproducible. This compares the two literals.
+      # Four arms (collection / mode-set equality / mode membership / variable name) and a floor that
+      # asserts each was exercised, since each passes vacuously if its claim stops being written.
+      # Independence is a NARROW claim and only the narrow form is true: emit-figma*.ts never reads the
+      # DESTINATION sub-keys (collection/mode/modes/variable) off a leaf's own $extensions.prism3.figma.
+      # It DOES read that block (emit-figma-styles.ts:191) and reads a responsive `figma.modes` that is
+      # spelled like a destination read and is not. The header carries the re-check, which returns zero.
+      # Harbor emits no out/figma/, so its emission is BUILT IN MEMORY rather than skipped — a quarter
+      # of the subject, and its layout `mode` claims are brand-derived (docs/34 shape 15).
+      - name: A leaf's declared Figma destination is the one it materializes into
+        run: npx --yes tsx@4 packages/engine/lint-figma-destination.ts
+
       # #758: the component tier's colour bindings, in two arms — because #758's own stated acceptance
       # ("Button's 648-member paint is byte-identical: regen --check reports 104") cannot fail.
       # `figmaAnatomySet` is called by no emitter and no component payload is committed under `out/`,
