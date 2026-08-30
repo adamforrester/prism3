@@ -7,6 +7,141 @@
 
 ---
 
+## (2026-08-30) — a leaf said which Figma collection it landed in, and nothing checked (#1138, gate 4)
+
+**STATUS: shipped.** One new gate, `lint-figma-destination.ts`. Gates **46 → 47**, re-measured on
+`1e8da2f` after rebasing off `2c4a358` rather than carried. **Sequencing:** gate 5 (#1171) is open
+against the same base and also adds one gate, so whichever of the two lands SECOND is 47 → 48 and must
+re-measure its own count across all five authored lists — the correction gate 3 needed after its own
+rebase, and the reason this line names its base. No engine behavior
+changes and nothing emitted moves — this is a check over artifacts that were already correct, added
+because the last time they were not, nobody found out for weeks.
+
+── THE CLAIM NOBODY CHECKED ────────────────────────────────────────────────────────────────────
+
+Every pointer-tier leaf carries its own account of where it went in Figma:
+
+```json
+"$extensions": { "prism3": { "figma": { "collection": "color", "modes": ["light", "dark", …] } } }
+```
+
+`tree.ts` writes that `collection` as a hand-typed literal. `emit-figma-color.ts` writes `$collection`
+as a *different* hand-typed literal. #1089 renamed the Figma collection `surface` → `color.surface` and
+moved only one of them, so **128 leaves per brand across three brands named a collection that did not
+exist in the emission**, for as long as #1089 was in. #1133 rewrote that block for unrelated reasons
+and corrected it in passing; without that accident it would still be wrong. The extension is the only
+place a DTCG consumer can learn a token's Figma destination, so a wrong value there is wrong in the one
+direction anyone would trust it.
+
+── WHY EVERY GATE WAS LEGITIMATELY GREEN, WHICH IS THE PART WORTH KEEPING ──────────────────────
+
+`lint-overlay-completeness` reads a *different* extension. `tools/exporter-comparison/` reads
+`$collection` off the Figma side and never opens the DTCG side. And `regen --check` diffs bytes of what
+the engine writes — **the engine wrote the wrong value consistently**, so it was stable, reproducible
+and green. That last one generalizes past this defect: a byte-comparison against a producer's own
+output cannot see a producer that is wrong the same way every time. It is the reason "regen is green"
+is never an argument that an emitted claim is true.
+
+── THE ARMS, AND THE FLOOR UNDER THEM ──────────────────────────────────────────────────────────
+
+Four, each a disagreement a consumer could act on: **A** the claimed collection is not declared
+anywhere in the emission (the #1089 defect); **B** a leaf claiming `modes: [...]` claims the collection's
+*whole* mode set, so set equality; **C** a leaf claiming `mode: "sm"` claims *membership* — a different
+assertion, not reducible to B, and both spellings are live (`color` writes `modes`, `layout` writes
+`mode`); **D** the named `variable` exists in that collection, matched on the rooted name's tail via
+`figma-names.ts`'s `tailOf` so no read path here spells a brand root.
+
+Each arm is a loop over leaves making one kind of claim, so **each passes vacuously the day that claim
+stops being written**. The floor asserts every arm was *exercised*, by name, and that no leaf carries a
+`collection` with neither mode spelling. Stripping `figma.modes` from all 4313 leaves fails the floor
+rather than going quiet — which is the whole point of writing it down before the numbers looked fine.
+
+── HARBOR IS NOT SKIPPED, AND THAT WAS THE REAL DESIGN DECISION ────────────────────────────────
+
+`emit-figma.ts` ships three brands; `emit-dtcg.ts` ships four. Walking only the brands with a committed
+`out/figma/` would leave harbor's **1120 claiming leaves — a quarter of the subject — compared against
+nothing, and report it as a pass.** That is `docs/34` shape 15 exactly, and not hypothetical: the
+`mode` claims on layout leaves come from the brand's own breakpoints (aurora has an `xs` the others do
+not), so a harbor-specific breakpoint defect would walk straight through a three-brand gate.
+
+So harbor's emission is **built in memory** (~200ms, the same theme `visualize.ts` uses) and checked
+identically. `COMPUTED_ORACLE` is the one hand-maintained list in the file, and a brand in *neither*
+`out/figma/` nor that list **fails** rather than skipping — so the list going stale is loud. The
+excluded-member count is asserted at 0, not printed. What the computed path buys is honestly weaker and
+said so in the header: for the three shipped brands a green run means the claim matches what *shipped*;
+for harbor it means the claim matches what the emitter *would write*, there being nothing shipped to
+disagree with.
+
+── INDEPENDENCE RESTS ON A NARROW FACT, AND THE FIRST DRAFT STATED A BROAD ONE THAT IS FALSE ────
+
+The true claim: **`emit-figma*.ts` never reads the DESTINATION sub-keys — `collection`, `mode`, `modes`,
+`variable` — off a leaf's own `$extensions.prism3.figma` block.** It builds collections from the theme.
+
+The claim I first wrote was "never reads `$extensions.prism3.figma`", and that is simply wrong. Two
+reads sit right beside it: `emit-figma-styles.ts:191` reads `ext.figma?.sampledStops` where `ext` IS
+`leaf.$extensions.prism3` — so the emitter does read the leaf's own block, just never a destination key
+of it; and `emit-figma-font.ts:180-184` reads `r.figma.modes`, which is *spelled identically to a
+destination read at the call site* and is not one, because that `r` is `$extensions.prism3.responsive`.
+
+Worse than the claim was the **re-check I prescribed for it**: `grep -n "prism3" emit-figma*.ts`, which
+I described as returning nothing and which returns **24**. A maintainer running it finds a screenful of
+legitimate hits, concludes the rule is noise, and waves through the next `.figma` read — the exact
+shape-1 collapse the paragraph exists to prevent. **A re-check that does not return zero when the
+property holds is worse than no re-check**, because it converts a live invariant into background text.
+Both re-checks now return zero (or a named, bounded set), and both were run:
+
+    grep -nE '\.figma\??\.(collection|variable)\b' packages/engine/emit-figma*.ts   -> 0
+    grep -nE '\.figma\??\.modes?\b'                packages/engine/emit-figma*.ts   -> 3 code lines,
+        every one under `responsive`, never a leaf's own block
+
+`tailOf` is imported, and is deliberately an import of the *naming convention* rather than of the
+expected value — the posture `lint-overlay-completeness` takes with `overlayModes`. Which collection,
+which modes, which variable are imported from nothing.
+
+── MUTATION BATTERY (7), EACH SELF-VERIFYING ───────────────────────────────────────────────────
+
+`M1` is the headline and the only one run under a full `npm run verify`: reinstate #1089 at its actual
+source — `tree.ts`'s literal back to `color.surface` — then **regen**, so the wrong claim reaches the
+artifacts exactly as it did in production. Result: **44 PASS · 1 FAIL · 2 SKIP**, and the single failure
+is `lint-figma-destination`, 4314 findings. Nothing else in 47 gates noticed, which is the issue's
+central claim measured rather than asserted. (The 2 SKIPs are `drift` and `drift-coverage`, correctly
+refusing to run against a dirty `out/` — a SKIP is not a pass.)
+
+`M2`–`M4` fire arms B, C and D by name with the other three arms reporting 0. `M5` strips every
+`figma.modes` and fires the floor's vacuity arm *and* its unrelated-member arm. `M6` deletes harbor from
+`COMPUTED_ORACLE` and fires the shape-15 guard by name. `M7` mutates the **oracle** side instead —
+`emit-figma-color.ts`'s `$collection` — and fires arm A on all four brands.
+
+Two harness lessons, both from the battery contradicting itself rather than from care. First, `M7`'s
+first run printed `MUTATION APPLIED` and left the gate **green on all three committed brands**: a
+collection's name is its emitted file *stem*, so the rename wrote `color.appearance.*.json` and left
+`color.*.json` beside it, and the oracle read the leftover. Only harbor — oracle built fresh in memory —
+failed. The self-verify line that printed the emitted `$collection` back is what caught it; without that
+line this would have read as "the gate misses oracle-side renames." It is written up as a stated limit
+rather than fixed here — but the FIRST version of that limit named the wrong backstop, and the correction
+is the more useful record. I wrote that `regen --check` reports a TRACKED leftover as `stale`. It does
+not: committing the extra file gives `✓ in sync — 109 committed artifacts byte-match what the engine
+emits`, exit 0. Its `removed` branch fires for an artifact the engine *no longer emits*, and an EXTRA
+file was never an expected artifact to begin with. Measured, both cases, whole suite:
+
+  · TRACKED   43 PASS · 4 FAIL · 0 SKIP — `drift-coverage` ("expected 108, got 109"),
+              `lint-emission-version`, `exporter-comparison`, `engine-test`. `drift` PASSES.
+  · UNTRACKED 43 PASS · 2 FAIL · 2 SKIP — `engine-test` and `exporter-comparison` fail; `drift` and
+              `drift-coverage` SKIP on a dirty `out/`, which is why the count check cannot be leaned on.
+
+So the honest residual is not "nothing notices". It is **this gate reads the leftover and passes, and
+the gates that go red name an unrelated subject** — a maintainer chasing an `exporter-comparison`
+failure has no route to a stale collection file. Narrow, real, and #1152's general form. Second, `M7`'s
+second run failed its own `assert` (`0 sites`) from shell quoting and reported `gate exit=0`; a
+mutation that did not apply is not a passing gate, and only the assert distinguishes them (#986).
+
+── WHAT THIS DOES NOT CHECK ────────────────────────────────────────────────────────────────────
+
+That the destination is the *right* one. It compares two independent statements of where a token goes
+and fails when they disagree; if both emitters agreed on a collection nobody wanted, this is green.
+Whether the token should be in `color` at all is a design question, and no gate holds it.
+
+
 ## (2026-08-29) — the `controlShape` brand lever: rounded | pill for pill-able controls (#1163)
 
 **STATUS: shipped.** A new FORM lever, `controlShape` (enum, default `rounded`, values `rounded | pill`),

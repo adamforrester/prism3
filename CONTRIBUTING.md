@@ -273,6 +273,39 @@ npx tsx packages/engine/lint-overlay-completeness.ts # each mode's overlay carri
                                                     # buildOverlay, or from the overlays themselves, is
                                                     # the gate agreeing with itself — do not "simplify"
                                                     # the duplicated walk away; it IS the gate
+npx tsx packages/engine/lint-figma-destination.ts   # a leaf's OWN claim about where it lands in Figma
+                                                    # (`$extensions.prism3.figma.{collection,mode(s),
+                                                    # variable}`) must agree with the collection, modes
+                                                    # and variables the Figma emitter actually writes
+                                                    # (#1138). Two hand-authored literal sites in two
+                                                    # emitters: tree.ts writes the claim, emit-figma-*.ts
+                                                    # writes the destination. #1089 renamed the Figma
+                                                    # collection `surface` -> `color.surface` and left
+                                                    # tree.ts alone — 128 leaves per brand, three brands,
+                                                    # naming a collection that did not exist, for weeks.
+                                                    # Every other gate was legitimately green: overlay
+                                                    # completeness reads a DIFFERENT extension, the
+                                                    # exporter harness never reads the DTCG side, and
+                                                    # regen --check diffs bytes of what the engine writes
+                                                    # — the wrong value was written CONSISTENTLY, so it
+                                                    # was stable and reproducible. Independence rests on
+                                                    # a NARROW fact, and only the narrow form is true:
+                                                    # emit-figma*.ts never reads the DESTINATION sub-keys
+                                                    # (collection/mode/modes/variable) off a leaf's own
+                                                    # `$extensions.prism3.figma`. It DOES read that block
+                                                    # (emit-figma-styles.ts:191, `sampledStops`), and it
+                                                    # reads an `r.figma.modes` that is spelled like a
+                                                    # destination read and is not (that `r` is
+                                                    # `$extensions.prism3.responsive`). If a destination
+                                                    # key ever joins those, this becomes docs/34 shape 1
+                                                    # and needs redesigning, not patching. The re-check
+                                                    # is in the gate's header and returns ZERO when the
+                                                    # property holds; the `grep -n prism3` this line used
+                                                    # to prescribe returns 24. Harbor emits no out/figma/, so its
+                                                    # emission is BUILT IN MEMORY rather than skipped —
+                                                    # a quarter of the subject, whose layout `mode` claims
+                                                    # are brand-derived (shape 15); a brand in neither
+                                                    # out/figma/ nor COMPUTED_ORACLE FAILS, never skips
 npx tsx packages/engine/lint-paint.ts               # the component tier's colour bindings (#758), in two
                                                     # arms — because #758's OWN stated acceptance
                                                     # ("Button's 648-member paint is byte-identical:
