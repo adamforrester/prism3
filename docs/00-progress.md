@@ -195,8 +195,9 @@ found it.*
 ## (2026-08-29) — the `controlShape` brand lever: rounded | pill for pill-able controls (#1163)
 
 **STATUS: shipped.** A new FORM lever, `controlShape` (enum, default `rounded`, values `rounded | pill`),
-group `form`. `ENGINE_VERSION` 0.30.0 → 0.31.0; `CONTRACT_VERSION` stands at 9.0.0 (no token name moved).
-No new gate; the lever/schema agreement is carried by the existing lever-manifest arm in `test.ts`.
+group `form`. `ENGINE_VERSION` 0.30.0 → 0.31.0; `CONTRACT_VERSION` 9.0.0 → 9.1.0 (MINOR — one guaranteed
+path added, `radius.capsule`; see the pill-scaling section). No new gate; the lever/schema agreement is
+carried by the existing lever-manifest arm in `test.ts`.
 
 **What the issue got right and the one thing it assumed.** #1163 framed this as "wiring, not new geometry":
 button and icon-button already carry a `derived['pill-radius']` note ("height ÷ 2"), the radius ladder
@@ -208,18 +209,31 @@ binding resolves a **variable name**, not a literal. So "select the derivation" 
 concrete.
 
 **The mechanism, and why it is faithful.** `controlShape: pill` rebinds a pill-able control's `radius` from
-`radius.md` to the shared pill rung `radius.round`. That rung is `dimension.128` in every brand — a single
-very-large radius Figma **clamps** to min(w,h)/2 = height ÷ 2 at every size. This is the EXACT mechanism
-switch and radio already use for their intrinsic pill/circle, reused rather than re-tokenized. So acceptance
-#2's "height ÷ 2 per size, not a fixed token" is met: "not a fixed token" forbids **hand-authored
-per-component per-size literals** (the pattern the shared scale replaced), not binding the shared pill rung —
-the clamp does the per-size work.
+`radius.md` to the pill rung `radius.capsule` — a single large radius Figma **clamps** to min(w,h)/2 =
+height ÷ 2 at every size. So acceptance #2's "height ÷ 2 per size, not a fixed token" is met: "not a fixed
+token" forbids **hand-authored per-component per-size literals** (the pattern the shared scale replaced), not
+binding a shared radius rung — the clamp does the per-size work.
+
+**Pill-scaling: why a NEW `radius.capsule` rung, not `radius.round` (review refinement).** The first cut
+repointed pill to `radius.round` (128px), the rung switch/radio bind intrinsically. That is a full pill only
+up to a **256px** control height (Figma clamps a corner to half the shorter side, 2×128 = 256) — fine for any
+real button, but a lever that promises a pill should be UNCONDITIONAL. Two options were weighed. Binding to
+the per-size **height** variable (radius = height, clamped) is truly ceiling-less, but `size.{size}.height`
+is scoped **WIDTH_HEIGHT** while radius is **CORNER_RADIUS** (`emit-figma-dims.ts`), so it would bind a
+variable across Figma's own scope boundary — semantically a height on a corner, and invisible in the
+corner-radius picker. Rejected. Instead a **dedicated `radius.capsule` rung** (999px sentinel, the CSS
+`border-radius: 9999px` habit) is added to the ladder: a CORNER_RADIUS-scoped radius bound to a radius
+corner, clamping to a pill up to a ~1998px control. It is kept **distinct from `radius.round`** so the lever
+raises the ceiling for pill-able controls without touching the rung the intrinsic pills bind — `round` stays
+128px, `switch`/`radio` unchanged. It is off the 4px dimension grid on purpose (a sentinel meaning "always a
+pill" is not a ladder step to alias), so it emits as a literal (`tree.ts`'s `gridSet.has` branch). Adding one
+guaranteed path is the MINOR contract bump.
 
 **Where it lives, and why NOT in the projector.** The plan is brand-agnostic on purpose (`figmaVarName`'s
 header: seven gates, the studio's member count and the plugin's set enumeration all call
 `figmaAnatomySet(def)` with a def and nothing else). `controlShape` IS a brand choice, so rather than thread
 a brand input through the projector, a small pure transform `applyControlShape(def, shape)` **materializes
-the def BEFORE projection** — repointing `def.tokens.radius` to `radius.round` under `pill`. The projector
+the def BEFORE projection** — repointing `def.tokens.radius` to `radius.capsule` under `pill`. The projector
 stays a pure function of its def; the brand-specificity lives in the transform. Under `rounded` (default) and
 for any non-pill-able def it is the **identity** (returns the same object), which is what makes `rounded`
 reproduce every plan byte-identically — acceptance #1's no-op-default independence check.
@@ -241,11 +255,12 @@ pill-built button matches the brand the file carries — `rounded`/absent/untrus
 the **button** as the representative silhouette (it is the control a designer pictures when they say "pill")
 while the copy states the lever is global across pill-able controls.
 
-**Trap for whoever re-verifies.** The ENGINE bump forces two follow-on writes that are NOT the lever itself
-and read as unrelated churn: every emitted tree's `$extensions.generator.version` stamp (via `regen`) and
-the contract baseline's `engineVersion` field (via `token-contract.ts --accept`, which reports "no surface
-change" because `diff.level` is `none`). If `token-contract.ts --check` fails "informational fields only",
-it is that `engineVersion` drift, not a token-name change — re-accept, don't hunt for a rename.
+**Trap for whoever re-verifies.** The ENGINE bump forces a follow-on write that is NOT the lever itself and
+reads as unrelated churn: every emitted tree's `$extensions.generator.version` stamp (via `regen`). The
+contract baseline moves for a real reason here — `radius.capsule` is a new guaranteed path, so `--accept`
+records it AND bumps `contractVersion` to 9.1.0 (`CONTRACT_VERSION` must already be raised or `--accept`
+refuses). The `out/**` diff beyond the version stamp is exactly `radius.capsule` = `999px` per brand; nothing
+else in the token tree moved, which is why `rounded` still reproduces every plan byte-identically.
 
 ## (2026-08-29) — the emission cannot move without ENGINE_VERSION moving (#1141's miss, gate 1 of the hardening sweep)
 

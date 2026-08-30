@@ -6411,7 +6411,7 @@ const renderTypeRamp = (): HTMLElement => {
  *  labelled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
  *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads `rp.dims`
  *  (live per lever); `none` = 0. */
-const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round'];
+const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round', 'capsule'];
 const paintRadiusPreview = (into: HTMLElement): void => {
   into.innerHTML = '';
   const consumers: Record<string, Set<string>> = {};
@@ -6445,9 +6445,13 @@ const paintControlShapePreview = (into: HTMLElement): void => {
   into.innerHTML = '';
   const cur = String(getPath(brandState, 'controlShape') ?? 'rounded');
   const roundedPx = rp.dims['radius.md'] ?? 0;
+  // The bar is 52px tall so the TRUE radius.md renders un-clamped across the whole slider range —
+  // radius.md maxes at 24px (baseMd 12 × radiusScale 2), and 24 < 52/2, so the drawn corner always equals
+  // the caption's px. A shorter bar would clamp a soft-brand corner (a 24px radius on a 32px bar reads as a
+  // near-pill) and the label would then contradict the shape (the nit on the first cut of this preview).
   const shapes = [
-    { key: 'rounded', label: 'Rounded', radiusPx: Math.min(roundedPx, 16), ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
-    { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.round', note: 'radius.round · height ÷ 2' },
+    { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
+    { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
   ];
   const list = el('div', 'rad-list');
   for (const s of shapes) {
@@ -6456,8 +6460,8 @@ const paintControlShapePreview = (into: HTMLElement): void => {
     if (on) cell.style.outline = '2px solid currentColor';
     if (on) cell.style.borderRadius = '6px';
     const bar = el('div', 'rad-sw');
-    bar.style.width = '96px';
-    bar.style.height = '32px';
+    bar.style.width = '112px';
+    bar.style.height = '52px';
     bar.style.borderRadius = `${s.radiusPx}px`;
     cell.append(bar, el('div', 'rad-lab mono', `${s.label}${on ? ' · selected' : ''}`), tokenPill(s.ref), el('div', 'rad-cons', s.note));
     list.append(cell);

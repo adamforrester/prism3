@@ -147,7 +147,7 @@ Observed radius vs the engine's small **bounded** set (`none/sm/md/lg/round`) �
 | `3xl` | 24 | — | no bounded-set equivalent |
 | `rounded` | 9999 | — | no bounded-set equivalent |
 
-- Engine radius (`none=0, sm=2, md=4, lg=6, round=128`) at scale 1. To shift the form factor, set `radiusScale` in the `x-prism3` block (e.g. `2` for softer corners).
+- Engine radius (`none=0, sm=2, md=4, lg=6, round=128, capsule=999`) at scale 1. To shift the form factor, set `radiusScale` in the `x-prism3` block (e.g. `2` for softer corners).
 
 ## 5. Elevation parity
 

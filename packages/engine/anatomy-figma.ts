@@ -1280,11 +1280,14 @@ const PROJECTABLE_SLOT_AXES = ['leading', 'trailing'];
  *  them off). A future chip/tag/segmented control joins the set by declaring this key — nothing else. */
 export const PILL_RADIUS_DERIVATION = 'pill-radius';
 
-/** The shared rung a pill-able control binds under `controlShape: pill`. `radius.round` is `dimension.128`
- *  in every brand — a single very-large radius that Figma clamps to min(w,h)/2 = height ÷ 2 at every size,
- *  which is the "pill-radius derivation" the def documents rather than a per-component literal. It is the
- *  SAME rung switch and radio bind intrinsically, reused rather than re-tokenized (#1163). */
-export const PILL_RADIUS_RUNG = 'radius.round';
+/** The rung a pill-able control binds under `controlShape: pill`. `radius.capsule` is a 999px sentinel —
+ *  a single radius Figma clamps to min(w,h)/2 = height ÷ 2 at every size, which is the "pill-radius
+ *  derivation" the def documents rather than a per-component literal. It is DISTINCT from `radius.round`
+ *  (128px, the rung switch/radio bind intrinsically) on purpose (#1163): 128 stops being a full pill above
+ *  a 256px control height, so the lever needs a rung whose ceiling no real control reaches, and raising it
+ *  here must not touch the rung the intrinsic pills bind. Both are CORNER_RADIUS-scoped radii — a radius
+ *  bound to a radius corner, not a height variable bound across Figma's scope boundary. */
+export const PILL_RADIUS_RUNG = 'radius.capsule';
 
 /** True when `def` is a pill-able control — it declares the `pill-radius` derivation. */
 export const isPillable = (def: ComponentDef): boolean => !!def.anatomy?.derived?.[PILL_RADIUS_DERIVATION];

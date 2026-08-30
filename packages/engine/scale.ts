@@ -315,9 +315,20 @@ const RADIUS_LADDER: { name: string; factor: number }[] = [
 ];
 const snap2 = (v: number) => Math.round(v / 2) * 2; // radius rides a 2px sub-grid
 
-/** Radius ramp from one scalar. scale=0 → all corners sharp except the pill;
- *  scale=1 → system default; up to 2 → very soft. `round` is always the pill. */
-export const radiusScale = (scale: number, baseMd = 4, pill = 128): RadiusStep[] => {
+/** Radius ramp from one scalar. scale=0 → all corners sharp except the pills;
+ *  scale=1 → system default; up to 2 → very soft.
+ *
+ *  TWO PILL RUNGS, and the distinction is the point (#1163). `round` (128px) is the pill for
+ *  INTRINSICALLY small controls — a switch track, a radio disc — where Figma's clamp to min(w,h)/2
+ *  turns 128 into their exact half-height at every size they reach. `capsule` (999px) is the pill for
+ *  controls of ARBITRARY height: the `controlShape: pill` lever repoints button/icon-button here, and
+ *  999 clamps to height ÷ 2 up to a ~1998px control — unconditional for anything real, where `round`
+ *  would stop being a full pill above a 256px height. Kept SEPARATE from `round` so the lever can raise
+ *  the ceiling for pill-able controls without touching the rung switch/radio bind. Both are fixed
+ *  sentinels, unscaled: a pill is height ÷ 2 regardless of corner softness. `capsule` is off the 4px
+ *  dimension grid on purpose (it emits as a literal, `tree.ts`), because a sentinel meaning "always a
+ *  pill" is not a real ladder step to be aliased. */
+export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999): RadiusStep[] => {
   const ramp: RadiusStep[] = RADIUS_LADDER.map(({ name, factor }) => ({
     name, px: name === 'none' ? 0 : Math.max(0, snap2(baseMd * factor * scale)),
   }));
@@ -330,5 +341,6 @@ export const radiusScale = (scale: number, baseMd = 4, pill = 128): RadiusStep[]
     if (ramp[i].px < ramp[i - 1].px)
       throw new Error(`radiusScale: non-monotone rung ${ramp[i].name}=${ramp[i].px}px < ${ramp[i - 1].name}=${ramp[i - 1].px}px (scale=${scale})`);
   ramp.push({ name: 'round', px: pill, pill: true });
+  ramp.push({ name: 'capsule', px: capsule, pill: true });
   return ramp;
 };

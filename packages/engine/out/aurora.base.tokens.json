@@ -14066,6 +14066,17 @@
             "radiusScale": 2
           }
         }
+      },
+      "capsule": {
+        "$type": "dimension",
+        "$value": "999px",
+        "$description": "radius capsule — 999px (off-grid literal)",
+        "$extensions": {
+          "prism3": {
+            "generated": true,
+            "px": 999
+          }
+        }
       }
     },
     "border-width": {

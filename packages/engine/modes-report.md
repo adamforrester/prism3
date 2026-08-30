@@ -1038,6 +1038,7 @@ Radius — scale `1`:
 | radius.md | 4 |
 | radius.lg | 6 |
 | radius.round | 128 (pill) |
+| radius.capsule | 999 (pill) |
 
 Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
 
@@ -2100,6 +2101,7 @@ Radius — scale `2`:
 | radius.md | 8 |
 | radius.lg | 12 |
 | radius.round | 128 (pill) |
+| radius.capsule | 999 (pill) |
 
 Component sizes — t-shirt, density `compact` (height + paired padding from the shared scales):
 
@@ -3161,6 +3163,7 @@ Radius — scale `1`:
 | radius.md | 4 |
 | radius.lg | 6 |
 | radius.round | 128 (pill) |
+| radius.capsule | 999 (pill) |
 
 Component sizes — t-shirt, density `comfortable` (height + paired padding from the shared scales):
 

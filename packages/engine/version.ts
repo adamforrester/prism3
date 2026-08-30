@@ -104,14 +104,16 @@
  *
  * 0.31.0: the `controlShape` FORM lever (#1163). A brand can now choose `rounded` (default) or `pill`
  * for its pill-able controls — today button and icon-button, tomorrow anything that declares a
- * `pill-radius` derivation. `pill` rebinds those controls' corner from `radius.md` to the shared pill
- * rung `radius.round`, which Figma clamps to height ÷ 2 at every size — the same derivation switch and
- * radio already use intrinsically, reused rather than re-tokenized. No token VALUE and no NAME moves:
- * the lever picks WHICH existing rung a control binds, so `CONTRACT_VERSION` stands and `rounded`
- * reproduces every plan byte-identically. This is a behavior change (a new lever, a new projection under
- * `pill`), which is why the engine version moves while the contract does not. `switch`/`radio` carry no
- * `pill-radius` derivation and so are structurally outside the pill-able set — asserted in `test.ts` so
- * the lever can never square them off. (#1163)
+ * `pill-radius` derivation. `pill` rebinds those controls' corner from `radius.md` to a new
+ * `radius.capsule` rung (a 999px sentinel), which Figma clamps to height ÷ 2 at every size. `radius.capsule`
+ * is a SECOND pill rung, kept distinct from `radius.round` (128px, the rung switch and radio bind
+ * intrinsically): 128 stops being a full pill above a 256px control height, so a lever that promises an
+ * unconditional pill needs a rung whose ceiling no real control reaches — and raising it must not touch the
+ * intrinsic pills. It is a CORNER_RADIUS-scoped radius bound to a radius corner, off the 4px grid on purpose
+ * (a sentinel, not a ladder step), so it emits as a literal. This ADDS one guaranteed path, `radius.capsule`,
+ * which is why `CONTRACT_VERSION` moves 9.0.0 → 9.1.0 (MINOR, additive — see below); `rounded` still
+ * reproduces every plan byte-identically. `switch`/`radio` carry no `pill-radius` derivation and so are
+ * structurally outside the pill-able set — asserted in `test.ts` so the lever can never square them off. (#1163)
  *
  * 0.30.0: ONE COLOUR COLLECTION (#1148/#1150). The two-tier colour split ends. `color.surface` — the
  * pointer tier, one alias per non-inverse role — is DELETED, and the value tier is renamed from
@@ -712,6 +714,13 @@ export const ENGINE_VERSION = '0.31.0';
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
  *
+ * 9.1.0: `radius.capsule` — one guaranteed path added, 0 removed, 0 retyped, so MINOR (#1163). The
+ * `controlShape: pill` lever needs a radius rung whose clamp guarantees a full pill at any control height;
+ * `radius.round` (128px) tops out at a 256px control, so a distinct 999px sentinel rung is emitted for every
+ * brand and the lever repoints to it. Additive: a consumer holding any existing radius name still resolves,
+ * and nothing was renamed or retyped — which is why this is MINOR and not the MAJOR a rename would force. It
+ * is `brandDependent`-clean too (every brand emits it, so it is guaranteed, not conditional). (566 → 567)
+ *
  * 9.0.0: THE `appearance` LEVEL IS DELETED AND THE VALUES TAKE THE SHORT NAMES BACK. 225 guaranteed paths
  * removed, 104 added, 0 demoted, so MAJOR — every `color.appearance.<X>` is now `color.<X>`, and a consumer
  * holding `color.appearance.text.primary` resolves to nothing. (687 → 566)
@@ -1020,7 +1029,7 @@ export const ENGINE_VERSION = '0.31.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '9.0.0';
+export const CONTRACT_VERSION = '9.1.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
