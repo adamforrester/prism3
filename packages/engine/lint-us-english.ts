@@ -68,6 +68,35 @@
  * recorded is closed and there is nothing left to merely count — a surface that is clean and NOT
  * gated is just a surface waiting to regress quietly.
  *
+ *
+ * ── SCOPE IS PER-FILE; TEXT IS NOT (#1117) — WHY A FAILURE HERE MAY NOT BE THIS FILE'S FAULT ────
+ *
+ * This gate answers *"is this FILE in scope?"* Text does not respect that boundary: a mechanical copy
+ * can move it out of an unscanned file into a scanned one. When it does, the failure lands on the
+ * DESTINATION — a file that faithfully copied what it was given — and the fix belongs at the source.
+ * So before editing the file this gate names, ask whether its text was written there.
+ *
+ * **ONE CROSSING IS KNOWN, DECLARED AND CLOSED, AND YOU CAN RE-DERIVE ALL THREE FACTS.** Do not take
+ * this paragraph's word for it — every claim below is a command whose output decides it:
+ *
+ *   1. `schema/shape-index.json` is in this gate's scope, and NO `docs/` file is. `--files` prints the
+ *      set this gate actually walks, so the answer comes from the gate and not from this comment.
+ *      Check the denominator first — a `grep -c` of 0 over an empty list is not evidence:
+ *        npx tsx packages/engine/lint-us-english.ts --files | wc -l                    # -> 122
+ *        npx tsx packages/engine/lint-us-english.ts --files | grep -c 'shape-index'    # -> 1
+ *        npx tsx packages/engine/lint-us-english.ts --files | grep -c '^docs/'         # -> 0
+ *        npx tsx packages/engine/lint-voice.ts      --files | grep -c '^docs/'         # -> 0
+ *   2. `lint-shape-index.ts --accept` copies docs/34 headings into that file verbatim:
+ *        grep -n 'baseline.shapes = ' packages/engine/lint-shape-index.ts
+ *   3. The crossing is CHECKED AT THE SOURCE, by ARM C of that gate, using the rule this file uses —
+ *      imported from `prose-rules.ts`, never a second copy. Confirm it can fail, by name:
+ *        put an en-GB spelling in a docs/34 `### N. Title` heading, then
+ *        npx tsx packages/engine/lint-shape-index.ts       # must fail naming docs/34, not the JSON
+ *
+ * If (3) ever stops failing, this gate is once again the only thing standing between a docs/34
+ * heading and a confusing failure in a file nobody wrote. A second crossing found later belongs in
+ * this list with the same three commands, or it is not declared — it is remembered.
+ *
  * Run: `npx tsx packages/engine/lint-us-english.ts`  (exit 1 = a gated surface regressed)
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
@@ -76,47 +105,20 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 
+// ---- the RULE, imported (#1117) --------------------------------------------------------------
+// `PATTERN`, `STEMS`, `NOT_EN_GB` and `enGb` moved to `prose-rules.ts` so that a check at a SCOPE
+// CROSSING applies the IDENTICAL function this gate applies. A second copy of the rule is the one
+// thing that must not exist here: a boundary check that accepts what this gate rejects stamps
+// approval on text that then fails against the wrong file, which is #1117's whole complaint. The
+// #387/#511 property is unchanged — `scan()` below and `SELF_CHECK` both drive the imported `enGb`,
+// so neutering a rule fails this gate's self-check rather than only going quiet in production.
+import { enGb } from './prose-rules.ts';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
-// The pattern, not a word list. `[A-Za-z]{3,}` keeps `is`/`our` themselves out.
-//
-// The trailing `s?` is load-bearing and was missing until #464. `our\b` matches `colour` but NOT
-// `colours`, so every en-GB PLURAL — `colours`, `behaviours`, `flavours` — walked through a gate
-// whose whole job was to stop them, and `ation\b` had the same hole for `generalisations`. It went
-// unnoticed because the self-check below only ever sampled the singular, which is the more general
-// trap: **a self-check written from the same mental model as the scan inherits its blind spot.** The
-// plural case is now sampled too. Found by mutating a file into failure and watching the gate stay
-// green — the reason to test a gate by breaking something rather than by reading it.
-const PATTERN = /\b[A-Za-z]{3,}(?:is(?:e|ed|es|ing|ation)|our)s?\b/g;
-// ...and a second scan, because ONE shape cannot cover both and the pattern alone was under-counting
-// in the opposite direction from the word list it replaced.
-//
-// CLAUDE.md states three rules: `color` not `colour`, `gray` not `grey`, `-ize` not `-ise`. Two of
-// them fall out of PATTERN — `colour`/`behaviour` end in `-our`, `-ise` is explicit. **`grey` ends in
-// neither**, so PATTERN was structurally blind to a third of the standard it claimed to enforce, and
-// nothing said so. `greyscale` sat in the published `theme-schema.json` contract through 90-file
-// scans (#313 — the very conversion that issue was tracking).
-//
-// The lesson the arc had half-learned: the fix for "a word list misses `generalised`" is pattern
-// PLUS list, not pattern INSTEAD OF list. Substring-matched so compounds are caught too
-// (`greyscale`, `greys`, `grey-500`). A false positive here is still fixed by adding to NOT_EN_GB,
-// never by narrowing either scan.
-const STEMS = /\b[A-Za-z]*grey[A-Za-z]*\b/gi;
-// Ordinary English that merely ENDS in those letters. Subtracting these is what makes a pattern scan
-// usable; adding to this list is the correct fix for a false positive, never narrowing the pattern.
-const NOT_EN_GB = new Set([
-  'surprise', 'surprises', 'surprised', 'surprising', 'wise', 'otherwise', 'likewise', 'rise', 'rises',
-  'arise', 'arises', 'arising', 'promise', 'promises', 'promised', 'promising', 'precise', 'concise',
-  'exercise', 'exercises', 'exercised', 'exercising', 'premise', 'premises', 'compromise', 'compromises',
-  'revise', 'revised', 'revises', 'devise', 'devised', 'devises', 'supervise', 'enterprise', 'expertise',
-  'noise', 'raise', 'raises', 'raised', 'advertise', 'advertised', 'advertises', 'praise', 'praised',
-  'cruise', 'paradise', 'franchise', 'merchandise', 'poise', 'poised', 'guise', 'disguise', 'excise',
-  'incise', 'anise', 'demise', 'chastise', 'baptise',
-  'your', 'yours', 'our', 'ours', 'four', 'hour', 'hours', 'pour', 'pours', 'tour', 'tours', 'detour',
-  'source', 'sources', 'sourced', 'sourcing', 'resource', 'resources', 'outsource', 'flour', 'devour',
-  'contour', 'contours', 'velour', 'dour', 'scour', 'sour',
-]);
+
+
 
 type Hit = { file: string; line: number; word: string; context: string };
 
@@ -124,26 +126,7 @@ type Hit = { file: string; line: number; word: string; context: string };
 // thrown so one run reports all of them; a non-empty list is fatal below.
 const blind: string[] = [];
 
-// The ONE place either regex is applied. `scan()` (real files) and SELF_CHECK (samples) both drive
-// this, and that sharing is load-bearing — the exact opposite of the DRY trap, because here the two
-// callers are the gate's *subject* and its *fixture*, not a gate and the thing it checks.
-//
-// It used to be duplicated: SELF_CHECK evaluated its own inline `[PATTERN, STEMS].some(...)`, so it
-// validated a reimplementation rather than the shipping code path (#387; the #511 shape, found by
-// mutation in the same file that already documents #511's lesson). Measured: with `STEMS` removed
-// from the loop below and a real `A greyscale mode.` added to the gated engine README, every
-// detection sample still passed and the gate printed `✓ clean` at exit 0. A self-check gates whatever
-// it calls — so it has to call the thing that runs.
-const enGb = (txt: string): { word: string; index: number }[] => {
-  const found: { word: string; index: number }[] = [];
-  for (const re of [PATTERN, STEMS]) {
-    for (const m of txt.matchAll(re)) {
-      if (NOT_EN_GB.has(m[0].toLowerCase())) continue;
-      found.push({ word: m[0], index: m.index ?? 0 });
-    }
-  }
-  return found;
-};
+
 
 const scan = (abs: string): Hit[] => {
   let txt: string;
@@ -356,6 +339,19 @@ if (selfFails.length) {
   console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
+}
+
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-us-english.ts --files | grep -c '^docs/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
+if (process.argv.includes('--files')) {
+  for (const f of gated) console.log(relative(repo, f));
+  process.exit(0);
 }
 
 const gatedHits = gated.flatMap(scan);

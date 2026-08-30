@@ -7,6 +7,116 @@
 
 ---
 
+## (2026-08-30) — gate scope is per-file, text is not (#1117, the sweep's last item)
+
+**STATUS: shipped.** Two instances of one shape, handled differently on purpose, plus a re-derivable
+note in both prose gates. **Gates stay at 47** — neither half adds one; the checks go where the defect
+is, in an existing gate's arm and in the plugin build.
+
+── THE SHAPE ────────────────────────────────────────────────────────────────────────────────────
+
+Every prose gate answers *"is this FILE in scope?"* Text does not respect that boundary. A mechanical
+copy moves it out of an unscanned file into a scanned one, the failure surfaces at the DESTINATION, and
+the fix belongs at the SOURCE. The destination is a file that faithfully copied what it was given, so
+the gate names something correct and the person who must act authors a file the gate never mentions.
+
+── INSTANCE 1: docs/34 headings → schema/shape-index.json, via `--accept` ───────────────────────
+
+`schema/shape-index.json` is hand-named in BOTH prose gates. `docs/34-gate-independence.md` is in
+NEITHER. `--accept` copies `### N. Title` headings across that line verbatim. It has fired, during
+#1105, and the remedy taken was a hand-edit of the destination.
+
+Closed with **option 2 — gate at the boundary** — as `ARM C` of `lint-shape-index.ts`. It runs in the
+ordinary gate as well as in `--accept`, so CI catches a laundering heading even if nobody runs
+`--accept`, and both paths name **docs/34** and the heading. `--accept` refuses and writes nothing;
+verified byte-unchanged rather than assumed.
+
+**The rule is imported, never restated**, and that is the whole design rather than tidiness. A boundary
+check holding text to a rule LOOSER than its destination's is worse than no boundary check: it stamps
+approval on text that then fails against the wrong file, which is the defect it was added to remove. So
+`packages/engine/prose-rules.ts` now holds `enGb` and `voiceHits`, and the gates and the boundary import
+the same functions. Both gates' output is **byte-identical** before and after the move — diffed, not
+eyeballed — and the #387/#511 property survives: each gate's `scan()` and its `SELF_CHECK` still drive
+the imported function, so neutering a rule fails that gate's self-check.
+
+This is not the DRY trap `docs/34` warns about, and the distinction is worth stating because the shape
+rhymes. Shape 2 is a gate and its ORACLE sharing a derivation. Here the oracle is the RULE and the
+subject is a file's TEXT; moving the rule into its own module changes neither side.
+
+── INSTANCE 2: a developer's absolute realpath → apps/plugin/dist, via `--define` ───────────────
+
+Fixed directly rather than declared, because the source is nobody's file. `PRISM3_BUILD` now stamps
+`tree-<8 hex of sha256(abs path)>`, and `build.mjs` refuses to emit a bundle containing an absolute
+path at all.
+
+**This reverses a decided, measured call, and the reversal is the part worth recording.** `build.mjs`
+argued the path must stay, and measured three payloads against the real gate: absolute → exit 1,
+basename → exit 1, hashed → exit 0. Every one of those numbers still holds. What the argument weighed
+was only the GATE — whose problem is it that a machine-substituted token gets scanned as prose. It never
+weighed the other half: `dist/` is **imported into Figma**, so the path is not merely gate-scanned text,
+it is a developer's filesystem layout — and usually a username — shipped in an artifact, and the same
+substitution makes the build non-reproducible (two checkouts of one commit, different bytes). On those
+two counts the answer does not depend on any gate's scope. Given that, the old measurement chooses the
+form: only the hash clears it.
+
+The hash's stated cost was that you cannot `git -C <tree> log -1` it, re-import the tree it names, or
+compare it by eye. All three need the mapping, so the build **prints** `tree-13cbe2b9 = /tmp/p3-1117`
+where the person who can act is standing, and the header carries a one-liner that maps every worktree.
+What is not paid back is reading the answer straight off the panel; that is the deliberate trade. An
+ENCODED path would satisfy a "no absolute path" scan and still ship the path, which is why this is a
+hash and not base64.
+
+Nothing in `build-identity.ts` changed for it — the format is still `<timestamp><space><token>`,
+`parseBuildId` still splits on the first space, `buildChip` still takes the token's last `/`-segment,
+which for a slashless token is the token. Its header's width measurements were taken against long PATH
+tokens and are **retained rather than re-taken**, with a line saying they now describe inputs the plugin
+no longer produces but that the renderers still accept.
+
+── THE BACKSTOP, MADE RE-DERIVABLE RATHER THAN ASSERTED ────────────────────────────────────────
+
+Both prose gates' headers now carry the property and one declared crossing — and every claim in the note
+is a command whose output decides it, because gate 4's review had just shown what a prescribed re-check
+that returns 22 hits does to a maintainer.
+
+**The first draft of this note failed its own standard.** It prescribed
+`grep -rn 'docs/' packages/engine/lint-us-english.ts packages/engine/lint-voice.ts   # -> 0`. Run: **13**
+— because the grep matches the comment making the claim. A source grep cannot check a claim about
+scope; it can only find the sentence asserting it. So both gates gained `--files`, which prints the set
+the gate actually walks, and the note now reads:
+
+    npx tsx packages/engine/lint-us-english.ts --files | wc -l                 -> 122
+    npx tsx packages/engine/lint-us-english.ts --files | grep -c 'shape-index' -> 1
+    npx tsx packages/engine/lint-us-english.ts --files | grep -c '^docs/'      -> 0
+    npx tsx packages/engine/lint-voice.ts      --files | grep -c '^docs/'      -> 0
+
+The denominator is checked first on purpose: a `grep -c` of 0 over an empty list is not evidence.
+
+── MUTATION BATTERY (6), AND THE ONE THAT CAUGHT ME ────────────────────────────────────────────
+
+`M1` an en-GB spelling in a docs/34 heading → arm C fails naming **docs/34**, the destination gate stays
+green (the copy never happened), and `--accept` refuses with the baseline byte-unchanged. `M2` a §2
+banned word in a heading → same, naming the rule. `M3` remove `STEMS` from the shared `enGb` → the
+US-English gate's own self-check fails (`"a greyscale mode" should be flagged`). `M4` remove `EXCLAIM`
+from the shared `voiceHits` → the voice gate's self-check fails by rule name. `M5` stamp the raw path
+again → the plugin **build** fails naming the leaked path, and the studio suite's source-scan assertion
+fails too.
+
+`M6` is the one worth keeping. Pointing arm C's loop at an empty array left the gate at **exit 0**: the
+floor read `actual.length` while the loop walked something else, so it reported a true number about the
+wrong set. A floor that cannot fail is decoration, and this is the third time this sweep that a
+mutation caught my own arm rather than the subject. The counter is now incremented INSIDE the loop.
+
+A second self-inflicted lesson, and the same one CLAUDE.md already records: I fixed that floor, then ran
+`git checkout -- .` as a mutation restore and **destroyed the fix I had just made**, because the restore
+reaches back to `HEAD` and the fix was uncommitted. Commit between mutations, every time, not just the
+first.
+
+── WHAT THIS DOES NOT DO ───────────────────────────────────────────────────────────────────────
+
+It does not widen either prose gate's scope, and it does not enumerate crossings the repo has not found.
+The note lists **one** declared crossing; a second discovered later belongs there with the same three
+commands, or it is not declared — it is remembered, which is the state #1117 was filed about.
+
 ## (2026-08-30) — a leaf said which Figma collection it landed in, and nothing checked (#1138, gate 4)
 
 **STATUS: shipped.** One new gate, `lint-figma-destination.ts`. Gates **46 → 47**, re-measured on
