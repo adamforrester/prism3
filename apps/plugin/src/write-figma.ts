@@ -128,6 +128,44 @@ export const orphansOf = (existing: Iterable<string>, planned: Iterable<string>)
 };
 
 /**
+ * COLLECTIONS in the file that no plan owns — **reported, never deleted** (#1152).
+ *
+ * `orphansOf` above is the same subtraction one level down, and the level is the whole point. It is
+ * called BY an executor, ABOUT the collection that executor just walked, so it can only ever report
+ * drift *inside* somewhere the plan already reaches. A collection nothing plans is never looked up:
+ * `upsertCollection` is never called for it, no `byName` index is built over it, its variables never
+ * enter a `preExisting` set. It contributes to no orphan list, no total, no `created`, no `misses`.
+ * **The absence of a finding about it is indistinguishable from the absence of a look.**
+ *
+ * That is not hypothetical. #1148 collapsed the two colour tiers, and `Variable.variableCollectionId`
+ * is `readonly` — a variable cannot be re-parented — so the value tier is RENAMED onto `color` and a
+ * designer's `color.surface` is left whole beside it, holding its variables and every binding made to
+ * them. Those bindings keep resolving, so nothing breaks; the collection simply sits there,
+ * unreported, forever. The pre-#1097 `core-palette`/`core-dimension`/`core-font` fan-in has the same
+ * shape and the same silence.
+ *
+ * **So this cannot be built on top of any executor's report, and the enumeration is the reason.** It
+ * starts from `getLocalVariableCollectionsAsync()` — every collection in the file, whether or not
+ * anything intends to write it — and subtracts the collections the plans name. The executors' union
+ * is the SUBTRAHEND here, never the thing being walked. Asking each executor "did you see anything
+ * strange?" cannot answer this question in principle: an executor that never runs over a collection
+ * has no opinion about it, and four executors with no opinion still sum to silence.
+ *
+ * REPORT ONLY, for the same reason `orphansOf` reports: a leftover collection may hold variables a
+ * designer hand-bound across their file, and deleting it is destructive and unrecoverable from here.
+ * Naming it is what lets them decide.
+ *
+ * Sorted, so two runs diff cleanly.
+ */
+export const strandedCollections = (
+  existing: Iterable<string>,
+  plannedCollections: Iterable<string>,
+): string[] => {
+  const owned = new Set(plannedCollections);
+  return [...existing].filter((n) => !owned.has(n)).sort();
+};
+
+/**
  * The AXIS a plan owns, as the label its orphan report carries (#1097).
  *
  * `core` is written by three executors, so a report labelled `core` from any one of them reads as a

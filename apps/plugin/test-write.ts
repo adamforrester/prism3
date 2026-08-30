@@ -17,7 +17,7 @@
 import { buildFigmaColor } from '@prism3/engine/emit-figma-color';
 import { buildWritePlan } from '@prism3/engine/write-plan';
 import { nbThemeFrom } from '@prism3/engine/theme';
-import { applyWritePlan, orphansOf, beginMigration } from './src/write-figma';
+import { applyWritePlan, orphansOf, strandedCollections, beginMigration } from './src/write-figma';
 import { deriveVariableRenames, isRefusal } from '@prism3/engine/rename-map';
 import nbMeasured from '@prism3/engine/schema/nb-measured.json';
 
@@ -189,6 +189,48 @@ ok(first.orphans.length === 2 && first.orphans.every((o) => o.names.length === 0
 const second = await applyWritePlan(plan, cleanShim as any);
 ok(second.orphans.every((o) => o.names.length === 0),
   '#479 re-applying the SAME plan creates no orphans — idempotent, so the report has no false positives');
+
+// ---- #1152: STRANDED COLLECTIONS — the level the orphan report structurally cannot reach --------
+// `orphansOf` above is called BY an executor ABOUT the collection it just walked, so it only ever
+// describes drift INSIDE a collection some plan owns. A collection nothing plans is never upserted,
+// never indexed, never counted — and #1148 creates exactly one: `Variable.variableCollectionId` is
+// readonly, so the value tier is RENAMED onto `color` and a designer's `color.surface` is left whole
+// beside it. Its bindings keep resolving, so nothing breaks and nothing complains.
+
+// The unit, first — including the two directions that must NOT flag.
+ok(strandedCollections(['color', 'color.surface'], ['color']).join() === 'color.surface',
+  '#1152 strandedCollections: a collection in the file that no plan names is stranded');
+ok(strandedCollections(['color'], ['color', 'space']).length === 0,
+  '#1152 strandedCollections: a collection in the PLAN but not the file is NOT stranded (that is a create)');
+ok(strandedCollections(['z', 'a'], []).join() === 'a,z',
+  '#1152 strandedCollections: sorted, so two runs diff cleanly');
+
+// End-to-end against a shim holding the #1148 leftover, driven through the real executor so the
+// claim under test is "the executors did not see it", not "my helper subtracts sets".
+const strandedShim = new VariablesShim();
+strandedShim.createVariableCollection('color.surface');
+strandedShim.createVariable('color/background/primary', strandedShim.collections[0]);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies VariablesApi
+const sr = await applyWritePlan(plan, strandedShim as any);
+// THE PREMISE, ASSERTED RATHER THAN ASSUMED. If some executor report did name `color.surface`, the
+// pass below would be redundant and this arm would be decoration — so the invisibility is the thing
+// checked first. This is the assertion that fails if a future executor starts walking it, which is
+// the day this whole mechanism should be reconsidered rather than quietly kept.
+ok(sr.orphans.length > 0, '#1152 the executor DID produce an orphan report, so the next assertion is not vacuous');
+ok(!sr.orphans.some((o) => o.name === 'color.surface' || o.names.some((n) => n.startsWith('color.surface'))),
+  '#1152 PREMISE: no executor report mentions the stranded collection — its silence is why this pass exists');
+const liveNames = (await strandedShim.getLocalVariableCollectionsAsync()).map((c) => c.name);
+ok(liveNames.includes('color.surface'), '#1152 the stranded collection is still in the file (nothing deleted it)');
+ok(strandedCollections(liveNames, ['core', 'color']).join() === 'color.surface',
+  '#1152 the file-side enumeration DOES name it — the report starts from the file, not from any plan');
+
+// The direction that must not fire: a file the plans fully own reports zero, and reports it as zero
+// rather than as nothing. "Checked, none" has to be distinguishable from "never checked", or a
+// silenced pass reads exactly like a clean file — the #1152 defect itself, one level up.
+const ownedNames = (await cleanShim.getLocalVariableCollectionsAsync()).map((c) => c.name);
+ok(ownedNames.length > 0, '#1152 the clean shim actually holds collections, so the next assertion is not vacuous');
+ok(strandedCollections(ownedNames, ownedNames).length === 0,
+  '#1152 a file whose collections the plans all own reports zero stranded — no false positives');
 
 // ---- #1013: the RENAME MAP — the orphan report's other half, and the half that writes -------------
 // `orphansOf` above proves the drift is visible. This proves it MOVES: a renamed variable is migrated in

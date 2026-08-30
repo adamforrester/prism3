@@ -24,7 +24,7 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain } from './messages';
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration } from './write-figma';
+import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, strandedCollections } from './write-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
@@ -151,15 +151,21 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     // Colour axis (#108): the `core` palette slice + the one `color` collection, per-mode alias-bound.
     // The pointer-tier executor that used to run next went with the tier (#1148) — there is no second
     // collection to alias into, so the cross-call ordering dependency it existed for is gone too.
-    const r = await applyWritePlan(buildWritePlan(buildFigmaColor(theme)), figma.variables, mig);
+    // Hoisted rather than inlined into the calls below because the #1152 stranded-collection pass
+    // needs the set of collections the plans NAME, and an axis label (`core/dimension`) is not that
+    // name. `plan.name` / `$collection` are the only spellings that match what Figma holds.
+    const colorFiles = buildFigmaColor(theme);
+    const floatPlan = buildFloatWritePlan(theme);
+    const fontPlan = buildFontVarPlan(theme);
+    const r = await applyWritePlan(buildWritePlan(colorFiles), figma.variables, mig);
     // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
-    const f = await applyFloatPlan(buildFloatWritePlan(theme), figma.variables, mig);
+    const f = await applyFloatPlan(floatPlan, figma.variables, mig);
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
     // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
     const s = await applyStylesPlan(buildStylesPlan(theme), figma);
     // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
     // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
-    const tv = await applyVarCollectionPlan(buildFontVarPlan(theme), figma.variables, mig);
+    const tv = await applyVarCollectionPlan(fontPlan, figma.variables, mig);
     const textApi = {
       getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
       createTextStyle: figma.createTextStyle.bind(figma),
@@ -210,6 +216,31 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const orphanNote = orphanCount
       ? `, ⚠️ ${orphanCount} orphaned variables not in the plan (${allOrphans.map((o) => `${o.name}: ${o.names.length}`).join(', ')}) — likely renames; nothing was deleted`
       : '';
+    // STRANDED COLLECTIONS (#1152) — the level above the orphan report, and the one no executor can
+    // reach. `allOrphans` is assembled FROM the executors, so it can only describe collections a plan
+    // already owns; a collection nothing plans is never upserted, never indexed, never counted, and
+    // its silence is indistinguishable from a clean bill. The paragraph above says exactly this about
+    // `color.surface` and then has to say "filed separately" — this is that filing, closed.
+    //
+    // Enumerated from the FILE, not from any plan: every collection Figma holds, minus the ones the
+    // plans name. The plan-owned set is spelled with `$collection` / `plan.name` rather than the axis
+    // labels the orphan report uses, because `core/dimension` is a label and `core` is what Figma has.
+    const plannedCollections = [
+      colorFiles.palette.$collection,
+      ...colorFiles.color.map((c) => c.$collection),
+      ...floatPlan.map((p) => p.name),
+      ...fontPlan.map((p) => p.name),
+    ];
+    const stranded = strandedCollections(
+      (await figma.variables.getLocalVariableCollectionsAsync()).map((c) => c.name),
+      plannedCollections,
+    );
+    // Not a failure, and deliberately not one: a stranded collection breaks nothing — its variables
+    // still exist and every binding into them still resolves. It is stale, not broken, and the
+    // decision to remove it is the designer's, since it may hold variables they bound by hand.
+    const strandedNote = stranded.length
+      ? `, ⚠️ ${stranded.length} collection${stranded.length === 1 ? '' : 's'} in this file that no plan writes (${stranded.slice(0, 3).join(', ')}${stranded.length > 3 ? '…' : ''}) — left over from an earlier version or hand-made; nothing was deleted`
+      : '';
     // Rename migrations (#1013) — the other half of the orphan report above. A variable the plan renamed
     // is moved in place (id preserved, so every binding a designer made comes with it) rather than left
     // behind for `orphanNote` to count. The two are disjoint by construction: the orphan snapshot is taken
@@ -250,7 +281,7 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
       `styles ${s.effects.total} effects (+${s.effects.created}) / ${s.paints.total} gradients (+${s.paints.created}, ${s.paints.bound} stops bound), ` +
       `type ${pf.loaded} fonts loaded / ${fontVarTotal} font vars (+${fontVarCreated}) / ${ts.total} text styles (+${ts.created}), ` +
       `${r.bound + f.bound + tv.bound + ts.bound} bindings` + (misses ? `, ${misses} misses` : '') +
-      renameNote + orphanNote + resolvedNote + skippedNote + fontNote + refusedNote;
+      renameNote + orphanNote + strandedNote + resolvedNote + skippedNote + fontNote + refusedNote;
     // Skipped fonts aren't a "failure" (variables still wrote); only true misses flip ok=false. The
     // pill's headline is derived from the COUNTS (see `apply-summary.ts`), never from `summary` — the
     // prose above is edited whenever an axis is added, and re-parsing it would make its wording

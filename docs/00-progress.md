@@ -7,6 +7,112 @@
 
 ---
 
+## (2026-08-30) — a collection nothing walks is in no report, and no executor can be asked about it (#1152, gate 5)
+
+**STATUS: shipped.** Two halves of one claim: `lint-stranded-collections.ts` (gates **47 → 48**, re-measured on `d0cbe9c`) stops
+the engine minting a stranded collection, and `strandedCollections` in the plugin executor surfaces the
+ones already sitting in designers' files. Nothing emitted moves.
+
+── THE DEFECT, AND WHY IT IS NOT AN ORPHAN ──────────────────────────────────────────────────────
+
+The orphan report (#479) is produced **by** an executor **about** the collection that executor just
+walked. So it describes drift *inside* somewhere a plan already reaches. A collection nothing plans is
+never reached at all: `upsertCollection` is never called for it, no `byName` index is built over it, its
+variables never enter a `preExisting` set. It is in no orphan list, no total, no `created`, no `misses`.
+**The absence of a finding about it is indistinguishable from the absence of a look**, and the run
+completes clean and silent.
+
+#1148 produced one. `Variable.variableCollectionId` is `readonly`, so a variable cannot be re-parented:
+collapsing the two colour tiers RENAMES the value tier onto `color` and leaves a designer's
+`color.surface` standing beside it, holding its variables and every binding into them. Nothing breaks —
+those bindings still resolve — so there is no symptom either. `rename-map.ts` and `write-figma.ts` each
+describe this in prose and each end with "filed separately". This is that filing.
+
+── THE CRUX: A GATE FOR THIS CANNOT ASK AN EXECUTOR ANYTHING ────────────────────────────────────
+
+An orphan is by definition a thing nothing walks, so no executor holds an opinion about one, and four
+executors with no opinion still sum to silence. Every arm therefore **enumerates from outside every
+executor** — the emitted Figma artifacts, the authored `COLLECTION_RENAMES`, the executor sources' own
+text — and uses the plan set only as the *subtrahend*. A check built on "did any pass complain?"
+reproduces the defect it is looking for. That direction is the whole design and is stated at the top of
+the file so nobody inverts it while tidying.
+
+── THE ARM THAT IS DELIBERATELY ABSENT, WHICH TOOK LONGER TO SETTLE THAN THE FOUR THAT SHIPPED ──
+
+The obvious arm — *"does the plan's collection name match the emission's?"* — is a tautology. The plan
+reads its names **off the emission by construction**: `buildFloatWritePlan` is
+`floatPlanFor(files[0].$collection, files)`, `buildFontVarPlan` is `varPlanFor(font[0].$collection, …)`,
+the palette's is `CORE_COLLECTION` imported from the emitter. Each was made derived on purpose (#1097 —
+a literal at the call site is a second place the fact is stated), and each makes that comparison
+`x === x`. It would have passed every mutation below and read as coverage: `docs/34` shape 17. It is
+named in the header as *not an arm*, because the next person to look will think of it too.
+
+What is independent is the plan's **membership**, not its spellings. `buildFloatWritePlan` returns ten
+hand-written `named([dims.…])` entries; an eleventh emitted axis gets a plan only if somebody writes
+one. That is arm 1, and it is a real question with a hand-authored answer.
+
+── FOUR ARMS AND A FLOOR ────────────────────────────────────────────────────────────────────────
+
+**1 STRANDED** an emitted variable collection no plan names. **2 PHANTOM** the reverse — a plan naming a
+collection nothing emits, which matters because `upsertCollection` *creates* on miss, so it ships an
+empty collection and leaves the emitted one unwritten. **3 RENAME** every `COLLECTION_RENAMES` target
+must be something a plan writes (or a designer's collection is renamed *into a name nothing writes* —
+#1108, a rule `rename-map.ts` states in prose that nothing checked) and every source must not be.
+**4 LITERAL** collection names the executors spell as string literals rather than reading off a plan.
+
+Arm 4 looked redundant and is not, which the battery settled: `'color'` reaches the plan-owned set from
+the **emitter's** `$collection`, never from the executor's literal, so a stale literal passes arms 1 and
+2 in silence. Mutating it fired arm 4 alone, with arms 1 and 2 at 0.
+
+Style axes are told from variable collections **by rule** — a style file carries no `$mode` — never by a
+name list, so the day a fourth style axis appears it is classified rather than forgotten. The floor
+asserts each side was populated: a non-empty variable set per brand, a non-empty style set (an empty one
+means the *rule* stopped discriminating), and at least one literal per file promised to arm 4.
+`COLLECTION_RENAMES` is deliberately **not** floored — an empty map is a legitimate steady state, held
+between #1013 and #1148 — so its size is printed instead.
+
+── MUTATION BATTERY (8), EACH SELF-VERIFYING ────────────────────────────────────────────────────
+
+`M1` deletes `named([dims.focus])` → arm 1 on 4 brands, other arms 0. `M2` adds a plan for
+`opacity.legacy` → arm 2 on 4 brands, arm 1 at 0. `M3` reinstates #1108 (`COLLECTION_RENAMES` target →
+`color.surface`) → arm 3 by name. `M4` points the plugin executor's literal at the retired
+`color.appearance` → arm 4 by name, **arms 1 and 2 at 0**. `M5` rots `LITERAL_RE` onto call names that
+do not exist → the floor fires for *both* promised files, which is the #986 distinction between a rotted
+detector and a clean pass. `M6` drops harbor from `THEMES` → the shape-15 guard by name. `M8` neuters
+`strandedCollections` → three of the nine plugin arms fail by name while the six "must not fire"
+directions correctly still pass.
+
+`M7` is the **negative control**, and the one that would have caught an over-eager gate: rename the
+emitted `radius` collection to `corner-radius` in `emit-figma-dims.ts` and **regenerate**, so plan and
+emission move together. The gate stays green, correctly — a coordinated rename is not stranding. Without
+it the battery only proves the gate is loud, not that it is right.
+
+── THE HALF NO GATE CAN REACH ───────────────────────────────────────────────────────────────────
+
+A collection stranded in a *designer's file* lives in a document CI has never read. `strandedCollections`
+is that half: at apply time it enumerates `getLocalVariableCollectionsAsync()` — every collection Figma
+holds — and subtracts the ones the plans name, reporting the remainder in the run summary. Report only,
+for the same reason the orphan report is: a leftover may hold variables hand-bound across the file, and
+deleting it is unrecoverable from here. Naming it is what lets the designer decide.
+
+Its test arm asserts the **premise** before the conclusion — that no executor report mentions
+`color.surface` — because if one did, the whole pass would be redundant and the arm decoration. That
+assertion was itself vacuous on first writing (an empty `sr.orphans` would have satisfied it), so it now
+asserts the report is non-empty first. Two rounds of the same lesson in one file.
+
+**Stated limit:** the pure function and the premise are under test; `main.ts`'s wiring of it is covered
+by typecheck and by review, not by an arm. The plugin's main thread has no harness that drives an apply.
+
+*Sequencing note, and the correction it called for.* This branch was written against `1e8da2f`, where
+gate 4 (#1169) was still open against the same base and the entry said **46 → 47**. Gate 4 and #1117
+both landed first, so the rebase onto `d0cbe9c` makes this the SECOND gate off that base and the count
+is **47 → 48** — re-measured with `lint-doc-gates` (48 runner entries vs 48 CI steps, both directions)
+and `npm run verify`, not inferred from the sweep's running total. The name-lists reconciled themselves
+on the rebase, because each of the five is a list of NAMES and the two gates' entries merge; the
+NUMERALS did not, which is why they are the thing this note exists to catch. Third time in this sweep
+that a count line had to be re-measured after a rebase rather than carried.
+
+
 ## (2026-08-30) — gate scope is per-file, text is not (#1117, the sweep's last item)
 
 **STATUS: shipped.** Two instances of one shape, handled differently on purpose, plus a re-derivable
@@ -250,7 +356,6 @@ mutation that did not apply is not a passing gate, and only the assert distingui
 That the destination is the *right* one. It compares two independent statements of where a token goes
 and fails when they disagree; if both emitters agreed on a collection nobody wanted, this is green.
 Whether the token should be in `color` at all is a design question, and no gate holds it.
-
 
 ## (2026-08-29) — the `controlShape` brand lever: rounded | pill for pill-able controls (#1163)
 

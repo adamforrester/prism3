@@ -429,6 +429,21 @@ jobs:
       # of the subject, and its layout `mode` claims are brand-derived (docs/34 shape 15).
       - name: A leaf's declared Figma destination is the one it materializes into
         run: npx --yes tsx@4 packages/engine/lint-figma-destination.ts
+      # #1152: the orphan report (#479) is produced BY an executor ABOUT the collection it just walked,
+      # so it can only describe drift INSIDE somewhere a plan reaches. A collection nothing plans is
+      # never upserted, never indexed, never counted — the absence of a finding about it is
+      # indistinguishable from the absence of a look. #1148 produced one: Variable.variableCollectionId
+      # is readonly, so collapsing the colour tiers renames the value tier onto `color` and leaves a
+      # designer's `color.surface` standing, unreported, forever.
+      #
+      # A gate for this cannot ask an executor anything — an executor has no opinion about a collection
+      # it never walks, and four with no opinion still sum to silence. Every arm enumerates from OUTSIDE
+      # them (the emitted artifacts, the authored COLLECTION_RENAMES, the executor sources' own text)
+      # and uses the plan set only as the subtrahend. Note what is deliberately NOT an arm: the plan's
+      # collection NAMES are read off the emission by construction (#1097), so comparing them to it is
+      # x === x — docs/34 shape 17, stated in the header so nobody adds it back as "coverage".
+      - name: No collection ships that nothing writes
+        run: npx --yes tsx@4 packages/engine/lint-stranded-collections.ts
 
       # #758: the component tier's colour bindings, in two arms — because #758's own stated acceptance
       # ("Button's 648-member paint is byte-identical: regen --check reports 104") cannot fail.
