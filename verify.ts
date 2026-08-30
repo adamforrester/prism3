@@ -591,6 +591,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-figma-destination.ts'),
   },
   {
+    id: 'lint-stranded-collections',
+    ciStep: 'No collection ships that nothing writes',
+    cmd: engine('lint-stranded-collections.ts'),
+  },
+  {
     id: 'lint-paint',
     ciStep: 'Component paint is where the defs say it is',
     cmd: engine('lint-paint.ts'),

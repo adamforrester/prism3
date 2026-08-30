@@ -306,6 +306,28 @@ npx tsx packages/engine/lint-figma-destination.ts   # a leaf's OWN claim about w
                                                     # a quarter of the subject, whose layout `mode` claims
                                                     # are brand-derived (shape 15); a brand in neither
                                                     # out/figma/ nor COMPUTED_ORACLE FAILS, never skips
+npx tsx packages/engine/lint-stranded-collections.ts # no collection ships that nothing writes, and
+                                                    # nothing writes one that does not ship (#1152). The
+                                                    # orphan report (#479) is produced BY an executor
+                                                    # ABOUT the collection it just walked, so it can only
+                                                    # describe drift INSIDE somewhere a plan reaches; a
+                                                    # collection nothing plans is never upserted, never
+                                                    # indexed, never counted, and its silence is
+                                                    # indistinguishable from a clean bill. #1148 made
+                                                    # one — variableCollectionId is readonly, so the
+                                                    # colour collapse renames the value tier onto `color`
+                                                    # and leaves a designer's `color.surface` standing.
+                                                    # THE CRUX: a gate for this cannot ask an executor
+                                                    # anything, because an executor has no opinion about
+                                                    # a collection it never walks. Every arm enumerates
+                                                    # from OUTSIDE them — the emitted artifacts, the
+                                                    # authored COLLECTION_RENAMES, the executor sources'
+                                                    # own text — and uses the plan set only as the
+                                                    # subtrahend. What is deliberately NOT an arm: the
+                                                    # plan's collection NAMES are read off the emission
+                                                    # by construction (#1097), so comparing them to it is
+                                                    # x === x (docs/34 shape 17). The header says so, so
+                                                    # nobody adds it back believing it is coverage
 npx tsx packages/engine/lint-paint.ts               # the component tier's colour bindings (#758), in two
                                                     # arms — because #758's OWN stated acceptance
                                                     # ("Button's 648-member paint is byte-identical:
