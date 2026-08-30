@@ -12,6 +12,8 @@
 import { build } from 'esbuild';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { createHash } from 'node:crypto';
+import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(fileURLToPath(import.meta.url));
@@ -58,14 +60,91 @@ const watch = process.argv.includes('--watch');
  * the field's purpose: you cannot run `git -C <tree> log -1` on it, cannot re-import the tree it names,
  * and cannot compare it by eye against the manifest path Figma reports.
  *
- * So the path stays, and #1099 is filed as what it actually is: the gate's scope covers a machine-
- * substituted provenance token as if it were prose we wrote. That is a scope decision about the gate, not
- * a payload to shrink here. Only a local, en-GB-spelled directory name is affected; CI's path is fixed.
+ * That reasoning concluded: the path stays, and #1099 is filed as a scope decision about the gate.
+ *
+ * **#1117 REVERSED THE CONCLUSION AND KEPT THE MEASUREMENTS**, which are still the reason the fix is a
+ * hash and not a shorter path. What the argument above weighed was only the GATE — whether scanning a
+ * machine-substituted token as if it were prose is the gate's problem or this file's. It never weighed
+ * the other half: `dist/` is imported into Figma, so the path is not merely gate-scanned text, it is a
+ * developer's filesystem layout SHIPPED IN AN ARTIFACT, and the same substitution makes two checkouts
+ * of one commit emit different bytes. On those two counts the answer does not depend on any gate's
+ * scope. The three rows above then decide the form: only the hashed payload clears them. See
+ * `treeToken` below for what the hash costs and how each cost is paid back.
  */
 const TREE = resolve(root, '../..');
+
+/**
+ * THE TREE, HASHED (#1117 instance 2) — the discriminator without the disclosure.
+ *
+ * The block above argued the absolute path should stay and measured three payloads against the real
+ * US-English gate: absolute -> exit 1, basename -> exit 1, hashed -> exit 0. Its conclusion was that
+ * only the hash clears the gate and that the hash deletes the field's purpose, so the path stays and
+ * the scope question is filed. #1117 reverses that call, and the reason is the half the old argument
+ * did not weigh: the path is not only gate-scanned text, it is a DEVELOPER'S FILESYSTEM PATH SHIPPED
+ * IN A BUNDLE. `dist/` is what gets imported into Figma; a directory name — and on most machines a
+ * username — travels with it. That is a defect on its own terms, independent of any gate, and it is
+ * also what makes the build non-reproducible: two checkouts of the same commit emit different bytes.
+ *
+ * WHAT THE HASH COSTS, AND HOW EACH COST IS PAID. The old argument's objection was that you cannot
+ * `git -C <tree> log -1` a hash, cannot re-import the tree it names, and cannot compare it by eye
+ * against the manifest path Figma reports. All three need the mapping hash -> path, so the build
+ * PRINTS that mapping (below) and it is one command to recover in any checkout:
+ *
+ *   git worktree list --porcelain | awk '/^worktree /{print $2}' | while read t; do \
+ *     printf '%s  %s\n' "$(node -e "console.log(require('crypto').createHash('sha256').update(process.argv[1]).digest('hex').slice(0,8))" "$t")" "$t"; done
+ *
+ * So "which tree is Figma running" is still answerable, in one step rather than zero. What is NOT
+ * paid back is reading the answer straight off the panel, and that is the deliberate trade.
+ *
+ * SHA-256 over the absolute realpath, first 8 hex. Not a security boundary — it is a stable, opaque
+ * per-tree token — but it is one-way, which is the property that matters here: the shipped bytes
+ * cannot be turned back into someone's directory layout. An ENCODED path would satisfy a
+ * "no absolute path" scan and still ship the path, which is why this is a hash and not base64.
+ */
+const treeToken = (abs) => `tree-${createHash('sha256').update(abs).digest('hex').slice(0, 8)}`;
 const buildId = () => {
   const BUILT_AT = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-  return `${BUILT_AT} ${TREE}`;
+  return `${BUILT_AT} ${treeToken(TREE)}`;
+};
+
+/**
+ * NO ABSOLUTE FILESYSTEM PATH REACHES THE BUNDLE (#1117 instance 2).
+ *
+ * The inverse of `assertIdentity`: that one asserts the identity ARRIVED, this asserts the thing it
+ * replaced did NOT. Both are needed and neither implies the other — a build that stamped nothing at
+ * all would satisfy this and fail that.
+ *
+ * Two kinds of check, because they fail differently:
+ *
+ *   · THE EXACT ONE — the building tree's own absolute path, and the builder's home directory. These
+ *     are the actual leak and they are literal string containment, so there is nothing to tune. This
+ *     is also the arm that is self-referential in the right direction: it names the very string this
+ *     machine would have leaked, so it cannot pass by testing a case that does not occur here.
+ *   · THE SHAPES — `/Users/x/`, `/home/x/`, `/private/…`, `/tmp/…`, `/var/…`. This catches a leak
+ *     that arrives by some route other than PRISM3_BUILD, on a machine whose layout differs from the
+ *     builder's. Measured against the pre-#1117 bundles: the ONLY hits were the five occurrences of
+ *     the stamp itself, so this scan is not merely quiet — it was loud before the fix and is silent
+ *     after, which is the difference between a check and a decoration.
+ */
+const ABSOLUTE_SHAPES = [
+  { label: 'a macOS/Linux home directory', re: /\/(?:Users|home)\/[A-Za-z0-9._-]+\//g },
+  { label: 'a system temp or private path', re: /\/(?:private|tmp|var)\/[A-Za-z0-9._-]+/g },
+];
+const assertNoAbsolutePath = async (name, text) => {
+  const found = [];
+  for (const [label, needle] of [['the building tree', TREE], ['the builder home directory', homedir()]]) {
+    if (needle && text.includes(needle)) found.push(`${label}: ${needle}`);
+  }
+  for (const { label, re } of ABSOLUTE_SHAPES) {
+    for (const m of text.matchAll(re)) found.push(`${label}: ${m[0]}`);
+  }
+  if (!found.length) return;
+  throw new Error(
+    `apps/plugin/dist/${name}: an absolute filesystem path reached the bundle — ${found.length} ` +
+      `occurrence(s): ${[...new Set(found)].slice(0, 5).join(' · ')}. dist/ is imported into Figma, so ` +
+      `a directory name (and usually a username) would ship with it, and two checkouts of one commit ` +
+      `would emit different bytes. Stamp a derived token, not a path. See #1117.`,
+  );
 };
 
 /**
@@ -177,6 +256,7 @@ const buildUiHtml = async (id) => {
     throw new Error('apps/plugin/dist/ui.html: the dev-only module tag survived into the build.');
   }
   await assertIdentity('ui.html', html, id);
+  await assertNoAbsolutePath('ui.html', html);
   await mkdir(out, { recursive: true });
   await writeFile(resolve(out, 'ui.html'), html);
   console.log('  dist/ui.html   (shared studio/src UI inlined, host=figma)');
@@ -209,6 +289,7 @@ const buildMain = async (id) => {
     );
   }
   await assertIdentity('main.js', mainJs, id);
+  await assertNoAbsolutePath('main.js', mainJs);
   console.log('  dist/main.js   (0 node: builtins)');
 };
 
@@ -240,4 +321,8 @@ if (watch) {
   // The identity, printed where the person who just ran the build is looking. The 2026-08-26 incident
   // was diagnosed by three lanes reading build output, and none of them could see which tree Figma had.
   console.log(`plugin build complete → apps/plugin/dist/  (${id})`);
+  // The mapping the bundle deliberately does not carry (#1117). Printed here, where the person who
+  // can act on it is standing: the bundle names the tree by an opaque token, and this is the line
+  // that says which tree that token is. Local build output, never a shipped artifact.
+  console.log(`  ${treeToken(TREE)} = ${TREE}`);
 }

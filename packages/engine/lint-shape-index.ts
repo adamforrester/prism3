@@ -62,6 +62,32 @@
  *                         "does the cited section exist", and the document is what exists. Arm A is
  *                         what stops that heading set from being quietly re-meaning-ed underneath it.
  *
+ *   ARM C, the crossing:  EXPECTED = the prose rules `lint-us-english.ts` and `lint-voice.ts` apply
+ *                         to `schema/shape-index.json`, imported from `prose-rules.ts` — the SAME
+ *                         functions, never a second copy.
+ *                         ACTUAL   = each `### N. Title` in docs/34, which is the text `--accept`
+ *                         copies verbatim into that file.
+ *
+ * ── WHY ARM C IS HERE AND NOT IN A PROSE GATE (#1117) ───────────────────────────────────────────
+ *
+ * Every prose gate answers *"is this FILE in scope?"*, and text does not respect that boundary.
+ * `schema/shape-index.json` is hand-named in BOTH prose gates; `docs/34-gate-independence.md` is in
+ * NEITHER. `--accept` copies headings across that line verbatim. So an en-GB spelling or a §2 banned
+ * phrase in a docs/34 heading is invisible for as long as it lives only in docs/34, and becomes a
+ * gate failure the moment it is copied — **reported against `shape-index.json`, whose author did not
+ * write the words.** It has fired: during #1105, and the remedy was a hand-edit of the destination.
+ *
+ * This arm moves the failure to the source. It runs in the ordinary gate as well as in `--accept`,
+ * so a heading that would launder bad prose fails in CI even if nobody runs `--accept`, and the
+ * message names **docs/34** — the file to edit — rather than the file that faithfully copied.
+ *
+ * **The rule is imported, never restated.** A boundary check holding text to a rule LOOSER than its
+ * destination's is worse than none: it stamps approval on text that then fails against the wrong
+ * file, which is the defect it was added to remove. `prose-rules.ts` exists so the two cannot differ.
+ *
+ * TITLES ONLY, which is what crosses. `policy` and `document` in the baseline are hand-authored
+ * there, so they are the destination's own prose and its own gates' business.
+ *
  * ── WHAT ARM B CANNOT DO, stated rather than implied ────────────────────────────────────────────
  *
  * **It checks that a cited shape number EXISTS. It cannot check that the citation means the RIGHT
@@ -79,7 +105,8 @@
  * headings by swapping their titles · delete a heading that is in the baseline · append a heading
  * with no baseline entry · point a citation at a number the document does not define · a baseline
  * entry whose number appears twice · narrow the citation regex (fails as SCOPE NOT REPRESENTED,
- * which is the one that matters — a dead detector otherwise reports a clean zero). Negative control:
+ * which is the one that matters — a dead detector otherwise reports a clean zero) · an en-GB
+ * spelling in a heading, which fails arm C naming docs/34 rather than the baseline. Negative control:
  * appending a heading plus its baseline entry passes. `--accept` refuses both a retitle and a
  * deletion, and leaves the baseline byte-unchanged when it refuses.
  *
@@ -103,6 +130,9 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+// The DESTINATION's rules, imported rather than restated — see ARM C in the header. A second copy
+// that drifts LOOSER than the destination would approve text that fails later against another file.
+import { enGb, voiceHits } from './prose-rules.ts';
 
 const repo = join(import.meta.dirname, '../..');
 const DOC = 'docs/34-gate-independence.md';
@@ -269,9 +299,65 @@ const lines: string[] = [];
   lines.push(`  citations: ${total} across ${filesWithCitations.size} file(s), all resolving`);
 }
 
+// ---- ARM C: the crossing (#1117) ------------------------------------------------------------
+// Each heading TITLE is the text `--accept` copies verbatim into a file both prose gates scan, so it
+// is held to those gates' rules HERE, where the failure names the file to edit. The rules are the
+// imported ones — see the header for why a second copy is the one thing that must not exist.
+//
+// A REPRESENTATION FLOOR, not a count: `enGb` and `voiceHits` are applied through this one loop, and
+// a zero result is only evidence if the loop ran. Zero headings means the parse died, not that the
+// document is clean — the same tell arm B's citation floor exists for.
+{
+  // The counter is incremented INSIDE the loop, not read off `actual.length`. Those are different
+  // numbers the moment anything filters, slices or short-circuits between them — and the first
+  // version of this floor read `actual.length`, so pointing the loop at an empty array left the arm
+  // walking nothing and the gate exiting 0. Caught by mutation, which is the only thing that would
+  // have caught it: the code looked right and the number it printed was true about the wrong set.
+  let walked = 0;
+  for (const s of actual) {
+    walked++;
+    for (const { word } of enGb(s.title)) {
+      failures.push(
+        `CROSSING — ${DOC}, heading "### ${s.n}. ${s.title}" carries the en-GB spelling "${word}". ` +
+          `\`--accept\` copies this title VERBATIM into ${BASELINE}, which lint-us-english.ts scans, ` +
+          `so the failure would land there — on a file that faithfully copied what it was given. ` +
+          `Edit the heading in ${DOC} (#1117).`,
+      );
+    }
+    for (const { rule, match } of voiceHits(s.title)) {
+      failures.push(
+        `CROSSING — ${DOC}, heading "### ${s.n}. ${s.title}" breaks voice-standard §2 (${rule}: ` +
+          `"${match}"). \`--accept\` copies this title VERBATIM into ${BASELINE}, which ` +
+          `lint-voice.ts scans, so the failure would land there rather than here. Edit the heading ` +
+          `in ${DOC} (#1117).`,
+      );
+    }
+  }
+  if (!walked) {
+    failures.push(
+      `ARM C walked 0 headings, so "no crossing violations" is silence rather than evidence. Either ` +
+        `${DOC} lost its \`### N. Title\` headings, \`headingsInDoc\` stopped matching, or this arm's ` +
+        `own loop stopped reaching them.`,
+    );
+  }
+  lines.push(`  crossing: ${walked} heading(s) held to the rules of ${BASELINE}'s own gates`);
+}
+
 if (accept) {
   const known = new Set(baseline.shapes.map((b) => b.n));
   const added = actual.filter((s) => !known.has(s.n));
+  // A crossing violation blocks the copy itself, and is reported FIRST: this is the one refusal whose
+  // remedy is in another file, and stating it before the append-only rule keeps the reader pointed at
+  // docs/34 rather than at the baseline (#1117).
+  const crossings = failures.filter((f) => f.startsWith('CROSSING'));
+  if (crossings.length) {
+    console.error(`✗ --accept refuses: ${crossings.length} heading(s) would launder prose the destination's own gates reject.\n`);
+    for (const c of crossings) console.error(`  · ${c}\n`);
+    console.error(
+      `  Nothing was written. Fix the heading in ${DOC} — not ${BASELINE}, which is only the copy.`,
+    );
+    process.exit(1);
+  }
   const conflicts = failures.filter((f) => f.includes('CHANGED MEANING') || f.includes('IS GONE'));
   if (conflicts.length) {
     console.error('✗ --accept refuses: the document changed an EXISTING binding, which is not an append.\n');

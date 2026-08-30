@@ -111,6 +111,35 @@
  * because both gates read the same `ENGINE_ARTIFACTS`/`SCHEMA_ARTIFACTS` exports; nobody has to
  * remember to add it here separately.
  *
+ *
+ * ── SCOPE IS PER-FILE; TEXT IS NOT (#1117) — WHY A FAILURE HERE MAY NOT BE THIS FILE'S FAULT ────
+ *
+ * This gate answers *"is this FILE in scope?"* Text does not respect that boundary: a mechanical copy
+ * can move it out of an unscanned file into a scanned one. When it does, the failure lands on the
+ * DESTINATION — a file that faithfully copied what it was given — and the fix belongs at the source.
+ * So before editing the file this gate names, ask whether its text was written there.
+ *
+ * **ONE CROSSING IS KNOWN, DECLARED AND CLOSED, AND YOU CAN RE-DERIVE ALL THREE FACTS.** Do not take
+ * this paragraph's word for it — every claim below is a command whose output decides it:
+ *
+ *   1. `schema/shape-index.json` is in this gate's scope, and NO `docs/` file is. `--files` prints the
+ *      set this gate actually walks, so the answer comes from the gate and not from this comment.
+ *      Check the denominator first — a `grep -c` of 0 over an empty list is not evidence:
+ *        npx tsx packages/engine/lint-us-english.ts --files | wc -l                    # -> 122
+ *        npx tsx packages/engine/lint-us-english.ts --files | grep -c 'shape-index'    # -> 1
+ *        npx tsx packages/engine/lint-us-english.ts --files | grep -c '^docs/'         # -> 0
+ *        npx tsx packages/engine/lint-voice.ts      --files | grep -c '^docs/'         # -> 0
+ *   2. `lint-shape-index.ts --accept` copies docs/34 headings into that file verbatim:
+ *        grep -n 'baseline.shapes = ' packages/engine/lint-shape-index.ts
+ *   3. The crossing is CHECKED AT THE SOURCE, by ARM C of that gate, using the rule this file uses —
+ *      imported from `prose-rules.ts`, never a second copy. Confirm it can fail, by name:
+ *        put an en-GB spelling in a docs/34 `### N. Title` heading, then
+ *        npx tsx packages/engine/lint-shape-index.ts       # must fail naming docs/34, not the JSON
+ *
+ * If (3) ever stops failing, this gate is once again the only thing standing between a docs/34
+ * heading and a confusing failure in a file nobody wrote. A second crossing found later belongs in
+ * this list with the same three commands, or it is not declared — it is remembered.
+ *
  * Run: `npx tsx packages/engine/lint-voice.ts`  (exit 1 = a gated surface carries banned voice-standard
  * §2 copy)
  */
@@ -120,34 +149,20 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 
+// ---- the RULES, imported (#1117) -------------------------------------------------------------
+// The five §2 rules and `voiceHits` moved to `prose-rules.ts`, so a check at a SCOPE CROSSING applies
+// the IDENTICAL function this gate applies — see that file's header for why a second copy of the rule
+// is the one thing that must not exist. `stripBlockComments`/`stripLineComments` deliberately did NOT
+// move: they are not rules, they are this gate's decision about which text in a BUILT BUNDLE counts as
+// shipped prose. The #387/#511 property is unchanged — `scan()` and `SELF_CHECK` both drive the
+// imported `voiceHits`.
+import { voiceHits } from './prose-rules.ts';
+import type { RawHit } from './prose-rules.ts';
+
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = resolve(here, '../..');
 
-// ---- Rule 1: fixed banned vocabulary — voice-standard.md §2's "simply, just, easy, obviously"
-// row, minus "just" (handled separately below because its false positive is contextual, not a
-// single token). Literal words, not a suffix family, so a word-boundary list under-counts nothing
-// here the way a fixed list under-counts en-GB spellings.
-const BANNED_WORD = /\b(simply|easy|obviously)\b/gi;
 
-// ---- Rule 2: "just" — banned UNLESS it means exactly/barely, per §2's own stated exception
-// ("just below the floor" is fine). The allow-set is a PHRASE context, checked against the text
-// immediately following the match; a false positive here is fixed by widening this set, never by
-// dropping "just" from BANNED_WORD.
-const JUST = /\bjust\b/gi;
-const JUST_ALLOWED = /^\s+(?:below|above|under|over|beneath|past|outside|inside|shy of|short of|barely|about|enough|right)\b/i;
-
-// ---- Rule 3: filler — §2's "please note, note that" row.
-const FILLER = /\b(please\s+note|note\s+that)\b/gi;
-
-// ---- Rule 4: apology copy — §2's "Oops, Sorry" row.
-const APOLOGY = /\b(oops|sorry)\b/gi;
-
-// ---- Rule 5: exclamation marks IN PROSE — §2's "manufactured enthusiasm" row. Scoped by CONTEXT
-// (see header point 3) so `!==`, `!=`, `!important`, `!default`, `<!doctype`, and a bare `"!"`
-// icon-glyph string never trip it: the character DIRECTLY before "!" must be a letter or digit (the
-// end of an actual word — not a quote, paren, or space), and the character after must be neither "="
-// (excludes `!=`/`!==`) nor a letter (excludes `!important`/`!default`/`!DOCTYPE`).
-const EXCLAIM = /(?<=[A-Za-z0-9])!(?!=)(?![A-Za-z])/g;
 
 // ---- Code-comment exemption for the built bundle — see header point 4. Blanks `/* ... */` spans
 // (character-for-character, keeping every newline) so a CSS-in-template-literal comment's content
@@ -167,31 +182,14 @@ const stripBlockComments = (txt: string): string => txt.replace(/\/\*[\s\S]*?\*\
 const stripLineComments = (txt: string): string =>
   txt.replace(/^([ \t]*)\/\/[^\n]*/gm, (m, indent: string) => indent + ' '.repeat(m.length - indent.length));
 
-type RawHit = { rule: string; match: string; index: number };
+
 type Hit = { file: string; line: number; rule: string; match: string; context: string };
 
 // Every way this gate can fail to LOOK, as opposed to look and find nothing — same discipline as
 // lint-us-english.ts's `blind[]`. A non-empty list is fatal below, before any voice result prints.
 const blind: string[] = [];
 
-// The ONE place every rule is applied. SELF_CHECK and scan() both drive this, so neutering a rule
-// fails the self-check rather than only going quiet in production — the lesson lint-us-english.ts's
-// `enGb` comment documents (#387/#511): a self-check that reimplements the match validates the
-// reimplementation, not the code path that ships.
-const voiceHits = (txt: string): RawHit[] => {
-  const found: RawHit[] = [];
-  for (const m of txt.matchAll(BANNED_WORD)) found.push({ rule: 'banned-word', match: m[0], index: m.index ?? 0 });
-  for (const m of txt.matchAll(JUST)) {
-    const idx = m.index ?? 0;
-    const after = txt.slice(idx + m[0].length, idx + m[0].length + 24);
-    if (JUST_ALLOWED.test(after)) continue; // "just below the floor" — exactly/barely, allowed
-    found.push({ rule: 'just', match: m[0], index: idx });
-  }
-  for (const m of txt.matchAll(FILLER)) found.push({ rule: 'filler', match: m[0], index: m.index ?? 0 });
-  for (const m of txt.matchAll(APOLOGY)) found.push({ rule: 'apology', match: m[0], index: m.index ?? 0 });
-  for (const m of txt.matchAll(EXCLAIM)) found.push({ rule: 'exclamation', match: '!', index: m.index ?? 0 });
-  return found;
-};
+
 
 const scan = (abs: string): Hit[] => {
   let raw: string;
@@ -374,6 +372,19 @@ if (selfFails.length) {
   console.error(`\n❌ the gate's detection is broken — it cannot see what it claims to:\n`);
   for (const f of selfFails) console.error(`    ${f}`);
   process.exit(1);
+}
+
+// ---- `--files`: the scanned set, printed (#1117) ----------------------------------------------
+// The scope crossing noted in the header claims "no docs/ file is in this gate's scope". A grep over
+// this source cannot check that claim — it matches the comment making it. This prints the set the
+// gate actually walks, so the claim is decided by the gate rather than by prose about it:
+//
+//   npx tsx packages/engine/lint-voice.ts --files | grep -c '^docs/'    # must be 0
+//
+// Exits before any scanning, so it is cheap and cannot be confused with a verdict.
+if (process.argv.includes('--files')) {
+  for (const f of gated) console.log(relative(repo, f));
+  process.exit(0);
 }
 
 const gatedHits = gated.flatMap(scan);

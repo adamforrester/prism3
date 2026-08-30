@@ -253,8 +253,19 @@ ok(stripComments('keep(1);\nkeep(2);').includes('keep(1);\nkeep(2);'),
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const buildMjs = stripComments(readFileSync(resolve(HERE, '../plugin/build.mjs'), 'utf8'));
-ok(buildMjs.includes('`${BUILT_AT} ${TREE}`'),
-  'apps/plugin/build.mjs composes the identity as timestamp-then-space-then-path, the order parsed above');
+ok(buildMjs.includes('`${BUILT_AT} ${treeToken(TREE)}`'),
+  'apps/plugin/build.mjs composes the identity as timestamp-then-space-then-token, the order parsed above');
+// #1117 instance 2 — the token is DERIVED from the tree path, never the path. `dist/` is imported into
+// Figma, so an absolute path there ships a developer's directory layout (and usually a username) and
+// makes the build non-reproducible: two checkouts of one commit emit different bytes.
+//
+// A SOURCE SCAN, and deliberately the WEAKER of the two checks — it can only see this one composition
+// site, so a path arriving by another route is invisible to it. The check that actually holds the
+// property is `assertNoAbsolutePath` in `build.mjs`, which reads the EMITTED BUNDLE and fails the
+// build. This assertion exists because that one runs only when a build runs, and because a reviewer
+// reading this file should see the rule stated where the composition is asserted.
+ok(!buildMjs.includes('`${BUILT_AT} ${TREE}`'),
+  '#1117: the composed identity is not the bare absolute tree path');
 ok(/BUILT_AT\s*=[^\n]*toISOString/.test(buildMjs),
   "and BUILT_AT is an ISO string, which is what the chip's MM-DD HH:MM slice assumes");
 

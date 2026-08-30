@@ -8,7 +8,7 @@
  *
  *   • `'local'`                                  — `apps/studio` dev/build, not built by the deploy
  *   • a commit SHA                               — `build-site.mjs`, the Vercel deploy
- *   • `'<ISO seconds> <absolute tree path>'`      — `apps/plugin/build.mjs` (#836)
+ *   • `'<ISO seconds> tree-<8 hex>'`             — `apps/plugin/build.mjs` (#836, hashed by #1117)
  *
  * WHY THE PLUGIN STAMPS A PATH AND NOT A COMMIT. #836 offered a short SHA + dirty flag as the cheap
  * option and answered it in its own body: two worktrees on the same commit is a normal state here, and
@@ -20,7 +20,25 @@
  * The path also makes the commit derivable (`git -C <tree> log -1`); the commit does not make the path
  * derivable. That asymmetry is the whole argument, and it is why there is no SHA field here.
  *
- * TWO RENDERINGS, because the two surfaces have different budgets. The rail is 210px wide and the chip's
+ * **#1117 KEPT THAT ARGUMENT AND HASHED THE PATH ANYWAY.** Everything above still holds — the tree,
+ * not the commit, is the discriminator — but `apps/plugin/dist` is imported into Figma, so shipping
+ * the path ships a developer's directory layout and usually a username, and makes the build
+ * non-reproducible besides (two checkouts of one commit, different bytes). The plugin now stamps
+ * `tree-<8 hex of sha256(abs path)>`, and `build.mjs` PRINTS the `token = path` mapping at build time
+ * so the one step the hash costs is taken where the person who can act is standing. `build.mjs`'s
+ * `assertNoAbsolutePath` fails the build if any absolute path reaches either bundle.
+ *
+ * NOTHING IN THIS FILE CHANGED FOR IT, which is the reason the change was cheap: the format is still
+ * `<timestamp><space><token>`, `parseBuildId` still splits on the first space, and `buildChip` still
+ * takes the token's last `/`-segment — which for a token with no slash is the token. The renderers
+ * accept both shapes and the tests still drive path-shaped fixtures on purpose, because a file
+ * written by an older build still parses.
+ *
+ * TWO RENDERINGS, because the two surfaces have different budgets. **The width measurements below were
+ * taken against long PATH tokens and are retained rather than re-taken: a `tree-<8 hex>` token is 13
+ * characters and clears every threshold named here with room to spare, so the analysis now describes
+ * inputs the plugin no longer produces — but the renderers still accept them (an older build's stamp,
+ * or the web's commit form), so the thresholds still bound what can be rendered.** The rail is 210px wide and the chip's
  * field caps at 194px (measured in the built panel, not read off the `.shell` grid declaration); the field
  * is a flex item, so a long token would push past the rail rather than wrap inside it. The chip therefore
  * gets the tree's LAST SEGMENT plus the build time. Measured at a 17.05px line-height, with the UTC
