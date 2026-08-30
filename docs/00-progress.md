@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-08-30) — Studio-QA: every lever preview still resolves after the colour collapse + controlShape (#1173, #1177)
+
+**STATUS: shipped.** A source-level audit of `apps/studio/src/main.ts` — does every lever that paints a
+preview read a token path that still exists after the `color.appearance`/`color.surface` collapse
+(#1148/#1153) and the `controlShape` → `radius.capsule` addition (#1166)? One real defect found and fixed;
+everything else clean. Studio-only change; no engine, emission, or contract move.
+
+**The defect — the radius ramp rendered `capsule` as 0px.** `paintRadiusPreview` read each rung's px from
+`rp.dims['radius.<step>']`, and `rp.dims` is built by `resolve-preview.ts` from **only the radius refs the
+preview spec BINDS** (`t.startsWith('radius.')` over `spec.components`). So `round` (128) is in `rp.dims`
+incidentally — switch/radio bind it — while `radius.capsule`, bound by nothing until `controlShape: pill`,
+was absent and fell through `?? 0`. #1166 added `capsule` to `RADIUS_STEPS` without a resolving source, so
+the ramp showed `capsule · 0px` with a sharp swatch. Not a crash, not a missing token — the token exists in
+the tree; the PREVIEW's own dims map just didn't carry it. The exact silent-resolves-to-nothing shape #1153
+warned about, one tier in, and **no gate caught it** (`test:smoke` drives the page but asserts render, not
+px correctness).
+
+**The fix (#1177) — `capsule` is a SENTINEL, not a ramp value.** Its 999px means "clamp me to a pill at
+any height," and it is absent from `rp.dims` because no preview-spec component binds it until
+`controlShape: pill`. So the ramp special-cases it exactly the way it already special-cases `none`: the
+swatch is drawn as a pill (the existing `Math.min(px, 26)` cap already reads a large radius as a pill) and
+the rung is **labelled `full`**, never a literal px. Reading the stored 999 into the ramp and printing
+"capsule · 999px" was the tempting fix and the wrong one — it presents a "always a pill" marker as a
+concrete corner a designer would read as 999px. The CONTROL SHAPE panel below already draws its pill
+specimen from that 999 sentinel and labels it "height ÷ 2"; the ramp now agrees with it. Every other rung
+still reads `rp.dims` unchanged — `none`/`sm`/`md`/`lg`/`round` were never broken. Confirmed with an ad-hoc
+Playwright shot: the capsule cell renders `capsule · full` with a 26px (pill) swatch.
+
+**What was audited clean (the table).**
+
+| Lever / preview | Token path | Resolves? |
+|---|---|---|
+| Colour roles (Surfaces/Interactive/Inverse pages) | `color.<role>` via `colorPath()`, role from live `iRoles()` | Y — by construction; a non-role returns undefined and the row guards out |
+| Hardcoded colour literals | `color.background.primary`, `color.text.primary`, `color.disabled.fill`, `color.inverse.background.primary`, `color.interactive.<pal>.fill.rest`/`.overlay.hover` | Y (verified against nb + aurora trees) |
+| `subtle-fill` row (solid-tint) | `color.interactive.<pal>.subtle-fill.{hover,pressed}` | Y when emitted — brand-dependent (`outlineInteraction: 'solid-tint'`, no corpus brand sets it); the row **guards** on live presence, so the pill only shows when the role resolves |
+| Focus style-guide | `focus.ring.{width,offset,offset-field,style}` | Y |
+| `controlShape` → pill | `radius.capsule` (999px sentinel) | Y — pill specimen at 999, labelled "height ÷ 2"; left unchanged (already correct) |
+| `radiusScale` / `baseMd` ramp | `radius.{none,sm,md,lg,round,capsule}` | Y — **fixed** (`capsule` was 0px; now the "full" pill sentinel) |
+| `density` / size | `size.<rung>.height` from live `theme.dims.sizes` | Y |
+
+**Retired prefixes: zero live references.** `grep` for `color.appearance` / `color.surface` (dot and slash
+forms) across `apps/studio/src/` returns three hits, all inert: a historical-narrative comment at
+`main.ts:514` (the `colorPath` header explaining why the old two-tier is gone — the code is
+`color.${role}`), a `border`/`surface`-category comment, and CSS `appearance:none`. No binding uses either
+retired tier.
+
+**Follow-up filed (#1179):** a small independence gate — assert `RADIUS_STEPS` (and any studio ramp's step
+list) is a subset of `theme.dims.radius` names — would have caught this by construction; out of scope here.
+
 ## (2026-08-30) — a collection nothing walks is in no report, and no executor can be asked about it (#1152, gate 5)
 
 **STATUS: shipped.** Two halves of one claim: `lint-stranded-collections.ts` (gates **47 → 48**, re-measured on `d0cbe9c`) stops

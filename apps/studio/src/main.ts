@@ -6409,8 +6409,13 @@ const renderTypeRamp = (): HTMLElement => {
 
 /** The radius preview: the whole corner-radius ramp, HOLISTICALLY — a swatch per step (the actual corner)
  *  labelled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
- *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads `rp.dims`
- *  (live per lever); `none` = 0. */
+ *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads each rung's
+ *  px from `rp.dims` (live per lever), with two SENTINELS special-cased: `none` = 0, and `capsule` = a full
+ *  pill labelled `full` rather than a literal px (#1177). `capsule` is a 999px "clamp me to a pill" marker,
+ *  not a corner anyone reads as 999 — and it is not in `rp.dims` at all (no preview-spec component binds it
+ *  until `controlShape: pill`), so printing its stored px would both misrepresent the behaviour and require
+ *  a source the ramp does not carry. The CONTROL SHAPE panel below is the specimen that shows what `pill`
+ *  actually does; this ramp only needs to name the rung and read as a pill. */
 const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round', 'capsule'];
 const paintRadiusPreview = (into: HTMLElement): void => {
   into.innerHTML = '';
@@ -6424,13 +6429,18 @@ const paintRadiusPreview = (into: HTMLElement): void => {
   const byMode = theme.dims.radiusByMode?.[currentMode];
   const list = el('div', 'rad-list');
   for (const step of RADIUS_STEPS) {
+    // `capsule` is the PILL SENTINEL, special-cased like `none`: it has no meaningful ramp px (its 999
+    // means "clamp to a pill at any height"), and it is absent from `rp.dims`, so it is drawn as a pill
+    // and labelled `full` rather than read as a number (#1177). Every other rung reads `rp.dims` as before.
+    const isCapsule = step === 'capsule';
     const overridePx = byMode?.find((s) => s.name === step)?.px;
     const px = step === 'none' ? 0 : (overridePx ?? rp.dims[`radius.${step}`] ?? 0);
     const cell = el('div', 'rad-cell');
     const sw = el('div', 'rad-sw');
-    sw.style.borderRadius = `${Math.min(px, 26)}px`;   // cap so `round` reads as a pill without overflowing the swatch
+    sw.style.borderRadius = isCapsule ? '26px' : `${Math.min(px, 26)}px`;   // cap so `round`/`capsule` read as a pill without overflowing the swatch
     const cons = [...(consumers[step] ?? [])];
-    cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
+    const label = isCapsule ? `${step} · full` : `${step} · ${px}px`;
+    cell.append(sw, el('div', 'rad-lab mono', label), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
     list.append(cell);
   }
   into.append(list);
@@ -6449,6 +6459,8 @@ const paintControlShapePreview = (into: HTMLElement): void => {
   // radius.md maxes at 24px (baseMd 12 × radiusScale 2), and 24 < 52/2, so the drawn corner always equals
   // the caption's px. A shorter bar would clamp a soft-brand corner (a 24px radius on a 32px bar reads as a
   // near-pill) and the label would then contradict the shape (the nit on the first cut of this preview).
+  // `pill` draws at 999 — the capsule sentinel — which clamps to half the bar and reads as a full pill;
+  // the caption names the rung, not the number.
   const shapes = [
     { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
     { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
