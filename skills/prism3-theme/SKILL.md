@@ -68,6 +68,7 @@ minimal — read both, they are the reference):
 | `surfaces` | `{ light: { base: 50 } }` | the page is a **tinted off-white**, not pure white (the contrast floor moves with it) |
 | `density` | `comfortable` \| `compact` \| `spacious` | a dense tool vs a roomy reading product |
 | `radiusScale` | number, or a named stop: `sharp` \| `modest` \| `standard` \| `soft` \| `round` | corner softness |
+| `controlShape` | `rounded` \| `pill` | pill-able controls (buttons) read as full **pills** (height ÷ 2) rather than rounded — a brand-identity choice, orthogonal to softness |
 | `iconContrast` | `text` \| `3:1` | let non-text icons run lighter (WCAG 1.4.11 floor) |
 | `motionPersonality` | `{ tempo: snappy \| standard \| relaxed }` | brand energy → motion pace |
 | `typography` | `{ families, weightRoles, typeScale: compact\|default\|expressive, displayCeiling, titleFloor, responsive: { fluid, minViewport, maxViewport } }` | custom faces / weight remap / fluid type; `families` is keyed by CATEGORY (`display`/`title`/`body`/`label`/`caption`/`eyebrow`/`code`), and **an omitted category takes the engine default (Inter, or JetBrains Mono for `code`), with a system fallback stack appended** |

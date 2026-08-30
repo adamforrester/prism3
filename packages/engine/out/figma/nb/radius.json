@@ -66,6 +66,16 @@
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/dimension/128"
       }
+    },
+    {
+      "name": "nbds/radius/capsule",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "radius capsule — 999px (off-grid literal)",
+      "value": 999,
+      "alias": null
     }
   ]
 }

@@ -7,6 +7,76 @@
 
 ---
 
+## (2026-08-29) — the `controlShape` brand lever: rounded | pill for pill-able controls (#1163)
+
+**STATUS: shipped.** A new FORM lever, `controlShape` (enum, default `rounded`, values `rounded | pill`),
+group `form`. `ENGINE_VERSION` 0.30.0 → 0.31.0; `CONTRACT_VERSION` 9.0.0 → 9.1.0 (MINOR — one guaranteed
+path added, `radius.capsule`; see the pill-scaling section). No new gate; the lever/schema agreement is
+carried by the existing lever-manifest arm in `test.ts`.
+
+**What the issue got right and the one thing it assumed.** #1163 framed this as "wiring, not new geometry":
+button and icon-button already carry a `derived['pill-radius']` note ("height ÷ 2"), the radius ladder
+already treats the pill as categorically distinct (`radiusScale: 0` collapses everything to sharp EXCEPT
+the pill), and switch/radio already render an intrinsic pill from `radius.round`. All true. The one thing to
+resolve was the assumption that "the plumbing is there; only the selector is missing" — because
+`anatomy.derived` is **inert prose** (copied at `anatomy-figma.ts:~1254`, never computed) and the radius
+binding resolves a **variable name**, not a literal. So "select the derivation" had to mean something
+concrete.
+
+**The mechanism, and why it is faithful.** `controlShape: pill` rebinds a pill-able control's `radius` from
+`radius.md` to the pill rung `radius.capsule` — a single large radius Figma **clamps** to min(w,h)/2 =
+height ÷ 2 at every size. So acceptance #2's "height ÷ 2 per size, not a fixed token" is met: "not a fixed
+token" forbids **hand-authored per-component per-size literals** (the pattern the shared scale replaced), not
+binding a shared radius rung — the clamp does the per-size work.
+
+**Pill-scaling: why a NEW `radius.capsule` rung, not `radius.round` (review refinement).** The first cut
+repointed pill to `radius.round` (128px), the rung switch/radio bind intrinsically. That is a full pill only
+up to a **256px** control height (Figma clamps a corner to half the shorter side, 2×128 = 256) — fine for any
+real button, but a lever that promises a pill should be UNCONDITIONAL. Two options were weighed. Binding to
+the per-size **height** variable (radius = height, clamped) is truly ceiling-less, but `size.{size}.height`
+is scoped **WIDTH_HEIGHT** while radius is **CORNER_RADIUS** (`emit-figma-dims.ts`), so it would bind a
+variable across Figma's own scope boundary — semantically a height on a corner, and invisible in the
+corner-radius picker. Rejected. Instead a **dedicated `radius.capsule` rung** (999px sentinel, the CSS
+`border-radius: 9999px` habit) is added to the ladder: a CORNER_RADIUS-scoped radius bound to a radius
+corner, clamping to a pill up to a ~1998px control. It is kept **distinct from `radius.round`** so the lever
+raises the ceiling for pill-able controls without touching the rung the intrinsic pills bind — `round` stays
+128px, `switch`/`radio` unchanged. It is off the 4px dimension grid on purpose (a sentinel meaning "always a
+pill" is not a ladder step to alias), so it emits as a literal (`tree.ts`'s `gridSet.has` branch). Adding one
+guaranteed path is the MINOR contract bump.
+
+**Where it lives, and why NOT in the projector.** The plan is brand-agnostic on purpose (`figmaVarName`'s
+header: seven gates, the studio's member count and the plugin's set enumeration all call
+`figmaAnatomySet(def)` with a def and nothing else). `controlShape` IS a brand choice, so rather than thread
+a brand input through the projector, a small pure transform `applyControlShape(def, shape)` **materializes
+the def BEFORE projection** — repointing `def.tokens.radius` to `radius.capsule` under `pill`. The projector
+stays a pure function of its def; the brand-specificity lives in the transform. Under `rounded` (default) and
+for any non-pill-able def it is the **identity** (returns the same object), which is what makes `rounded`
+reproduce every plan byte-identically — acceptance #1's no-op-default independence check.
+
+**The pill-able set is the `pill-radius` derivation, made load-bearing.** `isPillable(def)` is
+`!!def.anatomy?.derived?.['pill-radius']` — today exactly {button, icon-button}. This turns the previously
+inert prose into the opt-in signal the issue names ("future chips/tags/segmented controls join by declaring
+the derivation"). switch/radio declare no derivation, so the lever is **structurally unable** to touch
+them — asserted in `test.ts` (`applyControlShape(switch,'pill') === switch`), which is the exclusion #1163
+demands "so the lever can never square them off."
+
+**Surfaces.** Studio: a "Control shape" block in the Size & radius page next to Corner softness / Density,
+with a rounded-vs-pill specimen (`paintControlShapePreview`). Plugin: `buildComponents` reads the persisted
+`BrandInput.controlShape` (the same `restoreInput` the knobs rehydrate from) and materializes the def, so a
+pill-built button matches the brand the file carries — `rounded`/absent/untrusted all fall to the identity.
+
+**Two open sub-decisions (issue asked to confirm, not bake): both taken as recommended.** (1) Lever name
+`controlShape` over `pillControls` — an enum is more extensible than a boolean. (2) The studio preview uses
+the **button** as the representative silhouette (it is the control a designer pictures when they say "pill")
+while the copy states the lever is global across pill-able controls.
+
+**Trap for whoever re-verifies.** The ENGINE bump forces a follow-on write that is NOT the lever itself and
+reads as unrelated churn: every emitted tree's `$extensions.generator.version` stamp (via `regen`). The
+contract baseline moves for a real reason here — `radius.capsule` is a new guaranteed path, so `--accept`
+records it AND bumps `contractVersion` to 9.1.0 (`CONTRACT_VERSION` must already be raised or `--accept`
+refuses). The `out/**` diff beyond the version stamp is exactly `radius.capsule` = `999px` per brand; nothing
+else in the token tree moved, which is why `rounded` still reproduces every plan byte-identically.
+
 ## (2026-08-29) — a deprecation's DESTINATION was validated and its SOURCE never was (#1137, gate 3)
 
 **STATUS: shipped.** One arm in `classify`, one refusal in `token-contract.ts`. Gates stay at **46**;
@@ -191,7 +261,6 @@ rather than a mismatch on whichever decision happened to reach it first.
 
 *I wrote the trap this sweep exists to close, into a gate written to close it, and only the mutation
 found it.*
-
 
 ## (2026-08-29) — the emission cannot move without ENGINE_VERSION moving (#1141's miss, gate 1 of the hardening sweep)
 

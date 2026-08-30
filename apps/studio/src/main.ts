@@ -3994,6 +3994,10 @@ const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 's
   const perMode = currentMode !== 'light';
   return [
     { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
+    // controlShape is a GLOBAL brand lever (not per-mode) — `csLeverStack([…], false)` renders the plain
+    // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
+    // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).
+    { title: 'Control shape', sub: 'Corner shape for pill-able controls (button, icon-button). Rounded follows corner softness; pill is a full height ÷ 2, whatever the softness.', controls: csLeverStack(['controlShape'], false), paint: paintControlShapePreview },
     { title: 'Density & size', sub: 'Component sizing — control height + paired padding per step. The density name stays stable; the metrics shift.', controls: csLeverStack(['density'], perMode), paint: paintSizePreview },
     // No controls: the rhythm and the fine grid base are FIXED (scale.ts SPACE_BASE / GRID_BASE). The
     // specimen stays — the scale is still worth reading — and the note says why there is nothing to set,
@@ -6407,7 +6411,7 @@ const renderTypeRamp = (): HTMLElement => {
  *  labelled with its px and the component(s) that consume it (button→md, input→sm, card→lg, badge→round).
  *  Fills a caller-owned node so `apply()` repaints it beside the radius controls (#265). Reads `rp.dims`
  *  (live per lever); `none` = 0. */
-const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round'];
+const RADIUS_STEPS = ['none', 'sm', 'md', 'lg', 'round', 'capsule'];
 const paintRadiusPreview = (into: HTMLElement): void => {
   into.innerHTML = '';
   const consumers: Record<string, Set<string>> = {};
@@ -6427,6 +6431,39 @@ const paintRadiusPreview = (into: HTMLElement): void => {
     sw.style.borderRadius = `${Math.min(px, 26)}px`;   // cap so `round` reads as a pill without overflowing the swatch
     const cons = [...(consumers[step] ?? [])];
     cell.append(sw, el('div', 'rad-lab mono', `${step} · ${px}px`), tokenPill(`radius.${step}`), el('div', 'rad-cons', cons.length ? cons.join(', ') : '—'));
+    list.append(cell);
+  }
+  into.append(list);
+};
+
+/** The controlShape specimen: two control silhouettes — a ROUNDED bar at the current `radius.md`, and a
+ *  PILL bar at height ÷ 2 — with the brand's current choice marked. Reuses the `.rad-*` scaffold and the
+ *  `.rad-sw` swatch (widened inline into a control bar), so the shape difference reads without new CSS. The
+ *  lever is global across pill-able controls (button + icon-button today); the button is the representative
+ *  silhouette because it is the control a designer pictures when they say "pill". */
+const paintControlShapePreview = (into: HTMLElement): void => {
+  into.innerHTML = '';
+  const cur = String(getPath(brandState, 'controlShape') ?? 'rounded');
+  const roundedPx = rp.dims['radius.md'] ?? 0;
+  // The bar is 52px tall so the TRUE radius.md renders un-clamped across the whole slider range —
+  // radius.md maxes at 24px (baseMd 12 × radiusScale 2), and 24 < 52/2, so the drawn corner always equals
+  // the caption's px. A shorter bar would clamp a soft-brand corner (a 24px radius on a 32px bar reads as a
+  // near-pill) and the label would then contradict the shape (the nit on the first cut of this preview).
+  const shapes = [
+    { key: 'rounded', label: 'Rounded', radiusPx: roundedPx, ref: 'radius.md', note: `radius.md · ${roundedPx}px` },
+    { key: 'pill', label: 'Pill', radiusPx: 999, ref: 'radius.capsule', note: 'radius.capsule · height ÷ 2, any height' },
+  ];
+  const list = el('div', 'rad-list');
+  for (const s of shapes) {
+    const on = s.key === cur;
+    const cell = el('div', 'rad-cell');
+    if (on) cell.style.outline = '2px solid currentColor';
+    if (on) cell.style.borderRadius = '6px';
+    const bar = el('div', 'rad-sw');
+    bar.style.width = '112px';
+    bar.style.height = '52px';
+    bar.style.borderRadius = `${s.radiusPx}px`;
+    cell.append(bar, el('div', 'rad-lab mono', `${s.label}${on ? ' · selected' : ''}`), tokenPill(s.ref), el('div', 'rad-cons', s.note));
     list.append(cell);
   }
   into.append(list);

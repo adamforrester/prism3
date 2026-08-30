@@ -451,6 +451,12 @@
       "default": "comfortable",
       "description": "OPTIONAL. Drives component sizes (height/padding). Default 'comfortable'."
     },
+    "controlShape": {
+      "type": "string",
+      "enum": ["rounded", "pill"],
+      "default": "rounded",
+      "description": "OPTIONAL. Corner shape for pill-able controls (button, icon-button). 'rounded' follows corner softness; 'pill' is a full height ÷ 2. Default 'rounded'."
+    },
     "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
     "personality": {

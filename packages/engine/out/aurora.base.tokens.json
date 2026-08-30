@@ -14066,6 +14066,17 @@
             "radiusScale": 2
           }
         }
+      },
+      "capsule": {
+        "$type": "dimension",
+        "$value": "999px",
+        "$description": "radius capsule — 999px (off-grid literal)",
+        "$extensions": {
+          "prism3": {
+            "generated": true,
+            "px": 999
+          }
+        }
       }
     },
     "border-width": {
@@ -14616,7 +14627,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.30.0",
+      "version": "0.31.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -8716,6 +8716,12 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token."
     },
+    "radius.capsule": {
+      "$description": "radius capsule — 999px (off-grid literal)",
+      "meaning": "radius primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token."
+    },
     "focus.ring.style": {
       "$description": "focus ring style — solid (dashed/dotted fail at small sizes)",
       "meaning": "focus primitive",

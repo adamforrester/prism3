@@ -40,7 +40,7 @@ import { verifyReadback } from '@prism3/engine/read-back';
 import { persistInput, restoreInput } from './persist-figma';
 import { brandTheme } from '@prism3/engine/theme';
 import type { BrandInput } from '@prism3/engine/theme';
-import { figmaAnatomySet } from '@prism3/engine/anatomy-figma';
+import { figmaAnatomySet, applyControlShape } from '@prism3/engine/anatomy-figma';
 import { button } from '@prism3/engine/components/button';
 import { componentDefs } from '@prism3/engine/components/index';
 
@@ -385,9 +385,17 @@ const buildComponents = async (defId?: string): Promise<void> => {
       });
       return;
     }
+    // `controlShape` (#1163) is a BRAND lever, so it enters here — where the plugin knows the brand — by
+    // materializing the def BEFORE projection, which is what keeps `figmaAnatomySet` itself brand-agnostic
+    // (`anatomy-figma.ts`'s `applyControlShape` header). The value comes from the SAME persisted `BrandInput`
+    // the knobs rehydrate from (`restoreInput`), so a pill-built button matches the brand the file carries.
+    // `rounded` (default, no persisted brand, or a read that throws) is the identity, so this is byte-identical
+    // to the previous line for every non-pill brand.
+    let controlShape: NonNullable<BrandInput['controlShape']> = 'rounded';
+    try { controlShape = restoreInput(figma.root)?.controlShape ?? 'rounded'; } catch { /* untrusted/absent → rounded */ }
     // `SWAP_TARGET` PASSED UNCONDITIONALLY, because it is inert where a def has no swap parts — measured,
     // see the header. A per-def branch here would be a branch on a distinction the projector already makes.
-    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const plans = figmaAnatomySet(applyControlShape(def, controlShape), { swapTarget: SWAP_TARGET });
     // Every reading kept, for the end-of-run summary. 54 objects for a 648 build — the memory is nothing
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
