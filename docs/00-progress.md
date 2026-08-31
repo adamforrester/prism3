@@ -7,6 +7,59 @@
 
 ---
 
+## (2026-08-31) — an isolated Name/Namespace change was dropped on Apply/export (#1196, #1194)
+
+**STATUS: shipped.** UI plumbing in `apps/studio/src/main.ts` + a new arm in `test-smoke.mjs`. No
+gate count change, nothing emitted moves, the engine/emitter untouched. Two concerns, two commits,
+one PR.
+
+── #1196: THE BUG, AND WHY IT WAS SILENT ───────────────────────────────────────────────────────
+
+The brand-menu **Name** and **Namespace** fields mutate `brandState.id` / `brandState.root` but
+deliberately skip `rebuild()` — that is the #1073/#1075 skip-rebuild-on-rename lineage, there so the
+text caret survives each keystroke. The trap: `rebuild()` was the **only** refresher of the two
+last-good holders that emission actually reads. `lastGoodInput` (read by Apply's `postTheme`, by web
+`persistInput`, and by the design.md export) and `theme.root` (read by the DTCG token export via
+`buildTree`) both refresh *only* inside `rebuild()`.
+
+So an **isolated** identity edit — change the namespace, then Apply with no lever touch after it —
+never reached either holder. The namespace was the load-bearing half: tokens emitted under the stale
+default `prism.*` instead of the custom root, **with no error anywhere** — the silent-resolve class
+this repo gates against, here with no gate one tier up. The name was the cosmetic half — persisted
+stale — same single root cause. A human found it by exporting.
+
+── THE FIX: caret-safe, because identity is pure namespacing ───────────────────────────────────
+
+`syncIdentity()` copies `brandState.id`/`root` into `lastGoodInput`, and (when a root is set) into the
+already-resolved `theme`, then re-persists on web — no `rebuild()`, so the caret is untouched. Safe
+because **identity is pure namespacing**: it does not affect colour/dimension resolution, and
+`buildTree` reads `theme.root` fresh on every call and regenerates every aliased ref from it — nothing
+pre-rooted is cached, so mutating `theme.root` in place is fully consistent. It persists `lastGoodInput`
+(never the live `brandState`), preserving the M-15/M-16 invariant that a concurrent failing lever edit
+must not reach storage while the always-valid identity change must. The emitter is innocent — a custom
+root already round-trips (#1097/#1102/#1108); this was purely UI plumbing. Wired into both handlers;
+the namespace handler calls it only on a valid root (an invalid root never moves `brandState.root`).
+
+**The two-holder shape was the diagnosis that made the fix small.** A patch touching only
+`lastGoodInput` would have fixed Apply and persist but left the web DTCG export (which reads
+`theme.root`) still stale — a half-fix that passes the obvious test. Both holders had to move together.
+
+── THE REGRESSION TEST: the class no gate caught ───────────────────────────────────────────────
+
+New `test-smoke.mjs` arm drives the exact path: open the brand menu, change **only** the identity
+fields (no lever edit), then (a) read the version-tagged `prism3:brandInput` blob and assert both `id`
+and `root` landed, and (b) export the DTCG tree and assert it is rooted at the custom namespace, not the
+stale default. **Mutation-verified** — with `syncIdentity()` disabled at both call sites, all four arms
+fail, reporting the stale `prism` root and stale name; restored, green. Without it this bug just comes
+back, invisibly.
+
+── #1194 (bundled, separate commit) ────────────────────────────────────────────────────────────
+
+Dropped the leading `↳` arrow from the **Apply to Figma** CTA — label only now. The in-flight
+`⋯ Applying…` state is a distinct affordance, left as-is.
+
+---
+
 ## (2026-08-31) — the ramp gate's discovery was anchored on a naming convention (#1187)
 
 **STATUS: shipped.** `lint-ramp-steps.ts` only — an internals change, **not a new gate**. Gates stay at
