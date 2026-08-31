@@ -328,6 +328,35 @@ npx tsx packages/engine/lint-stranded-collections.ts # no collection ships that 
                                                     # by construction (#1097), so comparing them to it is
                                                     # x === x (docs/34 shape 17). The header says so, so
                                                     # nobody adds it back believing it is coverage
+npx tsx packages/engine/lint-ramp-steps.ts          # a studio ramp's authored step list is a SUBSET of
+                                                    # the ladder it resolves against (#1179).
+                                                    # paintRadiusPreview iterated a hardcoded
+                                                    # RADIUS_STEPS and read each step's px out of
+                                                    # `rp.dims`, which resolve-preview builds from only
+                                                    # the refs the PREVIEW SPEC binds — nothing bound
+                                                    # radius.capsule, so it fell through `?? 0` and the
+                                                    # ramp rendered `capsule · 0px` with a sharp swatch
+                                                    # (#1177). Nothing caught it: test:smoke asserts the
+                                                    # panel RENDERS and a 0px corner renders fine,
+                                                    # typecheck is satisfied because `?? 0` makes the
+                                                    # expression total, and regen never sees the studio
+                                                    # — a step resolving to nothing produced a plausible
+                                                    # number and a plausible picture. SUBJECT = the
+                                                    # authored arrays parsed from studio SOURCE (main.ts
+                                                    # touches `document` at import time and cannot load
+                                                    # under tsx); ORACLE = the ladder, computed by
+                                                    # running the engine over 5 themes incl. two
+                                                    # radiusScale extremes. Never derive one from the
+                                                    # other (shape 17), and never hard-code the rungs
+                                                    # here — that is a third authored copy (shape 4).
+                                                    # Two arms: an authored step the ladder lacks, and a
+                                                    # ladder rung the list omits WITHOUT declaring it in
+                                                    # `omits` (the lint-context-nodes posture — a
+                                                    # curated subset is fine, an oversight is not).
+                                                    # Floors: a scan that finds nothing FAILS rather
+                                                    # than reporting a clean zero, and every `*STEPS*`
+                                                    # literal in the studio must be classified here, so
+                                                    # a new ramp is a decision not an omission
 npx tsx packages/engine/lint-paint.ts               # the component tier's colour bindings (#758), in two
                                                     # arms — because #758's OWN stated acceptance
                                                     # ("Button's 648-member paint is byte-identical:
