@@ -65,14 +65,23 @@
  *
  * ── WHAT THIS DOES NOT CHECK, stated rather than implied ───────────────────────────────────────
  *
- * **A ramp whose constant is not named `*STEPS*`.** The discovery scan that powers the classification
- * floor is anchored on that naming convention, and it has to be anchored on something: a scan for
- * "any string-array const" matches dozens of unrelated arrays in a 6,500-line file. Measured while
- * mutation-testing this: renaming `SHADOW_STEPS` to `SHADOW_RUNGS` is caught — but by the STALE
- * CLASSIFICATION floor, because the old name vanished, not by the discovery scan noticing the new
- * one. So a ramp introduced under a name outside the convention is invisible here. That is a real
- * hole, it is narrow, and the convention is what closes it in practice — but it is a convention, not
- * a property, and this paragraph is the only thing that says so.
+ * **CLOSED IN #1187, AND REPLACED BY A SMALLER ONE.** This paragraph used to disclose that discovery
+ * was anchored on the `*STEPS*` naming convention, so a ramp named otherwise — an `ELEVATION_TIERS`,
+ * say — was invisible and could carry a bogus rung at exit 0. Discovery is now the UNION of that
+ * anchor and a consumption anchor (iterated, loop variable interpolated after a dotted prefix), so a
+ * ramp escapes only by being named outside the convention AND reaching its loop indirectly.
+ *
+ * The residual hole is that conjunction, and it is real rather than theoretical: `ALPHA_STEPS_UI` is
+ * exactly such a case today, caught only because its NAME matches. It is `.filter()`ed into a local,
+ * passed into a `ramp(path, steps)` helper, and the token path there is built from two parameters — so
+ * the consumption anchor cannot see it, and renaming it to `ALPHA_TIERS` would make it invisible to
+ * both. A robust fix for that needs real dataflow (array → local → parameter → interpolation) rather
+ * than a proximity scan, and a brittle approximation of dataflow would be worse than this stated
+ * limit: it would fail unpredictably on refactors and teach people to widen its exemptions.
+ *
+ * The consumption half also carries a proximity heuristic — a 60-line window standing in for "the same
+ * enclosing function", which text cannot compute. It is bounded on the safe side: too small a window
+ * UNDER-collects, so a ramp falls back to the name anchor rather than a non-ramp being demanded.
  *
  * That a step resolves to the RIGHT px. Arm A proves the name exists in the ladder; the value the
  * studio then reads comes from `rp.dims`, which is a different map with a different scope, and that
@@ -163,6 +172,30 @@ const RAMPS: Ramp[] = [
     ladder: (b) => opacityKeys(b.tree),
   },
   {
+    // FOUND BY THE CONSUMPTION ANCHOR (#1187), not by name — and it turned out to be a real ramp with a
+    // real engine counterpart rather than something to exempt, which is the anchor earning its place on
+    // its first run. The seven typography groups are authored in the studio and generated in the theme
+    // (`typography.families[].group`); a group added to one and not the other is the same silent-resolve
+    // shape as a radius rung. Exact match across nb/aurora/harbor when this landed.
+    name: 'TYPE_GROUP_ORDER',
+    label: 'the typography group list',
+    source: 'theme.typography.families[].group',
+    ladder: (b) => {
+      const fams = (b.theme as unknown as { typography?: { families?: { group?: string }[] } }).typography?.families;
+      const groups = [...new Set((fams ?? []).map((f) => f.group).filter((g): g is string => !!g))];
+      return groups.length ? groups : null;
+    },
+  },
+  {
+    name: 'BULK_CATS',
+    exempt:
+      'not an authored list — it is `TYPE_GROUP_ORDER.filter((g) => g !== \'code\')`, computed inside a ' +
+      'function from a list this gate already checks. It has no content of its own to drift, so checking ' +
+      'it would be asserting a filter of a checked list against the same ladder (docs/34 shape 2). The ' +
+      'consumption anchor sees it because it IS iterated into a token path; that is the anchor working, ' +
+      'and this is the human answer it asks for.',
+  },
+  {
     name: 'WEIGHT_STEPS',
     exempt:
       'the CSS font-weight axis (100…900) — a W3C constant, not a ladder this engine generates. There ' +
@@ -186,10 +219,69 @@ const parseSteps = (src: string, name: string): string[] | null => {
     .filter((s) => s.length > 0);
 };
 
-/** DISCOVERY — every `*STEPS*` array constant in the studio, so the classification above is checked
- *  against the FILE rather than against itself. */
-const discoverSteps = (src: string): string[] =>
+/**
+ * DISCOVERY — TWO INDEPENDENT ANCHORS, UNIONED (#1187).
+ *
+ * The classification above has to be checked against the FILE rather than against itself, and the
+ * question "which arrays in a 6,600-line studio are ramps?" has no single reliable tell. So it is
+ * asked twice, in ways that fail differently, and a constant found by EITHER must be classified.
+ *
+ *   BY NAME        — a `*STEPS*` array constant. Cheap and exact, and it finds ramps consumed
+ *                    INDIRECTLY: `ALPHA_STEPS_UI` is `.filter()`ed and passed into a `ramp(path,
+ *                    steps)` helper that builds its token path from TWO parameters, so no local scan
+ *                    of the consumption site can see it. Its hole is the obvious one: a ramp named
+ *                    outside the convention is invisible.
+ *   BY CONSUMPTION — a constant ITERATED and whose loop variable is then interpolated after a dotted
+ *                    prefix (`` `radius.${step}` ``). Anchored on what the array is USED FOR rather
+ *                    than what it is called, so it finds a ramp under any name. Its hole is the
+ *                    mirror: it cannot follow an array through a helper parameter.
+ *
+ * MEASURED, because the two are not interchangeable and the numbers decide the design. On this file
+ * the name anchor finds 4 constants and the consumption anchor finds 4 — but they are DIFFERENT
+ * fours. Consumption alone finds one of the three real ramps and misses `SHADOW_STEPS`'s spread form
+ * and `ALPHA_STEPS_UI` entirely; name alone misses anything called `ELEVATION_TIERS`. Replacing one
+ * with the other loses coverage in both directions; the union loses neither.
+ *
+ * WHAT THE CONSUMPTION ANCHOR DRAGS IN, and why that is the right cost. It finds `TYPE_GROUP_ORDER`
+ * and `BULK_CATS`, which build brandState paths and a typography taxonomy rather than resolving
+ * against a generated ladder. They are classified `exempt` above with that reason. That is the anchor
+ * working: it says "this array is iterated into a dotted path", and a human says whether the path is a
+ * ladder. The ~20 option lists (`NAV`, `STATES`, `RADIUS_SCALE_OPTS`, …) are not iterated into a
+ * `${…}` token path at all and are correctly invisible to both anchors — measured, not assumed.
+ *
+ * EACH ANCHOR IS FLOORED SEPARATELY below. A union is exactly as strong as its weakest half and says
+ * nothing when one half silently goes to zero, so "the union is non-empty" is not the check — "both
+ * anchors still find something" is.
+ */
+const discoverByName = (src: string): string[] =>
   [...src.matchAll(/^const ([A-Z][A-Z0-9_]*STEPS[A-Z0-9_]*)\s*(?::[^=]+)?=\s*\[/gm)].map((m) => m[1]);
+
+/**
+ * The consumption anchor. `for (const V of CONST)` — or `of [...CONST, 'extra']`, the spread form
+ * `SHADOW_STEPS` uses — followed within the same block by `` `<prefix>.${V}` ``.
+ *
+ * The 60-line window is a proximity heuristic and is the honest weak point of this half: it stands in
+ * for "the same enclosing function", which a text scan cannot compute. It is bounded on the safe side
+ * — too small a window UNDER-collects, which means a ramp escapes to the name anchor rather than a
+ * non-ramp being wrongly demanded. It never invents a subject.
+ */
+const discoverByConsumption = (src: string): { name: string; prefix: string }[] => {
+  const lines = src.split('\n');
+  const loops: { line: number; v: string; name: string }[] = [];
+  const interps: { line: number; v: string; prefix: string }[] = [];
+  lines.forEach((l, i) => {
+    for (const m of l.matchAll(/for \(const ([a-zA-Z_][a-zA-Z0-9_]*) of \[?\.{0,3}\s*([A-Z][A-Z0-9_]*)\b/g))
+      loops.push({ line: i, v: m[1], name: m[2] });
+    for (const m of l.matchAll(/`([a-zA-Z][a-zA-Z0-9.-]*)\.\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g))
+      interps.push({ line: i, v: m[2], prefix: m[1] });
+  });
+  const out = new Map<string, string>();
+  for (const lp of loops)
+    for (const it of interps)
+      if (it.v === lp.v && it.line >= lp.line && it.line - lp.line < 60 && !out.has(lp.name))
+        out.set(lp.name, it.prefix);
+  return [...out].map(([name, prefix]) => ({ name, prefix }));
+};
 
 const src = readFileSync(STUDIO, 'utf8');
 
@@ -209,22 +301,37 @@ const corpus: Brand[] = [
 const failures: string[] = [];
 const lines: string[] = [];
 
-// ---- FLOOR 1: every authored `*STEPS*` literal in the studio is classified here ----------------
-const discovered = discoverSteps(src);
-if (!discovered.length) {
-  failures.push(
-    `FLOOR: the discovery scan found 0 \`*STEPS*\` array constants in ${STUDIO_LABEL}. Either the file ` +
-      `moved or the declaration shape changed out from under the regex — a rotted detector reporting a ` +
-      `clean zero, which is the one outcome this gate must never produce (#986).`,
-  );
+// ---- FLOOR 1: every array either anchor calls a ramp is classified here -----------------------
+// Each anchor is floored SEPARATELY. A union is only as strong as its weakest half, and "the union is
+// non-empty" would stay true while one half silently went to zero — the #986 shape, one level up.
+const byName = discoverByName(src);
+const byConsumption = discoverByConsumption(src);
+for (const [label, found, what] of [
+  ['BY NAME', byName, '`*STEPS*` array constants'],
+  ['BY CONSUMPTION', byConsumption.map((d) => d.name), 'constants iterated into a `<prefix>.${…}` token path'],
+] as const) {
+  if (!found.length) {
+    failures.push(
+      `FLOOR: the ${label} discovery anchor found 0 ${what} in ${STUDIO_LABEL}. The union is only as ` +
+        `strong as its weakest half, so a half at zero is a rotted detector reporting a clean zero — ` +
+        `the one outcome this gate must never produce (#986). Fix the scan; do not lean on the other ` +
+        `anchor to cover for it.`,
+    );
+  }
 }
+const discovered = [...new Set([...byName, ...byConsumption.map((d) => d.name)])].sort();
+const viaConsumption = new Map(byConsumption.map((d) => [d.name, d.prefix]));
 const classified = new Set(RAMPS.map((r) => r.name));
 for (const name of discovered) {
   if (!classified.has(name)) {
+    const how = viaConsumption.has(name)
+      ? `it is iterated into a \`${viaConsumption.get(name)}.\${…}\` path`
+      : 'its name matches the `*STEPS*` convention';
     failures.push(
-      `UNCLASSIFIED — ${STUDIO_LABEL} declares \`${name}\`, an authored step list this gate does not ` +
-        `know about. Add it to RAMPS with the ladder it resolves against, or as \`exempt\` with the ` +
-        `reason it has none. A new ramp must be a decision, not an omission (#1179).`,
+      `UNCLASSIFIED — ${STUDIO_LABEL} declares \`${name}\` and ${how}, so this gate treats it as a ` +
+        `candidate ramp and does not know about it. Add it to RAMPS with the ladder it resolves ` +
+        `against, or as \`exempt\` with the reason it has none. A new ramp must be a decision, not an ` +
+        `omission (#1179).`,
     );
   }
 }
