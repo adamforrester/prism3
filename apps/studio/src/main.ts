@@ -242,22 +242,26 @@ const rebuild = (): void => {
 };
 
 /**
- * Propagate the IDENTITY fields (`id` / `root`) from the live `brandState` into every LAST-GOOD holder,
- * WITHOUT a `rebuild()` — the #1196 fix.
+ * Propagate the IDENTITY fields (`id` / `root`) from the live `brandState` into the LAST-GOOD input,
+ * WITHOUT a `rebuild()` — the cheap, per-keystroke half of the #1196 fix.
  *
- * The Name and Namespace fields deliberately skip `rebuild()` so the text caret survives keystrokes
- * (#1073/#1075's skip-rebuild-on-rename lineage). But `rebuild()` was the ONLY place that refreshed
- * `lastGoodInput` and `theme`, so an ISOLATED identity edit — no lever change after it — never reached
- * either: Apply/persist/design.md-export read `lastGoodInput` (stale `id`/`root`), and the DTCG token
- * export reads `theme.root` (stale). The namespace bug was the load-bearing half — tokens emitted under
- * `prism.*` instead of the custom root, with no error anywhere (the silent-resolve class this project
- * gates against). The name was the cosmetic half — persisted as the stale value — same root cause.
+ * The Name and Namespace fields skip `rebuild()` so the text caret survives keystrokes (#1073/#1075's
+ * skip-rebuild-on-rename lineage). But `rebuild()` was the ONLY refresher of `lastGoodInput` (read by
+ * Apply's `postTheme`, web persist, the design.md export, and the export filename), so an ISOLATED
+ * identity edit — no lever change after it — never reached it. This copies the identity fields across
+ * and re-persists so all of those are correct the instant the field changes, with no re-resolve:
+ *  · Apply posts `lastGoodInput` (a BrandInput the plugin re-resolves), so the fresh `root` reaches
+ *    the plugin's emission from here alone;
+ *  · web persist writes `lastGoodInput`, so a reopen restores the fresh name/namespace;
+ *  · `slug(lastGoodInput.id)` and `toDesignMd(lastGoodInput)` pick up the fresh name.
  *
- * Identity is PURE NAMESPACING: it does not affect colour/dimension resolution, so it is safe to copy it
- * into the already-resolved `theme` without re-resolving (`buildTree` reads `theme.root` fresh on every
- * call, and regenerates every aliased ref from it — nothing pre-rooted is cached). That is what keeps the
- * caret AND fixes emission. The emitter is innocent — a custom root round-trips correctly once it arrives
- * (#1097/#1102/#1108); this is purely UI plumbing.
+ * It does NOT touch the resolved `theme`. That was the original fix's mistake: `theme.root` and
+ * `theme.namespace` are SEPARATE fields — `buildTree` roots the tree at `theme.root` but resolves every
+ * colour ref under `theme.namespace` (`= <root>.core.palette`, set by `brandTheme`), and `resolveAllModes`
+ * bakes ~74% of the aliased refs from `theme.namespace`. Patching only `theme.root` left the tree rooted
+ * at the new namespace with the colour refs still pointing at the old one — dangling aliases, WORSE than
+ * the coherent-but-wrong pre-fix state. Identity is not "pure namespacing you can copy in": the local
+ * `theme` used by the DTCG export must be RE-RESOLVED, which `ensureThemeFresh` does at the export boundary.
  *
  * Persists `lastGoodInput` (not the live `brandState`) so the M-15/M-16 invariant holds — a concurrent
  * failing lever edit must not reach storage, but the identity change, always valid on its own, must.
@@ -265,8 +269,22 @@ const rebuild = (): void => {
 const syncIdentity = (): void => {
   lastGoodInput.id = brandState.id;
   lastGoodInput.root = brandState.root;
-  if (brandState.root) theme.root = brandState.root;   // buildTree(theme) namespaces under this; leave the resolved default if unset
   if (PRISM3_HOST !== 'figma') persistInput(localStorage, lastGoodInput);   // web reopen reads the fresh identity
+};
+
+/**
+ * Re-resolve the module-level `theme` from `brandState` when the namespace has drifted since the last
+ * resolve — the load-bearing half of the #1196 fix, deferred to the DTCG-export boundary so it stays
+ * off the typing path (a `rebuild()` per keystroke would re-resolve the whole theme while the designer
+ * types the root). A namespace change moves `brandState.root` but skips `rebuild()` for the caret, so
+ * `theme` (rooted + colour-namespaced at the OLD root) goes stale. The token export reads that local
+ * `theme` via `buildTree(theme)`; called first, this makes the tree's root AND every ref inside it agree
+ * on the current namespace. A no-op when nothing drifted (the common case), so it is free on every other
+ * export. If a concurrent invalid lever edit makes `rebuild()` throw, `theme` keeps its last-good value —
+ * coherent under the old namespace (M-16: emit the last-good, never a failing live state).
+ */
+const ensureThemeFresh = (): void => {
+  if (theme.root !== (brandState.root ?? 'prism')) rebuild();
 };
 
 // paint() repaints only the current stage's volatile region (ramps or preview) so
@@ -1541,6 +1559,7 @@ const COMPOSITE_PART: Record<string, string> = {
   fontFamily: 'Family', fontSize: 'Size', fontWeight: 'Weight', lineHeight: 'Leading', letterSpacing: 'Tracking',
 };
 const renderPreviewTokens = (host: HTMLElement): void => {
+  ensureThemeFresh();                   // #1196 — the live token list shows the same namespace the export would emit
   const tree = buildTree(theme).tree;
   const root = (tree.$extensions?.prism3?.root as string) ?? Object.keys(tree).find((k) => !k.startsWith('$'))!;
   const brand = tree[root] as TreeNode;
@@ -7753,6 +7772,7 @@ const exportDesignMd = (): void => download(`${slug()}.design.md`, toDesignMd(la
  *  a dependency (the engine is dependency-free, and jszip lives in TokenPress for reasons of its own),
  *  and the file list in the dialog is what makes the count expected rather than surprising. */
 const exportTokens = (): void => {
+  ensureThemeFresh();                   // #1196 — re-resolve if the namespace drifted since the last rebuild, so the tree's root and its refs agree
   const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
   for (const file of projectDtcg(tree, slug(), exportSettings)) {
     download(file.name, file.text, 'application/json');
@@ -7917,15 +7937,17 @@ const renderBrandMenu = (): HTMLElement => {
   menu.append(field('Name', brandState.id, false, (v) => {
     brandState.id = v.trim() || 'untitled';
     (barHost.querySelector('.bs-name') as HTMLElement).textContent = brandState.id;
-    syncIdentity();   // #1196 — reach lastGoodInput (persist/export) without a rebuild, so the caret survives
+    syncIdentity();   // #1196 — reach lastGoodInput (persist / Apply / design.md / filename) without a rebuild; the name is not in any ref, so no re-resolve
   }));
   const nsHint = el('p', 'bm-hint');
   const setHint = () => { nsHint.textContent = `Tokens emit under ${brandState.root ?? 'prism'}.*`; };
   menu.append(field('Namespace', brandState.root ?? 'prism', true, (v, inp) => {
     const t = v.trim();
     // Only a VALID root is committed — an invalid one leaves brandState.root untouched and marks the
-    // input, so it never reaches emission. syncIdentity runs only here, where brandState.root just moved.
-    if (ROOT_RE.test(t)) { brandState.root = t; inp.classList.remove('bad'); setHint(); syncIdentity(); }   // #1196 — reach theme.root/lastGoodInput without a rebuild
+    // input, so it never reaches emission. syncIdentity keeps persist/Apply fresh per-keystroke; the
+    // local `theme` used by the token export is re-resolved lazily by ensureThemeFresh at export time
+    // (a rebuild here, per keystroke, would re-resolve the whole theme as the designer types the root).
+    if (ROOT_RE.test(t)) { brandState.root = t; inp.classList.remove('bad'); setHint(); syncIdentity(); }   // #1196
     else inp.classList.add('bad');
   }));
   setHint();
@@ -8132,6 +8154,7 @@ const renderExportDialog = (): HTMLElement => {
 
   // ---- the right column: the file list, then the preview -----------------------------------
   if (exportArtifact === 'dtcg') {
+    ensureThemeFresh();                   // #1196 — the preview must show the current namespace, same as the download
     const tree = buildTree(theme).tree;   // `theme` is the last-good — always valid, never throws
     const files = fileNames(tree, slug(), exportSettings);
     right.append(el('div', 'exdlg-cap', files.length === 1 ? 'You get 1 file' : `You get ${files.length} files`));

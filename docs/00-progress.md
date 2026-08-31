@@ -19,39 +19,54 @@ The brand-menu **Name** and **Namespace** fields mutate `brandState.id` / `brand
 deliberately skip `rebuild()` — that is the #1073/#1075 skip-rebuild-on-rename lineage, there so the
 text caret survives each keystroke. The trap: `rebuild()` was the **only** refresher of the two
 last-good holders that emission actually reads. `lastGoodInput` (read by Apply's `postTheme`, by web
-`persistInput`, and by the design.md export) and `theme.root` (read by the DTCG token export via
-`buildTree`) both refresh *only* inside `rebuild()`.
+`persistInput`, and by the design.md export) and the resolved `theme` (read by the DTCG token export
+via `buildTree`) both refresh *only* inside `rebuild()`.
 
 So an **isolated** identity edit — change the namespace, then Apply with no lever touch after it —
-never reached either holder. The namespace was the load-bearing half: tokens emitted under the stale
+never reached emission. The namespace was the load-bearing half: tokens emitted under the stale
 default `prism.*` instead of the custom root, **with no error anywhere** — the silent-resolve class
 this repo gates against, here with no gate one tier up. The name was the cosmetic half — persisted
 stale — same single root cause. A human found it by exporting.
 
-── THE FIX: caret-safe, because identity is pure namespacing ───────────────────────────────────
+── THE FIX: split the cheap sync from the re-resolve — and the wrong first cut that review caught ──
 
-`syncIdentity()` copies `brandState.id`/`root` into `lastGoodInput`, and (when a root is set) into the
-already-resolved `theme`, then re-persists on web — no `rebuild()`, so the caret is untouched. Safe
-because **identity is pure namespacing**: it does not affect colour/dimension resolution, and
-`buildTree` reads `theme.root` fresh on every call and regenerates every aliased ref from it — nothing
-pre-rooted is cached, so mutating `theme.root` in place is fully consistent. It persists `lastGoodInput`
-(never the live `brandState`), preserving the M-15/M-16 invariant that a concurrent failing lever edit
-must not reach storage while the always-valid identity change must. The emitter is innocent — a custom
-root already round-trips (#1097/#1102/#1108); this was purely UI plumbing. Wired into both handlers;
-the namespace handler calls it only on a valid root (an invalid root never moves `brandState.root`).
+Two distinct consumers, and they are NOT fixed the same way:
 
-**The two-holder shape was the diagnosis that made the fix small.** A patch touching only
-`lastGoodInput` would have fixed Apply and persist but left the web DTCG export (which reads
-`theme.root`) still stale — a half-fix that passes the obvious test. Both holders had to move together.
+  · Everything that reads `lastGoodInput` — **Apply** (`postTheme` posts a *BrandInput* the plugin
+    re-resolves), **web persist**, **design.md** (`toDesignMd(lastGoodInput)`), the **filename**
+    (`slug(lastGoodInput.id)`) — is fixed by a cheap per-keystroke `syncIdentity()`: copy `id`/`root`
+    into `lastGoodInput`, re-persist. No re-resolve, caret untouched. Correct because none of these
+    reads the resolved `theme` — Apply ships the input and the plugin resolves it fresh.
+  · The **web DTCG token export** reads the module-level resolved `theme` via `buildTree(theme)`, and
+    that one needs a real **re-resolve**, deferred to the export boundary by `ensureThemeFresh()`
+    (`rebuild()` iff `theme.root` drifted from `brandState.root`; a no-op otherwise). Guards the three
+    `buildTree(theme)` sites: `exportTokens`, the export-dialog preview, the live token list.
 
-── THE REGRESSION TEST: the class no gate caught ───────────────────────────────────────────────
+**The first cut of this fix was wrong, and the way it was wrong is the durable lesson.** It patched
+`theme.root` in place on the claim that *"identity is pure namespacing — `buildTree` regenerates every
+ref from `theme.root`, nothing pre-rooted is cached."* That claim is **false**. `theme.root` and
+`theme.namespace` are **separate fields** (`brandTheme` sets `namespace = <root>.core.palette`), and
+`resolveAllModes` — called inside `buildTree` — roots every colour ref at `theme.namespace`, not at
+`theme.root`. Patching only `theme.root` rooted the tree at `ttds` while **976 colour refs still
+pointed at `{prism.core.palette.*}`**, a root no longer present: dangling aliases, **worse** than the
+coherent-but-wrong pre-fix state (which at least resolved). That is the exact silent-resolve failure
+this PR exists to close, one level in. The lesson: identity is *not* a field you can copy into an
+already-resolved theme; the derived fields (`namespace`, gradient paths, notes) only stay consistent
+if you **re-resolve**. Patching individual fields is whack-a-mole — `namespace` is precisely the one
+the first cut missed.
+
+── THE REGRESSION TEST: presence is not absence ─────────────────────────────────────────────────
 
 New `test-smoke.mjs` arm drives the exact path: open the brand menu, change **only** the identity
 fields (no lever edit), then (a) read the version-tagged `prism3:brandInput` blob and assert both `id`
-and `root` landed, and (b) export the DTCG tree and assert it is rooted at the custom namespace, not the
-stale default. **Mutation-verified** — with `syncIdentity()` disabled at both call sites, all four arms
-fail, reporting the stale `prism` root and stale name; restored, green. Without it this bug just comes
-back, invisibly.
+and `root` landed, and (b) export the DTCG tree and assert **three** things — the custom root is
+present, the stale `prism` root is **absent**, and there are **zero residual `{prism.*}` alias refs
+inside** the serialized tree. That third assertion is the one that matters: the first fix passed a
+"custom root present" check while shipping 976 dangling refs, because presence at the top level says
+nothing about the refs inside. **Mutation-verified two ways** — disabling the fix entirely fails all
+arms (stale `prism` root, stale name); reproducing the patch-`theme.root`-only approach fails *only*
+the residual-refs assertion (found 976, root-present and root-absent both green), proving that arm is
+what catches this specific class. Without it the broken fix ships clean.
 
 ── #1194 (bundled, separate commit) ────────────────────────────────────────────────────────────
 

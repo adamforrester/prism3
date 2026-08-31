@@ -936,17 +936,27 @@ console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(7
   ok(persisted?.id === NAME, `#1196: an isolated Name change reaches the persisted blob (id="${persisted?.id}", want "${NAME}")`);
   ok(persisted?.root === NS, `#1196: an isolated Namespace change reaches the persisted blob (root="${persisted?.root}", want "${NS}")`);
 
-  // (b) The namespace reaches the EMITTED DTCG root — the load-bearing half. Export the tokens (still no
-  // lever change) and read the tree's roots: the custom namespace must be there. Pre-fix the tree was
-  // rooted at the stale default, so this failed.
+  // (b) The namespace reaches the EMITTED DTCG output — the load-bearing half. Export the tokens (still no
+  // lever change) and check the tree THREE ways: the custom root is present, the stale default root is
+  // ABSENT, and — the assertion whose absence let a broken fix ship — ZERO residual `{prism.*}` alias refs
+  // remain INSIDE the tree. `theme.root` and `theme.namespace` are separate fields: patching only the root
+  // rooted the tree at `ttds` while ~976 colour refs still pointed at `{prism.core.palette.*}`, a root no
+  // longer present — dangling aliases, the exact silent-resolve class this PR closes. `roots.includes(NS)`
+  // alone cannot see that (it only reads the top-level key); the ref scan over the serialized tree can.
   await page.locator('button[aria-label="Export"]').click();
   await page.waitForSelector('.exdlg');
   const pending = page.waitForEvent('download');
   await page.locator('.exdlg-go').click();
   const dl = await pending;
+  let raw = '';
   let roots = [];
-  try { roots = Object.keys(JSON.parse(await readFile(await dl.path(), 'utf8'))); } catch { /* reported below */ }
-  ok(roots.includes(NS), `#1196: the exported DTCG tree is rooted at the custom namespace, not the stale default (roots: ${roots.join(', ') || 'none'})`);
+  try { raw = await readFile(await dl.path(), 'utf8'); roots = Object.keys(JSON.parse(raw)); } catch { /* reported below */ }
+  const staleRefs = (raw.match(/\{prism\./g) || []).length;   // alias syntax is `"{prism.core.palette…}"` — the brace anchors it to a ref, never prose
+  const freshRefs = (raw.match(/\{ttds\./g) || []).length;
+  ok(roots.includes(NS), `#1196: the exported DTCG tree is rooted at the custom namespace (roots: ${roots.join(', ') || 'none'})`);
+  ok(!roots.includes('prism'), `#1196: the stale default root is ABSENT from the exported tree (roots: ${roots.join(', ') || 'none'})`);
+  ok(freshRefs > 0, `#1196: the exported tree actually carries {${NS}.*} alias refs (found ${freshRefs}) — the ref scan below is not vacuous`);
+  ok(staleRefs === 0, `#1196: ZERO residual {prism.*} alias refs inside the exported tree (found ${staleRefs}; ${freshRefs} correct {${NS}.*} refs)`);
   // slug() reads lastGoodInput.id, so the filename is the other reachable witness of the fix.
   ok(dl.suggestedFilename().startsWith(NAME), `#1196: the export filename uses the fresh name (${dl.suggestedFilename()})`);
 
