@@ -7,6 +7,86 @@
 
 ---
 
+## (2026-08-31) — the ramp gate's discovery was anchored on a naming convention (#1187)
+
+**STATUS: shipped.** `lint-ramp-steps.ts` only — an internals change, **not a new gate**. Gates stay at
+**50**; no five-list edit, no count to re-measure. Nothing emitted moves.
+
+── THE HOLE, AS THE GATE ITSELF DISCLOSED IT ───────────────────────────────────────────────────
+
+#1185 shipped with a stated limit: discovery scanned for `*STEPS*`-NAMED array constants, so a ramp
+called anything else was invisible. The review's M4b made it concrete — an `ELEVATION_TIERS` iterated
+into a token path with a bogus rung exits **0, clean**. Reproduced here before fixing anything.
+
+── WHAT THE BRIEF PROPOSED, AND WHAT MEASURING IT SHOWED ───────────────────────────────────────
+
+The proposal was to anchor on the CONSUMPTION site instead of the name: the tell that an array is a
+ramp is that it is iterated to build a token path. Measured before building, and the numbers changed
+the design:
+
+  · **it finds 1 of the 3 real ramps.** `SHADOW_STEPS` is iterated as `[...SHADOW_STEPS, 'inset']` — a
+    spread, not a bare identifier — and `ALPHA_STEPS_UI` is `.filter()`ed into a local and passed into
+    a `ramp(path, steps)` helper whose token path is built from TWO parameters. No local scan of a
+    consumption site can see either.
+  · **it drags in 2 non-ramps**, `TYPE_GROUP_ORDER` and `BULK_CATS`, which iterate into
+    `typography.families.*` brandState paths.
+
+So replacing the name anchor loses coverage in both directions. **The anchors are unioned instead** —
+a constant found by EITHER must be classified — which strictly shrinks the hole and keeps every subject
+the old anchor had. Spread support was added to the loop pattern so `SHADOW_STEPS` is doubly covered.
+
+── THE CONSUMPTION ANCHOR EARNED ITS PLACE ON ITS FIRST RUN ────────────────────────────────────
+
+Its two "drag-ins" were not both noise. `BULK_CATS` is a genuine exemption — it is
+`TYPE_GROUP_ORDER.filter((g) => g !== 'code')`, computed inside a function, so it has no authored
+content of its own and checking it would assert a filter of a checked list against the same ladder.
+
+`TYPE_GROUP_ORDER` is **a real ramp nobody was watching.** The seven typography groups are authored in
+the studio and generated in the theme as `typography.families[].group` — a group added to one and not
+the other is the same silent-resolve shape as a radius rung. It is now checked, and matches exactly
+across nb/aurora/harbor. That is the anchor doing the thing a name-based one structurally could not.
+
+── EACH ANCHOR IS FLOORED SEPARATELY, WHICH IS THE POINT OF A UNION ────────────────────────────
+
+A union is only as strong as its weakest half, and "the union is non-empty" stays true while one half
+silently goes to zero — the #986 shape one level up. So the floor is per-anchor: **both** must still
+find something. `M5` rots the consumption regex alone and that floor fires by name, with the name
+anchor reported healthy, so the union is visibly not covering for it.
+
+── MUTATION BATTERY (6) ────────────────────────────────────────────────────────────────────────
+
+`M1` **the proof**: `ELEVATION_TIERS` — outside the convention — iterated into `` `shadow.${tier}` ``
+with a bogus rung. **Was exit 0; now UNCLASSIFIED by name**, and the message says it was found because
+*it is iterated into a `shadow.${…}` path*, not because of what it is called. `M1b` then classifies it
+against `theme.shadow.steps` and arm A names the bogus rung. Together those two are the hole closing
+end to end: discovered, then checked.
+
+`M2` regression — `'squircle'` into `RADIUS_STEPS` still fails. `M3` regression negative control — a
+matched rename of `md` → `medium` in BOTH the studio list and `scale.ts` stays **green**. `M4` a new
+`EXPORT_TARGETS` option list, iterated but not into a token path → **not dragged in**, 0 spurious
+findings, which is the measurement that the ~20 option lists stay invisible. `M5` the per-anchor floor,
+above.
+
+`M5` failed its own assert twice first, on shell escaping, and reported `gate exit=0` while doing so. A
+mutation that did not apply is not a passing gate; only the assert tells them apart (#986). Recorded
+because it is the third time this session that the harness, not the gate, was the thing that was wrong.
+
+── THE NEW LIMIT, WHICH IS SMALLER AND STATED ──────────────────────────────────────────────────
+
+A ramp now escapes only by being named outside the convention **and** reaching its loop indirectly.
+That conjunction is real rather than theoretical: `ALPHA_STEPS_UI` is exactly such a case today, caught
+only because its NAME matches — rename it to `ALPHA_TIERS` and it is invisible to both anchors.
+
+Closing that needs real dataflow (array → local → parameter → interpolation), not a proximity scan, and
+**a brittle approximation of dataflow would be worse than the stated limit**: it would fail
+unpredictably on refactors and teach people to widen its exemptions. The consumption half also carries a
+60-line proximity window standing in for "the same enclosing function", which text cannot compute; it is
+bounded on the safe side, because too small a window under-collects and a ramp falls back to the name
+anchor rather than a non-ramp being demanded.
+
+The header's old "what this does not check" paragraph disclosed the naming hole and is now false, so it
+was rewritten to describe the union and this residual — not deleted.
+
 ## (2026-08-31) — the ramp gate checked the NAME; #1177 was the VALUE (#1186)
 
 **STATUS: shipped.** One new gate, `lint-ramp-values.ts`. Gates **49 → 50**, re-measured on `c93f6e2`
