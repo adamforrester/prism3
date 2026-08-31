@@ -7,6 +7,101 @@
 
 ---
 
+## (2026-08-31) — a ramp step that resolved to nothing rendered a plausible number (#1179)
+
+**STATUS: shipped.** One new gate, `lint-ramp-steps.ts`. Gates **48 → 49**, re-measured on `0e4e338`
+with `lint-doc-gates` (49 runner entries vs 49 CI steps, both directions) rather than carried — #1180
+is about that line going stale three times in the previous sweep.
+
+── THE DIAGNOSIS ────────────────────────────────────────────────────────────────────────────────
+
+`paintRadiusPreview` iterated a hand-authored `RADIUS_STEPS` and resolved each step's px out of
+`rp.dims['radius.<step>']`. `resolve-preview.ts` builds `rp.dims` from **only the radius refs the
+preview spec binds**, and nothing bound `radius.capsule` until `controlShape: pill` existed — so the
+lookup fell through `?? 0` and the ramp rendered `capsule · 0px` with a sharp swatch (#1177). The token
+was in the emitted tree the whole time. The map the ramp happened to read was not the map that knows
+the ladder.
+
+**Why nothing caught it is the part that generalizes.** `test:smoke` drives the built `dist/main.js`
+and asserts the panel RENDERS — a swatch with a 0px corner renders perfectly. `typecheck` is satisfied
+because `?? 0` makes the expression total. `regen --check` never sees the studio. So a step that
+resolved to nothing produced **a plausible number and a plausible picture**, and the only signal in the
+system was a person looking at a corner and thinking it looked wrong. That is `docs/34` shape 9: a
+reader anchored on a name its source cannot answer for, failing silently.
+
+#1178 fixed the symptom — `capsule` is a pill sentinel now, drawn and labelled apart. This closes the
+class.
+
+── THE GATE ─────────────────────────────────────────────────────────────────────────────────────
+
+SUBJECT: the authored step arrays in `apps/studio/src/main.ts`, **parsed from source text** — the file
+touches `document` at import time and cannot be loaded under `tsx`, which `ci.yml` already says where it
+explains why the studio suite exists. ORACLE: the ladder, **computed by running the engine** —
+`theme.dims.radius`, `theme.shadow.steps`, and for the alpha ramp the emitted tree's own `opacity` keys
+(`tree.ts`'s `ALPHA_STEPS` is module-private, so the committed artifact is the only place that set is
+legible; that it is an artifact rather than an import is a strength — it is what shipped).
+
+Two arms. **A UNRESOLVABLE STEP** — an authored step that is not a rung, which is #1177 exactly.
+**B UNDECLARED RUNG** — a ladder rung the list omits *without declaring it* in `omits`. Not
+automatically a defect (a ramp may show a curated subset) but it must be a decision, which is the
+posture `lint-context-nodes` takes with `LEAF_OK`; a rung added to the engine and forgotten in the
+studio would otherwise never render and nothing would say so.
+
+**The classification is checked against the FILE, not against itself.** A discovery scan finds every
+`*STEPS*` array literal in the studio and fails on any that `RAMPS` does not classify — checked or
+`exempt` with a reason — so a new authored ramp is a decision rather than an omission. Both directions:
+an entry naming a constant the file no longer declares fails as stale. `WEIGHT_STEPS` is the one
+exemption today (the CSS 100–900 axis is a W3C constant, not a ladder this engine generates, so a
+subset check would compare an authored list against a second authored copy of the same standard —
+shape 4).
+
+**Corpus is five themes**, not one: nb, aurora, harbor, plus `radiusScale: 0` and `radiusScale: 2`
+built off aurora's input so only the one lever moves. Rung NAMES are lever-independent today, so the
+extremes find nothing — they are there because that is a property of the current `radiusScale` rather
+than a guarantee, and a corpus that only runs the default is the shape `lint-ratio-truth` was caught by:
+a confident zero measured over exactly the inputs that cannot exhibit the bug.
+
+── MUTATION BATTERY (5) ─────────────────────────────────────────────────────────────────────────
+
+`M1` add `'squircle'` to `RADIUS_STEPS` → **UNRESOLVABLE STEP** by name, on all five themes, printing
+the ladder it is missing from. `M2` the **negative control**: rename `md` → `medium` in BOTH the studio
+list and `scale.ts`'s `RADIUS_LADDER` → **stays green**, correctly, because a matched rename is not a
+stranding; without this the battery would only prove the gate is loud. `M3` add a rung to the engine
+ladder the studio omits → **UNDECLARED RUNG** by name, with arm A silent. `M4` rename `SHADOW_STEPS`
+away from its array literal → **STALE CLASSIFICATION**. `M5` add a `DENSITY_STEPS` nobody classified →
+**UNCLASSIFIED**.
+
+`M4` also measured a real hole and it is written into the header rather than implied: the rename was
+caught by the *stale* floor, because the old name vanished — **not** by the discovery scan noticing the
+new one. The scan is anchored on the `*STEPS*` naming convention, and it has to be anchored on
+something: "any string-array const" matches dozens of unrelated arrays in a 6,500-line file. So a ramp
+introduced under a name outside the convention is invisible. Narrow, real, and a convention rather than
+a property.
+
+── THE REVIEWER'S WIDENING: FILED, NOT FOLDED (#1182) ──────────────────────────────────────────
+
+#1179's comment asked whether "every `colorPath()`/role deref is guard-preceded" belongs in this gate.
+It does not, and the measurement is what decides it rather than taste. The two are different shapes:
+this gate is **set membership** with an independent oracle (the engine, run live); that one is
+**control flow** with no oracle at all — "a guard exists nearby" would be derived from the same source
+it checks, and a proximity regex over line numbers is shape 9 in its purest form.
+
+And the real remedy is not a gate. `apps/studio/tsconfig.json` has `strict: true` but not
+`noUncheckedIndexedAccess`, so `roles[role]` types as `Role` rather than `Role | undefined` and the
+seven guards are things people wrote rather than things the compiler demanded. With the flag on, an
+eighth unguarded caller would not compile — strictly stronger than any lint. Measured on `0e4e338`:
+**402 errors**, and not confined to the studio (the tail includes `packages/engine/vocabulary.ts:147`,
+because the studio tsconfig reaches engine sources). That is a two-workspace change and its own PR, so
+it is #1182 with the number in it.
+
+── WHAT THIS DOES NOT CHECK ─────────────────────────────────────────────────────────────────────
+
+That a step resolves to the right **px**. Arm A proves the name is a real rung; the value the studio
+then reads comes from `rp.dims`, a different map with a different scope — and that scope mismatch is
+what #1177 actually was. A step can be in the ladder and still absent from `rp.dims`. So this closes
+"the list names something the ladder never had" and leaves "the map the ramp reads is narrower than the
+ladder" open, which #1178 addressed for `capsule` by not reading `rp.dims` for it at all.
+
 ## (2026-08-30) — Studio-QA: every lever preview still resolves after the colour collapse + controlShape (#1173, #1177)
 
 **STATUS: shipped.** A source-level audit of `apps/studio/src/main.ts` — does every lever that paints a

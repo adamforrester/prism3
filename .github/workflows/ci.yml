@@ -445,6 +445,22 @@ jobs:
       - name: No collection ships that nothing writes
         run: npx --yes tsx@4 packages/engine/lint-stranded-collections.ts
 
+      # #1179: a studio ramp's hardcoded step list must be a subset of the ladder it resolves against.
+      # `paintRadiusPreview` iterated an authored RADIUS_STEPS and read each step's px out of `rp.dims`,
+      # which `resolve-preview.ts` builds from only the refs the PREVIEW SPEC binds — nothing bound
+      # `radius.capsule`, so it fell through `?? 0` and the ramp rendered `capsule · 0px` with a sharp
+      # swatch (#1177). Nothing caught it: test:smoke asserts the panel RENDERS and a 0px corner renders
+      # fine; typecheck is satisfied because `?? 0` makes the expression total; regen never sees the
+      # studio. A step that resolves to nothing produced a plausible number and a plausible picture.
+      # SUBJECT = the authored arrays, parsed from studio source (main.ts touches `document` at import
+      # time, so it cannot be loaded under tsx). ORACLE = the ladder, computed by running the engine
+      # over five themes incl. two radiusScale extremes. Never derive one from the other (shape 17).
+      # Two arms — an authored step the ladder lacks, and a ladder rung the list omits without
+      # declaring it — plus floors that fail when the scan finds nothing rather than reporting a clean
+      # zero, and that require every `*STEPS*` literal in the studio to be classified here.
+      - name: A studio ramp step resolves to a real rung
+        run: npx --yes tsx@4 packages/engine/lint-ramp-steps.ts
+
       # #758: the component tier's colour bindings, in two arms — because #758's own stated acceptance
       # ("Button's 648-member paint is byte-identical: regen --check reports 104") cannot fail.
       # `figmaAnatomySet` is called by no emitter and no component payload is committed under `out/`,

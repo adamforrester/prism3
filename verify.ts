@@ -596,6 +596,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-stranded-collections.ts'),
   },
   {
+    id: 'lint-ramp-steps',
+    ciStep: 'A studio ramp step resolves to a real rung',
+    cmd: engine('lint-ramp-steps.ts'),
+  },
+  {
     id: 'lint-paint',
     ciStep: 'Component paint is where the defs say it is',
     cmd: engine('lint-paint.ts'),
