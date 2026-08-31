@@ -798,6 +798,23 @@ npm run build     -w @prism3/plugin      # dist/main.js must contain 0 `node:` b
                                           # the engine…"), so the check stays a whole-file grep rather
                                           # than parsing imports: a builtin reached another way would slip
                                           # past a syntax-aware check, and a false positive costs one dash
+npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+ New brand" and a
+                                        # fresh file both surface the same start screen the web does —
+                                        # start-from-color, start-blank, example chips, design.md
+                                        # upload. A SEPARATE browser suite from test:verdict for the
+                                        # same reason that one is separate from smoke: the subject is a
+                                        # plugin-only TRIGGER. The web knows at boot that nothing is
+                                        # stored (localStorage is synchronous); the plugin learns it
+                                        # from a host message that lands after boot, so the behaviour
+                                        # does not exist in the web bundle at any effort. Its
+                                        # load-bearing assertion is the NEGATIVE one — a file that
+                                        # already holds a brand must still hydrate (#1184) — because
+                                        # every other case makes the start screen appear MORE often and
+                                        # that is the one a too-eager trigger breaks. Written
+                                        # positively (the editor rendered, the brand chip names the
+                                        # restored brand) so "nothing rendered at all" cannot pass as
+                                        # "hydrated". Needs the same one-off `npx playwright install
+                                        # chromium` as test:smoke
 npm run test:verdict -w @prism3/plugin   # every terminating condition of a component build reaches a
                                           # VISIBLE verdict (#870) — clean, with misses, errored,
                                           # already-built, unknown-def. Runs after `build` above: it

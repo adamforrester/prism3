@@ -145,6 +145,10 @@ export interface HostCommit {
         | { kind: 'seed-info'; ok: boolean; summary: string; present: boolean }
         | { kind: 'restore-input'; input: unknown }
         | { kind: 'restore-input-error'; message: string }
+        // #1197 — the host read the file and found NO brand blob. Distinct from `restore-input` not
+        // arriving, which is what absence used to look like, and distinct from `seed-info`'s
+        // `present: false`, which is about VARIABLES in the canvas rather than a stored brand.
+        | { kind: 'restore-input-empty' }
         | { kind: 'font-list'; families: string[]; styles: number[] },
     ) => void,
   ): void;
@@ -219,6 +223,8 @@ const figmaCommit = (): HostCommit => ({
         cb({ kind: 'seed-info', ok: !!m.ok, summary: String(m.summary ?? ''), present: !!m.present });
       } else if (m.type === 'restore-input' && m.input) {
         cb({ kind: 'restore-input', input: m.input });
+      } else if (m.type === 'restore-input-empty') {
+        cb({ kind: 'restore-input-empty' });
       } else if (m.type === 'restore-input-error') {
         cb({ kind: 'restore-input-error', message: String(m.message ?? 'saved brand data could not be restored') });
       } else if (m.type === 'font-list' && Array.isArray(m.families)) {

@@ -7,6 +7,111 @@
 
 ---
 
+## (2026-08-31) — the plugin had no start moment, because it never has a "first run" (#1197)
+
+**STATUS: shipped.** The plugin's "+ New brand" and its fresh-file boot both surface the same start
+screen the web does — start-from-color, start-blank, example chips, and **design.md upload**, which the
+plugin previously had no route to from the start moment. Gates **50 → 51** (a new browser suite),
+re-measured with `lint-doc-gates` on `aafae84` rather than carried (#1180). Nothing emitted moves.
+
+── THE SCREEN ALREADY EXISTED; THE TRIGGER DID NOT ─────────────────────────────────────────────
+
+`renderStartScreen()` is shared UI and always was. The plugin skipped it deliberately — the handler
+forked on `PRISM3_HOST` and the plugin branch called `stageLoad(NEW_BRAND(), …)`, loading untitled+blue
+in place, with a comment saying the plugin start moment was a deferred cross-lane follow-up (#506/#533).
+So the "+ New brand" half is a small change: delete the fork, clear the origin in both hosts, and
+`firstRun()` — which is a *reading* of `provenance.origin.kind === 'none'`, not a flag — does the rest.
+
+**The interesting part is why the plugin could not simply reuse the web's trigger**, and it is a
+difference in what each host can know and when. The web decides in `bootBrand`: `localStorage` is
+synchronous, so at boot it either has a brand or it does not, and "does not" is `origin: none` on the
+first frame. The plugin cannot. Its brand arrives from the host over `postMessage` after `ui-ready`, so
+boot has to render *something* first, and `example/aurora` is the honest placeholder until the host
+answers (#721 state 2). `firstRun()` is therefore never true in the plugin — not because the plugin
+opted out of the concept, but because the moment the web tests for does not exist there.
+
+── ABSENCE HAD TO BECOME A MESSAGE ─────────────────────────────────────────────────────────────
+
+`restoreToUi` posted **nothing** when a file held no brand: *"genuine absence → null → nothing posted →
+the UI keeps its defaults"*. That was adequate while the only consumer wanted a brand to LOAD. It is not
+adequate for a start moment, because silence cannot carry the fact — "this file has no brand" and "the
+restore has not arrived yet" are the same observation.
+
+Two rejected alternatives, both worse in ways worth recording:
+
+  · **infer it from a timeout** — turns a correct-but-slow host into a discarded brand;
+  · **infer it from `seed-info`'s `present: false`** — a statement about VARIABLES in the canvas, which
+    is a different question. #677/#1184: a file can carry applied variables and no stored blob, and
+    that case is still a start moment. The suite asserts it in both message orders.
+
+So absence now posts `restore-input-empty`, and the three outcomes are total over the read: a brand, a
+refusal, or nothing.
+
+── THE GUARD, WHICH MY OWN TEST FALSIFIED BEFORE IT SHIPPED ────────────────────────────────────
+
+The trigger needs a guard: the UI is live between `ui-ready` and the host's answer, so a designer can
+pick an example in that window, and a late empty-restore must not drop them onto a start screen.
+
+The first version guarded on VALUE — *origin is `example/aurora` and nothing is dirty*. It is wrong,
+and the scenario that catches it is one line: **boot's placeholder is aurora, and the first example chip
+is also aurora.** Click it and the guard still reads true; the late message then discarded a brand the
+designer had just chosen. Two states equal by value and different in every way that matters.
+
+Now guarded on the boot provenance object by **identity**. Every user path goes through `loadBrand`,
+which assigns a new provenance, so `provenance === bootProvenance` is exactly "nothing has been chosen
+yet". Immune to the coincidence by construction rather than by listing it.
+
+I only found it because the scenario was written before the code was trusted — the harness posts the
+message *after* a chip click, which is not a case anyone would think to try by hand.
+
+── IFRAME SIZING: MEASURED, AND NOTHING NEEDED CHANGING ────────────────────────────────────────
+
+The brief asked whether the web layout holds in the plugin iframe. It does, at every size down to the
+plugin's own `MIN_SIZE` floor of 380×420 — measured, not eyeballed, and now asserted every run:
+
+| viewport | h-overflow | clipped | column reachable | paths |
+|---|---|---|---|---|
+| 1280×900 | 0px | no | yes | 4 |
+| 500×560 | 0px | no | yes | 4 |
+| 380×420 | 0px | no | yes | 4 |
+
+`.start-col` is `width:100%; max-width:560px`, the chips wrap, and `.startview` uses `min-height:100vh`
+rather than `height`, so tall content grows the box instead of being clipped by the centering. **No CSS
+was added**, which is the right outcome: a plugin-specific stylesheet for a screen that already fits
+would be two layouts to keep in agreement for no measured gain.
+
+── WHAT THE CHANGE TOOK OUT ────────────────────────────────────────────────────────────────────
+
+#1034's `.cur` marker on "+ New brand" is gone, and not by oversight. It existed because the plugin
+click loaded `NEW_BRAND()` in place, so in a file whose stored brand was already an untouched new brand
+the click was a pixel-for-pixel no-op with nothing saying so. That click now returns to the start moment
+in both hosts — visible feedback whatever the values are, which is exactly why #1034 excluded web from
+the marker. The condition has no subject left. The plugin's confirm-before-replace goes for the same
+reason: clearing the origin **replaces nothing**; the working brand stays where it is and the start
+screen renders in front of it, and the replace happens later on whichever path is chosen.
+
+── THE SUITE (43 assertions), AND ITS MUTATIONS ────────────────────────────────────────────────
+
+`apps/plugin/test-start-screen.mjs`, a third browser suite. Separate from `test:verdict` for the same
+reason that one is separate from `smoke`: the subject is a plugin-only trigger that does not exist in
+the web bundle.
+
+**The load-bearing assertion is the negative one** — a file WITH a persisted brand must still hydrate
+(#1184, which had just tested green) — because every other scenario makes the start screen appear more
+often, so that is the one a too-eager trigger breaks. It is written positively (the editor rendered,
+the brand chip names the restored brand) so "nothing rendered at all" cannot pass as "hydrated".
+
+`M1` reverts the "+ New brand" fork → §4 fails by name, §2 still passes, so the failure is localized.
+`M2` returns the host to silence → the §7 source assertions fail. `M3` drops the boot-identity guard →
+the late-empty-restore scenario fails by name — the defect above, now permanently caught. `M4` makes a
+restored brand land on the start screen → **§2 fails by name**, reporting `0 rail destinations` and a
+`null` brand chip, which is the proof that the regression guard is not decoration.
+
+**Stated limit**, and `M2` is what makes it concrete: the harness injects host messages directly and
+never runs the plugin main thread, so the *sending* of `restore-input-empty` is a source assertion (§7),
+not a behavioural one. `M2` fails only those three lines — the behavioural scenarios stay green, because
+the harness posts the message the host stopped posting.
+
 ## (2026-08-31) — the ramp gate's discovery was anchored on a naming convention (#1187)
 
 **STATUS: shipped.** `lint-ramp-steps.ts` only — an internals change, **not a new gate**. Gates stay at
