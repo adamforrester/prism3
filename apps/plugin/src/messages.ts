@@ -128,6 +128,20 @@ export type MainToUi =
    *  Sent only when a trusted blob exists (genuine absence → not sent → UI keeps defaults; a
    *  stored-but-untrusted blob sends `restore-input-error` below instead, never this). */
   | { type: 'restore-input'; input: BrandInput }
+  /** Boot knob-rehydration found NOTHING (#1197): the file's shared-data holds no brand blob at all.
+   *
+   *  Absence used to be sent as silence — `restoreToUi` posted nothing and the UI kept its defaults —
+   *  and that was adequate while the only consumer wanted a brand to load. It is not adequate for a
+   *  START MOMENT, which has to know the difference between "no brand in this file" and "the restore
+   *  has not arrived yet". Those are the same observation when absence is silent, so the plugin could
+   *  only have inferred a fresh file from a timeout, or from `seed-info`'s `present: false` — which is
+   *  a statement about VARIABLES in the canvas, a different question (#677/#1184: a file can carry
+   *  applied variables and no blob).
+   *
+   *  Sent exactly when `restore-input` and `restore-input-error` are not, so the three are total over
+   *  the read: a brand, a refusal, or nothing. The UI can then decide once, on arrival, with no race
+   *  against the independent `seed-info` read. */
+  | { type: 'restore-input-empty' }
   /** Boot knob-rehydration REFUSED (#480): a `BrandInput` blob IS stored in this file's shared-data
    *  but can't be trusted — an old/foreign shape, or a schema version this build doesn't recognize
    *  (e.g. a pre-#341/#415 blob: the old `families.display/text/mono` role names, and a numeric

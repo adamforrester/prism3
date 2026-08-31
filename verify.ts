@@ -490,6 +490,18 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // The panel's THIRD browser suite, and a separate one for the same reason `plugin-verdict` is
+    // separate from `smoke`: the subject is a plugin-only TRIGGER. The web decides "nothing is stored"
+    // synchronously in `bootBrand`; the plugin learns it from a host message that lands after boot, so
+    // the behaviour under test does not exist in the web bundle at any effort.
+    id: 'plugin-start',
+    ciStep: 'Plugin start-moment suite (#1197)',
+    cmd: ws('@prism3/plugin', 'test:start'),
+    after: ['build-plugin'],
+    why: 'it drives the dist/ui.html the plugin build just wrote, in a browser',
+    precondition: chromiumPrecondition,
+  },
+  {
     id: 'tokenpress-test',
     ciStep: 'TokenPress tests',
     cmd: ws('@prism3/tokenpress', 'test'),

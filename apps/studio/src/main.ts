@@ -95,6 +95,16 @@ const boot = bootBrand();
 let brandState: BrandInput = boot.input;
 /** Where `brandState` came from, and the baseline it is measured against (#722 / #721). */
 let provenance: Provenance = provenanceOf(boot.origin, brandState);
+/** The provenance object BOOT created, kept by identity so the plugin's fresh-file trigger can ask
+ *  "has anything happened yet?" (#1197).
+ *
+ *  Identity, not value, and the difference is a bug this caught rather than a precaution. Every user
+ *  choice goes through `loadBrand`, which ASSIGNS a new provenance — so `provenance === bootProvenance`
+ *  is exactly "nothing has been chosen in this session". The value-based version of the same test
+ *  ("origin is example/aurora and nothing is dirty") reads TRUE after a designer picks the aurora chip,
+ *  because boot's placeholder is aurora too, and a late host message then discarded a brand they had
+ *  just chosen. Two states that are equal by value and different in every way that matters. */
+const bootProvenance: Provenance = provenance;
 /**
  * The start screen's gate — now a READING of the origin, not an independent boolean (#721).
  *
@@ -691,6 +701,27 @@ commit.onHostMessage((m) => {
     // pill would report restored knobs as "not stored in this file". See `withRecovered`.
     if (seedOutcome) seedOutcome = withRecovered(seedOutcome, true);
     loadBrand(m.input as BrandInput, { kind: 'file' });
+    return;
+  }
+  if (m.kind === 'restore-input-empty') {
+    // #1197 — THE PLUGIN'S FRESH-FILE START MOMENT. The web reaches this state in `bootBrand`, which
+    // can read localStorage synchronously and so knows at boot that nothing is stored. The plugin
+    // cannot: the file's brand arrives asynchronously from the host, so boot has to pick a placeholder
+    // and `example/aurora` is the honest one until the host answers (#721 state 2). This message is
+    // the host answering "nothing", and it is the only moment at which `none` becomes true.
+    //
+    // GUARDED ON THE BOOT PROVENANCE BY IDENTITY, not on `firstRun()` and not on its value. Between
+    // `ui-ready` and this message a designer can already have picked an example or uploaded a
+    // design.md — the UI is live, not blocked on the host — and dropping them onto a start screen
+    // would discard a choice they just made. `loadBrand` assigns a new provenance for every one of
+    // those paths, so this identity check is exactly "nothing has been chosen yet".
+    //
+    // The value-based version of this guard was written first and was WRONG: boot's placeholder origin
+    // is `example/aurora`, so "origin is example/aurora and nothing is dirty" also reads true straight
+    // after a designer clicks the aurora chip. A late empty-restore then threw away the brand they had
+    // just picked. Caught by the scenario in `test-start-screen.mjs` that posts the message after a
+    // chip click, which is the only reason it is not still in here.
+    if (provenance === bootProvenance) { provenance = noOrigin(brandState); build(); }
     return;
   }
   if (m.kind === 'restore-input-error') {
@@ -7926,38 +7957,36 @@ const renderBrandMenu = (): HTMLElement => {
   if (pendingLoad?.origin.kind === 'example') menu.append(renderOverwriteConfirm(pendingLoad));
 
   menu.append(el('div', 'bm-div'));
-  // #1034: MARKED AS CURRENT when the working brand already IS an untouched new brand, in the same
-  // `.cur` idiom the Examples list above uses for the loaded example. That is the reported bug: in the
-  // plugin this item loads `NEW_BRAND()` in place, so in a file whose stored brand is a never-renamed
-  // new brand — restored at boot by `restore-input`, which is why the reporter saw it only in a file
-  // that already has tokens — the click is a pixel-for-pixel no-op. Measured, not inferred: same brand
-  // chip, same ramps, identical `document.body.innerHTML` length, nothing on the console. The button
-  // was never dead; it was already satisfied, and nothing said so. Web is excluded because its branch
-  // returns to the start moment, which is visible feedback whatever the values are.
-  const alreadyNew = PRISM3_HOST === 'figma' && !isDirty(brandState, provenanceOf({ kind: 'new' }, NEW_BRAND()));
-  const nb = el('button', 'bm-item' + (alreadyNew ? ' cur' : ''), '+ New brand') as HTMLButtonElement;
-  // Web: return to the start moment (the same three paths) rather than silently loading the default.
-  // Plugin: keep the direct neutral-default load — this handler is SHARED UI (not host-DCE'd), and the
-  // plugin start moment is a deferred cross-lane follow-up, so it must not surface the web start screen.
+  // #1034's `.cur` marker is GONE, and #1197 is why rather than an oversight. It existed because the
+  // plugin's click loaded `NEW_BRAND()` in place, so in a file whose stored brand was already an
+  // untouched new brand the click was a pixel-for-pixel no-op with nothing saying so. That click now
+  // returns to the start moment in both hosts, which is visible feedback whatever the values are —
+  // exactly the reason #1034 excluded web from the marker in the first place. The condition it tested
+  // has no subject left: there is no longer a state in which this button does nothing.
+  const nb = el('button', 'bm-item', '+ New brand') as HTMLButtonElement;
+  // BOTH HOSTS return to the start moment (#1197). This branch used to fork: web cleared the origin,
+  // the plugin loaded `NEW_BRAND()` in place, and the comment here said the plugin "must not surface
+  // the web start screen" because that port was a deferred cross-lane follow-up (#506/#533). #1197 is
+  // that follow-up, and the decision is that the two hosts offer the same four paths — a designer in
+  // Figma starting a new brand can pick an example or upload a design.md, which the direct load could
+  // not do.
+  //
+  // The fork does not survive as a smaller fork, either: the plugin's own confirm-before-replace
+  // (#1034's fold-in) is not needed here any more, because clearing the origin REPLACES NOTHING. The
+  // working brand stays exactly where it is and the start screen renders in front of it; the replace
+  // happens later, when a path is chosen, and each of those paths goes through `loadBrand` with its
+  // own origin. That is why the guard and the `alreadyNew` marker below can both go: neither has a
+  // subject once the click stops overwriting the brand.
   nb.onclick = () => {
-    if (PRISM3_HOST !== 'figma') {
-      brandMenuOpen = false;
-      // #722: returning to the start moment is now an ORIGIN CHANGE — clear the origin and the start
-      // screen follows, because `firstRun()` reads it. Previously this set a flag that `loadBrand`
-      // knew nothing about, which is why re-entry looked like it needed its own path. The working
-      // brand is deliberately left in place: it is what the app renders behind the start screen.
-      provenance = noOrigin(brandState);
-      build();
-      return;
-    }
-    // #1034's own fold-in ("it should get the same confirm-before-replace treatment"): the plugin
-    // branch REPLACES the working brand, so it needs #1033's guard for the same reason the Examples do.
-    // `brandMenuOpen` is no longer cleared up front — a confirm has to be read in the menu it was
-    // raised in, and `loadBrand` closes the menu itself on the path that goes through.
-    stageLoad(NEW_BRAND(), { kind: 'new' });
+    brandMenuOpen = false;
+    // #722: returning to the start moment is an ORIGIN CHANGE — clear the origin and the start screen
+    // follows, because `firstRun()` reads it. Previously this set a flag that `loadBrand` knew nothing
+    // about, which is why re-entry looked like it needed its own path. The working brand is
+    // deliberately left in place: it is what the app renders behind the start screen.
+    provenance = noOrigin(brandState);
+    build();
   };
   menu.append(nb);
-  if (pendingLoad?.origin.kind === 'new') menu.append(renderOverwriteConfirm(pendingLoad));
   const imp = el('button', 'bm-item', '↑ Import design.md…') as HTMLButtonElement;
   imp.onclick = () => { importOpen = !importOpen; importErr = null; pendingLoad = null; renderBar(); };
   menu.append(imp);
