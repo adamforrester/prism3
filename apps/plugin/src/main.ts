@@ -570,9 +570,14 @@ const seedFromFile = async (): Promise<void> => {
 
 /**
  * Boot knob-rehydration (#131): read the `BrandInput` the last apply persisted in shared-data and,
- * if a trusted blob exists, hand it to the UI so it opens on the persisted brand. Genuine absence →
- * `null` → nothing posted → the UI keeps its defaults (same as an unthemed file). Independent of
+ * if a trusted blob exists, hand it to the UI so it opens on the persisted brand. Independent of
  * `seedFromFile` — the read-back verdict and the knob restore don't gate each other.
+ *
+ * #1197 MADE ABSENCE EXPLICIT. It used to be silence (`null` → nothing posted → the UI keeps its
+ * defaults), which was adequate while the only consumer wanted a brand to load. A start moment needs
+ * the opposite fact — "this file has no brand" — and silence cannot carry it: it is the same
+ * observation as "the message has not arrived yet". So absence now posts `restore-input-empty`, and
+ * the three outcomes here are total over the read: a brand, a refusal, or nothing.
  *
  * #480: a stored-but-untrusted blob (old/foreign shape, unrecognized schema version) makes
  * `restoreInput` THROW rather than return `null` — caught here and reported as `restore-input-error`
@@ -582,7 +587,11 @@ const seedFromFile = async (): Promise<void> => {
 const restoreToUi = (): void => {
   try {
     const input = restoreInput(figma.root);
+    // #1197: absence is now REPORTED rather than left as silence. The UI's start moment has to tell
+    // "this file has no brand" from "the restore has not landed yet", and those are indistinguishable
+    // when absence posts nothing. The three outcomes below are total over this read.
     if (input) postToUi({ type: 'restore-input', input });
+    else postToUi({ type: 'restore-input-empty' });
   } catch (e) {
     postToUi({ type: 'restore-input-error', message: (e as Error).message });
   }
