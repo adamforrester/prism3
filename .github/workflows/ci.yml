@@ -461,6 +461,20 @@ jobs:
       - name: A studio ramp step resolves to a real rung
         run: npx --yes tsx@4 packages/engine/lint-ramp-steps.ts
 
+      # #1186: the VALUE half of the same class, and the actual #1177 mechanism. lint-ramp-steps proves
+      # a step NAME is a real rung; it explicitly does not prove the step resolves to a VALUE in the map
+      # the preview reads. `capsule` WAS in theme.dims.radius — the name gate passes it — but `rp.dims`,
+      # which resolve-preview builds from only the refs the preview SPEC binds, carried nothing for it,
+      # so `?? 0` rendered `capsule · 0px`. Measured here: the ladder has 6 rungs, rp.dims carries 4.
+      # A rung may legitimately be outside that map (`none` always was), so the invariant is "in the map
+      # OR visibly special-cased by the preview". THE CRUX: the special-cased set is DISCOVERED from how
+      # the preview branches (`step === '<rung>'`), never listed here — a list is a second copy that
+      # rots the moment a fourth rung is special-cased (shape 4). Arm B (special-cased AND present)
+      # exists to make that discovery trustworthy: it turns an over-collecting scan from a silent false
+      # negative into a failure. SUBJECT = the studio source; ORACLE = resolvePreview() run for real.
+      - name: A ramp rung resolves to a value, or is special-cased
+        run: npx --yes tsx@4 packages/engine/lint-ramp-values.ts
+
       # #758: the component tier's colour bindings, in two arms — because #758's own stated acceptance
       # ("Button's 648-member paint is byte-identical: regen --check reports 104") cannot fail.
       # `figmaAnatomySet` is called by no emitter and no component payload is committed under `out/`,

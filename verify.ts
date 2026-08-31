@@ -601,6 +601,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-ramp-steps.ts'),
   },
   {
+    id: 'lint-ramp-values',
+    ciStep: 'A ramp rung resolves to a value, or is special-cased',
+    cmd: engine('lint-ramp-values.ts'),
+  },
+  {
     id: 'lint-paint',
     ciStep: 'Component paint is where the defs say it is',
     cmd: engine('lint-paint.ts'),
