@@ -673,6 +673,13 @@ jobs:
       - name: Every visually-significant property on a built node traces to a decision
         run: npx --yes tsx@4 apps/plugin/lint-unclaimed-defaults.ts
 
+      # #1190 — Figma lists collections in creation order, so the panel order is the sequence of
+      # createVariableCollection calls. This runs both emission paths (plugin executor + CLI paste
+      # payloads) against a recording stub and asserts the observed order equals COLLECTION_ORDER —
+      # the plugin path and the CLI path independently, and against each other.
+      - name: Both emission paths create Figma collections in COLLECTION_ORDER
+        run: npx --yes tsx@4 apps/plugin/lint-collection-order.ts
+
       # A stated advisory window, once it closes, fails the build. The step below this one is
       # advisory with a date on it, and that date is written in six places — this workflow twice,
       # verify.ts, test-smoke.mjs twice, and the three contributor documents. On the stated morning

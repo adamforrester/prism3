@@ -867,6 +867,20 @@ npx tsx apps/plugin/lint-unclaimed-defaults.ts
                                           # is glyphDocument's shape — a deeper subtree from Figma's real
                                           # importer is not seen. First gate outside packages/engine/, which
                                           # is why verify.ts's orphan scope now admits apps/*/lint-*.ts
+npx tsx apps/plugin/lint-collection-order.ts
+                                          # #1190 — panel order is intentional now, and gated. Figma lists
+                                          # variable collections in CREATION order, so panel order is the
+                                          # sequence of createVariableCollection calls. This runs BOTH
+                                          # emission paths — the plugin executor (applyVariableCollections)
+                                          # and the CLI paste payloads — against a recording stub and asserts
+                                          # the OBSERVED order equals COLLECTION_ORDER: each path against the
+                                          # list, AND the two against each other (the divergence risk the
+                                          # change introduces). SUBJECT is the observed runtime order (from
+                                          # running the code); ORACLE is the list. Independent because the
+                                          # wiring is hand-authored to MATCH the list, not driven FROM it — a
+                                          # pre-pass iterating the list would make subject and oracle share
+                                          # one producer (docs/34 shape 17), a gate a list-reorder passes.
+                                          # Second gate outside packages/engine/.
 npm run test      -w @prism3/tokenpress  # the ported suite's 263 assertions, on tsx rather than the
                                           # vitest it arrived with. The runner asserts a PER-FILE census
                                           # against the pre-port vitest baseline, so a test quietly

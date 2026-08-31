@@ -24,7 +24,7 @@ import { appendBuildNote, buildNote } from '../../studio/src/build-identity';
 import { onUiMessage, postToUi } from './bridge-main';
 import { assertNever } from './messages';
 import type { MainToUi, UiToMain } from './messages';
-import { applyWritePlan, applyFloatPlan, applyVarCollectionPlan, beginMigration, strandedCollections } from './write-figma';
+import { applyVariableCollections, beginMigration, strandedCollections } from './write-figma';
 import { isRefusal } from '@prism3/engine/rename-map';
 import { applyStylesPlan } from './write-styles';
 import { applyTextStylePlan } from './write-text-styles';
@@ -157,15 +157,22 @@ const applyTheme = async (input: BrandInput): Promise<void> => {
     const colorFiles = buildFigmaColor(theme);
     const floatPlan = buildFloatWritePlan(theme);
     const fontPlan = buildFontVarPlan(theme);
-    const r = await applyWritePlan(buildWritePlan(colorFiles), figma.variables, mig);
-    // FLOAT axes (#146): core/dimension, space/radius/size/border-width/focus/opacity + layout.
-    const f = await applyFloatPlan(floatPlan, figma.variables, mig);
+    // VARIABLE COLLECTIONS (#1190): created in PANEL ORDER — `color` (with `core`'s palette slice) first,
+    // then `type-sets` (with `core`'s font slice), then the FLOAT collections. Figma lists collections in
+    // creation order, so this one call fixes `core · color · type-sets · space · layout · radius · size ·
+    // control · icon · border-width · focus · opacity`. `lint-collection-order.ts` gates the observed order
+    // against `COLLECTION_ORDER`. Destructured back to `r`/`tv`/`f` so the reporting below is unchanged.
+    const { color: r, font: tv, float: f } = await applyVariableCollections(
+      { color: buildWritePlan(colorFiles), font: fontPlan, float: floatPlan },
+      figma.variables,
+      mig,
+    );
     // STYLE axes (shadow/gradient lane): Effect Styles (shadow/* + shadow-dark/*) + Paint Styles
-    // (gradients, baked stops). The global `figma` structurally satisfies the StylesApi port.
+    // (gradients, baked stops). They create NO variable collections, so they run after the collections
+    // above and do not affect panel order. The global `figma` structurally satisfies the StylesApi port.
     const s = await applyStylesPlan(buildStylesPlan(theme), figma);
-    // TYPOGRAPHY (#237): core/font + type-sets variables first (bound targets must exist), then Text
-    // Styles. The Text Style port needs figma's style/font surface + figma.variables' getter.
-    const tv = await applyVarCollectionPlan(fontPlan, figma.variables, mig);
+    // TYPOGRAPHY (#237): `core/font` + `type-sets` variables were created above (bound targets must exist
+    // before Text Styles bind them); the Text Styles themselves are applied here.
     const textApi = {
       getLocalTextStylesAsync: figma.getLocalTextStylesAsync.bind(figma),
       createTextStyle: figma.createTextStyle.bind(figma),

@@ -7,6 +7,64 @@
 
 ---
 
+## (2026-08-31) — Figma collection order made explicit, prioritized, and gated (#1190)
+
+**STATUS: shipped.** A single `COLLECTION_ORDER` list, both emission paths hand-authored to produce it,
+and the first gate that asserts collection order — `apps/plugin/lint-collection-order.ts`. Gates **50 →
+51** (the count is computed, not a numeral — #1180). `out/**` **byte-identical**; no `ENGINE_VERSION`
+bump (reasoning below). Confirmed order: `core · color · type-sets · space · layout · radius · size ·
+control · icon · border-width · focus · opacity`.
+
+**The diagnosis: the order was INCIDENTAL, not chosen.** Figma lists collections in CREATION order
+(`createVariableCollection`, on a find-by-name miss) and exposes no reorder API, so panel order *is*
+creation order. That creation order was the product of three composing, unsorted constructs: the executor
+call sequence in `applyTheme`, the plan-array literals (`buildFloatWritePlan`, `buildFontVarPlan`), and a
+hardcoded palette-before-color. **`core`-first was accidental** — first only because `color` aliases
+target palette primitives (a data dependency), with nothing expressing "core belongs at the top" as
+intent. A change to alias-resolution order could have silently moved it. Nothing gated any of it.
+
+**The change moves BOTH paths in lockstep.** The plugin executor (`applyVariableCollections`, extracted
+in `write-figma.ts`, called from `main.ts`) and the CLI paste path (`materialise-to-figma.ts`'s `ORDER` +
+`FLOAT_AXES`) are the two projections of one plan; reordering one without the other is the real risk this
+introduces. Both now produce the confirmed order — `font-vars` lifted before the floats to bring
+`type-sets` to third, `layout` up after `space`, `control` before `icon`. The palette→color data
+dependency is preserved (confirmed order keeps `color` at position 2, right after `core`).
+
+**The list is the ORACLE, not the wiring — and that distinction is load-bearing (`docs/34` shape 17).**
+The tempting design is a pre-pass that iterates `COLLECTION_ORDER` and creates each collection. It would
+make the panel order correct — and make the gate a **tautology**: the gate observes the created order and
+compares it to `COLLECTION_ORDER`, so if the wiring were *driven from* that same list, a reorder of the
+list would move both sides together and the gate could never fail. So the wiring is kept an INDEPENDENT,
+hand-authored expression (the call order, the plan arrays), and `COLLECTION_ORDER` is the list they are
+gated against. `lint-collection-order.ts` RUNS each path against a recording stub — the plugin executor
+directly, the CLI paste payloads via `new AsyncFunction` so the `if(!col)create` guards fire as they
+would in Figma — captures the real `createVariableCollection` sequence, and asserts it equals the list.
+SUBJECT = observed runtime order; ORACLE = the list; independent because the wiring does not read the
+list. It checks each path against the list AND the two against each other (the divergence risk).
+
+**Mutation battery (all restored).** Reorder `radius`/`size` in the CLI `FLOAT_AXES` only → the CLI arms
+fail by name and the cross-path agreement arm fails; the plugin stays green. Reorder two entries in the
+plugin `buildFloatWritePlan` array only → the plugin arm and agreement arm fail; the CLI stays green. A
+MATCHED change (swap `focus`/`opacity` in the list AND both wirings) → green, proving the gate tracks the
+list rather than a pinned order. The gate never reads `COLLECTION_ORDER` to build the subject, only to
+compare — which is the whole of why the negatives fail and the matched positive passes.
+
+**`ENGINE_VERSION` decision: NOT bumped, and why.** `regen` confirms `out/**` is byte-identical —
+collection creation order is a runtime property of the materialization executors, encoded in NO emitted
+artifact (the `out/figma/*.json` files are per-collection; the DTCG trees carry no cross-collection
+order). `ENGINE_VERSION` stamps provenance INTO emitted trees ("what code produced this tree"); bumping it
+would advance that stamp on trees whose content did not move, claiming a difference a consumer diffing two
+trees would not find — and a plugin user gets the new panel order regardless of the stamp. Per docs/30 the
+version records changes to emitted output; this change moves none. It is real engine behavior, but it is
+recorded and protected by the new gate (which observes the runtime order directly), not by the version.
+`lint-emission-version` is neutral (no `out/` content moved) and `CONTRACT_VERSION` stands (no token name
+or `$type` changed). The one judgment here is that "any behavior change" in docs/30 means a change to what
+the engine EMITS; a change encoded in nothing it emits is versioned by its gate, not its stamp.
+
+**No post-creation reorder API.** Confirmed during implementation: Figma variable collections cannot be
+repositioned after creation, so creation order IS panel order and the wiring drives creation directly —
+which the confirmed order (core-first, color second) supports without conflict with the alias dependency.
+
 ## (2026-08-31) — the ramp gate checked the NAME; #1177 was the VALUE (#1186)
 
 **STATUS: shipped.** One new gate, `lint-ramp-values.ts`. Gates **49 → 50**, re-measured on `c93f6e2`

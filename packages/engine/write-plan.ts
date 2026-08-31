@@ -208,17 +208,24 @@ export const buildFloatWritePlan = (theme: Theme): FloatCollectionPlan[] => {
   // under. `plan.name` is what the executor upserts, so a stale literal here writes the right
   // variables into the wrong collection, silently, with no gate reading a collection label.
   const named = (files: FigmaCollectionFile[]): FloatCollectionPlan => floatPlanFor(files[0].$collection, files);
+  // ORDER IS PANEL ORDER (#1190). This array is the plugin path's WIRING for where the FLOAT collections
+  // land in Figma's Variables panel — `applyFloatPlan` creates them in this sequence. Hand-authored to
+  // match `COLLECTION_ORDER` (space · layout · radius · size · control · icon · border-width · focus ·
+  // opacity), NOT sorted by it: `lint-collection-order.ts` observes the runtime creation order and asserts
+  // it equals the list, and a wiring that read the list could not be caught drifting from it (`docs/34`
+  // shape 17). `dimension` is `core`'s slice — `core` is created first by the colour plan, so its position
+  // here is inert for panel order; it stays first for readability.
   return [
     named([dims.dimension]),
     named([dims.space]),
+    named(layout),
     named(dims.radius), // 1 or 2 modes (Default [+ wireframe])
     named([dims.size]),
-    named([dims.icon]),   // #324 — the visual slot's bindable size
     named([dims.control]), // #900 — a small control's OWN box (checkbox/radio/switch)
+    named([dims.icon]),   // #324 — the visual slot's bindable size
     named([dims.borderWidth]),
     named([dims.focus]),
     named([dims.opacity]),
-    named(layout),
   ];
 };
 

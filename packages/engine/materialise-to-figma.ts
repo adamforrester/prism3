@@ -173,17 +173,23 @@ const planFor = (brand: string): WritePlan =>
 // `$collection: 'core'` and the two names have diverged. Every axis is keyed on the stem because that
 // is what this shell can find on disk, and the collection is read back off the loaded artifact — so a
 // future collection rename needs no edit here and cannot leave a stale literal behind.
+// ORDER IS PANEL ORDER (#1190). This is the CLI path's WIRING for where the FLOAT collections land in
+// Figma's Variables panel — `dims-create` creates them in this sequence. Hand-authored to match
+// `COLLECTION_ORDER` (space · layout · radius · size · control · icon · border-width · focus · opacity),
+// NOT sorted by it, so `lint-collection-order.ts` can observe the runtime order and catch it drifting
+// from the list (`docs/34` shape 17). `core.dimension` is `core`'s slice — `core` is created first by the
+// palette pass, so its position here is inert for panel order; it stays first for readability.
 const FLOAT_AXES: { stem: string; modes: string[] | null }[] = [
   { stem: 'core.dimension', modes: null },
   { stem: 'space', modes: null },
+  { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
   { stem: 'radius', modes: ['Default', 'wireframe'] }, // per-mode only for a wireframe brand
   { stem: 'size', modes: null },
-  { stem: 'icon', modes: null },
   { stem: 'control', modes: null },
+  { stem: 'icon', modes: null },
   { stem: 'border-width', modes: null },
   { stem: 'focus', modes: null },
   { stem: 'opacity', modes: null },
-  { stem: 'layout', modes: ['sm', 'md', 'lg', 'xl', '2xl'] },
 ];
 
 /** The files backing one float axis, in mode order. A single-mode axis is `<stem>.json`; a
@@ -804,13 +810,23 @@ const PASSES: Record<string, (b: string) => string[]> = {
   'font-vars': (b) => [fontVarsPass(b)], 'text-styles': (b) => [textStylesPass(b)],
   styles: (b) => [stylesPass(b)], verify: (b) => [verifyPass(b)],
 };
-// Colour, then floats, then typography, then styles — the lanes don't alias each other, so the order
-// BETWEEN them is a convention; WITHIN each lane create-before-alias is a hard requirement. The one
-// cross-lane constraint that IS real: `text-styles` after `font-vars`, because a Text Style's
-// `setBoundVariable` resolves `font/family/*`, `font/weight-role/*` and `font-fluid/*` by name.
+// ORDER IS PANEL ORDER (#1190). This pass sequence is the CLI path's WIRING for the order collections are
+// CREATED — each create pass's `if(!col)col=createVariableCollection(cname)` fires on first touch, so the
+// sequence of create passes is the panel order a designer reads top-to-bottom: `palette`→`core`,
+// `color-create`→`color`, `font-vars`→`type-sets`, `dims-create`→the floats (in `FLOAT_AXES` order). That
+// composes to `core · color · type-sets · space · layout · radius · size · control · icon · border-width ·
+// focus · opacity`. Hand-authored to match `COLLECTION_ORDER`, NOT read from it, so `lint-collection-
+// order.ts` can observe the runtime order and catch drift (`docs/34` shape 17).
+//
+// `font-vars` before `dims-create` is the change #1190 makes — it lifts `type-sets` from last to third.
+// WITHIN each lane create-before-alias is a hard requirement (`color-aliases` after `color-create`,
+// `dims-aliases` after `dims-create`); the one real CROSS-lane constraint survives it — `text-styles`
+// after `font-vars`, because a Text Style's `setBoundVariable` resolves `font/*` and `font-fluid/*` by
+// name — and `styles` (Effect/Paint) binds no variables, so its position is a convention. The lanes do
+// not alias each other, so re-ordering them for panel order is safe.
 const ORDER = [
-  'palette', 'color-create', 'color-aliases', 'dims-create', 'dims-aliases',
-  'font-vars', 'text-styles', 'styles', 'verify',
+  'palette', 'color-create', 'color-aliases', 'font-vars', 'dims-create', 'dims-aliases',
+  'text-styles', 'styles', 'verify',
 ];
 
 /** The pass payloads, exposed so the suite can assert on what would actually be pasted rather than

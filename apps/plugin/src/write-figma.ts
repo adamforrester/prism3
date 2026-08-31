@@ -666,3 +666,31 @@ export const applyVarCollectionPlan = async (
 
   return { collections, bound, misses, refused };
 };
+
+/**
+ * The plugin path's VARIABLE-COLLECTION creation sequence, in ONE place (#1190).
+ *
+ * The ORDER of these three calls is the plugin path's WIRING for panel order — Figma lists collections
+ * in creation order, and `upsertCollection` calls `createVariableCollection` on the first touch of each
+ * name. So `color` (carrying `core`'s palette slice) is created first, then `type-sets` (carrying
+ * `core`'s font slice), then the FLOAT collections in `buildFloatWritePlan`'s array order. Composed,
+ * that is `core · color · type-sets · space · layout · radius · size · control · icon · border-width ·
+ * focus · opacity` — hand-authored to match `COLLECTION_ORDER`, NOT read from it, so
+ * `lint-collection-order.ts` can run THIS function against a recording stub and catch it drifting
+ * (`docs/34` shape 17).
+ *
+ * Styles and Text Styles create NO variable collections, so `applyTheme` applies them around this call;
+ * the one real constraint on their position — Text Styles after the font vars they bind — is unrelated
+ * to panel order. `font` before `float` is the change #1190 makes: it lifts `type-sets` from last to
+ * third, and is safe because the font and float axes do not alias each other.
+ */
+export const applyVariableCollections = async (
+  plans: { color: WritePlan; font: VarCollectionPlan[]; float: FloatCollectionPlan[] },
+  vars: VariablesApi,
+  mig: Migration,
+): Promise<{ color: ApplyResult; font: VarCollectionApplyResult; float: FloatApplyResult }> => {
+  const color = await applyWritePlan(plans.color, vars, mig);
+  const font = await applyVarCollectionPlan(plans.font, vars, mig);
+  const float = await applyFloatPlan(plans.float, vars, mig);
+  return { color, font, float };
+};

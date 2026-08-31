@@ -654,6 +654,15 @@ export const GATES: Gate[] = [
     cmd: [...TSX, 'apps/plugin/lint-unclaimed-defaults.ts'],
   },
   {
+    // #1190 — the SECOND gate outside `packages/engine/`. Runs both emission paths (the plugin executor
+    // and the CLI paste payloads) against a recording stub and asserts the observed
+    // `createVariableCollection` order equals `COLLECTION_ORDER`. In `apps/plugin/` because it drives the
+    // plugin's own `applyVariableCollections`; the CLI path it imports from the engine.
+    id: 'lint-collection-order',
+    ciStep: 'Both emission paths create Figma collections in COLLECTION_ORDER',
+    cmd: [...TSX, 'apps/plugin/lint-collection-order.ts'],
+  },
+  {
     // It fired for real on 2026-08-20, naming all 8 live sites that described #775's window — this
     // row's own `ciStep` string among them — and that firing is what produced the flip below. It
     // now guards windows nobody has opened yet.
