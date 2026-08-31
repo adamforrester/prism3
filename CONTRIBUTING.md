@@ -357,6 +357,33 @@ npx tsx packages/engine/lint-ramp-steps.ts          # a studio ramp's authored s
                                                     # than reporting a clean zero, and every `*STEPS*`
                                                     # literal in the studio must be classified here, so
                                                     # a new ramp is a decision not an omission
+npx tsx packages/engine/lint-ramp-values.ts         # the VALUE half of the ramp class, and the actual
+                                                    # #1177 mechanism (#1186). lint-ramp-steps proves a
+                                                    # step NAME is a real rung; it does not prove the
+                                                    # step resolves to a VALUE in the map the preview
+                                                    # reads. `capsule` WAS in theme.dims.radius — the
+                                                    # name gate passes it — but `rp.dims`, which
+                                                    # resolve-preview builds from only the refs the
+                                                    # preview SPEC binds, carried nothing for it, so
+                                                    # `?? 0` rendered `capsule · 0px`. Measured: the
+                                                    # ladder has 6 rungs, rp.dims carries 4, and that
+                                                    # gap is permanent — the map answers "what do
+                                                    # preview COMPONENTS bind", a different question.
+                                                    # So the invariant is "in the map OR visibly
+                                                    # special-cased by the preview". THE CRUX: the
+                                                    # special-cased set is DISCOVERED from how the
+                                                    # preview branches (`step === '<rung>'`), never
+                                                    # listed in the gate — a list is a second copy that
+                                                    # rots the moment a fourth rung is special-cased
+                                                    # (shape 4). Arm B (special-cased AND present in
+                                                    # the map) is what makes that discovery
+                                                    # trustworthy: an over-collecting scan would
+                                                    # otherwise be a SILENT false negative, and arm B
+                                                    # turns it into a failure. Arm C covers the
+                                                    # literal-key reads (`rp.dims['radius.md']`), same
+                                                    # defect with no loop to make it visible. SUBJECT =
+                                                    # the studio source; ORACLE = resolvePreview() RUN,
+                                                    # never a re-derivation of which refs the spec binds
 npx tsx packages/engine/lint-paint.ts               # the component tier's colour bindings (#758), in two
                                                     # arms — because #758's OWN stated acceptance
                                                     # ("Button's 648-member paint is byte-identical:

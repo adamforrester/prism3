@@ -7,6 +7,89 @@
 
 ---
 
+## (2026-08-31) — the ramp gate checked the NAME; #1177 was the VALUE (#1186)
+
+**STATUS: shipped.** One new gate, `lint-ramp-values.ts`. Gates **49 → 50**, re-measured on `c93f6e2`
+with `lint-doc-gates` (50 runner entries vs 50 CI steps, both directions) rather than carried (#1180).
+Nothing emitted moves.
+
+── THE HALF #1185 LEFT OPEN, WHICH IS THE HALF THE BUG WAS IN ──────────────────────────────────
+
+`lint-ramp-steps.ts` proves a step NAME is a real rung of its ladder. Its own header says what that
+leaves: *"a step can be in the ladder and still be absent from `rp.dims`."* That sentence is #1177.
+
+`capsule` **was** in `theme.dims.radius`. The name gate passes it — measured, not assumed: with the
+reproduction mutation in place (below), `lint-ramp-steps` exits **0**. What it was absent from is
+`rp.dims`, which `resolve-preview.ts` builds from **only the refs the preview SPEC binds**, so
+`rp.dims['radius.capsule'] ?? 0` rendered `capsule · 0px` with a sharp swatch.
+
+The gap is not a bug and will not close: the ladder has **six** rungs and `rp.dims` carries **four**
+(`sm`, `md`, `lg`, `round`). The map answers *"what do preview COMPONENTS bind"*, which is a different
+question from *"what rungs exist"*. So the invariant cannot be "everything is in the map". It is:
+
+> every rung is EITHER in the map the preview reads, OR visibly special-cased by that preview.
+
+Today that partitions exactly: `{none, capsule}` outside the map, `{none, capsule}` special-cased.
+
+── THE INDEPENDENCE CRUX, AND THE ARM THAT MAKES IT TRUSTWORTHY ────────────────────────────────
+
+A hand-written `SPECIAL_CASED = ['none','capsule']` in the gate would be a second copy of a fact the
+preview already states, and it would rot the instant a fourth rung was special-cased — the gate would
+keep passing while the new sentinel went unchecked. `docs/34` shape 4. **There is no such list.**
+
+The set is read out of how the preview actually BRANCHES — `step === '<rung>'` inside the ramp's own
+function body, which is the same truth the running code uses (`step === 'none' ? 0 : …` short-circuits
+before `rp.dims`; `const isCapsule = step === 'capsule'` decides both the drawn corner and the label).
+Verified live rather than argued: `M2` special-cases a new rung in the preview and the gate's report
+grows to `special-cased {capsule, none, squircle}` **with no edit to the gate**.
+
+The two ways that discovery can be wrong are not symmetrical, and the asymmetry is the design:
+
+  · **UNDER-collects** — a special case written in an idiom the scan does not read. The rung then looks
+    uncovered and arm A fires. A false POSITIVE, which is the safe direction: loud, and the remedy is
+    to widen the discovery, never to add a list.
+  · **OVER-collects** — the scan picks up a `step === 'x'` that is not a value bypass. That rung would
+    read as covered while still reaching `rp.dims`: a false NEGATIVE, and silent. **ARM B exists to
+    convert exactly that into a failure** — a rung special-cased AND present in the map is reported,
+    because either the sentinel is stale or the scan over-collected, and both need a person.
+
+Arm B is therefore not a second nice-to-have check. It is what makes the discovery in arm A worth
+trusting, and `M3` measures it: adding a cosmetic `step === 'md'` branch fires arm B by name with arm A
+silent.
+
+── ARMS AND FLOORS ─────────────────────────────────────────────────────────────────────────────
+
+**A UNRESOLVED RUNG** — in neither the map nor the special cases; hits `?? 0`. **B STALE SENTINEL** —
+in both. **C LITERAL KEY** — a spelled-out `rp.dims['radius.md']` read whose ref the map lacks; same
+defect with no loop to make it visible.
+
+Floors, each asserted by name: the ramp function must be FOUND (a rename makes the gate watch nothing);
+the discovery must find ≥1 special case in a ramp that has rungs outside the map, so a rotted idiom is
+diagnosed as a rotted idiom rather than as N spurious arm-A failures; `rp.dims` must be non-empty for
+the ramp's prefix; and **every interpolated `rp.dims[...]` read in the studio must belong to a declared
+ramp**, so a second ramp reading the map fails until classified. Without that last one the gate covers
+only the case it was written for, which is shape 10.
+
+── MUTATION BATTERY (5) ────────────────────────────────────────────────────────────────────────
+
+`M1` **reproduces #1177**: a rung added to the ladder AND to `RADIUS_STEPS`, bound by no preview-spec
+component and not special-cased → **UNRESOLVED RUNG** by name on all four themes. The same run has
+`lint-ramp-steps` at **exit 0**, which is the measurement that justifies this being a separate gate
+rather than a widening: the two cover genuinely different halves.
+
+`M2` then special-cases that rung properly → **green**, with the discovered set grown. `M3` adds a
+branch that is not a value bypass → **STALE SENTINEL**, arm A silent. `M4` moves the special-casing to a
+`SENTINELS.has(step)` idiom the scan cannot read → the **floor** fires and names the likely cause,
+rather than reporting two spurious arm-A defects. `M5` repoints the literal read at a ref the map lacks
+→ **LITERAL KEY**. Negative control: a rung with a real `rp.dims` value is green throughout.
+
+── WHAT THIS DOES NOT CHECK ────────────────────────────────────────────────────────────────────
+
+That the value is the RIGHT number. Arm A proves the map has an entry; whether that entry is the px a
+designer should see is a question about `resolve-preview.ts`. And it does not cover ramps that read the
+theme directly (`paintSizePreview` reads `theme.dims.sizes`): those derive their steps from the map
+they read, so there is no second list to drift — the shape #1179's issue called the deeper fix.
+
 ## (2026-08-31) — a ramp step that resolved to nothing rendered a plausible number (#1179)
 
 **STATUS: shipped.** One new gate, `lint-ramp-steps.ts`. Gates **48 → 49**, re-measured on `0e4e338`
