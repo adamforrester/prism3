@@ -8447,7 +8447,7 @@ function renderBar(): void {
     // enough that a button which neither moves nor disables reads as broken — and a second click posts a
     // second concurrent write over the same variables. Disabled while in flight is both the signal and
     // the guard.
-    const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : '↳ Apply to Figma') as HTMLButtonElement;
+    const applyBtn = el('button', 'barbtn primary', pending ? '⋯ Applying…' : 'Apply to Figma') as HTMLButtonElement;
     applyBtn.disabled = pending;
     // The previous run's detail is stale the instant a new write starts, so it collapses with the state.
     applyBtn.onclick = () => { applyState = 'pending'; openDetail = null; renderBar(); syncApplyDetail(); commit.postTheme(lastGoodInput); };
