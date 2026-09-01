@@ -219,7 +219,11 @@ jobs:
       #
       # It caught #1202 on its first clean run. Stated limit in its header: accept-and-discard is
       # real-host-only, and one predicate (effectStyle) compares 0 nodes because no def declares one.
-      - name: Component round-trip: the file holds what the plan declared (#874)
+      # QUOTED because the name contains ": ", which a plain YAML scalar reads as a mapping entry —
+      # unquoted, the file did not parse and the workflow never DISPATCHED (run 1238: failure, 0 jobs,
+      # 0s). An ABSENT run, not a pending one, which is why no `gates` check appeared on the PR at all.
+      # `npm run verify` cannot see this: it runs each gate directly, never through ci.yml (#1213).
+      - name: "Component round-trip: the file holds what the plan declared (#874)"
         run: npm run -w @prism3/plugin test:roundtrip
 
       # #1197: the plugin's start moment. A separate suite from the verdict one because the subject is a
