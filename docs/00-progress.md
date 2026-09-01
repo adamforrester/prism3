@@ -7,6 +7,74 @@
 
 ---
 
+## (2026-09-01) — the spinner's swap slot was wired to the wrong property in 108 Button members (#1202)
+
+**STATUS: shipped.** One executor change, in `apps/plugin/src/write-components.ts`. Gates stay at
+**51**; nothing emitted moves. Found by the #874 round-trip gate on its first clean run — the first
+defect that gate caught, and not one of the ones it was filed to catch.
+
+── THE DEFECT ───────────────────────────────────────────────────────────────────────────────────
+
+Every `state=pending` Button member with a leading visual had its spinner's `mainComponent` swap slot
+wired to the **`trailingVisual`** set property, where the plan declares `leadingVisual`. **108 of
+Button's 1,296 members wrong, 0 right where `leadingVisual` is wanted.** Both properties exist, so
+nothing looks broken: a designer repointing a pending button's leading visual changes nothing, and
+repointing the trailing one moves both.
+
+── THE CAUSE, AND IT IS A PREMISE THAT EXPIRED ──────────────────────────────────────────────────
+
+`planSetLayout` builds the part→property wiring as a Map keyed on the part NAME, with the reason
+written above it:
+
+> `REFS` is deduped by part because **every member carries the same anatomy** — the payload loops
+> members, so a per-plan list would wire each node twenty-one times over.
+
+That premise was true when written and **stopped being true at #848**. The spinner is an OVERLAY that
+takes whichever visual cell the member has, so `figmaAnatomySet` resolves its `propertyRef.prop` per
+member — `leadingVisual` where it took the leading cell, `trailingVisual` where it took the trailing
+one. A Map keyed on `spinner` collapses those to whichever plan was walked last, which is the trailing
+one.
+
+**#848's own comment predicts this defect exactly, one tier up.** It explains why the PLAN reads
+`replacedByOverlay` rather than `p.replaces`: *"Reading `p.replaces` here would hand the spinner the
+LEADING cell's swap property at a coordinate where it actually took the TRAILING one … with both
+properties existing, so nothing would look broken."* #848 fixed the plan and the executor's set-wide
+dedup threw the answer away. Same sentence, same consequence, one layer down.
+
+── THE FIX ──────────────────────────────────────────────────────────────────────────────────────
+
+The wire loop reads the property from **that member's own plan** rather than from the deduped entry.
+`refs` keeps the job the dedup exists for — WHICH PARTS to visit, once per member, so #701's fast route
+is untouched — and only the property it names is now per member.
+
+Read from the plan, never re-derived: #848 already computes which cell the overlay took, and a second
+copy of that rule in the executor would be a second thing to get wrong (`docs/34` shape 8). The index
+is built from `plans`, the executor's INPUT, and keyed by `planComponentName` for the same reason
+`stampByMember` is — every name derivation goes through it, so the key agrees by construction.
+
+── VERIFIED, INCLUDING THE DIRECTION THAT MUST NOT MOVE ─────────────────────────────────────────
+
+The #874 round-trip harness, `--inventory` mode, before and after:
+
+| member group | plan wants | before | after |
+|---|---|---|---|
+| `pending, leading=T, trailing=T` (54) | `leadingVisual` | `trailingVisual` ✗ | `leadingVisual` ✓ |
+| `pending, leading=T, trailing=F` (54) | `leadingVisual` | `trailingVisual` ✗ | `leadingVisual` ✓ |
+| `pending, leading=F, trailing=T` (54) | `trailingVisual` | `trailingVisual` ✓ | `trailingVisual` ✓ |
+
+Button goes **108 → 0** divergences and all nine projected defs round-trip clean. The third row is the
+one worth stating: those members legitimately want `trailingVisual`, and a fix that flipped every
+spinner to `leadingVisual` would have produced the same headline number with 54 new defects behind it.
+
+── FILED, NOT FIXED HERE ────────────────────────────────────────────────────────────────────────
+
+**The PASTE path has the same defect** and this change does not reach it. `planSetToPluginJs` and
+`planSetChunks` consume the same deduped `refs` from `planSetLayout`, so a set built by pasting
+generated JS into `figma_execute` wires the spinner the same wrong way. It is not fixed here because
+the round-trip harness drives `applyComponentPlan` only, and shipping an unverified fix to a second
+executor is how the first one got here. Filed as **#1203**, with the shared-source measurement and the
+note that the paste path's own output was NOT observed — only the code it reads from.
+
 ## (2026-08-31) — an isolated Name/Namespace change was dropped on Apply/export (#1196, #1194)
 
 **STATUS: shipped.** UI plumbing in `apps/studio/src/main.ts` + a new arm in `test-smoke.mjs`. No
