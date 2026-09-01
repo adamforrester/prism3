@@ -7,6 +7,105 @@
 
 ---
 
+## (2026-09-01) — the shared size ladder moves to 36/44/56, and the default control was under AAA (#1207)
+
+**STATUS: shipped.** `packages/engine/scale.ts` (the ladder + one new constant) and the assertions in
+`test.ts` that pin it. Gates stay at **51**; `ENGINE_VERSION` 0.31.0 → **0.32.0**, `CONTRACT_VERSION`
+**stands at 9.1.0** — a pure value move, and `token-contract.ts --check` says so rather than this
+entry asserting it. Emitted heights move in all four brands.
+
+── WHAT THE QA ACTUALLY FOUND, WHICH IS NOT WHAT THE ISSUE TITLE SAYS ────────────────────────────
+
+#1207 reports "the medium button height is 40px". No brand's `size.md.height` was 40 at the default
+density — it was **48**. 40 is `compact`, and the number came from the studio, which boots **aurora**,
+which is `density: compact`. Worth pinning because it changes what the fix is: the reported number is
+one density's, and the ramp has three.
+
+── THE PART THAT HAD TO BE DECIDED, NOT ENGINEERED ───────────────────────────────────────────────
+
+`size.*.height` is not a ladder. It is a SEVEN-rung array with a five-name window that density slides
+by one rung — so **`compact`'s `md` IS `comfortable`'s `sm`**, by construction, not by coincidence.
+That makes "36/44/56 for small/medium/large" and "44px as a floor at every density" mutually
+exclusive: fixing `comfortable.sm = 36` forces `compact.md = 36`, and no re-cut of the seven rungs
+escapes it. There is no arithmetic answer, only a choice, so it went back to the owner with the three
+options priced. **Decided: 36/44/56 lands at `comfortable`, the default density.**
+
+The consequence, stated plainly because it is the opposite of what the issue's framing implies:
+**aurora's medium goes 40 → 36, further below the 44 the issue is about**, and the default brands'
+medium goes 48 → **44**, i.e. DOWN. Prism 2's ladder is tighter than the engine's was. What the change
+buys is not a bigger control — it is that the default is now the deliberate number rather than a
+by-product of a uniform ×8 ladder, and that it is asserted. The studio still boots a brand whose
+default control is 36px; that is #1215, filed, not fixed here.
+
+── THE LADDER, AND WHY THE FOUR RUNGS NOBODY NAMED ALSO MOVED ────────────────────────────────────
+
+```
+             xs   sm   md   lg   xl        small/medium/large (what the six defs bind)
+compact      24   28   36   44   56        28 / 36 / 44
+comfortable  28   36   44   56   68        36 / 44 / 56   ← decided
+spacious     36   44   56   68   80        44 / 56 / 68
+```
+
+The seven rungs are ONE array and every density is a window onto it, so an increment that dips
+anywhere in the array surfaces as a wobbly ladder at whichever window straddles the dip — which no
+single density's own five values would reveal. Keeping `xs` at 32 beside a decreed `sm` of 36 puts a
++4 step next to a +8 and a +12; the array is cut instead so its increments never shrink (4, 8, 8, 12,
+12, 12), and that property is now asserted over all seven rungs reconstructed from the public API.
+**No component def binds `size.xs.*` or `size.xl.*`** — the corpus binds sm/md/lg only — so the outer
+rungs moved with nothing downstream to reconcile. The floor stays on exactly `MIN_TARGET_PX`, which is
+what keeps the existing SC 2.5.8 assertion load-bearing instead of slack.
+
+── `h` BECAME `px`, AND THAT IS A CORRECTION RATHER THAN A REFACTOR ──────────────────────────────
+
+`SIZE_RUNGS` stored height as a `spaceBase` multiple, with the reason in the comment above it:
+*"Heights and paddings both land on the shared scales."* 36 and 44 are 4.5× and 5.5× of 8, and
+**neither is on the space scale at all** (…24, 32, 40, 48…). So the decided values falsify that
+sentence whatever the representation; writing them as `4.5` and `5.5` would have kept a field whose
+stated contract had expired and left the comment asserting it. Both ARE on the `dimension` grid, which
+is what the emitted leaf has always aliased — `size.md.height → {…dimension.44}`, never a `space.*`
+ref — so the px ladder states what the output already was. `CONTROL_RUNGS` and `ICON_SIZES` are px
+ladders for the same reason, each spelled out at its own definition.
+
+The one behavior that changes: heights no longer scale with `spaceBase`. Unreachable through any brand
+input — `SPACE_BASE` is locked at 8 and `brandTheme` passes exactly that (`const spaceBase =
+SPACE_BASE`) — and `test.ts` still sweeps bases 4/8/12 for the padding contracts, which do scale.
+Padding stays a multiple; it is spacing, and the rhythm is where it belongs.
+
+── SIX DEFS, NOT ONE, AND TWO OF THEM ARE THE INTERESTING ONES ───────────────────────────────────
+
+"Not button-only" was the owner's instruction and it is literally true — every def that binds a row
+height binds the same three rungs:
+
+| def | binds `size.{sm,md,lg}.height` as | aurora (compact) | nb · harbor · wendys |
+|---|---|---|---|
+| `button`, `text-field` | `height` | 28 / 36 / 44 | 36 / 44 / 56 |
+| `icon-button` | `side` (square, so this is the whole target) | 28 / 36 / 44 | 36 / 44 / 56 |
+| `checkbox`, `radio` | `min-height` | 28 / 36 / 44 | 36 / 44 / 56 |
+| `switch` | `min-height` (sm/md only) | 28 / 36 | 36 / 44 |
+
+The selection controls are why this tier exists rather than a per-def height: `control.size.md.height`
+is 16–20px, and `scale.ts` already said the row is what carries their target — *"a 12px box depends on
+the row's padding for its 24px target (SC 2.5.8, `MIN_TARGET_PX`) — which is what `size.<t>.height` is
+for"*. A 44px row under a 20px checkbox is the same sentence one criterion up.
+
+── THE NEW CONSTANT, AND WHY IT IS SCOPED TO ONE RUNG ────────────────────────────────────────────
+
+`AAA_TARGET_PX = 44` (WCAG 2.2 SC 2.5.5, Enhanced) sits beside `MIN_TARGET_PX = 24` (SC 2.5.8,
+Minimum) and is asserted against **`md` at the default density only**. Not a sweep, on purpose, and
+the comment says so: `compact` md is 36 and `compact` xs is 24, both deliberate, both clearing the AA
+floor. A version of this that swept all three densities would either fail or force `density` to stop
+meaning anything — and `MIN_TARGET_PX`'s own header already argues that gating 44 everywhere "would
+fail every real design system including this one". The assertion is worth having because the ladder
+holds 44 by arithmetic, exactly like the 24 floor: a future retune drops the default back under the
+criterion with nothing to say so. That is the whole reason #1207 existed to be found by eye.
+
+── VERIFICATION ──────────────────────────────────────────────────────────────────────────────────
+
+`npm run verify` → 51/51. `regen --check` in sync. `token-contract --check` clean after `--accept`,
+whose entire diff is the `engineVersion` stamp — **no guaranteed path moved**, which is the mechanical
+confirmation that this is a value change and not a name change. Every rung still aliases the grid
+(`dimension.24/28/36/44/56/68`) in all four brands rather than falling back to a literal.
+
 ## (2026-09-01) — the spinner's swap slot was wired to the wrong property in 108 Button members (#1202)
 
 **STATUS: shipped.** One executor change, in `apps/plugin/src/write-components.ts`. Gates stay at
