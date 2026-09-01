@@ -7,6 +7,98 @@
 
 ---
 
+## (2026-09-01) — the component round-trip: build it, read it back, diff it against the plan (#874)
+
+**STATUS: shipped.** `packages/engine/anatomy-readback.ts` (the pure reader + differ) and
+`apps/plugin/test-roundtrip.ts` (the offline host arm). Gates **51 → 52**, re-measured with
+`lint-doc-gates` on the #1202 base rather than carried (#1180). Nothing emitted moves.
+
+`docs/14` §4 specified this on 2026-07-03 — *"materialize components from our data → extract specs
+from the resulting file → diff against the source"* — and nothing built it for two months.
+
+── THE ARGUMENT IS NOT THE ONE THE ISSUE MAKES ─────────────────────────────────────────────────
+
+#874 argues from #864 (empty artboards) and #866 (discarded refs). Both are now caught by read-backs
+the executor grew afterwards, so neither is a live target. The durable argument is the measurement in
+that issue's own analysis: **four writes in `write-components.ts` could be deleted with the whole suite
+green.**
+
+The reason is structural, and it is `docs/34` shape 1 living inside the writer: each of the executor's
+nine retention read-backs was written by the same author, in the same branch, immediately below the
+write it checks — so **a field the writer forgets to WRITE is a field the writer forgets to READ
+BACK**, and nothing can tell. Six of the nine name a numbered issue in the comment above them. That is
+a ledger of past defects. This is the rule: it iterates the PLAN's fields, not the writer's branches.
+
+ORACLE = `figmaAnatomySet(def)`, SUBJECT = what the host holds. **Sharing the plan is not shape 1** —
+the plan is the executor's *input*, and comparing output against declared input is the shape of every
+honest test. Shape 1 would be sharing the writer's TRAVERSAL, which is why children are matched **by
+name** and never in build order, and why member names are compared as a **set, both directions**.
+
+── IT FOUND A DEFECT NOBODY HAD FILED ───────────────────────────────────────────────────────────
+
+108 of Button's 1,296 members had the spinner's swap slot wired to `trailingVisual` where the plan
+declares `leadingVisual` — **#1202**, fixed first so this lands green. It is not one of the defects
+#874 was filed to catch: #864 is fixed, and #866's class is real-host-only.
+
+── TWO FALSE INVENTORIES, BOTH MINE, BOTH CAUGHT BEFORE THEY WERE REPORTED ─────────────────────
+
+Worth recording because either would have shipped as an authoritative defect list:
+
+  · I read `propertyRef` as a `Record<field, propId>`. It is a `{ field, prop }` PAIR. The reader asked
+    the host for fields literally named `field` and `prop`, found neither, and reported **2,880 false
+    DISCARDEDs across six defs** — wearing the exact costume of #866, the defect this gate was built to
+    find.
+  · I built plans without `swapTarget`, which the real caller always nominates. The executor then
+    reports `built as a placeholder frame` and puts a FRAME where the plan says `INSTANCE_SWAP`:
+    **2,970 more findings, every one a harness fault.**
+
+First inventory: 4,392 divergences across 7 defs. True figure: 108 across 1. Both were found by
+dumping one built tree beside its plan and reading them — not by any check. **A gate's first red run is
+evidence about the gate, not yet about the subject.**
+
+── PER-PREDICATE EXERCISE COUNTS, ADDED BECAUSE A MUTATION FAILED TO FIRE ──────────────────────
+
+Deleting the executor's effect-style write changed nothing here, and the reason is a corpus fact:
+**zero defs declare an effect style**, so that predicate compares 0 nodes. "18 fields compared" was
+overstating coverage by counting a clause with no subject. The run now prints nodes-compared per
+predicate and flags any at zero as **"not a pass"**. Only visible because M3 was checked for *why* it
+passed rather than being recorded as a miss.
+
+── MUTATIONS ────────────────────────────────────────────────────────────────────────────────────
+
+| mutation | round-trip | `plugin-test` |
+|---|---|---|
+| delete `node.primaryAxisAlignItems =` | **8/9 → 2/9 clean**, names it 1296× + 162× | **exit 0** |
+| delete `node.counterAxisSizingMode =` | **8/9 → 2/9 clean**, named | **exit 0** |
+| delete the effect-style write | **not caught** — 0 nodes declare one (above) | exit 0 |
+| remove `layoutMode` from `FIELDS` | the classification floor fires by name | — |
+| delete the extra-member arm | a stray member goes from named to **0 findings** | — |
+
+The first two rows are the census claim, now caught — and `plugin-test` stays green through both,
+which is the whole point. The `layoutMode` mutation also caught a real error of mine: the plan field is
+`textAlignVertical` and my table said `verticalAlign`, so it was silently unclassified. The floor found
+it; I did not.
+
+── WHAT IT CANNOT CATCH, in the header rather than implied ─────────────────────────────────────
+
+Anything the plan does not declare (#865, the largest blind spot). Anything **visual** — the plan is
+the oracle, so a WRONG plan round-trips perfectly. **Accept-and-discard** on any offline host: a shim
+reproduces only the discards it was taught, so that class is a ledger here by construction and a rule
+only against real Figma — the `tools/component-roundtrip/` arm is still unbuilt and **CI does not cover
+it**. And a build that never finishes (#870) leaves no tree to read.
+
+── TWO STRUCTURAL CHANGES THAT CAME WITH IT ────────────────────────────────────────────────────
+
+`makeShim` moved to `apps/plugin/component-shim.ts`, unchanged, so both suites drive ONE model of the
+host — a second shim would be a second mental model of Figma, with no way to tell which was wrong. The
+move was verified by diffing `test-write-components.ts`'s output before and after: identical once
+wall-clock milliseconds are normalized, 250 assertions either side.
+
+And **#1007 is fixed** in passing: the shim wrote style ids only under private `_textStyleId` /
+`_effectStyleId`, so a reader using Figma's own property names read `undefined` and reported every
+styled node as unstyled — a harness defect presenting as a subject defect, which is the worst shape a
+false positive takes. Both names are now set from the one setter.
+
 ## (2026-09-01) — the spinner's swap slot was wired to the wrong property in 108 Button members (#1202)
 
 **STATUS: shipped.** One executor change, in `apps/plugin/src/write-components.ts`. Gates stay at

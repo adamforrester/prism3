@@ -202,6 +202,26 @@ jobs:
           npx playwright install --with-deps chromium
           npm run -w @prism3/plugin test:verdict
 
+      # #874: build every projected def, READ THE RESULT BACK OUT OF THE HOST, and diff it against the
+      # plan that built it. docs/14 §4 specified this on 2026-07-03 and nothing built it.
+      #
+      # The argument is not the two defects the issue cites — both are now caught by read-backs the
+      # executor grew afterwards. It is that FOUR writes in write-components.ts could be deleted with
+      # every gate green, because each of the executor's nine retention read-backs was written by the
+      # same author immediately below the write it checks: a field the writer forgets to WRITE is a
+      # field the writer forgets to READ BACK. Those are a ledger of past defects; this is the rule.
+      # It iterates the PLAN's fields, not the writer's branches.
+      #
+      # ORACLE = figmaAnatomySet(def); SUBJECT = what the host holds. Plan-driven and one-directional
+      # on FIELDS (the host holds vastly more than any def declares — #865 is a separate, allowlist-
+      # shaped check), two-directional on MEMBERS (an extra member is #869's class). Children matched
+      # BY NAME, never in build order, or it would read the writer's own traversal back.
+      #
+      # It caught #1202 on its first clean run. Stated limit in its header: accept-and-discard is
+      # real-host-only, and one predicate (effectStyle) compares 0 nodes because no def declares one.
+      - name: Component round-trip: the file holds what the plan declared (#874)
+        run: npm run -w @prism3/plugin test:roundtrip
+
       # #1197: the plugin's start moment. A separate suite from the verdict one because the subject is a
       # plugin-only TRIGGER — the web knows at boot that nothing is stored (localStorage is synchronous),
       # while the plugin learns it from a host message that arrives after boot, so the behaviour does not

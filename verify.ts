@@ -502,6 +502,17 @@ export const GATES: Gate[] = [
     precondition: chromiumPrecondition,
   },
   {
+    // The FOURTH component-tier suite, and the only one whose ACTUAL comes from the HOST rather than
+    // from the plan. `plugin-test` drives the executor and asserts what the executor reports;
+    // this reads the built tree back and diffs it against the plan, which is the direction that
+    // catches a field the executor never wrote.
+    id: 'plugin-roundtrip',
+    ciStep: 'Component round-trip: the file holds what the plan declared (#874)',
+    cmd: ws('@prism3/plugin', 'test:roundtrip'),
+    after: ['plugin-test'],
+    why: 'it drives the same executor and shim, and a failure there explains a failure here',
+  },
+  {
     id: 'tokenpress-test',
     ciStep: 'TokenPress tests',
     cmd: ws('@prism3/tokenpress', 'test'),
