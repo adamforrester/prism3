@@ -904,6 +904,68 @@ ok(menuFields >= BRANDS.length * 2 * BRANDMENU_FIELD_FLOOR,
 console.log(`  ${BRANDS.length} brands × 2 color schemes, ${menuFields} popover controls measured.`);
 
 // =============================================================================================
+// An ISOLATED identity change reaches emission + persistence (#1196)
+//
+// The Name/Namespace fields skip `rebuild()` to keep the text caret (#1073/#1075 lineage), and rebuild()
+// was the ONLY refresher of `lastGoodInput` (→ persist / design.md export) and `theme.root` (→ the DTCG
+// token export). So an identity change with NO lever edit after it never reached emission: the namespace
+// shipped as the stale default (the silent-resolve class — wrong output, no error), the name persisted
+// stale. This drives that exact path — change ONLY the identity fields, then export/read — so it FAILS on
+// the pre-fix code and passes after. There is no gate one tier up; a human found this by exporting.
+console.log(`\nIsolated identity change reaches emission (#1196)\n${'='.repeat(78)}`);
+{
+  const NS = 'ttds';
+  const NAME = 'ttds-brand';
+  const brand = BRANDS[0];
+  const { ctx, page, drain } = await openBrand(brand);
+  // Open the brand menu and change ONLY the identity fields. `page.fill` dispatches an `input` event, so
+  // each field's real `oninput` handler (and the #1196 `syncIdentity`) runs — exactly a designer typing.
+  await page.locator('.brandsel').click();
+  await page.waitForSelector('.brandmenu .bm-in.mono');
+  await page.fill('.brandmenu .bm-in', NAME);          // Name      → lastGoodInput.id (persisted blob)
+  await page.fill('.brandmenu .bm-in.mono', NS);       // Namespace → lastGoodInput.root + theme.root (emission)
+
+  // (a) Both identity fields reach the persisted blob. Web persists the working brand to localStorage;
+  // before the fix an isolated identity change never re-persisted, so a reopen read the stale values.
+  // The blob is version-tagged `{ v, input: BrandInput }` under `prism3:brandInput` (persist-input.ts),
+  // so read that key and unwrap `.input` — the same shape restoreInput() rehydrates the UI from on reopen.
+  const persisted = await page.evaluate(() => {
+    const raw = localStorage.getItem('prism3:brandInput');
+    try { const o = JSON.parse(raw); return (o && typeof o === 'object' && o.input) ? o.input : null; } catch { return null; }
+  });
+  ok(persisted?.id === NAME, `#1196: an isolated Name change reaches the persisted blob (id="${persisted?.id}", want "${NAME}")`);
+  ok(persisted?.root === NS, `#1196: an isolated Namespace change reaches the persisted blob (root="${persisted?.root}", want "${NS}")`);
+
+  // (b) The namespace reaches the EMITTED DTCG output — the load-bearing half. Export the tokens (still no
+  // lever change) and check the tree THREE ways: the custom root is present, the stale default root is
+  // ABSENT, and — the assertion whose absence let a broken fix ship — ZERO residual `{prism.*}` alias refs
+  // remain INSIDE the tree. `theme.root` and `theme.namespace` are separate fields: patching only the root
+  // rooted the tree at `ttds` while ~976 colour refs still pointed at `{prism.core.palette.*}`, a root no
+  // longer present — dangling aliases, the exact silent-resolve class this PR closes. `roots.includes(NS)`
+  // alone cannot see that (it only reads the top-level key); the ref scan over the serialized tree can.
+  await page.locator('button[aria-label="Export"]').click();
+  await page.waitForSelector('.exdlg');
+  const pending = page.waitForEvent('download');
+  await page.locator('.exdlg-go').click();
+  const dl = await pending;
+  let raw = '';
+  let roots = [];
+  try { raw = await readFile(await dl.path(), 'utf8'); roots = Object.keys(JSON.parse(raw)); } catch { /* reported below */ }
+  const staleRefs = (raw.match(/\{prism\./g) || []).length;   // alias syntax is `"{prism.core.palette…}"` — the brace anchors it to a ref, never prose
+  const freshRefs = (raw.match(/\{ttds\./g) || []).length;
+  ok(roots.includes(NS), `#1196: the exported DTCG tree is rooted at the custom namespace (roots: ${roots.join(', ') || 'none'})`);
+  ok(!roots.includes('prism'), `#1196: the stale default root is ABSENT from the exported tree (roots: ${roots.join(', ') || 'none'})`);
+  ok(freshRefs > 0, `#1196: the exported tree actually carries {${NS}.*} alias refs (found ${freshRefs}) — the ref scan below is not vacuous`);
+  ok(staleRefs === 0, `#1196: ZERO residual {prism.*} alias refs inside the exported tree (found ${staleRefs}; ${freshRefs} correct {${NS}.*} refs)`);
+  // slug() reads lastGoodInput.id, so the filename is the other reachable witness of the fix.
+  ok(dl.suggestedFilename().startsWith(NAME), `#1196: the export filename uses the fresh name (${dl.suggestedFilename()})`);
+
+  const errs = drain();
+  ok(errs.length === 0, `#1196: 0 console errors across the identity change + export${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await ctx.close();
+}
+
+// =============================================================================================
 // 5. The overwrite-confirm SENTENCE (#1033)
 //
 // The confirm names an origin twice, in two grammatical positions, and until now nothing read it. That
