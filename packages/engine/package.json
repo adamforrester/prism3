@@ -7,6 +7,7 @@
   "//": "NO build script and NO dependencies, both deliberate (#650). `exports` is CONFIGURATION, not compilation — a resolver reads this map to turn '@prism3/engine/theme' into a path, and esbuild/tsx then handle the TypeScript. Adding a build step here would mean the surfaces bundle emitted JS instead of source, which is the property that keeps the plugin's main.js free of node: builtins. Version tracks ENGINE_VERSION in version.ts.",
   "exports": {
     "./anatomy-figma": "./anatomy-figma.ts",
+    "./anatomy-readback": "./anatomy-readback.ts",
     "./color": "./color.ts",
     "./component-schema": "./component-schema.ts",
     "./components/button": "./components/button.ts",
