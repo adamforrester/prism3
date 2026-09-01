@@ -613,9 +613,13 @@ for (const b of brands) {
     // because the arithmetic #900 assumed would happen downstream has nowhere to happen: `inset` is
     // refused on any non-`absolute` part, and `sizing: 'fill'` maps to Figma `AUTO`, so padding-plus-fill
     // projects a dot of ZERO. The group shape is what made correcting that a MINOR instead of a MAJOR.
+    // #1201 added a FOURTH field, `line-box` — the baked `body.{rung}` line-box a selection control's
+    // alignment box reads (see `ENGINE_VERSION` 0.32.0). It is a deliberate addition, so the pin moves to
+    // the four-field shape rather than being loosened to "at least these three": a fifth field is still a
+    // decision someone takes, not a drift.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+width'),
-      `#910 each rung carries exactly \`height\` + \`width\` + \`dot\` — no fourth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+line-box+width'),
+      `#910/#1201 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` — no fifth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -13320,9 +13324,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
 // ---- #1009: the vertical rule — the half that is claimed, and the half that is NOT a fix -----------
 //
-// Half 2 CLAIMS `textAlignVertical`. Half 1 (a control top-aligned against its label) is a different
-// property on a different node and is deliberately NOT changed here; the last two arms guard the
-// multi-line case against the repair the QA observation invites.
+// Half 2 CLAIMS `textAlignVertical`. Half 1 (a control aligned to its label's first line) is a different
+// property on a different node. #1201 BUILT it — the control now sits in a `controlBox` one label
+// line-box tall and centres within it, while the row stays top-aligned — so the last two arms no longer
+// guard an unbuilt case; they guard that the fix stayed on the RIGHT node: the ROW must still never be
+// centred (that is the wrong repair — it floats the control mid-paragraph on a wrapping label), because
+// the centring belongs inside the line-box box, not on the row.
 {
   const walkPlan = (n: FigmaNodePlan, f: (n: FigmaNodePlan) => void): void => { f(n); n.children.forEach((c) => walkPlan(c, f)); };
   let textNodes = 0, claimed = 0, onNonText = 0;
@@ -13365,22 +13372,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(validateComponentDef(withPart('label', { verticalAlign: 'middle' })).errors.some((e) => /verticalAlign/.test(e) && /middle/.test(e)),
     "#1009: and a fourth word is refused — Figma has three values, so 'middle' would be written and silently discarded");
 
-  // ---- HALF 1, NOT FIXED HERE, GUARDED SO IT IS NOT FIXED WRONGLY --------------------------------
+  // ---- HALF 1, NOW BUILT (#1201), AND THIS ARM GUARDS IT STAYED ON THE RIGHT NODE ----------------
   //
   // The QA that opened #1009 asked for the control to centre with its label. Blanket-centring the ROW is
   // the obvious reading and it is WRONG: on a label that wraps, `CENTER` floats the control against the
-  // middle of the paragraph. The Prism2 reference is explicit that the box tracks the FIRST LINE, and
-  // `checkbox.ts`'s row comment has said so since before the issue existed.
+  // middle of the paragraph. The Prism2 reference is explicit that the box tracks the FIRST LINE.
   //
-  // MEASURED, so this is not a restatement of that comment (`d9c5b2d`, aurora): a `medium` checkbox binds
-  // a 16px control against a `body.md` label whose line box is 16 × 1.5 = 24px, so top-aligned the box
-  // centre sits 4px above the first line's centre. Real, and why the QA is right that something is off.
-  // But the exact repair is a control frame the height of the LINE BOX, and line-height is a RATIO token
-  // against a rem font size — Figma variables cannot multiply, so no px line-height variable exists to
-  // bind such a frame to. That is why half 1 is filed rather than built.
+  // MEASURED (`d9c5b2d`, aurora): a `medium` checkbox binds a 16px control against a `body.md` label whose
+  // line box is 16 × 1.5 = 24px, so TOP-aligned the box centre sits 4px above the first line's centre —
+  // real, and why the QA was right that something is off. The exact repair is a control frame the height
+  // of the LINE BOX; #1009 filed it because line-height is a RATIO and Figma variables cannot multiply it
+  // by a font size. #1201 UNBLOCKED that by baking the product to a fixed px per rung
+  // (`control.size.*.line-box`): checkbox/radio/switch now wrap the control in a `controlBox` exactly one
+  // line-box tall and centre it within, so a single-line label reads centred and a wrapping one holds the
+  // first line. (See the positive assertion in the block below.)
   //
-  // What is guarded is the WRONG repair. Population floor first, for the usual reason: a row that stopped
-  // pairing a control with a label would stop being checked, and only the floor notices.
+  // What this arm still guards is the WRONG repair — the fix must live INSIDE the line-box box, never on
+  // the row: a centred ROW is still the mid-paragraph float #1009 measured. Population floor first, for
+  // the usual reason: a row that stopped pairing a control with a label would stop being checked, and only
+  // the floor notices.
   //
   // CENTRING IS ADMITTED WHERE THE LABEL CANNOT WRAP, and the exemption carries its reason rather than
   // being a name on a list — the standard `LEAF_OK` and `PROVENANCE_EXCEPTIONS` already hold. Written as
@@ -13421,6 +13431,45 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   });
   ok(staleExempt.length === 0,
     `#1009 half 1: every admitted row is still centred and still exists — an exemption whose row has moved on is a decision nobody re-argued. Stale: [${staleExempt.join(', ')}]`);
+}
+
+// ---- #1201: the LINE-BOX ALIGNMENT BOX is built — #1009 half 1's fix, on the right node -------------
+//
+// The guard above proves the ROW is never centred. This proves the counterpart the guard cannot: that
+// the control DOES centre against its first line, via a `controlBox` one label-line-box tall, rather than
+// sitting top-anchored at the label's cap height (the 4px-high defect #1009 measured). It FAILS on the
+// pre-#1201 anatomy — where the painted control was a direct child of the row — and passes now. Both
+// halves are needed: without this, deleting the box and its wrapper leaves the row-not-centred gate green
+// while the control silently returns to cap height.
+{
+  const selection = componentDefs.filter((d) => ['checkbox', 'radio', 'switch'].includes(d.id));
+  ok(selection.length === 3, `#1201: the three selection controls are present to check (got ${selection.map((d) => d.id).join(', ')})`);
+  for (const def of selection) {
+    const ps = def.anatomy!.parts;
+    const rootRow = ps[def.anatomy!.root];
+    // The painted control — the box carrying the fill (checkbox/radio square-or-disc, switch track).
+    const ctrlName = Object.keys(ps).find((n) => ps[n].kind === 'box' && (ps[n].paintSlots ?? []).includes('fill'));
+    ok(!!ctrlName, `#1201 ${def.id}: has a painted control part (a box with a 'fill' paintSlot)`);
+    ok(!(rootRow.children ?? []).includes(ctrlName!),
+      `#1201 ${def.id}: the painted control is NOT a direct child of the row — the row top-aligns and the control centres one level down (row children: [${(rootRow.children ?? []).join(', ')}])`);
+    // Its wrapper: the part whose children include the control, height bound to the line-box, centred.
+    const boxName = Object.keys(ps).find((n) => (ps[n].children ?? []).includes(ctrlName!));
+    const box = boxName ? ps[boxName] : undefined;
+    ok(!!box && (box.height ?? '').includes('control-box') && box.layout?.align === 'center',
+      `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
+    ok(rootRow.layout?.align === 'start',
+      `#1201 ${def.id}: and the row itself stays top-aligned (align='${rootRow.layout?.align}') — the centring lives in the box, never the row`);
+  }
+  // MEASURED (nb): a line-box is strictly TALLER than the control at every rung, so "centre within" is a
+  // real inset — the control tracks the first line instead of sitting at cap height. Reads the emitted
+  // token rather than restating the arithmetic; the pre-fix world had no `line-box` to read at all.
+  const nbTree = JSON.parse(readFileSync(resolve(HERE, 'out/nb.tokens.json'), 'utf8'));
+  const nbCtl = nbTree[Object.keys(nbTree).find((k) => !k.startsWith('$'))!].control.size;
+  const pxOf = (leaf: any): number => leaf?.$extensions?.prism3?.px ?? parseFloat(String(leaf?.$value));
+  for (const rung of ['sm', 'md', 'lg']) {
+    ok(pxOf(nbCtl[rung]['line-box']) > pxOf(nbCtl[rung].height),
+      `#1201 nb: control.size.${rung}.line-box (${pxOf(nbCtl[rung]['line-box'])}px) is taller than the control (${pxOf(nbCtl[rung].height)}px), so centring within it is a real first-line inset`);
+  }
 }
 
 // ---- #1039: MATERIALIZATION RENAMES — check 2, and the table that proves check 1's shape ----------

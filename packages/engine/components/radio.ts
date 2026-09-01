@@ -279,6 +279,15 @@ export const radio: ComponentDef = {
     'size.medium.control': 'control.size.md.height',
     'size.large.control': 'control.size.lg.height',
 
+    // ── THE ALIGNMENT BOX (#1201, building #1009's filed fix). One line of the LABEL tall, per rung —
+    // the baked `body.{rung}` line-box. The control (radio circle) centres inside a box this tall while
+    // the ROW stays top-aligned, so a single-line option reads centred and a wrapping one holds the first
+    // line rather than floating mid-paragraph. Option labels wrap by design here, so this matters more
+    // than on checkbox. The control centres within its OWN box, never the row — `test.ts` #1009 half-1.
+    'size.small.control-box': 'control.size.sm.line-box',
+    'size.medium.control-box': 'control.size.md.line-box',
+    'size.large.control-box': 'control.size.lg.line-box',
+
     // ── THE INNER DOT, and this is the one binding with no checkbox counterpart (#910). Checkbox's
     // mark is a GLYPH sized at `control` full-bleed, which is right there and wrong here: a glyph's
     // optical inset lives in its artboard and a filled box has no artboard, so full-bleed would make
@@ -323,12 +332,25 @@ export const radio: ComponentDef = {
       row: {
         kind: 'box',
         role: 'target',
-        // START, not center — `docs.dont` states it: a control centered against a multi-line label floats
-        // mid-paragraph. Option labels wrap by design here, since the guidance is to wrap rather than
-        // truncate and to keep per-option detail in `description`.
+        // START on the cross axis, and the ROW must NOT centre — option labels wrap by design (the guidance
+        // is to wrap rather than truncate, keeping per-option detail in `description`), so `align: center`
+        // here would float the disc to the middle of a two-line option, the wrong repair `test.ts` #1009
+        // half-1 forbids. Centring the disc against its label happens one level down, inside `controlBox`,
+        // which is one line-box tall; top-aligning it here lands the disc on the first line (#1201).
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
-        children: ['control', 'label'],
+        children: ['controlBox', 'label'],
+      },
+      // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
+      // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the disc on its cross
+      // axis. Draws nothing — it exists only to give the disc a line-tall box to centre within, so the
+      // top-aligned row holds it on the FIRST line of a wrapping option. Height FIXED; width HUGs the disc.
+      controlBox: {
+        kind: 'box',
+        role: 'presentation',
+        height: 'size.{size}.control-box',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        children: ['control'],
       },
       // THE PAINTED DISC. FIXED on both axes because `size` binds one variable to width and height; a
       // hugging box would collapse around the dot. `radius` resolves to `radius.round`, which is the one
@@ -436,7 +458,7 @@ export const radio: ComponentDef = {
   },
 
   content: {
-    labelPattern: 'Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control top-anchored so it stays on the first line. The GROUP label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labelled section already frames it, but must stay programmatically present.',
+    labelPattern: 'Parallel, mutually exclusive, scannable — the same grammatical shape across the set, brief, sentence case, no terminal punctuation, and no overlap that would let two options both apply. Long labels wrap rather than ellipsis-truncate, with the control centered within the first line-box so it stays on the first line rather than floating mid-paragraph (#1201). The GROUP label names the decision or asks the question ("Shipping method", "How should we contact you?") and may be visually hidden when an enclosing labelled section already frames it, but must stay programmatically present.',
     errorPattern: 'Group-level and specific — "Select a preferred contact method", never "Invalid input" (SC 3.3.3). Never per-option.',
     emptyPattern: 'A group starts EMPTY by default, so no option carries a pre-selected state — the practice forces a deliberate choice and pre-selects only where a genuinely safe recommended default exists. Empty is a one-way door, because a radio cannot be deselected: an OPTIONAL group must therefore carry an explicit "None" or "N/A" option, or a stray click permanently pollutes the data with no way back. If a "None" option would corrupt the data model, the choice belongs in a clearable Select instead.',
   },

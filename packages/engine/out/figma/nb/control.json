@@ -42,6 +42,16 @@
       }
     },
     {
+      "name": "nbds/control/size/sm/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "value": 21,
+      "alias": null
+    },
+    {
       "name": "nbds/control/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -81,6 +91,16 @@
       }
     },
     {
+      "name": "nbds/control/size/md/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "value": 24,
+      "alias": null
+    },
+    {
       "name": "nbds/control/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -118,6 +138,16 @@
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/dimension/12"
       }
+    },
+    {
+      "name": "nbds/control/size/lg/line-box",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT"
+      ],
+      "description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+      "value": 27,
+      "alias": null
     }
   ]
 }

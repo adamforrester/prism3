@@ -102,6 +102,16 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.32.0: the selection-control LINE-BOX (#1201, building the fix #1009 filed). `control.size.{rung}`
+ * gains a `line-box` leaf — the baked height of one line of the `body.{rung}` label (`fontSize ×
+ * lineHeight`, per rung). checkbox / radio / switch wrap their control in a box exactly that tall and
+ * centre it within, while the control+label ROW stays top-aligned, so the control tracks the FIRST line
+ * of a wrapping label instead of floating mid-paragraph — the construction #1009 wanted and could not
+ * build, because a line-box is a ratio × a size and Figma variables cannot multiply, but the PRODUCT is
+ * a fixed px a variable holds. ADDS three guaranteed paths (`control.size.{sm,md,lg}.line-box`), so
+ * `CONTRACT_VERSION` moves 9.1.0 → 9.2.0 (MINOR, additive). No existing token name or value moves; the
+ * anatomy restructure adds a wrapper node to three defs and changes no emitted colour or dimension. (#1201)
+ *
  * 0.31.0: the `controlShape` FORM lever (#1163). A brand can now choose `rounded` (default) or `pill`
  * for its pill-able controls — today button and icon-button, tomorrow anything that declares a
  * `pill-radius` derivation. `pill` rebinds those controls' corner from `radius.md` to a new
@@ -667,7 +677,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.31.0';
+export const ENGINE_VERSION = '0.32.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -713,6 +723,11 @@ export const ENGINE_VERSION = '0.31.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 9.2.0: `control.size.{sm,md,lg}.line-box` — three guaranteed paths added, 0 removed, 0 retyped, so
+ * MINOR (#1201). The selection-control alignment box (see `ENGINE_VERSION` 0.32.0 above) reads these to
+ * size itself to one line of its label. Additive: a consumer holding any existing `control.size.*` name
+ * still resolves, and no value of an existing path moves. `token-contract.ts --check` confirms the count.
  *
  * 9.1.0: `radius.capsule` — one guaranteed path added, 0 removed, 0 retyped, so MINOR (#1163). The
  * `controlShape: pill` lever needs a radius rung whose clamp guarantees a full pill at any control height;
@@ -1029,7 +1044,7 @@ export const ENGINE_VERSION = '0.31.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '9.1.0';
+export const CONTRACT_VERSION = '9.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
