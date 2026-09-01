@@ -1,0 +1,273 @@
+{
+  "title": "Radio button",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "radioBase": {
+      "type": "container"
+    },
+    "checkboxBlankCircleFill": {
+      "type": "instance",
+      "instanceOf": "checkboxBlankCircleFill"
+    },
+    "focusRing": {
+      "type": "instance",
+      "detectedIn": "Selected=true, Disabled=false, State=Focused",
+      "instanceOf": "focusRing"
+    }
+  },
+  "props": {
+    "selected": {
+      "type": "boolean",
+      "default": true,
+      "$extensions": {
+        "com.figma": {
+          "type": "VARIANT"
+        }
+      }
+    },
+    "disabled": {
+      "type": "boolean",
+      "default": false,
+      "$extensions": {
+        "com.figma": {
+          "type": "VARIANT"
+        }
+      }
+    },
+    "state": {
+      "type": "string",
+      "default": "Rest",
+      "enum": ["Rest", "Hovered", "Active", "Focused"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["radioBase", "checkboxBlankCircleFill"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 24,
+          "height": 24,
+          "mainAxisAlignment": "SPACE_BETWEEN",
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL"
+        }
+      },
+      "radioBase": {
+        "styles": {
+          "clipsContent": true,
+          "cornerRadius": 999,
+          "width": 20,
+          "height": 20,
+          "strokes": "#1E1EFF",
+          "strokeWeight": 2
+        }
+      },
+      "checkboxBlankCircleFill": {
+        "styles": {
+          "width": 12,
+          "height": 12,
+          "position": "ABSOLUTE",
+          "centerHorizontalOffset": 0,
+          "centerVerticalOffset": 0
+        },
+        "instanceOf": "checkboxBlankCircleFill"
+      },
+      "focusRing": {
+        "styles": {
+          "width": 28,
+          "height": 28,
+          "position": "ABSOLUTE",
+          "top": -2,
+          "start": -2
+        },
+        "propConfigurations": {
+          "color": "Default"
+        },
+        "instanceOf": "focusRing"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "state": "Hovered"
+      },
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "strokes": "#0812C3"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Active"
+      },
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "strokes": "#090A83"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": ["radioBase", "checkboxBlankCircleFill", "focusRing"]
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "disabled": true
+      },
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "strokes": "#848484"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "selected": false
+      },
+      "layout": [
+        {
+          "root": ["radioBase"]
+        }
+      ],
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "strokes": "#82899D",
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "selected": false,
+        "state": "Hovered"
+      },
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "selected": false,
+        "state": "Active"
+      },
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "selected": false,
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": ["radioBase", "focusRing"]
+        }
+      ],
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "backgroundColor": null
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "selected": false,
+        "disabled": true
+      },
+      "elements": {
+        "radioBase": {
+          "styles": {
+            "strokes": "#848484",
+            "backgroundColor": "#C6C6C6"
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-01T22:53:09.981Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.17.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.30.0/packages/schema/schema/component.schema.json",
+      "version": "0.30.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:2338",
+      "nodeId": "5332:2592",
+      "nodeType": "COMPONENT_SET"
+    },
+    "config": {
+      "processing": {
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false,
+        "collapsePrimitiveWrapper": false,
+        "variantDepth": 9999,
+        "details": "LAYERED"
+      },
+      "format": {
+        "output": "JSON",
+        "keys": "CAMEL",
+        "figmaKeys": "NONE",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX"
+      },
+      "include": {
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false
+      }
+    }
+  }
+}

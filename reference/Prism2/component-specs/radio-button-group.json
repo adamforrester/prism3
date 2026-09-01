@@ -1,0 +1,148 @@
+{
+  "title": "Radio button group",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "label": {
+      "type": "container"
+    },
+    "formLabel": {
+      "type": "instance",
+      "instanceOf": "formLabel"
+    },
+    "radioButtonRow": {
+      "type": "instance",
+      "instanceOf": "radioButtonRow"
+    }
+  },
+  "props": {
+    "row3": {
+      "type": "boolean",
+      "default": false
+    },
+    "row4": {
+      "type": "boolean",
+      "default": false
+    },
+    "row5": {
+      "type": "boolean",
+      "default": false
+    },
+    "row6": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": [
+          {
+            "label": ["formLabel"]
+          },
+          "radioButtonRow",
+          "radioButtonRow",
+          "radioButtonRow",
+          "radioButtonRow",
+          "radioButtonRow",
+          "radioButtonRow"
+        ]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 320,
+          "layoutMode": "VERTICAL",
+          "layoutSizingVertical": "HUG",
+          "padding": {
+            "top": 8,
+            "bottom": 8,
+            "start": 0,
+            "end": 0
+          }
+        }
+      },
+      "label": {
+        "styles": {
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingHorizontal": "HUG",
+          "layoutSizingVertical": "HUG",
+          "padding": {
+            "top": 8,
+            "bottom": 8,
+            "start": 0,
+            "end": 0
+          }
+        }
+      },
+      "formLabel": {
+        "propConfigurations": {
+          "required": true,
+          "size": "Large",
+          "weight": "Bold",
+          "color": "Secondary"
+        },
+        "instanceOf": "formLabel"
+      },
+      "radioButtonRow": {
+        "styles": {
+          "visible": false
+        },
+        "instanceOf": "radioButtonRow"
+      }
+    }
+  },
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-01T22:53:29.606Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.17.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.30.0/packages/schema/schema/component.schema.json",
+      "version": "0.30.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:2338",
+      "nodeId": "5332:2620",
+      "nodeType": "COMPONENT"
+    },
+    "config": {
+      "processing": {
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false,
+        "collapsePrimitiveWrapper": false,
+        "variantDepth": 9999,
+        "details": "LAYERED"
+      },
+      "format": {
+        "output": "JSON",
+        "keys": "CAMEL",
+        "figmaKeys": "NONE",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX"
+      },
+      "include": {
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false
+      }
+    }
+  }
+}
