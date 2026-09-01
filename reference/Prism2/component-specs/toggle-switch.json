@@ -1,0 +1,336 @@
+{
+  "title": "Toggle switch",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "handleContainer": {
+      "type": "container"
+    },
+    "checkLine": {
+      "type": "instance",
+      "instanceOf": "checkLine"
+    },
+    "closeLine": {
+      "type": "instance",
+      "detectedIn": "State=Enabled, Selected=No",
+      "instanceOf": "closeLine"
+    },
+    "focusRing": {
+      "type": "instance",
+      "detectedIn": "State=Focused, Selected=Yes",
+      "instanceOf": "focusRing"
+    }
+  },
+  "props": {
+    "state": {
+      "type": "string",
+      "default": "Enabled",
+      "enum": ["Enabled", "Hovered", "Focused", "Pressed", "Disabled"],
+      "nullable": false
+    },
+    "selected": {
+      "type": "string",
+      "default": "Yes",
+      "enum": ["Yes", "No"],
+      "nullable": false
+    },
+    "icon": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": [
+          {
+            "handleContainer": ["checkLine"]
+          }
+        ]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "cornerRadius": 999,
+          "width": 56,
+          "height": 32,
+          "mainAxisAlignment": "END",
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "itemSpacing": 8,
+          "padding": 4,
+          "backgroundColor": "#1E1EFF"
+        }
+      },
+      "handleContainer": {
+        "styles": {
+          "cornerRadius": 999,
+          "width": 24,
+          "mainAxisAlignment": "CENTER",
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 8,
+          "padding": {
+            "top": 4,
+            "bottom": 4,
+            "start": 0,
+            "end": 0
+          },
+          "backgroundColor": "#F8F8F8"
+        }
+      },
+      "checkLine": {
+        "styles": {
+          "width": 16,
+          "height": 16
+        },
+        "instanceOf": "checkLine"
+      },
+      "closeLine": {
+        "styles": {
+          "width": 16,
+          "height": 16
+        },
+        "instanceOf": "closeLine"
+      },
+      "focusRing": {
+        "styles": {
+          "position": "ABSOLUTE",
+          "top": -4,
+          "bottom": -4,
+          "start": -4,
+          "end": -4
+        },
+        "propConfigurations": {
+          "color": "Default"
+        },
+        "instanceOf": "focusRing"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "selected": "No"
+      },
+      "layout": [
+        {
+          "root": [
+            {
+              "handleContainer": ["closeLine"]
+            }
+          ]
+        }
+      ],
+      "elements": {
+        "root": {
+          "styles": {
+            "mainAxisAlignment": "START",
+            "strokes": "#383B45",
+            "strokeAlign": "INSIDE",
+            "strokeWeight": 2,
+            "backgroundColor": "#000000"
+          }
+        },
+        "handleContainer": {
+          "styles": {
+            "backgroundColor": "#434752"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Hovered"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#0812C3"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": [
+            {
+              "handleContainer": ["checkLine"]
+            },
+            "focusRing"
+          ]
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "state": "Pressed"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#090A83"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Disabled"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#C6C6C6"
+          }
+        },
+        "handleContainer": {
+          "styles": {
+            "backgroundColor": "#6A6A6A"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Hovered",
+        "selected": "No"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "strokes": "#24262D",
+            "backgroundColor": "#000000"
+          }
+        },
+        "handleContainer": {
+          "styles": {
+            "backgroundColor": "#2D3038"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Focused",
+        "selected": "No"
+      },
+      "layout": [
+        {
+          "root": [
+            {
+              "handleContainer": ["closeLine"]
+            },
+            "focusRing"
+          ]
+        }
+      ],
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": null
+          }
+        },
+        "focusRing": {
+          "styles": {
+            "width": 64,
+            "bottom": null,
+            "end": null
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Pressed",
+        "selected": "No"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "strokes": "#0F1115",
+            "backgroundColor": "#000000"
+          }
+        },
+        "handleContainer": {
+          "styles": {
+            "backgroundColor": "#24262D"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Disabled",
+        "selected": "No"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "strokes": "#848484"
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-01T22:59:41.860Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.17.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.30.0/packages/schema/schema/component.schema.json",
+      "version": "0.30.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:4568",
+      "nodeId": "5332:4572",
+      "nodeType": "COMPONENT_SET"
+    },
+    "config": {
+      "processing": {
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false,
+        "collapsePrimitiveWrapper": false,
+        "variantDepth": 9999,
+        "details": "LAYERED"
+      },
+      "format": {
+        "output": "JSON",
+        "keys": "CAMEL",
+        "figmaKeys": "NONE",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX"
+      },
+      "include": {
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false
+      }
+    }
+  }
+}
