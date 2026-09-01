@@ -877,6 +877,28 @@ const writeComponentSet = async (
   // THROWS on a set that could not be assembled coherently, which is the right moment to fail — before
   // anything reaches the file.
   const { cells, props, refs, axes, rows, cols, component } = planSetLayout(plans, 'applyComponentPlan');
+  /**
+   * MEMBER NAME → (PART NAME → the property THAT member's plan says drives it) — #1202.
+   *
+   * `refs` above is deduped by part and is the right shape for deciding WHICH parts to visit. It is the
+   * wrong shape for deciding WHICH PROPERTY, because a part's property is not set-wide: the spinner
+   * overlay takes whichever visual cell that member has (#848). This index keeps the plan's own answer
+   * per member, so the wire loop reads it instead of the collapsed one.
+   *
+   * Built from `plans` — the executor's INPUT — not from anything the executor wrote, and keyed by
+   * `planComponentName` for the same reason `stampByMember` is: every name derivation goes through it,
+   * so the key agrees with the member's name by construction.
+   */
+  const refByMember = new Map<string, Map<string, { field: string; prop: string }>>();
+  for (const plan of plans) {
+    const perPart = new Map<string, { field: string; prop: string }>();
+    const walk = (n: { name: string; propertyRef?: { field: string; prop: string }; children: unknown[] }): void => {
+      if (n.propertyRef) perPart.set(n.name, n.propertyRef);
+      for (const c of n.children as (typeof n)[]) walk(c);
+    };
+    walk(plan.root as unknown as Parameters<typeof walk>[0]);
+    refByMember.set(planComponentName(plan), perPart);
+  }
   // AFTER the offline guards, because a throw from them leaves nothing to name (#913).
   trail.component = component;
   const misses: string[] = [];
@@ -1551,10 +1573,27 @@ const writeComponentSet = async (
       // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
       // legitimate case. `planSetProperties` only declares a property some node references.
       if (!node) continue;
-      const id = propIds.get(r.prop);
+      // WHICH PROPERTY, READ FROM THIS MEMBER'S OWN PLAN (#1202) — not from `r`.
+      //
+      // `refs` is deduped BY PART across the whole set, on the premise its own comment states: "every
+      // member carries the same anatomy". That premise stopped being true at #848. The spinner is an
+      // OVERLAY that takes whichever visual cell exists, so `figmaAnatomySet` resolves its
+      // `propertyRef.prop` per member — `leadingVisual` where it took the leading cell, `trailingVisual`
+      // where it took the trailing one — and a Map keyed on the part name collapses those to whichever
+      // plan was walked last. Measured: 108 of Button's 1,296 members had the spinner's swap slot wired
+      // to `trailingVisual` where the plan says `leadingVisual`, and 0 were right. A designer repointing
+      // a pending button's leading visual changed nothing; repointing the trailing one moved both.
+      //
+      // Read from the plan rather than re-derived: #848 already computes which cell the overlay took,
+      // and a second copy of that rule here would be a second thing to get wrong (`docs/34` shape 8).
+      // `refs` keeps its job — WHICH PARTS to visit, deduped, so the #701 fast route is untouched — and
+      // only the property it names is now per member.
+      const own = refByMember.get(String(member.name))?.get(r.part);
+      const field = own?.field ?? r.field;
+      const id = propIds.get(own?.prop ?? r.prop);
       if (!id) continue;   // the property itself failed above and reported its own cause
       try {
-        wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [r.field]: id });
+        wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
         wiredRefs.push([String(member.name), r.part, r.field, id]);
       } catch (err) { misses.push(`ref ${member.name}/${r.part}.${r.field} -> ${r.prop} (${(err as Error).message})`); }
     }
