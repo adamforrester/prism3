@@ -513,24 +513,34 @@
         "chroma": { "type": "number", "minimum": 0, "description": "Peak ramp chroma for this status hue." }
       }
     },
+    "surfaceSpec": {
+      "oneOf": [
+        { "type": "string", "enum": ["white", "black"] },
+        { "type": "number", "description": "A neutral ramp step number (e.g. 50 / 950)." },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["palette", "step"],
+          "properties": {
+            "palette": { "type": "string", "description": "A declared, NON-status palette — neutral, the brand (primary), or a custom brandColor. Status palettes (success/warning/danger/info) are rejected (#898)." },
+            "step": { "type": "number", "description": "A ramp step on that palette (e.g. 900)." }
+          },
+          "description": "A non-neutral surface band: a palette + step, e.g. { palette: 'primary', step: 900 } for a brand-navy dark hero (#898)."
+        }
+      ]
+    },
     "surfaceMode": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "base": {
-          "oneOf": [
-            { "type": "string", "enum": ["white", "black"] },
-            { "type": "number", "description": "A neutral step number (e.g. 50)." }
-          ],
-          "description": "The page surface for this mode."
+          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
+          "description": "The page surface for this mode. A bare number / white / black is neutral; `{ palette, step }` names a non-status brand/custom band (#898)."
         },
         "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor; defaults follow `base`." },
         "inverseBase": {
-          "oneOf": [
-            { "type": "string", "enum": ["white", "black"] },
-            { "type": "number", "description": "A neutral step number (e.g. 950)." }
-          ],
-          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (NEAR the extreme, not at it: pure black reads muddy and pure white halates). Declared here rather than through `overrides` on purpose — a ground is not a value, so setting it must re-derive `inverse.background.*`, `inverse.foreground.*` and every role gated against the band. The `overrides` post-pass runs after derivation and cannot, which is why routing an inverse band through it reported contrast the tokens did not have. High-contrast modes ignore this and keep the pure extremes."
+          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
+          "description": "OPTIONAL. The inverse band for this mode — the dark hero / inverse section. Defaults to near-black 950 in light and near-white 25 in dark (NEAR the extreme, not at it: pure black reads muddy and pure white halates). A bare number is a neutral step; `{ palette, step }` names a non-status brand or custom palette so the band can be brand navy / a deep accent rather than a near-black neutral (#898). Declared here rather than through `overrides` on purpose — a ground is not a value, so setting it must re-derive `inverse.background.*`, `inverse.foreground.*` and every role gated against the band. The `overrides` post-pass runs after derivation and cannot, which is why routing an inverse band through it reported contrast the tokens did not have. High-contrast modes ignore this and keep the pure extremes."
         }
       }
     }

@@ -7,6 +7,60 @@
 
 ---
 
+## (2026-09-02) — the inverse/dark-band surface may be a BRAND or custom palette, not neutral-only (#898)
+
+**STATUS: shipped.** Engine + studio. A brand's dark hero band can now be brand navy / a deep accent, not
+just a near-black neutral. **No version bump, and that is derived, not skipped** — see below. Closes #898.
+
+── THE DECISION AND ITS SHAPE (owner, 2026-08-20; representation ratified 2026-09-02) ────────────
+
+The inverse band may be a NEUTRAL step, a BRAND step, or a CUSTOM (brandColor) step — status palettes
+excluded (a page band in "success green" would use a semantic colour decoratively). The representation is
+the owner-chosen `{ palette, step }` object: `SurfaceSpec = 'white' | 'black' | number | { palette, step }`.
+**A bare `number` stays a NEUTRAL step** — every corpus brand uses that form, so their emission is
+byte-identical. The object form is validated: the palette must be declared and non-status (`checkSurfacePalette`
+in `theme.ts` throws otherwise, same shape as the other brand-input errors).
+
+── THE THREE LAYERS ────────────────────────────────────────────────────────────────────────────
+
+1. **Type + schema** (`theme.ts`, `schema/theme-schema.json`): `SurfaceSpec` gains the object form via a
+   shared `$defs/surfaceSpec`, so `base` and `inverseBase` both accept it (the studio only surfaces it for
+   `inverseBase`, per the decision; a brand `base` is engine/design.md-reachable but unsurfaced).
+2. **Resolution** (`modes.ts`): the whole surface resolution was hardcoded to the neutral ramp (`surfAt`/
+   `bgLadder`/`fgLadder` closed over `neutral`). It is now palette-generic — `surfAtP(palette, num)` snaps
+   `num` to the nearest step of the NAMED palette; `specToSurf` maps a `SurfaceSpec` to `(palette, num)`.
+   **Neutral delegates to the original `surfAt`**, so the white/black snap and the byte-identical neutral
+   path both survive. `modeConfigs` now takes `theme.palettes`. Because the band runs through the same
+   ladder + gate as before, every one of the ~60 roles measured against it re-derives against the brand
+   ground — a brand pick that misses a floor is FLAGGED, not silently absorbed (the "ground, not a value"
+   property #956 gave the band).
+3. **Studio** (`apps/studio/src/main.ts`): the inverse-band control is now a **palette select** (Neutral +
+   the brand + custom brandColors; status excluded via `STATUS_ROLES`) **+ a step picker** for that palette.
+   Neutral writes a bare number (back-compat); a non-neutral palette writes `{ palette, step }`, seeded at
+   the palette's darkest step. "Auto" on the step picker clears back to the generated neutral default.
+
+Measured end-to-end (nb, brand palette `red`): `surfaces.light.inverseBase = { palette:'red', step:900 }` →
+`inverse.background.primary` = `red.900` (`#350004`), the secondary/tertiary ladder steps on red, and
+`inverse.text.primary` re-derives to white at 16.97:1 against the brand band. `test.ts` pins all of this
+plus the two rejections (status, undeclared).
+
+── COMPOSITION WITH #1208 ────────────────────────────────────────────────────────────────────────
+
+#1208 (just merged) made the inverse FILL uniform-neutral, so a brand-coloured dark BAND now sits behind
+neutral-fill buttons — which composes correctly (a white button on a navy hero). The fill is NOT re-tinted.
+
+── VERSIONING, DERIVED (the load-bearing "don't guess") ──────────────────────────────────────────
+
+**No ENGINE bump; CONTRACT stands at 9.3.0.** The derivation, not a guess: `regen.ts --check` is
+byte-identical (108 artifacts) and **no regen artifact moved** — the corpus uses neutral bands, the neutral
+path is unchanged, and the `surfaces` lever-manifest entry is a fixed label that does not embed the
+`SurfaceSpec` shape. `lint-emission-version` requires a bump only when an emitted artifact moves; none did,
+and bumping would falsely restamp byte-identical corpus output. This is the #1223 shape (a new capability
+with no emitted diff → no bump), NOT the #956 shape (which moved the inverse derivation and did bump).
+`token-contract.ts --check` is clean — the object form changes which VALUES a brand can produce, no token
+NAME or `$type`, so the guaranteed surface (574) is untouched. The new capability is a source-only change;
+it only produces new bytes when a brand actually uses a non-neutral band, and no committed brand does.
+
 ## (2026-09-02) — the inverse band's pill read as its own twin, and the assertion the issue asked for could not tell (#1147)
 
 **STATUS: shipped.** Studio-only: an `inverse` badge beside the token pill, plus a 28-assertion smoke
