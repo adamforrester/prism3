@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-09-01) — the selection control now centres on its label's FIRST line (#1201, building #1009)
+
+**STATUS: shipped.** Engine + three component defs + a Figma-variable field + version bump. `out/**`
+regenerates (one new token family across the corpus); no existing token name, value, or colour moves.
+Gates **51**, unchanged. Closes #1201.
+
+── #1201 IS #1009 ROUND TWO, AND THE FIRST FIX WOULD HAVE BEEN THE GATED WRONG ONE ─────────────
+
+The desk QA on #1201 read as a one-line bug: the checkbox/radio control+label row is cross-axis
+**top**-aligned, so the control sits at the label's cap height rather than centred. The implied fix —
+flip the row to `align: center` — is the **documented wrong repair**, and `test.ts` #1009 half-1 is a
+live gate that **fails the build** if any control+label row is centred. Measured in #1009: on a
+**wrapping** label `center` floats the control to the middle of the paragraph; a 16px control on a
+`body.md` 24px line-box wants to centre on the **first line** (a 4px inset), which the Prism 2 reference
+is explicit about. Worker B caught the collision before any code and stopped; the Owner supplied the
+Prism 2 construction that resolves it.
+
+── THE CONSTRUCTION #1009 FILED, NOW BUILDABLE ─────────────────────────────────────────────────
+
+#1009 named the correct fix — a control frame the height of the label's line-box, so the control centres
+on the first line — and filed it unbuilt for a concrete reason: a line-box is `fontSize × lineHeight`,
+`lineHeight` is a RATIO, and **Figma variables cannot multiply**, so no px line-box variable could exist.
+The unlock is that the PRODUCT is a fixed px per rung, and a variable holds a fixed value fine. So the
+engine now BAKES it: `control.size.{sm,md,lg}.line-box` = the `body.{rung}` line-box (21/24/27 on nb),
+emitted as a literal (never aliased to the dimension grid — landing on 24 = `body.md` is a coincidence,
+not a meaning). checkbox/radio/switch each wrap their control in a `controlBox` exactly that tall,
+centred on its cross axis, while the ROW stays top-aligned. Single-line label → control reads centred;
+wrapping label → control holds the first line. **The control centres within its OWN box, never the row**,
+which is exactly why #1009 half-1 stays green — verified, not assumed.
+
+── THE FOUR PLACES THE VALUE HAD TO REACH, AND THE ONE THAT ISN'T OBVIOUS ──────────────────────
+
+`tree.ts` emits the leaf; the three defs bind `size.{size}.control-box → control.size.{rung}.line-box`
+and add the wrapper part; `version.ts` bumps (ENGINE 0.31→0.32, CONTRACT 9.1→9.2 for three additive
+paths). The non-obvious one: **`emit-figma-dims.ts` names the control fields it materialises as Figma
+variables by hand** (`height`/`width`/`dot`) — a DTCG field does not reach a client's file until someone
+adds it there. Without `line-box` in that list the token was DTCG-only, and `exporter-comparison` caught
+it precisely: TokenPress could not round-trip a path prism3 emitted. Adding it closed all nine.
+
+── THE TEST GUARDS BOTH DIRECTIONS NOW ─────────────────────────────────────────────────────────
+
+#1009 half-1 still forbids a centred ROW (the wrong repair). A new #1201 arm asserts the counterpart it
+cannot see: the painted control is NOT a direct child of the row, it sits in a wrapper whose height binds
+`…control-box` and whose cross-axis is centred, the row stays `start`, and — measured on nb — the line-box
+is strictly TALLER than the control at every rung, so "centre within" is a real first-line inset rather
+than a no-op. Mutation-verified: put the control back as a direct row child and the arm fails by name.
+
+---
+
 ## (2026-09-01) — the shared size ladder moves to 36/44/56, and the default control was under AAA (#1207)
 
 **STATUS: shipped.** `packages/engine/scale.ts` (the ladder + one new constant) and the assertions in

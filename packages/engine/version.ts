@@ -102,18 +102,17 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
- * 0.31.0: the `controlShape` FORM lever (#1163). A brand can now choose `rounded` (default) or `pill`
- * for its pill-able controls — today button and icon-button, tomorrow anything that declares a
- * `pill-radius` derivation. `pill` rebinds those controls' corner from `radius.md` to a new
- * `radius.capsule` rung (a 999px sentinel), which Figma clamps to height ÷ 2 at every size. `radius.capsule`
- * is a SECOND pill rung, kept distinct from `radius.round` (128px, the rung switch and radio bind
- * intrinsically): 128 stops being a full pill above a 256px control height, so a lever that promises an
- * unconditional pill needs a rung whose ceiling no real control reaches — and raising it must not touch the
- * intrinsic pills. It is a CORNER_RADIUS-scoped radius bound to a radius corner, off the 4px grid on purpose
- * (a sentinel, not a ladder step), so it emits as a literal. This ADDS one guaranteed path, `radius.capsule`,
- * which is why `CONTRACT_VERSION` moves 9.0.0 → 9.1.0 (MINOR, additive — see below); `rounded` still
- * reproduces every plan byte-identically. `switch`/`radio` carry no `pill-radius` derivation and so are
- * structurally outside the pill-able set — asserted in `test.ts` so the lever can never square them off. (#1163)
+ * 0.33.0: the selection-control LINE-BOX (#1201, building the fix #1009 filed). Follows #1216's 0.32.0
+ * (the 36/44/56 size-ladder move, below) — 0.32.0 is spent, so this takes 0.33.0. `control.size.{rung}`
+ * gains a `line-box` leaf — the baked height of one line of the `body.{rung}` label (`fontSize ×
+ * lineHeight`, per rung). checkbox / radio / switch wrap their control in a box exactly that tall and
+ * centre it within, while the control+label ROW stays top-aligned, so the control tracks the FIRST line
+ * of a wrapping label instead of floating mid-paragraph — the construction #1009 wanted and could not
+ * build, because a line-box is a ratio × a size and Figma variables cannot multiply, but the PRODUCT is
+ * a fixed px a variable holds. ADDS three guaranteed paths (`control.size.{sm,md,lg}.line-box`), so
+ * `CONTRACT_VERSION` moves 9.1.0 → 9.2.0 (MINOR, additive, from main's 9.1.0). No existing token name or
+ * value moves; the anatomy restructure adds a wrapper node to three defs and changes no emitted colour
+ * or dimension. (#1201)
  *
  * 0.32.0: the shared component-size ladder moves to Prism 2's 36/44/56 for small/medium/large at the
  * default density (#1207). A pure VALUE move — every path and every `$type` is where it was, so
@@ -131,6 +130,19 @@
  * decided values. The emitted leaf has always aliased the `dimension` grid, so the px ladder states
  * what the output already was. Heights no longer scale with `spaceBase`; unreachable, since
  * `SPACE_BASE` is locked at 8 and `brandTheme` passes exactly that. Padding stays a multiple.
+ *
+ * 0.31.0: the `controlShape` FORM lever (#1163). A brand can now choose `rounded` (default) or `pill`
+ * for its pill-able controls — today button and icon-button, tomorrow anything that declares a
+ * `pill-radius` derivation. `pill` rebinds those controls' corner from `radius.md` to a new
+ * `radius.capsule` rung (a 999px sentinel), which Figma clamps to height ÷ 2 at every size. `radius.capsule`
+ * is a SECOND pill rung, kept distinct from `radius.round` (128px, the rung switch and radio bind
+ * intrinsically): 128 stops being a full pill above a 256px control height, so a lever that promises an
+ * unconditional pill needs a rung whose ceiling no real control reaches — and raising it must not touch the
+ * intrinsic pills. It is a CORNER_RADIUS-scoped radius bound to a radius corner, off the 4px grid on purpose
+ * (a sentinel, not a ladder step), so it emits as a literal. This ADDS one guaranteed path, `radius.capsule`,
+ * which is why `CONTRACT_VERSION` moves 9.0.0 → 9.1.0 (MINOR, additive — see below); `rounded` still
+ * reproduces every plan byte-identically. `switch`/`radio` carry no `pill-radius` derivation and so are
+ * structurally outside the pill-able set — asserted in `test.ts` so the lever can never square them off. (#1163)
  *
  * 0.30.0: ONE COLOUR COLLECTION (#1148/#1150). The two-tier colour split ends. `color.surface` — the
  * pointer tier, one alias per non-inverse role — is DELETED, and the value tier is renamed from
@@ -684,7 +696,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.32.0';
+export const ENGINE_VERSION = '0.33.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -730,6 +742,11 @@ export const ENGINE_VERSION = '0.32.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 9.2.0: `control.size.{sm,md,lg}.line-box` — three guaranteed paths added, 0 removed, 0 retyped, so
+ * MINOR (#1201). The selection-control alignment box (see `ENGINE_VERSION` 0.32.0 above) reads these to
+ * size itself to one line of its label. Additive: a consumer holding any existing `control.size.*` name
+ * still resolves, and no value of an existing path moves. `token-contract.ts --check` confirms the count.
  *
  * 9.1.0: `radius.capsule` — one guaranteed path added, 0 removed, 0 retyped, so MINOR (#1163). The
  * `controlShape: pill` lever needs a radius rung whose clamp guarantees a full pill at any control height;
@@ -1046,7 +1063,7 @@ export const ENGINE_VERSION = '0.32.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '9.1.0';
+export const CONTRACT_VERSION = '9.2.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
