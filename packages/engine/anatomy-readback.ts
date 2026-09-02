@@ -167,6 +167,7 @@ export const FIELDS: Record<string, FieldCheck> = {
   primaryAxisSizingMode: { check: (p, n) => (n.primaryAxisSizingMode === p ? null : str(n.primaryAxisSizingMode)) },
   counterAxisSizingMode: { check: (p, n) => (n.counterAxisSizingMode === p ? null : str(n.counterAxisSizingMode)) },
   characters: { check: (p, n) => (n.characters === p ? null : str(n.characters)) },
+  textDefault: { reason: 'the SET-LEVEL text property default (#1018), not a value the host holds on this node — the member overrides its own `characters` (checked above), while `textDefault` feeds `planSetProperties`\'s one `defaultValue`, covered by the property-declaration read-back, not the per-node diff' },
   textAlignVertical: { reason: 'measured a no-op on every node in the corpus (774 TEXT nodes, none with a bound height) — #1009 states the rule and the check belongs with a node that can move' },
 
   // ── resolved through a host catalogue ────────────────────────────────────────────────────────

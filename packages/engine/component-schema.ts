@@ -648,7 +648,17 @@ export type FigmaProperties = {
    *  binding resolved, and unreadable on the canvas. So the copy is stated HERE rather than in the
    *  emitter, for the same reason every other name in this file is — the def is what a second brand
    *  overrides, and a placeholder hard-coded in the payload is one no def can change. */
-  texts?: Record<string, { part: string; default: string }>;
+  /** `byVariant` — a PER-MEMBER text default (#1018). A component set carries `default` as ONE placeholder
+   *  for the whole set, so a def whose variant axis changes what the text should SAY renders the wrong copy
+   *  on every member but one: `field-message`'s error / warning / success members shipped the `tone=default`
+   *  helper string ("Use 8+ characters"), the opposite of the errorPattern the def exists to make
+   *  unavoidable. `byVariant` names, per axis, the string a member at that coordinate renders — the
+   *  projector resolves it against the member's coordinate (`anatomy-figma.ts`, mirroring `positionOf`),
+   *  first matching axis wins, and any coordinate it does not name falls back to `default`. `default` stays
+   *  REQUIRED (an empty one is still #510's blank component). `figmaPropertyErrors` rejects a `byVariant`
+   *  key naming an axis that is not a projected variant axis, or a value that axis does not have — a typo'd
+   *  tone must fail loudly, not resolve to nothing and silently fall back. */
+  texts?: Record<string, { part: string; default: string; byVariant?: Record<string, Record<string, string>> }>;
   /** prop name → `kind: 'slot'` part. INSTANCE_SWAP property — the slot's CONTENT. */
   swaps?: Record<string, string>;
   /**
@@ -1233,6 +1243,19 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   const renders = (s: string) => s.replace(/[\u200B-\u200F\u2028-\u202E\u2060-\u2064\uFEFF]/g, '').trim();
   for (const [prop, t] of Object.entries(fp.texts ?? {})) {
     if (!t.default || !renders(t.default)) e.push(`figmaProperties.texts.${prop}.default is empty — a TEXT property with no placeholder builds a component with an unreadable label, which is what the field exists to prevent`);
+    // #1018: a per-member override must key on an axis this set actually enumerates, and on a value that
+    // axis actually has — a `byVariant` key naming a non-projected axis or an unknown value would never
+    // resolve at any member and silently fall back to `default`, which is the wrong-copy defect one level
+    // out. `variantAxes` says which axes the set projects; `def.variants[axis]` says which values it has.
+    const axes = fp.variantAxes ?? [];
+    for (const [axis, byValue] of Object.entries(t.byVariant ?? {})) {
+      if (!axes.includes(axis)) e.push(`figmaProperties.texts.${prop}.byVariant names axis '${axis}', which is not a projected variant axis (variantAxes: ${axes.join(', ') || 'none'}) — a per-member text default must key on an axis the set enumerates, or it never resolves`);
+      const values = (def.variants as Record<string, string[]> | undefined)?.[axis] ?? [];
+      for (const [value, str] of Object.entries(byValue)) {
+        if (!values.includes(value)) e.push(`figmaProperties.texts.${prop}.byVariant.${axis}.${value} names a value the '${axis}' axis does not have (${axis}: ${values.join(', ') || 'none'}) — reject a byVariant key naming a value the axis does not have (#1018), so a typo fails loudly instead of resolving to nothing`);
+        if (!str || !renders(str)) e.push(`figmaProperties.texts.${prop}.byVariant.${axis}.${value} is empty — a per-member placeholder is unreadable for the same reason an empty default is`);
+      }
+    }
   }
 
   // AND THE COMPLEMENT, which the rule above cannot see (#798): every `text` part must BE claimed by one
