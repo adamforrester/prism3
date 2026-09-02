@@ -102,6 +102,28 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.36.0: `field-label` gains the two controls Prism 2 exposes and loses none (#872, closing #862's half
+ * for this def). `size` goes to three rungs and the TYPE follows `size` x `weight` rather than padding
+ * alone; ink follows a new `tone` axis. Bound to `type.body.{sm,md,lg}.{default,strong}` and
+ * `color.text.{primary,secondary}` — semantic roles, never shades, so a brand retuning its ramp or its
+ * text palette carries this without the def moving.
+ *
+ * NO EMITTED TOKEN MOVES, and the bump is deliberate ANYWAY. `lint-emission-version` reports "artifacts
+ * changed vs base: 0" and it is right: component payloads are not committed under `out/`, so the gate
+ * that watches regen artifacts cannot see a component projection change. What DID change is what the
+ * engine produces for a consumer — `field-label`'s Figma set goes from 4 members to 24, and its code API
+ * gains two props — which is exactly the question `ENGINE_VERSION` answers ("what code produced this?").
+ * A gate's silence here is a fact about its scope, not evidence that behavior held still.
+ * `CONTRACT_VERSION` stands at 9.3.0: no token path or `$type` moves, and `--check` confirms it.
+ *
+ * TWO PIECES OF SHARED MACHINERY MOVED, both strictly additive. `VARIANT_AXES` gains `weight` — nothing
+ * already in that closed vocabulary expresses type weight (`style` is the field's treatment,
+ * `appearance` the button's, `tone` is ink), and borrowing one would be #756's defect. And a part's
+ * `type` template now fills from the WHOLE coordinate instead of `{size}` alone, in both the projector
+ * and the static validator: `paintKeys` have always taken the full coordinate, so ink could vary on any
+ * axis while type could vary on one, an asymmetry with no stated reason. The five other defs that
+ * template a type are unaffected — `lint-paint`'s census reports drift for `field-label` alone.
+ *
  * 0.35.0: two button-QA colour-derivation corrections in `modes.ts`, both VALUES-only (no token name
  * or `$type` moves, so `CONTRACT_VERSION` stands at 9.3.0 — `token-contract.ts --check` confirms). Takes
  * 0.35.0 because #997's switch-inset 0.34.0 (below) is spent. (1) #1208 — the inverse FILLED fill is now
@@ -731,7 +753,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.35.0';
+export const ENGINE_VERSION = '0.36.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

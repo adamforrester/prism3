@@ -168,8 +168,33 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       'The emphasis ladder, descending: filled carries the page\'s primary action, outline the secondary, '
       + 'text the tertiary. One entry covers four defs by two mechanisms: `icon-button` INHERITS button\'s '
       + 'set, and the two #1223 siblings (`button-destructive`, `button-neutral`) come off button\'s own '
-      + 'factory — same axis, only the colour family differs. A second entry for any of them would let the '
+      + 'factory — same axis, only the color family differs. A second entry for any of them would let the '
       + 'shared set drift while all still passed; the shared set IS the relationship.',
+  },
+  {
+    axis: 'weight',
+    values: ['regular', 'bold'],
+    defs: ['field-label'],
+    relation: 'sole',
+    reason:
+      'Type weight as a component control (#872), matching the Prism 2 `_Form label` property of the '
+      + 'same name. The VALUES are the designer-facing vocabulary rather than the token roles they '
+      + 'resolve to (`type.body.*.default` / `.strong`, i.e. 400 / 700): a consumer picks "bold", not '
+      + '"strong". Sole because no other def exposes weight — every other label-bearing def pins one '
+      + 'step of the type ramp, which is the position this axis deliberately declines to force.',
+  },
+  {
+    axis: 'tone',
+    values: ['primary', 'secondary'],
+    defs: ['field-label'],
+    relation: 'subset',
+    reason:
+      'The de-emphasized label (#872, Prism 2 calls the control "color"). A SUBSET of `icon`\'s tone '
+      + 'vocabulary — which is `[inherit, primary, secondary, tertiary, brand, success, warning, '
+      + 'danger, info]` — and the same two names mean the same two semantic text roles there, which is '
+      + 'what makes it a subset rather than a second spelling. Two values and not more because a label '
+      + 'below `secondary` stops being readable as a field\'s name, and a status-colored one would be '
+      + 'the validation signal `field-message` already owns.',
   },
   {
     axis: 'indicator',
@@ -263,7 +288,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — eight of the defs with a size axis, the '
@@ -274,13 +299,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium'],
-    defs: ['field-label', 'switch'],
+    defs: ['switch'],
     relation: 'subset',
     reason:
-      'The ladder minus its top rung, for two defs that have no large form: a label tracks the field it '
-      + 'labels rather than setting its own scale, and a switch above medium stops reading as a control. '
-      + 'Same vocabulary, shorter — `small` and `medium` mean the same dimensions they mean in canonical, '
-      + 'which is what makes this weighable instead of a second ladder.',
+      'The ladder minus its top rung, for a def with no large form: a switch above medium stops reading '
+      + 'as a control. Same vocabulary, shorter — `small` and `medium` mean the same dimensions they mean '
+      + 'in canonical, which is what makes this weighable instead of a second ladder. `field-label` shared '
+      + 'this entry until #872 and now takes the full three, having converged with the field substrate it '
+      + 'tracks; the reason given for its shortness ("a label tracks the field it labels rather than '
+      + 'setting its own scale") turned out to be the argument for THREE, since `text-field` and '
+      + '`textarea` have declared three since tranche 1.',
   },
   {
     axis: 'style',

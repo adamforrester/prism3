@@ -75,14 +75,14 @@
     },
     "field-label": {
       "set": {
-        "members": 4,
-        "assignments": 8,
-        "sha256": "c6a7e925255661ad38995facf7e345a830b49098ea63dc3e22b662157eb903f4"
+        "members": 24,
+        "assignments": 48,
+        "sha256": "88d5895ec0c61303c575b2b1b5f01299cb36c7c8000142c76a1505e100e3aed3"
       },
       "grid": {
-        "members": 12,
-        "assignments": 24,
-        "sha256": "c410577975e571c3df9a3c0ef3b41da5b664d8ec00654b10a70288fb7f2e618f"
+        "members": 72,
+        "assignments": 144,
+        "sha256": "a55b1bd049ed53a7eb9e4146e1da62024da4ab9dddcd0c560362ffd6f4c909f3"
       }
     },
     "field-message": {

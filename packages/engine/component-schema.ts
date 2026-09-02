@@ -1624,10 +1624,22 @@ export type State = (typeof STATES)[number];
  * available-but-unused entry — a dead axis name reads as a claim nobody makes, and re-adding it later is
  * one line if a genuinely distinct "which colour" axis is ever needed.
  */
+/*
+ * `weight` joins with #872, and since the bar this list sets is "a genuinely distinct distinction",
+ * here is the check rather than the assertion. Nothing already here expresses TYPE WEIGHT: `style` is
+ * the field's visual treatment (`text-field`/`textarea`: `outline`), `appearance` is the button's fill
+ * treatment (`filled`/`outline`/`text`), and `tone` is ink. All three are colour-or-treatment
+ * decisions; none is a font-weight one. Borrowing any would be #756's defect exactly — one axis name
+ * carrying two meanings, which is what closed this vocabulary in the first place.
+ *
+ * NOT `color` for the ink half of the same change: #1134 retired that name deliberately (above), and
+ * `tone` is the surviving one — which is why `field-label`'s Prism 2 color control lands on `tone`
+ * and only the weight control needed a new name.
+ */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
-  'name', 'surface',
+  'name', 'surface', 'weight',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -2111,9 +2123,27 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   const bindingKeys = (p: PartDef): string[] =>
     [p.gap, p.height, p.radius, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
       .filter((k): k is string => typeof k === 'string');
+  //
+  // ACROSS EVERY DECLARED AXIS, not `{size}` alone (#872). The projector fills a part's `type` from the
+  // whole coordinate now, so a template may name a second axis (`size.{size}.{weight}.text`) — and a
+  // static check that expanded only `{size}` would reject the very keys the projector resolves. It
+  // expands the CARTESIAN PRODUCT rather than one axis at a time, which is the stricter reading and the
+  // right one: at runtime every (size, weight) pair is a real member, so every pair must be bound, and
+  // a def binding five of six combinations would otherwise pass here and throw at projection.
+  const axisValues = (axis: string): string[] =>
+    axis === 'size' ? sizes : ((def.variants as Record<string, string[] | undefined> | undefined)?.[axis] ?? []);
+  const expandAll = (key: string): string[] => {
+    const axes = [...new Set([...key.matchAll(/\{([a-z][a-z-]*)\}/g)].map((m) => m[1]))];
+    return axes.reduce<string[]>((keys, axis) => {
+      const vs = axisValues(axis);
+      // An undeclared placeholder expands to nothing and is reported as the unresolved template it is,
+      // rather than silently dropping the key from the check.
+      return vs.length === 0 ? keys : keys.flatMap((k) => vs.map((v) => k.replace(`{${axis}}`, v)));
+    }, [key]);
+  };
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
-      for (const expanded of expandKey(key, sizes))
+      for (const expanded of expandAll(key))
         if (!(expanded in (def.tokens ?? {})))
           e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
   if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))

@@ -1069,8 +1069,25 @@ export const figmaAnatomyPlan = (
 
     let textStyle: string | undefined;
     if (p.type) {
-      const [resolved] = expandKey(p.type, sizesForExpansion);
-      const ref = def.tokens[resolved];
+      // `{size}` FIRST, unchanged, then any OTHER declared axis from the coordinate (#872). A part's
+      // type could vary on ONE axis until now, because `expandKey` substitutes `{size}` and nothing
+      // else — while `paintKeys` have always taken the whole coordinate (`field-message`'s
+      // `'{tone}.{slot}'`). So ink could vary on any axis and TYPE could not, an asymmetry with no
+      // stated reason: `field-label` needs `type.body.{rung}.{default|strong}` to follow both `size`
+      // and `weight`, and one template cannot name two axes under the old rule.
+      //
+      // ADDITIVE BY CONSTRUCTION, which is what makes it safe for the five other defs that template a
+      // type: a key with no second placeholder is returned by `expandKey` and the replace below is a
+      // no-op on it. An unresolved placeholder is deliberately LEFT IN PLACE rather than blanked, so
+      // the throw underneath names `size.md.{weight}.text` — the template that failed — instead of a
+      // silently mangled key. `slots` already carries every grid axis value: `figmaAnatomySet` spreads
+      // `gridAxes` into it per member, so no new plumbing is needed to reach the coordinate here.
+      const [sized] = expandKey(p.type, sizesForExpansion);
+      const resolved = sized?.replace(/\{([a-z][a-z-]*)\}/g, (whole, axis: string) => {
+        const v = (slots as Record<string, unknown>)[axis];
+        return typeof v === 'string' ? v : whole;
+      });
+      const ref = resolved === undefined ? undefined : def.tokens[resolved];
       if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
       textStyle = figmaTextStyleName(ref);
     }

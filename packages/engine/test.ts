@@ -7490,7 +7490,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // different vocabularies and the old key conflated them, which is why four of eight never painted.
   ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([tone, role]) => fieldMessage.tokens[`${tone}.label`] === `color.text.${role}` && fieldMessage.tokens[`${tone}.icon`] === `color.icon.${role}`), 'component: FieldMessage tones bind text.<role> + icon.<role> (icon + text, never colour-only)');
   ok(fieldMessage.states.length === 0 && JSON.stringify(fieldMessage.variants.tone) === JSON.stringify(['default', 'error', 'warning', 'success']), 'component: FieldMessage is presentational with a tone axis');
-  ok(!!fieldLabel.props.find((p) => p.name === 'children')?.required && fieldLabel.tokens['label'] === 'color.text.primary', 'component: FieldLabel requires text + binds the primary label ink');
+  // #872: the ink is TONE-QUALIFIED now (`{tone}.{slot}`, FieldMessage's shape one def over), so the
+  // bare `label` key is gone. Both tones are pinned rather than just the default: `secondary` is the
+  // de-emphasised label #872 called the sharpest of the three gaps, and a check that only read
+  // `primary` would pass on a def that shipped the axis with one working cell.
+  ok(!!fieldLabel.props.find((p) => p.name === 'children')?.required
+    && fieldLabel.tokens['primary.label'] === 'color.text.primary'
+    && fieldLabel.tokens['secondary.label'] === 'color.text.secondary'
+    && fieldLabel.tokens['label'] === undefined,
+    'component: FieldLabel requires text + binds a semantic text ROLE per tone (and no bare `label` key survives)');
+  // …and the TYPE follows both size and weight (#872, closing #862's half for this def). Every one of
+  // the six (size, weight) pairs must bind a `type.body.*` role — `type.label.*` cannot reach Prism 2's
+  // 14/16/18 ladder at all (it is 12/14, emphasis-only, no `lg`), so the tier is part of the claim.
+  ok((['small', 'medium', 'large'] as const).every((sz, i) =>
+    (['regular', 'bold'] as const).every((w, j) =>
+      fieldLabel.tokens[`size.${sz}.${w}.text`] === `type.body.${(['sm', 'md', 'lg'] as const)[i]}.${(['default', 'strong'] as const)[j]}`)),
+    'component: FieldLabel binds type.body.{sm,md,lg}.{default,strong} across all six (size, weight) pairs (#872/#862)');
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
   const broken = { ...button, ai: { ...button.ai, avoidWhen: '' }, tokens: { ...button.tokens, bogus: 'color.nope.nope' } } as ComponentDef;
