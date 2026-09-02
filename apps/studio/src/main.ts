@@ -2542,12 +2542,32 @@ const exLink = (color: string, dark = false, hover?: string, pressed?: string): 
   if (pressed) { a.style.setProperty('--ilink-pfg', pressed); wirePress(a); }
   box.append(a); return box;
 };
-const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string): HTMLElement => {
+/** The outline edge for one interactive prefix, at one state. `interactive.<c>.border.<state>` is the
+ *  role (#1231); the text ink is the fallback because it is also what the border DERIVES from — so a
+ *  brand whose border role didn't resolve falls back to the same color it would have got, not a guess. */
+const edgeOf = (roles: RoleMap, prefix: string, state = 'rest'): string =>
+  roles[`${prefix}.border.${state}`]?.hex ?? roles[`${prefix}.text.${state}`]?.hex ?? '#000000';
+/** The outline specimen. The EDGE and the INK are separate (#576): `border.*` follows the text ink by
+ *  default but is independently overridable, so a specimen painting both from one color could not show a
+ *  pinned border at all — the edge would keep tracking the ink, and the Border row would read as a
+ *  control that does nothing. `o.ink` defaults to `edge`, so every caller that legitimately has one color
+ *  stays unchanged.
+ *
+ *  Pinnable when EITHER the wash or the edge carries a pressed value. Keying it off the wash alone left
+ *  the one row this parameter exists for unable to reach its own pressed color: the border row's edge
+ *  moves on press and its wash never does. */
+const exOutline = (edge: string, wash: string, dark = false, hoverWash?: string, pressedWash?: string,
+                   o: { ink?: string; hoverEdge?: string; pressedEdge?: string } = {}): HTMLElement => {
   const box = el('div', 'exbox' + (dark ? ' dark' : '')); box.style.background = exGround(dark);
-  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = edge; b.style.border = `1.5px solid ${edge}`;
+  const ink = o.ink ?? edge;
+  const b = el('span', 'ibtn'); b.style.setProperty('--ibtn-bg', wash); b.style.color = ink;
+  b.style.setProperty('--ibtn-bw', '1.5px'); b.style.setProperty('--ibtn-bd', edge);
+  if (o.hoverEdge) b.style.setProperty('--ibtn-hbd', o.hoverEdge);
+  if (o.pressedEdge) b.style.setProperty('--ibtn-pbd', o.pressedEdge);
   if (hoverWash) b.style.setProperty('--ibtn-hbg', hoverWash);
-  if (pressedWash) { b.style.setProperty('--ibtn-pbg', pressedWash); wirePress(b); }
-  b.append(document.createTextNode('Outline'), iconEl('arrow', edge));
+  if (pressedWash) b.style.setProperty('--ibtn-pbg', pressedWash);
+  if (pressedWash || o.pressedEdge) wirePress(b);
+  b.append(document.createTextNode('Outline'), iconEl('arrow', ink));
   box.append(b); return box;
 };
 const exIconLabel = (iconColor: string, textColor: string): HTMLElement => {
@@ -2691,7 +2711,11 @@ const overlayRow = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
   const r = roles[`interactive.${col.name}.overlay.hover`]; if (!r) return null;
   const nPal = theme.roleToPalette.neutral;
-  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  // The edge comes from the BORDER role, the ink from the text role (#576). They were one read until the
+  // Border row made them independently pinnable; painting both from the ink would have shown this row's
+  // wash inside a border that silently ignored the neighboring row's override.
+  const edge = edgeOf(roles, `interactive.${col.name}`);
+  const ink = roles[`interactive.${col.name}.text.rest`]?.hex;
   return iRow({
     swatchBg: rgbaOf(r), label: 'Overlay wash',
     select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
@@ -2700,7 +2724,7 @@ const overlayRow = (col: ICol): HTMLElement | null => {
     // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
     // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
     example: iExample(exOutline(edge, rgbaOf(r), false, undefined,
-      roles[`interactive.${col.name}.overlay.pressed`] ? rgbaOf(roles[`interactive.${col.name}.overlay.pressed`]!) : undefined)),
+      roles[`interactive.${col.name}.overlay.pressed`] ? rgbaOf(roles[`interactive.${col.name}.overlay.pressed`]!) : undefined, { ink })),
     states: iStates(roles, nPal, [['Hover', `interactive.${col.name}.overlay.hover`], ['Pressed', `interactive.${col.name}.overlay.pressed`]]),
   });
 };
@@ -2720,7 +2744,8 @@ const subtleFillRow = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
   const r = roles[`interactive.${col.name}.subtle-fill.hover`]; if (!r) return null;
   const pressed = roles[`interactive.${col.name}.subtle-fill.pressed`];
-  const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
+  const edge = edgeOf(roles, `interactive.${col.name}`);   // the border role, not the ink (#576)
+  const ink = roles[`interactive.${col.name}.text.rest`]?.hex;
   const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
   return iRow({
     swatchBg: r.hex, label: 'Subtle tint',
@@ -2732,13 +2757,26 @@ const subtleFillRow = (col: ICol): HTMLElement | null => {
     warn: (r.min ?? 0) > 0 && (r.ratio ?? Infinity) < (r.min ?? 0)
       ? `This tint leaves the hover label at ${short(r.ratio ?? 0)}:1, under the ${short(r.min ?? 0)}:1 it needs — pick a step closer to the page, or the text stops being readable on hover.`
       : undefined,
-    example: iExample(exOutline(edge, r.hex, false, undefined, pressed?.hex)),
+    example: iExample(exOutline(edge, r.hex, false, undefined, pressed?.hex, { ink })),
     states: iStates(roles, col.palette, [
       ['Hover', `interactive.${col.name}.subtle-fill.hover`],
       ['Pressed', `interactive.${col.name}.subtle-fill.pressed`],
     ]),
   });
 };
+
+/** The Border row's description. Neutral gets an extra sentence because its three states resolve to the
+ *  SAME step — its ink is picked as the most extreme rung of the ramp with nowhere further to walk, so the
+ *  edge holds still on hover by design (#576, decided). Three identical swatches with no explanation is
+ *  exactly what made a working section look broken in #561; saying so here is cheaper than a designer
+ *  concluding the selects are dead. */
+const borderDesc = (name: string, inverse: boolean): string =>
+  (inverse
+    ? 'The outline control’s edge on a dark / inverse surface. Follows that band’s text ink by default — pin a step to let the edge differ from the label it surrounds.'
+    : 'The outline control’s edge. Follows the text ink by default — pin a step to let the edge differ from the label it surrounds.')
+  + (name === 'neutral'
+    ? ' Neutral’s ink is already the far end of its ramp, so all three states land on one step and the edge holds still on hover unless you pin them apart.'
+    : '');
 
 /** One action-palette section: header (+ optional remove) · optional lead control · the slot rows. */
 const renderPaletteSection = (col: ICol): HTMLElement | null => {
@@ -2771,6 +2809,26 @@ const renderPaletteSection = (col: ICol): HTMLElement | null => {
       example: (rs) => exLink(rs[`${inv}.text.rest`]?.hex ?? '#ffffff', true,
         rs[`${inv}.text.hover`]?.hex, rs[`${inv}.text.pressed`]?.hex),
       states: [['Hover', `${inv}.text.hover`], ['Pressed', `${inv}.text.pressed`]] }),
+    // #576 — the outline control's EDGE, per family and per state, on the page band and the inverse one.
+    // PER-COLUMN rather than one shared control because each family resolves it from a different ramp:
+    // primary from the action palette, destructive from danger, neutral from the neutral ramp, an accent
+    // from its own. That divergence is the thing a single shared select could not express.
+    //
+    // Present under every `outlineInteraction` method including `none` — measured on all six corpus
+    // themes — which is the method where it matters most, since with no hover wash the edge and the ink
+    // are the only things carrying the state.
+    slotRow({ name: nm, slot: 'border.rest', label: 'Border · rest', palette: P,
+      desc: borderDesc(nm, false),
+      example: (rs) => exOutline(edgeOf(rs, `interactive.${nm}`), 'transparent', false, undefined, undefined, {
+        ink: rs[`interactive.${nm}.text.rest`]?.hex,
+        hoverEdge: rs[`interactive.${nm}.border.hover`]?.hex, pressedEdge: rs[`interactive.${nm}.border.pressed`]?.hex }),
+      states: [['Hover', `interactive.${nm}.border.hover`], ['Pressed', `interactive.${nm}.border.pressed`]] }),
+    slotRow({ name: nm, slot: 'border.rest', inverse: true, label: 'Border · inverse', palette: P,
+      desc: borderDesc(nm, true),
+      example: (rs) => exOutline(edgeOf(rs, inv), 'transparent', true, undefined, undefined, {
+        ink: rs[`${inv}.text.rest`]?.hex,
+        hoverEdge: rs[`${inv}.border.hover`]?.hex, pressedEdge: rs[`${inv}.border.pressed`]?.hex }),
+      states: [['Hover', `${inv}.border.hover`], ['Pressed', `${inv}.border.pressed`]] }),
     overlayRow(col),
     subtleFillRow(col),   // #288 — the opaque sibling; only one of the two is ever non-null
     slotRow({ name: nm, slot: 'on-fill', label: 'On-fill text', palette: nPal,
@@ -2843,7 +2901,13 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
   // the helper. Fixed by taking the same path as the rest rather than by giving the fallback insets:
   // the head path is a flex row that also reflows to a column under 720px, which these never got.
   const oh = palSection('Outline button hover', ohBlurb);
-  const ohEdge = roles['interactive.primary.text.rest']?.hex ?? '#000000';
+  // Edge from the border role, ink from the text role (#576) — the two are separately pinnable now, and
+  // this section's whole subject is what the outline does on hover, so it is the last place that should
+  // show one of them standing in for the other.
+  // Both specimens stay at the REST edge and the REST ink: the pair isolates the WASH, which is what the
+  // Method select changes, so moving a second variable across it would stop answering the question.
+  const ohEdge = edgeOf(roles, 'interactive.primary');
+  const ohInk = roles['interactive.primary.text.rest']?.hex;
   // Each method reads its OWN role, which is the whole point of #288: `overlay-neutral` emits a
   // translucent `interactive.<name>.overlay.hover`, `solid-tint` an opaque
   // `interactive.<name>.subtle-fill.hover`, and `none` no fill by design. This used to read the
@@ -2863,7 +2927,8 @@ const renderGlobalBehavior = (host: HTMLElement): void => {
       ? ohRes.hex              // opaque — a real palette step, no alpha
       : rgbaOf(ohRes);
   oh.append(iRow({ lead: true, srcLabel: 'Method', select: iEnumSelect('outlineInteraction'),
-    example: twoUp(['Rest', exOutline(ohEdge, 'transparent')], ['Hover', exOutline(ohEdge, ohWash)]) }));
+    example: twoUp(['Rest', exOutline(ohEdge, 'transparent', false, undefined, undefined, { ink: ohInk })],
+                   ['Hover', exOutline(ohEdge, ohWash, false, undefined, undefined, { ink: ohInk })]) }));
   host.append(oh);
 
   // "the label" is the correction, not decoration (#561): the section promised "how much contrast
