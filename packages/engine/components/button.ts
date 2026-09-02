@@ -3,17 +3,22 @@
  * the catalogue's calibration component. v0 was seeded from the schema shape only and
  * re-litigated settled decisions; this is faithful to the practice's resolved model.
  *
+ * ── #1223: INTENT IS THE COMPONENT, NOT AN AXIS ────────────────────────────────────────────────
+ * The three semantic intents are now three COMPONENTS — `Button` (primary/brand), `Destructive Button`,
+ * `Neutral Button` — built by the `makeButton` factory below from one shared anatomy. Intent used to be
+ * a variant axis crossing appearance × size × surface × state (one 1296-member set); splitting it gives
+ * three 432-member sets whose only difference is the `interactive.<family>` color binding. Emphasis is
+ * STILL the appearance axis within each component (filled > outline > text), so a three-action form is
+ * three buttons of one component at three appearances. Accent is not a fourth component — a brand adds a
+ * secondary palette and duplicates+rebinds the primary set in Figma (see the export block at the foot).
+ *
  * The practice's resolved decisions carried in here:
- *  - TWO-AXIS variant model: intent {primary, neutral, destructive} × appearance
- *    {filled, outline, text} × size — NOT a single overloaded `variant` enum (brief §3;
- *    reconciled to the interactive vocabulary per docs/20 / KB button.md §3).
- *  - Default intent = primary — REVERSED 2026-08-07, see the `intent` prop for the reasoning.
- *    The brief's §4/§15 default was `neutral`, on the rule "one primary per view, so the loud
- *    button is the deliberate choice". The rule survives; the inference from it did not. It
- *    counts primaries per view as if emphasis lived on `intent` alone, but this def made
- *    intent and appearance ORTHOGONAL (the line above), so hierarchy is expressed by
- *    APPEARANCE within one intent — filled / outline / text — and a three-button form is
- *    typically three primaries, one of each appearance, all correctly the brand color.
+ *  - appearance {filled, outline, text} × size × surface — NOT a single overloaded `variant` enum
+ *    (brief §3; reconciled to the interactive vocabulary per docs/20 / KB button.md §3).
+ *  - Primary is the brand/default button (`id: 'button'`). The old `intent` prop defaulted to primary
+ *    (REVERSED 2026-08-07 from `neutral`) on the rule "one FILLED per view, so the loud button is the
+ *    deliberate choice" — the rule survives the split unchanged, now expressed as one FILLED appearance
+ *    per view within whichever component the semantic calls for.
  *  - The state TRIO: isPending (focusable aria-disabled, delayed spinner, width-preserved,
  *    busy-announced), isInactive (focusable disabled — relevant-but-unsatisfied), isDisabled
  *    (native, RESERVED for controls irrelevant to the view) (§4, §13).
@@ -22,30 +27,75 @@
  *  - Icon-ONLY is a distinct component (icon-button) so the accessible name is required at
  *    the type level (§6, §10).
  *
- * Rebound to the interactive color system (docs/20): the two-axis model is now the
- * reconciled vocabulary — appearance {filled, outline, text} × color {primary, neutral,
- * destructive} (+ accent when a brand declares one) — bound to `interactive.<color>.*`
- * with cross-cutting `disabled.*`. This CLOSES the v1 HIGH finding: neutral (was the
- * stateless `foreground.secondary`) now carries hover/pressed/on-fill like every color,
- * so the default button is no longer hover-less. outline/text hover uses the overlay wash
- * (assumes `outlineInteraction: overlay-neutral`, the default). `ghost` is retired — a
- * quiet button is `intent=neutral appearance=text`. (`type.label.lg` gap still stands.)
+ * Bound to the interactive color system (docs/20): each component binds `interactive.<family>.*`
+ * (primary / neutral / destructive) with cross-cutting `disabled.*`. This CLOSES the v1 HIGH finding —
+ * neutral (was the stateless `foreground.secondary`) carries hover/pressed/on-fill like every family, so
+ * the Neutral Button is not hover-less. outline/text hover uses the overlay wash (assumes
+ * `outlineInteraction: overlay-neutral`, the default). `ghost` is retired — a quiet button is the
+ * Neutral Button at `appearance=text`. (`type.label.lg` gap still stands.)
  */
 import { ComponentDef } from '../component-schema';
 
-export const button: ComponentDef = {
-  id: 'button',
-  name: 'Button',
+type IntentFamily = 'primary' | 'neutral' | 'destructive';
+
+/**
+ * The per-family PAINT (docs/20), authored ONCE and called per component — #1223 split the three
+ * semantic intents into three components (Button / Destructive Button / Neutral Button), and this map
+ * is the ONLY thing that differs between them. Every def `makeButton` produces is byte-identical but for
+ * the `color.interactive.<family>.*` bindings returned here; `test.ts` asserts exactly that (the
+ * factory's safety net), so a binding edited on one component and not the others fails BY NAME rather
+ * than shipping three buttons that have quietly diverged (docs/34).
+ *
+ * The keys drop the intent segment the grammar used to lead with. With intent FIXED per component it is
+ * no longer a coordinate, so `paintKeys` is `{appearance}.{slot}.{state}` / `{appearance}.{slot}` and
+ * these keys match it — the bare key is the REST value, the `.hover`/`.pressed` forms the stated states.
+ * `disabled.*` is cross-cutting (intent-independent, docs/20 §7) and lives in the shared token block, not
+ * here — its identity across all three components is the whole reason the split loses no coverage.
+ */
+const intentTokens = (family: IntentFamily): Record<string, string> => ({
+  // filled — interactive fill + on-fill ink
+  'filled.fill': `color.interactive.${family}.fill.rest`,
+  'filled.fill.hover': `color.interactive.${family}.fill.hover`,
+  'filled.fill.pressed': `color.interactive.${family}.fill.pressed`,
+  'filled.label': `color.interactive.${family}.on-fill`,
+  'filled.icon': `color.interactive.${family}.on-fill`,
+  // outline — the EDGE carries state (#576), so all three rather than letting hover/pressed fall to rest
+  'outline.border': `color.interactive.${family}.border.rest`,
+  'outline.border.hover': `color.interactive.${family}.border.hover`,
+  'outline.border.pressed': `color.interactive.${family}.border.pressed`,
+  'outline.label': `color.interactive.${family}.text.rest`,
+  'outline.icon': `color.interactive.${family}.text.rest`,
+  'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
+  'outline.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+  // text — ink only; hover/pressed are the translucent overlay wash (#536 item 1: both states keyed, or
+  // a pressed ghost button falls back to rest and projects byte-identical to it)
+  'text.label': `color.interactive.${family}.text.rest`,
+  'text.icon': `color.interactive.${family}.text.rest`,
+  'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
+  'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+});
+
+/**
+ * The button FACTORY (#1223). One anatomy, three color families → three components. `id`, `name`,
+ * `description` and the `interactive.<family>` paint are the only things that vary; everything below —
+ * props, states, appearance/size/surface axes, the #326 asymmetric padding, the icon slots, the anatomy,
+ * disabled, focus, accessibility — is authored ONCE here and shared verbatim. The three exports at the
+ * foot of the file are its outputs, not hand-maintained copies (docs/34 DRY), and `test.ts` pins that.
+ */
+const makeButton = (id: string, name: string, description: string, family: IntentFamily): ComponentDef => ({
+  id,
+  name,
   aliases: ['btn', 'cta'],
   category: 'form',
   status: 'draft',
-  description:
-    'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, delete, open a dialog, fire async work. NOT navigation (use link / link-button, even when it looks like a button), NOT a persistent binary (switch), NOT one-of-many selection (segmented-control / toggle-button).',
+  description,
 
   props: [
     { name: 'children', type: 'node (label)', required: true, description: 'Visible label; verb-first, sentence case, ≤3 words. (Not required for the icon-only case — that is a distinct icon-button.)' },
     { name: 'onClick', type: 'function', required: false, description: 'Action handler. Suppressed while isPending or isInactive.' },
-    { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'primary', required: false, description: 'Semantic color, drawn from interactive.<intent>.* (docs/20). Defaults to primary — the brand color is the expected look of a button, so an unqualified <Button> should be on-brand rather than gray. EMPHASIS IS THE APPEARANCE AXIS, NOT THIS ONE: a form with three actions is typically three primaries at filled / outline / text, not one primary and two grays. Use neutral when the control genuinely carries no brand weight (a toolbar, a dense table row); destructive for delete/remove. accent is available when the brand declares one. (Reconciled from the old primary/secondary/danger/ghost — secondary→neutral, danger→destructive, ghost retired to intent=neutral appearance=text.)' },
+    // #1223 — no `intent` prop. Intent is now the COMPONENT (Button = primary; Destructive Button;
+    // Neutral Button), not a prop on one component. EMPHASIS IS STILL THE APPEARANCE AXIS: a form with
+    // three actions is typically three of the SAME component at filled / outline / text, not three colors.
     { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'filled', required: false, description: 'Visual treatment over the color, decoupled from intent so the matrix scales by addition. filled = interactive fill + on-fill ink; outline = border + text ink; text = ink only. (Reconciled from solid/outline/plain.)' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Control size — drives height, padding, and label type.' },
     { name: 'surface', type: "enum: 'default' | 'inverse'", values: ['default', 'inverse'], default: 'default', required: false, description: 'The ground the button sits on. `default` for a normal page; `inverse` for a dark or brand-filled band, where the button binds its `color.inverse.*` counterparts so fill, ink, border, overlay and the disabled treatment keep contrast against the flipped surface. A host that cannot know its ground picks `default`, and the designer sets `inverse` on the instance — the same answer the nested focus ring gives.' },
@@ -62,21 +112,21 @@ export const button: ComponentDef = {
 
   states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
   variants: {
-    intent: ['primary', 'neutral', 'destructive'],
+    // #1223 — `intent` is gone as an axis; it is the component identity now. `appearance` carries
+    // emphasis, `surface` the ground, `size` the rung, `width` a drag (not projected).
     appearance: ['filled', 'outline', 'text'],
     size: ['small', 'medium', 'large'],
     width: ['auto', 'full'],
     // THE INVERSE GROUND (#1134), and the bindings for it are NOT in `tokens` below — that is the whole
     // mechanism, not an omission. An inverse control binds every role's inverse counterpart, which
-    // docs/20 §9.9 defines as `color.inverse.` + the role. Expressed as authored keys that would collide
-    // with this def's own grammar by arity: `primary.filled.fill.inverse` fills the `{state}` segment
-    // with `inverse` (not a state) and `inverse.disabled.fill` fills `{intent}` with `inverse` (not an
-    // intent), both rejected by `paintKeyErrors`. So the whole inverse half is unauthorable here and is
-    // applied by the projector instead — `anatomy-figma.ts` rewrites each resolved `color.*` ref to its
-    // `color.inverse.*` counterpart at any coordinate where `surface=inverse`. This def declares the
-    // axis; the transform supplies the values. `focus-ring` carries the same distinction under `color`
-    // (it has no palette axis to collide with); a control that spells its palette "color" — as docs/20
-    // does for `intent` — needs the distinct name, which is why `surface` earns a VARIANT_AXES entry.
+    // docs/20 §9.9 defines as `color.inverse.` + the role. Expressed as authored keys they would collide
+    // with this def's own grammar by arity: `filled.fill.inverse` fills the `{state}` segment with
+    // `inverse` (not a state), and a cross-cutting `inverse.disabled.fill` names no slot the projector
+    // dispatches — both rejected by `paintKeyErrors`. So the whole inverse half is unauthorable here and
+    // is applied by the projector instead — `anatomy-figma.ts` rewrites each resolved `color.*` ref to its
+    // `color.inverse.*` counterpart at any coordinate where `surface=inverse`. This def declares the axis;
+    // the transform supplies the values. (The intent-family segment the grammar once led with is gone with
+    // #1223 — intent is the component now — so the collision is one arity shorter but the conclusion holds.)
     surface: ['default', 'inverse'],
   },
   // NO `modifiers` AXIS (#845), and its three values were three different things, which is the whole
@@ -116,15 +166,18 @@ export const button: ComponentDef = {
   // the two templates below are a transcription of existing behavior rather than a new decision —
   // which is why the 648-member paint is byte-identical across that change by construction.
   //
-  // The state-qualified template LEADS, and the order is the fallback: `primary.filled.fill.hover`
-  // wins where it exists, and a state that does not restyle a part falls through to the rest key (a
-  // `pending` button's fill is its rest fill). Reverse these two and every state paints its rest
-  // color — 216 members silently identical to their rest sibling, which is #536 item 1's shape.
+  // The state-qualified template LEADS, and the order is the fallback: `filled.fill.hover` wins where
+  // it exists, and a state that does not restyle a part falls through to the rest key (a `pending`
+  // button's fill is its rest fill). Reverse these two and every state paints its rest color — silently
+  // identical to their rest sibling, which is #536 item 1's shape.
+  //
+  // #1223 dropped the leading `{intent}` segment: intent is the component now, so the family is fixed
+  // per def (supplied by `intentTokens(family)` above) and no longer a coordinate the key carries.
   //
   // `disabled.*` is deliberately NOT a template here: it switches token family rather than qualifying
   // a key, and it is conditional on the appearance having that structure at rest. That is behavior,
   // and it stays in the projector where it can be expressed.
-  paintKeys: ['{intent}.{appearance}.{slot}.{state}', '{intent}.{appearance}.{slot}'],
+  paintKeys: ['{appearance}.{slot}.{state}', '{appearance}.{slot}'],
 
   tokens: {
     // base (variant-independent)
@@ -159,79 +212,15 @@ export const button: ComponentDef = {
     'size.large.icon': 'icon.size.lg',
     'size.large.type': 'type.label.md.emphasis', // FINDING (still open): no type.label.lg — reuses md
 
-    // primary — interactive.primary.* (full states)
-    'primary.filled.fill': 'color.interactive.primary.fill.rest',
-    'primary.filled.fill.hover': 'color.interactive.primary.fill.hover',
-    'primary.filled.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'primary.filled.label': 'color.interactive.primary.on-fill',
-    'primary.filled.icon': 'color.interactive.primary.on-fill',
-    // The outline EDGE now carries state (#576), so `.outline` binds all three rather than letting
-    // hover/pressed fall back to rest. Same reasoning as the resolved #536 finding below: a missing
-    // key means "this appearance does not paint that part in that state", and `.outline` DOES paint
-    // its border while hovered — so omitting them would project hover byte-identical to rest.
-    'primary.outline.border': 'color.interactive.primary.border.rest',
-    'primary.outline.border.hover': 'color.interactive.primary.border.hover',
-    'primary.outline.border.pressed': 'color.interactive.primary.border.pressed',
-    'primary.outline.label': 'color.interactive.primary.text.rest',
-    'primary.outline.icon': 'color.interactive.primary.text.rest',
-    'primary.outline.overlay.hover': 'color.interactive.primary.overlay.hover',
-    'primary.outline.overlay.pressed': 'color.interactive.primary.overlay.pressed',
-    'primary.text.label': 'color.interactive.primary.text.rest',
-    'primary.text.icon': 'color.interactive.primary.text.rest',
-    'primary.text.overlay.hover': 'color.interactive.primary.overlay.hover',
-    // RESOLVED (#536 item 1, was the open FINDING here): `.text` keyed an overlay for HOVER but not for
-    // PRESSED while `.outline` keyed both, so a pressed ghost button fell back to its rest value and
-    // projected byte-identical to rest — 36 of the 126 duplicate variant groups. The finding's own note
-    // said "closing this is one line per intent", and that held: `overlay.pressed` already existed for
-    // all three intents at alpha 0.2 (vs hover's 0.1) and was already bound by `.outline`.
-    //
-    // Fixed in the DEF, not in `paintOf`'s fallback, and that distinction is the point. The projection
-    // falling back to the unqualified key is CORRECT — a pending button's fill really is its rest fill —
-    // so teaching it to synthesize a pressed overlay when a def omits one would paint a wash no brand
-    // authored, and would have hidden this gap instead of surfacing it. A missing key means "this
-    // appearance does not paint that part in that state"; the bug was that `.text` does paint it.
-    'primary.text.overlay.pressed': 'color.interactive.primary.overlay.pressed',
+    // THE PER-FAMILY PAINT — the full appearance × slot × state skin, bound to `interactive.<family>.*`.
+    // Authored once in `intentTokens` above and spread here so the three components cannot silently
+    // diverge (#1223, docs/34); the keys the projector reads (`filled.fill`, `outline.border.hover`, …)
+    // are what that function returns. `test.ts` asserts these are the ONLY tokens that differ across the
+    // three defs.
+    ...intentTokens(family),
 
-    // neutral — no longer the default (2026-08-07), but still the full column. It carries
-    // hover/pressed like every color (the v1 gap, CLOSED), and that stays true independently of
-    // which intent is the default: `neutral` is now the *chosen* look for a weightless control
-    // rather than what you get by omission, and a chosen look needs states just as much.
-    'neutral.filled.fill': 'color.interactive.neutral.fill.rest',
-    'neutral.filled.fill.hover': 'color.interactive.neutral.fill.hover',
-    'neutral.filled.fill.pressed': 'color.interactive.neutral.fill.pressed',
-    'neutral.filled.label': 'color.interactive.neutral.on-fill',
-    'neutral.filled.icon': 'color.interactive.neutral.on-fill',
-    'neutral.outline.border': 'color.interactive.neutral.border.rest',
-    'neutral.outline.border.hover': 'color.interactive.neutral.border.hover',
-    'neutral.outline.border.pressed': 'color.interactive.neutral.border.pressed',
-    'neutral.outline.label': 'color.interactive.neutral.text.rest',
-    'neutral.outline.icon': 'color.interactive.neutral.text.rest',
-    'neutral.outline.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'neutral.outline.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
-    'neutral.text.label': 'color.interactive.neutral.text.rest',
-    'neutral.text.icon': 'color.interactive.neutral.text.rest',
-    'neutral.text.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'neutral.text.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
-
-    // destructive — interactive.destructive.* (full states)
-    'destructive.filled.fill': 'color.interactive.destructive.fill.rest',
-    'destructive.filled.fill.hover': 'color.interactive.destructive.fill.hover',
-    'destructive.filled.fill.pressed': 'color.interactive.destructive.fill.pressed',
-    'destructive.filled.label': 'color.interactive.destructive.on-fill',
-    'destructive.filled.icon': 'color.interactive.destructive.on-fill',
-    'destructive.outline.border': 'color.interactive.destructive.border.rest',
-    'destructive.outline.border.hover': 'color.interactive.destructive.border.hover',
-    'destructive.outline.border.pressed': 'color.interactive.destructive.border.pressed',
-    'destructive.outline.label': 'color.interactive.destructive.text.rest',
-    'destructive.outline.icon': 'color.interactive.destructive.text.rest',
-    'destructive.outline.overlay.hover': 'color.interactive.destructive.overlay.hover',
-    'destructive.outline.overlay.pressed': 'color.interactive.destructive.overlay.pressed',
-    'destructive.text.label': 'color.interactive.destructive.text.rest',
-    'destructive.text.icon': 'color.interactive.destructive.text.rest',
-    'destructive.text.overlay.hover': 'color.interactive.destructive.overlay.hover',
-    'destructive.text.overlay.pressed': 'color.interactive.destructive.overlay.pressed',
-
-    // cross-cutting disabled (docs/20 §7) — ONE treatment, any intent/appearance.
+    // cross-cutting disabled (docs/20 §7) — ONE treatment, any appearance, IDENTICAL across all three
+    // button components (that identity is why splitting the intents loses no coverage — #1223).
     //
     // INK IS KEYED TWICE, per ground (#784), and until #784 the second form was spelled
     // `disabled.on-fill` — a slot segment the projector never dispatches, so it was bound, gated, and
@@ -354,14 +343,14 @@ export const button: ComponentDef = {
       // no longer declares is refused by nothing in either direction; `figmaPropertyErrors` only asks
       // whether every DECLARED-and-unprojected axis is admitted, never whether every admission has an
       // axis. So it would have sat here indefinitely as evidence for an axis that was gone.
-      // NOT "intent at state=disabled …". `admits()` matches an entry LEADING with the term, so an entry
-      // starting `intent ` would admit dropping the whole `intent` AXIS from the projection — measured:
-      // with that wording, removing `intent` from `variantAxes` took `figmaPropertyErrors` from 1 error
-      // to 0. This is the shape where a declaration also satisfies the check it exempts you from (doc 34),
-      // and the hyphenated compound is what keeps the term from being a leading whole word. Any future
-      // entry about an axis-and-state INTERACTION needs the same care — lead with a compound, never the
-      // bare axis name.
-      'intent-at-disabled redundancy (#612) — all three intents render ONE row at `state=disabled`, so 72 groups of 3 are byte-identical (36 on each `surface` ground). Accepted, not fixed: `disabled.*` is cross-cutting by design (docs/20 §7 — `color.disabled.fill` has no intent in the path, and its inverse counterpart `color.inverse.disabled.fill` has none either), so one disabled skin serving every intent is the token tier being correct, and the projection reporting it faithfully is a feature. The coordinate stays MEANINGFUL — a designer selecting intent=destructive, state=disabled finds it where they look for it and gets the right pixels; they are merely the same pixels as the other two intents. Pruning the 144 redundant rows would make the set\'s shape depend on a per-coordinate measurement, which is a new class of thing to gate for a 11% row saving.',
+      // The `intent-at-disabled redundancy (#612)` entry is GONE with #1223, and its removal is the point
+      // rather than an omission. It documented that all three intents rendered ONE byte-identical row at
+      // `state=disabled` (144 redundant rows, accepted not pruned) — a redundancy that existed only
+      // because intent was an AXIS crossing state. #1223 removes the intent axis entirely: each button
+      // component now carries ONE disabled skin per coordinate, and the three components' disabled skins
+      // are identical to each other (the shared `disabled.*` block), which is the token tier being correct
+      // one level up. There is no per-intent redundancy left to admit, so the entry and the `admits()`
+      // guard that protected its wording both retire — nothing declares `intent` for the check to key on.
       'inactive — a real state (isInactive), deliberately NOT a Figma variant. Its whole delta from `disabled` is behavioral: it retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, and surfaces the blockage reason on focus. None of that is paint, so a variant has nothing to encode. At the TOKEN tier its intended visual is `disabled`\'s by an explicit decision (docs/03 item 3, resolved 2026-06-24: `disabledStrategy: \'accessible\'` IS the KB\'s contrast-preserving `inactive`; docs/06 defines `text.disabled` as "disabled / inactive ink"). The EMITTER does not implement that yet — `anatomy-figma.ts` special-cases `state === \'disabled\'` only, so `inactive` falls through to the `rest` paints, which is worse than a duplicate: the column would have read as a normal enabled button. Either way it is unprojectable, and the two facts fail it independently.',
     ],
   },
@@ -372,13 +361,17 @@ export const button: ComponentDef = {
   // validator enforces that pairing). The slot-presence axis §4 calls for is future def work, so it
   // is absent rather than stubbed.
   figmaProperties: {
-    // `surface` PROJECTS (#1134) — it doubles the set (648 → 1296) so a designer can pick a button for a
-    // dark band from the same component, which is the deliverable. It is a real axis a variant carries,
-    // unlike `width` (a drag, admitted in codeOnly): the two grounds are genuinely different pixels, and
-    // Figma has no way to publish "inverse context" to a nested instance, so an explicit coordinate is
-    // the only thing that can carry it. Its inverse paints come from the projector's `color.inverse.*`
-    // rewrite (see `variants.surface`), not from keys in `tokens`.
-    variantAxes: ['intent', 'appearance', 'size', 'surface'],
+    // `surface` PROJECTS (#1134) — it doubles each component's set (216 → 432) so a designer can pick a
+    // button for a dark band from the same component, which is the deliverable. It is a real axis a
+    // variant carries, unlike `width` (a drag, admitted in codeOnly): the two grounds are genuinely
+    // different pixels, and Figma has no way to publish "inverse context" to a nested instance, so an
+    // explicit coordinate is the only thing that can carry it. Its inverse paints come from the
+    // projector's `color.inverse.*` rewrite (see `variants.surface`), not from keys in `tokens`.
+    //
+    // #1223 — `intent` is NO LONGER an axis here. Each of the three button components fixes one family,
+    // so its set is appearance(3) × size(3) × surface(2) × state(6) × slot-combos(4) = 432 members; the
+    // former single 1296-member set is now three 432-member sets (Button / Destructive / Neutral).
+    variantAxes: ['appearance', 'size', 'surface'],
     // Six of the seven in `states` above — still the single source (#487 §0.4). The legacy sheet's
     // six (`active`, `focused`, `loading`) are deliberately NOT codified: they are that sheet's names
     // for `pressed`, `focus-visible` and `pending`.
@@ -426,7 +419,8 @@ export const button: ComponentDef = {
     // is drawn. It is also the widest axis here, so the cardinality fallback would pick it anyway;
     // declaring it is what stops the next axis added to this def from taking the columns by accident,
     // which is precisely what `slotAxes` did in #536 (the full set laid out 324 × 2, measured live at
-    // 320 × 23304px). With this, 108 rows × 6 columns.
+    // 320 × 23304px). With this, 72 rows × 6 columns per component (#1223 — was 108 × 6 when intent
+    // crossed the row axis; each of the three components now carries a third of the rows).
     gridAxis: 'state',
   },
 
@@ -444,19 +438,20 @@ export const button: ComponentDef = {
     dialogPattern: 'Match the destructive verb to the consequence ("Delete", not "Confirm"). Cancel = abort+revert; Close/Dismiss = dismiss info; never "OK" on an error.',
   },
 
+  // SHARED across the three components (#1223) — the universal rules. Color is the component, so the
+  // "which intent" guidance lives in each component's own `description`; what stays here is the appearance
+  // hierarchy, labels, states and surface, which apply the same to Button / Destructive / Neutral.
   docs: {
-    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Rank the actions in a view by APPEARANCE (filled > outline > text) and keep them on intent=primary; exactly one FILLED per view/region is the constraint, not one primary.',
+    usage: 'Use for an immediate action in the current context — submit/save/reset a form, trigger a UI state change (open modal, toggle drawer), or fire async work. Color is the COMPONENT (Button / Destructive Button / Neutral Button — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > text), with exactly one FILLED per view/region as the constraint.',
     do: [
       'Lead with a verb, name the object ("Publish post", not "Submit")',
-      'Keep exactly one FILLED button per view; demote the rest to outline / text on the same intent, so a form of three actions is three primaries at three appearances',
-      'Reach for neutral when the control carries no brand weight at all — a toolbar, a dense table row — not merely because it is secondary in rank',
-      'Pair a destructive button with an adjacent neutral escape ("Cancel"/"Keep")',
+      'Keep exactly one FILLED button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
       'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
       'Use isInactive (focusable) for a control blocked by satisfiable state; reserve isDisabled for the irrelevant',
     ],
     dont: [
       'Use a button for navigation to a URL — use a link / link-button',
-      'Stack multiple FILLED buttons competing for attention (multiple primaries are fine — differentiate them by appearance)',
+      'Stack multiple FILLED buttons competing for attention — differentiate rank by appearance, not by adding fills',
       'Use native disabled on a relevant-but-blocked control (dead end for keyboard/SR users)',
       'Remove the label to make room for a spinner — the button narrows mid-submit and screen readers lose the name; the spinner takes the leading visual\'s place, or overlays a label held at zero opacity',
     ],
@@ -487,7 +482,7 @@ export const button: ComponentDef = {
   notes: {
     contested: [
       'native isDisabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).',
-      'intent bundles hierarchy + tone, so a low-emphasis destructive ("quiet Delete") is expressed as intent=destructive appearance=text rather than a fully orthogonal emphasis×tone split.',
+      'a low-emphasis destructive ("quiet Delete") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.',
       'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots (foreground.<color>-subtle / no hover).',
     ],
     evolution: [
@@ -498,4 +493,39 @@ export const button: ComponentDef = {
       'FINDING (engine): the focus-ring 3:1 non-text contrast (1.4.11) is asserted here but not yet engine-verified — a follow-up contract.',
     ],
   },
-};
+});
+
+// ── THE THREE COMPONENTS (#1223) ────────────────────────────────────────────────────────────────
+// One factory, three color families. `test.ts` asserts they share byte-identical anatomy / geometry /
+// disabled / #326 padding / slots and differ ONLY in the `interactive.<family>` bindings, so a future
+// edit cannot silently desync them. `button` keeps the id `button` and is the primary/brand component;
+// `Destructive Button` and `Neutral Button` are its siblings. ACCENT is deliberately not among them,
+// and the reason is the split's own logic: intent IS the component, so a fourth intent would be a
+// fourth component — but accent is OPTIONAL and per-brand, not one of the three always-generated
+// families, so the engine cannot emit a component for a family a given brand may not have. The path
+// instead has two halves. (1) The COLOUR family: a brand promotes an accent palette to a full
+// `interactive.accent.*` column (`accentPalette` / `interactivePalettes`, docs/20 §3–§3a — the engine
+// already generates this, gated like the built-ins). (2) The COMPONENT: in Figma the designer
+// DUPLICATES the primary Button set and rebinds its `interactive.primary.*` variables to
+// `interactive.accent.*` — a per-brand move over generated tokens, the same duplicate-and-rebind any
+// brand-specific variant takes, not a set the engine enumerates.
+export const button: ComponentDef = makeButton(
+  'button',
+  'Button',
+  'In-flow trigger for an action that happens now, in the current context — submit, save, confirm, open a dialog, fire async work — in the brand (primary) color, the expected look of a button. NOT navigation (use link / link-button, even when it looks like a button), NOT a persistent binary (switch), NOT one-of-many selection (segmented-control / toggle-button). For a destructive or a weightless action, use the Destructive Button / Neutral Button sibling components.',
+  'primary',
+);
+
+export const buttonDestructive: ComponentDef = makeButton(
+  'button-destructive',
+  'Destructive Button',
+  'In-flow trigger for a DESTRUCTIVE action — delete, remove, discard, disconnect — in the destructive color, so the consequence reads before the click. Same anatomy as Button; the color is the whole difference. Pair it with an adjacent neutral escape ("Cancel" / "Keep"), and match the verb to the consequence ("Delete", not "Confirm"). For a quiet destructive action, use appearance=text on this component.',
+  'destructive',
+);
+
+export const buttonNeutral: ComponentDef = makeButton(
+  'button-neutral',
+  'Neutral Button',
+  'In-flow trigger for an action that carries NO brand weight — a toolbar control, a dense table row, a low-stakes secondary action — in the neutral color. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis: a secondary primary action is the Button at appearance=outline). Same anatomy as Button.',
+  'neutral',
+);

@@ -215,7 +215,7 @@ ok(page.children.length === 1 && page.children[0].type === 'COMPONENT_SET',
 // this fixture that is appearance (3) down × state (7) across.
 ok(JSON.stringify(r1.grid) === JSON.stringify([button.variants!.appearance!.length, button.states!.length]),
   `the grid is appearance × state, rows × cols = ${JSON.stringify(r1.grid)}`);
-ok(JSON.stringify(r1.axes.slice().sort()) === JSON.stringify([`appearance:${button.variants!.appearance!.length}`, 'intent:1', 'leading:1', 'size:1', `state:${button.states!.length}`, 'trailing:1'].sort()),
+ok(JSON.stringify(r1.axes.slice().sort()) === JSON.stringify([`appearance:${button.variants!.appearance!.length}`, 'leading:1', 'size:1', `state:${button.states!.length}`, 'trailing:1'].sort()),
   `Figma derives every axis from the member names (${r1.axes.join(', ')})`);
 // The box is READ BACK from the set, and the set's box does not follow its members — so a non-zero box
 // containing 21 members is a positive statement that `resize` ran and landed.

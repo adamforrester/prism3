@@ -33,7 +33,7 @@
  * second list maintained beside it would restore the defect that gate was written for."*
  */
 import type { ComponentDef } from '../component-schema';
-import { button } from './button';
+import { button, buttonDestructive, buttonNeutral } from './button';
 import { iconButton } from './icon-button';
 import { icon } from './icon';
 import { focusRing } from './focus-ring';
@@ -51,7 +51,7 @@ import { switchDef } from './switch';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox, radio, switchDef };
+export { button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox, radio, switchDef };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -63,6 +63,11 @@ export const componentDefs: readonly ComponentDef[] = [
   icon,
   focusRing,
   button,
+  // #1223 — the two sibling button components, split from `button`'s former `intent` axis. Same factory,
+  // same anatomy; only the `interactive.<family>` color binding differs. They sit beside `button`
+  // because they share its composition (nest `focus-ring`, swap `icon`).
+  buttonDestructive,
+  buttonNeutral,
   iconButton,
   fieldLabel,
   fieldMessage,

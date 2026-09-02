@@ -7,6 +7,77 @@
 
 ---
 
+## (2026-09-02) — the button's semantic intents are three COMPONENTS now, not an axis (#1223)
+
+**STATUS: shipped.** One factory in `components/button.ts` produces three defs — `button` (primary),
+`button-destructive`, `button-neutral` — registered in `components/index.ts`. Hierarchy stays the
+`appearance` axis (filled/outline/text); #326 asymmetric padding and the enumerated icon slots are
+UNCHANGED. **No `out/**` diff, no version bump** (see below), CONTRACT unchanged. Closes #1223.
+
+── WHY A FACTORY, NOT A PROJECTOR CHANGE ───────────────────────────────────────────────────────
+
+`intent` was a variant axis on one `button` def (`{intent}.{appearance}.{slot}` paint keys, 1296
+Figma members). The split makes intent the component IDENTITY: three defs, each binding ONE
+`color.interactive.<family>` family, sharing everything else. `typecheck-components.ts` links files to
+defs by object identity and requires each def file to contribute ≥1 export — a file that defines three
+and registers three passes — so one `makeButton(id, name, description, family)` factory is the DRY
+answer. No projector or schema change: the enumerator already reads `variantAxes`, and dropping
+`intent` from it is the whole engine-side change.
+
+── THE GUARDRAIL THAT MAKES THE FACTORY SAFE (docs/34), MUTATION-VERIFIED ───────────────────────
+
+`test.ts` asserts the three defs share byte-identical `anatomy`/`props`/`states`/`variants`/
+`paintKeys`/`figmaProperties`/… and every NON-colour token (geometry, #326 padding, slots, the
+cross-cutting `disabled.*`), and that each binds ONLY its own `interactive.<family>` skin (exactly 16
+keys). A projection-level companion asserts all three collapse to ONE plan at `state=disabled` and stay
+distinct at `rest`. **Mutation-verified both halves**: repointing one def's `family` arg → the
+"binds ONLY interactive.destructive" assertion fails by name (16 stray); desyncing one geometry token →
+the "share every NON-colour token byte-for-byte (diverged: button-destructive)" assertion fails by name.
+A DRY assertion that cannot fail is a deleted gate; these were shown to fail.
+
+── NO VERSION BUMP, AND WHY THAT IS RIGHT (flagged for the Reviewer) ────────────────────────────
+
+`CONTRACT_VERSION` stands: the contract is token-NAMES, and components CONSUME token names — the split
+moves none (`token-contract.ts --check` clean). `ENGINE_VERSION` stands too: components build LIVE in
+the plugin, not into `out/**`; `regen.ts --check` and `lint-emission-version.ts` are clean because no
+emitted artifact moved. The only committed-artifact change is `schema/paint-census.json` (accepted via
+`lint-paint.ts --accept`), which is not a regen artifact.
+
+── THE PAINT-CENSUS DELTA IS EXACTLY THE INTENT PARTITION ───────────────────────────────────────
+
+`button` drops to primary-only and two keys appear, with every total CONSERVED (nothing else moved):
+
+| key | set members | set assignments | grid members | grid assignments |
+|---|---|---|---|---|
+| `button` (was) | 1296 | 3798 | 756 | 2916 |
+| `button` (now) | 432 | 1266 | 252 | 972 |
+| `button-destructive` (new) | 432 | 1266 | 252 | 972 |
+| `button-neutral` (new) | 432 | 1266 | 252 | 972 |
+
+432×3 = 1296, 1266×3 = 3798, 252×3 = 756, 972×3 = 2916 — the split partitions, it does not add or drop.
+
+── THE ONE NON-OBVIOUS CONSEQUENCE: `appearance` HITS PROVENANCE NOW (`lint-paint.ts`) ───────────
+
+The paint gate's provenance rule checks only a key's FIRST segment: if it is a variant-axis value, the
+bound token must carry it. While `intent` led (`primary.filled.fill`), the token carried `primary` and
+the rule was satisfied; **`appearance` sat in the non-lead position the rule never reads**. Dropping
+intent makes `{appearance}` lead (`filled.fill`) — and appearance values (filled/outline/text) name no
+token family: the interactive tier is organized by SLOT (fill/on-fill/border/text/overlay), and
+appearance selects WHICH slot. So `appearance` joins `selection` in `NON_FAMILY_AXES` (same shape,
+#916's slot-crossing hole shared), validated exercised in both directions by the gate itself. This
+weakens no protection that existed — appearance was never provenance-checked pre-split. Two new
+`<sibling>|focus-ring` nominations join the five existing `UNREACHED_EXPLAINED` entries (#740), and the
+#1009 `CENTRE_OK` register gains the two siblings (same short-action-phrase label, same anatomy).
+
+── ACCENT IS NOT A COMPONENT ───────────────────────────────────────────────────────────────────
+
+A fourth intent would be a fourth component — but `accent` is OPTIONAL and per-brand, not one of the
+three always-generated families, so the engine cannot emit a component for a family a brand may lack.
+Two halves instead: the COLOUR family is generated when a brand promotes an accent palette to a full
+`interactive.accent.*` column (docs/20 §3–§3a); the COMPONENT is a per-brand Figma duplicate-of-Button
+rebound from `interactive.primary.*` to `interactive.accent.*` — the same duplicate-and-rebind any
+brand-specific variant takes, not a set the engine enumerates. Recorded in `button.ts`'s header.
+
 ## (2026-09-01) — the selection control now centres on its label's FIRST line (#1201, building #1009)
 
 **STATUS: shipped.** Engine + three component defs + a Figma-variable field + version bump. `out/**`
