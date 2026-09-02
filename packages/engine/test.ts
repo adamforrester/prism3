@@ -483,6 +483,19 @@ for (const b of brands) {
       // An undeclared palette is rejected — a band names a real palette or nothing.
       ok(/not a declared palette/i.test(threw({ palette: 'nope', step: 500 })),
         `#898: an undeclared palette band is rejected (${threw({ palette: 'nope', step: 500 }).slice(0, 80)})`);
+      // The widening is INVERSE-ONLY: an object `base` (the page ground) is rejected — a brand-colored
+      // page ground is a separate, undesigned capability that no contract validates. Neutral base is fine.
+      const threwBase = (b: any): string => {
+        try {
+          brandTheme({ id: 't-898b', primary: { l: 0.55, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+            brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.08, h: 250 } }], surfaces: { light: { base: b } } } as any);
+          return '';
+        } catch (e) { return (e as Error).message; }
+      };
+      ok(/base does not accept a palette band|neutral-only/i.test(threwBase({ palette: 'navy', step: 900 })),
+        `#898: an object base (palette band) is rejected — page ground is neutral-only (${threwBase({ palette: 'navy', step: 900 }).slice(0, 80)})`);
+      ok(threwBase(100) === '',
+        `#898: a neutral step base still resolves (no throw)`);
     }
 
     // The contract, on every brand INCLUDING the extremes — two example brands generalising is an

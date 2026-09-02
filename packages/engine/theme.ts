@@ -280,13 +280,17 @@ export type Theme = {
 // 'black', or a neutral step number; `floorStep` names the neutral step used as
 // the floor (defaults: white→50, black→950, a tinted base→one step more tinted).
 // A surface anchor. `'white'`/`'black'` are the pure extremes; a bare `number` is a NEUTRAL ramp step
-// (the historical form — every corpus brand uses it, and it stays byte-identical). `{ palette, step }`
-// (#898) names a NON-neutral, NON-status palette + step, so a brand's dark hero band can be brand navy
-// or a custom deep accent rather than a near-black neutral. `palette` must be a declared palette that is
-// not a status hue (success/warning/danger/info) — `surfacePaletteError` gates that; status is excluded
-// because a page band in "success green" would use a semantic colour decoratively (#898 decision).
+// (the historical form — every corpus brand uses it, and it stays byte-identical). This is the type of
+// `base` — the page ground — and it is deliberately NEUTRAL-ONLY: a brand-colored page ground is a
+// separate, undesigned capability that no contract validates, so `base` never accepts a `{ palette, step }`.
+export type SurfaceSpec = 'white' | 'black' | number;
+// `{ palette, step }` (#898) names a NON-neutral, NON-status palette + step, so a brand's dark hero band
+// can be brand navy or a custom deep accent rather than a near-black neutral. `palette` must be a declared
+// palette that is not a status hue (success/warning/danger/info) — `surfacePaletteError` gates that; status
+// is excluded because a page band in "success green" would use a semantic color decoratively (#898 decision).
 export type SurfaceStep = { palette: string; step: number };
-export type SurfaceSpec = 'white' | 'black' | number | SurfaceStep;
+// The INVERSE band alone may widen to the palette form: neutral (`SurfaceSpec`) OR a brand/custom band.
+export type InverseSurfaceSpec = SurfaceSpec | SurfaceStep;
 // `inverseBase` anchors the INVERSE band — the dark hero / inverse section. It lives HERE, next to
 // `base`, rather than being reached through the `overrides` map, and that placement is the whole fix
 // in #956: **a ground is not a value.** Setting one has to re-derive everything measured against it,
@@ -300,8 +304,8 @@ export type SurfaceSpec = 'white' | 'black' | number | SurfaceStep;
 // allow-and-flag degraded to allow-and-silently-lie. `base` never had that defect precisely because
 // it was always declared here; this gives the inverse band the same footing.
 export type SurfacesConfig = {
-  light?: { base?: SurfaceSpec; floorStep?: number; inverseBase?: SurfaceSpec };
-  dark?:  { base?: SurfaceSpec; floorStep?: number; inverseBase?: SurfaceSpec };
+  light?: { base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec };
+  dark?:  { base?: SurfaceSpec; floorStep?: number; inverseBase?: InverseSurfaceSpec };
 };
 
 // ---- canonical status hues (engine-supplied; a brand need not specify them) ----
@@ -2406,21 +2410,26 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
     : `interactive overlays: '${oInt}' — no translucent overlay tokens; outline/text hover uses ${oInt === 'solid-tint' ? 'opaque interactive.<color>.subtle-fill.* surfaces' : 'no hover expression'}`);
 
   // ---- surface confirmation + validation ----
-  // #898: a surface band may now name a NON-neutral palette via `{ palette, step }` (a brand-navy dark
+  // #898: the INVERSE band alone may name a NON-neutral palette via `{ palette, step }` (a brand-navy dark
   // hero, a custom deep accent). The palette must be DECLARED and NOT a status hue — a status band would
-  // use a semantic colour decoratively, which the #898 decision excludes. Bare `number` / `white` /
+  // use a semantic color decoratively, which the #898 decision excludes. Bare `number` / `white` /
   // `black` are always neutral and always fine. Thrown as a brand-input error, same shape as the others.
+  // `base` (the page ground) stays NEUTRAL-ONLY: a brand-colored page ground is a separate, undesigned
+  // capability that no contract validates, so an object `base` is rejected up front (defense in depth
+  // beyond the schema, which also narrows `base`).
   const STATUS_ROLE_SET = new Set<string>(['success', 'warning', 'danger', 'info']);
-  const surfaceLabel = (s: SurfaceSpec): string =>
+  const surfaceLabel = (s: InverseSurfaceSpec): string =>
     (typeof s === 'object') ? `${s.palette}.${s.step}` : s === 'white' || s === 'black' ? s : `neutral.${s}`;
-  const checkSurfacePalette = (spec: SurfaceSpec | undefined, where: string): void => {
+  const checkSurfacePalette = (spec: InverseSurfaceSpec | undefined, where: string): void => {
     if (spec == null || typeof spec !== 'object') return;
     const pb = palettes.find((p) => p.palette === spec.palette);
     if (!pb) throw new Error(`surfaces.${where}: palette '${spec.palette}' is not a declared palette (have: ${palettes.map((p) => p.palette).join(', ')}). A surface band names neutral (a bare step number), the brand (primary), or a custom brandColor — not an undeclared name.`);
     if (STATUS_ROLE_SET.has(pb.role)) throw new Error(`surfaces.${where}: palette '${spec.palette}' is a STATUS palette (role '${pb.role}') — a page band in a semantic status color would use it decoratively, which #898 excludes. Use neutral, the brand, or a custom palette.`);
   };
   for (const [mode, sf] of Object.entries(input.surfaces ?? {})) {
-    checkSurfacePalette(sf?.base, `${mode}.base`);
+    if (sf?.base != null && typeof sf.base === 'object') {
+      throw new Error(`surfaces.${mode}.base does not accept a palette band — only the inverse band may (#898). The page ground is neutral-only: use 'white', 'black', or a neutral step number.`);
+    }
     checkSurfacePalette(sf?.inverseBase, `${mode}.inverseBase`);
     if (sf?.base !== undefined && sf.base !== 'white' && sf.base !== 'black') {
       notes.push(`${mode} primary surface is NON-default (${surfaceLabel(sf.base)}) — CONFIRM this is the page color; the contrast floor moves with it${sf.floorStep ? ` (floor neutral.${sf.floorStep})` : ''}`);

@@ -23,9 +23,17 @@ in `theme.ts` throws otherwise, same shape as the other brand-input errors).
 
 ── THE THREE LAYERS ────────────────────────────────────────────────────────────────────────────
 
-1. **Type + schema** (`theme.ts`, `schema/theme-schema.json`): `SurfaceSpec` gains the object form via a
-   shared `$defs/surfaceSpec`, so `base` and `inverseBase` both accept it (the studio only surfaces it for
-   `inverseBase`, per the decision; a brand `base` is engine/design.md-reachable but unsurfaced).
+1. **Type + schema** (`theme.ts`, `schema/theme-schema.json`): the widened `'white' | 'black' | number |
+   { palette, step }` form is **INVERSE-BAND ONLY**. The type is split: `SurfaceSpec = 'white' | 'black' |
+   number` (neutral-only, the type of `base`) and `InverseSurfaceSpec = SurfaceSpec | SurfaceStep` (the type
+   of `inverseBase`). The schema mirrors this — `base` `$ref`s `neutralSurfaceSpec`, `inverseBase` `$ref`s the
+   wide `surfaceSpec`. `base` (the page ground) rejects an object at runtime too (`theme.ts` throws
+   `surfaces.<mode>.base does not accept a palette band … neutral-only`), defense in depth beyond the schema.
+   **Why base is held back:** the widening was decided for the inverse/dark band ONLY. A brand-colored `base`
+   is a separate, undesigned capability that no contract validates — the contrast floor, the ~60 role
+   re-derivations, and the whole page-ground story assume a neutral ground. An earlier draft of this change
+   shared one `surfaceSpec` def across both anchors and so silently accepted a brand `base`; that over-reach
+   was corrected before #1237 merged (owner, 2026-09-02).
 2. **Resolution** (`modes.ts`): the whole surface resolution was hardcoded to the neutral ramp (`surfAt`/
    `bgLadder`/`fgLadder` closed over `neutral`). It is now palette-generic — `surfAtP(palette, num)` snaps
    `num` to the nearest step of the NAMED palette; `specToSurf` maps a `SurfaceSpec` to `(palette, num)`.
@@ -42,7 +50,8 @@ in `theme.ts` throws otherwise, same shape as the other brand-input errors).
 Measured end-to-end (nb, brand palette `red`): `surfaces.light.inverseBase = { palette:'red', step:900 }` →
 `inverse.background.primary` = `red.900` (`#350004`), the secondary/tertiary ladder steps on red, and
 `inverse.text.primary` re-derives to white at 16.97:1 against the brand band. `test.ts` pins all of this
-plus the two rejections (status, undeclared).
+plus the three rejections (status band, undeclared band, and an object `base`) and that a neutral `base`
+still resolves.
 
 ── COMPOSITION WITH #1208 ────────────────────────────────────────────────────────────────────────
 

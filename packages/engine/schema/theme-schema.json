@@ -513,6 +513,13 @@
         "chroma": { "type": "number", "minimum": 0, "description": "Peak ramp chroma for this status hue." }
       }
     },
+    "neutralSurfaceSpec": {
+      "oneOf": [
+        { "type": "string", "enum": ["white", "black"] },
+        { "type": "number", "description": "A neutral ramp step number (e.g. 50 / 950)." }
+      ],
+      "description": "A NEUTRAL-ONLY surface anchor: white / black / a neutral ramp step. The page ground (`base`) uses this — a brand-colored page ground is a separate, undesigned capability, so `base` never accepts a palette band (#898)."
+    },
     "surfaceSpec": {
       "oneOf": [
         { "type": "string", "enum": ["white", "black"] },
@@ -534,8 +541,8 @@
       "additionalProperties": false,
       "properties": {
         "base": {
-          "allOf": [{ "$ref": "#/$defs/surfaceSpec" }],
-          "description": "The page surface for this mode. A bare number / white / black is neutral; `{ palette, step }` names a non-status brand/custom band (#898)."
+          "allOf": [{ "$ref": "#/$defs/neutralSurfaceSpec" }],
+          "description": "The page surface for this mode. NEUTRAL-ONLY: a bare number / white / black. It does NOT accept a palette band — only the inverse band may (#898)."
         },
         "floorStep": { "type": "number", "description": "The neutral step used as the contrast floor; defaults follow `base`." },
         "inverseBase": {

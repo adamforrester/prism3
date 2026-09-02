@@ -57,7 +57,7 @@
  */
 import { RGB, contrast, hex, hexToRgb, composite } from './color';
 import { Step } from './ramp';
-import { Theme, SurfaceSpec, SurfacesConfig, Role } from './theme';
+import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
 
 // The five built-in appearance modes — the closed set the engine ships with autocomplete.
 export type BuiltinModeName = 'light' | 'dark' | 'hc-light' | 'hc-dark' | 'wireframe';
@@ -279,9 +279,11 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     const s = nearestIn(steps, num);
     return cand(`${ns}.${paletteName}.${s.key}`, s.rgb);
   };
-  // A `SurfaceSpec` → (palette, step number). Neutral for `white`/`black`/`number` (byte-identical to
-  // before); the named palette + step for the #898 object form.
-  const specToSurf = (spec: SurfaceSpec): { pal: string; num: number } =>
+  // A surface anchor → (palette, step number). Neutral for `white`/`black`/`number` (byte-identical to
+  // before); the named palette + step for the #898 object form (inverse band only). Typed
+  // `InverseSurfaceSpec` because only the inverse band widens to the object form; a neutral `base`
+  // (`SurfaceSpec`) is a subset and resolves through the same neutral path.
+  const specToSurf = (spec: InverseSurfaceSpec): { pal: string; num: number } =>
     (typeof spec === 'object') ? { pal: spec.palette, num: spec.step }
       : { pal: neutralPalette, num: spec === 'white' ? 0 : spec === 'black' ? 1000 : spec };
   // Background ladder: base → +1 → +2 steps (50 each), in the mode's tonal direction, on `pal`.
