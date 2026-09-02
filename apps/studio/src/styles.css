@@ -898,6 +898,19 @@ input.toggle:disabled{opacity:.5;cursor:default}
    color.foreground.brand-subtle stay tellable apart, where a right-side ellipsis renders both as the
    same stub. The path is pure-ASCII with no trailing punctuation, so bidi reordering is a no-op on it
    (asserted in the audit: every pill's text node still equals its title). */
+/* #1147 — the `inverse` badge rides BESIDE the pill, outside its overflow box, because the rule above
+   elides the START of the path and #1141 put the inverse discriminator there. A wrapper rather than
+   anything inside .tpill: inline content would be elided by the same rule, and text content would
+   change what a copied path yields (the two measured regressions tokenPill's comment records).
+   min-width:0 on both is the standard guard against a flex item's min-content floor, and it is a GUARD
+   rather than an observed fix — dropping it changes nothing measurable at 1440px or at 380px (the
+   plugin's own MIN_SIZE.width): no container the studio renders is narrow enough to push a wrapper
+   past its parent, so the floor never applies. Measured both ways for #1147, which is also why the
+   smoke suite asserts nothing about it — the assertion would pass with the line deleted. It stays
+   because the day a container does narrow, a flex item that cannot shrink stops eliding entirely. */
+.tpill-wrap{display:inline-flex;align-items:baseline;gap:5px;max-width:100%;min-width:0;vertical-align:top}
+.tpill-wrap .tpill{min-width:0}
+.tpill-inv{flex:none;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 5px;border-radius:4px;background:var(--panel);border:1px solid var(--line2);color:var(--muted)}
 .sg-failpill{padding-right:19px}
 .sg-failpill .sg-fx{position:absolute;right:6px;top:2px;margin:0}
 /* Interactive & action colors — per-mode note + add-accent row (#69). */
