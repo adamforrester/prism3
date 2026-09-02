@@ -50,6 +50,18 @@ export const GRID_BASE = 4;
  *  drop the smallest control under the criterion silently. */
 export const MIN_TARGET_PX = 24;
 
+/** The ENHANCED interactive target, in CSS px — **WCAG 2.2 SC 2.5.5 Target Size (Enhanced), AAA**.
+ *
+ *  Not a floor on every control, and the paragraph above says why that would be wrong: gating 44
+ *  everywhere fails every shipping design system, this one included, and `compact` exists precisely
+ *  so a brand can run tighter than the enhanced criterion on purpose. It is a floor on ONE rung —
+ *  `md` at the DEFAULT density — because that is the control a consumer gets without choosing
+ *  anything, and #1207 found it at 40px, silently under the criterion, in the brand the studio boots.
+ *
+ *  Held by the ladder's arithmetic, exactly like `MIN_TARGET_PX`, which is the reason to assert it:
+ *  a future retune of the rungs would drop the default back under 44 with nothing to say so. */
+export const AAA_TARGET_PX = 44;
+
 export type Density = 'comfortable' | 'compact' | 'spacious';
 /** The `controlShape` FORM lever (#1163): the corner shape a pill-able control takes. `rounded`
  *  follows the radius ramp; `pill` binds the shared pill rung (`radius.round`) so Figma clamps every
@@ -82,27 +94,51 @@ export const spaceScale = (spaceBase = 8): SpaceStep[] =>
     return { key: k, mult, px: Math.round(mult * spaceBase) };
   });
 
-// Component-size ladder, expressed in spaceBase multiples so a "size" is a CONTRACT
-// (height + horizontal/vertical padding) every component opts into — guaranteeing a `md`
-// button, input and select agree. Heights and paddings both land on the shared scales.
+// Component-size ladder. A "size" is a CONTRACT (height + horizontal/vertical padding) every
+// component opts into — guaranteeing a `md` button, input and select agree.
 //
 // SEVEN rungs, of which a density NAMES five. `comfortable` takes the middle five (1–5, the
-// historical ladder, so its output is unchanged); `compact` slides the window down one rung,
-// `spacious` up one. The window is what keeps five names five DISTINCT sizes. The previous
-// shape shifted an index into a five-rung ladder and CLAMPED at the ends, so the end step
-// resolved to its neighbour's metrics: `compact` collapsed xs+sm onto one height and
-// `spacious` collapsed lg+xl — five names, four values. That shipped (aurora is `compact`:
-// `size.xs.height` and `size.sm.height` both resolved to `dimension.32`), and it was live at
-// the DEFAULT spaceBase, not only at an unusual one. The two outer rungs exist so the window
-// has somewhere to go; they are named only at the density that reaches them.
-const SIZE_RUNGS: { h: number; x: number; y: number }[] = [
-  { h: 3, x: 1, y: 0.25 },   // compact floor — named `xs` only at compact
-  { h: 4, x: 1, y: 0.5 },    // comfortable `xs`
-  { h: 5, x: 2, y: 0.75 },
-  { h: 6, x: 2, y: 1 },
-  { h: 7, x: 3, y: 1 },
-  { h: 8, x: 3, y: 2 },      // comfortable `xl`
-  { h: 9, x: 4, y: 2 },      // spacious ceiling — named `xl` only at spacious
+// reference ladder); `compact` slides the window down one rung, `spacious` up one. The window
+// is what keeps five names five DISTINCT sizes. The previous shape shifted an index into a
+// five-rung ladder and CLAMPED at the ends, so the end step resolved to its neighbour's
+// metrics: `compact` collapsed xs+sm onto one height and `spacious` collapsed lg+xl — five
+// names, four values. That shipped (aurora is `compact`: `size.xs.height` and `size.sm.height`
+// both resolved to `dimension.32`), and it was live at the DEFAULT spaceBase, not only at an
+// unusual one. The two outer rungs exist so the window has somewhere to go; they are named
+// only at the density that reaches them.
+//
+// HEIGHT IS PX; PADDING IS A spaceBase MULTIPLE — and the split arrived with #1207, replacing
+// a single `h` multiplier. It is not a refactor: the decided ladder (36/44/56 for a default
+// brand's small/medium/large, Prism 2's scale, so the DEFAULT control clears the 44px enhanced
+// touch target of WCAG 2.2 SC 2.5.5 AAA) is not expressible as spaceBase multiples. 36 and 44
+// are 4.5x and 5.5x of 8, and the old comment's claim — "heights and paddings both land on the
+// shared scales" — would have become false while the code went on asserting it in its type.
+// Neither 36 nor 44 is on the space scale (…24, 32, 40, 48…); both are on the `dimension` grid,
+// which is what the emitted leaf has always aliased (`size.md.height → {…dimension.44}`, never
+// a `space.*` ref). So the px ladder states what was already true of the output.
+//
+// `CONTROL_RUNGS` and `ICON_SIZES` are px ladders for the same reason, spelled out at each: a
+// box is anchored to what it contains, not to the spacing rhythm. Padding is spacing and stays
+// a multiple. The one behavior this changes is at a non-default `spaceBase`, where heights no
+// longer scale — unreachable through any brand input, since `SPACE_BASE` is locked at 8 and
+// `brandTheme` passes exactly that (theme.ts `const spaceBase = SPACE_BASE`). `test.ts` still
+// sweeps bases 4/8/12 for the padding contracts, which do scale.
+//
+// WHY THESE SEVEN. The three middle rungs are decided (#1207). The other four are cut so the
+// ARRAY's increments never shrink — 4, 8, 8, 12, 12, 12 — because every density is a window
+// onto this one array, and a dip anywhere in it surfaces as a wobbly ladder at whichever
+// density's window straddles the dip. The floor stays at exactly `MIN_TARGET_PX`, which is what
+// keeps the SC 2.5.8 assertion in `test.ts` load-bearing rather than slack. No component def
+// binds `size.xs.*` or `size.xl.*` — the corpus binds sm/md/lg only — so the two outer rungs
+// moved with nothing downstream to reconcile.
+const SIZE_RUNGS: { px: number; x: number; y: number }[] = [
+  { px: 24, x: 1, y: 0.25 },  // compact floor — named `xs` only at compact; ON `MIN_TARGET_PX`
+  { px: 28, x: 1, y: 0.5 },   // comfortable `xs`
+  { px: 36, x: 2, y: 0.75 },  // comfortable `sm` — decided (#1207)
+  { px: 44, x: 2, y: 1 },     // comfortable `md` — decided (#1207); the 44px AAA target
+  { px: 56, x: 3, y: 1 },     // comfortable `lg` — decided (#1207)
+  { px: 68, x: 3, y: 2 },     // comfortable `xl`
+  { px: 80, x: 4, y: 2 },     // spacious ceiling — named `xl` only at spacious
 ];
 const SIZE_NAMES = ['xs', 'sm', 'md', 'lg', 'xl'];
 /** Where each density's five-name window starts in SIZE_RUNGS. */
@@ -147,7 +183,7 @@ export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
     //     At lg/comfortable this lands on 24/16 — Material's pair exactly, arrived at independently.
     return {
       name,
-      height: Math.round(src.h * spaceBase),
+      height: src.px,
       padX,
       padXVisual: snapToSpace((padX * 2) / 3),
       padY: Math.round(src.y * spaceBase),

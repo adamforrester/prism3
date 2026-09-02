@@ -102,15 +102,34 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
- * 0.32.0: the selection-control LINE-BOX (#1201, building the fix #1009 filed). `control.size.{rung}`
+ * 0.33.0: the selection-control LINE-BOX (#1201, building the fix #1009 filed). Follows #1216's 0.32.0
+ * (the 36/44/56 size-ladder move, below) — 0.32.0 is spent, so this takes 0.33.0. `control.size.{rung}`
  * gains a `line-box` leaf — the baked height of one line of the `body.{rung}` label (`fontSize ×
  * lineHeight`, per rung). checkbox / radio / switch wrap their control in a box exactly that tall and
  * centre it within, while the control+label ROW stays top-aligned, so the control tracks the FIRST line
  * of a wrapping label instead of floating mid-paragraph — the construction #1009 wanted and could not
  * build, because a line-box is a ratio × a size and Figma variables cannot multiply, but the PRODUCT is
  * a fixed px a variable holds. ADDS three guaranteed paths (`control.size.{sm,md,lg}.line-box`), so
- * `CONTRACT_VERSION` moves 9.1.0 → 9.2.0 (MINOR, additive). No existing token name or value moves; the
- * anatomy restructure adds a wrapper node to three defs and changes no emitted colour or dimension. (#1201)
+ * `CONTRACT_VERSION` moves 9.1.0 → 9.2.0 (MINOR, additive, from main's 9.1.0). No existing token name or
+ * value moves; the anatomy restructure adds a wrapper node to three defs and changes no emitted colour
+ * or dimension. (#1201)
+ *
+ * 0.32.0: the shared component-size ladder moves to Prism 2's 36/44/56 for small/medium/large at the
+ * default density (#1207). A pure VALUE move — every path and every `$type` is where it was, so
+ * `CONTRACT_VERSION` stands and `token-contract.ts --check` says so rather than this comment. Minor
+ * rather than patch for the reason 0.6.0 and 0.7.0 were: a consumer resolving `size.md.height` gets a
+ * different number, across all four brands and six component defs.
+ *
+ * The defect was that the DEFAULT control sat under WCAG 2.2 SC 2.5.5 (AAA, 44px): 40px on aurora,
+ * the brand the studio boots. `AAA_TARGET_PX` is now asserted against that one rung — the default
+ * density's `md` — and deliberately not against the others, since `compact` exists so a brand can go
+ * tighter on purpose and a sweep would either fail or force `density` to stop meaning anything.
+ *
+ * `SIZE_RUNGS.h` (a spaceBase multiple) became `SIZE_RUNGS.px`, because 36 and 44 are 4.5x and 5.5x
+ * of 8 and are not on the space scale at all — the old field's stated contract could not survive the
+ * decided values. The emitted leaf has always aliased the `dimension` grid, so the px ladder states
+ * what the output already was. Heights no longer scale with `spaceBase`; unreachable, since
+ * `SPACE_BASE` is locked at 8 and `brandTheme` passes exactly that. Padding stays a multiple.
  *
  * 0.31.0: the `controlShape` FORM lever (#1163). A brand can now choose `rounded` (default) or `pill`
  * for its pill-able controls — today button and icon-button, tomorrow anything that declares a
@@ -677,7 +696,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.32.0';
+export const ENGINE_VERSION = '0.33.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -56,6 +56,276 @@ than a no-op. Mutation-verified: put the control back as a direct row child and 
 
 ---
 
+## (2026-09-01) — the shared size ladder moves to 36/44/56, and the default control was under AAA (#1207)
+
+**STATUS: shipped.** `packages/engine/scale.ts` (the ladder + one new constant) and the assertions in
+`test.ts` that pin it. Gates stay at **52** (re-measured on the merged base, not carried — #1180;
+this entry read 51 when the branch was cut, before #1205 landed the round-trip gate); `ENGINE_VERSION`
+0.31.0 → **0.32.0**, `CONTRACT_VERSION`
+**stands at 9.1.0** — a pure value move, and `token-contract.ts --check` says so rather than this
+entry asserting it. Emitted heights move in all four brands.
+
+── WHAT THE QA ACTUALLY FOUND, WHICH IS NOT WHAT THE ISSUE TITLE SAYS ────────────────────────────
+
+#1207 reports "the medium button height is 40px". No brand's `size.md.height` was 40 at the default
+density — it was **48**. 40 is `compact`, and the number came from the studio, which boots **aurora**,
+which is `density: compact`. Worth pinning because it changes what the fix is: the reported number is
+one density's, and the ramp has three.
+
+── THE PART THAT HAD TO BE DECIDED, NOT ENGINEERED ───────────────────────────────────────────────
+
+`size.*.height` is not a ladder. It is a SEVEN-rung array with a five-name window that density slides
+by one rung — so **`compact`'s `md` IS `comfortable`'s `sm`**, by construction, not by coincidence.
+That makes "36/44/56 for small/medium/large" and "44px as a floor at every density" mutually
+exclusive: fixing `comfortable.sm = 36` forces `compact.md = 36`, and no re-cut of the seven rungs
+escapes it. There is no arithmetic answer, only a choice, so it went back to the owner with the three
+options priced. **Decided: 36/44/56 lands at `comfortable`, the default density.**
+
+The consequence, stated plainly because it is the opposite of what the issue's framing implies:
+**aurora's medium goes 40 → 36, further below the 44 the issue is about**, and the default brands'
+medium goes 48 → **44**, i.e. DOWN. Prism 2's ladder is tighter than the engine's was. What the change
+buys is not a bigger control — it is that the default is now the deliberate number rather than a
+by-product of a uniform ×8 ladder, and that it is asserted. The studio still boots a brand whose
+default control is 36px; that is #1215, filed, not fixed here.
+
+── THE LADDER, AND WHY THE FOUR RUNGS NOBODY NAMED ALSO MOVED ────────────────────────────────────
+
+```
+             xs   sm   md   lg   xl        small/medium/large (what the six defs bind)
+compact      24   28   36   44   56        28 / 36 / 44
+comfortable  28   36   44   56   68        36 / 44 / 56   ← decided
+spacious     36   44   56   68   80        44 / 56 / 68
+```
+
+The seven rungs are ONE array and every density is a window onto it, so an increment that dips
+anywhere in the array surfaces as a wobbly ladder at whichever window straddles the dip — which no
+single density's own five values would reveal. Keeping `xs` at 32 beside a decreed `sm` of 36 puts a
++4 step next to a +8 and a +12; the array is cut instead so its increments never shrink (4, 8, 8, 12,
+12, 12), and that property is now asserted over all seven rungs reconstructed from the public API.
+**No component def binds `size.xs.*` or `size.xl.*`** — the corpus binds sm/md/lg only — so the outer
+rungs moved with nothing downstream to reconcile. The floor stays on exactly `MIN_TARGET_PX`, which is
+what keeps the existing SC 2.5.8 assertion load-bearing instead of slack.
+
+── `h` BECAME `px`, AND THAT IS A CORRECTION RATHER THAN A REFACTOR ──────────────────────────────
+
+`SIZE_RUNGS` stored height as a `spaceBase` multiple, with the reason in the comment above it:
+*"Heights and paddings both land on the shared scales."* 36 and 44 are 4.5× and 5.5× of 8, and
+**neither is on the space scale at all** (…24, 32, 40, 48…). So the decided values falsify that
+sentence whatever the representation; writing them as `4.5` and `5.5` would have kept a field whose
+stated contract had expired and left the comment asserting it. Both ARE on the `dimension` grid, which
+is what the emitted leaf has always aliased — `size.md.height → {…dimension.44}`, never a `space.*`
+ref — so the px ladder states what the output already was. `CONTROL_RUNGS` and `ICON_SIZES` are px
+ladders for the same reason, each spelled out at its own definition.
+
+The one behavior that changes: heights no longer scale with `spaceBase`. Unreachable through any brand
+input — `SPACE_BASE` is locked at 8 and `brandTheme` passes exactly that (`const spaceBase =
+SPACE_BASE`) — and `test.ts` still sweeps bases 4/8/12 for the padding contracts, which do scale.
+Padding stays a multiple; it is spacing, and the rhythm is where it belongs.
+
+── SIX DEFS, NOT ONE, AND TWO OF THEM ARE THE INTERESTING ONES ───────────────────────────────────
+
+"Not button-only" was the owner's instruction and it is literally true — every def that binds a row
+height binds the same three rungs:
+
+| def | binds `size.{sm,md,lg}.height` as | aurora (compact) | nb · harbor · wendys |
+|---|---|---|---|
+| `button`, `text-field` | `height` | 28 / 36 / 44 | 36 / 44 / 56 |
+| `icon-button` | `side` (square, so this is the whole target) | 28 / 36 / 44 | 36 / 44 / 56 |
+| `checkbox`, `radio` | `min-height` | 28 / 36 / 44 | 36 / 44 / 56 |
+| `switch` | `min-height` (sm/md only) | 28 / 36 | 36 / 44 |
+
+The selection controls are why this tier exists rather than a per-def height: `control.size.md.height`
+is 16–20px, and `scale.ts` already said the row is what carries their target — *"a 12px box depends on
+the row's padding for its 24px target (SC 2.5.8, `MIN_TARGET_PX`) — which is what `size.<t>.height` is
+for"*. A 44px row under a 20px checkbox is the same sentence one criterion up.
+
+── THE NEW CONSTANT, AND WHY IT IS SCOPED TO ONE RUNG ────────────────────────────────────────────
+
+`AAA_TARGET_PX = 44` (WCAG 2.2 SC 2.5.5, Enhanced) sits beside `MIN_TARGET_PX = 24` (SC 2.5.8,
+Minimum) and is asserted against **`md` at the default density only**. Not a sweep, on purpose, and
+the comment says so: `compact` md is 36 and `compact` xs is 24, both deliberate, both clearing the AA
+floor. A version of this that swept all three densities would either fail or force `density` to stop
+meaning anything — and `MIN_TARGET_PX`'s own header already argues that gating 44 everywhere "would
+fail every real design system including this one". The assertion is worth having because the ladder
+holds 44 by arithmetic, exactly like the 24 floor: a future retune drops the default back under the
+criterion with nothing to say so. That is the whole reason #1207 existed to be found by eye.
+
+── VERIFICATION ──────────────────────────────────────────────────────────────────────────────────
+
+`npm run verify` → 52/52 on the merged base (51/51 when the branch was cut).
+`regen --check` in sync. `token-contract --check` clean after `--accept`,
+whose entire diff is the `engineVersion` stamp — **no guaranteed path moved**, which is the mechanical
+confirmation that this is a value change and not a name change. Every rung still aliases the grid
+(`dimension.24/28/36/44/56/68`) in all four brands rather than falling back to a literal.
+
+**The round-trip gate (#874/#1205) passes over this change and does NOT exercise it**, which is worth
+separating because the two read the same from a green run. The plan binds a node's `height` to the
+VARIABLE NAME — `container.bound.height = "size/sm/height"` — never to a px value, so the gate proves
+the binding survived the build and is blind to what is behind it. Its silence here is not coverage of
+44; it is the mechanical evidence that no NAME moved, the same fact `token-contract --check` reports
+from the other side. What covers the values is `test.ts`'s three new assertions and `regen --check`
+over the sixteen emitted artifacts.
+
+## (2026-09-01) — the component round-trip: build it, read it back, diff it against the plan (#874)
+
+**STATUS: shipped.** `packages/engine/anatomy-readback.ts` (the pure reader + differ) and
+`apps/plugin/test-roundtrip.ts` (the offline host arm). Gates **51 → 52**, re-measured with
+`lint-doc-gates` on the #1202 base rather than carried (#1180). Nothing emitted moves.
+
+`docs/14` §4 specified this on 2026-07-03 — *"materialize components from our data → extract specs
+from the resulting file → diff against the source"* — and nothing built it for two months.
+
+── THE ARGUMENT IS NOT THE ONE THE ISSUE MAKES ─────────────────────────────────────────────────
+
+#874 argues from #864 (empty artboards) and #866 (discarded refs). Both are now caught by read-backs
+the executor grew afterwards, so neither is a live target. The durable argument is the measurement in
+that issue's own analysis: **four writes in `write-components.ts` could be deleted with the whole suite
+green.**
+
+The reason is structural, and it is `docs/34` shape 1 living inside the writer: each of the executor's
+nine retention read-backs was written by the same author, in the same branch, immediately below the
+write it checks — so **a field the writer forgets to WRITE is a field the writer forgets to READ
+BACK**, and nothing can tell. Six of the nine name a numbered issue in the comment above them. That is
+a ledger of past defects. This is the rule: it iterates the PLAN's fields, not the writer's branches.
+
+ORACLE = `figmaAnatomySet(def)`, SUBJECT = what the host holds. **Sharing the plan is not shape 1** —
+the plan is the executor's *input*, and comparing output against declared input is the shape of every
+honest test. Shape 1 would be sharing the writer's TRAVERSAL, which is why children are matched **by
+name** and never in build order, and why member names are compared as a **set, both directions**.
+
+── IT FOUND A DEFECT NOBODY HAD FILED ───────────────────────────────────────────────────────────
+
+108 of Button's 1,296 members had the spinner's swap slot wired to `trailingVisual` where the plan
+declares `leadingVisual` — **#1202**, fixed first so this lands green. It is not one of the defects
+#874 was filed to catch: #864 is fixed, and #866's class is real-host-only.
+
+── TWO FALSE INVENTORIES, BOTH MINE, BOTH CAUGHT BEFORE THEY WERE REPORTED ─────────────────────
+
+Worth recording because either would have shipped as an authoritative defect list:
+
+  · I read `propertyRef` as a `Record<field, propId>`. It is a `{ field, prop }` PAIR. The reader asked
+    the host for fields literally named `field` and `prop`, found neither, and reported **2,880 false
+    DISCARDEDs across six defs** — wearing the exact costume of #866, the defect this gate was built to
+    find.
+  · I built plans without `swapTarget`, which the real caller always nominates. The executor then
+    reports `built as a placeholder frame` and puts a FRAME where the plan says `INSTANCE_SWAP`:
+    **2,970 more findings, every one a harness fault.**
+
+First inventory: 4,392 divergences across 7 defs. True figure: 108 across 1. Both were found by
+dumping one built tree beside its plan and reading them — not by any check. **A gate's first red run is
+evidence about the gate, not yet about the subject.**
+
+── PER-PREDICATE EXERCISE COUNTS, ADDED BECAUSE A MUTATION FAILED TO FIRE ──────────────────────
+
+Deleting the executor's effect-style write changed nothing here, and the reason is a corpus fact:
+**zero defs declare an effect style**, so that predicate compares 0 nodes. "18 fields compared" was
+overstating coverage by counting a clause with no subject. The run now prints nodes-compared per
+predicate and flags any at zero as **"not a pass"**. Only visible because M3 was checked for *why* it
+passed rather than being recorded as a miss.
+
+── MUTATIONS ────────────────────────────────────────────────────────────────────────────────────
+
+| mutation | round-trip | `plugin-test` |
+|---|---|---|
+| delete `node.primaryAxisAlignItems =` | **8/9 → 2/9 clean**, names it 1296× + 162× | **exit 0** |
+| delete `node.counterAxisSizingMode =` | **8/9 → 2/9 clean**, named | **exit 0** |
+| delete the effect-style write | **not caught** — 0 nodes declare one (above) | exit 0 |
+| remove `layoutMode` from `FIELDS` | the classification floor fires by name | — |
+| delete the extra-member arm | a stray member goes from named to **0 findings** | — |
+
+The first two rows are the census claim, now caught — and `plugin-test` stays green through both,
+which is the whole point. The `layoutMode` mutation also caught a real error of mine: the plan field is
+`textAlignVertical` and my table said `verticalAlign`, so it was silently unclassified. The floor found
+it; I did not.
+
+── WHAT IT CANNOT CATCH, in the header rather than implied ─────────────────────────────────────
+
+Anything the plan does not declare (#865, the largest blind spot). Anything **visual** — the plan is
+the oracle, so a WRONG plan round-trips perfectly. **Accept-and-discard** on any offline host: a shim
+reproduces only the discards it was taught, so that class is a ledger here by construction and a rule
+only against real Figma — the `tools/component-roundtrip/` arm is still unbuilt and **CI does not cover
+it**. And a build that never finishes (#870) leaves no tree to read.
+
+── TWO STRUCTURAL CHANGES THAT CAME WITH IT ────────────────────────────────────────────────────
+
+`makeShim` moved to `apps/plugin/component-shim.ts`, unchanged, so both suites drive ONE model of the
+host — a second shim would be a second mental model of Figma, with no way to tell which was wrong. The
+move was verified by diffing `test-write-components.ts`'s output before and after: identical once
+wall-clock milliseconds are normalized, 250 assertions either side.
+
+And **#1007 is fixed** in passing: the shim wrote style ids only under private `_textStyleId` /
+`_effectStyleId`, so a reader using Figma's own property names read `undefined` and reported every
+styled node as unstyled — a harness defect presenting as a subject defect, which is the worst shape a
+false positive takes. Both names are now set from the one setter.
+
+## (2026-09-01) — the spinner's swap slot was wired to the wrong property in 108 Button members (#1202)
+
+**STATUS: shipped.** One executor change, in `apps/plugin/src/write-components.ts`. Gates stay at
+**51**; nothing emitted moves. Found by the #874 round-trip gate on its first clean run — the first
+defect that gate caught, and not one of the ones it was filed to catch.
+
+── THE DEFECT ───────────────────────────────────────────────────────────────────────────────────
+
+Every `state=pending` Button member with a leading visual had its spinner's `mainComponent` swap slot
+wired to the **`trailingVisual`** set property, where the plan declares `leadingVisual`. **108 of
+Button's 1,296 members wrong, 0 right where `leadingVisual` is wanted.** Both properties exist, so
+nothing looks broken: a designer repointing a pending button's leading visual changes nothing, and
+repointing the trailing one moves both.
+
+── THE CAUSE, AND IT IS A PREMISE THAT EXPIRED ──────────────────────────────────────────────────
+
+`planSetLayout` builds the part→property wiring as a Map keyed on the part NAME, with the reason
+written above it:
+
+> `REFS` is deduped by part because **every member carries the same anatomy** — the payload loops
+> members, so a per-plan list would wire each node twenty-one times over.
+
+That premise was true when written and **stopped being true at #848**. The spinner is an OVERLAY that
+takes whichever visual cell the member has, so `figmaAnatomySet` resolves its `propertyRef.prop` per
+member — `leadingVisual` where it took the leading cell, `trailingVisual` where it took the trailing
+one. A Map keyed on `spinner` collapses those to whichever plan was walked last, which is the trailing
+one.
+
+**#848's own comment predicts this defect exactly, one tier up.** It explains why the PLAN reads
+`replacedByOverlay` rather than `p.replaces`: *"Reading `p.replaces` here would hand the spinner the
+LEADING cell's swap property at a coordinate where it actually took the TRAILING one … with both
+properties existing, so nothing would look broken."* #848 fixed the plan and the executor's set-wide
+dedup threw the answer away. Same sentence, same consequence, one layer down.
+
+── THE FIX ──────────────────────────────────────────────────────────────────────────────────────
+
+The wire loop reads the property from **that member's own plan** rather than from the deduped entry.
+`refs` keeps the job the dedup exists for — WHICH PARTS to visit, once per member, so #701's fast route
+is untouched — and only the property it names is now per member.
+
+Read from the plan, never re-derived: #848 already computes which cell the overlay took, and a second
+copy of that rule in the executor would be a second thing to get wrong (`docs/34` shape 8). The index
+is built from `plans`, the executor's INPUT, and keyed by `planComponentName` for the same reason
+`stampByMember` is — every name derivation goes through it, so the key agrees by construction.
+
+── VERIFIED, INCLUDING THE DIRECTION THAT MUST NOT MOVE ─────────────────────────────────────────
+
+The #874 round-trip harness, `--inventory` mode, before and after:
+
+| member group | plan wants | before | after |
+|---|---|---|---|
+| `pending, leading=T, trailing=T` (54) | `leadingVisual` | `trailingVisual` ✗ | `leadingVisual` ✓ |
+| `pending, leading=T, trailing=F` (54) | `leadingVisual` | `trailingVisual` ✗ | `leadingVisual` ✓ |
+| `pending, leading=F, trailing=T` (54) | `trailingVisual` | `trailingVisual` ✓ | `trailingVisual` ✓ |
+
+Button goes **108 → 0** divergences and all nine projected defs round-trip clean. The third row is the
+one worth stating: those members legitimately want `trailingVisual`, and a fix that flipped every
+spinner to `leadingVisual` would have produced the same headline number with 54 new defects behind it.
+
+── FILED, NOT FIXED HERE ────────────────────────────────────────────────────────────────────────
+
+**The PASTE path has the same defect** and this change does not reach it. `planSetToPluginJs` and
+`planSetChunks` consume the same deduped `refs` from `planSetLayout`, so a set built by pasting
+generated JS into `figma_execute` wires the spinner the same wrong way. It is not fixed here because
+the round-trip harness drives `applyComponentPlan` only, and shipping an unverified fix to a second
+executor is how the first one got here. Filed as **#1203**, with the shared-source measurement and the
+note that the paste path's own output was NOT observed — only the code it reads from.
+
 ## (2026-08-31) — an isolated Name/Namespace change was dropped on Apply/export (#1196, #1194)
 
 **STATUS: shipped.** UI plumbing in `apps/studio/src/main.ts` + a new arm in `test-smoke.mjs`. No

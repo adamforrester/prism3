@@ -1,0 +1,290 @@
+{
+  "title": "_Helper Message",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "thisIsAnErrorMessage": {
+      "type": "text"
+    },
+    "alertLine": {
+      "type": "instance",
+      "detectedIn": "Type=Error",
+      "instanceOf": "alertLine"
+    },
+    "checkboxCircleLine": {
+      "type": "instance",
+      "detectedIn": "Type=Success",
+      "instanceOf": "checkboxCircleLine"
+    },
+    "errorWarningLine": {
+      "type": "instance",
+      "detectedIn": "Type=Warning",
+      "instanceOf": "errorWarningLine"
+    },
+    "informationLine": {
+      "type": "instance",
+      "detectedIn": "Type=Info",
+      "instanceOf": "informationLine"
+    }
+  },
+  "props": {
+    "type": {
+      "type": "string",
+      "default": "Helper Text",
+      "enum": ["Helper Text", "Error", "Success", "Warning", "Info"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["thisIsAnErrorMessage"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 320,
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 4
+        }
+      },
+      "thisIsAnErrorMessage": {
+        "styles": {
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "textColor": "#656A7A",
+          "typography": {
+            "fontSize": 14,
+            "fontFamily": "Inter",
+            "fontStyle": "Regular",
+            "lineHeight": "150%",
+            "paragraphSpacing": 22
+          }
+        },
+        "content": "This is a standard message. "
+      },
+      "alertLine": {
+        "styles": {
+          "width": 16,
+          "height": 16
+        },
+        "instanceOf": "alertLine"
+      },
+      "checkboxCircleLine": {
+        "styles": {
+          "width": 16,
+          "height": 16
+        },
+        "instanceOf": "checkboxCircleLine"
+      },
+      "errorWarningLine": {
+        "styles": {
+          "width": 16,
+          "height": 16
+        },
+        "instanceOf": "errorWarningLine"
+      },
+      "informationLine": {
+        "styles": {
+          "width": 16,
+          "height": 16
+        },
+        "instanceOf": "informationLine"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "type": "Error"
+      },
+      "layout": [
+        {
+          "root": ["alertLine", "thisIsAnErrorMessage"]
+        }
+      ],
+      "elements": {
+        "thisIsAnErrorMessage": {
+          "styles": {
+            "textColor": "#C10000",
+            "typography": {
+              "fontSize": 14,
+              "fontFamily": "Inter",
+              "fontStyle": "Bold",
+              "lineHeight": "150%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 22,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            },
+            "textAlignVertical": "CENTER"
+          },
+          "content": "This is an error message."
+        }
+      }
+    },
+    {
+      "configuration": {
+        "type": "Success"
+      },
+      "layout": [
+        {
+          "root": ["checkboxCircleLine", "thisIsAnErrorMessage"]
+        }
+      ],
+      "elements": {
+        "thisIsAnErrorMessage": {
+          "styles": {
+            "textColor": "#0D6E08",
+            "typography": {
+              "fontSize": 14,
+              "fontFamily": "Inter",
+              "fontStyle": "Bold",
+              "lineHeight": "150%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 22,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            },
+            "textAlignVertical": "CENTER"
+          },
+          "content": "This is a success message."
+        }
+      }
+    },
+    {
+      "configuration": {
+        "type": "Warning"
+      },
+      "layout": [
+        {
+          "root": ["errorWarningLine", "thisIsAnErrorMessage"]
+        }
+      ],
+      "elements": {
+        "thisIsAnErrorMessage": {
+          "styles": {
+            "textColor": "#954A09",
+            "typography": {
+              "fontSize": 14,
+              "fontFamily": "Inter",
+              "fontStyle": "Bold",
+              "lineHeight": "150%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 22,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            },
+            "textAlignVertical": "CENTER"
+          },
+          "content": "This is a warning message."
+        }
+      }
+    },
+    {
+      "configuration": {
+        "type": "Info"
+      },
+      "layout": [
+        {
+          "root": ["informationLine", "thisIsAnErrorMessage"]
+        }
+      ],
+      "elements": {
+        "thisIsAnErrorMessage": {
+          "styles": {
+            "textColor": "#1656CE",
+            "typography": {
+              "fontSize": 14,
+              "fontFamily": "Inter",
+              "fontStyle": "Bold",
+              "lineHeight": "150%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 22,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            },
+            "textAlignVertical": "CENTER"
+          },
+          "content": "This is an info message."
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-01T22:54:53.421Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.17.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.30.0/packages/schema/schema/component.schema.json",
+      "version": "0.30.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:5290",
+      "nodeId": "5412:419965",
+      "nodeType": "COMPONENT_SET"
+    },
+    "config": {
+      "processing": {
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false,
+        "collapsePrimitiveWrapper": false,
+        "variantDepth": 9999,
+        "details": "LAYERED"
+      },
+      "format": {
+        "output": "JSON",
+        "keys": "CAMEL",
+        "figmaKeys": "NONE",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX"
+      },
+      "include": {
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false
+      }
+    }
+  }
+}

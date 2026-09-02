@@ -815,6 +815,35 @@ npm run test:start -w @prism3/plugin     # the plugin's START MOMENT (#1197): "+
                                         # restored brand) so "nothing rendered at all" cannot pass as
                                         # "hydrated". Needs the same one-off `npx playwright install
                                         # chromium` as test:smoke
+npm run test:roundtrip -w @prism3/plugin # THE COMPONENT ROUND-TRIP (#874): build every projected def,
+                                        # read the result back out of the host, diff it against the
+                                        # plan that built it. docs/14 §4 specified this on 2026-07-03
+                                        # and nothing built it. The argument is NOT the two defects
+                                        # #874 cites — both are now caught by read-backs the executor
+                                        # grew afterwards. It is that FOUR writes in
+                                        # write-components.ts could be deleted with every gate green,
+                                        # because each of the executor's nine retention read-backs was
+                                        # written by the same author immediately below the write it
+                                        # checks: a field the writer forgets to WRITE is a field the
+                                        # writer forgets to READ BACK, and nothing can tell. Those
+                                        # nine are a ledger of past defects; this is the rule — it
+                                        # iterates the PLAN's fields, not the writer's branches, so a
+                                        # field added to FigmaNodePlan next year is covered with no
+                                        # new gate code. ORACLE = figmaAnatomySet(def), the executor's
+                                        # own INPUT; SUBJECT = what the host holds afterwards. Sharing
+                                        # the plan is not shape 1 — sharing the writer's TRAVERSAL
+                                        # would be, which is why children are matched BY NAME and
+                                        # never in build order. Plan-driven and ONE-directional on
+                                        # fields (the host holds vastly more than any def declares;
+                                        # #865 is a separate allowlist-shaped check), TWO-directional
+                                        # on members (an extra member is #869's class). It caught
+                                        # #1202 on its first clean run — 108 Button members whose
+                                        # spinner swap slot named the wrong property. Stated limits in
+                                        # its header: accept-and-discard is real-host-only (a shim
+                                        # reproduces only the discards it was taught), a WRONG plan
+                                        # round-trips perfectly, and one predicate (effectStyle)
+                                        # compares 0 nodes because no def declares one — reported as
+                                        # "not a pass" rather than counted as coverage
 npm run test:verdict -w @prism3/plugin   # every terminating condition of a component build reaches a
                                           # VISIBLE verdict (#870) — clean, with misses, errored,
                                           # already-built, unknown-def. Runs after `build` above: it

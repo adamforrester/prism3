@@ -1,0 +1,306 @@
+{
+  "title": "Checkboxes",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "checkFill": {
+      "type": "instance",
+      "instanceOf": "checkFill"
+    },
+    "focusRing": {
+      "type": "instance",
+      "detectedIn": "Checked=true, Indeterminate=false, Disabled=false, State=Focused",
+      "instanceOf": "focusRing"
+    },
+    "subtractFill": {
+      "type": "instance",
+      "detectedIn": "Checked=true, Indeterminate=true, Disabled=false, State=Rest",
+      "instanceOf": "subtractFill"
+    }
+  },
+  "props": {
+    "checked": {
+      "type": "boolean",
+      "default": true,
+      "$extensions": {
+        "com.figma": {
+          "type": "VARIANT"
+        }
+      }
+    },
+    "indeterminate": {
+      "type": "boolean",
+      "default": false,
+      "$extensions": {
+        "com.figma": {
+          "type": "VARIANT"
+        }
+      }
+    },
+    "disabled": {
+      "type": "boolean",
+      "default": false,
+      "$extensions": {
+        "com.figma": {
+          "type": "VARIANT"
+        }
+      }
+    },
+    "state": {
+      "type": "string",
+      "default": "Rest",
+      "enum": ["Rest", "Hovered", "Active", "Focused"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["checkFill"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "cornerRadius": 2,
+          "mainAxisAlignment": "CENTER",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingHorizontal": "HUG",
+          "layoutSizingVertical": "HUG",
+          "backgroundColor": "#1E1EFF"
+        }
+      },
+      "checkFill": {
+        "styles": {
+          "width": 16,
+          "height": 16,
+          "position": "ABSOLUTE",
+          "centerHorizontalOffset": 0,
+          "centerVerticalOffset": 0
+        },
+        "instanceOf": "checkFill"
+      },
+      "focusRing": {
+        "styles": {
+          "width": 28,
+          "height": 28,
+          "position": "ABSOLUTE",
+          "top": -4,
+          "start": -4
+        },
+        "propConfigurations": {
+          "color": "Default"
+        },
+        "instanceOf": "focusRing"
+      },
+      "subtractFill": {
+        "styles": {
+          "width": 16,
+          "height": 16,
+          "position": "ABSOLUTE",
+          "centerHorizontalOffset": 0,
+          "centerVerticalOffset": 0
+        },
+        "instanceOf": "subtractFill"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "state": "Hovered"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#0812C3"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Active"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#090A83"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": ["checkFill", "focusRing"]
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "disabled": true
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#C6C6C6"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "indeterminate": true
+      },
+      "layout": [
+        {
+          "root": ["subtractFill"]
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "checked": false
+      },
+      "layout": ["root"],
+      "elements": {
+        "root": {
+          "styles": {
+            "strokes": "#82899D",
+            "strokeAlign": "INSIDE",
+            "strokeWeight": 2,
+            "backgroundColor": null
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "indeterminate": true,
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": ["subtractFill", "focusRing"]
+        }
+      ]
+    },
+    {
+      "configuration": {
+        "checked": false,
+        "state": "Hovered"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "checked": false,
+        "state": "Active"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "checked": false,
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": ["focusRing"]
+        }
+      ],
+      "elements": {
+        "root": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "checked": false,
+        "disabled": true
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "strokes": null,
+            "strokeAlign": null,
+            "strokeWeight": null,
+            "backgroundColor": "#C6C6C6"
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-01T22:44:53.115Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.17.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.30.0/packages/schema/schema/component.schema.json",
+      "version": "0.30.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5330:1888",
+      "nodeId": "5330:1914",
+      "nodeType": "COMPONENT_SET"
+    },
+    "config": {
+      "processing": {
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false,
+        "collapsePrimitiveWrapper": false,
+        "variantDepth": 9999,
+        "details": "LAYERED"
+      },
+      "format": {
+        "output": "JSON",
+        "keys": "CAMEL",
+        "figmaKeys": "NONE",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX"
+      },
+      "include": {
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false
+      }
+    }
+  }
+}

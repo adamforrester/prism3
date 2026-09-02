@@ -1044,11 +1044,11 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 
 | size | height | padding-x | padding-y |
 |---|---|---|---|
-| size.xs | 32px | 8px | 4px |
-| size.sm | 40px | 16px | 6px |
-| size.md | 48px | 16px | 8px |
+| size.xs | 28px | 8px | 4px |
+| size.sm | 36px | 16px | 6px |
+| size.md | 44px | 16px | 8px |
 | size.lg | 56px | 24px | 8px |
-| size.xl | 64px | 24px | 16px |
+| size.xl | 68px | 24px | 16px |
 
 # Theme: aurora (prism.* / hex)
 
@@ -2108,9 +2108,9 @@ Component sizes — t-shirt, density `compact` (height + paired padding from the
 | size | height | padding-x | padding-y |
 |---|---|---|---|
 | size.xs | 24px | 8px | 2px |
-| size.sm | 32px | 8px | 4px |
-| size.md | 40px | 16px | 6px |
-| size.lg | 48px | 16px | 8px |
+| size.sm | 28px | 8px | 4px |
+| size.md | 36px | 16px | 6px |
+| size.lg | 44px | 16px | 8px |
 | size.xl | 56px | 24px | 8px |
 
 # Theme: harbor (prism.* / hex)
@@ -3169,9 +3169,9 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 
 | size | height | padding-x | padding-y |
 |---|---|---|---|
-| size.xs | 32px | 8px | 4px |
-| size.sm | 40px | 16px | 6px |
-| size.md | 48px | 16px | 8px |
+| size.xs | 28px | 8px | 4px |
+| size.sm | 36px | 16px | 6px |
+| size.md | 44px | 16px | 8px |
 | size.lg | 56px | 24px | 8px |
-| size.xl | 64px | 24px | 16px |
+| size.xl | 68px | 24px | 16px |
 
