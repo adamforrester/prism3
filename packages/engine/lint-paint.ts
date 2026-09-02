@@ -324,6 +324,8 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
 const NON_FAMILY_AXES: Record<string, string> = {
   selection:
     "the tier emits no `color.checked.*` / `color.unchecked.*` and must not: a checked control is not a different colour FAMILY, it is the same interactive family in a different ROLE — `color.interactive.primary.*` for a filled control against `color.field.*` for an empty field. So arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Admitted by #910 for `checkbox`, and inherited by every selection control after it.",
+  appearance:
+    "the tier emits no `color.filled.*` / `color.outline.*` / `color.text.*` and must not: filled, outline and text are not three colour FAMILIES, they are three RENDER STRATEGIES over the ONE interactive family — filled paints it as `.fill`/`.on-fill`, outline as `.border`/`.text`/`.overlay`, text as `.overlay`/`.text`. The appearance is expressed by WHICH slot a key binds, never by an appearance segment in the token, so arm 1's premise (an axis value's paint comes from that value's family) has nothing to be true of here. Newly VISIBLE to arm 1 only since #1223: while `intent` was an axis the paint keys led with `{intent}` and appearance sat in the non-lead position the rule never reads; #1223 made intent the component identity, so `{appearance}` now leads and the same non-family shape as `selection` is exposed. The slot-crossing hole this names is the #916 question, shared with `selection`.",
 };
 
 type Tally = { members: number; assignments: number; sha256: string };
@@ -500,6 +502,10 @@ const provenanceFailures = (): { failures: { key: string; detail: string }[]; ex
 const UNREACHED_EXPLAINED: Record<string, string> = {
   'button|focus-ring':
     'a NOMINATION, not a paint: it names which colour the nested `focus-ring` component draws, and the ring is a separate def with its own node. `PartDef` has no stroke field for a host to paint a ring with (#740), so no node in this plan can carry it.',
+  'button-destructive|focus-ring':
+    'same shape as `button|focus-ring`, on the #1223 sibling — a nomination for the nested ring, not a paint on any node of this def. It shares Button\'s exact anatomy, so it nests the ring the same way and can no more carry a ring stroke (#740).',
+  'button-neutral|focus-ring':
+    'same shape as `button|focus-ring`, on the #1223 sibling — a nomination for the nested ring, not a paint on any node of this def. It shares Button\'s exact anatomy, so it nests the ring the same way and can no more carry a ring stroke (#740).',
   'icon-button|focus-ring':
     'same as `button|focus-ring` — a nomination for the nested ring, not a paint on any node of this def.',
   'checkbox|focus-ring':
