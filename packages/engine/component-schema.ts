@@ -1848,10 +1848,25 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
     if (key.split('.')[0] === 'disabled' && (def.states ?? []).includes('disabled')) return false;
     // A def that will nest the ring but has no `anatomy` yet cannot be detected by `nests`, so the
     // exemption is NAMED — the same mechanism (and the same stale-exemption discipline) `lint-paint.ts`
-    // uses for its provenance exceptions. `text-field` is the only entry: its `focus-ring` binding is
-    // Button's exactly, and it becomes detectable — and this line removable — the moment the anatomy
-    // block lands (Arc 2 step 5). An entry here must name a key that EXISTS and is otherwise ungoverned,
-    // which the two directions below assert, so a rename does not leave a lie behind.
+    // uses for its provenance exceptions.
+    //
+    // WHICH defs are exempt, and why each one is, lives beside the entries in `NESTED_WITHOUT_ANATOMY`.
+    // This site states neither the membership nor a count of it, and that is the fix rather than an
+    // omission: it used to name one def as "the only entry" and went on saying so while the table grew
+    // past it and then shrank again, because a count sited two hundred lines from the thing it counts
+    // cannot be corrected by the edit that invalidates it (#966, `docs/34`'s register on writing a count
+    // in prose). The same half carried a removal trigger phrased for a single entry, which told anyone
+    // reading only this line to plan the wrong edit — with more than one, each block lands with the
+    // deletion of its OWN entry, and this line outlives all of them. Neither belongs here, and nothing
+    // here needs them: the condition below reads the table and `def.anatomy` live, so it is correct at
+    // whatever the membership happens to be.
+    //
+    // What the exemption COSTS is asserted rather than assumed — an entry must name a key that EXISTS
+    // and is otherwise ungoverned, which the two directions in `paintKeyErrors` check, so a rename
+    // cannot leave a lie behind. Neither direction asks whether an entry is still REACHABLE: the guard
+    // below makes one inert the moment its def gains an `anatomy` block, and an inert entry is reported
+    // by nothing (#1221, measured — the suite is exactly as green with two dead entries as without
+    // them). So read the two directions as validating the entries that remain, never as retiring them.
     if (NESTED_WITHOUT_ANATOMY[def.id]?.includes(key) && !def.anatomy) return false;
     return true;
   };
