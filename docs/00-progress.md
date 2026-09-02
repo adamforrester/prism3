@@ -7,6 +7,104 @@
 
 ---
 
+## (2026-09-02) — the overlay wash was presented as a step of the neutral ramp, and painted with no ground under it (#1210 part 2)
+
+**STATUS: shipped.** Studio-only. No engine change, no `out/**` change, **no version bump** — the token was
+correct throughout and is untouched. Gates stay at **52**; the smoke suite grows from 973 to **1,199**
+assertions.
+
+── THE DEFECT: ONE PROPERTY, TWO UNTRUTHS ────────────────────────────────────────────────────────
+
+`interactive.<c>.overlay.hover` is a **translucent** role: `putWash` records `path:
+<ns>.black-alpha.10`, `alpha: 0.1`, and — as `modes.ts` says outright at the scrim — a `hex` that is the
+**opaque base**, black or white, never the color anyone sees. The Interactive page's overlay row treated
+it as an ordinary opaque role, and both halves of #1210 part 2 follow from exactly that:
+
+**(a) The Source picker bound the wash to the NEUTRAL RAMP** and labeled it `Auto · neutral 10`. The
+neutral ramp has no step 10 to be. This was worse than a wrong label, and the reason is the part worth
+recording: picking from that list wrote `{palette: neutral, step}` through `setFillOverride`, which
+`modes.ts` applies by **spreading over the existing role** — so `alpha` survived the override and the role
+came out naming an opaque ramp step while still rendering at 10%. An incoherent role, from a control that
+looked like every other Source picker on the page. Removing the picker is therefore not a lost
+capability; the thing it wrote could not be right.
+
+**(b) The swatch painted the `rgba()` with no underlay,** so the browser composited it over whatever
+studio chrome sat behind — a card, a border — and a 10% black wash read near-opaque. The two **state
+cells** were worse: `iStates` painted `r.hex`, so every Hover and Pressed cell of every overlay row
+rendered as **solid black**. Fixing only the row's own swatch would have left the identical untruth two
+rows down at three times the count, so the fix keys off `isWash(r)` — `(r.alpha ?? 1) < 1`, the role's own
+data — rather than off the row's name.
+
+── THE UNDERLAY IS THE DECLARED GROUND, NOT A FIXED LIGHT COLOR — AND THAT WAS MEASURED ──────────
+
+The brief asked for *"a fixed light underlay"*. **A fixed light underlay is the same defect in the other
+direction,** and this file has the precedent: #555's `.exbox.dark` pinned `#0d0d10`, which is wrong in a
+Dark mode, where "inverse" resolves LIGHT, and `exGround` cured it by reading the *resolved* ground. The
+page wash flips polarity with the page — `black-alpha` on a light page, `white-alpha` on a dark one — so
+white under it makes Dark's wash white-on-white.
+
+So `washCss` underlays with the role's own declared `against` (`background.primary`), which is also the
+ground its `ratio` was measured on. **Measured, not argued:** pinning the underlay to `#ffffff` and
+re-running the suite fails 54 assertions, all of them in Dark, at **Δluminance exactly 0.0000** — literally
+invisible — and **not one in Light**. A Light-only check would have called it green.
+
+── THE ROW ALSO KEPT A CLAIM THE ENGINE HAD ALREADY RETIRED ──────────────────────────────────────
+
+The row's description said the wash *"composites over any surface"* — true of the mechanism and false of
+the result. That is the exact sentence #892 removed from the engine's own `$description` when it gave the
+inverse band an opposite-polarity wash of its own, because a 10% black wash on a near-black band is very
+nearly nothing. The engine stopped saying it; this surface did not. It now names the ground.
+
+── THE GATE, AND WHERE ITS EXPECTED COMES FROM ───────────────────────────────────────────────────
+
+226 new assertions in `apps/studio/test-smoke.mjs`, driving the Interactive page in **both** customizable
+modes on both corpus brands (12 rows, 36 swatches).
+
+EXPECTED is parsed out of **`packages/engine/modes.ts`** — `OVERLAY_ALPHA` and the `overlayPal` polarity
+ternary — the code that MINTS these roles. Reading the primitive back out of what the row renders would be
+docs/34 shape 1: both sides from the subject, green on the very defect it exists for, since the row *did*
+render `neutral 10` for `black-alpha.10` and a renderer-derived oracle would have called that agreement.
+The oracle throws when its regex matches nothing rather than falling back to a default.
+
+Both polarities are driven because the polarity is the load-bearing half, and a `washPolarities.size === 2`
+floor after the loop makes a single-mode run fail by name — a run that saw only light pages would pass a
+pinned underlay.
+
+**MUTATIONS VERIFIED**, each failing by name:
+
+| mutation | failures |
+|---|---|
+| `roleSourceSelect`'s wash branch disabled (the ramp picker back) | 144, all `#1210a` |
+| `overlayRow`'s `swatchBg` back to `rgbaOf(r)` | 96, all `#1210b` |
+| `iStates` back to `swatch(r.hex, …)` | 96 |
+| the underlay pinned to `#ffffff` | 54, **all in Dark**, Δluminance 0.0000 |
+| `overlayRow` returning null (no row at all) | 12 — the named floor, not a vacuous pass |
+| the oracle's `OVERLAY_ALPHA` regex pointed at a name that does not exist | throws, does not default |
+
+The third mutation is why the swatch carries **three** assertions rather than one: `.astate-sw` painting
+an opaque `#000000` still satisfies "sits on an opaque underlay". `hasWashLayer` and `deltaLum` are what
+catch it.
+
+── TWO MEASURED NUMBERS IN THE SUITE MOVED, AND ONE HAD ALREADY DRIFTED ──────────────────────────
+
+Form controls swept: **506 → 474**. That delta is entirely this change — 32 ramp-step pickers became
+read-outs — and the comment on `SWEEP_FIELD_FLOOR` now says so.
+
+Text nodes swept: the label said *"15,646 on this branch"* and the run reports **15,754**. Only **32** of
+that 108 is this change (one span per retired picker; a closed `<select>`'s options are zero-size and were
+never in the walk). The other 76 came from `main` moving under a hand-maintained numeral — the #1110 shape,
+in an assertion label this time. Corrected here; filed as **#1232** rather than left as prose in this
+entry, since it will drift again and a note in a write-up is not discoverable as work.
+
+── THE TRAP WORTH CARRYING FORWARD ───────────────────────────────────────────────────────────────
+
+**A role's `hex` is not the color it renders as.** Three consumers in this repo have now had to learn it
+separately — the scrim (`modes.ts`, where the comment lives), the style-guide preview (`paint()`, which
+does check `r.alpha` and is correct), and this editor, which did not. There is no type-level distinction
+between an opaque role and a wash: both are a `RoleRes` with a `hex`, and the only difference is whether
+an optional field is set. Any new surface that paints a resolved role has the same defect available to it,
+spelled identically to the correct code.
+
 ## (2026-09-02) — the switch thumb sat flush at both ends, and Prism 2 could supply the shape but not the number (#997)
 
 **STATUS: shipped.** `control.size.<rung>.inset` minted in the tier, bound by `switch`'s track as uniform

@@ -262,9 +262,11 @@ const SWEEP_NODE_FLOOR = 8000;
 const SWEEP_STATE_FLOOR = 32;
 /** The same "did it look?" floor for the form-control walk added by #1031, and the reason it is a
  *  SWEEP total and not a per-state one is recorded at the assertion: zero fields is legitimate in a
- *  derived mode. Measured on this branch: **506** controls across the 72 states, so ~half. The
- *  per-state range is 0 (Typography and Layout in a derived mode — the read-only note replaces every
- *  editor) to 24, which is why the total is the only place this can be asserted. */
+ *  derived mode. Measured on this branch: **474** controls across the 72 states, so ~half. It read 506
+ *  before #1210 retired the overlay rows' ramp-step pickers — 32 selects that were offering a step of
+ *  the neutral ramp for a translucent primitive, and are now read-outs. The per-state range is 0
+ *  (Typography and Layout in a derived mode — the read-only note replaces every editor) to 24, which
+ *  is why the total is the only place this can be asserted. */
 const SWEEP_FIELD_FLOOR = 250;
 /** The brand menu's own minimum, asserted per open (#1031). The popover carries Name and Namespace
  *  unconditionally, plus `.bm-ta` once the import box is open — three controls is what the surface
@@ -485,7 +487,7 @@ for (const brand of BRANDS) {
 ok(statesVisited >= SWEEP_STATE_FLOOR,
   `the sweep visited ${statesVisited} page × mode × brand states (floor ${SWEEP_STATE_FLOOR} = 2 brands × 2 modes × 8 pages)`);
 ok(nodesMeasured >= SWEEP_NODE_FLOOR,
-  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR}, ~half the 15,638 baseline — 15,646 on this branch)`);
+  `the sweep measured ${nodesMeasured} text nodes in total (floor ${SWEEP_NODE_FLOOR}, ~half the 15,638 baseline — 15,754 on this branch)`);
 ok(fieldsMeasured >= SWEEP_FIELD_FLOOR,
   `the sweep measured ${fieldsMeasured} form controls in total (floor ${SWEEP_FIELD_FLOOR})`);
 
@@ -500,6 +502,115 @@ console.log(`    ${worstWhere}`);
 // which is where #330 and #485 both lived. These three drives are the core interactions #767 names:
 // the mode switch (exercised throughout the sweep above), an override picker, and an export.
 console.log(`\nControls\n${'='.repeat(78)}`);
+
+// ---- the overlay-wash oracle, read from the engine (#1210) -----------------------------------
+//
+// EXPECTED comes from `modes.ts` — the code that MINTS these roles — never from the studio and never
+// from the studio's own resolution. Reading the primitive back out of what the row renders would be
+// docs/34 shape 1 with extra steps: both sides from the subject, so it would go green on the exact
+// defect it exists for. The row DID render "Auto · neutral 10" for `<ns>.black-alpha.10`, and a gate
+// derived from the renderer would have called that agreement.
+//
+// The polarity ternary is parsed as well as the steps, because the polarity is the load-bearing half:
+// the page wash darkens a light page and lightens a dark one, so an underlay pinned to one colour is
+// wrong in one of the two modes and the assertions below drive both.
+//
+// Throws rather than defaulting — an oracle with a fallback agrees with anything (`constFromEngine`
+// takes the same posture at section 3).
+const ENGINE_MODES = join(ROOT, '..', '..', 'packages', 'engine', 'modes.ts');
+const modesSrc = await readFile(ENGINE_MODES, 'utf8');
+const OVERLAY_STEPS = (() => {
+  const m = /const OVERLAY_ALPHA[^=]*=\s*\[(.*?)\];/s.exec(modesSrc);
+  if (!m) throw new Error('OVERLAY_ALPHA not found in packages/engine/modes.ts — this suite\'s oracle reads the wash steps from there');
+  const out = {};
+  for (const pair of m[1].matchAll(/\[\s*'([\w-]+)'\s*,\s*(\d+)\s*\]/g)) out[pair[1]] = pair[2];
+  if (!out.hover || !out.pressed) throw new Error(`OVERLAY_ALPHA parsed to ${JSON.stringify(out)} — the oracle needs hover and pressed`);
+  return out;
+})();
+const OVERLAY_PAL = (() => {
+  const m = /const overlayPal\s*=\s*cfg\.family === 'light' \? '([\w-]+)' : '([\w-]+)'/.exec(modesSrc);
+  if (!m) throw new Error('the overlayPal polarity ternary not found in packages/engine/modes.ts — this suite\'s oracle reads the wash palettes from there');
+  return { light: m[1], dark: m[2] };
+})();
+ok(/-alpha$/.test(OVERLAY_PAL.light) && /-alpha$/.test(OVERLAY_PAL.dark) && OVERLAY_PAL.light !== OVERLAY_PAL.dark,
+  `the oracle read the wash palettes from packages/engine/modes.ts: ${OVERLAY_PAL.light} on a light page, ${OVERLAY_PAL.dark} on a dark one`);
+ok(Object.keys(OVERLAY_STEPS).length >= 2,
+  `the oracle read ${Object.keys(OVERLAY_STEPS).length} wash steps from packages/engine/modes.ts (${Object.entries(OVERLAY_STEPS).map(([k, v]) => `${k} ${v}`).join(', ')})`);
+
+/**
+ * Every overlay-wash row as it RENDERS: its Source read-out, its swatch, and its two state cells.
+ *
+ * Found by the token pill the row already prints, like #330's row above — an index would silently
+ * start measuring a different row the day one is inserted, and a class would not distinguish the wash
+ * row from the opaque `subtle-fill` row beside it.
+ *
+ * The compositing math runs in the page, not in Node, so the ONE copy of it in this file (inside
+ * `LEGIBILITY_PROBE`) does not become three. What comes back are the judgements: is there a wash layer
+ * at all, is the layer it sits on opaque, and how far the composite lands from that layer. That last
+ * number is what tells a true wash from an invisible one — a light underlay in Dark mode would put a
+ * white wash on white and read 0, which is the same defect as the original in the other direction.
+ */
+const READ_OVERLAY_ROWS = () => {
+  const parse = (s) => {
+    const m = /rgba?\(([^)]+)\)/.exec(s ?? '');
+    if (!m) return null;
+    const p = m[1].split(/[,\s/]+/).filter(Boolean).map(Number);
+    return { r: p[0], g: p[1], b: p[2], a: p.length > 3 ? p[3] : 1 };
+  };
+  const lum = (c) => {
+    const f = (v) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
+  };
+  /** A swatch's verdict: the wash layer it carries, the ground beneath it, and the distance between
+   *  the composite and that ground. `null` for `image` means the swatch paints no wash layer at all. */
+  const readSwatch = (el) => {
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    const wash = parse(cs.backgroundImage);
+    const under = parse(cs.backgroundColor);
+    const comp = wash && under
+      ? { r: wash.r * wash.a + under.r * (1 - wash.a), g: wash.g * wash.a + under.g * (1 - wash.a), b: wash.b * wash.a + under.b * (1 - wash.a) }
+      : null;
+    return {
+      hasWashLayer: cs.backgroundImage !== 'none' && wash !== null && wash.a < 1,
+      washAlpha: wash?.a ?? null,
+      underOpaque: under !== null && under.a === 1,
+      underColor: cs.backgroundColor,
+      deltaLum: comp && under ? Math.abs(lum(comp) - lum(under)) : null,
+    };
+  };
+  const readout = (host) => {
+    const n = host?.querySelector('.sf-derived');
+    return { text: n?.textContent?.trim() ?? null, selects: host?.querySelectorAll('select').length ?? 0 };
+  };
+  const out = [];
+  for (const row of document.querySelectorAll('.arow')) {
+    const pill = [...row.querySelectorAll('.tpill')]
+      .map((p) => p.textContent.trim())
+      .find((t) => /^color\.interactive\.[a-z0-9-]+\.overlay\.hover$/.test(t));
+    if (!pill) continue;
+    out.push({
+      pill,
+      source: readout(row.querySelector('.arow-main .sf-ctlblock')),
+      swatch: readSwatch(row.querySelector('.asw')),
+      // The example box's ground is computed by `exGround`, a different expression from the one the
+      // swatch's underlay comes from — so agreeing is a real check, not one value read twice.
+      exboxBg: getComputedStyle(row.querySelector('.exbox')).backgroundColor,
+      states: [...row.querySelectorAll('.astate')].map((c) => ({
+        name: c.querySelector('.astate-n')?.textContent?.trim() ?? '',
+        swatch: readSwatch(c.querySelector('.astate-sw')),
+        ...readout(c),
+      })),
+    });
+  }
+  return out;
+};
+
+/** The wash rows this suite actually judged, and in how many polarities. Floored after the loop: the
+ *  polarity flip is the reason the underlay is derived rather than pinned, so a run that only ever saw
+ *  one mode has not checked the thing that decision was made for. */
+let washRowsSeen = 0;
+let washPolarities = new Set();
 
 for (const brand of BRANDS) {
   const { ctx, page, drain } = await openBrand(brand);
@@ -563,6 +674,81 @@ for (const brand of BRANDS) {
   ok(after.swatch === before.swatch,
     `${brand}: selecting Auto returns the color the Auto label named (was ${before.swatch}, now ${after.swatch}) (#330)`);
   ok(after.auto === before.auto, `${brand}: the Auto label is unchanged after the round trip (#330)`);
+
+  // --- 2a-ii. the overlay wash is presented as a wash, not as a ramp step (#1210) ---------------
+  //
+  // #1210 part 2 was two untruths in the same row, and both came from the row treating a TRANSLUCENT
+  // role as an opaque one:
+  //
+  //   (a) the Source picker bound the wash to the NEUTRAL RAMP and labelled it "Auto · neutral 10".
+  //       The primitive is `<ns>.black-alpha.10` — the neutral ramp has no step 10 to be. Worse than
+  //       cosmetic: picking from that list wrote `{palette: neutral, step}`, which `modes.ts` applies
+  //       by spreading over the existing role, so `alpha` survived and the role came out naming an
+  //       opaque ramp step while still rendering at 10%.
+  //   (b) the swatch painted the `rgba()` with no underlay, so it composited over whatever studio
+  //       chrome sat behind it and a 10% black wash read near-opaque; the two state cells were worse
+  //       still, painting `r.hex` — the wash's OPAQUE BASE — as solid black.
+  //
+  // BOTH MODES ARE DRIVEN, and that is the assertion, not thoroughness. The wash flips polarity with
+  // the page: `black-alpha` on a light page, `white-alpha` on a dark one. So the underlay CANNOT be a
+  // pinned light colour — a white underlay would render Dark's white wash on white, invisible, which
+  // is #555 in this file exactly (`.exbox.dark` pinned `#0d0d10`, wrong in a Dark mode, where
+  // "inverse" resolves LIGHT). The fix derives the underlay from the role's own declared `against`;
+  // `deltaLum` in both polarities is what holds it to that.
+  //
+  // The derived modes are skipped because they have no editor at all — their whole workspace is the
+  // read-only note — so the customizable pair is the population, not a sample of it.
+  await gotoPage(page, 'Interactive');
+  const washModes = (await page.locator('.mctx-b .mctx-name').allTextContents())
+    .map((m) => m.trim()).filter((m) => /^(light|dark)$/i.test(m));
+  ok(washModes.length === 2, `${brand}: the Interactive page offers both customizable modes (${washModes.join(', ')})`);
+  for (const mode of washModes) {
+    await selectMode(page, mode);
+    const dark = /dark/i.test(mode);
+    const expectPal = dark ? OVERLAY_PAL.dark : OVERLAY_PAL.light;
+    const rows = await page.evaluate(READ_OVERLAY_ROWS);
+    // Named, not counted: three built-in action palettes each carry an overlay row under
+    // `overlay-neutral`. A brand on another `outlineInteraction` renders none, and this would then be
+    // asserting nothing — so the floor fails by name rather than passing on an empty list.
+    ok(rows.length >= 3,
+      `${brand} / ${mode}: the Interactive page renders ${rows.length} overlay-wash row(s) to judge (floor 3)`);
+    for (const row of rows) {
+      const where = `${brand} / ${mode} / ${row.pill}`;
+      // (a) — the Source slot names the primitive and offers no ramp.
+      ok(row.source.selects === 0,
+        `${where}: the Source slot offers no ramp-step picker — a step of the neutral ramp is opaque and would replace the wash, not retint it (#1210a)`);
+      ok(row.source.text === `${expectPal} ${OVERLAY_STEPS.hover}`,
+        `${where}: the Source reads "${expectPal} ${OVERLAY_STEPS.hover}", the primitive the engine minted — got "${row.source.text}" (#1210a)`);
+      ok(!/\bneutral\s+\d+\b/.test(row.source.text ?? ''),
+        `${where}: the Source does not present the wash as a step of the neutral ramp — got "${row.source.text}" (#1210a)`);
+      // (b) — the swatch composites over an opaque ground, and the result is a visible tint.
+      ok(row.swatch?.hasWashLayer === true,
+        `${where}: the swatch paints the wash as a translucent LAYER (alpha ${row.swatch?.washAlpha}) rather than as its opaque base (#1210b)`);
+      ok(row.swatch?.underOpaque === true,
+        `${where}: the swatch layer sits on an opaque underlay (${row.swatch?.underColor}) instead of on whatever chrome is behind it (#1210b)`);
+      ok(row.swatch?.underColor === row.exboxBg,
+        `${where}: the swatch's underlay is the same ground the example composites the wash over — swatch ${row.swatch?.underColor}, example ${row.exboxBg}`);
+      ok((row.swatch?.deltaLum ?? 0) > 0.005,
+        `${where}: the composited wash is visible against that ground (Δluminance ${row.swatch?.deltaLum?.toFixed(4)}) — a wash pinned to the wrong polarity's ground would read 0`);
+      // The states strip: same two claims, at three times the count. Fixing only the row's own swatch
+      // would have left the identical untruth two rows down.
+      ok(row.states.length === 2, `${where}: the states strip carries Hover and Pressed (${row.states.map((s) => s.name).join(', ')})`);
+      for (const st of row.states) {
+        const stepKey = st.name.toLowerCase();
+        ok(st.selects === 0, `${where} / ${st.name}: the state's Source offers no ramp-step picker (#1210a)`);
+        ok(st.text === `${expectPal} ${OVERLAY_STEPS[stepKey] ?? '?'}`,
+          `${where} / ${st.name}: the state reads "${expectPal} ${OVERLAY_STEPS[stepKey]}" — got "${st.text}" (#1210a)`);
+        ok(st.swatch?.hasWashLayer === true,
+          `${where} / ${st.name}: the state swatch paints the wash as a layer, not as its opaque base (#1210b)`);
+        ok(st.swatch?.underOpaque === true,
+          `${where} / ${st.name}: the state swatch layer sits on an opaque underlay (${st.swatch?.underColor}) (#1210b)`);
+        ok((st.swatch?.deltaLum ?? 0) > 0.005,
+          `${where} / ${st.name}: the composited state wash is visible against that ground (Δluminance ${st.swatch?.deltaLum?.toFixed(4)})`);
+      }
+      washRowsSeen++;
+      washPolarities.add(expectPal);
+    }
+  }
 
   // --- 2b. a select must not jump the page while scrolled (#485) --------------------------------
   //
@@ -678,6 +864,16 @@ for (const brand of BRANDS) {
   ok(errs.length === 0, `${brand}: driving the controls raised 0 console errors${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
   await ctx.close();
 }
+
+// The wash section's own "did it look?" floors (#1210), asserted over the sweep rather than per brand —
+// same reasoning as the totals at the end of section 1. The ROW count catches a page that stopped
+// rendering the row; the POLARITY count catches the sharper regression, a run that saw only one page
+// family and therefore never exercised the flip the derived underlay exists for. Measured: 12 rows
+// (2 brands × 2 customizable modes × 3 action palettes) in 2 polarities.
+ok(washRowsSeen >= 12,
+  `the wash section judged ${washRowsSeen} overlay row(s) (floor 12 = 2 brands × 2 customizable modes × 3 action palettes)`);
+ok(washPolarities.size === 2,
+  `the wash section saw both page polarities (${[...washPolarities].sort().join(', ')}) — one alone would pass a pinned underlay`);
 
 // =============================================================================================
 // 3. Displayed values against the resolved theme — #800, the first instance of #802
