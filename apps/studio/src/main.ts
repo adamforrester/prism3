@@ -6010,23 +6010,46 @@ const renderSurfacesEditor = (): HTMLElement => {
     // Configurable only for light/dark, exactly like Primary above and for the same reason: `surfaces`
     // is keyed by those two, and a custom mode seeds its band from the base mode it inherits.
     if (mode === 'light' || mode === 'dark') {
-      const nPal = theme.roleToPalette.neutral;
-      const nSteps = (theme.palettes.find((p) => p.palette === nPal)?.steps ?? []).map((s) => s.key);
       // `mode as 'light' | 'dark'` for the same reason the Primary row above does it: `ModeName`
       // widens to `string & {}` for custom modes, so the `if` narrows the VALUE without narrowing the
       // type enough to index `SurfacesConfig`.
-      const cur = brandState.surfaces?.[mode as 'light' | 'dark']?.inverseBase;
-      // The shared `stepPicker`, so "Auto" NAMES the step it resolved to (`Auto · neutral 950`) exactly
-      // as the fill rows below do. A bare "Auto" is the same control minus the one fact it is holding.
-      // `baselineStepOf` (#330), not `stepKeyOf(r.path)` — the live role already reflects `cur` when a
-      // band is set, so naming Auto off `r.path` would have it echo the very value it clears.
-      const invSel = stepPicker(nPal, nSteps, baselineStepOf('inverse.background.primary', mode),
-        cur == null ? undefined : String(cur),
-        (step) => { setPath(brandState, `surfaces.${mode}.inverseBase`, step == null ? undefined : Number(step)); applyFull(); });
-      // "Step" is retained even though this is no longer an override: the control still picks a step
-      // off the neutral ramp, which is what the label describes and what every other row here calls it.
-      invRow(sfCtl(sfCtlBlock('Step', invSel)),
-        'The contrasting band for dark heroes / inverse sections — Auto follows the generated pairing; pick a neutral step to set it for this mode. Everything measured against the band re-derives, so a pick the ramp cannot serve is reported rather than silently absorbed.');
+      const m2 = mode as 'light' | 'dark';
+      const nPal = theme.roleToPalette.neutral;
+      const cur = brandState.surfaces?.[m2]?.inverseBase;
+      // #898: the band may be neutral, the brand, or a CUSTOM palette — status excluded. Two controls:
+      // a palette select + a step picker for that palette. The neutral case writes a bare number (the
+      // historical form, byte-identical); a non-neutral palette writes `{ palette, step }`.
+      const curPal = (cur != null && typeof cur === 'object') ? cur.palette : nPal;
+      const curStep = cur == null ? undefined : String(typeof cur === 'object' ? cur.step : cur);
+      // Neutral first, then every DECLARED non-status palette (the brand + any custom brandColor). Status
+      // (success/warning/danger/info) and the alpha/pure palettes are excluded — a page band in a semantic
+      // colour would use it decoratively (#898), and white/black are the extreme keywords, not palettes.
+      const bandPalettes = [nPal, ...theme.palettes
+        .filter((p) => p.palette !== nPal && !(STATUS_ROLES as readonly string[]).includes(p.role)
+          && !/alpha/.test(p.palette) && p.palette !== 'white' && p.palette !== 'black')
+        .map((p) => p.palette)];
+      const writeBand = (v: number | { palette: string; step: number } | undefined): void => {
+        setPath(brandState, `surfaces.${m2}.inverseBase`, v); applyFull();
+      };
+      // Palette select. Switching to a non-neutral palette seeds the band at that palette's DARKEST step
+      // (a dark hero starts dark); switching back to Neutral clears to the generated default (Auto).
+      const palSel = selectEl('cap');
+      for (const p of bandPalettes) palSel.append(optionEl(p, p === nPal ? 'Neutral' : p, p === curPal));
+      palSel.onchange = () => {
+        const pal = palSel.value;
+        if (pal === nPal) return writeBand(undefined);
+        const st = stepsOf(pal);
+        writeBand(st.length ? { palette: pal, step: Number(st[st.length - 1]) } : undefined);
+      };
+      // Step select, bound to the CURRENT palette. Its "Auto" clears back to the generated neutral
+      // default (`baselineStepOf`, #330); on a non-neutral palette that Auto means "drop the brand band",
+      // which the palette select then reflects by falling back to Neutral on the next render.
+      const curSteps = stepsOf(curPal);
+      const autoStep = curPal === nPal ? baselineStepOf('inverse.background.primary', mode) : String(curSteps[curSteps.length - 1] ?? '');
+      const stepSel = stepPicker(curPal, curSteps, autoStep, curStep,
+        (step) => writeBand(step == null ? undefined : curPal === nPal ? Number(step) : { palette: curPal, step: Number(step) }));
+      invRow(sfCtl(sfCtlBlock('Palette', palSel), sfCtlBlock('Step', stepSel)),
+        'The contrasting band for dark heroes / inverse sections. Auto follows the generated pairing (a neutral near-extreme); pick Neutral, the brand, or a custom palette + a step to set a brand-colored band. Status palettes are excluded. Everything measured against the band re-derives, so a pick the ramp cannot serve is reported rather than silently absorbed.');
     } else {
       invRow(sfCtl(sfCtlBlock('Step', el('span', 'sf-derived', 'Seeds from its base mode'))),
         'The contrasting band for dark heroes / inverse sections. Seeded from this custom mode’s base.');

@@ -456,6 +456,48 @@ for (const b of brands) {
     ok(keysOf(noneRoles(nbTheme())).length === 0, '#288 outlineInteraction=none still emits no subtle-fill');
     ok(keysOf(resolveAllModes(nbTheme())).length === 0, '#288 the default (overlay-neutral) emits no subtle-fill — existing artifacts unmoved');
 
+    // #898 — the inverse/dark-band surface may name a NON-neutral palette (a brand-navy hero), not just
+    // a neutral step. Bare number / white / black stay NEUTRAL (back-compat); `{ palette, step }` names
+    // a declared non-status palette. Status palettes are rejected. All read off the real resolution.
+    {
+      const withNavy = (inv: any) => brandTheme({ id: 't-898', primary: { l: 0.55, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+        brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.08, h: 250 } }], surfaces: { light: { inverseBase: inv } } } as any);
+      const roleOf = (t: any, k: string) => (resolveAllModes(t).find((m) => m.mode === 'light')!.roles as any)[k];
+      // A bare number is still the NEUTRAL ramp — the historical form, unmoved.
+      ok(/\.neutral\./.test(roleOf(withNavy(950), 'inverse.background.primary')?.path ?? ''),
+        `#898: a bare inverseBase number still resolves on the neutral ramp (${roleOf(withNavy(950), 'inverse.background.primary')?.path})`);
+      // A `{ palette, step }` band resolves on that palette, and its secondary/tertiary ladder steps on it too.
+      const navyBg = roleOf(withNavy({ palette: 'navy', step: 900 }), 'inverse.background.primary');
+      const navy2 = roleOf(withNavy({ palette: 'navy', step: 900 }), 'inverse.background.secondary');
+      ok(/\.navy\.900$/.test(navyBg?.path ?? '') && /\.navy\./.test(navy2?.path ?? ''),
+        `#898: a { palette:'navy', step:900 } inverse band resolves on the navy palette, ladder included (${navyBg?.path} / ${navy2?.path})`);
+      // Every role gated against the band RE-DERIVES against it — the ink is measured vs the navy ground,
+      // not the old neutral one, and carries a real ratio (the "ground, not a value" property #956 gave it).
+      const navyInk = roleOf(withNavy({ palette: 'navy', step: 900 }), 'inverse.text.primary');
+      ok(navyInk?.against === 'inverse.background.primary' && (navyInk?.ratio ?? 0) > 1,
+        `#898: inverse ink re-derives against the brand band (against=${navyInk?.against}, ratio=${navyInk?.ratio?.toFixed?.(2)})`);
+      // Status is excluded — a page band in a semantic colour would be decorative use of meaning.
+      const threw = (inv: any): string => { try { withNavy(inv); return ''; } catch (e) { return (e as Error).message; } };
+      ok(/status/i.test(threw({ palette: 'success', step: 500 })),
+        `#898: a STATUS palette band is rejected (${threw({ palette: 'success', step: 500 }).slice(0, 80)})`);
+      // An undeclared palette is rejected — a band names a real palette or nothing.
+      ok(/not a declared palette/i.test(threw({ palette: 'nope', step: 500 })),
+        `#898: an undeclared palette band is rejected (${threw({ palette: 'nope', step: 500 }).slice(0, 80)})`);
+      // The widening is INVERSE-ONLY: an object `base` (the page ground) is rejected — a brand-colored
+      // page ground is a separate, undesigned capability that no contract validates. Neutral base is fine.
+      const threwBase = (b: any): string => {
+        try {
+          brandTheme({ id: 't-898b', primary: { l: 0.55, c: 0.12, h: 250 }, neutral: { hue: 250, chroma: 0.01 },
+            brandColors: [{ name: 'navy', oklch: { l: 0.22, c: 0.08, h: 250 } }], surfaces: { light: { base: b } } } as any);
+          return '';
+        } catch (e) { return (e as Error).message; }
+      };
+      ok(/base does not accept a palette band|neutral-only/i.test(threwBase({ palette: 'navy', step: 900 })),
+        `#898: an object base (palette band) is rejected — page ground is neutral-only (${threwBase({ palette: 'navy', step: 900 }).slice(0, 80)})`);
+      ok(threwBase(100) === '',
+        `#898: a neutral step base still resolves (no throw)`);
+    }
+
     // The contract, on every brand INCLUDING the extremes — two example brands generalising is an
     // assumption, and the nominal step is only a starting point for the contract-driven walk.
     const brands: Array<[string, any]> = [
