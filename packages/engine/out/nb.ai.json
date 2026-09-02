@@ -7620,7 +7620,10 @@
       "$description": "28px — dimension primitive",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token."
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "size.xs.height"
+      ]
     },
     "core.dimension.32": {
       "$description": "32px — dimension primitive",
@@ -7632,7 +7635,6 @@
         "grid.2xl.gutter",
         "grid.xl.margin",
         "icon.size.lg",
-        "size.xs.height",
         "space.400"
       ]
     },
@@ -7640,7 +7642,10 @@
       "$description": "36px — dimension primitive",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token."
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "size.sm.height"
+      ]
     },
     "core.dimension.40": {
       "$description": "40px — dimension primitive",
@@ -7650,7 +7655,6 @@
       "aliased_by": [
         "control.size.md.width",
         "icon.size.xl",
-        "size.sm.height",
         "space.500"
       ]
     },
@@ -7658,7 +7662,10 @@
       "$description": "44px — dimension primitive",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token."
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "size.md.height"
+      ]
     },
     "core.dimension.48": {
       "$description": "48px — dimension primitive",
@@ -7668,7 +7675,6 @@
       "aliased_by": [
         "control.size.lg.width",
         "grid.2xl.margin",
-        "size.md.height",
         "space.600"
       ]
     },
@@ -7700,7 +7706,6 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "size.xl.height",
         "space.800"
       ]
     },
@@ -7708,7 +7713,10 @@
       "$description": "68px — dimension primitive",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token."
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "size.xl.height"
+      ]
     },
     "core.dimension.72": {
       "$description": "72px — dimension primitive",

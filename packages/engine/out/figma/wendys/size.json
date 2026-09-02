@@ -8,11 +8,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.xs control height — 32px (density: comfortable)",
-      "value": 32,
+      "description": "size.xs control height — 28px (density: comfortable)",
+      "value": 28,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/32"
+        "name": "prism/core/dimension/28"
       }
     },
     {
@@ -73,11 +73,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.sm control height — 40px (density: comfortable)",
-      "value": 40,
+      "description": "size.sm control height — 36px (density: comfortable)",
+      "value": 36,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/40"
+        "name": "prism/core/dimension/36"
       }
     },
     {
@@ -138,11 +138,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.md control height — 48px (density: comfortable)",
-      "value": 48,
+      "description": "size.md control height — 44px (density: comfortable)",
+      "value": 44,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/48"
+        "name": "prism/core/dimension/44"
       }
     },
     {
@@ -268,11 +268,11 @@
       "scopes": [
         "WIDTH_HEIGHT"
       ],
-      "description": "size.xl control height — 64px (density: comfortable)",
-      "value": 64,
+      "description": "size.xl control height — 68px (density: comfortable)",
+      "value": 68,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/64"
+        "name": "prism/core/dimension/68"
       }
     },
     {

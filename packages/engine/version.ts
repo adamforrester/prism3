@@ -115,6 +115,23 @@
  * reproduces every plan byte-identically. `switch`/`radio` carry no `pill-radius` derivation and so are
  * structurally outside the pill-able set — asserted in `test.ts` so the lever can never square them off. (#1163)
  *
+ * 0.32.0: the shared component-size ladder moves to Prism 2's 36/44/56 for small/medium/large at the
+ * default density (#1207). A pure VALUE move — every path and every `$type` is where it was, so
+ * `CONTRACT_VERSION` stands and `token-contract.ts --check` says so rather than this comment. Minor
+ * rather than patch for the reason 0.6.0 and 0.7.0 were: a consumer resolving `size.md.height` gets a
+ * different number, across all four brands and six component defs.
+ *
+ * The defect was that the DEFAULT control sat under WCAG 2.2 SC 2.5.5 (AAA, 44px): 40px on aurora,
+ * the brand the studio boots. `AAA_TARGET_PX` is now asserted against that one rung — the default
+ * density's `md` — and deliberately not against the others, since `compact` exists so a brand can go
+ * tighter on purpose and a sweep would either fail or force `density` to stop meaning anything.
+ *
+ * `SIZE_RUNGS.h` (a spaceBase multiple) became `SIZE_RUNGS.px`, because 36 and 44 are 4.5x and 5.5x
+ * of 8 and are not on the space scale at all — the old field's stated contract could not survive the
+ * decided values. The emitted leaf has always aliased the `dimension` grid, so the px ladder states
+ * what the output already was. Heights no longer scale with `spaceBase`; unreachable, since
+ * `SPACE_BASE` is locked at 8 and `brandTheme` passes exactly that. Padding stays a multiple.
+ *
  * 0.30.0: ONE COLOUR COLLECTION (#1148/#1150). The two-tier colour split ends. `color.surface` — the
  * pointer tier, one alias per non-inverse role — is DELETED, and the value tier is renamed from
  * `color.appearance` to `color`, taking the short names with it: `nbds/color/appearance/text/primary`
@@ -667,7 +684,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.31.0';
+export const ENGINE_VERSION = '0.32.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

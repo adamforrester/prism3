@@ -13,7 +13,7 @@
  */
 import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, inGamut, deltaE2000, dualContrastWindow, composite, RGB } from './color';
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
-import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX } from './scale';
+import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
 import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
@@ -927,10 +927,44 @@ for (const b of brands) {
   ok(Math.min(...componentSizes('compact', SPACE_BASE).map((z) => z.height)) === MIN_TARGET_PX,
     `the smallest reachable control is exactly the ${MIN_TARGET_PX}px floor (the gate is load-bearing, not slack)`);
 
-  // `comfortable` is the historical ladder and must not have moved — the window reframing is a fix
-  // for the ENDS, so the untouched middle is the proof it changed only what was broken.
-  ok(componentSizes('comfortable', 8).map((z) => z.height).join('/') === '32/40/48/56/64',
-    'comfortable @ base 8 is unchanged by the window reframing (32/40/48/56/64)');
+  // `comfortable` is the REFERENCE ladder — the one a brand gets with no `density` key — pinned as a
+  // literal so a retune of `SIZE_RUNGS` has to come here and say so. It read 32/40/48/56/64 until
+  // #1207 moved the middle three to Prism 2's 36/44/56.
+  ok(componentSizes('comfortable', 8).map((z) => z.height).join('/') === '28/36/44/56/68',
+    'comfortable @ base 8 is the reference ladder (28/36/44/56/68)');
+
+  // #1207 — the DECIDED trio, named the way a component binds it rather than the way the ladder
+  // stores it. Every def that binds a row height binds `size.{sm,md,lg}` (button and text-field as
+  // `height`, icon-button as `side`, checkbox/radio/switch as the `min-height` of the row their
+  // 16-20px box sits in); none binds xs or xl. So this is the line the six defs actually inherit,
+  // and it is a literal for the same reason the ladder above is.
+  {
+    const [, sm, md, lg] = componentSizes('comfortable', SPACE_BASE);
+    ok([sm, md, lg].map((z) => z.height).join('/') === '36/44/56',
+      `#1207 small/medium/large at the default density is Prism 2's 36/44/56 (${[sm, md, lg].map((z) => z.height).join('/')})`);
+
+    // …and the REASON, asserted against WCAG's number rather than against the ladder that satisfies
+    // it. `md` at the default density is the control a consumer gets without choosing anything; #1207
+    // found it at 40px, under SC 2.5.5, in aurora — the brand the studio boots. Scoped to this one
+    // rung ON PURPOSE: `compact` md is 36 and `compact` xs is 24, both deliberate, both above the AA
+    // floor asserted above. A version of this that swept all three densities would either fail or
+    // force `density` to stop meaning anything.
+    ok(md.height >= AAA_TARGET_PX,
+      `#1207 the DEFAULT control clears WCAG 2.2 SC 2.5.5 (AAA) at ${AAA_TARGET_PX}px — md is ${md.height}px`);
+  }
+
+  // The seven rungs are ONE array and every density is a window onto it, so an increment that dips
+  // anywhere in the array surfaces as a wobbly ladder at whichever window straddles the dip — which
+  // no single density's own five values would reveal. Reconstruct all seven from the public API
+  // (compact gives rungs 0-4, spacious 2-6) and check the increments never shrink.
+  {
+    const rungs = [...new Set([...componentSizes('compact', SPACE_BASE), ...componentSizes('spacious', SPACE_BASE)]
+      .map((z) => z.height))].sort((a, b) => a - b);
+    const steps = rungs.slice(1).map((h, i) => h - rungs[i]);
+    ok(rungs.length === 7, `the density windows reconstruct all seven rungs (${rungs.join('/')})`);
+    ok(steps.every((s, i) => i === 0 || s >= steps[i - 1]),
+      `size-rung increments never shrink as the ladder climbs (${steps.join('/')} over ${rungs.join('/')})`);
+  }
 
   // #326 — the THREE-WAY ordering, which is the whole optical model in one assertion:
   //     gap  <  padXVisual  <  padX

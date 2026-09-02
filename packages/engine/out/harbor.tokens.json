@@ -18576,13 +18576,13 @@
       "xs": {
         "height": {
           "$type": "dimension",
-          "$value": "{prism.core.dimension.32}",
-          "$description": "size.xs control height — 32px (density: comfortable)",
+          "$value": "{prism.core.dimension.28}",
+          "$description": "size.xs control height — 28px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.core.dimension.32",
-              "px": 32,
+              "aliasOf": "prism.core.dimension.28",
+              "px": 28,
               "density": "comfortable"
             }
           }
@@ -18639,13 +18639,13 @@
       "sm": {
         "height": {
           "$type": "dimension",
-          "$value": "{prism.core.dimension.40}",
-          "$description": "size.sm control height — 40px (density: comfortable)",
+          "$value": "{prism.core.dimension.36}",
+          "$description": "size.sm control height — 36px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.core.dimension.40",
-              "px": 40,
+              "aliasOf": "prism.core.dimension.36",
+              "px": 36,
               "density": "comfortable"
             }
           }
@@ -18702,13 +18702,13 @@
       "md": {
         "height": {
           "$type": "dimension",
-          "$value": "{prism.core.dimension.48}",
-          "$description": "size.md control height — 48px (density: comfortable)",
+          "$value": "{prism.core.dimension.44}",
+          "$description": "size.md control height — 44px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.core.dimension.48",
-              "px": 48,
+              "aliasOf": "prism.core.dimension.44",
+              "px": 44,
               "density": "comfortable"
             }
           }
@@ -18828,13 +18828,13 @@
       "xl": {
         "height": {
           "$type": "dimension",
-          "$value": "{prism.core.dimension.64}",
-          "$description": "size.xl control height — 64px (density: comfortable)",
+          "$value": "{prism.core.dimension.68}",
+          "$description": "size.xl control height — 68px (density: comfortable)",
           "$extensions": {
             "prism3": {
               "role": "semantic",
-              "aliasOf": "prism.core.dimension.64",
-              "px": 64,
+              "aliasOf": "prism.core.dimension.68",
+              "px": 68,
               "density": "comfortable"
             }
           }
@@ -19020,7 +19020,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.31.0",
+      "version": "0.32.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
