@@ -7,6 +7,114 @@
 
 ---
 
+## (2026-09-02) — the switch thumb sat flush at both ends, and Prism 2 could supply the shape but not the number (#997)
+
+**STATUS: shipped.** `control.size.<rung>.inset` minted in the tier, bound by `switch`'s track as uniform
+padding, emitted as a Figma variable. Gates stay at **52**. `ENGINE_VERSION` 0.33.0 → **0.34.0**,
+`CONTRACT_VERSION` 9.2.0 → **9.3.0** (MINOR) — both DERIVED from `token-contract.ts --check`, which
+reported the level and named all four added paths, rather than chosen here.
+
+── THE DEFECT ────────────────────────────────────────────────────────────────────────────────────
+
+The thumb is a flow child of a fixed-size track, positioned by `positionWhen` onto the track's main-axis
+distribution (MIN at `off`, MAX at `on`). **An alignment carries no offset**, so with no padding on the
+track the thumb's edge landed exactly on the track's at both extremes — flush, which no shipped switch
+does. #997 could not fix it inside #990 because no token carried the number: the space scale is
+4/8/12/… and `md` wants 5.
+
+── THE VALUE, AND WHY PRISM 2 SUPPLIED THE SHAPE AND NOT THE NUMBER ──────────────────────────────
+
+`reference/Prism2/component-specs/toggle-switch.json` sites its own thumb by giving the **track** a
+uniform `padding: 4` — a 32px track around a 24px thumb, equal inset on four sides, i.e. the thumb
+centred. **That construction is what transferred.** Its literal 4 did not, and the reason is the trap
+worth recording: 4 is `height / 8`, which follows from a **0.75** thumb ratio where this tier's is
+**0.5**. Ported as a constant it would put 2.5px on this ladder's `md` — off-grid and fractional.
+
+So the tier derives `inset = (height − dot) / 2`. Not a second ratio, and that is what makes a fifth
+tier field safe: `scale.ts`'s own `dot` argument already reasons in this exact quantity — *"What
+converges is the same evidence read as a GAP — (height − dot) / 2 is 5, 6 and 5 px"* — so deriving it
+back out cannot disagree with the thumb at any rung or density. Verified: the padded inner box is
+**exactly one thumb tall** at every rung × density, and every rung is an integer (3/4/5/6/7).
+
+── THE PRISM 2 DIFF: ONE VALUE WAS ALIGNABLE, THE REST IS STRUCTURE ──────────────────────────────
+
+| | Prism 2 | Prism 3 (md, comfortable) | verdict |
+|---|---|---|---|
+| track padding | 4, uniform | **5, uniform** | **FIXED** — the one styling value that transferred |
+| thumb ÷ track | 0.75 | 0.50 | **structural** — see below |
+| aspect | 1.75:1 (56×32) | 2.00:1 (40×20) | **structural** — see below |
+| radius | 999 (pill) | `radius.round` → 128 (pill) | already agrees in intent |
+| focus-ring inset | −4 all sides | −(offset 2 + width 2) = **−4** | already agrees, exactly |
+| off-track stroke | 2px INSIDE | 1px, an executor default | **#1228 filed** |
+| thumb glyph | 16×16 check/close | none (`showStateLabel` is `codeOnly`) | structural, unchanged |
+| motion | **absent from the spec** | not expressible in the schema | nothing to align |
+
+The motion row is a measured negative, not an omission: the spec carries no `motion`/`transition`/
+`duration`/`easing` key anywhere, so there was no Prism 2 source for the delta the brief asked about.
+
+**The two structural rows are one disagreement seen twice, and it is not adoptable as styling.** Prism
+2 gives the switch its own geometry; Prism 3 derives all three selection controls from one
+`control.size.*` ladder with shared ratios. Concretely: `CONTROL_DOT_RATIO` is **shared with radio**,
+and **Prism 2's own radio is 12-in-20, a ratio of 0.6** — so Prism 2 does not support one shared ratio
+at all, and adopting its 0.75 thumb means splitting the field per consumer. The aspect is the same
+story arithmetically: 1.75 × the comfortable rungs gives 28/**35**/**42**, and two of those are off the
+4px dimension grid, while `scale.ts` records 2:1 as field-convergent across Carbon, Ant and Fluent.
+Both left alone deliberately, and recorded in the def's `notes.unverified` with the measurement, so the
+next person weighs numbers rather than re-deriving them.
+
+── THE EXPORTER GATE CAUGHT A REAL DEFECT IN THIS CHANGE ─────────────────────────────────────────
+
+First green-looking run of the suite failed `tools/exporter-comparison/gate.ts`: nine failures, the
+three new `control.size.*.inset` paths **prism3-only in every brand**. The cause was mine and it
+mattered — `emit-figma-dims.ts` names its control fields in an authored list, deliberately (*"a field
+added to the DTCG tier does not reach a client's file until someone puts it here"*), and `inset` was
+not in it. So the token existed in DTCG while **the track's padding bound a variable a client's Figma
+file would not carry**. The gate's stated purpose working exactly as designed.
+
+Fixed by authoring `inset` into the list — and with the **GAP** scope rather than `WIDTH_HEIGHT`, the
+same split line 211 already makes for `size.*`: Figma offers a FLOAT variable only in the fields its
+scopes name, so an inset scoped `WIDTH_HEIGHT` would be invisible in the padding control that is its
+only consumer.
+
+── THE MUTATION BATTERY, INCLUDING THE ROUND THAT PROVED NOTHING ─────────────────────────────────
+
+The first battery reported M1 and M3 as *"exit 0, nothing named it"* and both readings were **false**:
+the exporter gate reads the **committed** `out/figma/**`, so an emitter mutation does not reach it
+without a regen. Re-run with `regen` inside the loop (#986 — a mutation that did not apply is not a
+passing gate):
+
+| mutation | caught by |
+|---|---|
+| drop the track's padding (the defect, restored verbatim) | **nothing** → then `#997 pads BOTH main-axis ends`, by name |
+| drop `inset` from the Figma emitter list | `exporter-comparison`, 9 failures |
+| drop `inset` from the grid extras | `#296 primitives are mode-invariant … OFFENDERS: prism.control.size` |
+| `inset` → `height / 8` (Prism 2's own fraction) | `#997 'track' less its padding … is exactly 'thumb' (20 − 2×3 = 14, part is 10)` |
+
+**The first row is the finding.** Deleting the fix — the exact defect #997 reports, which has shipped
+once already — was caught by *nothing*: the token still existed, still emitted, still Figma-scoped, and
+only the binding was gone. So two arms were added to the existing `positionWhen` block in `test.ts`,
+stated as a rule over positioned parts rather than a fact about switch: the parent must pad **both**
+main-axis ends with one variable, and the padded cross-axis box must equal the positioned part exactly.
+Both now fail by name.
+
+One attempted mutation — making the two ends asymmetric — passed, and that is a **non-mutation rather
+than a hole**: the projector picks `inlineVisual` only when a leading/trailing slot is FILLED, and no
+positioned def declares one, so both ends still projected from `inlineLabel` and the plan came out
+byte-identical. Verified by dumping the plan rather than inferred from the green run, and the arm's
+equality clause is labelled unfalsifiable-today in place so nobody reads it as verified.
+
+── ALSO ──────────────────────────────────────────────────────────────────────────────────────────
+
+`test.ts`'s control-tier membership pin moved from four fields to five, which is that gate **working**
+rather than yielding — it fired on the first run of this change, which is its whole job. `core.dimension.5`
+is newly emitted: 3, 5 and 7 are on neither the base-4 grid nor the space extras, so the inset px join
+the grid extras the way `dot`'s did (#910). `lint-paint.ts` needed **no `--accept`**: padding is a
+geometry property, so no node structure moved, and `schema/paint-census.json` is untouched.
+
+**#1228 filed** — a bordered part's stroke WIDTH is an executor default (`strokeWeight = 1`), not a
+token, so Prism 2's 2px off-track rim is not expressible by any def. Reaches every bordered def, so it
+is a tier change rather than a switch fix.
+
 ## (2026-09-02) — the button's semantic intents are three COMPONENTS now, not an axis (#1223)
 
 **STATUS: shipped.** One factory in `components/button.ts` produces three defs — `button` (primary),

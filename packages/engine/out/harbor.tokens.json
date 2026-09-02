@@ -2730,6 +2730,17 @@
             }
           }
         },
+        "5": {
+          "$type": "dimension",
+          "$value": "5px",
+          "$description": "5px — dimension primitive",
+          "$extensions": {
+            "prism3": {
+              "generated": true,
+              "px": 5
+            }
+          }
+        },
         "6": {
           "$type": "dimension",
           "$value": "6px",
@@ -18931,6 +18942,19 @@
               }
             }
           },
+          "inset": {
+            "$type": "dimension",
+            "$value": "{prism.core.dimension.4}",
+            "$description": "control.size.sm inset — 4px gap between the inner mark and the box's boundary ((16px box edge − 8px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.core.dimension.4",
+                "px": 4,
+                "density": "comfortable"
+              }
+            }
+          },
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
@@ -18979,6 +19003,19 @@
                 "role": "semantic",
                 "aliasOf": "prism.core.dimension.10",
                 "px": 10,
+                "density": "comfortable"
+              }
+            }
+          },
+          "inset": {
+            "$type": "dimension",
+            "$value": "{prism.core.dimension.5}",
+            "$description": "control.size.md inset — 5px gap between the inner mark and the box's boundary ((20px box edge − 10px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.core.dimension.5",
+                "px": 5,
                 "density": "comfortable"
               }
             }
@@ -19035,6 +19072,19 @@
               }
             }
           },
+          "inset": {
+            "$type": "dimension",
+            "$value": "{prism.core.dimension.6}",
+            "$description": "control.size.lg inset — 6px gap between the inner mark and the box's boundary ((24px box edge − 12px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.core.dimension.6",
+                "px": 6,
+                "density": "comfortable"
+              }
+            }
+          },
           "line-box": {
             "$type": "dimension",
             "$value": "27px",
@@ -19053,7 +19103,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.33.0",
+      "version": "0.34.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

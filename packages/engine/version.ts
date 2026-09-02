@@ -102,6 +102,30 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.34.0: the switch thumb's CLEARANCE from its track's ends (#997). `control.size.{rung}` gains an
+ * `inset` leaf — `(height - dot) / 2`, so 3/4/5/6/7 across `CONTROL_RUNGS` — and `switch`'s track binds
+ * it as uniform padding. Before this the thumb sat FLUSH at both extremes: it is a flow child of a
+ * fixed-size track distributed MIN/MAX by `positionWhen`, an alignment has no offset to give, and the
+ * space scale (4/8/12/...) carried nothing for `md`'s 5px to bind. `dot`'s argument exactly, one
+ * consumer over — the arithmetic has nowhere downstream to happen, so the tier holds it.
+ *
+ * DERIVED from `dot`, never a second ratio, and that is what makes a fifth tier field safe: the padded
+ * inner box is exactly one thumb tall at every rung and density by construction, so the inset cannot
+ * drift from the thumb it clears. `test.ts`'s membership pin moved from four fields to five, which is
+ * that gate working rather than yielding — it fired on the first run of this change.
+ *
+ * Prism 2 supplied the RELATIONSHIP and could not supply the number. `toggle-switch.json` sites its own
+ * thumb with a uniform `padding: 4` on the TRACK — an equal inset on four sides, i.e. the thumb centred
+ * — which is the construction adopted here. Its literal 4 is `height / 8` and follows from a 0.75 thumb
+ * ratio where this tier's is 0.5; on this ladder that is 2.5px at `md`. So the shape transfers and the
+ * value is re-derived, which is also why every rung stays an integer.
+ *
+ * Emitted artifacts move in all four brands, and `core.dimension.5` is newly emitted: 3, 5 and 7 are on
+ * neither the base-4 grid nor the space extras, so the inset px join the grid extras the way `dot`'s did
+ * (#910) and the alias resolves rather than falling back to a literal. `CONTRACT_VERSION` moves to 9.3.0
+ * — four paths added, none removed or retyped — derived from `token-contract.ts --check` rather than
+ * asserted here.
+ *
  * 0.33.0: the selection-control LINE-BOX (#1201, building the fix #1009 filed). Follows #1216's 0.32.0
  * (the 36/44/56 size-ladder move, below) — 0.32.0 is spent, so this takes 0.33.0. `control.size.{rung}`
  * gains a `line-box` leaf — the baked height of one line of the `body.{rung}` label (`fontSize ×
@@ -696,7 +720,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.33.0';
+export const ENGINE_VERSION = '0.34.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -742,6 +766,13 @@ export const ENGINE_VERSION = '0.33.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 9.3.0: `control.size.{sm,md,lg}.inset` plus `core.dimension.5` — four guaranteed paths added, 0
+ * removed, 0 retyped, so MINOR (#997). The switch track reads the inset as uniform padding so its thumb
+ * clears the track's ends; the dimension rung is the grid entry that inset aliases at the default
+ * density, which the grid extras now supply. Additive: every existing `control.size.*` and
+ * `core.dimension.*` name still resolves, and no value of an existing path moves. The level was DERIVED
+ * from `token-contract.ts --check` (it reported MINOR and named all four), not chosen here.
  *
  * 9.2.0: `control.size.{sm,md,lg}.line-box` — three guaranteed paths added, 0 removed, 0 retyped, so
  * MINOR (#1201). The selection-control alignment box (see `ENGINE_VERSION` 0.32.0 above) reads these to
@@ -1063,7 +1094,7 @@ export const ENGINE_VERSION = '0.33.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '9.2.0';
+export const CONTRACT_VERSION = '9.3.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

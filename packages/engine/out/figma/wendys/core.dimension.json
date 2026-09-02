@@ -59,6 +59,20 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "prism/core/dimension/5",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "5px — dimension primitive",
+      "value": 5,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "prism/core/dimension/6",
       "resolvedType": "FLOAT",
       "scopes": [

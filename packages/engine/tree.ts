@@ -677,12 +677,25 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     // mark is a `vector` whose optical inset is already inside the glyph artboard, so it draws full
     // bleed at `height` and a second dimension would inset it twice.
     const dotLeaf = controlLeaf(c.dot, `control.size.${c.name} dot — ${c.dot}px inner mark for a control whose mark is a filled shape, i.e. a radio's dot (half the ${c.height}px box edge, leaving a ${(c.height - c.dot) / 2}px gap to the boundary). A control whose mark is a GLYPH draws it full-bleed at \`height\` instead.`);
+    // The GAP between the inner mark and the box's boundary (#997), and the field that stops a switch's
+    // thumb sitting FLUSH at both ends of its track. The thumb is a flow child of a fixed-size track
+    // positioned by `positionWhen` onto the track's main-axis distribution, so MIN and MAX put its edge
+    // exactly on the track's unless the track carries padding — and the space scale (4/8/12/…) has
+    // nothing to bind at `md`'s 5px. Read as the track's UNIFORM padding, which is how Prism 2 sites the
+    // same thumb (`toggle-switch.json`: a 32px track with `padding: 4` around a 24px thumb).
+    //
+    // A square control does not read it: a checkbox's mark is a `vector` whose optical inset already
+    // lives inside the glyph artboard, and radio's dot is centred by its parent rather than padded away
+    // from it. This is the field a control needs when its mark TRAVELS.
+    const insetLeaf = controlLeaf(c.inset, `control.size.${c.name} inset — ${c.inset}px gap between the inner mark and the box's boundary ((${c.height}px box edge − ${c.dot}px dot) ÷ 2). Read as a track's uniform padding by a control whose mark travels, i.e. a switch's thumb, so the thumb clears the track's ends at both extremes instead of sitting flush. A control whose mark is centred and static does not read it.`);
     const hMods = controlModes(c.name, 'height', c.height, (x) => x.height);
     const wMods = controlModes(c.name, 'width', c.width, (x) => x.width);
     const dMods = controlModes(c.name, 'dot', c.dot, (x) => x.dot);
+    const iMods = controlModes(c.name, 'inset', c.inset, (x) => x.inset);
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
     if (wMods) widthLeaf.$extensions.prism3.modes = wMods;
     if (dMods) dotLeaf.$extensions.prism3.modes = dMods;
+    if (iMods) insetLeaf.$extensions.prism3.modes = iMods;
     // #1201 — the alignment box (see `bodyLineBox` above). A single baked value per rung: it carries no
     // per-mode override because the centring it enables is a static-layout nicety, not a mode-varying
     // dimension, and a mode that resized the body ramp would re-derive this from the same product.
@@ -690,7 +703,7 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const lineBox = lineBoxPx !== undefined
       ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).`)
       : undefined;
-    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
   }
   const control = { size: controlSize };
 
