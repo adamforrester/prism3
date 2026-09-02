@@ -102,6 +102,38 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.38.0: every projected ICON MEMBER carries an ink (#1211). `icon`'s `paintKeys` gains a second,
+ * SLOT-keyed entry — `['tone.{tone}', '{slot}']` — bound to `color.icon.primary`, so a coordinate that
+ * names no tone resolves the primary icon role instead of resolving nothing. `paintOf` walks the list in
+ * declaration order, so a named tone still wins at every one of the eight; what changes is the case that
+ * was never rendered when the old shape was written.
+ *
+ * MEASURED, and the measurement is the whole reason this is a defect rather than a design: `variantAxes`
+ * is `['name']` alone, so NO member of the 39-member set carries a `tone` coordinate, `tone.{tone}` is
+ * unfillable at every one of them, and all 39 shipped with no fill bound. The def's own comments called
+ * that "the correct projection of `currentColor`, not a dropped binding". It is neither — Figma has no
+ * `currentColor`, so it resolves the literal in the glyph document to BLACK, and the set shipped 39
+ * unbound black glyphs. That prose predates any rendered default icon and was wrong on contact with the
+ * output; it is reversed in `components/icon.ts` rather than left standing beside the fix.
+ *
+ * ONE HALF OF THE OLD ARGUMENT SURVIVES AND SHAPES THE FIX. There is no token whose value is "inherit",
+ * so `tone.inherit` still binds nothing and the floor is keyed on the SLOT instead — it is not a ninth
+ * tone, it is what `paintOf('icon')` finds after the tone template fails to fill. `test.ts` pins both
+ * halves in one place, because splitting them lets either be "fixed" back into the other.
+ *
+ * VALUES-only in the token layer: no token name and no `$type` moves, and `color.icon.primary` was
+ * already emitted and already bound by `tone.primary`. So `CONTRACT_VERSION` stands at 9.3.0 and
+ * `token-contract.ts --check` confirms it rather than this comment asserting it. A MINOR rather than a
+ * PATCH for the reason 0.6.0 and 0.7.0 were: the emitted projection changes observably — 39 members gain
+ * a bound `descendantFills`, and `schema/paint-census.json` records the move.
+ *
+ * WHAT THIS DELIBERATELY DOES NOT DO. The set stays ONE `ComponentDef` projecting a 39-member
+ * COMPONENT_SET (`variantAxes: ['name']`) — 39 separate components need a projector singleton mode
+ * `figmaAnatomySet` does not have (it throws on a member with no variant coordinate, #795/#802) and
+ * `applyComponentPlan` unconditionally combines, so that reshape is #1226's. And the 16/20/24 size
+ * ladder is untouched: `ICON_SIZES` and every `size.*.icon` rung binding stand, because moving them
+ * reverses #756's gated default-rung rule (#1206).
+ *
  * 0.37.0: the inverse PRIMARY button takes a BRAND-colored label, auto-selected (#1244, refining #1208
  * and #1231). The inverse fill is unchanged — still the uniform neutral extreme #1231 decided — and only
  * `inverse.interactive.primary.on-fill` moves, from a neutral ink to the most vivid step of the brand
@@ -787,7 +819,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.37.0';
+export const ENGINE_VERSION = '0.38.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

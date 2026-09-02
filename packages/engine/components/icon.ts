@@ -112,17 +112,13 @@ export const icon: ComponentDef = {
   // The `size` PROP stays, with all four rungs and its `md` default, because a code consumer sizes an icon
   // directly and `lint-rung-names.ts` arm 2 still compares the enum against these bindings.
   //
-  // `tone` still does not project — see the codeOnly entry, whose reason (`inherit` has no Figma
-  // coordinate) is untouched by any of this.
+  // `tone` still does not project — see the codeOnly entry. Its REASON moved in #1211 (a projected
+  // `tone=inherit` member would now paint the floor and duplicate `tone=primary`, rather than having no
+  // coordinate to occupy at all); the conclusion did not.
   variants: {
     name: [...ICON_NAMES],
     tone: ['inherit', 'primary', 'secondary', 'tertiary', 'brand', 'success', 'warning', 'danger', 'info'],
   },
-
-  // The square artboard at each rung, plus the semantic ink family. `tone.inherit` binds NOTHING and
-  // is absent from this map deliberately: `currentColor` is the absence of a pinned ink, not a token
-  // whose value happens to be "inherit". A binding key for it would have to resolve to some real
-  // path, and every candidate would be a lie about what the default does.
 
   // THE PAINT GRAMMAR, and this def is why the field exists (#758). The ink axis leads with its own
   // NAME and carries no `{slot}` segment at all — `tone.primary`, not `primary.icon` — because the
@@ -132,10 +128,29 @@ export const icon: ComponentDef = {
   // list: an axis list can express one of these two shipped conventions and would force a rekey of
   // the other.
   //
-  // `tone.inherit` is absent from `tokens` by the paragraph above, so a coordinate at `inherit`
-  // resolves no paint and the glyph keeps whatever ink it inherits — the correct projection of
-  // `currentColor`, not a dropped binding.
-  paintKeys: ['tone.{tone}'],
+  // THE SECOND KEY IS THE FLOOR, AND IT REVERSES WHAT THIS FILE USED TO SAY (#1211). Both this comment
+  // and the one over `tokens` argued that `tone.inherit` must bind NOTHING — that `currentColor` is the
+  // ABSENCE of a pinned ink, so a coordinate at `inherit` "resolves no paint and the glyph keeps
+  // whatever ink it inherits", which that comment called the correct projection of `currentColor`
+  // rather than a dropped binding. That reasoning predates any rendered default icon and it is wrong on
+  // contact with the output. MEASURED: `variantAxes` is `['name']` alone, so no projected member carries
+  // a `tone` coordinate at all — `tone.{tone}` is unfillable at every one of the 39 and all 39 ship with
+  // no fill bound. What they then inherit is not a host cascade: Figma has no `currentColor`, so it
+  // resolves the literal `fill="currentColor"` in the glyph document to BLACK. The old position did not
+  // project `currentColor`; it shipped 39 unbound black glyphs and read that as the projection.
+  //
+  // `'{slot}'` is the fallback the rest of the corpus already spells this way — `checkbox`, `radio`,
+  // `switch` and `field-label` all end on it — and it sits SECOND on purpose: `paintOf` walks these in
+  // DECLARATION ORDER, so a named tone still wins and the floor answers only the coordinates that name
+  // none. That is every projected member, and `inherit` too.
+  //
+  // ONE HALF OF THE OLD ARGUMENT SURVIVES, and it is why the fix is a floor rather than a `tone.inherit`
+  // entry: there is no token whose value is "inherit", so any key spelled that way would be a lie about
+  // what the default DOES. The floor says something different and true — with no tone named, the ink is
+  // the primary icon role. `tone: inherit` keeps its code meaning (the `tone` prop still documents
+  // `currentColor`, and a DOM consumer can still leave the ink to the cascade); the floor is what a
+  // target with no inheritance model resolves instead of falling back to a hard-coded black.
+  paintKeys: ['tone.{tone}', '{slot}'],
 
   tokens: {
     // The two vocabularies meeting on four lines (#844) — the CONSUMER's word on the left, the ENGINE's
@@ -146,6 +161,12 @@ export const icon: ComponentDef = {
     'size.small': 'icon.size.sm',
     'size.medium': 'icon.size.md',
     'size.large': 'icon.size.lg',
+    // THE FLOOR (#1211) — the ink a glyph takes when no tone is named, which is every projected member.
+    // Keyed on the SLOT (`icon`) rather than on a tone value, because it is not a ninth tone: it is what
+    // `paintOf('icon')` finds after `tone.{tone}` fails to fill. It points at the same role `tone.primary`
+    // does, deliberately — the default tone IS primary, so a second role here would make the floor
+    // disagree with the tone a consumer would name to get "the normal one".
+    icon: 'color.icon.primary',
     'tone.primary': 'color.icon.primary',
     'tone.secondary': 'color.icon.secondary',
     'tone.tertiary': 'color.icon.tertiary',
@@ -203,7 +224,7 @@ export const icon: ComponentDef = {
       // MUST LEAD with `tone` — `figmaPropertyErrors` requires an unprojected variant axis to be
       // admitted by an entry that STARTS with the axis name, because a passing mention inside an
       // entry about something else is a gate satisfied by unrelated prose (the #563 finding).
-      'tone — the ink axis, declared in `variants` and deliberately not a Figma variant, and as of #795 the reason is ONE reason rather than three. The surviving one is the interesting one and always was: `inherit` (`currentColor`) is the DEFAULT and Figma has no equivalent — a Figma node\'s fill is a value, never an inheritance from its host, so the most common tone has no coordinate to occupy. Projecting the eight semantic tones and silently dropping the default would ship a set whose default member is the one thing the API does not default to. The other two are gone, and both were OURS rather than Figma\'s. STRUCTURAL: this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it — #795 deleted that list, so the projector would carry `tone` today if this def asked, and the def does not ask. PAINT: `paintOf` used to key every lookup as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolved nothing; #758 replaced that with this def\'s own `paintKeys` and the tone ink resolves at every tone — verified in `test.ts`, which plans this def at `{tone: danger}` and asserts the `color/icon/danger` binding. So the set projects over `size` and paints along `tone`, which is the shape #795\'s `variantAxes` doc comment cites as the field\'s original meaning.',
+      'tone — the ink axis, declared in `variants` and deliberately not a Figma variant, and as of #795 the reason is ONE reason rather than three. The surviving one is the interesting one and always was: `inherit` (`currentColor`) is the DEFAULT and Figma has no equivalent — a Figma node\'s fill is a value, never an inheritance from its host. #1211 SHARPENS that rather than softening it, and the sharpening matters because the old wording is now half wrong. It said the most common tone "has no coordinate to occupy"; it has one, because `paintKeys` now ends on a `{slot}` floor and a coordinate at `inherit` resolves the primary ink like any other tone-less one. What Figma still cannot carry is the MEANING: a projected `tone=inherit` member would paint that floor and be pixel-identical to `tone=primary`, so the axis would offer a value whose entire job — defer to the host — the projection silently drops while looking complete. A duplicate member that lies is worse than an absent one, which is why the axis stays in code. The other two reasons are gone, and both were OURS rather than Figma\'s. STRUCTURAL: this entry said `figmaAnatomySet` refuses any variant axis outside intent/appearance/size (`PROJECTABLE_VARIANT_AXES`) and throws rather than enumerating around it — #795 deleted that list, so the projector would carry `tone` today if this def asked, and the def does not ask. PAINT: `paintOf` used to key every lookup as `{intent}.{appearance}.{slot}`, so a def whose paint axis is `tone` resolved nothing; #758 replaced that with this def\'s own `paintKeys` and the tone ink resolves at every tone — verified in `test.ts`, which plans this def at `{tone: danger}` and asserts the `color/icon/danger` binding. So the set projects over `name` and paints along `tone`, which is the shape #795\'s `variantAxes` doc comment cites as the field\'s original meaning.',
       'glyph fill vs stroke — the set ships FILLED outlines (`fill="currentColor"` on a closed path, verified across all 39 sources), so a materializer paints the vector and never strokes it. A stroked-icon set is the other half of the field (Feather, Lucide) and would need a stroke weight plus a cap/join treatment, none of which `PartDef` can carry — the same wall the `stroke weight` entry below describes, met from the geometry side. Stated here because the def now DOES declare the geometry (#864) and this is the part of it that still cannot be declared.',
       'optical baseline shift — a glyph\'s bounding box is rarely its visual center of mass, so an inline icon needs an optical shift (Material Symbols moves ~11.5% of the text size down, aligning the glyph center to the x-height rather than the box). That is a relationship between a glyph and the TEXT beside it, resolved at render; Figma centers a node in its parent frame and has nowhere to state it. The recurring polish bug the brief names — an icon sitting a pixel low beside its label — lives entirely in this gap.',
       'stroke weight — a constant tuned to the typeface rather than a per-icon value (Atlassian\'s 1.5px matches its 1.5px typeface stroke by the squint test; Material\'s baseline is 2dp). It is a property of the SET, so no single glyph component can carry it, and `PartDef` has no stroke-weight field to carry it with — the same wall `focus-ring` meets from the other side.',
