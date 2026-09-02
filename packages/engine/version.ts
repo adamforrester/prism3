@@ -102,6 +102,29 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.36.0: `field-label` gains the two Prism 2 controls that use existing patterns (#872, and the
+ * `field-label` half of #862). `size` goes to three rungs and TYPE follows it — `type.body.{sm,md,lg}
+ * .default`, 14/16/18px at 150% line-height, which is Prism 2's form-label ladder exactly and the tier
+ * #862 predicted (`type.label.*` is 12/14, emphasis-only, no `lg`). Ink follows a new `tone` axis onto
+ * `color.text.{primary,secondary}` — semantic roles, never shades, so a brand retuning its text palette
+ * carries this without the def moving. The default size still resolves to the `md` rung, which
+ * `lint-rung-names` (#756 arm 3) checks corpus-wide and `test.ts` now also pins at the def.
+ *
+ * NOTHING SHARED MOVED, and that is the scope rather than luck. `tone` was already in `VARIANT_AXES`
+ * and already the ink axis on `icon` and `field-message`, and the `type` template still names ONE
+ * placeholder, so the projector's `{size}`-only expansion is untouched. Prism 2's third control — the
+ * Regular/Bold weight — is NOT built: it needs a coordinate-driven `type` resolver and a new name in
+ * #756's deliberately closed axis vocabulary, which are decisions rather than bindings. Filed as #1248
+ * and routed to review before any code; this def binds `.default` (400, Prism 2's own default cell)
+ * until that lands.
+ *
+ * NO EMITTED TOKEN VALUE MOVES — `out/` changes only by this stamp, and `CONTRACT_VERSION` stands at
+ * 9.3.0 since no guaranteed name or `$type` moves (`--check` confirms). The bump is for BEHAVIOR a
+ * consumer sees: `field-label`'s Figma set goes from 4 members to 12, its code API gains a prop, and
+ * every rung's type role changes tier. `lint-emission-version` reports 0 artifacts moved and is right —
+ * component payloads are not committed under `out/`, so a gate watching regen artifacts cannot see a
+ * component projection change. Its silence is a fact about its scope, not evidence behavior held still.
+ *
  * 0.35.0: two button-QA colour-derivation corrections in `modes.ts`, both VALUES-only (no token name
  * or `$type` moves, so `CONTRACT_VERSION` stands at 9.3.0 — `token-contract.ts --check` confirms). Takes
  * 0.35.0 because #997's switch-inset 0.34.0 (below) is spent. (1) #1208 — the inverse FILLED fill is now
@@ -731,7 +754,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.35.0';
+export const ENGINE_VERSION = '0.36.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

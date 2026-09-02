@@ -172,6 +172,19 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'shared set drift while all still passed; the shared set IS the relationship.',
   },
   {
+    axis: 'tone',
+    values: ['primary', 'secondary'],
+    defs: ['field-label'],
+    relation: 'subset',
+    reason:
+      'The de-emphasized label (#872; Prism 2 calls the control "color"). A SUBSET of `icon`\'s tone '
+      + 'vocabulary — `[inherit, primary, secondary, tertiary, brand, success, warning, danger, info]` — '
+      + 'and the two shared names mean the same two semantic text roles there, which is what makes this a '
+      + 'subset rather than a second spelling of the axis. Two values and not more: a label below '
+      + '`secondary` stops reading as a field\'s name, and a status-colored one would be the validation '
+      + 'signal `field-message` already owns.',
+  },
+  {
     axis: 'indicator',
     values: ['none', 'required', 'optional'],
     defs: ['field-label'],
@@ -263,7 +276,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — eight of the defs with a size axis, the '
@@ -274,13 +287,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium'],
-    defs: ['field-label', 'switch'],
+    defs: ['switch'],
     relation: 'subset',
     reason:
-      'The ladder minus its top rung, for two defs that have no large form: a label tracks the field it '
-      + 'labels rather than setting its own scale, and a switch above medium stops reading as a control. '
-      + 'Same vocabulary, shorter — `small` and `medium` mean the same dimensions they mean in canonical, '
-      + 'which is what makes this weighable instead of a second ladder.',
+      'The ladder minus its top rung, for a def with no large form: a switch above medium stops reading '
+      + 'as a control. Same vocabulary, shorter — `small` and `medium` mean the same dimensions they mean '
+      + 'in canonical, which is what makes this weighable instead of a second ladder. `field-label` shared '
+      + 'this entry until #872 and now takes the full three: the reason given for its shortness ("a label '
+      + 'tracks the field it labels rather than setting its own scale") turned out to be the argument FOR '
+      + 'three, since `text-field` and `textarea` have declared three rungs since tranche 1.',
   },
   {
     axis: 'style',

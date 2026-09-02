@@ -1378,8 +1378,13 @@ ok(JSON.stringify(labelPlans) === JSON.stringify(figmaAnatomySet(fieldLabel, {})
 // so a `field-label` run against it would report every binding as a miss and the assertion below would be
 // measuring the seed rather than the executor. Derived from these plans for the reason `fullFor` exists.
 const labelRun = await run(labelPlans, fullFor(labelPlans));
-ok(labelRun.set === 'field-label' && labelRun.variants === 4 && labelRun.added === 4,
-  `#804 a 4-member set assembles under one set of its own name (set=${labelRun.set}, variants=${labelRun.variants}, added=${labelRun.added})`);
+// The COUNT is DERIVED from the plans rather than pinned, because what #804 claims is "one set of its
+// own name, every member added" — not the size of field-label's grid. It was 4 until #872 gave the def a
+// `tone` axis and a third size rung (3 x 2 x 2 states = 12), and a hardcoded 4 fails on a change that
+// says nothing about the property under test. `variants === added === planned` is what carries the
+// claim: every planned member reached the set and none was silently dropped.
+ok(labelRun.set === 'field-label' && labelRun.variants === labelPlans.length && labelRun.added === labelPlans.length,
+  `#804 a whole set assembles under one set of its own name, every member added (set=${labelRun.set}, variants=${labelRun.variants}, added=${labelRun.added}, planned=${labelPlans.length})`);
 ok(labelRun.misses.length === 0, `#804 ...with no misses (${labelRun.misses.join('; ') || 'none'})`);
 // REACHABILITY, so the line above cannot pass vacuously: a plan set that binds nothing has nothing to
 // miss. Same guard the Button block opens with, for the same reason.

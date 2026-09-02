@@ -7,6 +7,78 @@
 
 ---
 
+## (2026-09-03) — field-label gets the two Prism 2 controls that need no new machinery (#872; #862's field-label half)
+
+**STATUS: shipped.** `field-label` gains a `tone` axis and a third size rung, and its TYPE now follows
+`size` onto `type.body.*` instead of `type.label.*`. Gates stay at **52**. `ENGINE_VERSION` 0.35.0 →
+**0.36.0**; `CONTRACT_VERSION` **stands at 9.3.0**. Weight is deferred to **#1248**.
+
+── WHAT THE MEASUREMENTS CHANGED ABOUT THE TASK ──────────────────────────────────────────────────
+
+Two premises in the brief did not survive checking, and both changed the work:
+
+**`field-label` already bound a type role** (`type.label.{sm,md}.emphasis`). The defs that bind none are
+`text-field` and `textarea` — the field VALUE's type on the substrate, which is what **#862 actually
+asks**. So #862 closes here for `field-label` only; the substrate half is untouched and still open,
+which is also what #872 says (`field-label` cannot answer it alone).
+
+**"Heavier, darker" was backwards.** Prism 3 shipped `emphasis` (600) + `color.text.primary`; Prism 2's
+DEFAULT is Regular (400) + Secondary. Aligning makes the label LIGHTER and GREYER. Confirmed with the
+owner before building — *"align to primary and secondary text variables, not specific shades… having the
+size controls and weight controls and color controls are what's important."*
+
+── THE TIER PICKED ITSELF ────────────────────────────────────────────────────────────────────────
+
+`type.body.{sm,md,lg}` is **14 / 16 / 18px at `line-height-role.normal` = 150%**; Prism 2's form-label
+ladder is **14 / 16 / 18 at 150%**. Exact on all three rungs AND the line-height — and the tier #862
+predicted for the field family. `type.label.*` could not have reached it: 12 / 14, emphasis-only, no
+`lg` rung at all. The default size still lands on the `md` rung, which `lint-rung-names` (#756 arm 3)
+checks corpus-wide and which `test.ts` now also pins at the def, because moving a ladder from two rungs
+to three is exactly the edit that could leave `medium` pointing at `sm` with every other check green.
+
+── NOTHING SHARED MOVED, AND THAT IS THE SCOPE RATHER THAN LUCK ──────────────────────────────────
+
+`tone` was already in `VARIANT_AXES` and already the ink axis on `icon` and `field-message`, so the
+colour control is an existing pattern applied. And because no weight axis is added, the `type` template
+still names ONE placeholder — the projector's `{size}`-only expansion is untouched.
+
+**Prism 2's third control is not built.** Its Regular/Bold weight needs a coordinate-driven `type`
+resolver (today a part's `type` fills `{size}` only, while `paintKeys` have always taken the whole
+coordinate — an asymmetry with no stated reason) AND a new name in #756's deliberately closed axis
+vocabulary. Both are decisions rather than bindings. **Filed as #1248**, routed to review before code.
+This def binds `.default` — 400, Prism 2's own default cell — until that lands.
+
+── THE PROVENANCE GATE CORRECTED A DESIGN CHOICE ─────────────────────────────────────────────────
+
+The marker used to be pinned one role below the label so "(optional)" read de-emphasized. Keeping that
+under a tone axis is refused by construction: `lint-paint`'s provenance arm requires an axis-value-led
+key to name a ref carrying that value, so `primary.indicator → color.text.secondary` fails **by name**
+as *"a primary coordinate would paint another tone's color"*. Measured on the first run, not predicted.
+Prism 2 paints label and marker alike in every colour cell anyway. **The de-emphasis moved rather than
+vanished** — it is what `tone='secondary'` is for, the gap #872 called its sharpest.
+
+The `indicator` slot stays separate even though both parts now resolve alike, and its justification had
+to be REPLACED rather than kept: "Figma renders two text nodes in two colors trivially" expired with the
+change. What keeps the slot is the disabled branch, which builds `disabled.<slot>` from the slot it was
+asked for — folding `indicator` into `label` would leave a disabled marker undimmed.
+
+── THE VERSION CALL, WHICH A GREEN GATE DID NOT SETTLE ───────────────────────────────────────────
+
+`lint-emission-version` reports **artifacts changed vs base: 0** and is right: component payloads are
+not committed under `out/`, so a gate watching regen artifacts cannot see a component projection change.
+Bumped anyway — the Figma set goes **4 members → 12**, the code API gains a prop, and every rung's type
+role changes tier. **A gate's silence is a fact about its scope, not evidence that behavior held still.**
+The bump then stamps every emitted tree, which is the only reason `out/` moves at all; `--accept`'s
+whole diff is the `engineVersion` field, which is the mechanical confirmation that no value moved.
+
+── TWO PINS MOVED, EACH FOR A STATED REASON ──────────────────────────────────────────────────────
+
+`test.ts` pinned `tokens['label'] === 'color.text.primary'`; the bare key is gone, so it now pins BOTH
+tones and asserts no bare `label` survives — a check reading only `primary` would pass a def that
+shipped the axis with one working cell. And `test-write-components.ts` pinned `variants === 4`; the
+count is now DERIVED from the plans, because #804's claim is "one set, every member added", not the size
+of this def's grid.
+
 ## (2026-09-02) — field-ref read-back re-wires onto the live node when a fast-path handle went stale (#866)
 
 **STATUS: shipped as CAUSE-INDEPENDENT HARDENING.** Plugin-only (`apps/plugin/src/write-components.ts`,
