@@ -1639,8 +1639,16 @@ export type VariantAxis = (typeof VARIANT_AXES)[number];
  *
  * The segment-vocabulary rule exempts a nested component's own token by reading `anatomy.parts[*].nests`
  * — derived, so it cannot go stale. A def with no `anatomy` yet has nowhere to state the relationship,
- * so it names the binding here instead: Button's `focus-ring` binding verbatim, gated per brand for the
- * same reason, with the ring in `composition.composesWith`.
+ * so it names the binding here instead: Button's `focus-ring` binding verbatim (`color.border.focus`,
+ * byte-identical), gated per brand for the same reason.
+ *
+ * This sentence used to end *"and the ring is in `composition.composesWith`"*, which is FALSE for both
+ * defs it describes — neither `text-field` nor `textarea` lists the ring there. Dropped rather than
+ * repaired by editing the defs, because the measurement says a two-def repair would make things worse:
+ * NINE defs bind `focus-ring` and SIX omit it from `composesWith`, the whole button family among them,
+ * so the split is corpus-wide and does not follow `nests`. Which direction is intended — add it to six,
+ * or remove it from the three that carry it — is a question about what `composesWith` means, not a typo.
+ * Filed as #1238.
  *
  * This map is deliberately the SMALLEST possible escape hatch, and an entry is INERT the moment its def
  * gains an `anatomy` block — the guard requires `!def.anatomy`, so the derived path simply takes over.

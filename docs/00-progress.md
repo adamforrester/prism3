@@ -81,6 +81,24 @@ rather than by count, which is the evidence for why the trigger needed teeth.
 **No removal trigger is restated in a form that can re-stale.** The entries that remain say what compels
 their own removal — the direction — instead of naming a milestone that moves.
 
+── A SEVENTH FALSE CLAUSE, FOUND IN REVIEW ───────────────────────────────────────────────────────
+
+The opening sentence was rewritten to drop *"the one such case in the corpus"* and **carried its tail
+through the rewrite**: *"and the ring is in `composition.composesWith`"*, which is false for both defs
+the sentence describes. Not on the residual list — it went unnoticed in #1222 because that pass was
+checking the membership claim — but it is the same class, in a sentence this change re-authored, so it
+was in scope by this PR's own standard.
+
+Dropped rather than repaired by editing the two defs, and the measurement is why: **nine defs bind
+`focus-ring` and six omit it from `composesWith`**, the whole button family among them, so the split is
+corpus-wide and does **not** follow `nests` — button/icon-button nest the ring in anatomy and still omit
+it. A two-def repair would have fixed two of six and left a worse inconsistency behind, and which
+direction is intended is a question about what `composesWith` means rather than a typo. **Filed as
+#1238**, with the cross-tabulation and a note that either reading is gateable against `nests`.
+
+The other half of the same sentence was checked rather than assumed and does hold: `text-field` and
+`textarea` both bind `focus-ring → color.border.focus`, byte-identical to button's.
+
 ## (2026-09-02) — two button-QA colour corrections: inverse fill neutral, neutral border follows ink (#1208, #576)
 
 **STATUS: shipped.** Both live in `modes.ts`, both VALUES-only across all four brands. ENGINE 0.34.0 → 0.35.0
