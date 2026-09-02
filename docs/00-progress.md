@@ -7,6 +7,90 @@
 
 ---
 
+## (2026-09-02) — the inverse band's pill read as its own twin, and the assertion the issue asked for could not tell (#1147)
+
+**STATUS: shipped.** Studio-only: an `inverse` badge beside the token pill, plus a 28-assertion smoke
+section. No engine change, no `out/**` change, **no version bump** — no token moved. Gates stay at **52**;
+the smoke suite grows 973 → **1,001** assertions.
+
+**THE DEFECT.** `.tpill` elides with `direction:rtl` (#289), so the ellipsis bites at the START and the
+TAIL survives — a deliberate choice, because sibling paths share long namespace prefixes and the tail is
+what tells them apart. #1141 then moved the inverse marker to a *leading* `inverse.` group: the part that
+goes first. Measured on `ba3e0cf`, all 113 inverse roles have a non-inverse twin differing by nothing
+else, so a pill narrow enough to elide renders `color.inverse.background.primary` and
+`color.background.primary` as the same string. Two tokens, one rendering, in a tool whose entire job is
+telling you which token you are looking at.
+
+**THE REMEDY.** An `inverse` badge as a SIBLING of the pill inside a new `.tpill-wrap`. Two other
+placements were available and both are wrong for reasons already recorded in this file: anything *inside*
+`.tpill` is elided by the very rule the badge exists to survive, and anything in the pill's *text* changes
+what a copied path yields — the two measured regressions `tokenPill`'s comment carries (`inline-flex`
+blockified the parts into `color\n.background.primary`; `inline-block` + a `ch` width collapsed the head on
+181 of 198 pills). `tokenPill` was therefore SPLIT rather than changed in place: `tokenPillSpan` mints the
+pill alone, so the two callers that rebuild the pill's children (`tokenPillWrapping`, `sgPill`) still hold
+the pill itself and not a wrapper.
+
+**THE FINDING THAT CHANGED THE GATE, and it is the reason this entry is long.** The issue's stated remedy
+was "no two rendered pill labels are identical". Measured before writing it: at 1440px, 900px, 640px and
+380px, across every page of both corpus brands, that property holds — **0 collisions, with the badge and
+without it.** A collision needs two coincidences at once: both twins clipped, in containers narrow enough
+to cut past a 14-character prefix. Twins sit on different pages in differently sized containers, so it
+never happens. The assertion the issue asked for **would have passed on the unfixed code**, and a gate
+resting on it alone would have tested nothing.
+
+So the section asserts the property in a regime where it can actually fail, and the load-bearing assertion
+is a different one:
+
+- **Structural, width-independent** — every pill whose path carries an `inverse` segment has a rendered
+  `inverse` badge whose box lies OUTSIDE the pill's content box. This is the one property that cannot be
+  read off the markup, and it fails 20 times per brand the moment the badge is gone.
+- **The issue's property, under a measured cap.** The probe caps `.tpill` itself rather than narrowing the
+  viewport, and that choice is measured: at a 380px viewport — the plugin's own declared `MIN_SIZE.width` —
+  22 pills clip and zero twin pairs collide, because a pill's container does not shrink with the window.
+  Asserting there is docs/34 **shape 15**: the comparison right, the set excluding the only case that can
+  fail it. Capping the pill puts every pill in the regime the issue is about, on every page at once.
+- **A hazard floor, asserted before the collision check and separately from it** — at each cap, ≥ 5 twin
+  pairings must elide to identical TEXT. Without it, a cap where nothing is ambiguous passes the collision
+  check on a badge that was never rendered.
+
+**THE CAP WINDOW IS MEASURED, NOT PICKED.** Twin pairs start colliding on text at a 200px cap (7 pairs) and
+130px (10), identically on both brands. The first collision between two paths that are NOT twins appears
+only at 90px — `color.background.primary` vs `color.foreground.primary`, and
+`interactive.{primary,neutral,destructive}.overlay.hover`, ambiguity in the MIDDLE of the path that no
+inverse badge could fix and that no real container reaches. So a probe width belongs in (90, 200]; both used
+sit inside it, and the header says what a non-twin failure means: the cap is narrower than the studio
+renders, widen it.
+
+**MUTATIONS**, each confirmed failing by name:
+
+| mutation | failures |
+|---|---|
+| `withInverseBadge` returns the pill unchanged (no badge) | **6** — 2 × badge-present, 4 × label collisions (7 @200px, 10 @130px per brand) |
+| the badge appended INSIDE the pill | **10** — badge not outside its clipping box, the pill's text no longer its path, both hazard floors (the appended word un-ambiguates the tails), and 4 new collisions between *different* inverse roles |
+| the `isInversePath` guard dropped (badge on every pill) | **6** — 323 pills badged outside the band, and the collision arm fails too: a universal badge distinguishes nothing |
+| `PILL_CAPS` widened to [400, 300] (a probe of the gate, not the subject) | **4** — both hazard floors, 0 ambiguous pairings: the collision check cannot go vacuously green |
+| `.tpill-wrap .tpill{min-width:0}` deleted | **0** — see below |
+
+**THE MUTATION THAT FAILED TO FAIL, AND WHAT WAS DONE ABOUT IT.** Deleting `min-width:0` moves no number in
+this suite, at 1440px or at 380px: no container the studio renders is narrow enough for a flex item's
+min-content floor to apply. The CSS comment had claimed the pill "would size to its intrinsic width and
+stop eliding at all" — a claim no rendered width supports, so it is corrected to say what was measured.
+The declaration stays as a guard for the day a container does narrow; no assertion was added, because an
+assertion that passes with the CSS deleted is a pass reporting blindness (docs/34 shape 9), and the
+section's header now states the gap rather than implying coverage.
+
+**TWO TRAPS WORTH CARRYING FORWARD.**
+
+1. **`git checkout -- <source>` does not restore a BUILT subject.** Mutation 4's first run reported a
+   mutation-3 failure: the source had been restored, `dist/main.js` had not. For any gate that drives a
+   bundle, the restore step is checkout **plus rebuild**, and the tell is a failure naming the previous
+   mutation. The rerun on a clean bundle produced exactly the 4 expected failures, which is also what
+   proved the tree was clean.
+2. **A `.tpill`'s `title` is a token slug, not always a dotted path.** The first version of the shape check
+   required ≥ 2 segments and failed on 15 pills per brand — `sgPill`'s short contextual labels (`opacity`,
+   `on-fill`, `border`), where the row supplies the context. The app was right. Two rows can therefore
+   carry the same short label, which is deliberate context-dependence rather than elision ambiguity, and is
+   why the collision check compares only pills whose titles differ.
 ## (2026-09-02) — two exemption entries were dead, and the comment saying that could not happen argued against the check that catches it (#1221)
 
 **STATUS: shipped.** `packages/engine/component-schema.ts` only — the `NESTED_WITHOUT_ANATOMY` table, a

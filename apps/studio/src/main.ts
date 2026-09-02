@@ -599,12 +599,44 @@ const colorPath = (role: string): string => `color.${role}`;
  *  selection came back as `color\n.background.primary`; switching to `inline-block` with the tail's
  *  width reserved in `ch` fixed the newline but the head's `max-width:100%` resolved against the
  *  pill's own shrink-to-fit width — circular — which collapsed the head to nothing on 181 of 198
- *  pills. Both measured, not reasoned about. `title` carries the full path for the elided case. */
-const tokenPill = (path: string): HTMLElement => {
+ *  pills. Both measured, not reasoned about. `title` carries the full path for the elided case.
+ *
+ *  This mints the pill ALONE. `tokenPill` is what callers want: it pairs the pill with the `inverse`
+ *  badge (#1147) where the path needs one. The two are split because the two callers that rebuild the
+ *  pill's children — `tokenPillWrapping` and `sgPill` — must hold the pill itself, not a wrapper. */
+const tokenPillSpan = (path: string): HTMLElement => {
   const p = el('span', 'tpill mono', path);
   p.title = path;
   return p;
 };
+/** True when a path's discriminator is the `inverse` group (#1141) — matched as a whole SEGMENT, so a
+ *  role that merely contains the letters (`brand-inverse-subtle`, were one ever minted) is not one. */
+const isInversePath = (path: string): boolean => path.split('.').includes('inverse');
+/** Pair a pill with an `inverse` badge when its path carries that group, and return it unchanged when
+ *  it does not (#1147).
+ *
+ *  THE BADGE IS A SIBLING, AND THAT IS THE WHOLE POINT. `.tpill` elides from the LEFT, so the elided
+ *  end is the shared namespace prefix — a design that assumes the discriminator lives in the TAIL, and
+ *  a correct assumption until #1141 moved the inverse marker to a LEADING `inverse.` group. Measured on
+ *  `ba3e0cf`: all 113 inverse roles have a non-inverse twin differing ONLY by that segment, so once a
+ *  pill is narrow enough to elide, `color.inverse.background.primary` and `color.background.primary`
+ *  both render `…background.primary`. Two tokens, one rendering, in a tool whose job is telling you
+ *  which token you are looking at.
+ *
+ *  Anything INSIDE the pill would be subject to the same ellipsis, so the badge sits outside its
+ *  overflow box. And it is a sibling rather than a segment of the pill's text for the reason
+ *  `tokenPill` documents at length: the pill is ONE text node, two earlier attempts to split it
+ *  regressed copy/paste, and a path copied out of a pill still has to be the path. `.tpill`'s own text
+ *  node is untouched here. */
+const withInverseBadge = (path: string, pill: HTMLElement): HTMLElement => {
+  if (!isInversePath(path)) return pill;
+  const wrap = el('span', 'tpill-wrap');
+  const badge = el('span', 'tpill-inv', 'inverse');
+  badge.title = 'The inverse band. Shown beside the path because a narrow pill hides its leading part.';
+  wrap.append(badge, pill);
+  return wrap;
+};
+const tokenPill = (path: string): HTMLElement => withInverseBadge(path, tokenPillSpan(path));
 /** A token pill that WRAPS on path boundaries, for card grids whose column width is fixed by the
  *  content set (six easing curves → a ~123px card, against ~225px for `motion.easing.expressive`).
  *
@@ -617,11 +649,11 @@ const tokenPill = (path: string): HTMLElement => {
  *  `<wbr>` rather than a zero-width space: it contributes nothing to `textContent`, so a path copied
  *  out of the pill is still the path. Pair with the wrap CSS on the container. */
 const tokenPillWrapping = (path: string): HTMLElement => {
-  const p = tokenPill(path);
+  const p = tokenPillSpan(path);
   p.textContent = '';
   const segs = path.split('.');
   segs.forEach((seg, i) => { p.append(i < segs.length - 1 ? `${seg}.` : seg); if (i < segs.length - 1) p.append(el('wbr')); });
-  return p;
+  return withInverseBadge(path, p);
 };
 /** A dashed "+ add" button (doc 24 C4). `.addbtn` owns the styling; pass context classes (width/margin)
  *  via `cls`. That context class comes from the CALLER's scope, so the pairing is a declared mix()
@@ -1845,7 +1877,7 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
   // `fill.rest`) is shown verbatim.
   const sgPill = (k: string, label?: string, m: string = cur): HTMLElement => {
     const path = label ?? colorPath(k);
-    const p = tokenPill(path);
+    const p = tokenPillSpan(path);
     // Gallery pills wrap (see .sg-pills), and a bare wrap breaks mid-segment — "color.foreground.bran /
     // d". `<wbr>` after each dot moves the break onto the path boundaries. It is the right element
     // rather than a zero-width space because it contributes nothing to textContent, so a path someone
@@ -1859,7 +1891,11 @@ const renderPreviewStyleGuide = (host: HTMLElement): void => {
     p.setAttribute('data-sgtip', tipOf(m, k));
     // a shared token pill flagged by the style guide's own contrast verdict
     if (fails(m, k)) { addClass(p, mix('sg-failpill')); p.append(el('b', 'sg-fx', '!')); }
-    return p;
+    // The badge goes on LAST, so `.sg-failpill`'s marker and `data-sgtip`'s bubble both stay on the
+    // pill itself. Gallery pills wrap rather than elide (`.sg-pills .tpill`), so the badge is not
+    // load-bearing here — it is applied anyway, because one rule for every pill is what keeps it true
+    // the day this container is narrowed (#1147).
+    return withInverseBadge(path, p);
   };
   const pills = (...nodes: HTMLElement[]): HTMLElement => { const w = el('div', 'sg-pills'); nodes.forEach((n) => w.append(n)); return w; };
   const grid = (cols: number, cards: HTMLElement[]): HTMLElement => { const g = el('div', `sg-grid sg-g${cols}`); cards.forEach((c) => g.append(c)); return g; };

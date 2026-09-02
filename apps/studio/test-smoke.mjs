@@ -1052,6 +1052,265 @@ console.log(`\nOverwrite confirm (#1033)\n${'='.repeat(78)}`);
 }
 
 // =============================================================================================
+// 6. The inverse band's pill is still readable as a DIFFERENT token from its twin (#1147)
+//
+// `.tpill` elides with `direction:rtl` (#289), so the ellipsis bites at the START and the TAIL is what
+// survives — chosen because sibling paths share long prefixes, and the tail is the discriminating part.
+// #1141 moved the inverse marker to a LEADING `inverse.` group, i.e. into the part that goes first, and
+// every one of the engine's inverse roles has a non-inverse twin differing by nothing else. Elide far
+// enough and two different tokens render as the same string.
+//
+// The remedy under test: an `inverse` badge rendered as a SIBLING of the pill, inside a `.tpill-wrap`.
+// Not inside the pill — anything inside `.tpill` is elided by the same rule it exists to survive — and
+// not as pill text, which would change what a copied path yields. Both of those are checked below, and
+// the second is why this section also asserts the pill's own text is still exactly its path.
+//
+// WHY THE PROBE CAPS `.tpill` RATHER THAN NARROWING THE VIEWPORT, which is the honest part.
+// A viewport-only check asserts this where it cannot be violated. Measured: at 1440px exactly ONE
+// aurora pill clips (and every character of it is in fact visible — see PILL_PROBE); at a 380px
+// viewport, the plugin's own declared `MIN_SIZE.width`, 22 pills clip and ZERO twin pairs collide,
+// because a pill's container does not shrink with the window. That is docs/34 shape 15 — the
+// comparison right, the set excluding the only case that can fail it. Capping the pill itself puts
+// every pill in the regime the issue is about, on every page at once.
+//
+// THE CAP WINDOW IS MEASURED, NOT PICKED. Twin pairs start eliding to identical text at a 200px cap
+// (7 pairs) and 130px (10), identically on both corpus brands. The first collision between two paths
+// that are NOT twins appears only at 90px — `color.background.primary` vs `color.foreground.primary`,
+// and `interactive.{primary,neutral,destructive}.overlay.hover` — an ambiguity in the MIDDLE of the
+// path that no inverse badge could fix, and which no real container reaches. So a probe width belongs
+// in (90, 200]; both used here sit inside it. If this section ever fails naming two paths that are not
+// twins, that is not #1147's defect: the cap has been set narrower than the studio renders, and the
+// fix is to widen it.
+//
+// WHAT THIS DOES NOT COVER, measured rather than assumed. The wrapper is a flex container, and a flex
+// item does not shrink below its content width without `min-width: 0` — so `.tpill-wrap` is a new way
+// for a pill to push out of the box that held it. Nothing here asserts it: dropping that declaration
+// moves no number in this suite, at 1440px or at 380px, because no container the studio renders is
+// narrow enough for the min-content floor to apply. An assertion would pass with the CSS deleted, which
+// is a pass reporting blindness (docs/34 shape 9). The declaration and its comment carry the finding.
+//
+// ONE MODE, deliberately. A pill's label is its path, which does not vary by mode; what varies is
+// color, and that is section 1's business across every mode already. Light is also the state with the
+// MOST pills — a derived mode replaces the editors with the read-only `.genview` note, so it can only
+// render a subset of these.
+console.log(`\nThe inverse band's pill label (#1147)\n${'='.repeat(78)}`);
+
+/** Every rendered token pill, and the characters ACTUALLY VISIBLE in it.
+ *
+ *  `textContent` is not what anyone reads once a pill elides, and there is no API for "the text the
+ *  ellipsis left", so this measures it: one `Range` per character, kept when the character's own box
+ *  lies within the pill's content box. The coarse reading was tried and is not enough —
+ *  `scrollWidth > clientWidth` says only THAT something is hidden, never what, and it is over-eager
+ *  by a sub-pixel: at 1440px it reports an aurora pill clipped whose every character is fully visible.
+ *
+ *  Style-guide pills WRAP instead of eliding (`.sg-pills .tpill`), and a wrapped pill hides nothing —
+ *  so the walk is skipped for them, which is also what stops it dropping their second line. */
+const PILL_PROBE = () => {
+  const out = [];
+  for (const p of document.querySelectorAll('.tpill')) {
+    if (p.getClientRects().length === 0) continue;
+    const cs = getComputedStyle(p);
+    const box = p.getBoundingClientRect();
+    const left = box.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft);
+    const right = box.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight);
+    const elides = cs.overflow !== 'visible' && cs.textOverflow === 'ellipsis' && cs.whiteSpace === 'nowrap';
+    let visible = p.textContent;
+    if (elides) {
+      const kept = [];
+      const walk = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        for (let i = 0; i < n.data.length; i++) {
+          const r = document.createRange();
+          r.setStart(n, i);
+          r.setEnd(n, i + 1);
+          const cr = r.getBoundingClientRect();
+          if (cr.left >= left - 0.5 && cr.right <= right + 0.5) kept.push(n.data[i]);
+        }
+      }
+      visible = kept.join('');
+    }
+    // Looked up in the WRAPPER FIRST and then inside the pill, so a badge in the wrong place reports as
+    // misplaced rather than as missing. Both readings fail the same assertion, but only one of them
+    // names the actual mistake, and "no badge" would have sent a reader looking for the wrong thing.
+    const wrap = p.parentElement?.classList.contains('tpill-wrap') ? p.parentElement : null;
+    const badge = wrap?.querySelector('.tpill-inv') ?? p.querySelector('.tpill-inv');
+    const br = badge?.getBoundingClientRect() ?? null;
+    out.push({
+      path: p.title,
+      text: p.textContent,
+      visible,
+      badge: badge?.textContent ?? '',
+      // OUTSIDE the pill's content box is the whole point of the badge being a sibling, and it is the
+      // one property the markup cannot show: a marker inside `.tpill` is elided by the same rule.
+      badgeOutside: br ? (br.right <= left + 0.5 || br.left >= right - 0.5) : false,
+      badgeWidth: br ? Math.round(br.width) : 0,
+      badgeRendered: (badge?.getClientRects().length ?? 0) > 0,
+    });
+  }
+  return out;
+};
+
+/** Cap every pill through ONE owned `<style>` element — upserted rather than appended, so a nine-page
+ *  walk cannot accumulate nine stylesheets, and `!important` so the cap holds against any rule that
+ *  sets `max-width` at higher specificity than `.tpill`. */
+const capPills = (page, px) => page.evaluate((w) => {
+  const ID = 'smoke-pill-cap';
+  document.getElementById(ID)?.remove();
+  if (w === null) return;
+  const s = document.createElement('style');
+  s.id = ID;
+  s.textContent = `.tpill{max-width:${w}px !important}`;
+  document.head.append(s);
+}, px);
+
+/** A path's twin: the same path with its single `inverse` group removed. Matched as a whole SEGMENT, so
+ *  a role that merely contains the letters is not one. `null` when the path is not an inverse role. */
+const twinOf = (path) => {
+  const segs = path.split('.');
+  const i = segs.indexOf('inverse');
+  return i < 0 ? null : segs.filter((_, k) => k !== i).join('.');
+};
+
+/** Every rendered pairing of an inverse pill with a rendering of its twin. Over ROWS, not paths: the
+ *  studio shows some roles on more than one page, and "somewhere on screen these two read alike" is
+ *  the hazard — a pair of renderings, not a pair of names. */
+const twinPairings = (rows) => {
+  const byPath = new Map();
+  for (const r of rows) {
+    if (!byPath.has(r.path)) byPath.set(r.path, []);
+    byPath.get(r.path).push(r);
+  }
+  const pairs = [];
+  for (const [path, mine] of byPath) {
+    const twin = twinOf(path);
+    for (const a of mine) for (const b of (twin && byPath.get(twin)) || []) pairs.push([a, b]);
+  }
+  return pairs;
+};
+
+/** DISTINCT paths that render the same label — badge plus visible characters, which is everything a
+ *  reader has. The same path rendered twice is not a collision; it is the same token. */
+const labelCollisions = (rows) => {
+  const first = new Map();
+  const hits = [];
+  for (const r of rows) {
+    const key = `${r.badge} ${r.visible}`;
+    const prev = first.get(key);
+    if (!prev) first.set(key, r);
+    else if (prev.path !== r.path) hits.push(`"${r.badge ? `${r.badge} · ` : ''}${r.visible}" ← ${prev.path} AND ${r.path}`);
+  }
+  return hits;
+};
+
+/** Coverage floors — "did it look?", never the oracle. The oracle is the two properties themselves:
+ *  every inverse pill carries a rendered badge outside its clipping box, and no two distinct paths
+ *  render the same label. Measured on this branch: 343 pills on aurora / 336 on harbor, 15 of them
+ *  short contextual labels and the rest full dotted paths, and then IDENTICAL on both brands — 20
+ *  inverse-band pills, 29 rendered twin pairings, of which 7 elide to the same text at a 200px cap and
+ *  10 at 130px. Each floor sits below its measurement so a page's content can move without failing
+ *  here, and above zero so an empty read fails naming itself. */
+const PILL_FLOOR = 250;
+const INVERSE_PILL_FLOOR = 12;
+const TWIN_PAIRING_FLOOR = 20;
+const TWIN_HAZARD_FLOOR = 5;
+const PILL_CAPS = [200, 130];
+
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  const pages = (await page.locator('.stage .stage-t b').allTextContents()).map((s) => s.trim());
+  const natural = [];
+  const capped = new Map(PILL_CAPS.map((w) => [w, []]));
+  for (const label of pages) {
+    await gotoPage(page, label);
+    natural.push(...await page.evaluate(PILL_PROBE));
+    for (const w of PILL_CAPS) {
+      await capPills(page, w);
+      capped.get(w).push(...await page.evaluate(PILL_PROBE));
+    }
+    await capPills(page, null);
+  }
+
+  const where = `#1147 / ${brand}`;
+  const sample = (rows, fmt) => rows.slice(0, 3).map(fmt).join(' | ');
+
+  ok(natural.length >= PILL_FLOOR,
+    `${where}: ${natural.length} pills rendered across ${pages.length} pages (floor ${PILL_FLOOR}) — everything below is vacuous without them`);
+
+  // The section compares PATHS, and it reads them off `title`. If a pill's title ever stops being a
+  // path — the shape `sgPill` records, where `title` was once overwritten with the resolution
+  // (`neutral.100 · #ffffff · 4.5:1`) — every twin pairing below silently stops being found, and a gate
+  // that finds nothing passes. So: a slug, and enough DOTTED ones to pair on.
+  //
+  // Single-segment titles are legitimate and measured: 15 per brand, the short contextual labels
+  // `sgPill` is passed explicitly (`opacity`, `on-fill`, `border`) where the row supplies the context.
+  // Two rows can therefore carry the same short label, which is deliberate context-dependence and not
+  // the elision ambiguity this section is about — and it is why `labelCollisions` counts only pills
+  // whose titles DIFFER.
+  const notASlug = natural.filter((r) => !/^[a-z0-9][a-z0-9-]*(\.[a-z0-9][a-z0-9-]*)*$/.test(r.path));
+  ok(notASlug.length === 0,
+    `${where}: every pill's title is still a token slug, not a resolution (${notASlug.length} are not${notASlug.length ? `: ${sample(notASlug, (r) => JSON.stringify(r.path))}` : ''})`);
+  const dotted = natural.filter((r) => r.path.includes('.'));
+  ok(dotted.length >= PILL_FLOOR,
+    `${where}: ${dotted.length} of them carry a full dotted path for this section to pair on (floor ${PILL_FLOOR})`);
+
+  // The badge added no TEXT to the pill. Two earlier attempts at this marker did, and both regressed
+  // copy-and-paste: `inline-flex` blockified the parts into "color\n.background.primary", and
+  // `inline-block` + a `ch` width collapsed the head on 181 of 198 pills. `.sg-fx`'s `!` — the style
+  // guide's own contrast-failure marker, appended inside the pill — is the one legitimate addition.
+  const textDrift = natural.filter((r) => r.text.replace(/!$/, '') !== r.path);
+  ok(textDrift.length === 0,
+    `${where}: each pill's own text is still exactly its path, so a copy yields the path and not the badge (${textDrift.length} differ${textDrift.length ? `: ${sample(textDrift, (r) => `${r.path} → ${JSON.stringify(r.text)}`)}` : ''})`);
+
+  const inverse = natural.filter((r) => twinOf(r.path));
+  ok(inverse.length >= INVERSE_PILL_FLOOR,
+    `${where}: ${inverse.length} of those pills name an inverse role (floor ${INVERSE_PILL_FLOOR})`);
+
+  // THE LOAD-BEARING STRUCTURAL ASSERTION, and it does not depend on any width: the badge exists, it
+  // renders, and it sits outside the box that elides. Removing the badge fails this once per pill.
+  const unbadged = inverse.filter((r) => r.badge !== 'inverse' || !r.badgeRendered || r.badgeWidth < 6 || !r.badgeOutside);
+  ok(unbadged.length === 0,
+    `${where}: all ${inverse.length} inverse-band pills carry a rendered \`inverse\` badge OUTSIDE the pill's clipping box (${unbadged.length} do not${unbadged.length ? `: ${sample(unbadged, (r) => `${r.path} [badge ${JSON.stringify(r.badge)}, ${r.badgeWidth}px, rendered=${r.badgeRendered}, outside=${r.badgeOutside}]`)}` : ''})`);
+
+  // And the other direction, which the count above cannot see: a badge on EVERY pill would satisfy it
+  // and would be a different lie about the same tokens.
+  const misbadged = natural.filter((r) => !twinOf(r.path) && r.badge);
+  ok(misbadged.length === 0,
+    `${where}: no pill outside the inverse band carries the badge (${misbadged.length} do${misbadged.length ? `: ${sample(misbadged, (r) => r.path)}` : ''})`);
+
+  const pairings = twinPairings(natural);
+  ok(pairings.length >= TWIN_PAIRING_FLOOR,
+    `${where}: ${pairings.length} rendered inverse/twin pairing(s) to compare (floor ${TWIN_PAIRING_FLOOR}) — as many of #1141's name-level twins as the studio puts on screen at once`);
+
+  // The brief's property, at the width the studio is designed for.
+  const naturalHits = labelCollisions(natural);
+  ok(naturalHits.length === 0,
+    `${where}: at the design width no two distinct paths render the same pill label (${naturalHits.length}${naturalHits.length ? `: ${naturalHits.slice(0, 3).join(' | ')}` : ''})`);
+
+  const capSummary = [];
+  for (const w of PILL_CAPS) {
+    const rows = capped.get(w);
+    const hazard = twinPairings(rows).filter(([a, b]) => a.visible === b.visible);
+    // Asserted BEFORE the collision check and separately from it: at a cap where nothing elides far
+    // enough to be ambiguous, the check below passes on a badge that was never rendered.
+    ok(hazard.length >= TWIN_HAZARD_FLOOR,
+      `${where} @ ${w}px cap: ${hazard.length} twin pairing(s) elide to identical text, so the badge is the only thing telling them apart (floor ${TWIN_HAZARD_FLOOR})${
+        hazard.length ? ` — e.g. "${hazard[0][0].visible}" for both ${hazard[0][0].path} and ${hazard[0][1].path}` : ''}`);
+    const hits = labelCollisions(rows);
+    ok(hits.length === 0,
+      `${where} @ ${w}px cap: every rendered label still names one token (${hits.length} collision(s)${hits.length ? `: ${hits.slice(0, 3).join(' | ')}` : ''})`);
+    capSummary.push(`@${w}px ${hazard.length} ambiguous / ${hits.length} colliding`);
+  }
+
+  const errs = drain();
+  ok(errs.length === 0, `${where}: 0 console errors across the pill walk${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  // The MEASUREMENTS, not the expectation — a red run's log has to read as a red run (the same reason
+  // the overwrite-confirm section above logs what rendered rather than what it wanted).
+  console.log(`  ${brand}: ${natural.length} pills, ${inverse.length} in the inverse band, ${pairings.length} twin pairings, `
+    + `${naturalHits.length} colliding at the design width; ${capSummary.join(', ')}.`);
+  await ctx.close();
+}
+
+// =============================================================================================
 await browser.close();
 server.close();
 
