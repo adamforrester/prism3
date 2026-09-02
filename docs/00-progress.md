@@ -7,6 +7,41 @@
 
 ---
 
+## (2026-09-02) — field-ref read-back re-wires onto the live node when a fast-path handle went stale (#866)
+
+**STATUS: shipped as CAUSE-INDEPENDENT HARDENING.** Plugin-only (`apps/plugin/src/write-components.ts`,
+`main.ts`). No engine change, no `out/**` change (`regen --check` byte-identical, 108 artifacts), no version
+bump. Gates **52/52**. **#866 stays OPEN; #1218 is the regression home.**
+
+── WHY THIS LANDS WITHOUT A CONFIRMED CAUSE ──────────────────────────────────────────────────────
+
+#866 reports field-label TEXT references reading back as `DISCARDED` on the plugin write path. **Three
+clean hand-repro attempts could not provoke the timing race**, so the symptom's live cause is unconfirmed.
+This change lands anyway because it is a real write/read-back consistency improvement that is **provably
+inert unless a node id genuinely diverges** — it cannot regress anything — so it stands on its own merits
+rather than on a symptom claim. The PR does NOT close #866 and does NOT claim to fix the symptom.
+
+── THE MECHANISM IT HARDENS ──────────────────────────────────────────────────────────────────────
+
+The wire loop writes `componentPropertyReferences` using the `#701` fast-path node from `builtParts`, a map
+captured DURING the build loop — i.e. BEFORE `combineAsVariants`, which "rewrites the ids of anything
+declared before it" (the file's own words). If combine replaces a node, the fast-path handle is the
+pre-combine twin of the live one, so the write can land on a stale node while `findOne` (the read-back)
+returns the live node without the reference — a `DISCARDED` miss for a set that is actually inert.
+
+── THE FIX ───────────────────────────────────────────────────────────────────────────────────────
+
+In the read-back loop, carry the node the wire loop wrote to (5th slot of `wiredRefs`). When a reference
+does not read back AND the written node and the live re-found node **disagree by id**, re-wire the reference
+onto the LIVE node and re-verify with a **fresh `findOne`** — an independent verdict, not a read-back of the
+object just written (`docs/34`: the check must not share its subject with the write it checks). When the ids
+**agree** (the ordering case — Figma accepted the reference on the right node and still dropped it), the code
+falls straight through to the unchanged `DISCARDED` miss: that case stays inert. `#701`'s fast path is
+untouched. `CompNode` gains a typed `id` (same precedent as `textAlignVertical`: a port that cannot name a
+field cannot read it back). Low-noise signal: `refsRepaired` in the result, logged as `[prism3 #866]` in
+`main.ts` **only when non-zero**, so a quiet run stays quiet and a live reproduction announces itself — which
+is exactly the trigger `#1218` verifies against.
+
 ## (2026-09-02) — the inverse/dark-band surface may be a BRAND or custom palette, not neutral-only (#898)
 
 **STATUS: shipped.** Engine + studio. A brand's dark hero band can now be brand navy / a deep accent, not

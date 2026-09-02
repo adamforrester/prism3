@@ -107,6 +107,11 @@ export interface CompSetRef { id: string; name: string; children?: readonly { na
  */
 export interface CompNode {
   readonly type?: string;
+  /** TYPED because the executor READS IT BACK, same reason as `textAlignVertical` below (#1009): the
+   *  #866 read-back compares the node the wire loop wrote to against the one `findOne` returns NOW, and
+   *  `combineAsVariants` "REWRITES the ids of anything declared before it" — so a stale fast-path handle
+   *  and its live twin differ by exactly this. A port that cannot name `id` cannot make that comparison. */
+  readonly id?: string;
   name?: string;
   x?: number;
   y?: number;
@@ -353,6 +358,12 @@ export type ComponentApplyResult = {
   refsRetained: number;
   refsKnownAbsent: number;
   refsSearched: number;
+  /** References the read-back re-wired onto a LIVE node because the node the wire loop wrote to had a
+   *  DIFFERENT id (#866). A cause-independent hardening of the write/read-back path: `combineAsVariants`
+   *  rewrites ids, so a fast-path handle can go stale, and the re-find + re-wire lands the reference where
+   *  `findOne` now sees it. Almost always 0 — the divergence has not reproduced by hand, so a non-zero
+   *  count is the live signal #1218 verifies against, not routine. Plugin-only, like the counters above. */
+  refsRepaired: number;
   /** Non-fatal: a name that did not resolve, a write Figma discarded, a read-back that disagreed. */
   misses: string[];
 };
@@ -1407,7 +1418,7 @@ const writeComponentSet = async (
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
-      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, misses };
+      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, misses };
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
@@ -1533,7 +1544,11 @@ const writeComponentSet = async (
   // AND RE-STAMPED, same reason as the build loop: between that loop's last boundary and this one's first
   // sit `combineAsVariants`, the measured layout pass, the `resize`, the guarded definitions read and one
   // `addComponentProperty` per property. Set-level work, charged to wire chunk 1 unless the clock restarts.
-  const wiredRefs: [string, string, string, string][] = [];
+  // The wired node is carried alongside its coordinates (5th slot) SO THE READ-BACK CAN COMPARE
+  // IDENTITIES (#866): the node the wire loop wrote to — a `builtParts` fast-path handle captured before
+  // `combineAsVariants`, which rewrites ids — against the node `findOne` returns now. `refs`/`wiredMembers`
+  // below read slots 0 and `.length`, so the extra element is transparent to them.
+  const wiredRefs: [string, string, string, string, CompNode][] = [];
   // WHICH ROUTE each reference took to its node, counted (#701). Not timing — the harness has no
   // scenegraph, so it can never gate the speedup this exists for; what it can gate, exactly and by value,
   // is that the fast route was actually taken. A version of this fix whose map never populated would be
@@ -1594,7 +1609,7 @@ const writeComponentSet = async (
       if (!id) continue;   // the property itself failed above and reported its own cause
       try {
         wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
-        wiredRefs.push([String(member.name), r.part, r.field, id]);
+        wiredRefs.push([String(member.name), r.part, r.field, id, node]);
       } catch (err) { misses.push(`ref ${member.name}/${r.part}.${r.field} -> ${r.prop} (${(err as Error).message})`); }
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
@@ -1610,11 +1625,33 @@ const writeComponentSet = async (
   // path rests on (that `createComponentFromNode` keeps the child nodes) turning out to be false. If that
   // assumption ever breaks, it surfaces here as a loud `DISCARDED` miss per reference rather than as a set
   // that looks built and is inert. docs/34: the check must not share its subject with the thing it checks.
-  for (const [mName, part, field, id] of wiredRefs) {
+  let refsRepaired = 0;
+  for (const [mName, part, field, id, written] of wiredRefs) {
     const member = members.find((c) => c.name === mName);
     const node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
     const held = (node?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
-    if (held?.[field] !== id) misses.push(`ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
+    if (held?.[field] === id) continue;   // retained — the common case, nothing to do
+    // The reference did not read back. #866 CAUSE-INDEPENDENT HARDENING: if the node the wire loop wrote
+    // to is NOT the node `findOne` returns now — they disagree BY ID — the write landed on a stale
+    // fast-path handle. `combineAsVariants` "REWRITES the ids of anything declared before it", and
+    // `builtParts` is captured before it, so a handle from that map can be the pre-combine twin of the
+    // live node. Re-wire the reference onto the LIVE node, then re-verify with a FRESH `findOne` — an
+    // independent verdict, not a read-back of the object just written (docs/34: the check must not share
+    // its subject with the write it checks). This cannot regress anything: it fires ONLY when the ids
+    // genuinely diverge, so when they AGREE (the ordering case — Figma accepted the reference on the right
+    // node and still dropped it) the code falls straight through to the DISCARDED miss below, unchanged,
+    // and #701's fast path is untouched. The live effect is UNCONFIRMED (three clean hand-repros could not
+    // provoke the divergence), so this is a write/read-back consistency improvement, not a claimed symptom
+    // fix; #866 stays open and #1218 is the regression home.
+    if (node && written.id != null && node.id != null && node.id !== written.id) {
+      try {
+        wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
+      } catch { /* the re-wire itself threw — fall through to the miss below */ }
+      const reNode = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+      const reHeld = (reNode?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
+      if (reHeld?.[field] === id) { refsRepaired++; continue; }
+    }
+    misses.push(`ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
   }
 
   // RE-READ the definitions: the read above happened BEFORE the properties existed, and left stale it
@@ -1678,6 +1715,7 @@ const writeComponentSet = async (
     refsRetained,
     refsKnownAbsent,
     refsSearched,
+    refsRepaired,
     misses: misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss),
   };
 };
