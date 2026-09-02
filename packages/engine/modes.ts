@@ -57,7 +57,7 @@
  */
 import { RGB, contrast, hex, hexToRgb, composite } from './color';
 import { Step } from './ramp';
-import { Theme, SurfaceSpec, SurfacesConfig, Role } from './theme';
+import { Theme, SurfaceSpec, InverseSurfaceSpec, SurfacesConfig, Role } from './theme';
 
 // The five built-in appearance modes — the closed set the engine ships with autocomplete.
 export type BuiltinModeName = 'light' | 'dark' | 'hc-light' | 'hc-dark' | 'wireframe';
@@ -260,26 +260,46 @@ export const BUILTIN_MODES: ModeDescriptor[] = [
   { name: 'wireframe', kind: 'wireframe', family: 'light', mins: { primaryMin: 7,  secondaryMin: 4.5, tertiaryMin: 3,   actionMin: 4.5, borderTarget: 1.4, nonTextMin: 3 } },
 ];
 
-const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfaces: SurfacesConfig = {}, descriptors: ModeDescriptor[] = BUILTIN_MODES): Record<ModeName, ModeCfg> => {
-  const nNear = (num: number): Step => neutral.reduce((a, b) => (Math.abs(b.num - num) < Math.abs(a.num - num) ? b : a));
+const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfaces: SurfacesConfig = {}, descriptors: ModeDescriptor[] = BUILTIN_MODES, palettes: { palette: string; steps: Step[] }[] = [{ palette: neutralPalette, steps: neutral }]): Record<ModeName, ModeCfg> => {
+  const stepsByPalette = new Map(palettes.map((p) => [p.palette, p.steps]));
+  const nearestIn = (steps: Step[], num: number): Step => steps.reduce((a, b) => (Math.abs(b.num - num) < Math.abs(a.num - num) ? b : a));
+  const nNear = (num: number): Step => nearestIn(neutral, num);
   const n = (num: number) => { const s = nNear(num); return cand(`${ns}.${neutralPalette}.${s.key}`, s.rgb); };
   const white = cand(`${ns}.white`, WHITE);
   const black = cand(`${ns}.black`, BLACK);
   const short = (c: Cand) => c.path.replace(`${ns}.`, '');
   // A neutral surface step by number, snapping the extremes to pure white/black.
   const surfAt = (num: number): Cand => (num <= 0 ? white : num >= 1000 ? black : n(num));
-  // Background ladder: base → +1 → +2 steps (50 each), in the mode's tonal direction.
-  const bgLadder = (baseNum: number, dir: number): SurfSet => ({ primary: surfAt(baseNum), secondary: surfAt(baseNum + dir * 50), tertiary: surfAt(baseNum + dir * 100) });
+  // #898: the same, on a NAMED palette. Neutral delegates to `surfAt` — the white/black snap and the
+  // byte-identical neutral path both survive. A non-neutral palette has no pure white/black extreme, so
+  // its bands always land on a real ramp step (the `{ palette, step }` object never asks for 0/1000).
+  const surfAtP = (paletteName: string, num: number): Cand => {
+    if (paletteName === neutralPalette) return surfAt(num);
+    const steps = stepsByPalette.get(paletteName) ?? neutral;
+    const s = nearestIn(steps, num);
+    return cand(`${ns}.${paletteName}.${s.key}`, s.rgb);
+  };
+  // A surface anchor → (palette, step number). Neutral for `white`/`black`/`number` (byte-identical to
+  // before); the named palette + step for the #898 object form (inverse band only). Typed
+  // `InverseSurfaceSpec` because only the inverse band widens to the object form; a neutral `base`
+  // (`SurfaceSpec`) is a subset and resolves through the same neutral path.
+  const specToSurf = (spec: InverseSurfaceSpec): { pal: string; num: number } =>
+    (typeof spec === 'object') ? { pal: spec.palette, num: spec.step }
+      : { pal: neutralPalette, num: spec === 'white' ? 0 : spec === 'black' ? 1000 : spec };
+  // Background ladder: base → +1 → +2 steps (50 each), in the mode's tonal direction, on `pal`.
+  const bgLadder = (pal: string, baseNum: number, dir: number): SurfSet => ({ primary: surfAtP(pal, baseNum), secondary: surfAtP(pal, baseNum + dir * 50), tertiary: surfAtP(pal, baseNum + dir * 100) });
   // Foreground ladder: surfaces placed on the canvas — offset one step deeper than
   // the page so a card reads against the default page, then stepping on.
-  const fgLadder = (baseNum: number, dir: number): SurfSet => ({ primary: surfAt(baseNum + dir * 50), secondary: surfAt(baseNum + dir * 100), tertiary: surfAt(baseNum + dir * 150) });
+  const fgLadder = (pal: string, baseNum: number, dir: number): SurfSet => ({ primary: surfAtP(pal, baseNum + dir * 50), secondary: surfAtP(pal, baseNum + dir * 100), tertiary: surfAtP(pal, baseNum + dir * 150) });
 
   const resolve = (family: 'light' | 'dark', defBase: SurfaceSpec): { base: Cand; floor: Cand; bg: SurfSet; fg: SurfSet; bgInverse: SurfSet; fgInverse: SurfSet; invRgb: RGB } => {
     const cfg = surfaces[family] ?? {};
     const baseSpec = cfg.base ?? defBase;
-    const baseNum = baseSpec === 'white' ? 0 : baseSpec === 'black' ? 1000 : baseSpec;
-    const defFloor = typeof baseSpec === 'number' ? (family === 'light' ? baseSpec + 50 : baseSpec - 50)
-      : baseSpec === 'white' ? 50 : 950;
+    const baseS = specToSurf(baseSpec);
+    // The contrast FLOOR is always a neutral step. For a numeric/object base it sits one step past the
+    // base num; for white/black it is the near-extreme neutral (50 / 950), as before.
+    const defFloor = baseSpec === 'white' ? 50 : baseSpec === 'black' ? 950
+      : (family === 'light' ? baseS.num + 50 : baseS.num - 50);
     const floorStep = cfg.floorStep ?? defFloor;
     const dir = family === 'light' ? +1 : -1;           // light steps darker; dark steps lighter
     // Inverse anchors NEAR the opposite extreme, not AT it — pure black reads
@@ -287,18 +307,21 @@ const modeConfigs = (ns: string, neutralPalette: string, neutral: Step[], surfac
     // black). Light inverse = near-black 950; dark inverse = near-white 25. HC
     // restores the pure extremes (below) for low-vision max contrast.
     // Declarable per mode since #956 (`surfaces.<mode>.inverseBase`), defaulting to the anchors
-    // above. It runs through the SAME `surfAt` + ladder pair as `base` below, so a declared band
+    // above. It runs through the SAME `surfAtP` + ladder pair as `base` below, so a declared band
     // re-derives `inverse.background.*`, `inverse.foreground.*` and everything gated against them
     // rather than being pasted over one role afterwards. That is the difference between a ground and
-    // a value, and it is why this is not an `overrides` entry.
+    // a value, and it is why this is not an `overrides` entry. Since #898 the band may name a
+    // NON-neutral palette (a brand-navy hero) via `{ palette, step }`; the resolution below is
+    // palette-generic, so every gated role re-measures against the brand band exactly as it did the
+    // neutral one — a brand pick that misses a floor is flagged, not silently absorbed.
     const invSpec = cfg.inverseBase ?? (family === 'light' ? 950 : 25);
-    const invBaseNum = invSpec === 'white' ? 0 : invSpec === 'black' ? 1000 : invSpec;
+    const invS = specToSurf(invSpec);
     const invDir = -dir;
     return {
-      base: surfAt(baseNum), floor: n(floorStep),
-      bg: bgLadder(baseNum, dir), fg: fgLadder(baseNum, dir),
-      bgInverse: bgLadder(invBaseNum, invDir), fgInverse: fgLadder(invBaseNum, invDir),
-      invRgb: surfAt(invBaseNum).rgb,
+      base: surfAtP(baseS.pal, baseS.num), floor: n(floorStep),
+      bg: bgLadder(baseS.pal, baseS.num, dir), fg: fgLadder(baseS.pal, baseS.num, dir),
+      bgInverse: bgLadder(invS.pal, invS.num, invDir), fgInverse: fgLadder(invS.pal, invS.num, invDir),
+      invRgb: surfAtP(invS.pal, invS.num).rgb,
     };
   };
 
@@ -1650,7 +1673,7 @@ export const resolveAllModes = (theme: Theme): ModeResult[] => {
     return baseDesc ? [{ ...baseDesc, name: cm.name }] : [];
   });
   const descriptors = [...BUILTIN_MODES, ...custom];
-  const cfgs = modeConfigs(theme.namespace, theme.roleToPalette.neutral, neutral, theme.surfaces, descriptors);
+  const cfgs = modeConfigs(theme.namespace, theme.roleToPalette.neutral, neutral, theme.surfaces, descriptors, theme.palettes);
   // Only the modes the brand opted into (light always; dark/HC opt-in — docs/11 Pillar 1; customs
   // appended last). Canonical order preserved (Object.keys order: built-ins first, then customs),
   // so `rp.modes` is stable regardless of input order.

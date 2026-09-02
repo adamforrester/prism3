@@ -7,6 +7,105 @@
 
 ---
 
+## (2026-09-02) — the outline border COLOR is authorable in the studio; the WEIGHT half is deferred (#576)
+
+**STATUS: shipped (color half).** Studio-only — **no engine change, no `out/**` change, no version bump.**
+Gates stay at 52; the smoke suite grows 1,001 → **1,097** assertions. Advances #576; the weight half is
+recorded on #1228 and **not** built (see the last section).
+
+── THE GAP, AND WHY IT WAS NOT A MISSING ROW ───────────────────────────────────────────────────
+
+#576's engine half landed in #1231: `interactive.<c>.border.{rest,hover,pressed}` plus the `inverse.` twin,
+derived from the text ink's own candidates so the edge FOLLOWS the label by default (`iBorder`, `modes.ts`).
+`renderPaletteSection` had a Source row for fill, text, overlay, subtle-fill and on-fill — and none for the
+border. The one role added for a designer to tune was the one role they could not reach.
+
+Adding the row alone would not have worked, and that is the part worth recording. `exOutline` took ONE
+`edge` argument and painted the border, the label and the icon from it, read off `text.rest` — so with a
+Border row on top of that, pinning a step moved the row's swatch and left the example showing the ink. The
+picker would have looked live and been inert in the only place a designer checks. Three call sites had the
+same read (`overlayRow`, `subtleFillRow`, and the Outline-button-hover section), correct only while the two
+roles could not diverge; making them divergeable is what turned those reads into defects, so all three moved
+to a new `edgeOf(roles, prefix, state)` in the same change.
+
+The edge was also an INLINE `border` shorthand, which beats `.ibtn:hover` — so no stateful edge was
+reachable no matter what the engine resolved. It is now `--ibtn-bw` / `--ibtn-bd` / `--ibtn-hbd` /
+`--ibtn-pbd` on the same var-fallback chain the background already used. `--ibtn-bw` is set by `exOutline`
+alone, so every other specimen falls back to `0` and a filled button grows no border.
+
+── WHY PER-COLUMN AND NOT ONE SHARED CONTROL ───────────────────────────────────────────────────
+
+Measured on all six corpus themes: each family resolves its edge from a DIFFERENT ramp — primary from the
+action palette, destructive from danger, neutral from the neutral ramp, an accent from its own (`iBorder` is
+called in the accent loop too, `modes.ts:992`). A single shared select could not express that. So the rows
+are per-column, next to the fill and text rows, page band and inverse band, with the Hover/Pressed strip
+every other slot row already has.
+
+**Neutral's three states land on ONE step**, page and inverse, in every corpus brand — its ink is
+`pickMostExtreme` with `walkable: false`, already the far end of the ramp with nowhere to walk. That is
+#576's decided outcome, not a regression. Three identical swatches with no explanation is exactly what made
+a working section look broken in #561, so `borderDesc` adds a sentence for neutral saying so.
+
+── THE ONE CHECK THAT COULD HAVE KILLED THE CONTROL ────────────────────────────────────────────
+
+An override on a GROUND **throws** (#956) — the layer runs after derivation, so rewriting a surface would
+leave everything measured against it reporting contrast it no longer has. Probed before writing any code,
+over `corpus()` with `groundsOf`: **0 of the 18 interactive border roles is a ground**, in all six themes. An
+override applies, the ink stays put, and a contrast miss warns through the normal leaf path (measured: a
+`primary.border.rest` pinned to `accent.050` applied at 1.21:1 against a 3:1 min, one warning, no throw). So
+the color half is genuinely studio-only: `overrides[mode]['interactive.primary.border.rest'] = {palette, step}`
+needs nothing from the engine.
+
+── THE GATE, AND WHICH ARM CARRIES IT (smoke section 7) ────────────────────────────────────────
+
+Presence of the rows is NOT the load-bearing arm — the inert version above passes every presence check. The
+arm that carries the fix is the DIVERGENCE: pin the border, and the specimen's EDGE must move while its INK
+holds still. The states are DRIVEN, not read back off a custom property: `locator.hover()` then re-read the
+rendered `border-top-color`, and a click for the pinned pressed state. Reading `--ibtn-hbd` would assert only
+that a value was written down; hovering is what fails if the CSS refactor is reverted.
+
+The per-family walk/hold expectation (`EDGE_WALKS`) is restated in the smoke file from the engine's measured
+behavior rather than read from the DOM — the duplication IS the comparison (`docs/34` shape 1), and mutation
+5 below is the proof.
+
+| mutation | result |
+|---|---|
+| `edgeOf` painted from `text.rest` (the pre-#576 read) | fails by name — *"pinning the border moves the example's EDGE (…187 → …187, swatch …251)"* |
+| the inline `border` shorthand restored | fails — hover AND pressed, both edges stuck on rest |
+| the two Border rows removed (`slot: 'border.gone'`) | 14 named failures, both brands |
+| `wirePress` keyed off `pressedWash` alone | fails — `pinnable=false` |
+| `EDGE_WALKS` claims neutral walks | fails on 4 rows — the split is a real comparison |
+| `border-color` deleted from `.ibtn:hover` only | fails — the CSS half on its own |
+
+**One trap found by mutation-testing this section, and fixed in it.** Mutation 3 reported its six named
+failures and then threw an uncaught 30s `locator.evaluate` timeout, killing the process **before the tally
+and before the `GITHUB_STEP_SUMMARY` write** — so a red run would have read on the run page exactly like a
+step that never executed, which is the ambiguity this file's own footer exists to remove. The exit code was
+still 1, so it gated; the EVIDENCE was what was lost. Both waits are now guarded (`.then(() => true, () =>
+false)`, the pattern already used elsewhere in the file) and a missing row reports as a failed assertion.
+Worth generalizing: an unguarded `waitForFunction`/`evaluate` in a suite that writes a summary is a
+reporting hazard, not just a slow failure.
+
+Also corrected in passing: the first draft asserted `border-top-width === '1.5px'`. Chromium rounds a
+fractional border to a device pixel, so the used value reads `1px` at DPR 1 — asserting the authored figure
+would have been asserting the string the subject wrote down. It asserts a visible edge instead, and the
+stylesheet-vs-inline question is settled by the hover arm.
+
+── THE WEIGHT HALF: DEFERRED TO #1228 / #740, WITH THE MEASUREMENT ─────────────────────────────
+
+#576 also asked for a border WEIGHT control. **Not built (owner, 2026-09-02), because nothing consumes a
+border width today.** Measured: `border-width.{none,hairline,thick,heavy}` is a fixed alias set onto the
+dimension grid (`tree.ts`); there is no `BrandInput` field, no `levers.ts` entry, `PartDef` has no stroke
+field (#740, quoted in `button.ts`), no component def binds one, the per-mode override layer takes COLOR
+refs only, and the studio's read-only preview is a hand-copied literal. A weight lever would drive a value
+no component renders. It is blocked on #740 → #1228 (a bordered stroke width must become a bindable token)
+before it has anything to bind. The read-only weight preview is left exactly as-is.
+
+The version arithmetic was derived rather than guessed, and is recorded here so it needn't be re-derived: a
+new `border-width.default` alias would be CONTRACT 9.3.0 → 9.4.0 (MINOR, additive) and ENGINE 0.35.0 →
+0.36.0; RE-VALUING the existing rungs leaves the contract untouched but makes a rung named `hairline`
+resolve to 2px, which is the #708 name-lies-about-value class.
+
 ## (2026-09-02) — the two desk-QA colour fixes are gated, and the gate says out loud what it cannot see (#1234)
 
 **STATUS: shipped.** `packages/engine/test.ts` only — five assertions beside the veil block. Gates stay
@@ -48,6 +147,14 @@ measured rather than assumed** (M3 below). Catching it needs a value oracle noth
 inventing one from the derivation would be the shape these arms exist to avoid. The limit is written
 into the block's header so the arms do not read as reach.
 
+**A second limit, found on the rebase and measured rather than left open.** #898 landed while this was in
+flight and lets a brand put its inverse BAND on a brand or custom palette; no corpus brand does, so these
+arms have never swept one (`docs/34` shape 15). Checked by hand: `inverseBase: { palette: 'red', step:
+800 }` on the nb fixture leaves the fill UNIFORM and on `neutral.050` — unchanged — so the fill
+derivation is band-independent and both arms hold under the new lever. Recorded in the gate's header
+with the instruction to re-measure if that stops being true, since it is a fact about `modes.ts` that
+these arms would not notice.
+
 ── MUTATIONS ─────────────────────────────────────────────────────────────────────────────────────
 
 Committed before the battery; `regen` inside the loop, because the arms read committed artifacts and a
@@ -80,6 +187,69 @@ the family names in the emitted paths, so the primary family's palette is `r2p.a
 one candidate. **Every one of those printed `regen exit=1` and `0 arms fired`** — indistinguishable at a
 glance from a gate that does not work, and the reason the battery script asserts the regen exit code
 beside the arm count rather than reporting the arms alone.
+
+## (2026-09-02) — the inverse/dark-band surface may be a BRAND or custom palette, not neutral-only (#898)
+
+**STATUS: shipped.** Engine + studio. A brand's dark hero band can now be brand navy / a deep accent, not
+just a near-black neutral. **No version bump, and that is derived, not skipped** — see below. Closes #898.
+
+── THE DECISION AND ITS SHAPE (owner, 2026-08-20; representation ratified 2026-09-02) ────────────
+
+The inverse band may be a NEUTRAL step, a BRAND step, or a CUSTOM (brandColor) step — status palettes
+excluded (a page band in "success green" would use a semantic colour decoratively). The representation is
+the owner-chosen `{ palette, step }` object: `SurfaceSpec = 'white' | 'black' | number | { palette, step }`.
+**A bare `number` stays a NEUTRAL step** — every corpus brand uses that form, so their emission is
+byte-identical. The object form is validated: the palette must be declared and non-status (`checkSurfacePalette`
+in `theme.ts` throws otherwise, same shape as the other brand-input errors).
+
+── THE THREE LAYERS ────────────────────────────────────────────────────────────────────────────
+
+1. **Type + schema** (`theme.ts`, `schema/theme-schema.json`): the widened `'white' | 'black' | number |
+   { palette, step }` form is **INVERSE-BAND ONLY**. The type is split: `SurfaceSpec = 'white' | 'black' |
+   number` (neutral-only, the type of `base`) and `InverseSurfaceSpec = SurfaceSpec | SurfaceStep` (the type
+   of `inverseBase`). The schema mirrors this — `base` `$ref`s `neutralSurfaceSpec`, `inverseBase` `$ref`s the
+   wide `surfaceSpec`. `base` (the page ground) rejects an object at runtime too (`theme.ts` throws
+   `surfaces.<mode>.base does not accept a palette band … neutral-only`), defense in depth beyond the schema.
+   **Why base is held back:** the widening was decided for the inverse/dark band ONLY. A brand-colored `base`
+   is a separate, undesigned capability that no contract validates — the contrast floor, the ~60 role
+   re-derivations, and the whole page-ground story assume a neutral ground. An earlier draft of this change
+   shared one `surfaceSpec` def across both anchors and so silently accepted a brand `base`; that over-reach
+   was corrected before #1237 merged (owner, 2026-09-02).
+2. **Resolution** (`modes.ts`): the whole surface resolution was hardcoded to the neutral ramp (`surfAt`/
+   `bgLadder`/`fgLadder` closed over `neutral`). It is now palette-generic — `surfAtP(palette, num)` snaps
+   `num` to the nearest step of the NAMED palette; `specToSurf` maps a `SurfaceSpec` to `(palette, num)`.
+   **Neutral delegates to the original `surfAt`**, so the white/black snap and the byte-identical neutral
+   path both survive. `modeConfigs` now takes `theme.palettes`. Because the band runs through the same
+   ladder + gate as before, every one of the ~60 roles measured against it re-derives against the brand
+   ground — a brand pick that misses a floor is FLAGGED, not silently absorbed (the "ground, not a value"
+   property #956 gave the band).
+3. **Studio** (`apps/studio/src/main.ts`): the inverse-band control is now a **palette select** (Neutral +
+   the brand + custom brandColors; status excluded via `STATUS_ROLES`) **+ a step picker** for that palette.
+   Neutral writes a bare number (back-compat); a non-neutral palette writes `{ palette, step }`, seeded at
+   the palette's darkest step. "Auto" on the step picker clears back to the generated neutral default.
+
+Measured end-to-end (nb, brand palette `red`): `surfaces.light.inverseBase = { palette:'red', step:900 }` →
+`inverse.background.primary` = `red.900` (`#350004`), the secondary/tertiary ladder steps on red, and
+`inverse.text.primary` re-derives to white at 16.97:1 against the brand band. `test.ts` pins all of this
+plus the three rejections (status band, undeclared band, and an object `base`) and that a neutral `base`
+still resolves.
+
+── COMPOSITION WITH #1208 ────────────────────────────────────────────────────────────────────────
+
+#1208 (just merged) made the inverse FILL uniform-neutral, so a brand-coloured dark BAND now sits behind
+neutral-fill buttons — which composes correctly (a white button on a navy hero). The fill is NOT re-tinted.
+
+── VERSIONING, DERIVED (the load-bearing "don't guess") ──────────────────────────────────────────
+
+**No ENGINE bump; CONTRACT stands at 9.3.0.** The derivation, not a guess: `regen.ts --check` is
+byte-identical (108 artifacts) and **no regen artifact moved** — the corpus uses neutral bands, the neutral
+path is unchanged, and the `surfaces` lever-manifest entry is a fixed label that does not embed the
+`SurfaceSpec` shape. `lint-emission-version` requires a bump only when an emitted artifact moves; none did,
+and bumping would falsely restamp byte-identical corpus output. This is the #1223 shape (a new capability
+with no emitted diff → no bump), NOT the #956 shape (which moved the inverse derivation and did bump).
+`token-contract.ts --check` is clean — the object form changes which VALUES a brand can produce, no token
+NAME or `$type`, so the guaranteed surface (574) is untouched. The new capability is a source-only change;
+it only produces new bytes when a brand actually uses a non-neutral band, and no committed brand does.
 
 ## (2026-09-02) — the inverse band's pill read as its own twin, and the assertion the issue asked for could not tell (#1147)
 
