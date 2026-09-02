@@ -7,6 +7,80 @@
 
 ---
 
+## (2026-09-02) — a use site described the exemption table's membership, and the table moved (#966)
+
+**STATUS: shipped.** One comment in `packages/engine/component-schema.ts`, at the `NESTED_WITHOUT_ANATOMY`
+use site. Gates stay at **52**; **no `ENGINE_VERSION` bump** (reasoning below, measured). Nothing emitted
+moves — `lint-emission-version` reports *artifacts changed vs base: 0*.
+
+── THE DEFECT, AND THE VERSION OF IT THAT SURVIVED THE ISSUE ─────────────────────────────────────
+
+The guard reads a small named-exemption table; two hundred lines away its use site said **"`text-field`
+is the only entry"**. #966 reported the table had grown to five. **By the time it was built the table
+held four** — `text-field`, `textarea`, `radio`, `switch` — because #910 had removed `checkbox` in the
+interval. So the issue's own count had gone stale in the eleven days it sat open, which is the cleanest
+possible statement of the class: *the count was wrong, then wrong differently, and no edit to the table
+could ever have corrected it.* Measured before editing rather than carried from the issue (#1180).
+
+The stale half also carried a REMOVAL TRIGGER — "this line removable the moment the anatomy block lands
+(Arc 2 step 5)" — phrased for a single entry. With more than one, each anatomy block lands with the
+deletion of its OWN entry and this line outlives all of them, so anyone reading only the use site plans
+the wrong edit. That is why it was not a typo.
+
+── THE FIX IS A DELETION, NOT A CORRECTION ───────────────────────────────────────────────────────
+
+The use site now describes the MECHANISM and points at the table, which carries per-entry reasoning
+beside each entry where an edit to one is an edit to the other. **No count and no removal trigger are
+restated**, so there is nothing left at this site to drift — which is why this needs no new gate. A
+corrected count would have been the same defect with a fresher number.
+
+The table is unchanged. Its comments are correct and self-describing, and its per-entry siting is the
+property that makes them stay that way.
+
+── WHAT THE EDIT COULD NOT HONESTLY SAY, AND WHY THAT BECAME #1221 ───────────────────────────────
+
+The old prose claimed the two stale-direction assertions in `paintKeyErrors` keep the table honest, and
+the table's own comment goes further: *"the removal is not optional — the stale-direction assertion
+below fails on an entry whose def has gained a block."* **Both are false**, found while checking that
+the replacement prose would be true:
+
+```
+entry            def.anatomy?   guard !def.anatomy   => can the entry ever apply?
+text-field       no             true                 yes
+textarea         no             true                 yes
+radio            YES            false                NO — DEAD
+switch           YES            false                NO — DEAD
+```
+
+`radio` and `switch` gained anatomy blocks, so the `!def.anatomy` guard can never fire for them. The
+two directions check that an entry names a key that EXISTS and is otherwise UNGOVERNED; neither asks
+whether an entry is still REACHABLE. Two-way on `main` @ `f3e72dc`: `test.ts` is **2764 passed, 0
+failed** with the dead entries present, and **2764 passed, 0 failed** with them deleted. Their presence
+and their absence are indistinguishable to the whole suite.
+
+Filed as **#1221** (a third direction, plus deleting the two entries), not fixed here — one concern per
+PR, and it is a code defect where this is prose. It changed what this PR could write, though: the new
+comment states the gap explicitly rather than inheriting a reassurance that does not hold. **A prose fix
+that repeats a false claim about a gate is not a fix.**
+
+── THE VERSION QUESTION, ANSWERED BY MEASUREMENT ─────────────────────────────────────────────────
+
+Principle 5 says `ENGINE_VERSION` bumps on any behaviour change including a pure value change; a source
+comment is neither. But `CLAUDE.md` carves out the case where comments demonstrably SHIP — an unminified
+`esbuild` bundle does not strip `//`, so a file reachable into one carries shipped text. That had to be
+checked rather than assumed, and the first half of the answer is the surprising one:
+
+- **`component-schema.ts` IS bundled** into `apps/plugin/dist/{main.js,ui.html}` — it appears as an
+  esbuild banner in both, and those bundles retain 1996 `//` comment lines.
+- **This comment is not.** Tree-shaking keeps **21 of the file's 2490 lines**; `NESTED_WITHOUT_ANATOMY`
+  appears **0 times** in every bundle, and two distinctive phrases from the edited block appear 0 times
+  in all three, before and after the change.
+
+So: no emitted artifact moves, no behaviour changes, and the text reaches no shipped surface. **No
+bump**, and the US-English/voice carve-out for code comments applies — though the replacement is written
+to both standards anyway, since the cost of doing so is nothing and the file may ship more of itself
+later.
+
 ## (2026-09-01) — the shared size ladder moves to 36/44/56, and the default control was under AAA (#1207)
 
 **STATUS: shipped.** `packages/engine/scale.ts` (the ladder + one new constant) and the assertions in
