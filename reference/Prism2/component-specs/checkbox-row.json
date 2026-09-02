@@ -1,0 +1,160 @@
+{
+  "title": "Checkbox row",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "innerContainer": {
+      "type": "container"
+    },
+    "checkboxContainer": {
+      "type": "container"
+    },
+    "checkboxes": {
+      "type": "instance",
+      "instanceOf": "checkboxes"
+    },
+    "descriptionContainer": {
+      "type": "container"
+    },
+    "description": {
+      "type": "text"
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": [
+          {
+            "innerContainer": [
+              {
+                "checkboxContainer": ["checkboxes"]
+              },
+              {
+                "descriptionContainer": ["description"]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 320,
+          "height": 48,
+          "primaryAxisSizingMode": "FIXED",
+          "layoutMode": "VERTICAL",
+          "padding": {
+            "top": 12,
+            "bottom": 12,
+            "start": 0,
+            "end": 0
+          }
+        }
+      },
+      "innerContainer": {
+        "styles": {
+          "primaryAxisSizingMode": "FIXED",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 12
+        }
+      },
+      "checkboxContainer": {
+        "styles": {
+          "width": 24,
+          "height": 24,
+          "mainAxisAlignment": "CENTER",
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL"
+        }
+      },
+      "checkboxes": {
+        "propConfigurations": {
+          "checked": false,
+          "indeterminate": false,
+          "disabled": false,
+          "state": "Rest"
+        },
+        "instanceOf": "checkboxes"
+      },
+      "descriptionContainer": {
+        "styles": {
+          "primaryAxisSizingMode": "FIXED",
+          "layoutMode": "VERTICAL",
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "FILL"
+        }
+      },
+      "description": {
+        "styles": {
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "textColor": "#24262D",
+          "typography": {
+            "fontFamily": "Inter",
+            "fontStyle": "Regular",
+            "lineHeight": "150%",
+            "paragraphSpacing": 24
+          },
+          "textAlignVertical": "CENTER"
+        },
+        "content": "Description"
+      }
+    }
+  },
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-01T22:31:55.675Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.17.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.30.0/packages/schema/schema/component.schema.json",
+      "version": "0.30.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5330:1888",
+      "nodeId": "5330:1952",
+      "nodeType": "COMPONENT"
+    },
+    "config": {
+      "processing": {
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false,
+        "collapsePrimitiveWrapper": false,
+        "variantDepth": 9999,
+        "details": "LAYERED"
+      },
+      "format": {
+        "output": "JSON",
+        "keys": "CAMEL",
+        "figmaKeys": "NONE",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX"
+      },
+      "include": {
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false
+      }
+    }
+  }
+}

@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.ui.json",
     "test": "npx tsx test-write.ts && npx tsx test-readback.ts && npx tsx test-persist.ts && npx tsx test-write-float.ts && npx tsx test-write-styles.ts && npx tsx test-write-typography.ts && npx tsx test-list-fonts.ts && npx tsx test-apply-summary.ts && npx tsx test-write-components.ts && npx tsx test-build-telemetry.ts",
     "test:verdict": "node test-build-verdict.mjs",
-    "test:start": "node test-start-screen.mjs"
+    "test:start": "node test-start-screen.mjs",
+    "test:roundtrip": "npx tsx test-roundtrip.ts"
   },
   "devDependencies": {
     "@figma/plugin-typings": "^1.131.0",
