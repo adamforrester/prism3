@@ -1311,6 +1311,216 @@ for (const brand of BRANDS) {
 }
 
 // =============================================================================================
+// 7. The outline EDGE is authorable, and it can leave the ink behind (#576)
+// =============================================================================================
+// #576's engine half landed in #1231: `interactive.<c>.border.{rest,hover,pressed}` and the inverse twin,
+// derived from the text ink's own candidates so the edge follows the label by default. Nothing in the
+// studio could author it — `renderPaletteSection` had a Source row for fill, text, overlay, subtle-fill
+// and on-fill, and none for the border — so the one role added for a designer to tune was the one role
+// they could not reach.
+//
+// WHY THE PRESENCE OF THE ROWS IS NOT THE LOAD-BEARING ARM. A row that renders, carries a pill and offers
+// a step list can still be inert in the way that matters here: `exOutline` painted the border AND the ink
+// from a single `edge` argument, read off `text.rest`. Add the row on top of that and the specimen keeps
+// showing the ink no matter what the picker says — the swatch moves, the example does not, and the control
+// reads as broken while every presence check passes. So the arm that carries the fix is the DIVERGENCE:
+// override the border and the specimen's edge must move while its ink holds still.
+//
+// AND THE STATES ARE DRIVEN, NOT INFERRED FROM A CUSTOM PROPERTY. The edge used to be an inline `border`
+// shorthand, which beats `.ibtn:hover` — so a stateful edge was unreachable no matter what the engine
+// resolved. Reading `--ibtn-hbd` back would assert only that the value was written down. Hovering the
+// specimen and re-reading the RENDERED border color is what fails if that CSS refactor is reverted.
+//
+// THE PER-FAMILY EXPECTATION IS MEASURED FROM THE ENGINE, NOT FROM THE DOM (docs/34 shape 1). Across all
+// six corpus themes, `primary` and `destructive` walk three distinct border steps while `neutral`'s three
+// states land on ONE — its ink is already the far end of its ramp with nowhere further to walk, which is
+// #576's decided outcome, not a regression. That split is asserted in both directions: a walking family
+// whose hover edge stops moving fails, and so does a neutral whose states start diverging.
+//
+// ONE MODE, one page. The role set and the wiring do not vary by mode; the colors do, and section 1
+// already sweeps those. Light is the mode with editors rather than the read-only `.genview` note.
+console.log(`\nThe outline edge (#576)\n${'='.repeat(78)}`);
+
+// 3 families × 2 contexts, and no corpus brand ships an accent column — so this is the whole set, and
+// asserting each by name beats a count that a brand with an extra palette would inflate into a pass.
+const EDGE_FAMILIES = ['primary', 'neutral', 'destructive'];
+// Which families' border states WALK. Read from the engine's behavior, restated here on purpose: this is
+// the duplication that makes the assertion a comparison instead of a tautology.
+const EDGE_WALKS = new Set(['primary', 'destructive']);
+
+/** One Border row, read as a whole: the row's own swatch, and what the specimen actually paints. */
+const readEdgeRow = (row) => row.evaluate((el) => {
+  const btn = el.querySelector('.aex .ibtn');
+  const cs = btn && getComputedStyle(btn);
+  const sel = el.querySelector('.arow-main .sf-ctlblock select');
+  return {
+    swatch: getComputedStyle(el.querySelector('.asw')).backgroundColor,
+    edge: cs ? cs.borderTopColor : null,
+    width: cs ? cs.borderTopWidth : null,
+    ink: cs ? cs.color : null,
+    auto: sel?.options[0]?.text ?? null,
+    value: sel?.value ?? null,
+    steps: [...(sel?.options ?? [])].slice(1).map((o) => o.value),
+    // The two state cells, in order — each its own swatch and its own override select.
+    states: [...el.querySelectorAll('.astates .astate')].map((c) => ({
+      name: c.querySelector('.astate-n')?.textContent ?? '',
+      swatch: getComputedStyle(c.querySelector('.astate-sw')).backgroundColor,
+      options: c.querySelector('select')?.options.length ?? 0,
+    })),
+  };
+});
+
+for (const brand of BRANDS) {
+  const { ctx, page, drain } = await openBrand(brand);
+  await gotoPage(page, 'Interactive');
+  const notes = [];
+
+  for (const fam of EDGE_FAMILIES) {
+    for (const inverse of [false, true]) {
+      // The `color.` head is what disambiguates the two: `color.inverse.interactive.…` does not contain
+      // `color.interactive.…`, so each pill matches exactly one row.
+      const ROLE = `color.${inverse ? 'inverse.' : ''}interactive.${fam}.border.rest`;
+      const where = `${brand} ${fam}${inverse ? ' · inverse' : ''}`;
+      const row = page.locator('.arow').filter({ hasText: ROLE }).first();
+      ok(await row.count() > 0, `${where}: the ${ROLE} row is present — the border is authorable (#576)`);
+      if (!(await row.count())) continue;
+
+      const r = await readEdgeRow(row);
+      ok(/^Auto · /.test(r.auto ?? '') && r.value === '' && r.steps.length > 0,
+        `${where}: its Source select starts on Auto and offers ${r.steps.length} step(s) of this family's own ramp`);
+
+      // The specimen paints the BORDER role, not the ink. Two independently written paint sites — the
+      // row's swatch comes from the resolved role, the example from `exOutline` — so they agreeing is a
+      // real comparison, and the version of this row that painted the edge from `text.rest` fails it the
+      // moment an override lands below.
+      // A VISIBLE edge, not the authored figure. `exOutline` asks for 1.5px and Chromium rounds a
+      // fractional border to a device pixel, so the used value reads 1px at DPR 1 — asserting 1.5 would
+      // be asserting the string this file's subject wrote down. That the edge comes from the STYLESHEET
+      // rather than an inline shorthand is proven below, by hovering it.
+      ok(r.edge !== null && parseFloat(r.width) > 0,
+        `${where}: the example draws a visible edge (border-top-width ${r.width})`);
+      ok(r.edge === r.swatch,
+        `${where}: the example's edge is the color the row's swatch names (swatch ${r.swatch}, edge ${r.edge})`);
+
+      // Both states, per family, with their own pickers.
+      ok(r.states.length === 2 && r.states[0].name === 'Hover' && r.states[1].name === 'Pressed',
+        `${where}: Hover and Pressed each get their own Source select (${r.states.map((s) => `${s.name}:${s.options}`).join(', ') || 'none'})`);
+      const walks = r.states.every((s) => s.swatch !== r.swatch);
+      const holds = r.states.every((s) => s.swatch === r.swatch);
+      ok(EDGE_WALKS.has(fam) ? walks : holds,
+        `${where}: its border states ${EDGE_WALKS.has(fam) ? 'WALK away from rest' : 'all land on rest (#576, decided)'} `
+        + `— rest ${r.swatch}, ${r.states.map((s) => `${s.name} ${s.swatch}`).join(', ')}`);
+      notes.push(`${fam}${inverse ? '·inv' : ''} ${EDGE_WALKS.has(fam) ? 'walks' : 'holds'}`);
+    }
+  }
+
+  // The other direction of the CSS change, which none of the assertions above can see: `--ibtn-bw` is set
+  // --- THE DIVERGENCE, driven on primary --------------------------------------------------------
+  const ROLE = 'color.interactive.primary.border.rest';
+  const INK = 'color.interactive.primary.text.rest';
+  const FILL = 'color.interactive.primary.fill.rest';
+  const bRow = page.locator('.arow').filter({ hasText: ROLE }).first();
+  const tRow = page.locator('.arow').filter({ hasText: INK }).first();
+  const fRow = page.locator('.arow').filter({ hasText: FILL }).first();
+  const inkSwatch = () => tRow.evaluate((el) => getComputedStyle(el.querySelector('.asw')).backgroundColor);
+
+  // A missing row has to report as a FAILED ASSERTION, not as an uncaught locator timeout. Measured while
+  // mutation-testing this section: with the border rows removed, the six presence checks above failed by
+  // name and then the first `evaluate` below threw after 30s and took the process down — before the tally
+  // and before the `GITHUB_STEP_SUMMARY` write, which makes a red run read on the run page exactly like a
+  // step that never executed. The exit code was still 1, so it gated; the evidence is what was lost.
+  const driveable = (await bRow.count()) > 0 && (await tRow.count()) > 0 && (await fRow.count()) > 0;
+  ok(driveable, `${brand}: the border, ink and fill rows are all on the page to drive against`);
+  if (!driveable) {
+    const missing = drain();
+    ok(missing.length === 0, `${brand}: 0 console errors before the skipped edge drive${missing.length ? ` — ${missing.slice(0, 3).join(' | ')}` : ''}`);
+    await ctx.close();
+    continue;
+  }
+
+  // The other direction of the CSS change, which none of the assertions above can see: `--ibtn-bw` is set
+  // by `exOutline` alone, so every other specimen falls back to 0 and stays borderless. A `border:1.5px`
+  // that landed on `.ibtn` itself would satisfy this whole section and quietly add 3px to every filled
+  // button specimen in the studio.
+  const fillEdge = await fRow.locator('.aex .ibtn').first().evaluate((el) => getComputedStyle(el).borderTopWidth);
+  ok(parseFloat(fillEdge) === 0,
+    `${brand}: a FILLED specimen still has no border (border-top-width ${fillEdge}) — the outline example is the only one that sets \`--ibtn-bw\``);
+
+  const before = await readEdgeRow(bRow);
+  const inkBefore = await inkSwatch();
+  ok(before.edge === before.ink,
+    `${brand}: with no override the edge and the ink are the same color (${before.edge}) — the border follows the ink by default (#1231)`);
+
+  // The step has to be one that MOVES the resolved color; an override landing on the baseline would leave
+  // every reading below identical and pass this whole drive on a defect.
+  let pick = null;
+  let during = null;
+  for (const step of before.steps) {
+    await bRow.locator('.arow-main .sf-ctlblock select').selectOption(step);
+    await page.waitForFunction(
+      ([r, p]) => [...document.querySelectorAll('.arow')].find((el) => el.textContent.includes(r))
+        ?.querySelector('.arow-main .sf-ctlblock select')?.value === p, [ROLE, step]);
+    during = await readEdgeRow(bRow);
+    if (during.swatch !== before.swatch) { pick = step; break; }
+  }
+  ok(pick !== null, `${brand}: some step in the border picker moves the resolved color (picked '${pick}')`);
+
+  // THE LOAD-BEARING ASSERTION. Both halves matter: the edge followed the override, and the ink did not.
+  ok(during?.edge === during?.swatch && during?.edge !== before.edge,
+    `${brand}: pinning the border moves the example's EDGE (${before.edge} → ${during?.edge}, swatch ${during?.swatch}) (#576)`);
+  ok(during?.ink === before.ink,
+    `${brand}: and leaves the example's INK where it was (${before.ink}) — the edge can now differ from the label it surrounds`);
+  ok((await inkSwatch()) === inkBefore,
+    `${brand}: the Text · rest row is untouched by a border override (${inkBefore}) — the override is scoped to the one role`);
+  ok(/^Auto · /.test(during?.auto ?? '') && during?.auto === before.auto,
+    `${brand}: the border row's Auto label still names the engine's baseline with an override active `
+    + `— was "${before.auto}", now "${during?.auto}" (#330)`);
+
+  // --- THE RENDERED STATES, which the inline shorthand made unreachable -------------------------
+  await bRow.locator('.arow-main .sf-ctlblock select').selectOption('');
+  await page.waitForFunction(
+    (r) => [...document.querySelectorAll('.arow')].find((el) => el.textContent.includes(r))
+      ?.querySelector('.arow-main .sf-ctlblock select')?.value === '', ROLE);
+  const back = await readEdgeRow(bRow);
+  ok(back.edge === before.edge && back.swatch === before.swatch,
+    `${brand}: selecting Auto returns the edge the Auto label named (${back.edge})`);
+
+  const btn = bRow.locator('.aex .ibtn');
+  const edgeNow = () => btn.evaluate((el) => getComputedStyle(el).borderTopColor);
+  await btn.hover();
+  // Waits on the CONDITION, not a timer, and reads it through `:hover` so a mouse that landed on the
+  // wrong element reports as "the edge never moved" rather than passing on a stale read. A timeout is a
+  // failed assertion below, not a thrown wait.
+  const hoverLanded = await page.waitForFunction((rest) => {
+    const el = document.querySelector('.arow .aex .ibtn:hover');
+    return !!el && getComputedStyle(el).borderTopColor !== rest;
+  }, back.edge, { timeout: 3000 }).then(() => true, () => false);
+  const hovered = await edgeNow();
+  ok(hoverLanded && hovered === back.states[0].swatch,
+    `${brand}: hovering the specimen paints the HOVER edge (rest ${back.edge} → ${hovered}, Hover swatch ${back.states[0].swatch}) `
+    + `— an inline \`border\` shorthand could not be overridden by \`:hover\` at all`);
+
+  // Pressed is click-to-pin (#291), and the border row is pinnable BECAUSE its edge has a pressed value —
+  // its wash never changes, so an affordance keyed off the wash alone would have left this unreachable.
+  await btn.click();
+  // Same reason the hover wait is guarded: a specimen that is not pinnable at all never gets the class, and
+  // an unguarded wait would take the process down instead of reporting which assertion noticed.
+  const pinned = await page.waitForFunction(
+    () => !!document.querySelector('.arow .aex .ibtn.is-pressed'), null, { timeout: 3000 },
+  ).then(() => true, () => false);
+  const pressed = await edgeNow();
+  ok(pinned && pressed === back.states[1].swatch && pressed !== hovered,
+    `${brand}: pinning the specimen paints the PRESSED edge (pinnable=${pinned}, ${pressed}, Pressed swatch ${back.states[1].swatch})`);
+  await btn.click();
+
+  const errs = drain();
+  ok(errs.length === 0, `${brand}: 0 console errors across the edge drive${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  console.log(`  ${brand}: ${notes.length} border rows (${notes.join(', ')}); pinned primary to '${pick}' `
+    + `— edge ${before.edge} → ${during?.edge}, ink held at ${before.ink}.`);
+  await ctx.close();
+}
+
+// =============================================================================================
 await browser.close();
 server.close();
 

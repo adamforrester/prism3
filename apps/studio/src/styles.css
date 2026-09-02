@@ -953,9 +953,13 @@ input.toggle:disabled{opacity:.5;cursor:default}
 /* #555 — background is set inline per element (exGround, mode-resolved); this is only the fallback
    for the instant before JS runs, and the border override for the (now inline-dark) box. */
 .exbox.dark{background:#0d0d10;border-color:transparent}
-.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap;background:var(--ibtn-bg)}
-.ibtn:hover{background:var(--ibtn-hbg,var(--ibtn-bg))}
-.ibtn.is-pressed,.ibtn.is-pressed:hover{background:var(--ibtn-pbg,var(--ibtn-hbg,var(--ibtn-bg)))}
+/* #576 — the outline edge is a custom property, not the inline `border` shorthand `exOutline` used to
+   set. An inline shorthand beats `.ibtn:hover`, so a stateful border set that way could never move; the
+   states now ride the same var-fallback chain the background already uses. `--ibtn-bw` is set by
+   `exOutline` alone, so every other specimen falls back to 0 and a filled button grows no border. */
+.ibtn{display:inline-flex;align-items:center;gap:7px;border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;white-space:nowrap;background:var(--ibtn-bg);border:var(--ibtn-bw,0) solid var(--ibtn-bd,transparent)}
+.ibtn:hover{background:var(--ibtn-hbg,var(--ibtn-bg));border-color:var(--ibtn-hbd,var(--ibtn-bd,transparent))}
+.ibtn.is-pressed,.ibtn.is-pressed:hover{background:var(--ibtn-pbg,var(--ibtn-hbg,var(--ibtn-bg)));border-color:var(--ibtn-pbd,var(--ibtn-hbd,var(--ibtn-bd,transparent)))}
 .ibtn svg{width:16px;height:16px}
 .ilink{font-size:15px;font-weight:600;text-decoration:underline;text-underline-offset:3px;color:var(--ilink-fg)}
 .ilink:hover{color:var(--ilink-hfg,var(--ilink-fg))}
