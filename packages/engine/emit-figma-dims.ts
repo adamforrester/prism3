@@ -239,8 +239,9 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
   for (const rung of Object.keys(brand.control?.size ?? {})) {
     // Named rather than read off the leaf keys, deliberately: what Figma carries is an authored
     // decision, so a field added to the DTCG tier does not reach a client's file until someone puts it
-    // here. `dot` arrived with radio's anatomy (#910).
-    for (const field of ['height', 'width', 'dot']) {
+    // here. `dot` arrived with radio's anatomy (#910); `line-box` with #1201 — the selection-control
+    // alignment box binds it as a variable, so it must be a variable in the client's file, not DTCG-only.
+    for (const field of ['height', 'width', 'dot', 'line-box']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);

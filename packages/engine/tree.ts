@@ -653,6 +653,22 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
       // Unreachable while buildDims feeds the control px into the grid; kept so a future grid change
       // degrades to a literal rather than emitting a dangling alias.
       : dimLeaf(px, description);
+  // #1201 — the LABEL's line-box height per rung, baked to a fixed px. A selection control
+  // (checkbox / radio / switch) sits in a box exactly one line-box tall and centres WITHIN it, so it
+  // tracks the FIRST line of its label rather than floating to the middle of a wrapping one. #1009
+  // identified this exact construction and could not build it: a line-box is `fontSize × lineHeight` and
+  // `lineHeight` is a RATIO role, which Figma variables cannot multiply — but the PRODUCT is a fixed
+  // value per rung, and a variable holds a fixed value. Keyed by the rung the control shares with its
+  // `type.body.{rung}` label (small→sm, medium→md, large→lg), so the box matches the line the label
+  // renders on. Emitted as a LITERAL (`dimLeaf`), never aliased to the dimension grid: a line-box is a
+  // type-derived quantity, and landing on a grid step (24 = body.md) is a coincidence, not a meaning.
+  const lhRatio = new Map(theme.typography.lineHeights.map((l) => [l.key, l.value]));
+  const bodyLineBox: Record<string, number> = {};
+  for (const c of theme.typography.composites) {
+    if (c.group !== 'body') continue;
+    const rung = c.path.split('.')[1]; // 'body.md.default' → 'md'
+    bodyLineBox[rung] = Math.round(c.sizePx * (lhRatio.get(c.lineHeight) ?? 1));
+  }
   for (const c of theme.dims.controls) {
     const heightLeaf = controlLeaf(c.height, `control.size.${c.name} — ${c.height}px box edge for a small control's own dimension: a checkbox square, a radio circle, a switch track's height (density: ${theme.dims.density}). A SQUARE control reads this on both axes.`);
     const widthLeaf = controlLeaf(c.width, `control.size.${c.name} width — ${c.width}px track width for a two-position control, i.e. a switch (2x the ${c.height}px height, the field-convergent track ratio). A square control uses \`height\` on both axes and does not read this.`);
@@ -667,7 +683,14 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     if (hMods) heightLeaf.$extensions.prism3.modes = hMods;
     if (wMods) widthLeaf.$extensions.prism3.modes = wMods;
     if (dMods) dotLeaf.$extensions.prism3.modes = dMods;
-    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf };
+    // #1201 — the alignment box (see `bodyLineBox` above). A single baked value per rung: it carries no
+    // per-mode override because the centring it enables is a static-layout nicety, not a mode-varying
+    // dimension, and a mode that resized the body ramp would re-derive this from the same product.
+    const lineBoxPx = bodyLineBox[c.name];
+    const lineBox = lineBoxPx !== undefined
+      ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).`)
+      : undefined;
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
   }
   const control = { size: controlSize };
 

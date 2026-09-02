@@ -399,6 +399,14 @@ export const switchDef: ComponentDef = {
     // describe it, and that is the constraint this instance added to #900 rather than confirming.
     'size.small.control': 'control.size.sm.height',
     'size.medium.control': 'control.size.md.height',
+
+    // ── THE ALIGNMENT BOX (#1201, building #1009's filed fix). One line of the LABEL tall, per rung —
+    // the baked `body.{rung}` line-box. The track centres inside a box this tall while the ROW stays
+    // top-aligned, so a single-line label reads centred and a wrapping one holds the first line. No
+    // `large` rung: this def is `size: [small, medium]` only. The track centres within its OWN box, never
+    // the row — `test.ts` #1009 half-1.
+    'size.small.control-box': 'control.size.sm.line-box',
+    'size.medium.control-box': 'control.size.md.line-box',
     'size.small.track': 'control.size.sm.width',
     'size.medium.track': 'control.size.md.width',
     // The THUMB's diameter, half the track's height by the tier's construction. The tier anticipated this
@@ -445,16 +453,30 @@ export const switchDef: ComponentDef = {
     root: 'row',
     parts: {
       // THE HIT TARGET, and nothing else. No `paintSlots` (#933): this def keys no row-level fill or
-      // border for one to name. `align: 'start'` for radio's reason — a control centered against a
-      // wrapping label floats mid-paragraph, and this def's content rules say long labels wrap while the
-      // fixed-width track does not shrink. Its extent comes from its children; `min-height` is the row's
-      // FLOOR and is in `codeOnly`, because Figma has no floor.
+      // border for one to name. `align: 'start'` on the cross axis, and the ROW must NOT centre — this
+      // def's content rules say long labels wrap while the fixed-width track does not shrink, so
+      // `align: center` here would float the track to the middle of a two-line label (the wrong repair
+      // `test.ts` #1009 half-1 forbids). Centring the track against its label happens one level down,
+      // inside `trackBox`, which is one line-box tall; top-aligning it here lands the track on the first
+      // line (#1201). Its extent comes from its children; `min-height` is the row's FLOOR and is in
+      // `codeOnly`, because Figma has no floor.
       row: {
         kind: 'box',
         role: 'target',
         layout: { direction: 'row', align: 'start', justify: 'start', sizing: { x: 'hug', y: 'hug' } },
         gap: 'size.{size}.gap',
-        children: ['label', 'track'],
+        children: ['label', 'trackBox'],
+      },
+      // THE ALIGNMENT BOX (#1201, building the fix #1009 filed). One line of the label tall
+      // (`size.{size}.control-box` → the baked `body.{rung}` line-box), centring the track on its cross
+      // axis. Draws nothing — it gives the track a line-tall box to centre within, so the top-aligned row
+      // holds it on the FIRST line of a wrapping label. Height FIXED; width HUGs the (2:1) track.
+      trackBox: {
+        kind: 'box',
+        role: 'presentation',
+        height: 'size.{size}.control-box',
+        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
+        children: ['track'],
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the track's fill

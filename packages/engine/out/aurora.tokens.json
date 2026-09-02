@@ -19547,6 +19547,17 @@
                 "density": "compact"
               }
             }
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "21px",
+            "$description": "control.size.sm line-box — 21px, the height of one line of the `body.sm` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "px": 21
+              }
+            }
           }
         },
         "md": {
@@ -19586,6 +19597,17 @@
                 "aliasOf": "prism.core.dimension.8",
                 "px": 8,
                 "density": "compact"
+              }
+            }
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "24px",
+            "$description": "control.size.md line-box — 24px, the height of one line of the `body.md` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "px": 24
               }
             }
           }
@@ -19629,6 +19651,17 @@
                 "density": "compact"
               }
             }
+          },
+          "line-box": {
+            "$type": "dimension",
+            "$value": "27px",
+            "$description": "control.size.lg line-box — 27px, the height of one line of the `body.lg` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).",
+            "$extensions": {
+              "prism3": {
+                "generated": true,
+                "px": 27
+              }
+            }
           }
         }
       }
@@ -19637,7 +19670,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.32.0",
+      "version": "0.33.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
