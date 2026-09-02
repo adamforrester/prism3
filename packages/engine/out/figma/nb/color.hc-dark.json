@@ -1892,14 +1892,14 @@
       ],
       "description": "neutral interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.43921568989753723,
-        "g": 0.4627451002597809,
-        "b": 0.48627451062202454,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/500"
+        "name": "nbds/core/palette/white"
       }
     },
     {
@@ -1910,14 +1910,14 @@
       ],
       "description": "neutral interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.5607843399047852,
-        "b": 0.5764706134796143,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/400"
+        "name": "nbds/core/palette/white"
       }
     },
     {
@@ -1928,14 +1928,14 @@
       ],
       "description": "neutral interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.6392157077789307,
-        "g": 0.658823549747467,
-        "b": 0.6705882549285889,
+        "r": 1,
+        "g": 1,
+        "b": 1,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/300"
+        "name": "nbds/core/palette/white"
       }
     },
     {
@@ -2838,14 +2838,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.2078431397676468,
-        "g": 0,
-        "b": 0.01568627543747425,
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/900"
+        "name": "nbds/core/palette/neutral/850"
       }
     },
     {
@@ -2857,14 +2857,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0,
-        "b": 0.007843137718737125,
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/950"
+        "name": "nbds/core/palette/neutral/900"
       }
     },
     {
@@ -2876,14 +2876,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.3686274588108063,
-        "g": 0,
-        "b": 0.05098039284348488,
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/800"
+        "name": "nbds/core/palette/neutral/950"
       }
     },
     {
@@ -2895,14 +2895,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0,
-        "b": 0.007843137718737125,
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/950"
+        "name": "nbds/core/palette/neutral/900"
       }
     },
     {
@@ -2914,14 +2914,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.3686274588108063,
-        "g": 0,
-        "b": 0.05098039284348488,
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/800"
+        "name": "nbds/core/palette/neutral/950"
       }
     },
     {
@@ -3118,14 +3118,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — rest (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.2078431397676468,
-        "g": 0,
-        "b": 0.01568627543747425,
+        "r": 0.12156862765550613,
+        "g": 0.13333334028720856,
+        "b": 0.1411764770746231,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/900"
+        "name": "nbds/core/palette/neutral/850"
       }
     },
     {
@@ -3137,14 +3137,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0,
-        "b": 0.007843137718737125,
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/950"
+        "name": "nbds/core/palette/neutral/900"
       }
     },
     {
@@ -3156,14 +3156,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.3686274588108063,
-        "g": 0,
-        "b": 0.05098039284348488,
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/800"
+        "name": "nbds/core/palette/neutral/950"
       }
     },
     {
@@ -3175,14 +3175,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.13725490868091583,
-        "g": 0,
-        "b": 0.007843137718737125,
+        "r": 0.08235294371843338,
+        "g": 0.09019608050584793,
+        "b": 0.09803921729326248,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/950"
+        "name": "nbds/core/palette/neutral/900"
       }
     },
     {
@@ -3194,14 +3194,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.3686274588108063,
-        "g": 0,
-        "b": 0.05098039284348488,
+        "r": 0.0470588244497776,
+        "g": 0.05098039284348488,
+        "b": 0.05882352963089943,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/800"
+        "name": "nbds/core/palette/neutral/950"
       }
     },
     {
@@ -3512,14 +3512,14 @@
       ],
       "description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.43921568989753723,
-        "g": 0.4627451002597809,
-        "b": 0.48627451062202454,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/500"
+        "name": "nbds/core/palette/black"
       }
     },
     {
@@ -3530,14 +3530,14 @@
       ],
       "description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.33725491166114807,
-        "g": 0.364705890417099,
-        "b": 0.3843137323856354,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/600"
+        "name": "nbds/core/palette/black"
       }
     },
     {
@@ -3548,14 +3548,14 @@
       ],
       "description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.24705882370471954,
-        "g": 0.2666666805744171,
-        "b": 0.2862745225429535,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/700"
+        "name": "nbds/core/palette/black"
       }
     },
     {
