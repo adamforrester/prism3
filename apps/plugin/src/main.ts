@@ -509,6 +509,11 @@ const buildComponents = async (defId?: string): Promise<void> => {
         // the expensive case. Which is why the counter is worth printing: the number alone is not a cost.
         'searches are only expensive during a cold build, when the scenegraph is still reconciling)',
     );
+    // #866: printed ONLY when a re-wire actually fired, so a quiet run stays quiet. A non-zero count means
+    // the read-back caught a reference written to a node whose id `combineAsVariants` had rewritten and
+    // landed it on the live node instead — the divergence has not reproduced by hand, so this line is the
+    // live signal #1218 verifies against, not routine telemetry.
+    if (r.refsRepaired > 0) console.log(`[prism3 #866] repaired ${r.refsRepaired} field-ref write(s) onto the live post-combine node`);
     // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
     // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
     for (const line of summaryLines(reports, settleMs)) console.log(line);
