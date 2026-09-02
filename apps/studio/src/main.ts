@@ -2337,8 +2337,10 @@ const contrastBadge = (ratio: number, min: number, label?: string): HTMLElement 
   b.append(el('span', 'cb-ratio', `${ratio.toFixed(2)}:1`), el('span', 'cb-mark', ratio >= min ? '✓' : '✗'));
   return b;
 };
-/** A colour swatch element with an inline background (audit §8 candidate #2). */
-const swatch = (hex: string, cls = 'sw'): HTMLElement => { const s = el('div', cls); s.style.background = hex; return s; };
+/** A colour swatch element with an inline background (audit §8 candidate #2). Takes any CSS background
+ *  value, not only a hex — a translucent role paints as `washCss`'s layered composite, which is a
+ *  background image over a colour and cannot be spelled as one hex. */
+const swatch = (bg: string, cls = 'sw'): HTMLElement => { const s = el('div', cls); s.style.background = bg; return s; };
 
 // ============================================================================
 // Interactive & action colors — the per-palette matrix (#69)
@@ -2418,11 +2420,65 @@ const rgbaOf = (r: RoleRes): string => {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${r.alpha ?? 1})`;
 };
 
-/** A per-mode colour-override Source select for one role. "Auto" clears the override (the role reverts to
+// ---- translucent roles (#1210) ---------------------------------------------
+// The overlay washes are the only roles in this editor that COMPOSITE rather than cover, and both studio
+// defects #1210 names follow from that one property rather than from the row's name — so both fixes key
+// off the role's own `alpha`, and reach every row that renders a translucent role, not just the one in
+// the screenshot. The token itself is correct throughout: `interactive.neutral.overlay.hover` is a 10%
+// black wash on a light page and a 10% white one on a dark page, which is what it should be.
+
+/** A role that composites over its ground instead of covering it. Its `hex` is the OPAQUE BASE — black or
+ *  white — never the colour anyone sees, which `modes.ts` says outright at the scrim; the translucency
+ *  lives only in `alpha`. Painting `hex` renders the wash as solid black, and painting the `rgba()` with
+ *  no underlay renders it over whatever chrome happens to be behind. */
+const isWash = (r: RoleRes): boolean => (r.alpha ?? 1) < 1;
+
+/** A translucent role painted over the ground it DECLARES, so a swatch shows the composite a user would
+ *  see rather than the wash over the studio's own furniture. A 10% black wash with no underlay picks up
+ *  the card, the border and whatever sits beneath, and reads near-opaque.
+ *
+ *  The underlay is the role's own `against` — not a fixed light colour. The page wash flips polarity with
+ *  the mode (`black-alpha` on a light page, `white-alpha` on a dark one) and the inverse twin flips the
+ *  other way, so a pinned white would render half of these invisible: the same defect in the other
+ *  direction. That is #555 in this file — `.exbox.dark` pinned `#0d0d10`, which is wrong in a Dark mode,
+ *  where "inverse" resolves LIGHT — and `exGround` cured it by reading the resolved ground. This reads the
+ *  ground the engine itself named, which is also the one its `ratio` was measured on. */
+const washCss = (roles: RoleMap, r: RoleRes): string => {
+  const ground = (r.against ? roles[r.against]?.hex : undefined) ?? roles['background.primary']?.hex ?? '#ffffff';
+  const c = rgbaOf(r);
+  return `linear-gradient(${c}, ${c}), ${ground}`;
+};
+
+/** The Source read-out for a wash — honest about the primitive, and deliberately NOT a picker.
+ *
+ *  This slot used to hold `stepPicker(neutral, …)`, which labelled the wash "Auto · neutral 10" and
+ *  offered the neutral ramp's steps. Both halves were untrue. The primitive is `<ns>.black-alpha.10`, a
+ *  translucent neutral — the neutral ramp has no step 10 to be. And picking from that list wrote
+ *  `{palette: neutral, step}` through `setFillOverride`, which `modes.ts` applies by SPREADING over the
+ *  existing role, so `alpha` survived: the role came out naming an opaque ramp step while still rendering
+ *  at 10%. Removing the picker is not a lost capability, because the thing it wrote was incoherent.
+ *
+ *  Wears `.sf-derived` — the read-only Source treatment the Surfaces "Derived — not editable" rows
+ *  already use, so "no control here" arrives in the vocabulary the app has rather than a new one. */
+const washSourceRead = (r: RoleRes): HTMLElement => {
+  const parts = (r.path ?? '').split('.');
+  const n = el('span', 'sf-derived', parts.length >= 2 ? `${parts[parts.length - 2]} ${stepKeyOf(r.path)}` : (r.path ?? '—'));
+  n.title = 'A translucent wash has no ramp step to swap in — a step of the neutral ramp is opaque, and would replace the wash rather than retint it.';
+  return n;
+};
+
+/** A per-mode colour-override Source control for one role. "Auto" clears the override (the role reverts to
  *  its derived value); a step pins the role to that primitive (the engine re-derives its contrast and
  *  warns — never blocks — if a hand pick misses the floor). Reuses the generic override writer the
- *  Surfaces foreground editor uses (`setFillOverride`). */
-const roleSourceSelect = (roleKey: string, palette: string, derivedStep: string): HTMLSelectElement => {
+ *  Surfaces foreground editor uses (`setFillOverride`).
+ *
+ *  A WASH gets a read-out instead, for the reasons on `washSourceRead` — and `roles` is a parameter rather
+ *  than an `iRoles()` call inside precisely so that check cannot be skipped by a caller who does not know
+ *  it exists. `palette` is inert on that branch; every call site passes it because most roles are not
+ *  washes and the argument is the same one either way. */
+const roleSourceSelect = (roles: RoleMap, roleKey: string, palette: string, derivedStep: string): HTMLElement => {
+  const r = roles[roleKey];
+  if (r && isWash(r)) return washSourceRead(r);
   const cur = brandState.overrides?.[currentMode]?.[roleKey]?.step;
   return stepPicker(palette, stepsOf(palette), derivedStep, typeof cur === 'string' ? cur : undefined,
     (step) => setFillOverride(roleKey, palette, step), contrastMark(roleKey, palette));
@@ -2560,14 +2616,19 @@ const iBadge = (r: RoleRes | undefined): HTMLElement | undefined =>
 
 // ---- rows -----------------------------------------------------------------
 /** The two-up Hover/Pressed states strip below a slot row — each state its own swatch + override select.
- *  States absent in this mode are dropped; an empty strip returns null. */
+ *  States absent in this mode are dropped; an empty strip returns null.
+ *
+ *  A wash state paints as its composite, not as `r.hex` (#1210): every Hover/Pressed cell of the overlay
+ *  row rendered solid black here, because a wash's `hex` is its opaque base. Fixing only the row's own
+ *  swatch would have left the identical untruth two rows down, at three times the count. */
 const iStates = (roles: RoleMap, palette: string, cells: Array<[string, string]>): HTMLElement | null => {
   const g = el('div', 'astates-g'); let any = false;
   for (const [name, roleKey] of cells) {
     const r = roles[roleKey]; if (!r) continue; any = true;
     const cell = el('div', 'astate');
-    const head = el('div', 'astate-h'); head.append(swatch(r.hex, 'astate-sw'), el('span', 'astate-n', name));
-    cell.append(head, roleSourceSelect(roleKey, palette, baselineStepOf(roleKey)));
+    const head = el('div', 'astate-h');
+    head.append(swatch(isWash(r) ? washCss(roles, r) : r.hex, 'astate-sw'), el('span', 'astate-n', name));
+    cell.append(head, roleSourceSelect(roles, roleKey, palette, baselineStepOf(roleKey)));
     g.append(cell);
   }
   if (!any) return null;
@@ -2602,7 +2663,7 @@ const slotRow = (o: { name: string; slot: string; label: string; palette: string
   const roleKey = `${o.inverse ? 'inverse.' : ''}interactive.${o.name}.${o.slot}`;
   const r = roles[roleKey]; if (!r) return null;
   return iRow({
-    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roleKey, o.palette, baselineStepOf(roleKey)),
+    swatchBg: r.hex, label: o.label, select: roleSourceSelect(roles, roleKey, o.palette, baselineStepOf(roleKey)),
     pill: colorPath(roleKey), desc: o.desc, example: iExample(o.example(roles), iBadge(roles[o.badgeRole ?? roleKey])),
     states: o.states ? iStates(roles, o.palette, o.states) : null,
   });
@@ -2637,7 +2698,7 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
     if (min > 0 && ratio < min)
       warn = `${stepKeyOf(r.path)} doesn't clear the contrast floor here — ${ratio.toFixed(2)}:1 against ${r.against}, needs ${min}:1. Applied as picked; hover, pressed, text and on-fill all derive from it.`;
   } else {
-    select = roleSourceSelect(`interactive.${col.name}.fill.rest`, col.palette, baselineStepOf(`interactive.${col.name}.fill.rest`));
+    select = roleSourceSelect(roles, `interactive.${col.name}.fill.rest`, col.palette, baselineStepOf(`interactive.${col.name}.fill.rest`));
   }
   return iRow({
     swatchBg: r.hex, label: 'Fill · rest', select, pill: colorPath(`interactive.${col.name}.fill.rest`),
@@ -2650,17 +2711,26 @@ const fillRestRow = (col: ICol): HTMLElement | null => {
 };
 
 /** The overlay-wash row — the translucent hover/pressed tint for this palette's outline & text actions.
- *  The wash is a neutral alpha primitive; its swatch + example paint it honestly via rgba. */
+ *  The wash is a neutral ALPHA primitive, so the swatch, the states strip and the Source slot all go
+ *  through the wash treatment above (#1210) rather than through the ordinary opaque path: paint the
+ *  composite over the declared ground, and read the primitive out instead of offering ramp steps. */
 const overlayRow = (col: ICol): HTMLElement | null => {
   const roles = iRoles();
   const r = roles[`interactive.${col.name}.overlay.hover`]; if (!r) return null;
+  // Inert on this row — every role it reaches is a wash, so `roleSourceSelect` takes the read-out branch
+  // and never binds a ramp. Passed anyway because the argument is not optional: a caller must not be able
+  // to omit it and quietly get a picker for a role that should not have one.
   const nPal = theme.roleToPalette.neutral;
   const edge = roles[`interactive.${col.name}.text.rest`]?.hex ?? '#000000';
   return iRow({
-    swatchBg: rgbaOf(r), label: 'Overlay wash',
-    select: roleSourceSelect(`interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
+    swatchBg: washCss(roles, r), label: 'Overlay wash',
+    select: roleSourceSelect(roles, `interactive.${col.name}.overlay.hover`, nPal, baselineStepOf(`interactive.${col.name}.overlay.hover`)),
     pill: colorPath(`interactive.${col.name}.overlay.hover`),
-    desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — it composites over any surface.',
+    // Names the ground, and says what the primitive is NOT. The old copy said the wash "composites over
+    // any surface" — true of the mechanism and false of the result, which is exactly the claim #892
+    // retired from the engine's own `$description` when it gave the inverse band its own opposite-polarity
+    // wash. This surface kept saying it after the engine stopped.
+    desc: 'The translucent hover / pressed wash for this palette’s outline & text actions — a neutral alpha primitive composited over the page surface it is measured against, so there is no ramp step to swap in.',
     // The row's rest swatch already IS the hover wash (there's no "rest" overlay to show — the wash only
     // ever appears on hover/pressed), so only pressed needs wiring here; a :hover cue would be a no-op.
     example: iExample(exOutline(edge, rgbaOf(r), false, undefined,
@@ -2688,7 +2758,7 @@ const subtleFillRow = (col: ICol): HTMLElement | null => {
   const short = (n: number) => n.toFixed(2).replace(/\.00$/, '');
   return iRow({
     swatchBg: r.hex, label: 'Subtle tint',
-    select: roleSourceSelect(`interactive.${col.name}.subtle-fill.hover`, col.palette, baselineStepOf(`interactive.${col.name}.subtle-fill.hover`)),
+    select: roleSourceSelect(roles, `interactive.${col.name}.subtle-fill.hover`, col.palette, baselineStepOf(`interactive.${col.name}.subtle-fill.hover`)),
     pill: colorPath(`interactive.${col.name}.subtle-fill.hover`),
     desc: 'The opaque hover / pressed tint for this palette’s outline & text actions — a step of its own ramp, so the control keeps its color identity.',
     // `min`/`ratio` are optional on the resolved role, so a missing pair means "no contract stated" —
