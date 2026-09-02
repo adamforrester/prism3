@@ -116,6 +116,11 @@ export interface CompNode {
   strokesIncludedInLayout?: boolean;
   readonly width?: number;
   readonly height?: number;
+  /** The scenegraph id (`14:6004`), stable across a node's life. Read-only, and read only to tell one
+   *  node from another: #866's identity check compares the node the wire loop wrote to against the one
+   *  the read-back finds live in the set, and a name is not unique enough (two members carry a part of
+   *  the same name). Absent on the offline shim, where objects are their own identity. */
+  readonly id?: string;
   readonly boundVariables?: unknown;
   fills?: unknown;
   /** NO GEOMETRY FIELD, and the absence is deliberate (#864). Figma's SVG importer owns a glyph's
@@ -1511,7 +1516,10 @@ const writeComponentSet = async (
   // AND RE-STAMPED, same reason as the build loop: between that loop's last boundary and this one's first
   // sit `combineAsVariants`, the measured layout pass, the `resize`, the guarded definitions read and one
   // `addComponentProperty` per property. Set-level work, charged to wire chunk 1 unless the clock restarts.
-  const wiredRefs: [string, string, string, string][] = [];
+  // The fifth element is the node the wire loop actually WROTE to (the #701 cached node for a built
+  // member). #866 carries it so the read-back can tell an identity break — the write landed on a node no
+  // longer live in the set — from a discard the live node simply did not keep.
+  const wiredRefs: [string, string, string, string, CompNode | null | undefined][] = [];
   // WHICH ROUTE each reference took to its node, counted (#701). Not timing — the harness has no
   // scenegraph, so it can never gate the speedup this exists for; what it can gate, exactly and by value,
   // is that the fast route was actually taken. A version of this fix whose map never populated would be
@@ -1555,7 +1563,7 @@ const writeComponentSet = async (
       if (!id) continue;   // the property itself failed above and reported its own cause
       try {
         wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [r.field]: id });
-        wiredRefs.push([String(member.name), r.part, r.field, id]);
+        wiredRefs.push([String(member.name), r.part, r.field, id, node]);
       } catch (err) { misses.push(`ref ${member.name}/${r.part}.${r.field} -> ${r.prop} (${(err as Error).message})`); }
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
@@ -1571,12 +1579,32 @@ const writeComponentSet = async (
   // path rests on (that `createComponentFromNode` keeps the child nodes) turning out to be false. If that
   // assumption ever breaks, it surfaces here as a loud `DISCARDED` miss per reference rather than as a set
   // that looks built and is inert. docs/34: the check must not share its subject with the thing it checks.
-  for (const [mName, part, field, id] of wiredRefs) {
+  // #866 — REPAIR AN IDENTITY BREAK, cause-independently. The fast path (#701) wired to `wrote`, the node
+  // the build loop cached BEFORE `combineAsVariants`. If the node the set has live NOW is a different one
+  // (`wrote.id !== live.id` — some transform between build and here moved the identity), the write never
+  // reached the file and reads back undefined. When, and only when, they disagree, re-wire on the live
+  // node — whatever moved the identity, that is where the reference must land. #701's fast path is
+  // untouched for the common case (`wrote` IS live), and the search is one this loop already does. The
+  // discard where `wrote` IS the live node is NOT an identity break (the leading other candidate is
+  // ordering — the property unresolvable when the write ran); the re-wire would be inert there, so it is
+  // left alone to report below, which is also what keeps the live probe able to tell the two apart.
+  let refsRepaired = 0;
+  for (const [mName, part, field, id, wrote] of wiredRefs) {
     const member = members.find((c) => c.name === mName);
-    const node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+    let node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+    if (node && wrote && node.id !== wrote.id && (node.componentPropertyReferences as Record<string, string> | null)?.[field] !== id) {
+      try { wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id }); refsRepaired++; }
+      catch { /* surfaces in the independent verdict below */ }
+      node = member?.findOne?.((x) => x.name === part) as CompNode | null | undefined; // fresh re-find, not the object just written — the verdict stays independent (docs/34)
+    }
     const held = (node?.componentPropertyReferences ?? undefined) as Record<string, string> | undefined;
     if (held?.[field] !== id) misses.push(`ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
   }
+  // TELEMETRY, and the #866 merge probe in one line (the file already reports its wire hit rate here, per
+  // the #701 counters). `refsRepaired > 0` on a live `field-label` build is the confirmation that the
+  // discard was an identity break and this fix addresses it; `0` with misses still standing points the
+  // diagnosis at ordering instead. Zero on every offline run, where nothing diverges.
+  if (refsRepaired > 0) console.log(`[write-components] #866 repaired ${refsRepaired} reference(s) on the live post-combine node (fast-path node had diverged)`);
 
   // RE-READ the definitions: the read above happened BEFORE the properties existed, and left stale it
   // reports every property "declared but absent from the set" on a perfectly correct run — noise that
