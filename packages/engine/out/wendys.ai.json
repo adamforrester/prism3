@@ -7900,10 +7900,20 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "border-width.heavy",
+        "control.size.sm.inset",
         "radius.md",
         "size.xs.gap",
         "size.xs.padding-y",
         "space.050"
+      ]
+    },
+    "core.dimension.5": {
+      "$description": "5px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.md.inset"
       ]
     },
     "core.dimension.6": {
@@ -7912,6 +7922,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "control.size.lg.inset",
         "radius.lg",
         "size.sm.padding-y",
         "size.xs.padding-x-visual",

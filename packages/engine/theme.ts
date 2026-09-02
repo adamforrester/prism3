@@ -548,6 +548,14 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
   // alias-resolution one: the dot varies by mode, so the literal is what makes it visible. Worth writing
   // down because the wrong mechanism suggests the wrong gate to check the fix against, and 6 needs no
   // rescuing at all — the space extras already supply it.
+  //
+  // `inset` (#997) leans on this line HARDER than either, and it is the first field for which the
+  // rescue is load-bearing at the default baseUnit for a MAJORITY of its rungs. The inset px are
+  // 3/4/5/6/7 — `(height - dot) / 2` over `CONTROL_RUNGS` — and 3, 5 and 7 are on neither the base-4
+  // grid nor the space extras (2/4/6/8/12/16/20/24/…). Only 4 and 6 are already members, so three of
+  // the five rungs exist as grid entries because this line puts them there, `md` at the DEFAULT density
+  // among them. Remove `c.inset` and the same thing happens as for `c.dot`: `controlLeaf` falls back to
+  // a literal rather than dangling, so the switch still renders and the tier quietly stops aliasing.
   const controls = controlSizes(density);
   return {
     // Icon px join the grid extras for the same reason space does (#274): at a non-default baseUnit
@@ -555,7 +563,7 @@ export const buildDims =(baseUnit: number, spaceBase: number, density: Density, 
     // would dangle. Feeding them in makes every icon alias resolve by construction. At baseUnit 4
     // they are already grid members, so committed out/* is unaffected.
     grid: dimensionGrid(baseUnit, 128, [...extras, ...space.map((s) => s.px), ...iconSizes().map((i) => i.px),
-      ...controls.flatMap((c) => [c.height, c.width, c.dot])]),
+      ...controls.flatMap((c) => [c.height, c.width, c.dot, c.inset])]),
     space,
     radius: radiusScale(rScale, baseMd, 128),
     sizes: componentSizes(density, spaceBase),

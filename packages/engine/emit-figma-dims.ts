@@ -241,14 +241,21 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // decision, so a field added to the DTCG tier does not reach a client's file until someone puts it
     // here. `dot` arrived with radio's anatomy (#910); `line-box` with #1201 — the selection-control
     // alignment box binds it as a variable, so it must be a variable in the client's file, not DTCG-only.
-    for (const field of ['height', 'width', 'dot', 'line-box']) {
+    // `inset` with #997, for the identical reason: switch's track binds it as PADDING, and a padding
+    // bound to a variable the client's file does not carry resolves to nothing. The authored list is
+    // what caught that — `tools/exporter-comparison/gate.ts` reported the three new paths as
+    // prism3-only on the first run, which is this list's stated purpose working as designed.
+    for (const field of ['height', 'width', 'dot', 'line-box', 'inset']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       controlVars.push({
         name: ns(`control/size/${rung}/${field}`),
         resolvedType: 'FLOAT',
-        scopes: SIZE_HEIGHT_SCOPES,
+        // GAP for `inset`, WIDTH_HEIGHT for the rest — the same split line 211 makes for `size.*`, and
+        // it is not cosmetic: Figma offers a FLOAT variable only in the fields its scopes name, so an
+        // inset scoped WIDTH_HEIGHT would be invisible in the padding control that is its only consumer.
+        scopes: field === 'inset' ? SIZE_PADDING_SCOPES : SIZE_HEIGHT_SCOPES,
         description: desc(leaf),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,

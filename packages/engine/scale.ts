@@ -330,7 +330,33 @@ const CONTROL_TRACK_RATIO = 2;
  *  resulting GAP inside the range the field does agree on. */
 const CONTROL_DOT_RATIO = 0.5;
 
-export type ControlSizeStep = { name: string; height: number; width: number; dot: number };
+/** The gap between the inner mark and the box's boundary — `inset` = (`height` - `dot`) / 2 (#997).
+ *
+ *  NOT A NEW RATIO, and that is the whole reason it is safe to mint. It is the quantity the `dot`
+ *  argument above already reasons in: *"What converges is the same evidence read as a GAP — (height -
+ *  dot) / 2 is 5, 6 and 5 px"*. That sentence chose `CONTROL_DOT_RATIO` by looking at this number, so
+ *  deriving it back out cannot disagree with the dot, at any rung or density, by construction. A
+ *  second literal ratio here could — and would be the drift `dot`'s own note warns about.
+ *
+ *  WHY IT HAD TO BECOME A TOKEN. `switch`'s thumb is a flow child of a fixed-size track, positioned by
+ *  `positionWhen` onto the track's main-axis distribution (MIN/MAX). With no padding on the track,
+ *  MIN and MAX put the thumb's edge exactly on the track's — flush at both ends, which no shipped
+ *  switch does (#997). The repair is padding on the track, and padding needs a token: the space scale
+ *  is 4/8/12/…, so `md` at 5px had nothing to bind. Anatomy cannot perform the subtraction either, so
+ *  by #801's split — the tier holds the inputs, downstream does the arithmetic — the tier is where it
+ *  belongs. `dot` took the same shape in #910 for the same reason.
+ *
+ *  PRISM 2 IS THE SOURCE FOR THE RELATIONSHIP, NOT THE NUMBER. `toggle-switch.json` sites its thumb by
+ *  giving the TRACK a uniform `padding: 4` at a 32px track with a 24px thumb — an equal inset on all
+ *  four sides, i.e. the thumb centred in the track, which is exactly `(height - thumb) / 2`. Its
+ *  literal 4 is not portable: it follows from a 0.75 thumb ratio where this tier's is 0.5, and 0.75 is
+ *  not adoptable without splitting `dot` away from radio (see the header note on the Prism 2 deltas).
+ *  So the relationship transfers and the number is re-derived, which is why every rung stays an
+ *  integer — 3/4/5/6/7 across `CONTROL_RUNGS` — where Prism 2's own fraction (height / 8) would put
+ *  2.5px on this ladder's `md`. */
+const controlInset = (height: number, dot: number): number => (height - dot) / 2;
+
+export type ControlSizeStep = { name: string; height: number; width: number; dot: number; inset: number };
 
 /** Control-box sizes for a density. The SAME window mechanism as `componentSizes` — three names
  *  sliding over five rungs, never a clamped shift — so `control.size.md` moves with the brand's
@@ -340,7 +366,8 @@ export type ControlSizeStep = { name: string; height: number; width: number; dot
 export const controlSizes = (density: Density): ControlSizeStep[] =>
   CONTROL_NAMES.map((name, i) => {
     const height = CONTROL_RUNGS[DENSITY_START[density] + i];
-    return { name, height, width: height * CONTROL_TRACK_RATIO, dot: height * CONTROL_DOT_RATIO };
+    const dot = height * CONTROL_DOT_RATIO;
+    return { name, height, width: height * CONTROL_TRACK_RATIO, dot, inset: controlInset(height, dot) };
   });
 
 // Radius base ramp (px at scale=1) — a small bounded, genuinely-semantic set, so

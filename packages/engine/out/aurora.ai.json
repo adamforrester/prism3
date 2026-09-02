@@ -7793,6 +7793,15 @@
         "space.025"
       ]
     },
+    "core.dimension.3": {
+      "$description": "3px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.sm.inset"
+      ]
+    },
     "core.dimension.4": {
       "$description": "4px — dimension primitive",
       "meaning": "core primitive",
@@ -7800,11 +7809,21 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "border-width.heavy",
+        "control.size.md.inset",
         "radius.sm",
         "size.sm.gap",
         "size.sm.padding-y",
         "size.xs.gap",
         "space.050"
+      ]
+    },
+    "core.dimension.5": {
+      "$description": "5px — dimension primitive",
+      "meaning": "core primitive",
+      "tier": "primitive",
+      "consume": "Private primitive — prefer a semantic token.",
+      "aliased_by": [
+        "control.size.lg.inset"
       ]
     },
     "core.dimension.6": {

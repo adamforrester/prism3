@@ -615,11 +615,19 @@ for (const b of brands) {
     // projects a dot of ZERO. The group shape is what made correcting that a MINOR instead of a MAJOR.
     // #1201 added a FOURTH field, `line-box` — the baked `body.{rung}` line-box a selection control's
     // alignment box reads (see `ENGINE_VERSION` 0.32.0). It is a deliberate addition, so the pin moves to
-    // the four-field shape rather than being loosened to "at least these three": a fifth field is still a
-    // decision someone takes, not a drift.
+    // the four-field shape rather than being loosened to "at least these three".
+    //
+    // #997 added a FIFTH, `inset`, and the pin moving is the gate working rather than the gate yielding:
+    // this assertion is the checkpoint where growing the family has to be argued, and it fired on the
+    // first run of that change. The argument is `dot`'s, one consumer over. A switch's thumb is a flow
+    // child of a fixed track distributed MIN/MAX by `positionWhen`, so an alignment has no offset to
+    // give and the clearance can only come from the track's padding — and the space scale carries no
+    // 5px step for `md` to bind. The same "nowhere downstream for the arithmetic to happen" that made
+    // `dot` a tier field makes this one. It is DERIVED from `dot` ((height − dot) / 2) rather than
+    // authored, so the two cannot drift apart; a sixth field is still a decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+line-box+width'),
-      `#910/#1201 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` — no fifth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+width'),
+      `#910/#1201/#997 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` — no sixth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -12341,6 +12349,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
   const JUSTIFY_EXPECT: Record<string, string> = { start: 'MIN', center: 'CENTER', end: 'MAX' };
+  // Resolve an EMITTED leaf to px by its dotted path. Used by the #997 clearance arm below, which reads
+  // the paths off the projected plan's bindings rather than off the def — the plan is what a materializer
+  // actually consumes, and the def is the thing under test.
+  const findNode = (root: any, want: string): any =>
+    root?.name === want ? root : (root?.children ?? []).reduce((f: any, c: any) => f ?? findNode(c, want), undefined);
+  const pxAt = (t: any, path: string): number | undefined => {
+    const tr = buildTree(t).tree as any;
+    return path.split('.').reduce((n: any, k) => n?.[k], tr[Object.keys(tr)[0]])?.$extensions?.prism3?.px;
+  };
   for (const def of positionedDefs) {
     const sizes = def.variants?.size ?? [];
     const size = sizes[Math.min(1, sizes.length - 1)];
@@ -12384,6 +12401,42 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // value, and it fails on a mis-placed write that the arm above cannot see.
         ok(alignAt(plan, name) === JUSTIFY_EXPECT[def.anatomy!.parts[name].layout?.justify ?? 'start'],
           `#990 ${def.id}: '${name}'s OWN distribution is still its declared justify at ${axis}=${v} — 'positionWhen' moves the part by writing the PARENT, and a write landing on the part itself is inert (got '${alignAt(plan, name)}')`);
+
+        // #997 — THE CLEARANCE, which is the half the two arms above cannot see. They assert the part is
+        // distributed to the right END; neither asserts there is anything BETWEEN it and that end. MIN and
+        // MAX put the child's edge exactly on the parent's, so a positioned part in an unpadded parent sits
+        // FLUSH at every extreme — which is what shipped (switch's thumb, #997) with both arms above green.
+        //
+        // Stated as a RULE over positioned parts rather than as a fact about switch: an alignment carries
+        // no offset, so the ONLY place clearance can come from is the parent's padding, and that is true of
+        // whatever def positions a part next. SUBJECT is the projected plan's bound padding; the ORACLE is
+        // this rule plus the emitted px — never the def, which is the thing under test.
+        const b = (findNode(plan.root, parent!)?.bound ?? {}) as Record<string, string>;
+        const mainEnds = (def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row'
+          ? ['paddingLeft', 'paddingRight'] : ['paddingTop', 'paddingBottom'];
+        // STATED LIMIT: only the first clause is falsifiable today. Deleting the padding fails this arm by
+        // name (measured). Making the two ends DIFFER is currently unreachable through the def — the
+        // projector picks `inlineVisual` only when a leading/trailing slot is FILLED, and no positioned def
+        // declares one, so an asymmetric `PaddingDef` projects both ends from `inlineLabel` and the attempt
+        // is a non-mutation (#986; verified by dumping the plan, not inferred from a green run). The clause
+        // is kept for the def that does declare slots, where it becomes the arm that matters.
+        ok(mainEnds.every((e) => b[e]) && b[mainEnds[0]] === b[mainEnds[1]],
+          `#997 ${def.id}: '${parent}' pads BOTH main-axis ends with one variable at ${axis}=${v}, so '${name}' clears the end it is distributed to — an alignment has no offset, so padding is the only source of clearance and without it the part is flush (got ${mainEnds.map((e) => `${e}=${b[e] ?? 'unbound'}`).join(', ')})`);
+
+        // …and the clearance is the RIGHT SIZE, resolved to px. A padding that exists but does not relate
+        // to the travelling part would satisfy the arm above while leaving the part cramped or overflowing.
+        // The cross axis is the checkable one: the padded box must be exactly the part, or the part is not
+        // centred in the track it slides along.
+        const asPath = (figName?: string) => figName?.split('/').join('.');
+        const crossPad = asPath(b[(def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row' ? 'paddingTop' : 'paddingLeft']);
+        const parentCross = asPath(b[(def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row' ? 'height' : 'width']);
+        const partCross = asPath(((findNode(plan.root, name)?.bound ?? {}) as Record<string, string>)[
+          (def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row' ? 'height' : 'width']);
+        if (crossPad && parentCross && partCross) {
+          const [padPx, boxPx, partPx] = [crossPad, parentCross, partCross].map((p) => pxAt(nbTheme(), p!));
+          ok(padPx !== undefined && boxPx !== undefined && partPx !== undefined && boxPx - 2 * padPx === partPx,
+            `#997 ${def.id}: '${parent}' less its padding on both cross-axis sides is exactly '${name}' (${boxPx} − 2×${padPx} = ${boxPx !== undefined && padPx !== undefined ? boxPx - 2 * padPx : '?'}, part is ${partPx}) — the inset is DERIVED from the part's own size, so a mismatch means one of the two was retuned without the other`);
+        }
       }
       // The part must actually TRAVEL. Every arm above compares the plan to the map, so all of them pass on
       // a map whose values are identical — `anatomyErrors` refuses that on the authoring side, and this is

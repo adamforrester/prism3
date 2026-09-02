@@ -45,6 +45,20 @@
       "hiddenFromPublishing": true
     },
     {
+      "name": "prism/core/dimension/3",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "3px — dimension primitive",
+      "value": 3,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
       "name": "prism/core/dimension/4",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -55,6 +69,20 @@
       ],
       "description": "4px — dimension primitive",
       "value": 4,
+      "alias": null,
+      "hiddenFromPublishing": true
+    },
+    {
+      "name": "prism/core/dimension/5",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "WIDTH_HEIGHT",
+        "GAP",
+        "CORNER_RADIUS",
+        "STROKE_FLOAT"
+      ],
+      "description": "5px — dimension primitive",
+      "value": 5,
       "alias": null,
       "hiddenFromPublishing": true
     },
