@@ -1639,32 +1639,43 @@ export type VariantAxis = (typeof VARIANT_AXES)[number];
  *
  * The segment-vocabulary rule exempts a nested component's own token by reading `anatomy.parts[*].nests`
  * — derived, so it cannot go stale. A def with no `anatomy` yet has nowhere to state the relationship,
- * and `text-field`'s `focus-ring` binding is the one such case in the corpus: it is Button's binding
- * verbatim, gated per brand for the same reason, and the ring is in `composition.composesWith`.
+ * so it names the binding here instead: Button's `focus-ring` binding verbatim (`color.border.focus`,
+ * byte-identical), gated per brand for the same reason.
  *
- * This map is deliberately the SMALLEST possible escape hatch, and it is self-retiring: the guard
- * requires `!def.anatomy`, so the entry stops applying the moment the anatomy block lands and the
- * derived path takes over. `paintKeyErrors` asserts both stale directions — an entry naming a key that
- * does not exist, and an entry for a key the rule would not have flagged anyway.
+ * This sentence used to end *"and the ring is in `composition.composesWith`"*, which is FALSE for both
+ * defs it describes — neither `text-field` nor `textarea` lists the ring there. Dropped rather than
+ * repaired by editing the defs, because the measurement says a two-def repair would make things worse:
+ * NINE defs bind `focus-ring` and SIX omit it from `composesWith`, the whole button family among them,
+ * so the split is corpus-wide and does not follow `nests`. Which direction is intended — add it to six,
+ * or remove it from the three that carry it — is a question about what `composesWith` means, not a typo.
+ * Filed as #1238.
+ *
+ * This map is deliberately the SMALLEST possible escape hatch, and an entry is INERT the moment its def
+ * gains an `anatomy` block — the guard requires `!def.anatomy`, so the derived path simply takes over.
+ * Inert is not gone, and the difference is what #1221 was: `radio` and `switch` sat here dead for weeks,
+ * because the guard turning an entry off says nothing about the entry still being written down.
+ *
+ * So `paintKeyErrors` asserts THREE directions, and the third is the one that makes "self-retiring" a
+ * property rather than a hope: UNREACHABLE (the def has anatomy, so the guard can never fire),
+ * NOT-EXISTS (the entry names a key the def does not bind), NOW-GOVERNED (the rule would not flag the
+ * key anyway). Each says "remove the entry" and each fails the build until someone does.
+ *
+ * The membership is below and is not restated here — the #1222 lesson: a description of a table, sited
+ * away from the table, is a second copy that rots. Read the entries.
  */
 const NESTED_WITHOUT_ANATOMY: Record<string, string[]> = {
   'text-field': ['focus-ring'],
-  // Same case, same removal trigger: `textarea` binds the substrate's ring and has no `anatomy` yet,
-  // so `nests` cannot see it either. Both entries go when their anatomy blocks land.
+  // Same case: `textarea` binds the substrate's ring and has no `anatomy` yet, so `nests` cannot see it
+  // either. Its entry goes when its own block lands, which the UNREACHABLE direction now compels.
   'textarea': ['focus-ring'],
-  // `checkbox` WAS the third entry and came out in #910, which is the guard retiring itself as designed:
-  // the def now has an `anatomy` whose `focusRing` part declares `nests: 'focus-ring'`, so `nestedIds`
-  // sees the binding and the exemption stopped being needed. Left as a note because it is the first time
-  // an entry has been removed by the trigger its own comment named, and the removal is not optional — the
-  // stale-direction assertion below fails on an entry whose def has gained a block.
-  //
-  // `radio` inherits the entry along with the binding — same control ring, same absent anatomy block.
-  'radio': ['focus-ring'],
-  // And this one closes the selection-control family. `switch`'s ring sits on the TRACK rather than on
-  // a box (brief §4: never on the thumb, which moves), which changes which part will carry it once the
-  // anatomy block lands and changes nothing about this entry: the binding is structurally Button's and
-  // the def has no `anatomy`, so `nests` cannot see it. Both remaining pairs go the same way.
-  'switch': ['focus-ring'],
+  // WHAT HAS ALREADY LEFT, and why the trigger needed teeth. `checkbox` came out in #910 when its
+  // anatomy landed — the guard retiring an entry as designed, and at the time the only such removal.
+  // `radio` and `switch` should have followed for the same reason and did not: both gained `anatomy`
+  // blocks (radio in #910's wake, switch in #990) whose `focusRing` part declares `nests: 'focus-ring'`,
+  // so `nestedIds` saw the binding and these entries stopped applying — while staying written down,
+  // describing themselves as defs with "no anatomy", for weeks (#1221). Nothing failed, because the two
+  // directions that existed asked whether an entry named a REAL and UNGOVERNED key and never whether it
+  // could still fire. Removed here, and the UNREACHABLE direction below is what stops the next one.
 };
 
 /** Every `{placeholder}` in a paint-key template, in order of appearance. */
@@ -1925,9 +1936,13 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
     }
 
   /*
-   * THE EXEMPTION, IN BOTH DIRECTIONS. An escape hatch nobody re-reads is how a fixed defect comes back
+   * THE EXEMPTION, IN THREE DIRECTIONS. An escape hatch nobody re-reads is how a fixed defect comes back
    * wearing a permission slip, so the map above has to fail when it stops being true — the discipline
    * `lint-paint.ts`'s provenance exceptions already run on.
+   *
+   *   UNREACHABLE — the def HAS an `anatomy` block, so `!def.anatomy` can never be true and the entry
+   *   cannot fire at any coordinate. Checked FIRST and with a `continue`, so a dead entry gets the one
+   *   diagnosis that names its actual cause instead of whichever of the two below happens to trip.
    *
    *   NOT-EXISTS — the entry names a key this def does not bind. Left unchecked, renaming or deleting
    *   `focus-ring` leaves an exemption covering nothing, which reads as a live exception forever.
@@ -1936,10 +1951,28 @@ const paintKeyErrors = (def: ComponentDef): string[] => {
    *   does ask for, or a non-colour binding). Then the exemption is doing no work and its removal is
    *   free, so keeping it only misinforms the next reader about what the rule catches.
    *
-   * The `!def.anatomy` guard needs no third direction: it is the retirement condition itself, and it
-   * flips automatically when the anatomy block lands.
+   * THE THIRD ONE IS #1221, AND THE COMMENT IT REPLACES ARGUED AGAINST IT: *"the `!def.anatomy` guard
+   * needs no third direction: it is the retirement condition itself, and it flips automatically when the
+   * anatomy block lands."* Every clause of that is true about the GUARD and none of it is about the
+   * ENTRY. The guard flipping turns an exemption off; nothing was reading the table to notice it had
+   * become a fossil. `radio` and `switch` sat dead for weeks and the suite was byte-for-byte as green
+   * with them present as without them — measured both ways before this direction was written.
+   *
+   * NOT A DUPLICATE OF NOW-GOVERNED, though both end at "the exemption does no work", and the overlap is
+   * worth stating because it is the reason one looked sufficient. NOW-GOVERNED asks a question about the
+   * SLOT VOCABULARY — would the template have matched this key at all. UNREACHABLE asks about the
+   * DERIVED PATH — `nestedIds` now covers the key, so `governed()` returns at its first branch and never
+   * reaches the exemption. Same verdict, different cause, and only the first was ever checked.
    */
   for (const key of NESTED_WITHOUT_ANATOMY[def.id] ?? []) {
+    if (def.anatomy) {
+      e.push(
+        `paintKeys: NESTED_WITHOUT_ANATOMY exempts '${key}', but this def HAS an 'anatomy' block — the ` +
+          `'!def.anatomy' guard can never fire, so the entry is unreachable and the derived 'nests' path ` +
+          `took over when the block landed. Remove the entry.`,
+      );
+      continue;
+    }
     if (!(key in (def.tokens ?? {}))) {
       e.push(
         `paintKeys: NESTED_WITHOUT_ANATOMY exempts '${key}', which this def does not bind — a stale exemption ` +

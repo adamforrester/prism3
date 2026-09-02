@@ -91,6 +91,98 @@ section's header now states the gap rather than implying coverage.
    `on-fill`, `border`), where the row supplies the context. The app was right. Two rows can therefore
    carry the same short label, which is deliberate context-dependence rather than elision ambiguity, and is
    why the collision check compares only pills whose titles differ.
+## (2026-09-02) — two exemption entries were dead, and the comment saying that could not happen argued against the check that catches it (#1221)
+
+**STATUS: shipped.** `packages/engine/component-schema.ts` only — the `NESTED_WITHOUT_ANATOMY` table, a
+third `paintKeyErrors` direction, and the prose around both. Gates stay at **52**. **No version bump**,
+derived rather than assumed: `lint-emission-version` reports *artifacts changed vs base: 0*, and no
+token path moves, so neither `ENGINE_VERSION` nor `CONTRACT_VERSION` is owed one.
+
+── WHAT WAS WRONG ────────────────────────────────────────────────────────────────────────────────
+
+`radio` and `switch` both gained `anatomy` blocks whose `focusRing` part declares `nests: 'focus-ring'`.
+Once that lands, `nestedIds` covers the key, `governed()` returns at its FIRST branch, and the exemption
+is never consulted — the guard requires `!def.anatomy`, which for those defs is permanently false. Both
+entries were therefore **unreachable**, and both stayed written down, describing themselves in their own
+comments as defs with *"no anatomy"* and *"same absent anatomy block"*, for weeks.
+
+**Nothing could see it.** Measured both ways on the pre-fix tree: `test.ts` is **2764 passed / 0 failed**
+with the dead entries present and **2764 / 0** with them deleted. Presence and absence were
+indistinguishable to the whole suite.
+
+── THE COMMENT THAT ARGUED AGAINST THE FIX ───────────────────────────────────────────────────────
+
+The reason no one added the check is written above the two directions that existed:
+
+> The `!def.anatomy` guard needs no third direction: it is the retirement condition itself, and it flips
+> automatically when the anatomy block lands.
+
+**Every clause of that is true about the GUARD and none of it is about the ENTRY.** The guard flipping
+turns an exemption *off*; nothing was reading the table to notice it had become a fossil. Inert is not
+gone, and that gap is the whole defect. The table's own comment then compounded it by asserting the
+opposite of the truth — *"the removal is not optional — the stale-direction assertion below fails on an
+entry whose def has gained a block"* — a claim that was false when written and is **true as of this
+change**, which is the better way to fix a false comment than deleting it.
+
+── THE THIRD DIRECTION, AND WHY IT IS NOT A DUPLICATE ────────────────────────────────────────────
+
+UNREACHABLE: the def has an `anatomy` block, so the guard can never fire. Checked **first** and with a
+`continue`, so a dead entry gets the one diagnosis naming its actual cause rather than whichever of the
+other two happens to trip.
+
+It looks like NOW-GOVERNED — both end at *"the exemption does no work"* — and the overlap is exactly why
+one looked sufficient. They ask different questions: **NOW-GOVERNED is about the SLOT VOCABULARY** (would
+the template have matched this key at all), **UNREACHABLE is about the DERIVED PATH** (`nestedIds` now
+covers it, so `governed()` returns before the exemption is reached). Same verdict, different cause, and
+only the first was ever checked. Stated in the header so the next reader does not "simplify" them.
+
+── MUTATIONS ─────────────────────────────────────────────────────────────────────────────────────
+
+Committed before the battery. All four fail or pass exactly where they should:
+
+| mutation | result |
+|---|---|
+| reintroduce a dead entry (`radio`, which has anatomy) | **UNREACHABLE fails BY NAME** — *"this def HAS an 'anatomy' block — the '!def.anatomy' guard can never fire"* |
+| entry names a key the def does not bind | NOT-EXISTS still fires on its own case |
+| entry names a bound NON-COLOUR key | NOW-GOVERNED still fires on its own case |
+| **dead entry present AND the new direction deleted** | **exit 0, nothing named it** |
+
+**The fourth row is the independence check and the most useful one.** It reproduces the pre-fix state
+exactly — a dead entry sitting in the table with the whole suite green — which proves the new direction
+is load-bearing rather than a restatement of NOW-GOVERNED. Had NOW-GOVERNED already covered this, that
+row would have gone red and the direction would have been ceremony.
+
+── THE PROSE, CORRECTED WHERE IT LIVES ───────────────────────────────────────────────────────────
+
+All six residual claims the #1222 review listed are gone, and none was fixed as a separate prose pass:
+they were false **because the entries were dead**, so deleting the entries and adding the direction is
+what makes the surrounding text true. Two of them (*"the one such case in the corpus"*, *"self-retiring"*)
+were rewritten rather than patched, because a corrected count is the #1222 defect with a fresher number —
+**the table's membership is no longer described anywhere but the table**. The historical note is kept and
+widened: it now records `checkbox` (#910) leaving as designed AND `radio`/`switch` failing to, by name
+rather than by count, which is the evidence for why the trigger needed teeth.
+
+**No removal trigger is restated in a form that can re-stale.** The entries that remain say what compels
+their own removal — the direction — instead of naming a milestone that moves.
+
+── A SEVENTH FALSE CLAUSE, FOUND IN REVIEW ───────────────────────────────────────────────────────
+
+The opening sentence was rewritten to drop *"the one such case in the corpus"* and **carried its tail
+through the rewrite**: *"and the ring is in `composition.composesWith`"*, which is false for both defs
+the sentence describes. Not on the residual list — it went unnoticed in #1222 because that pass was
+checking the membership claim — but it is the same class, in a sentence this change re-authored, so it
+was in scope by this PR's own standard.
+
+Dropped rather than repaired by editing the two defs, and the measurement is why: **nine defs bind
+`focus-ring` and six omit it from `composesWith`**, the whole button family among them, so the split is
+corpus-wide and does **not** follow `nests` — button/icon-button nest the ring in anatomy and still omit
+it. A two-def repair would have fixed two of six and left a worse inconsistency behind, and which
+direction is intended is a question about what `composesWith` means rather than a typo. **Filed as
+#1238**, with the cross-tabulation and a note that either reading is gateable against `nests`.
+
+The other half of the same sentence was checked rather than assumed and does hold: `text-field` and
+`textarea` both bind `focus-ring → color.border.focus`, byte-identical to button's.
+
 ## (2026-09-02) — two button-QA colour corrections: inverse fill neutral, neutral border follows ink (#1208, #576)
 
 **STATUS: shipped.** Both live in `modes.ts`, both VALUES-only across all four brands. ENGINE 0.34.0 → 0.35.0
