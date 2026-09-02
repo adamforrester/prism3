@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
@@ -615,11 +615,19 @@ for (const b of brands) {
     // projects a dot of ZERO. The group shape is what made correcting that a MINOR instead of a MAJOR.
     // #1201 added a FOURTH field, `line-box` — the baked `body.{rung}` line-box a selection control's
     // alignment box reads (see `ENGINE_VERSION` 0.32.0). It is a deliberate addition, so the pin moves to
-    // the four-field shape rather than being loosened to "at least these three": a fifth field is still a
-    // decision someone takes, not a drift.
+    // the four-field shape rather than being loosened to "at least these three".
+    //
+    // #997 added a FIFTH, `inset`, and the pin moving is the gate working rather than the gate yielding:
+    // this assertion is the checkpoint where growing the family has to be argued, and it fired on the
+    // first run of that change. The argument is `dot`'s, one consumer over. A switch's thumb is a flow
+    // child of a fixed track distributed MIN/MAX by `positionWhen`, so an alignment has no offset to
+    // give and the clearance can only come from the track's padding — and the space scale carries no
+    // 5px step for `md` to bind. The same "nowhere downstream for the arithmetic to happen" that made
+    // `dot` a tier field makes this one. It is DERIVED from `dot` ((height − dot) / 2) rather than
+    // authored, so the two cannot drift apart; a sixth field is still a decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+line-box+width'),
-      `#910/#1201 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` — no fifth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+width'),
+      `#910/#1201/#997 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` — no sixth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -7349,37 +7357,55 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     }
   }
 
-  // Button carries the reconciled two-axis model bound to interactive.* (docs/20): intent
-  // {primary,neutral,destructive} × appearance {filled,outline,text}, PRIMARY default.
-  //
-  // Reversed 2026-08-07 (was `neutral`). The old default came from "one primary per view", which
-  // counts primaries as if emphasis lived on `intent` — but this def made intent and appearance
-  // orthogonal, so rank is carried by APPEARANCE and a three-action form is three primaries at
-  // filled/outline/text. The constraint is one FILLED per view, not one primary.
-  const intentProp = button.props.find((p) => p.name === 'intent');
-  ok(intentProp?.default === 'primary', `component: Button intent defaults to primary — the brand colour is the expected look of a button (got '${intentProp?.default}')`);
-  // The DEFAULT AND THE GUIDANCE HAVE TO AGREE, and that is the half a value assertion misses. The
-  // prose said "keep exactly one primary per view" while the default handed you a primary — so a
-  // developer writing `<Button>` twice violated the def's own rule with no way to notice. Flipping
-  // the default without rewriting the rule is the failure this pins: assert the docs no longer
-  // ration PRIMARIES, since the thing being rationed is now the filled appearance.
+  // #1223 — INTENT IS THE COMPONENT NOW, NOT AN AXIS. The three semantic intents are three components
+  // (Button = primary, Destructive Button, Neutral Button), built by one factory. Button carries NO
+  // `intent` prop, and hierarchy is still the appearance axis (filled > outline > text).
+  ok(!button.props.some((p) => p.name === 'intent'),
+    'component: Button has no `intent` prop — #1223 made intent the component identity, not a prop on one component');
+  const buttonFamily: ComponentDef[] = [button, buttonDestructive, buttonNeutral];
+  const FAMILY_OF: Record<string, string> = { button: 'primary', 'button-destructive': 'destructive', 'button-neutral': 'neutral' };
+  ok(buttonFamily.every((d) => d.id in FAMILY_OF) && new Set(buttonFamily.map((d) => d.id)).size === 3,
+    `#1223: the three button components are registered (${buttonFamily.map((d) => d.id).join(', ')})`);
+
+  // THE FACTORY'S SAFETY (docs/34). The three components must share ONE anatomy and differ ONLY in the
+  // `color.interactive.<family>` colour binding. Assert both halves directly, so a geometry field or a
+  // shared binding edited on one and not the others fails BY NAME rather than shipping three quietly-
+  // diverged buttons. This is the guard that makes the factory safe to author once.
+  const FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
+  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'motion', 'composition', 'docs'] as const) {
+    const ref = JSON.stringify(button[field]);
+    const diverged = buttonFamily.filter((d) => JSON.stringify(d[field]) !== ref).map((d) => d.id);
+    ok(diverged.length === 0, `#1223 the three button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // NON-colour tokens (radius, per-size geometry incl. #326 padding, gap, height, icon, type, and the
+  // cross-cutting disabled.*) identical across all three, byte-for-byte.
+  const nonFamilyTokens = (d: ComponentDef) => JSON.stringify(Object.fromEntries(Object.entries(d.tokens!).filter(([, v]) => !FAMILY_RE.test(v as string))));
+  const nfRef = nonFamilyTokens(button);
+  const nfDiverged = buttonFamily.filter((d) => nonFamilyTokens(d) !== nfRef).map((d) => d.id);
+  ok(nfDiverged.length === 0, `#1223 the three share every NON-colour token byte-for-byte — geometry, #326 padding, slots, disabled (diverged: ${nfDiverged.join(', ') || 'none'})`);
+  // The colour tokens: each def binds ONLY its own family, and binds the full 16-key skin (not zero).
+  for (const d of buttonFamily) {
+    const fam = FAMILY_OF[d.id];
+    const stray = Object.entries(d.tokens!).filter(([, v]) => FAMILY_RE.test(v as string) && !(v as string).startsWith(`color.interactive.${fam}.`)).map(([k]) => k);
+    ok(stray.length === 0, `#1223 ${d.id} binds ONLY interactive.${fam} — no cross-family paint leaked in (stray: ${stray.join(', ') || 'none'})`);
+    const famCount = Object.values(d.tokens!).filter((v) => (v as string).startsWith(`color.interactive.${fam}.`)).length;
+    ok(famCount === 16, `#1223 ${d.id} carries its full interactive.${fam} skin — 16 bindings (got ${famCount})`);
+  }
+
   const guidance = [button.docs!.usage, ...button.docs!.do, ...button.docs!.dont].join(' ');
   ok(!/one primary per view|exactly one primary|multiple primaries competing/i.test(guidance),
-    'component: Button docs no longer ration primaries — with primary as the default, "one primary per view" would contradict the default it sits beside');
+    'component: Button docs ration the FILLED appearance, never primaries — colour is the component now, so "one primary per view" would be a category error');
   ok(/one FILLED/i.test(guidance) && /appearance/i.test(guidance),
-    'component: Button docs ration the FILLED appearance instead, and say hierarchy is the appearance axis — the rule survives, the axis it applies to changed');
-  // AND THE TWO SURFACES AGREE. Figma treats a set's FIRST member as its thumbnail, and the
-  // enumeration has always led with `intent=primary` — so while the code default was `neutral`, a
-  // designer opening the set and a developer writing `<Button>` got different buttons, in different
-  // colours, with nothing anywhere reporting the disagreement. That is the actual defect the default
-  // flip closes; the guidance contradiction above is the half that was visible. Asserted against the
-  // EMITTED name rather than the axis list, so reordering the enumeration fails here too.
+    'component: Button docs ration the FILLED appearance and say hierarchy is the appearance axis — the rule survives the split, the axis it applies to is unchanged');
+  // Figma treats a set's FIRST member as its thumbnail. With intent gone the enumeration leads with the
+  // default `appearance=filled`, and the member name carries no `intent=` coord — asserted against the
+  // EMITTED name, so reordering the enumeration or re-introducing an intent axis fails here too.
   const firstMember = planComponentName(figmaAnatomyPlan(button, button.variants.size[0], {
     leading: false, trailing: false, swapTarget: 'FPO-default-icon',
-    intent: button.variants.intent[0], appearance: button.variants.appearance[0], state: 'rest',
+    appearance: button.variants.appearance[0], state: 'rest',
   }));
-  ok(new RegExp(`intent=${intentProp?.default}\\b`).test(firstMember),
-    `component: the Figma set's first member (its thumbnail) carries the SAME intent as the code default — '${intentProp?.default}' (${firstMember})`);
+  ok(!/intent=/.test(firstMember) && /appearance=filled\b/.test(firstMember),
+    `#1223: the Button set's first member (thumbnail) carries no intent coord and leads with the default appearance=filled (${firstMember})`);
   // THE SAME SHAPE AGAIN, one axis over. The don't-list read "Replace the label with a centred spinner
   // (collapses width) — swap the leading visual instead", which was sound advice for as long as the
   // spinner only ever took the leading cell. Once it learned to overlay the label (#612), the prose
@@ -7798,17 +7824,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       try { f(); } catch { threw = true; }
       ok(threw, `anatomy: ${label}`);
     };
-    throws('an undeclared intent throws rather than resolving no paints', () => figmaAnatomyPlan(button, 'medium', { intent: 'nope', appearance: 'filled' }));
-    throws('an undeclared appearance throws', () => figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'nope' }));
-    throws('an undeclared state throws', () => figmaAnatomyPlan(button, 'medium', { intent: 'primary', appearance: 'filled', state: 'nope' }));
-    // The def keys paint as `{intent}.{appearance}.*`, so half a coordinate resolves nothing at all.
-    throws('intent without appearance throws — half a coordinate keys no paint', () => figmaAnatomyPlan(button, 'medium', { intent: 'primary' }));
-    throws('appearance without intent throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'filled' }));
+    throws('an undeclared appearance throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'nope' }));
+    throws('an undeclared state throws', () => figmaAnatomyPlan(button, 'medium', { appearance: 'filled', state: 'nope' }));
+    // #1223 — intent is no longer a coordinate. The def keys paint as `{appearance}.{slot}.*`, so
+    // `{appearance}` alone RESOLVES (it used to be half a coordinate under the `{intent}.{appearance}`
+    // grammar and threw); the state suffix is still tried first and falls back to the rest key.
 
     // A skinned plan, read part by part. `target`/`text`/`slot` each take paint by KIND, so these
-    // three also assert the projection is not keyed off Button's part names.
-    const skin = (appearance: string, state?: string, intent = 'primary') =>
-      figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent, appearance, ...(state ? { state } : {}) });
+    // three also assert the projection is not keyed off Button's part names. `def` lets a caller point at
+    // one of the three components (#1223); it defaults to the primary `button`.
+    const skin = (appearance: string, state?: string, def: typeof button = button) =>
+      figmaAnatomyPlan(def, 'medium', { leading: true, swapTarget: 'FPO-default-icon', appearance, ...(state ? { state } : {}) });
     const parts = (p: AnatomyPlan) => ({
       box: p.root.paints ?? {},
       ink: (p.root.children.find((c) => c.name === 'label')!.paints ?? {}),
@@ -7819,19 +7845,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     });
 
     const filledRest = parts(skin('filled'));
-    ok(filledRest.box.fills === figmaVarName(button.tokens['primary.filled.fill']), `anatomy/paint: the target box takes the rest fill (${filledRest.box.fills})`);
+    ok(filledRest.box.fills === figmaVarName(button.tokens['filled.fill']), `anatomy/paint: the target box takes the rest fill (${filledRest.box.fills})`);
     ok(!filledRest.box.strokes, 'anatomy/paint: `filled` keys no border, so the box carries no stroke — an unfilled slot, not a dropped binding');
-    ok(filledRest.ink.fills === figmaVarName(button.tokens['primary.filled.label']), 'anatomy/paint: the text part takes label ink');
+    ok(filledRest.ink.fills === figmaVarName(button.tokens['filled.label']), 'anatomy/paint: the text part takes label ink');
     // The ink lands on the VECTORs inside the instance, not on the instance's own fills — an instance
     // fill paints a square behind the glyph. Its own field for exactly that reason.
-    ok(filledRest.icon === figmaVarName(button.tokens['primary.filled.icon']), 'anatomy/paint: icon ink rides `descendantFills` (the vector inside the instance), not the instance\'s own fills');
+    ok(filledRest.icon === figmaVarName(button.tokens['filled.icon']), 'anatomy/paint: icon ink rides `descendantFills` (the vector inside the instance), not the instance\'s own fills');
     ok(!skin('filled').root.children.find((c) => c.name === 'leadingVisual')!.paints, 'anatomy/paint: the slot node itself carries no paints — its fill would be a square behind the glyph');
 
     // State is a SUFFIX and it is tried first; the unqualified key is the rest value, so a state that
     // does not restyle a part correctly falls back to it. Both halves asserted — a lookup that only
     // ever tried the suffix would leave `pending` unpainted.
-    ok(parts(skin('filled', 'hover')).box.fills === figmaVarName(button.tokens['primary.filled.fill.hover']), 'anatomy/paint: a state-qualified key wins over the unqualified one');
-    ok(parts(skin('filled', 'pending')).box.fills === figmaVarName(button.tokens['primary.filled.fill']), 'anatomy/paint: a state the def does not restyle falls back to the rest value (a pending button\'s fill is its rest fill)');
+    ok(parts(skin('filled', 'hover')).box.fills === figmaVarName(button.tokens['filled.fill.hover']), 'anatomy/paint: a state-qualified key wins over the unqualified one');
+    ok(parts(skin('filled', 'pending')).box.fills === figmaVarName(button.tokens['filled.fill']), 'anatomy/paint: a state the def does not restyle falls back to the rest value (a pending button\'s fill is its rest fill)');
     ok(parts(skin('filled', 'rest')).box.fills === parts(skin('filled')).box.fills, 'anatomy/paint: an explicit `rest` and an omitted state resolve identically');
 
     // THE GRID IS RAGGED, AND THAT IS THE DESIGN. `filled` expresses hover as a FILL CHANGE; `outline`
@@ -7841,26 +7867,26 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // pressed rendered pixel-identical to its rest, because nothing consulted the overlay keys.
     const outlineRest = parts(skin('outline'));
     ok(!outlineRest.box.fills, 'anatomy/paint: `outline` keys no fill at rest — the box is transparent');
-    ok(outlineRest.box.strokes === figmaVarName(button.tokens['primary.outline.border']), 'anatomy/paint: `outline` takes a border where `filled` takes none');
-    ok(parts(skin('outline', 'hover')).box.fills === figmaVarName(button.tokens['primary.outline.overlay.hover']), 'anatomy/paint: `outline` hover reaches the box through the OVERLAY family, in the same fills slot the fill would use');
+    ok(outlineRest.box.strokes === figmaVarName(button.tokens['outline.border']), 'anatomy/paint: `outline` takes a border where `filled` takes none');
+    ok(parts(skin('outline', 'hover')).box.fills === figmaVarName(button.tokens['outline.overlay.hover']), 'anatomy/paint: `outline` hover reaches the box through the OVERLAY family, in the same fills slot the fill would use');
     // The overlay and the border are INDEPENDENT: a hovered outline gets both a wash AND its own
     // stroke. This assertion used to read "hover keeps the rest stroke", which passed for a reason
     // that has now gone away — the border had exactly one value, so keeping it was not a property of
     // the overlay logic at all, merely of there being nothing else to reach. #576 gave the edge
     // states, so the real claim is that BOTH slots move and neither displaces the other.
-    ok(parts(skin('outline', 'hover')).box.strokes === figmaVarName(button.tokens['primary.outline.border.hover']), 'anatomy/paint: a hovered outline takes its OWN stroke — the stateful border (#576), not the rest one');
+    ok(parts(skin('outline', 'hover')).box.strokes === figmaVarName(button.tokens['outline.border.hover']), 'anatomy/paint: a hovered outline takes its OWN stroke — the stateful border (#576), not the rest one');
     ok(parts(skin('outline', 'hover')).box.strokes !== outlineRest.box.strokes, 'anatomy/paint: …and that stroke is genuinely different from rest, so the hover is visible on the edge as well as the wash');
     ok(!!parts(skin('outline', 'hover')).box.fills && !!parts(skin('outline', 'hover')).box.strokes, 'anatomy/paint: the overlay does not displace the border — a hovered outline carries both a wash and a stroke');
     const textRest = parts(skin('text'));
     ok(!textRest.box.fills && !textRest.box.strokes, 'anatomy/paint: `text` keys neither fill nor border — a ghost button is genuinely unpainted at rest');
-    ok(parts(skin('text', 'hover')).box.fills === figmaVarName(button.tokens['primary.text.overlay.hover']), 'anatomy/paint: `text` hover paints its overlay too');
+    ok(parts(skin('text', 'hover')).box.fills === figmaVarName(button.tokens['text.overlay.hover']), 'anatomy/paint: `text` hover paints its overlay too');
 
     // `disabled` is cross-cutting over INTENT (docs/20 §7) — one treatment, so the lookup switches
     // namespace rather than falling back within the interactive one. A disabled destructive button
     // must not tint toward red.
     const disFilled = parts(skin('filled', 'disabled'));
     ok(disFilled.box.fills === figmaVarName(button.tokens['disabled.fill']), 'anatomy/paint: disabled switches to the cross-cutting namespace');
-    ok(parts(skin('filled', 'disabled', 'destructive')).box.fills === disFilled.box.fills, 'anatomy/paint: disabled does NOT tint by intent — destructive and primary land on the same gray');
+    ok(parts(skin('filled', 'disabled', buttonDestructive)).box.fills === disFilled.box.fills, 'anatomy/paint: disabled does NOT tint by intent — the Destructive Button and Button land on the same gray (#1223: the disabled skin is shared across the three components)');
     // But cross-cutting over intent is NOT cross-cutting over appearance, and this is the second bug
     // the grid dump caught. `disabled.fill` and `disabled.border` are keyed unconditionally, so
     // applying them blind gave `text` a gray box and a border it never had — a disabled ghost button
@@ -7878,13 +7904,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // `planBoundVars` — anything else silently exempts every paint from the emit cross-check above.
     ok(planBoundVars(skin('filled').root).includes(filledRest.box.fills!), 'anatomy/paint: paints ride planBoundVars — they share the variable namespace, so the emit gate sees them');
     ok(planPaintVars(skin('filled').root).length === 3 && planPaintVars(lead.root).length === 0, 'anatomy/paint: planPaintVars isolates just the paints (box + ink + icon on a filled variant)');
-    // And the whole grid cross-checked against what the engine EMITS. Every intent × appearance ×
-    // state, not a sample: the ragged keys mean a coordinate can resolve a variable no emitter writes.
+    // And the whole grid cross-checked against what the engine EMITS. Every COMPONENT × appearance ×
+    // state, not a sample: the ragged keys mean a coordinate can resolve a variable no emitter writes,
+    // and #1223 means each of the three components must clear this independently (their families differ).
     const gridErrs: string[] = [];
     let painted = 0;
-    for (const i of button.variants.intent) for (const ap of button.variants.appearance) for (const st of button.states) {
-      const p = figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st });
-      if (planPaintVars(p.root).length === 0) gridErrs.push(`${i}/${ap}/${st} resolved NO paints at all`);
+    for (const d of [button, buttonDestructive, buttonNeutral]) for (const ap of d.variants.appearance!) for (const st of d.states!) {
+      const p = figmaAnatomyPlan(d, 'medium', { leading: true, swapTarget: 'FPO-default-icon', appearance: ap, state: st });
+      if (planPaintVars(p.root).length === 0) gridErrs.push(`${d.id}/${ap}/${st} resolved NO paints at all`);
       else painted++;
       gridErrs.push(...planBindingErrors(p, emitted, emittedStyles, emittedEffects));
     }
@@ -7916,7 +7943,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // derives axes from these names, so `key=value, key=value` is a wire format between one paste and
     // the component set the next step builds, not cosmetics. (The format changed under this PR and no
     // existing test noticed until it was given these.)
-    ok(planComponentName(skin('filled', 'hover')) === 'intent=primary, appearance=filled, size=medium, state=hover, leading=true, trailing=false',
+    ok(planComponentName(skin('filled', 'hover')) === 'appearance=filled, size=medium, state=hover, leading=true, trailing=false',
       `anatomy/paint: the component name is a Figma variant coordinate (${planComponentName(skin('filled', 'hover'))})`);
     ok(planComponentName(lead) === 'size=medium, leading=true, trailing=false', `anatomy/paint: a structure-only plan names only the axes it has (${planComponentName(lead)})`);
     // NO `button/` PREFIX, measured live rather than assumed: Figma does not strip a slash prefix
@@ -9119,7 +9146,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // The AXIS READ-BACK still agrees, which is the regression this step nearly caused: non-variant
       // keys carry a `#nodeId` suffix and variant keys do not, so comparing all keys reported a mismatch
       // on a correct set the moment one TEXT property existed.
-      ok(setRun.axes?.length === 6 && !setRun.misses.some((m) => m.includes('axes ->')),
+      ok(setRun.axes?.length === 5 && !setRun.misses.some((m) => m.includes('axes ->')),
         `set properties: the axis read-back is unaffected — it filters type === 'VARIANT', because non-variant keys come back suffixed (${JSON.stringify(setRun.axes)})`);
 
       // MUTATION-TESTED, one per new read-back. Each of these passes if the check is dead.
@@ -9245,17 +9272,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // shared page, because "chunk 2 finds what chunk 1 left" is the only claim that matters and a
       // single-payload harness cannot express it at all.
       {
-        // The 4-state × 3-appearance × 3-intent × 3-size set — 108 variants, all of which bind cleanly
-        // today. Deliberately NOT the full 756: `focus-visible` is pixel-identical to `rest` and
-        // `pending` never builds its spinner, so those states would test the chunking machinery against
-        // content known to be wrong. Chunking is the unproven thing; prove it against correct content.
+        // The 4-state × 3-appearance × 3-size set — 36 variants, all of which bind cleanly today.
+        // Deliberately NOT the full grid: `focus-visible` is pixel-identical to `rest` and `pending`
+        // never builds its spinner, so those states would test the chunking machinery against content
+        // known to be wrong. Chunking is the unproven thing; prove it against correct content. Since
+        // #1223 split `intent` into sibling components, one Button's clean subset is 36, not 108 — still
+        // two payloads (measured 20v/41752B + 16v/36836B against the 42_000 budget), so the sequencing
+        // claim ("chunk 2 finds what chunk 1 left") still has more than one chunk to prove itself over.
         const states4 = ['rest', 'hover', 'pressed', 'disabled'];
-        const big = button.variants.intent.flatMap((i) => button.variants.appearance.flatMap((ap) =>
-          button.variants.size.flatMap((sz) => states4.map((st) =>
-            figmaAnatomyPlan(button, sz, { leading: true, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st })))));
-        ok(big.length === 108, `chunked: the exercise set is 3 intents x 3 appearances x 3 sizes x 4 bindable states (${big.length})`);
+        const big = button.variants.appearance!.flatMap((ap) =>
+          button.variants.size!.flatMap((sz) => states4.map((st) =>
+            figmaAnatomyPlan(button, sz, { leading: true, swapTarget: 'FPO-default-icon', appearance: ap, state: st }))));
+        ok(big.length === 36, `chunked: the exercise set is 3 appearances x 3 sizes x 4 bindable states (${big.length})`);
         const chunks = planSetChunks(big);
-        ok(chunks.length > 1, `chunked: 108 variants do not fit one payload — ${chunks.length} chunks`);
+        ok(chunks.length > 1, `chunked: 36 variants do not fit one payload — ${chunks.length} chunks`);
         // THE BUDGET IS THE WHOLE POINT. An over-budget chunk is rejected by the transport AFTER its
         // predecessors have already landed, which leaves a half-built set — so this is the one property
         // that must hold before anything is pasted, and it is asserted on the MEASURED payload rather
@@ -9265,7 +9295,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // Every variant exactly once. A packing loop that dropped or duplicated one would still produce
         // chunks that each paste cleanly — and a duplicate is the specific input that POISONS the set.
         const packed = chunks.flatMap((c) => c.variants);
-        ok(packed.length === 108 && new Set(packed).size === 108,
+        ok(packed.length === 36 && new Set(packed).size === 36,
           `chunked: every variant is packed exactly once — ${packed.length} placed, ${new Set(packed).size} distinct`);
         ok(JSON.stringify(packed) === JSON.stringify(big.map(planComponentName)),
           'chunked: packing preserves plan ORDER — the grid ordering the chunks derive their cells from is the whole set\'s, not a slice\'s');
@@ -9294,15 +9324,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // check inside their own payload.
         ok(page.children.length === 1 && page.children[0].type === 'COMPONENT_SET',
           `chunked: the page holds exactly ONE component set when it is done — got ${JSON.stringify(page.children.map((c) => c.type))}`);
-        ok(runs[runs.length - 1].variants === 108,
-          `chunked: the finished set holds all 108 members — the last chunk counts ${runs[runs.length - 1].variants}`);
+        ok(runs[runs.length - 1].variants === 36,
+          `chunked: the finished set holds all 36 members — the last chunk counts ${runs[runs.length - 1].variants}`);
         ok(runs.every((r, i) => r.added === chunks[i].variants.length),
           `chunked: each chunk builds exactly its own slice — added ${JSON.stringify(runs.map((r) => r.added))} vs packed ${JSON.stringify(chunks.map((c) => c.variants.length))}`);
         // The AXES accumulate. Each member declares all five axis KEYS and only some of the values, so
         // this is the assertion that `appendChild` re-derives rather than being ignored — measured live
         // (`state:rest|hover` + `state=pressed` → three options) and the premise the whole append design
         // rests on.
-        ok(JSON.stringify(runs[runs.length - 1].axes?.slice().sort()) === JSON.stringify(['appearance:3', 'intent:3', 'leading:1', 'size:3', 'state:4', 'trailing:1'].sort()),
+        ok(JSON.stringify(runs[runs.length - 1].axes?.slice().sort()) === JSON.stringify(['appearance:3', 'leading:1', 'size:3', 'state:4', 'trailing:1'].sort()),
           `chunked: appending EXTENDS the axes — the finished set derives every value from every chunk (${JSON.stringify(runs[runs.length - 1].axes)})`);
         // PROPERTIES ONLY ON THE LAST CHUNK, and wired across every member of the finished set — not
         // just the 18 that chunk arrived with. `combineAsVariants` rewrites property ids, so this is
@@ -9311,8 +9341,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `chunked: no chunk but the last declares a property — combineAsVariants rewrites ids, so an early declaration holds ids the combine has invalidated (${JSON.stringify(runs.map((r) => r.properties?.length))})`);
         ok(JSON.stringify([...(runs[runs.length - 1].properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
           `chunked: the finished set carries both properties — got ${JSON.stringify(runs[runs.length - 1].properties)}`);
-        ok(runs[runs.length - 1].wiredMembers === 108 && runs[runs.length - 1].refs === 216,
-          `chunked: every one of the 108 members is wired, not just the last chunk's 18 — ${runs[runs.length - 1].wiredMembers} members across ${runs[runs.length - 1].refs} writes`);
+        ok(runs[runs.length - 1].wiredMembers === 36 && runs[runs.length - 1].refs === 72,
+          `chunked: every one of the 36 members is wired, not just the last chunk's slice — ${runs[runs.length - 1].wiredMembers} members across ${runs[runs.length - 1].refs} writes`);
         // THE SET'S BOX. Appending does NOT grow it (measured: a member at x=208 appended to a 184-wide
         // set leaves it 184 wide, with the member outside its own box, and nothing throws), so the
         // `resize` is load-bearing and its own mutation below proves the check can fail.
@@ -9324,8 +9354,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // `addComponentProperty` keeps succeeding — so without the skip, re-running one chunk produces a
         // set that looks buildable and dies on read-back.
         const replay = await runPayload(chunks[1].js, { ...bigOpts, page });
-        ok(replay.variants === 108 && replay.added === 0,
-          `chunked: re-pasting a chunk adds NOTHING — the set still holds 108, ${replay.added} added (a duplicate member name poisons the whole set silently)`);
+        ok(replay.variants === 36 && replay.added === 0,
+          `chunked: re-pasting a chunk adds NOTHING — the set still holds 36, ${replay.added} added (a duplicate member name poisons the whole set silently)`);
         ok(replay.misses.every((m) => /ALREADY PRESENT/.test(m)) && replay.misses.length === chunks[1].variants.length,
           `chunked: and it says so, once per skipped member — ${replay.misses.length} skips for ${chunks[1].variants.length} members`);
         ok(page.children.length === 1, 'chunked: a re-paste does not leave loose components beside the set');
@@ -9340,7 +9370,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const replayLast = await runPayload(chunks[chunks.length - 1].js, { ...bigOpts, page });
         ok(JSON.stringify([...(replayLast.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
           `chunked: re-pasting the LAST chunk leaves exactly two properties — not four, and none named 'children2' (${JSON.stringify(replayLast.properties)})`);
-        ok(!replayLast.misses.some((m) => /ORPHAN/.test(m)) && replayLast.wiredMembers === 108,
+        ok(!replayLast.misses.some((m) => /ORPHAN/.test(m)) && replayLast.wiredMembers === 36,
           `chunked: and the refs still point at the original properties — no orphans, ${replayLast.wiredMembers} members wired${replayLast.misses.some((m) => /ORPHAN/.test(m)) ? ` — got ${JSON.stringify(replayLast.misses.filter((m) => /ORPHAN/.test(m)).slice(0, 3))}` : ''}`);
         // The MUTATION, and it needs the replay for the same reason the duplicate-name one did: on a first
         // paste nothing is ever already declared, so gutting this branch across a fresh sequence removes
@@ -9464,7 +9494,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         ok(plugged.misses.length === 0, `parity: the plugin executor runs CLEAN on the same grid${plugged.misses.length ? ` — ${JSON.stringify(plugged.misses.slice(0, 4))}` : ''}`);
         // THE AXES, which is the parity #487 asked for by name: what Figma derived, on each path, from
         // the names that path wrote.
-        ok(sorted(plugged.axes) === sorted(pasted.axes ?? []) && plugged.axes.length === 6,
+        ok(sorted(plugged.axes) === sorted(pasted.axes ?? []) && plugged.axes.length === 5,
           `parity: both paths derive the SAME axes from the members they wrote — plugin ${sorted(plugged.axes)} vs paste ${sorted(pasted.axes ?? [])}`);
         ok(sorted(plugged.properties) === sorted(pasted.properties ?? []),
           `parity: both paths leave the SAME component properties on the set — plugin ${sorted(plugged.properties)} vs paste ${sorted(pasted.properties ?? [])}`);
@@ -9630,22 +9660,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         });
 
         // THE FULL SET'S SHAPE, as two literals a hand-count justifies rather than a product of
-        // `.length`s. 1296 = 3 intent × 3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2
-        // trailing; with `state` across, that is 6 columns and 1296/6 = 216 rows. The `surface` axis
-        // (#1134) doubled both the member count and the row count, which is the price a variant a
-        // designer selects is worth paying. Written as literals deliberately: a shape computed from the
-        // axes is the declaration restating itself, which is the defect the 189-vs-756 miscount already
-        // cost this repo once.
+        // `.length`s. 432 = 3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing; with
+        // `state` across, that is 6 columns and 432/6 = 72 rows. #1223 split `intent` out into sibling
+        // components, so the axis that used to triple this count is gone — each of the three Button
+        // components now lays out this same 72×6 shape. The `surface` axis (#1134) still doubles both the
+        // member count and the row count, which is the price a variant a designer selects is worth
+        // paying. Written as literals deliberately: a shape computed from the axes is the declaration
+        // restating itself, which is the defect the 189-vs-756 miscount already cost this repo once.
         const fullLayout = planSetLayout(figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }), '#656 full');
-        ok(fullLayout.colKey === 'state' && fullLayout.rows === 216 && fullLayout.cols === 6,
-          `#656: the full Button set lays out 216 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 648×2, measured live at 320×23304px)`);
+        ok(fullLayout.colKey === 'state' && fullLayout.rows === 72 && fullLayout.cols === 6,
+          `#656: the full Button set lays out 72 rows × 6 columns with 'state' across — got ${fullLayout.rows}×${fullLayout.cols} on '${fullLayout.colKey}' (the inherited axis gave 216×2)`);
         ok(JSON.stringify(fullLayout.colVals) === JSON.stringify(['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'disabled']),
           `#656: the columns run in the def's own state order, so the table reads left to right the way the states are declared — got ${JSON.stringify(fullLayout.colVals)}`);
         // And the row keys are every OTHER varying axis. `rowKeys` used to be `varying.slice(0, -1)`,
         // which is only correct while the column axis is the last element — the exact assumption that
         // stops holding the moment the axis is chosen. A `state` still present in `rowKeys` would put
         // every member of a row in one cell.
-        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['intent', 'appearance', 'surface', 'size', 'leading', 'trailing']),
+        ok(JSON.stringify(fullLayout.rowKeys) === JSON.stringify(['appearance', 'surface', 'size', 'leading', 'trailing']),
           `#656: the rows combine every varying axis EXCEPT the column one — got ${JSON.stringify(fullLayout.rowKeys)}`);
 
         // ON CANVAS, because a cell index is not a coordinate. Run table 1's set through the real
@@ -10172,9 +10203,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // measure the shipping def cannot be shown to measure anything.
       const countFor = (d: ComponentDef, cmp: (p: AnatomyPlan) => string) => {
         const by = new Map<string, number>();
-        for (const i of button.variants.intent) for (const ap of button.variants.appearance) for (const sz of button.variants.size)
+        for (const ap of button.variants.appearance) for (const sz of button.variants.size)
           for (const ld of [true, false]) for (const tr of [true, false]) {
-            const mk = (st: string) => figmaAnatomyPlan(d, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, state: st });
+            const mk = (st: string) => figmaAnatomyPlan(d, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', appearance: ap, state: st });
             const rest = cmp(mk('rest'));
             for (const st of fp.stateAxis!.values) if (st !== 'rest' && cmp(mk(st)) === rest) by.set(st, (by.get(st) ?? 0) + 1);
           }
@@ -10184,32 +10215,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const struct = count(withNames), painted = count(sig);
       const total = (m: Map<string, number>) => [...m.values()].reduce((a, b) => a + b, 0);
       ok(total(struct) === 0,
-        `figmaProperties: NO row of 648 is structurally identical to its rest sibling (${JSON.stringify([...struct])})`);
+        `figmaProperties: NO row of 216 is structurally identical to its rest sibling (${JSON.stringify([...struct])})`);
       // 54 → 81 AT #848, and the direction is the point: the fix makes MORE rows look like their rest
       // sibling, because taking a cell that already exists is width-preserving and a layer rename is
       // invisible on the canvas. Three of the four slot coordinates now take a real cell (leading+trailing,
-      // leading only, trailing only) where two did before — 27 × 3 = 81. The fourth, `leading=false,
+      // leading only, trailing only) where two did before — 9 × 3 = 27. The fourth, `leading=false,
       // trailing=false`, is the only genuinely label-only button left, and it still differs: spinner
       // out of flow over a label at zero opacity. A count going UP here is a fix, not a regression, which
       // is exactly why it is asserted as a number with its arithmetic written down rather than as `<= 54`.
-      ok(total(painted) === 81 && painted.get('pending') === 81,
-        `figmaProperties: 81 rows are VISUALLY identical to their rest sibling — all pending, the three slot coordinates that HAVE a visual cell for the spinner to take (27 × 3), where it inherits that cell's size, paint and position and only the layer name differs (${JSON.stringify([...painted])})`);
+      // #1223 dropped `intent` to sibling components, so every count in this block is now the per-intent
+      // figure it always was 3× of — the structure the counter measures is intent-symmetric.
+      ok(total(painted) === 27 && painted.get('pending') === 27,
+        `figmaProperties: 27 rows are VISUALLY identical to their rest sibling — all pending, the three slot coordinates that HAVE a visual cell for the spinner to take (9 × 3), where it inherits that cell's size, paint and position and only the layer name differs (${JSON.stringify([...painted])})`);
       // A ZERO-EXPECTING ASSERTION CANNOT DISTINGUISH "clean" FROM "not looking", so prove the counter
       // still counts rather than trusting the 0. Re-runs the same `count` against a def with the
-      // `.text` pressed overlays stripped back out — the pre-#536-item-1 state — and requires the 36
+      // `.text` pressed overlay stripped back out — the pre-#536-item-1 state — and requires the 12
       // to come back. Without this, deleting `count`'s inner loop would leave both assertions above
       // green (the 54 would go too, but a future fix to the pending case makes THAT a 0 as well, and
       // then the whole block passes while measuring nothing). Measured: with `for (const st of ...)`
-      // short-circuited, `total(struct) === 0` passed and this line failed, naming the 36.
+      // short-circuited, `total(struct) === 0` passed and this line failed, naming the 12. Since #1223
+      // the key is family-neutral (`text.overlay.pressed`, no intent prefix), so exactly ONE key matches.
       const noPressedOverlay = {
         ...button,
-        tokens: Object.fromEntries(Object.entries(button.tokens).filter(([k]) => !/^\w+\.text\.overlay\.pressed$/.test(k))),
+        tokens: Object.fromEntries(Object.entries(button.tokens).filter(([k]) => !/^text\.overlay\.pressed$/.test(k))),
       } as ComponentDef;
-      ok(Object.keys(noPressedOverlay.tokens).length === Object.keys(button.tokens).length - 3,
-        'figmaProperties: the mutation for the pressed-overlay counter actually applied — 3 keys removed');
+      ok(Object.keys(noPressedOverlay.tokens).length === Object.keys(button.tokens).length - 1,
+        'figmaProperties: the mutation for the pressed-overlay counter actually applied — 1 key removed');
       const mutated = countFor(noPressedOverlay, withNames);
-      ok(total(mutated) === 36 && mutated.get('pressed') === 36,
-        `figmaProperties: the duplicate counter still COUNTS — stripping the three \`.text.overlay.pressed\` keys brings back exactly the 36 rows #536 item 1 removed (${JSON.stringify([...mutated])})`);
+      ok(total(mutated) === 12 && mutated.get('pressed') === 12,
+        `figmaProperties: the duplicate counter still COUNTS — stripping the \`text.overlay.pressed\` key brings back exactly the 12 rows #536 item 1 removed (${JSON.stringify([...mutated])})`);
       // `focus-visible` in EITHER map is the #536-item-3 regression returning, and it is worth its own
       // assertion rather than being implied by the totals: the totals move for any reason at all (a new
       // size, a new intent, a paint change), and a total that happens to still read its expected figure
@@ -10223,7 +10257,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // matrix-shape question (should the set enumerate an axis that provably moves no pixels?), open
       // deliberately rather than asserted away here.
       ok(!struct.has('focus-visible') && !painted.has('focus-visible'),
-        `figmaProperties: NO focus-visible row reads as its rest sibling — all 108 did before the ring became an absolute part (#536 item 3), which is the largest duplicate class the set has had (${JSON.stringify([...painted])})`);
+        `figmaProperties: NO focus-visible row reads as its rest sibling — all 36 did before the ring became an absolute part (#536 item 3), which is the largest duplicate class the set has had (${JSON.stringify([...painted])})`);
       // The direction matters and is easy to get backwards (I did): assert it rather than restate it.
       const pendingEq = (ld: boolean) => {
         const mk = (st: string) => figmaAnatomyPlan(button, 'medium', { leading: ld, trailing: false, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st });
@@ -10232,38 +10266,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(pendingEq(true) && !pendingEq(false),
         'figmaProperties: pending reads as rest when there IS a leading visual to replace, and differs when there is not — the replacement is what hides it');
 
-      // THE CROSS-INTENT COLLAPSE (#612), and it needed its own measurement rather than an entry in the
-      // maps above. Everything before this line compares a row against its OWN `rest` sibling — same
-      // intent, same appearance, same size — so a collapse ACROSS intents is invisible to it however
-      // large. The 36 groups were sitting in the projected set unmeasured while three assertions above
-      // reported clean, which is the scope-silence mode: the counter was right about the question it
-      // asked and nobody had asked this one.
-      //
-      // ACCEPTED, not fixed. `disabled.*` is cross-cutting by design (docs/20 §7), so this asserts the
-      // collapse still HAPPENS — the inverse direction from every assertion above it. A future PR
-      // giving disabled a per-intent tint would fail here, correctly: that is a token-tier decision
-      // reversal (docs/20 §7) and it should not be able to land as a quiet side effect.
-      const distinctAcrossIntents = (state: string) =>
-        new Set(button.variants.intent.map((i) =>
-          sig(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: false, swapTarget: 'FPO-default-icon', intent: i, appearance: 'filled', state })))).size;
+      // THE CROSS-COMPONENT DISABLED COLLAPSE (#612, re-anchored by #1223). #612 measured the collapse
+      // ACROSS the old `intent` axis — three intent rows sharing one disabled appearance. #1223 split
+      // those intents into three sibling COMPONENTS, so the collapse is now a claim about the components
+      // rather than an axis within one: `disabled.*` is cross-cutting by design (docs/20 §7), so a
+      // disabled Button, a disabled Destructive Button and a disabled Neutral Button must project the
+      // IDENTICAL node — same geometry, same `color.disabled.*` paint — while their `rest` rows stay
+      // distinct because those bind `color.interactive.<family>`. This is the projection-level companion
+      // to the DRY guardrail near the top of the block, which proves the same identity from the token
+      // maps; here it is read off the built plans, the thing a designer actually sees.
+      const disabledSig = (d: ComponentDef, state: string) =>
+        sig(figmaAnatomyPlan(d, 'medium', { leading: true, trailing: false, swapTarget: 'FPO-default-icon', appearance: 'filled', state }));
+      const btnFamily = [button, buttonDestructive, buttonNeutral];
       // BOTH directions, because `1` alone is what a broken `sig` returns for everything. `rest` reading
-      // 3 is what proves the comparison can still tell intents apart at all — without it, a `sig` that
-      // returned a constant would pass the disabled assertion and look like a confirmed design decision.
-      ok(distinctAcrossIntents('disabled') === 1 && distinctAcrossIntents('rest') === 3,
-        `figmaProperties: all three intents collapse to ONE row at state=disabled (${distinctAcrossIntents('disabled')} distinct) and stay separate at rest (${distinctAcrossIntents('rest')}) — cross-cutting disabled.* (docs/20 §7), admitted in codeOnly per #612`);
-      // The row count the admission quotes, derived rather than restated. 36 groups × (3 − 1) = 72
-      // removable rows, and the entry says 72 — a number in an admission is a claim like any other.
-      const disabledGroups = button.variants.appearance.length * button.variants.size.length * 2 * 2;
-      ok(disabledGroups === 36 && disabledGroups * (button.variants.intent.length - 1) === 72,
-        `figmaProperties: the #612 admission's arithmetic holds — ${disabledGroups} collapsing groups × ${button.variants.intent.length - 1} redundant siblings = ${disabledGroups * (button.variants.intent.length - 1)} rows`);
-      // AND THE ADMISSION ITSELF HAS TO BE THERE. Found by mutation: renaming the #612 entry to
-      // something else left every assertion in this block green, because they all measure the
-      // PROJECTION and none of them read `codeOnly`. An accepted-by-design duplicate whose admission has
-      // silently vanished is indistinguishable from an unnoticed one — the entry IS the decision, and
-      // the count assertions above only say what happens, never that anyone chose it. This is the
-      // #536-item-1 lesson pointed at its own fix: a number without its prose does not carry a verdict.
-      ok(button.anatomy!.codeOnly.some((c) => c.trim().startsWith('intent-at-disabled')),
-        'figmaProperties: the intent-at-disabled collapse is ADMITTED in codeOnly (#612) — the decision to accept it is recorded, not just its consequence');
+      // 3 is what proves the comparison can still tell the components apart at all — without it, a `sig`
+      // that returned a constant would pass the disabled assertion and look like a confirmed decision.
+      ok(new Set(btnFamily.map((d) => disabledSig(d, 'disabled'))).size === 1
+        && new Set(btnFamily.map((d) => disabledSig(d, 'rest'))).size === 3,
+        `figmaProperties: all three Button components collapse to ONE projection at state=disabled (${new Set(btnFamily.map((d) => disabledSig(d, 'disabled'))).size} distinct) and stay separate at rest (${new Set(btnFamily.map((d) => disabledSig(d, 'rest'))).size}) — cross-cutting disabled.* (docs/20 §7)`);
     }
 
     // Every projected axis is real, and every UNPROJECTED axis is admitted rather than merely absent.
@@ -10295,34 +10315,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     } as ComponentDef).some((x) => /variants\.min is not projected/.test(x)),
       "figmaProperties gate: `min-width derivation` does NOT admit an axis named 'min' — the axis name must be a whole word too");
 
-    // AND THE SAME TRAP FROM THE OTHER END: a codeOnly entry about an axis-and-state INTERACTION must
-    // not launder dropping that whole AXIS. #612 admits the intent-at-disabled collapse, and the obvious
-    // wording — `intent at state=disabled — …` — LEADS with `intent`, so `admits('intent')` says yes and
-    // the gate protecting the entire intent axis silently switches off. Measured while writing that
-    // entry: with the leading-`intent ` wording, removing `intent` from `variantAxes` took
-    // `figmaPropertyErrors` from 1 error to 0. Shipped as `intent-at-disabled redundancy` instead.
-    //
-    // Asserted in both directions, because the point is not that the shipped entry is safe — it is that
-    // the hyphenated compound is WHY it is safe, and a future editor "tidying" the wording needs to fail
-    // here rather than discover this in a review.
-    const dropIntent = (codeOnly: string[]) => figmaPropertyErrors({
-      ...button,
-      anatomy: { ...button.anatomy!, codeOnly },
-      figmaProperties: { ...fp, variantAxes: fp.variantAxes.filter((a) => a !== 'intent') },
-    } as ComponentDef).some((x) => /variants\.intent is not projected/.test(x));
-    ok(dropIntent(button.anatomy!.codeOnly),
-      'figmaProperties gate: the shipped #612 admission does NOT admit dropping the whole `intent` axis — dropping it still fails');
-    ok(!dropIntent([...button.anatomy!.codeOnly, 'intent at state=disabled — the wording that launders it']),
-      'figmaProperties gate: an entry LEADING with a bare axis name WOULD launder the axis drop (so #612 leads with `intent-at-disabled`, a compound) — this is the shape where a declaration satisfies the check it exempts you from');
-
     // The count, stated so a change to any axis has to move a number a reviewer can see. 189 before
-    // the slot-presence axes, 756 with them, 648 once `inactive` went code-only, and 1296 now that
-    // `surface` (#1134) doubles the set for the inverse ground — the 108 `inactive` rows it would have
-    // contributed each render as their `rest` sibling, since `anatomy-figma.ts` has no `inactive` paint
-    // branch (the shared-paint intent is a TOKEN-tier decision the emitter has not implemented; #563
-    // review measured this).
+    // the slot-presence axes, 756 with them, 648 once `inactive` went code-only, 1296 once `surface`
+    // (#1134) doubled the set for the inverse ground, and 432 now that #1223 split `intent` out into
+    // sibling components — each Button component projects a third of the former set. The 36 `inactive`
+    // rows it would have contributed each render as their `rest` sibling, since `anatomy-figma.ts` has
+    // no `inactive` paint branch (the shared-paint intent is a TOKEN-tier decision the emitter has not
+    // implemented; #563 review measured this).
     const projected = figmaVariantCount(button);
-    ok(projected === 1296, `figmaProperties: Button projects ${projected} variants (3 intent × 3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing)`);
+    ok(projected === 432, `figmaProperties: Button projects ${projected} variants (3 appearance × 3 size × 2 surface × 6 state × 2 leading × 2 trailing)`);
 
     // THE GATE THAT WOULD HAVE CAUGHT THE GAP, and the reason the count above is now derived rather
     // than restated. `projected === 189` was computed from `variantAxes × stateAxis` — the same
@@ -10332,11 +10333,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     //
     // Parses the real plan name rather than trusting a list, so any axis added to either side without
     // the other shows up here — for the next axis, not just this one.
-    const emittedAxes = planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true, intent: 'primary', appearance: 'filled', surface: 'default', state: 'rest' }))
+    const emittedAxes = planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true, appearance: 'filled', surface: 'default', state: 'rest' }))
       .split(', ').map((kv) => kv.split('=')[0]);
     ok(emittedAxes.slice().sort().join(',') === figmaAxisNames(button).slice().sort().join(','),
       `figmaProperties: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(button).join(', ')}] vs emitted [${emittedAxes.join(', ')}])`);
-    ok(emittedAxes.length === 7, `figmaProperties: seven axes reach the Figma name (${emittedAxes.join(', ')})`);
+    ok(emittedAxes.length === 6, `figmaProperties: six axes reach the Figma name (${emittedAxes.join(', ')})`);
 
     // ---- figmaAnatomySet: the enumerator the plugin's trigger calls (#483) ----------------------
     // It exists because the six nested loops above were hand-written at three call sites in THIS file and
@@ -10347,30 +10348,31 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // declaration, so comparing them is a gate agreeing with itself — exactly the shape the note above
     // records as the #487 §5 failure. The literal is a number a reviewer has to change on purpose.
     //
-    // It is not a number transcribed from a run, either — derive it by hand: 3 intent × 3 appearance ×
-    // 3 size × 2 surface × 6 state × 4 slot (2 leading × 2 trailing) = 1296. THE 6 IS THE STEP TO CHECK:
+    // It is not a number transcribed from a run, either — derive it by hand: 3 appearance × 3 size ×
+    // 2 surface × 6 state × 4 slot (2 leading × 2 trailing) = 432. THE 6 IS THE STEP TO CHECK:
     // `states` declares SEVEN and `stateAxis` projects six, because `inactive` is deliberately code-only
-    // and never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 1512 and
-    // makes the gate look wrong when it is the derivation that is. THE 2 IS THE surface AXIS (#1134).
+    // and never becomes a Figma variant (#487 §0.4). Re-deriving this from `states.length` gives 504 and
+    // makes the gate look wrong when it is the derivation that is. THE 2 IS THE surface AXIS (#1134). The
+    // `intent` axis that used to triple this is gone since #1223 — it is a sibling component now.
     const fullSet = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' });
-    ok(fullSet.length === 1296, `figmaAnatomySet: enumerates 1296 plans for Button (${fullSet.length})`);
+    ok(fullSet.length === 432, `figmaAnatomySet: enumerates 432 plans for Button (${fullSet.length})`);
     // Every coordinate distinct. A loop that pins an axis instead of iterating it produces N plans with
     // ONE name, which `planSetLayout` later refuses as a duplicate — but by then it is a runtime failure
     // inside Figma rather than a test failure here.
-    ok(new Set(fullSet.map(planComponentName)).size === 1296,
-      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(fullSet.map(planComponentName)).size}/1296)`);
+    ok(new Set(fullSet.map(planComponentName)).size === 432,
+      `figmaAnatomySet: every plan carries a distinct variant name (${new Set(fullSet.map(planComponentName)).size}/432)`);
     // And the plans are the SAME plans the hand-written loops produce — byte-identical, in order. This is
     // what makes the extraction a refactor rather than a second implementation: if the two ever disagree,
     // the three call sites below and the plugin's trigger are building different sets from one def. The
-    // loop nesting mirrors `figmaAnatomySet`'s fold exactly — gridAxes (intent, appearance, surface) in
+    // loop nesting mirrors `figmaAnatomySet`'s fold exactly — gridAxes (appearance, surface) in
     // declaration order, then size, then state, then the two slot booleans — so `surface` sits between
-    // `appearance` and `size`, not at the end (#1134).
+    // `appearance` and `size`, not at the end (#1134). #1223 dropped the `intent` grid loop with the axis.
     const handRolled: AnatomyPlan[] = [];
-    for (const i of button.variants.intent!) for (const ap of button.variants.appearance!) for (const su of button.variants.surface!)
+    for (const ap of button.variants.appearance!) for (const su of button.variants.surface!)
       for (const sz of button.variants.size) for (const st of fp.stateAxis!.values) for (const ld of [true, false]) for (const tr of [true, false])
-        handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', intent: i, appearance: ap, surface: su, state: st }));
+        handRolled.push(figmaAnatomyPlan(button, sz, { leading: ld, trailing: tr, swapTarget: 'FPO-default-icon', appearance: ap, surface: su, state: st }));
     ok(JSON.stringify(handRolled) === JSON.stringify(fullSet),
-      `figmaAnatomySet: byte-identical to the hand-written seven loops, in order (${handRolled.length} vs ${fullSet.length})`);
+      `figmaAnatomySet: byte-identical to the hand-written six loops, in order (${handRolled.length} vs ${fullSet.length})`);
 
     // WHAT PROTECTS THE 189-VS-756 RULE NOW (#795). Until #795 this pair asserted that a fifth declared
     // variant axis THREW, because `figmaAnatomySet` enumerated `intent` and `appearance` from two
@@ -10386,17 +10388,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(threw, label);
     };
     const fifthAxis = figmaAnatomySet({ ...button, variants: { ...button.variants, tone: ['a', 'b'] }, figmaProperties: { ...fp, variantAxes: [...fp.variantAxes, 'tone'] } } as ComponentDef, { swapTarget: 'FPO-default-icon' });
-    ok(fifthAxis.length === 1296 * 2,
-      `figmaAnatomySet: a FIFTH declared variant axis is enumerated, not refused — 1296 × 2 tone values (got ${fifthAxis.length})`);
-    // AND IT REACHES THE NAME, which is the half that matters. A set of 1296 whose members carry no
+    ok(fifthAxis.length === 432 * 2,
+      `figmaAnatomySet: an EXTRA declared variant axis is enumerated, not refused — 432 × 2 tone values (got ${fifthAxis.length})`);
+    // AND IT REACHES THE NAME, which is the half that matters. A set of 432 whose members carry no
     // `tone=` segment is precisely the silent omission the old throw prevented: the count doubles, every
     // plan is distinct on some other axis, and the axis the def declared is nowhere. Asserted on the
     // NAMES rather than on the coords, because the name is the wire format `nestVariantMatch` and
     // `planSetLayout` both read — a coord entry nothing writes into the name is invisible downstream.
     ok(fifthAxis.every((p) => /(^|, )tone=(a|b)(,|$)/.test(planComponentName(p))),
-      'figmaAnatomySet: every member of that set is NAMED for the fifth axis — the count alone would pass while the axis vanished, which is the 189-vs-756 shape');
-    ok(new Set(fifthAxis.map(planComponentName)).size === 1296 * 2,
-      `figmaAnatomySet: all 2592 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
+      'figmaAnatomySet: every member of that set is NAMED for the extra axis — the count alone would pass while the axis vanished, which is the 189-vs-756 shape');
+    ok(new Set(fifthAxis.map(planComponentName)).size === 432 * 2,
+      `figmaAnatomySet: all 864 names are distinct, so the new axis widens the grid rather than duplicating a coordinate (got ${new Set(fifthAxis.map(planComponentName)).size})`);
     // THE NO-COORDINATE GATE (#795, and #802's class exactly: every layer accepted and nothing read the
     // count). Both shapes are covered because they are different authoring mistakes: an EMPTY axis list,
     // and a declared axis whose `variants` entry is empty. The second is the one no other check can see.
@@ -11942,7 +11944,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     'focus-ring passthrough: Button\'s ring nesting declares follow: [\'surface\'] — the ground is driven, not fixed');
   const ringNestAt = (surface: string): string | null => {
     const m = figmaAnatomySet(button, { swapTarget: 'FPO-default-icon' }).find(
-      (p) => p.coord.surface === surface && p.coord.state === 'focus-visible' && p.coord.intent === 'primary' && p.coord.appearance === 'filled' && p.size === 'medium' && p.slots.leading === false && p.slots.trailing === false);
+      (p) => p.coord.surface === surface && p.coord.state === 'focus-visible' && p.coord.appearance === 'filled' && p.size === 'medium' && p.slots.leading === false && p.slots.trailing === false);
     const findRing = (n: any): any => n.nestTarget === 'focus-ring' ? n : (n.children ?? []).map(findRing).find(Boolean);
     const ring = m ? findRing(m.root) : undefined;
     return ring?.nestVariant ? nestVariantMatch(ring.nestVariant, ringNames) : null;
@@ -12347,6 +12349,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(POSITIONED_EXPECTED.every((n) => positionedDefs.some((d) => d.id === n)) && positionedDefs.length === POSITIONED_EXPECTED.length,
     `#990 the positionWhen projection rule below covers exactly [${POSITIONED_EXPECTED.join(', ')}] — a def gaining a variant-positioned part must be represented here, and a def losing one is a stale claim (found: ${positionedDefs.map((d) => d.id).join(', ') || 'none'})`);
   const JUSTIFY_EXPECT: Record<string, string> = { start: 'MIN', center: 'CENTER', end: 'MAX' };
+  // Resolve an EMITTED leaf to px by its dotted path. Used by the #997 clearance arm below, which reads
+  // the paths off the projected plan's bindings rather than off the def — the plan is what a materializer
+  // actually consumes, and the def is the thing under test.
+  const findNode = (root: any, want: string): any =>
+    root?.name === want ? root : (root?.children ?? []).reduce((f: any, c: any) => f ?? findNode(c, want), undefined);
+  const pxAt = (t: any, path: string): number | undefined => {
+    const tr = buildTree(t).tree as any;
+    return path.split('.').reduce((n: any, k) => n?.[k], tr[Object.keys(tr)[0]])?.$extensions?.prism3?.px;
+  };
   for (const def of positionedDefs) {
     const sizes = def.variants?.size ?? [];
     const size = sizes[Math.min(1, sizes.length - 1)];
@@ -12390,6 +12401,42 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // value, and it fails on a mis-placed write that the arm above cannot see.
         ok(alignAt(plan, name) === JUSTIFY_EXPECT[def.anatomy!.parts[name].layout?.justify ?? 'start'],
           `#990 ${def.id}: '${name}'s OWN distribution is still its declared justify at ${axis}=${v} — 'positionWhen' moves the part by writing the PARENT, and a write landing on the part itself is inert (got '${alignAt(plan, name)}')`);
+
+        // #997 — THE CLEARANCE, which is the half the two arms above cannot see. They assert the part is
+        // distributed to the right END; neither asserts there is anything BETWEEN it and that end. MIN and
+        // MAX put the child's edge exactly on the parent's, so a positioned part in an unpadded parent sits
+        // FLUSH at every extreme — which is what shipped (switch's thumb, #997) with both arms above green.
+        //
+        // Stated as a RULE over positioned parts rather than as a fact about switch: an alignment carries
+        // no offset, so the ONLY place clearance can come from is the parent's padding, and that is true of
+        // whatever def positions a part next. SUBJECT is the projected plan's bound padding; the ORACLE is
+        // this rule plus the emitted px — never the def, which is the thing under test.
+        const b = (findNode(plan.root, parent!)?.bound ?? {}) as Record<string, string>;
+        const mainEnds = (def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row'
+          ? ['paddingLeft', 'paddingRight'] : ['paddingTop', 'paddingBottom'];
+        // STATED LIMIT: only the first clause is falsifiable today. Deleting the padding fails this arm by
+        // name (measured). Making the two ends DIFFER is currently unreachable through the def — the
+        // projector picks `inlineVisual` only when a leading/trailing slot is FILLED, and no positioned def
+        // declares one, so an asymmetric `PaddingDef` projects both ends from `inlineLabel` and the attempt
+        // is a non-mutation (#986; verified by dumping the plan, not inferred from a green run). The clause
+        // is kept for the def that does declare slots, where it becomes the arm that matters.
+        ok(mainEnds.every((e) => b[e]) && b[mainEnds[0]] === b[mainEnds[1]],
+          `#997 ${def.id}: '${parent}' pads BOTH main-axis ends with one variable at ${axis}=${v}, so '${name}' clears the end it is distributed to — an alignment has no offset, so padding is the only source of clearance and without it the part is flush (got ${mainEnds.map((e) => `${e}=${b[e] ?? 'unbound'}`).join(', ')})`);
+
+        // …and the clearance is the RIGHT SIZE, resolved to px. A padding that exists but does not relate
+        // to the travelling part would satisfy the arm above while leaving the part cramped or overflowing.
+        // The cross axis is the checkable one: the padded box must be exactly the part, or the part is not
+        // centred in the track it slides along.
+        const asPath = (figName?: string) => figName?.split('/').join('.');
+        const crossPad = asPath(b[(def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row' ? 'paddingTop' : 'paddingLeft']);
+        const parentCross = asPath(b[(def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row' ? 'height' : 'width']);
+        const partCross = asPath(((findNode(plan.root, name)?.bound ?? {}) as Record<string, string>)[
+          (def.anatomy!.parts[parent!].layout?.direction ?? 'row') === 'row' ? 'height' : 'width']);
+        if (crossPad && parentCross && partCross) {
+          const [padPx, boxPx, partPx] = [crossPad, parentCross, partCross].map((p) => pxAt(nbTheme(), p!));
+          ok(padPx !== undefined && boxPx !== undefined && partPx !== undefined && boxPx - 2 * padPx === partPx,
+            `#997 ${def.id}: '${parent}' less its padding on both cross-axis sides is exactly '${name}' (${boxPx} − 2×${padPx} = ${boxPx !== undefined && padPx !== undefined ? boxPx - 2 * padPx : '?'}, part is ${partPx}) — the inset is DERIVED from the part's own size, so a mismatch means one of the two was retuned without the other`);
+        }
       }
       // The part must actually TRAVEL. Every arm above compares the plan to the map, so all of them pass on
       // a map whose values are identical — `anatomyErrors` refuses that on the authoring side, and this is
@@ -13433,11 +13480,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // thing and the hazard this rule exists for cannot arise. Narrowing the rule to dodge that — keying on
   // sizing, say — would have been a derived discriminator standing in for a design fact, and the design
   // fact is what makes the exemption true.
+  const buttonCentreReason =
+    "a button's label is a short action phrase, not prose — it does not wrap, so the first line IS the "
+    + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
+    + 'the mechanical half of the same fact: the row has no room to grow into a second line.';
   const CENTRE_OK: Record<string, string> = {
-    'button.container':
-      "a button's label is a short action phrase, not prose — it does not wrap, so the first line IS the "
-      + 'block and centring cannot float the icon mid-paragraph. Fixed on its counter axis as well, which is '
-      + 'the mechanical half of the same fact: the row has no room to grow into a second line.',
+    'button.container': buttonCentreReason,
+    // #1223 split the semantic intents into sibling components that share Button's exact anatomy, so the
+    // same design fact exempts them — a Destructive or Neutral button label is the same short action phrase.
+    'button-destructive.container': buttonCentreReason,
+    'button-neutral.container': buttonCentreReason,
   };
   let pairedRows = 0;
   const centred: string[] = [];

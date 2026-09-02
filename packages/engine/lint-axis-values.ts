@@ -162,13 +162,14 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'appearance',
     values: ['filled', 'outline', 'text'],
-    defs: ['button', 'icon-button'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button'],
     relation: 'sole',
     reason:
       'The emphasis ladder, descending: filled carries the page\'s primary action, outline the secondary, '
-      + 'text the tertiary. `icon-button` inherits button\'s set rather than restating it, which is why one '
-      + 'entry covers two defs — the shared set IS the inheritance, and a second entry would let the two '
-      + 'drift while both still passed.',
+      + 'text the tertiary. One entry covers four defs by two mechanisms: `icon-button` INHERITS button\'s '
+      + 'set, and the two #1223 siblings (`button-destructive`, `button-neutral`) come off button\'s own '
+      + 'factory — same axis, only the colour family differs. A second entry for any of them would let the '
+      + 'shared set drift while all still passed; the shared set IS the relationship.',
   },
   {
     axis: 'indicator',
@@ -183,13 +184,15 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'intent',
     values: ['primary', 'neutral', 'destructive'],
-    defs: ['button', 'icon-button'],
+    defs: ['icon-button'],
     relation: 'sole',
     reason:
       'What the action MEANS, held apart from how loud it looks (`appearance`) — the two cross, so a '
       + 'destructive action can be quiet. `destructive` rather than `danger` because this axis names the '
-      + 'action, not the ink; the ink it resolves to is the danger family. Shared with `icon-button` by '
-      + 'inheritance, as `appearance` is.',
+      + 'action, not the ink; the ink it resolves to is the danger family. #1223 made Button\'s intents '
+      + 'three COMPONENTS (Button/Destructive Button/Neutral Button) rather than an axis, so `button` no '
+      + 'longer declares this — `icon-button` still carries it as an axis, and whether it should split the '
+      + 'same way is the open sibling question this entry now stands alone as a reminder of.',
   },
   {
     axis: 'name',
@@ -260,10 +263,11 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio'],
     relation: 'canonical',
     reason:
-      'The three-rung ladder, and canonical on weight of use — six of the eight defs with a size axis. '
+      'The three-rung ladder, and canonical on weight of use — eight of the defs with a size axis, the '
+      + 'two #1223 button siblings among them by way of the shared factory. '
       + 'Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',
   },
@@ -291,7 +295,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'surface',
     values: ['default', 'inverse'],
-    defs: ['button', 'focus-ring'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'focus-ring'],
     relation: 'sole',
     reason:
       'The ground a control sits on (#1134): `default` the page, `inverse` a dark or brand-filled band. THE '
@@ -335,7 +339,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'width',
     values: ['auto', 'full'],
-    defs: ['button'],
+    defs: ['button', 'button-destructive', 'button-neutral'],
     relation: 'sole',
     reason:
       'Whether the button takes its content\'s width or its container\'s — two values because there is no '
