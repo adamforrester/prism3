@@ -1499,10 +1499,10 @@
       "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.400}",
-        "dark": "{prism.core.palette.neutral.550}",
-        "hc-light": "{prism.core.palette.neutral.500}",
-        "hc-dark": "{prism.core.palette.neutral.500}"
+        "light": "{prism.core.palette.neutral.950}",
+        "dark": "{prism.core.palette.neutral.025}",
+        "hc-light": "{prism.core.palette.black}",
+        "hc-dark": "{prism.core.palette.white}"
       },
       "paired_with": [
         "interactive.neutral.text.rest",
@@ -1512,7 +1512,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 3.26
+          "ratio": 19.43
         }
       ]
     },
@@ -1523,10 +1523,10 @@
       "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.500}",
-        "dark": "{prism.core.palette.neutral.450}",
-        "hc-light": "{prism.core.palette.neutral.600}",
-        "hc-dark": "{prism.core.palette.neutral.400}"
+        "light": "{prism.core.palette.neutral.950}",
+        "dark": "{prism.core.palette.neutral.025}",
+        "hc-light": "{prism.core.palette.black}",
+        "hc-dark": "{prism.core.palette.white}"
       },
       "paired_with": [
         "interactive.neutral.text.hover",
@@ -1536,7 +1536,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 4.54
+          "ratio": 19.43
         }
       ]
     },
@@ -1547,10 +1547,10 @@
       "avoid_when": "Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.600}",
-        "dark": "{prism.core.palette.neutral.350}",
-        "hc-light": "{prism.core.palette.neutral.700}",
-        "hc-dark": "{prism.core.palette.neutral.300}"
+        "light": "{prism.core.palette.neutral.950}",
+        "dark": "{prism.core.palette.neutral.025}",
+        "hc-light": "{prism.core.palette.black}",
+        "hc-dark": "{prism.core.palette.white}"
       },
       "paired_with": [
         "interactive.neutral.text.pressed",
@@ -1560,7 +1560,7 @@
         {
           "token": "background.primary",
           "min": "3:1",
-          "ratio": 6.65
+          "ratio": 19.43
         }
       ]
     },
@@ -1640,10 +1640,33 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.rest`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.accent.100}",
-        "dark": "{prism.core.palette.accent.900}",
-        "hc-light": "{prism.core.palette.accent.100}",
-        "hc-dark": "{prism.core.palette.accent.900}"
+        "light": "{prism.core.palette.neutral.050}",
+        "dark": "{prism.core.palette.neutral.850}",
+        "hc-light": "{prism.core.palette.neutral.050}",
+        "hc-dark": "{prism.core.palette.neutral.850}"
+      },
+      "paired_with": [
+        "inverse.interactive.primary.on-fill"
+      ],
+      "contrast_with": [
+        {
+          "token": "inverse.background.primary",
+          "min": "3:1",
+          "ratio": 16.01
+        }
+      ]
+    },
+    "inverse.interactive.primary.fill.hover": {
+      "$description": "Primary interactive fill (hover state), on an inverse surface.",
+      "meaning": "Interactivity / actions (inverse ground)",
+      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
+      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
+      "avoid_when_level": "MUST",
+      "mode_overrides": {
+        "light": "{prism.core.palette.neutral.100}",
+        "dark": "{prism.core.palette.neutral.900}",
+        "hc-light": "{prism.core.palette.neutral.100}",
+        "hc-dark": "{prism.core.palette.neutral.900}"
       },
       "paired_with": [
         "inverse.interactive.primary.on-fill"
@@ -1656,29 +1679,6 @@
         }
       ]
     },
-    "inverse.interactive.primary.fill.hover": {
-      "$description": "Primary interactive fill (hover state), on an inverse surface.",
-      "meaning": "Interactivity / actions (inverse ground)",
-      "when_to_use": "The fill of a FILLED primary interactive element — buttons, controls, selectable rows on pointer hover. Only on an INVERSE ground — a dark band on a light page, or the reverse.",
-      "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.hover`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
-      "avoid_when_level": "MUST",
-      "mode_overrides": {
-        "light": "{prism.core.palette.accent.050}",
-        "dark": "{prism.core.palette.accent.950}",
-        "hc-light": "{prism.core.palette.accent.050}",
-        "hc-dark": "{prism.core.palette.accent.950}"
-      },
-      "paired_with": [
-        "inverse.interactive.primary.on-fill"
-      ],
-      "contrast_with": [
-        {
-          "token": "inverse.background.primary",
-          "min": "3:1",
-          "ratio": 16.02
-        }
-      ]
-    },
     "inverse.interactive.primary.fill.pressed": {
       "$description": "Primary interactive fill (pressed state), on an inverse surface.",
       "meaning": "Interactivity / actions (inverse ground)",
@@ -1686,10 +1686,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.pressed`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.accent.200}",
-        "dark": "{prism.core.palette.accent.800}",
-        "hc-light": "{prism.core.palette.accent.200}",
-        "hc-dark": "{prism.core.palette.accent.800}"
+        "light": "{prism.core.palette.neutral.150}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.neutral.150}",
+        "hc-dark": "{prism.core.palette.neutral.950}"
       },
       "paired_with": [
         "inverse.interactive.primary.on-fill"
@@ -1698,7 +1698,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.65
+          "ratio": 12.36
         }
       ]
     },
@@ -1709,10 +1709,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.focused`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.accent.050}",
-        "dark": "{prism.core.palette.accent.950}",
-        "hc-light": "{prism.core.palette.accent.050}",
-        "hc-dark": "{prism.core.palette.accent.950}"
+        "light": "{prism.core.palette.neutral.100}",
+        "dark": "{prism.core.palette.neutral.900}",
+        "hc-light": "{prism.core.palette.neutral.100}",
+        "hc-dark": "{prism.core.palette.neutral.900}"
       },
       "paired_with": [
         "inverse.interactive.primary.on-fill"
@@ -1721,7 +1721,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 16.02
+          "ratio": 14.05
         }
       ]
     },
@@ -1732,10 +1732,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.fill.selected`. Do not use for another intent (interactive.neutral / destructive), or for outline/text appearances (use interactive.primary.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.accent.200}",
-        "dark": "{prism.core.palette.accent.800}",
-        "hc-light": "{prism.core.palette.accent.200}",
-        "hc-dark": "{prism.core.palette.accent.800}"
+        "light": "{prism.core.palette.neutral.150}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.neutral.150}",
+        "hc-dark": "{prism.core.palette.neutral.950}"
       },
       "paired_with": [
         "inverse.interactive.primary.on-fill"
@@ -1744,7 +1744,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.65
+          "ratio": 12.36
         }
       ]
     },
@@ -1767,7 +1767,7 @@
         {
           "token": "inverse.interactive.primary.fill.rest",
           "min": "4.5:1",
-          "ratio": 14.05
+          "ratio": 16.01
         }
       ]
     },
@@ -1919,10 +1919,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.rest`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.danger.100}",
-        "dark": "{prism.core.palette.danger.900}",
-        "hc-light": "{prism.core.palette.danger.100}",
-        "hc-dark": "{prism.core.palette.danger.900}"
+        "light": "{prism.core.palette.neutral.050}",
+        "dark": "{prism.core.palette.neutral.850}",
+        "hc-light": "{prism.core.palette.neutral.050}",
+        "hc-dark": "{prism.core.palette.neutral.850}"
       },
       "paired_with": [
         "inverse.interactive.destructive.on-fill"
@@ -1931,7 +1931,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 14.08
+          "ratio": 16.01
         }
       ]
     },
@@ -1942,10 +1942,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.hover`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.danger.050}",
-        "dark": "{prism.core.palette.danger.950}",
-        "hc-light": "{prism.core.palette.danger.050}",
-        "hc-dark": "{prism.core.palette.danger.950}"
+        "light": "{prism.core.palette.neutral.100}",
+        "dark": "{prism.core.palette.neutral.900}",
+        "hc-light": "{prism.core.palette.neutral.100}",
+        "hc-dark": "{prism.core.palette.neutral.900}"
       },
       "paired_with": [
         "inverse.interactive.destructive.on-fill"
@@ -1954,7 +1954,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 16.05
+          "ratio": 14.05
         }
       ]
     },
@@ -1965,10 +1965,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.pressed`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.danger.200}",
-        "dark": "{prism.core.palette.danger.800}",
-        "hc-light": "{prism.core.palette.danger.200}",
-        "hc-dark": "{prism.core.palette.danger.800}"
+        "light": "{prism.core.palette.neutral.150}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.neutral.150}",
+        "hc-dark": "{prism.core.palette.neutral.950}"
       },
       "paired_with": [
         "inverse.interactive.destructive.on-fill"
@@ -1977,7 +1977,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.81
+          "ratio": 12.36
         }
       ]
     },
@@ -1988,10 +1988,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.focused`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.danger.050}",
-        "dark": "{prism.core.palette.danger.950}",
-        "hc-light": "{prism.core.palette.danger.050}",
-        "hc-dark": "{prism.core.palette.danger.950}"
+        "light": "{prism.core.palette.neutral.100}",
+        "dark": "{prism.core.palette.neutral.900}",
+        "hc-light": "{prism.core.palette.neutral.100}",
+        "hc-dark": "{prism.core.palette.neutral.900}"
       },
       "paired_with": [
         "inverse.interactive.destructive.on-fill"
@@ -2000,7 +2000,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 16.05
+          "ratio": 14.05
         }
       ]
     },
@@ -2011,10 +2011,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.destructive.fill.selected`. Do not use for a non-destructive intent (use interactive.primary/neutral), or for outline/text appearances (use interactive.destructive.text / .border).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.danger.200}",
-        "dark": "{prism.core.palette.danger.800}",
-        "hc-light": "{prism.core.palette.danger.200}",
-        "hc-dark": "{prism.core.palette.danger.800}"
+        "light": "{prism.core.palette.neutral.150}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.neutral.150}",
+        "hc-dark": "{prism.core.palette.neutral.950}"
       },
       "paired_with": [
         "inverse.interactive.destructive.on-fill"
@@ -2023,7 +2023,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 10.81
+          "ratio": 12.36
         }
       ]
     },
@@ -2046,7 +2046,7 @@
         {
           "token": "inverse.interactive.destructive.fill.rest",
           "min": "4.5:1",
-          "ratio": 14.08
+          "ratio": 16.01
         }
       ]
     },
@@ -2336,10 +2336,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.rest`. Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.550}",
-        "dark": "{prism.core.palette.neutral.400}",
-        "hc-light": "{prism.core.palette.neutral.500}",
-        "hc-dark": "{prism.core.palette.neutral.500}"
+        "light": "{prism.core.palette.neutral.025}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.white}",
+        "hc-dark": "{prism.core.palette.black}"
       },
       "paired_with": [
         "inverse.interactive.neutral.text.rest",
@@ -2349,7 +2349,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.51
+          "ratio": 18.13
         }
       ]
     },
@@ -2360,10 +2360,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.hover`. Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.450}",
-        "dark": "{prism.core.palette.neutral.500}",
-        "hc-light": "{prism.core.palette.neutral.400}",
-        "hc-dark": "{prism.core.palette.neutral.600}"
+        "light": "{prism.core.palette.neutral.025}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.white}",
+        "hc-dark": "{prism.core.palette.black}"
       },
       "paired_with": [
         "inverse.interactive.neutral.text.hover",
@@ -2373,7 +2373,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 5.06
+          "ratio": 18.13
         }
       ]
     },
@@ -2384,10 +2384,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.neutral.border.pressed`. Do not use as ink (use interactive.neutral.text) or as a page divider (use border.primary).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.350}",
-        "dark": "{prism.core.palette.neutral.600}",
-        "hc-light": "{prism.core.palette.neutral.300}",
-        "hc-dark": "{prism.core.palette.neutral.700}"
+        "light": "{prism.core.palette.neutral.025}",
+        "dark": "{prism.core.palette.neutral.950}",
+        "hc-light": "{prism.core.palette.white}",
+        "hc-dark": "{prism.core.palette.black}"
       },
       "paired_with": [
         "inverse.interactive.neutral.text.pressed",
@@ -2397,7 +2397,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 6.93
+          "ratio": 18.13
         }
       ]
     },
@@ -5872,6 +5872,9 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.border.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -5886,6 +5889,9 @@
         "color.inverse.foreground.tertiary",
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -5920,6 +5926,9 @@
         "color.icon.on-warning",
         "color.icon.primary",
         "color.interactive.destructive.on-fill",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.border.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -5934,6 +5943,9 @@
         "color.inverse.foreground.tertiary",
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -6140,8 +6152,12 @@
         "color.foreground.secondary",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
+        "color.inverse.interactive.destructive.fill.focused",
+        "color.inverse.interactive.destructive.fill.hover",
         "color.inverse.interactive.neutral.fill.focused",
-        "color.inverse.interactive.neutral.fill.hover"
+        "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.primary.fill.focused",
+        "color.inverse.interactive.primary.fill.hover"
       ]
     },
     "core.palette.neutral.150": {
@@ -6153,8 +6169,12 @@
         "color.foreground.tertiary",
         "color.interactive.neutral.fill.rest",
         "color.inverse.foreground.tertiary",
+        "color.inverse.interactive.destructive.fill.pressed",
+        "color.inverse.interactive.destructive.fill.selected",
         "color.inverse.interactive.neutral.fill.pressed",
-        "color.inverse.interactive.neutral.fill.selected"
+        "color.inverse.interactive.neutral.fill.selected",
+        "color.inverse.interactive.primary.fill.pressed",
+        "color.inverse.interactive.primary.fill.selected"
       ]
     },
     "core.palette.neutral.200": {
@@ -6192,8 +6212,6 @@
       "aliased_by": [
         "color.border.tertiary",
         "color.disabled.on-fill",
-        "color.interactive.neutral.border.pressed",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.text.secondary"
       ]
     },
@@ -6204,11 +6222,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.field.placeholder",
-        "color.interactive.neutral.border.pressed",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
         "color.inverse.field.placeholder",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.inverse.text.secondary"
       ]
     },
@@ -6221,12 +6237,8 @@
         "color.border.secondary",
         "color.field.border.hover",
         "color.field.border.rest",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.rest",
         "color.inverse.field.border.hover",
-        "color.inverse.field.border.rest",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.rest"
+        "color.inverse.field.border.rest"
       ]
     },
     "core.palette.neutral.450": {
@@ -6242,14 +6254,12 @@
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
-        "color.interactive.neutral.border.hover",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
         "color.inverse.field.border.hover",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
         "color.inverse.icon.tertiary",
-        "color.inverse.interactive.neutral.border.hover",
         "color.inverse.text.secondary",
         "color.inverse.text.tertiary",
         "color.text.secondary",
@@ -6266,8 +6276,6 @@
         "color.border.secondary",
         "color.field.border.hover",
         "color.field.border.rest",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.rest",
         "color.inverse.border.primary",
         "color.inverse.border.secondary",
         "color.inverse.disabled.icon",
@@ -6277,8 +6285,6 @@
         "color.inverse.field.border.rest",
         "color.inverse.icon.secondary",
         "color.inverse.icon.tertiary",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.rest",
         "color.inverse.text.tertiary"
       ]
     },
@@ -6295,14 +6301,12 @@
         "color.field.placeholder",
         "color.icon.secondary",
         "color.icon.tertiary",
-        "color.interactive.neutral.border.rest",
         "color.inverse.disabled.icon",
         "color.inverse.disabled.text",
         "color.inverse.field.border.rest",
         "color.inverse.field.placeholder",
         "color.inverse.icon.secondary",
         "color.inverse.icon.tertiary",
-        "color.inverse.interactive.neutral.border.rest",
         "color.inverse.text.secondary",
         "color.inverse.text.tertiary",
         "color.text.secondary",
@@ -6317,13 +6321,9 @@
       "aliased_by": [
         "color.border.tertiary",
         "color.field.border.hover",
-        "color.interactive.neutral.border.hover",
-        "color.interactive.neutral.border.pressed",
         "color.inverse.border.secondary",
         "color.inverse.disabled.on-fill",
-        "color.inverse.field.border.hover",
-        "color.inverse.interactive.neutral.border.hover",
-        "color.inverse.interactive.neutral.border.pressed"
+        "color.inverse.field.border.hover"
       ]
     },
     "core.palette.neutral.650": {
@@ -6345,11 +6345,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.border.secondary",
-        "color.interactive.neutral.border.pressed",
         "color.inverse.border.secondary",
         "color.inverse.border.tertiary",
         "color.inverse.disabled.on-fill",
-        "color.inverse.interactive.neutral.border.pressed",
         "color.text.secondary"
       ]
     },
@@ -6392,7 +6390,9 @@
         "color.interactive.neutral.fill.rest",
         "color.inverse.background.tertiary",
         "color.inverse.foreground.secondary",
-        "color.inverse.interactive.neutral.fill.rest"
+        "color.inverse.interactive.destructive.fill.rest",
+        "color.inverse.interactive.neutral.fill.rest",
+        "color.inverse.interactive.primary.fill.rest"
       ]
     },
     "core.palette.neutral.900": {
@@ -6407,8 +6407,12 @@
         "color.inverse.background.secondary",
         "color.inverse.field.fill",
         "color.inverse.foreground.primary",
+        "color.inverse.interactive.destructive.fill.focused",
+        "color.inverse.interactive.destructive.fill.hover",
         "color.inverse.interactive.neutral.fill.focused",
-        "color.inverse.interactive.neutral.fill.hover"
+        "color.inverse.interactive.neutral.fill.hover",
+        "color.inverse.interactive.primary.fill.focused",
+        "color.inverse.interactive.primary.fill.hover"
       ]
     },
     "core.palette.neutral.950": {
@@ -6420,6 +6424,9 @@
         "color.background.primary",
         "color.border.tertiary",
         "color.icon.primary",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.border.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -6427,13 +6434,20 @@
         "color.inverse.background.primary",
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
+        "color.inverse.interactive.destructive.fill.pressed",
+        "color.inverse.interactive.destructive.fill.selected",
         "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.fill.pressed",
         "color.inverse.interactive.neutral.fill.selected",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.fill.pressed",
+        "color.inverse.interactive.primary.fill.selected",
         "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.primary"
@@ -6447,6 +6461,9 @@
       "aliased_by": [
         "color.border.tertiary",
         "color.icon.primary",
+        "color.interactive.neutral.border.hover",
+        "color.interactive.neutral.border.pressed",
+        "color.interactive.neutral.border.rest",
         "color.interactive.neutral.on-fill",
         "color.interactive.neutral.text.hover",
         "color.interactive.neutral.text.pressed",
@@ -6455,6 +6472,9 @@
         "color.inverse.border.tertiary",
         "color.inverse.icon.primary",
         "color.inverse.interactive.destructive.on-fill",
+        "color.inverse.interactive.neutral.border.hover",
+        "color.inverse.interactive.neutral.border.pressed",
+        "color.inverse.interactive.neutral.border.rest",
         "color.inverse.interactive.neutral.on-fill",
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
@@ -6476,17 +6496,16 @@
         "color.inverse.background.secondary",
         "color.inverse.field.fill",
         "color.inverse.foreground.primary",
-        "color.inverse.interactive.neutral.fill.rest"
+        "color.inverse.interactive.destructive.fill.rest",
+        "color.inverse.interactive.neutral.fill.rest",
+        "color.inverse.interactive.primary.fill.rest"
       ]
     },
     "core.palette.accent.100": {
       "$description": "Brand accent 100 — Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "color.inverse.interactive.primary.fill.rest"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.accent.150": {
       "$description": "Brand accent 150 — Quarter-Tone band",
@@ -6502,8 +6521,6 @@
       "aliased_by": [
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
-        "color.inverse.interactive.primary.fill.pressed",
-        "color.inverse.interactive.primary.fill.selected",
         "color.text.link.visited"
       ]
     },
@@ -6723,8 +6740,6 @@
       "aliased_by": [
         "color.interactive.primary.fill.pressed",
         "color.interactive.primary.fill.selected",
-        "color.inverse.interactive.primary.fill.pressed",
-        "color.inverse.interactive.primary.fill.selected",
         "color.text.link.visited"
       ]
     },
@@ -6738,20 +6753,13 @@
       "$description": "Brand accent 900 — Three-Quarter-Tone band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "color.inverse.interactive.primary.fill.rest"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.accent.950": {
       "$description": "Brand accent 950 — Shadow band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "color.inverse.interactive.primary.fill.focused",
-        "color.inverse.interactive.primary.fill.hover"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.accent.025": {
       "$description": "Brand accent 025 — Highlight band",
@@ -6763,11 +6771,7 @@
       "$description": "Brand accent 050 — Highlight band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "color.inverse.interactive.primary.fill.focused",
-        "color.inverse.interactive.primary.fill.hover"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.success.100": {
       "$description": "success status 100 — Quarter-Tone band",
@@ -7310,8 +7314,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.foreground.danger-subtle",
-        "color.inverse.foreground.danger-subtle",
-        "color.inverse.interactive.destructive.fill.rest"
+        "color.inverse.foreground.danger-subtle"
       ]
     },
     "core.palette.danger.150": {
@@ -7327,9 +7330,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
-        "color.inverse.interactive.destructive.fill.pressed",
-        "color.inverse.interactive.destructive.fill.selected"
+        "color.interactive.destructive.fill.selected"
       ]
     },
     "core.palette.danger.250": {
@@ -7524,9 +7525,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.interactive.destructive.fill.pressed",
-        "color.interactive.destructive.fill.selected",
-        "color.inverse.interactive.destructive.fill.pressed",
-        "color.inverse.interactive.destructive.fill.selected"
+        "color.interactive.destructive.fill.selected"
       ]
     },
     "core.palette.danger.850": {
@@ -7542,19 +7541,14 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.foreground.danger-subtle",
-        "color.inverse.foreground.danger-subtle",
-        "color.inverse.interactive.destructive.fill.rest"
+        "color.inverse.foreground.danger-subtle"
       ]
     },
     "core.palette.danger.950": {
       "$description": "danger status (engine-carved red — primary is not red) 950 — Shadow band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "color.inverse.interactive.destructive.fill.focused",
-        "color.inverse.interactive.destructive.fill.hover"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.danger.025": {
       "$description": "danger status (engine-carved red — primary is not red) 025 — Highlight band",
@@ -7566,11 +7560,7 @@
       "$description": "danger status (engine-carved red — primary is not red) 050 — Highlight band",
       "meaning": "core primitive",
       "tier": "primitive",
-      "consume": "Private primitive — prefer a semantic token.",
-      "aliased_by": [
-        "color.inverse.interactive.destructive.fill.focused",
-        "color.inverse.interactive.destructive.fill.hover"
-      ]
+      "consume": "Private primitive — prefer a semantic token."
     },
     "core.palette.black-alpha.5": {
       "$description": "Black alpha 5% — alpha, composites over any surface",
