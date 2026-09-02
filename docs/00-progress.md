@@ -33,8 +33,8 @@ returns the live node without the reference — a `DISCARDED` miss for a set tha
 
 In the read-back loop, carry the node the wire loop wrote to (5th slot of `wiredRefs`). When a reference
 does not read back AND the written node and the live re-found node **disagree by id**, re-wire the reference
-onto the LIVE node and re-verify with a **fresh `findOne`** — an independent verdict, not a read-back of the
-object just written (`docs/34`: the check must not share its subject with the write it checks). When the ids
+onto the LIVE node and re-verify with a **fresh `findOne`** — a fresh query against the host, not a read-back
+of the object just written (`docs/34`: the check must not share its subject with the write it checks). When the ids
 **agree** (the ordering case — Figma accepted the reference on the right node and still dropped it), the code
 falls straight through to the unchanged `DISCARDED` miss: that case stays inert. `#701`'s fast path is
 untouched. `CompNode` gains a typed `id` (same precedent as `textAlignVertical`: a port that cannot name a

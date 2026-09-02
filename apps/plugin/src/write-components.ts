@@ -1609,7 +1609,12 @@ const writeComponentSet = async (
       if (!id) continue;   // the property itself failed above and reported its own cause
       try {
         wr(node).componentPropertyReferences = Object.assign({}, (node.componentPropertyReferences ?? {}) as object, { [field]: id });
-        wiredRefs.push([String(member.name), r.part, r.field, id, node]);
+        // Record the field ACTUALLY written (`field` = own?.field ?? r.field), not the deduped `r.field`.
+        // The read-back reads back and, on an id divergence, RE-WIRES this slot — so it must name the same
+        // field the write above set, or a def where the per-member field differs from the deduped one would
+        // repair the wrong field. Inert today (per-member field === deduped field across the whole corpus),
+        // but this PR is the first code to write through the recorded slot, so it records the truth (#866).
+        wiredRefs.push([String(member.name), r.part, field, id, node]);
       } catch (err) { misses.push(`ref ${member.name}/${r.part}.${r.field} -> ${r.prop} (${(err as Error).message})`); }
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
@@ -1635,8 +1640,8 @@ const writeComponentSet = async (
     // to is NOT the node `findOne` returns now — they disagree BY ID — the write landed on a stale
     // fast-path handle. `combineAsVariants` "REWRITES the ids of anything declared before it", and
     // `builtParts` is captured before it, so a handle from that map can be the pre-combine twin of the
-    // live node. Re-wire the reference onto the LIVE node, then re-verify with a FRESH `findOne` — an
-    // independent verdict, not a read-back of the object just written (docs/34: the check must not share
+    // live node. Re-wire the reference onto the LIVE node, then re-verify with a FRESH `findOne` — a fresh
+    // query against the host, not a read-back of the object just written (docs/34: the check must not share
     // its subject with the write it checks). This cannot regress anything: it fires ONLY when the ids
     // genuinely diverge, so when they AGREE (the ordering case — Figma accepted the reference on the right
     // node and still dropped it) the code falls straight through to the DISCARDED miss below, unchanged,
