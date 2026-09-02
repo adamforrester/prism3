@@ -940,26 +940,18 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const neutralStrong = theme.neutralEmphasis === 'strong';
   const neutralAnchor = neutralStrong ? (cfg.family === 'light' ? 800 : 150) : (cfg.family === 'light' ? 150 : 850);
   iFill('neutral', neutralStepR(neutralAnchor), r2p.neutral, neutralStrong ? cfg.nonTextMin : 0);
-  iText('neutral', pickMostExtreme(textCands, baseRgb), r2p.neutral, false);   // strongest neutral — states collapse onto rest
-  // Neutral is the ONE column whose border does NOT follow the ink, and the reason is measurable
-  // rather than aesthetic: its ink is `pickMostExtreme` (step 950 light / 025 dark — near-black or
-  // near-white) while its edge is `pickMinPass` (400–550, a mid grey). Those are opposite ends of
-  // the ramp ON PURPOSE, and the ink is `walkable: false`, so its three states all collapse onto
-  // rest. Following it would therefore do BOTH wrong things at once — repaint every neutral outline
-  // near-black, and leave the border stateless again, which is the defect this closes.
-  //
-  // So neutral keeps its own anchor and walks the neutral ramp for its states, which is exactly the
-  // `field.border` idiom (rest + a two-step-stronger hover, re-gated at `nonTextMin`) extended to a
-  // third state. Two steps per state, matching `field.border.hover`'s reasoning verbatim: a border
-  // is a hairline, and one step is a far weaker cue on 1px of chrome than on a filled button.
-  const nBdRest = pickMinPass(ramp, baseRgb, cfg.nonTextMin);
-  const nBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === nBdRest.path)!.num;
-  const nBdGuard = guardFrom(contrast(nBdRest.rgb, baseRgb), baseRgb, cfg.nonTextMin);
-  iBorder('neutral', {
-    rest: nBdRest,
-    hover: walk(r2p.neutral, nBdNum, 2, dir, nBdGuard),
-    pressed: walk(r2p.neutral, nBdNum, 4, dir, nBdGuard),
-  }, baseRgb, '', 'background.primary');
+  // #576: neutral's border now FOLLOWS THE INK, like every colored family — the former special-case
+  // mid-grey edge (`pickMinPass`, 400–550) is retired. The neutral ink is `pickMostExtreme` (near-black
+  // in light / near-white in dark) and `walkable: false`, so the three border states collapse onto rest
+  // exactly as the ink does. This reads LOUDER than the old grey — a near-black (or near-white) edge
+  // matching its label — which is the DECIDED outcome (owner, on #576), not a regression to re-report.
+  // Contrast-safe by construction: the ink already cleared `secondaryMin` against the ground, a stricter
+  // bar than the border's `nonTextMin`, so a matching edge can never fail its gate. The one thing lost is
+  // the border's own state walk (hover/pressed shifting), and that is correct: an edge that MATCHES a
+  // stateless ink is itself stateless, the same rule the colored families follow — their border walks
+  // only because their ink does.
+  const nText = iText('neutral', pickMostExtreme(textCands, baseRgb), r2p.neutral, false);   // strongest neutral — states collapse onto rest
+  iBorder('neutral', nText, baseRgb, '', 'background.primary');
 
   // extensible interactive columns (docs/20 §3) — N opt-in `interactive.<name>.*` families, each
   // promoting a declared palette (the generalised accent lever). Same fill+states / text / border
@@ -1015,7 +1007,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
     // light / dark extreme so it reads as an inverted button AND its on-fill ink resolves clean (a mid
     // fill makes onColor fall back to pure black). States walk toward MORE contrast on the inverse band.
-    const fillRest: RatedNum = palette ? chromatic(palette, cfg.family === 'light' ? 100 : 900, invRgb, cfg.nonTextMin) : neutralStepR(cfg.family === 'light' ? 50 : 850);
+    //
+    // #1208: the inverse FILLED fill is NEUTRAL near-white (light) / near-black (dark) for EVERY family,
+    // not a light step of the family's own palette. Desk QA read the family tint (primary → brand.100,
+    // destructive → danger.100) as "not white"; the decided answer is a uniform neutral inverted surface,
+    // so primary / neutral / destructive all resolve the SAME fill here — the family identity on a dark
+    // band is carried by the OUTLINE/TEXT ink and the on-fill ink, not by tinting the filled surface.
+    // Mode-awareness is kept: `neutralStepR` picks 50 in light (near-white) and 850 in dark (near-black),
+    // the extreme that both reads as an inverted button and resolves a clean on-fill (a mid neutral would
+    // make `onColor` fall back to pure black). The state walk below now rides the NEUTRAL ramp for the
+    // same reason — a family-palette walk from a neutral rest would be a step number on the wrong ramp.
+    const fillRest: RatedNum = neutralStepR(cfg.family === 'light' ? 50 : 850);
     // `FILL_STATES`, not a hand-written three (#892). This loop read
     // `['default','hover','pressed']` while the page's `iFill` walked all five, so `fill.focused`
     // and `fill.selected` were absent from every inverse column — and `focused` is the
@@ -1030,7 +1032,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = st === 'default' ? fillRest
-        : walk(palette ?? r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
+        : walk(r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
         `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
     }
@@ -1053,19 +1055,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // sitting 0.30 above 3:1. The declared minimum stays the border's own — a future
     // non-matching source must be held to its own bar, not to the ink's.
     //
-    // Neutral has no palette, so its ink is `pickMostExtreme` and its states collapse; it takes
-    // the same own-anchor treatment as the page-ground neutral border above.
-    if (palette) iBorder(name, invInk, invRgb, 'inverse.', 'inverse.background.primary', ' on a dark / inverse surface');
-    else {
-      const iBdRest = pickMinPass(ramp, invRgb, cfg.nonTextMin);
-      const iBdNum = neutral.find((s) => `${ns}.${r2p.neutral}.${s.key}` === iBdRest.path)!.num;
-      const iBdGuard = guardFrom(contrast(iBdRest.rgb, invRgb), invRgb, cfg.nonTextMin);
-      iBorder(name, {
-        rest: iBdRest,
-        hover: walk(r2p.neutral, iBdNum, 2, -dir, iBdGuard),
-        pressed: walk(r2p.neutral, iBdNum, 4, -dir, iBdGuard),
-      }, invRgb, 'inverse.', 'inverse.background.primary', ' on a dark / inverse surface');
-    }
+    // #576: EVERY family's inverse border now follows its inverse ink, neutral included — the former
+    // neutral special-case (a mid-grey `pickMinPass` edge on the dark band) is retired to match the page
+    // ground. Neutral's inverse ink is `pickMostExtreme` against `invRgb` — WHITE on the dark band — so
+    // the neutral inverse outline border is now white, matching its white label (the decided answer to
+    // "inverse outline: border matches the white text, or not?" — yes). Its states collapse onto rest
+    // because the ink does. Same contrast guarantee as the page ground: `invInk` cleared `secondaryMin`
+    // against `invRgb`, stricter than the border's `nonTextMin`.
+    iBorder(name, invInk, invRgb, 'inverse.', 'inverse.background.primary', ' on a dark / inverse surface');
   };
   invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
   invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);

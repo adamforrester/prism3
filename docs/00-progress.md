@@ -7,6 +7,50 @@
 
 ---
 
+## (2026-09-02) — two button-QA colour corrections: inverse fill neutral, neutral border follows ink (#1208, #576)
+
+**STATUS: shipped.** Both live in `modes.ts`, both VALUES-only across all four brands. ENGINE 0.34.0 → 0.35.0
+(0.34.0 is #997's switch-inset, spent); CONTRACT stands at 9.3.0 — guaranteed set unchanged by this change
+(`token-contract.ts --check` clean; the baseline's `engineVersion` stamp re-accepted, no surface change).
+Every mode's contrast contract re-verified: **788/788 pass per brand, no AA/AAA floor dropped.** From the
+button-QA audit. Closes the engine halves of #1208 and #576. Rebased onto #997's #1229 (switch inset) — the
+`out/**` result is the UNION of that inset and these colour moves.
+
+── ONE PR, TWO CORRECTIONS — WHY TOGETHER ──────────────────────────────────────────────────────
+
+Both edit the interactive-colour derivation in `modes.ts` and both trigger a full all-brand regen, so keeping
+them apart would mean two PRs racing the same `out/**` bytes. Documented and mutation-verified independently.
+
+**#1208 — the inverse FILLED fill is now uniform neutral.** `invColumn`'s `fillRest` was
+`chromatic(palette, 100|900)` — a light step of the family's OWN palette (primary → brand.100, destructive →
+danger.100), which desk QA read as "a shade of the primary palette, not white." It is now
+`neutralStepR(50|850)` for every family, and the fill-state walk rides the neutral ramp too. So a filled
+button on a dark band is a neutral near-white surface (light) / near-black (dark), identical across
+primary/neutral/destructive; family identity on the band is carried by the outline/text ink and the on-fill
+ink, not by tinting the filled surface. Measured (nb): all three families → `#e8e9ea` light / `#1f2224` dark,
+on-fill the opposite extreme, ratio ~16:1. Mode-awareness kept (the QA's "mode-blind" read was wrong — the
+emission always flipped correctly; the finding was the family-tint, not the polarity).
+
+**#576 (engine half) — the neutral border now follows its ink.** `iBorder` already followed the ink for the
+colour families; neutral carried a special-case mid-grey edge (`pickMinPass`, steps 400–550) on both the page
+and the inverse band. That special-case is retired: neutral's border now takes its own text ink
+(`pickMostExtreme`, near-black/near-white, `walkable:false`), so the neutral outline edge matches its label —
+near-black on the page, **white on the inverse band** (the decided answer to "inverse outline: border matches
+the white text? — yes"). This reads deliberately LOUDER than the old grey; it is the owner-decided outcome,
+**not a regression to re-report.** Its states collapse onto rest because the ink does — the same rule the
+colour families follow (their border walks only because their ink walks). Contrast-safe by construction: the
+ink cleared `secondaryMin`, stricter than the border's `nonTextMin`.
+
+── THE TRAP, AND WHY NO GATE CAUGHT EITHER AS A REGRESSION ──────────────────────────────────────
+
+Both are wrong-to-right VALUE moves, so every structural gate stays green: the button binds the same role KEYS
+(`inverse.interactive.<family>.fill.rest`, `interactive.neutral.border.rest`), only the resolved values move,
+so `paint-census` (keyed on bindings, not hexes) does not drift, `regen --check` byte-matches the regenerated
+tree, and `token-contract --check` sees no name move. The only check that reads the resolved colours —
+`lint-ratio-truth` + the mode contracts — passes because both changes STRENGTHEN contrast (neutral border 3–4:1
+grey → ~19:1 near-black; inverse fill a mid family-tint → a ~16:1 neutral extreme). The loud neutral outline is
+the intended visible change; it is recorded here so the next desk-QA pass reads it as decided, not as drift.
+
 ## (2026-09-02) — the switch thumb sat flush at both ends, and Prism 2 could supply the shape but not the number (#997)
 
 **STATUS: shipped.** `control.size.<rung>.inset` minted in the tier, bound by `switch`'s track as uniform

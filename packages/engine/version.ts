@@ -102,6 +102,17 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.35.0: two button-QA colour-derivation corrections in `modes.ts`, both VALUES-only (no token name
+ * or `$type` moves, so `CONTRACT_VERSION` stands at 9.3.0 — `token-contract.ts --check` confirms). Takes
+ * 0.35.0 because #997's switch-inset 0.34.0 (below) is spent. (1) #1208 — the inverse FILLED fill is now
+ * a uniform neutral near-white (light) / near-black (dark) for every interactive family, where it used to
+ * be a light step of the family's own palette (primary → brand.100, destructive → danger.100); family
+ * identity on a dark band is carried by the outline/text ink and the on-fill ink, not by tinting the
+ * filled surface. (2) #576 — the neutral outline BORDER now follows its text ink like every colour family
+ * (near-black on the page, white on the inverse band), retiring the special-case mid-grey edge; reads
+ * deliberately LOUDER, contrast-safe by construction (the ink cleared the stricter text bar). Every mode's
+ * contrast contract re-verified — no floor drops.
+ *
  * 0.34.0: the switch thumb's CLEARANCE from its track's ends (#997). `control.size.{rung}` gains an
  * `inset` leaf — `(height - dot) / 2`, so 3/4/5/6/7 across `CONTROL_RUNGS` — and `switch`'s track binds
  * it as uniform padding. Before this the thumb sat FLUSH at both extremes: it is a flow child of a
@@ -720,7 +731,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.34.0';
+export const ENGINE_VERSION = '0.35.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -1941,13 +1941,13 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.500}",
+              "$value": "{prism.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.450",
-                  "contrast": 3.2,
+                  "aliasOf": "prism.core.palette.neutral.950",
+                  "contrast": 15.98,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -1962,19 +1962,19 @@
                   }
                 }
               },
-              "contrast": 4.59,
+              "contrast": 21,
               "against": "background.primary",
               "min": 4.5
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.600}",
+              "$value": "{prism.core.palette.black}",
               "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.550",
-                  "contrast": 4.56,
+                  "aliasOf": "prism.core.palette.neutral.950",
+                  "contrast": 15.98,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -1989,19 +1989,19 @@
                   }
                 }
               },
-              "contrast": 6.75,
+              "contrast": 21,
               "against": "background.primary",
               "min": 4.5
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.700}",
+              "$value": "{prism.core.palette.black}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.650",
-                  "contrast": 6.72,
+                  "aliasOf": "prism.core.palette.neutral.950",
+                  "contrast": 15.98,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -2016,7 +2016,7 @@
                   }
                 }
               },
-              "contrast": 9.85,
+              "contrast": 21,
               "against": "background.primary",
               "min": 4.5
             }
@@ -2730,7 +2730,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.core.palette.neutral.950",
-                  "contrast": 14.11,
+                  "contrast": 15.98,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -2745,7 +2745,7 @@
                   }
                 }
               },
-              "contrast": 15.26,
+              "contrast": 17.29,
               "against": "inverse.interactive.primary.fill.rest",
               "min": 4.5
             },
@@ -2925,7 +2925,7 @@
                 "prism3": {
                   "role": "semantic",
                   "aliasOf": "prism.core.palette.neutral.950",
-                  "contrast": 14.1,
+                  "contrast": 15.98,
                   "against": "inverse.interactive.destructive.fill.rest",
                   "min": 4.5,
                   "figma": {
@@ -2940,7 +2940,7 @@
                   }
                 }
               },
-              "contrast": 15.25,
+              "contrast": 17.29,
               "against": "inverse.interactive.destructive.fill.rest",
               "min": 4.5
             },
@@ -3142,13 +3142,13 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.500}",
+                "$value": "{prism.core.palette.white}",
                 "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.550",
-                    "contrast": 3.51,
+                    "aliasOf": "prism.core.palette.neutral.025",
+                    "contrast": 18.11,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -3163,19 +3163,19 @@
                     }
                   }
                 },
-                "contrast": 4.57,
+                "contrast": 21,
                 "against": "inverse.background.primary",
                 "min": 4.5
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.400}",
+                "$value": "{prism.core.palette.white}",
                 "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.450",
-                    "contrast": 5,
+                    "aliasOf": "prism.core.palette.neutral.025",
+                    "contrast": 18.11,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -3190,19 +3190,19 @@
                     }
                   }
                 },
-                "contrast": 6.37,
+                "contrast": 21,
                 "against": "inverse.background.primary",
                 "min": 4.5
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.300}",
+                "$value": "{prism.core.palette.white}",
                 "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.350",
-                    "contrast": 6.92,
+                    "aliasOf": "prism.core.palette.neutral.025",
+                    "contrast": 18.11,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -3217,7 +3217,7 @@
                     }
                   }
                 },
-                "contrast": 8.66,
+                "contrast": 21,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }
