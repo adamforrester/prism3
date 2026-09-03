@@ -7,6 +7,153 @@
 
 ---
 
+## (2026-09-03) — a binding key resolves from the whole coordinate, `weight` reopens the axis vocabulary, and the sweep found two bindings the brief did not name (#1248)
+
+**STATUS: shipped.** Completes #872's third form-label control. `ENGINE_VERSION` 0.39.0 → **0.40.0**;
+`CONTRACT_VERSION` **stands at 9.3.0**, and the reason it stands is measured below rather than
+assumed. This PR adds no gate; the list reads **53** because #1259's component-surface gate landed on
+main mid-build — and it is the gate that caught this change in CI (see the rebase note at the end).
+
+── TWO CHANGES, ONE PR, AND WHY SPLITTING THEM WAS REFUSED ───────────────────────────────────────
+
+The resolver widening and the `weight` axis ship together. Either alone is inert — the axis has
+nothing to vary without the resolver, the resolver nothing to resolve without the axis — and the
+Reviewer's condition (d) names the real hazard: splitting them leaves a window where the resolver
+accepts any placeholder and nothing in the corpus exercises more than one.
+
+**The resolver.** `anatomy-figma.ts` filled a `type` or geometry binding key by substituting `{size}`
+and nothing else, at two call sites (`expandKey(key, [size])`). Nothing had decided that. It is the
+axis the first templated key happened to need, and every later def inherited the limit as though it
+were a rule; #872 hit it head-on and deferred. Both sites now fill from `paintCoord` — the same map
+`fillPaintKey` reads — through one `fillKey` primitive. `expandKey` correspondingly generalizes from
+"expand `{size}` over the size list" to "cross-product over every axis the key names", which is what
+the authoring-time validator needs in order to check a two-axis key at all six of its coordinates.
+
+**Behaviour-preserving on the corpus as it stood, and that was measured before the axis landed**: the
+resolver change ALONE regenerated every artifact byte-identically (`git status` clean over `out/**`)
+and left the suite at 2823 passing. That measurement is what made it safe to put both halves in one
+PR rather than the other way round.
+
+**The axis.** `weight` (`regular | bold`) is the twelfth name in `VARIANT_AXES` and the first added
+since #756 closed the list. Values are Prism 2's own words, not the type-role names they resolve to,
+and the mapping is measured against `reference/Prism2/component-specs/form-label.json` rather than
+matched by name: `bold` → `.strong` = `weight-role.strong` = **700** = Inter's Bold, which is the
+`fontStyle` Prism 2's Bold variants set. **`.emphasis` (600) is the trap** — it reads like the
+emphatic one and is a weight that spec never uses. `field-label` binds the full 3 × 2 grid, and both
+text nodes follow the weight because all three of Prism 2's Bold variants set `fontStyle: "Bold"` on
+`required` as well as on `label`.
+
+── THE SWEEP FOUND TWO BINDINGS THE BRIEF DID NOT NAME ───────────────────────────────────────────
+
+The brief named six templated `type` bindings — button, checkbox, radio, switch, field-label ×2. The
+corpus has **eight**: `button-destructive` and `button-neutral` carry one each, because #1223 built
+them off `makeButton` and the factory copies the anatomy.
+
+Found by the gate on its first run, not by reading: the authored table disagreed with the corpus and
+printed both lists. That is the two-direction check earning its place immediately — a table checked
+only against itself would have reported six bindings gated and left two unswept, which is exactly the
+shape a widening is dangerous for.
+
+── THE GATE, AND WHY ITS ORACLE IS AUTHORED ──────────────────────────────────────────────────────
+
+Condition (b), and `docs/34` shape 1 stated as a rule rather than discovered as a bug. Reading the
+axis list back out of `def.variants` — the obvious way to write this — makes every arm assert
+`table === table`: a def templating `{colour}` and declaring a `colour` axis would agree with itself
+perfectly. So `TYPE_KEY_AXES` and the per-binding grid are **written**, and the corpus is checked
+against them, in both directions.
+
+Three arms. **DIRECTION 1**: the authored table is exactly the corpus's templated bindings, axes
+included. **DIRECTION 2**: every axis any binding names is in the authored vocabulary — this is what
+keeps the widening bounded, since the resolver will now fill *any* placeholder the coordinate carries,
+and without it a def could quietly give the type tier a colour axis. **DIRECTION 3**: the
+discrimination sweep, projected through the real `figmaAnatomyPlan` rather than by calling `fillKey`
+and looking the answer up, which would be shape 2 with the DRY spelled as a convenience.
+
+**The distinct-style count is authored per binding, not read off the value count**, and that turned
+out to be load-bearing in both directions. `switch` declares two size rungs on its brief's own words
+and discriminates fully over them; `button` declares three and produces **two** styles, because
+`size.large.type` reuses `type.label.md.emphasis` — there is no `lg` rung. A "one style per declared
+value" oracle would have called the first a failure and the second a failure too, when the first is
+correct and only the second is a gap. Authored, both are expressible and both fail on change.
+
+── THE BATTERY ───────────────────────────────────────────────────────────────────────────────────
+
+Nine rounds, each mutating a DEF's own part template (the call site, never a shared constant), each
+asserting the mutation applied and the tree restored clean. Every round named its own binding:
+
+| mutation | arms that fired |
+|---|---|
+| `button/label` hardcodes the rung | **button**, **button-destructive**, **button-neutral** — one shared anatomy, three defs, three named arms |
+| `checkbox/label` hardcodes the rung | checkbox, and nothing else |
+| `radio/label` hardcodes the rung | radio |
+| `switch/label` hardcodes the rung | switch |
+| `field-label/text` kills `size` | field-label/**text** |
+| `field-label/indicator` kills `size` | field-label/**indicator** |
+| `field-label/text` kills `weight` | field-label/text, on the weight axis |
+| `field-label/indicator` kills `weight` | field-label/indicator, on the weight axis |
+| **the resolver** takes each axis's first value instead of the coordinate | **all 8** discrimination arms, plus 14 pre-existing geometry gates |
+
+Every per-binding round also fired DIRECTION 1, which is correct: hardcoding a rung removes the
+placeholder, so the binding stops being templated and the authored table stops matching the corpus.
+
+The last row is the one that proves the sweep rather than the defs: it is a resolver that resolves
+cleanly at every coordinate, throws nowhere, validates every def, and discriminates nothing.
+
+**`field-label`'s two parts carry byte-identical `type` templates**, so the harness addresses them by
+OCCURRENCE. `docs/34` shape 7 handled before it bit rather than after: a string-anchored replace
+would have mutated the first part twice and reported the second binding as gated while nothing had
+touched it.
+
+**And the harness cost one restore.** Piping the battery's output through `head -100` SIGPIPE'd it
+mid-round and left the resolver mutation applied in the working tree. Caught by the next run's own
+dirty-tree guard, which refused every round rather than mutating on top of a mutation. Committing
+before the battery is what made that a diagnosis instead of a loss — the CLAUDE.md rule paying out on
+a failure mode it was not written for.
+
+── CONTRACT: IT DOES NOT MOVE, AND HERE IS WHY ───────────────────────────────────────────────────
+
+Condition (c) anticipated a MINOR bump to 9.4.0. **Measured, the surface does not move**: 574
+guaranteed names before, 574 after, `--check` clean. The three `type.body.{sm,md,lg}.strong` roles the
+new axis binds were **already emitted and already guaranteed** — verified against the committed
+baseline, not inferred. A component binding is a REFERENCE to a token name, not a token name, and the
+contract versions the latter. So `CONTRACT_VERSION` holds at **9.3.0**, on the branch the condition
+itself provided for (*"if the surface doesn't actually move, say why it holds"*).
+
+What *does* move is the projected surface, which is why the ENGINE bump is a MINOR: `field-label`'s
+Figma set goes **12 → 24** members and its paint grid **36 → 72** coordinates. `lint-paint --accept`
+records both; the census diff is that doubling and nothing else.
+
+── FILED, NOT FIXED ──────────────────────────────────────────────────────────────────────────────
+
+**#1260** — button's `large` reuses the `md` type rung, so a large button's label is typographically
+identical to a medium one while every other dimension moves. It had been a bare `// FINDING (still
+open)` trailing comment in `button.ts` for three tickets, which is prose in a file rather than a work
+item; the sweep measured it and it now has an issue with two named routes (add a `lg` rung to
+`type.label.*`, or move button to `type.body.*` as #872 moved field-label — the second changes the
+weight of every button label in the system, so it is a decision rather than a patch).
+
+── REBASE: THE NEW GATE CAUGHT THIS ON ITS FIRST CI RUN ──────────────────────────────────────────
+
+Built on `9660a5c` at ENGINE 0.38.0; while the battery ran, `main` took **#1259** (the component-
+surface gate, #1252) and **#1256** (per-member text defaults, #1018), which spent 0.39.0. So this
+rebases onto `012d75d` and re-stamps to **0.40.0**, and the progress and changelog entries sit
+newest-first above #1018's.
+
+The first CI run failed, and it should have: **`lint-component-surface` reported `field-label: 24
+projected member(s), baseline 12 — the set GREW`** with a moved plan digest, on a head whose local
+`npm run verify` was 52/52 green. That is not a contradiction, it is #1213's rule with a live
+example — a local run cannot see a gate that does not exist in its checkout. `--accept` restamps
+exactly one def:
+
+```
+field-label        12 members → 24 members
+```
+
+Worth stating plainly because it is the point of #1252: **component payloads are not committed under
+`out/`**, so `lint-emission-version` reported clean over 8 moved artifacts and was right — the
+doubling it could not see is precisely what the new gate exists for. Two gates, two scopes, and the
+one that mattered here is the one that did not exist when this branch was cut.
+
 ## (2026-09-03) — per-member text defaults; field-message's error member stops rendering helper copy (#1018)
 
 **STATUS: shipped.** ENGINE → **0.39.0** (0.36.0/0.37.0/0.38.0 spent — #872 field-label, #1244 inverse

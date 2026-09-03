@@ -361,6 +361,22 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'third that is not a layout concern belonging to the container. Named for the BEHAVIOR rather than '
       + 'a measurement, so it survives a brand re-deriving its dimensions.',
   },
+  {
+    axis: 'weight',
+    values: ['regular', 'bold'],
+    defs: ['field-label'],
+    relation: 'sole',
+    reason:
+      'How heavy the label reads, held apart from how big it is — Prism 2\'s third form-label control '
+      + '(#1248, completing #872), whose enum is `["Regular", "Bold"]` and whose Bold variants cross size '
+      + 'in full. VALUES ARE PRISM 2\'S WORDS, not the type-role names the two resolve to: `bold` binds '
+      + '`type.body.{size}.strong` and `strong` is weight 700, which is what Inter calls Bold — measured '
+      + 'against the reference spec, since `emphasis` (600) is the nearer-looking role and the wrong one. '
+      + 'Naming the values `default`/`strong` would pin the axis to `type.body.*`\'s cells, which a def '
+      + 'binding a different tier does not share. TWO values and not the weight-role ladder\'s five '
+      + '(`subtle`, `default`, `emphasis`, `strong`, `max`): this axis is what a designer CHOOSES on a '
+      + 'component, not what the type scale can express, and Prism 2 offers two.',
+  },
 ];
 
 /** A reason shorter than this is a label, not a justification. Crude on purpose — see SCOPE above. */

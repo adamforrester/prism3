@@ -138,6 +138,36 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.40.0: a binding key resolves from the member's WHOLE COORDINATE, and `weight` joins the axis-name
+ * vocabulary (#1248, completing #872's third control). Two changes, and they ship together because
+ * either alone is inert: the axis has nothing to vary without the resolver, and the resolver has
+ * nothing to resolve without the axis.
+ *
+ * THE RESOLVER. `anatomy-figma.ts` filled a `type` or geometry binding key by substituting `{size}`
+ * and nothing else — `expandKey(key, [size])`, at two call sites. Nothing had decided that; it is the
+ * axis the first templated key happened to need, and every later def inherited the limit as if it
+ * were a rule. Both sites now fill from `paintCoord`, the same map `fillPaintKey` reads, through one
+ * `fillKey` primitive. Behaviour-preserving on the corpus as it stood — measured, not assumed: the
+ * resolver change alone regenerated every artifact byte-identically and left the suite at 2823
+ * passing, which is what made it safe to land the axis in the same PR.
+ *
+ * THE AXIS. `weight` (`regular | bold`) is the twelfth name in `VARIANT_AXES`, and the first added
+ * since #756 closed the list. `field-label` declares it and binds the full 3 x 2 grid onto
+ * `type.body.{sm,md,lg}.{default,strong}`. Values are Prism 2's own words rather than the type-role
+ * names they resolve to, and the role each maps to is measured against `reference/Prism2/component-
+ * specs/form-label.json` rather than matched by name: `bold` -> `.strong` = `weight-role.strong` =
+ * 700 = Inter's Bold, which is the `fontStyle` Prism 2's Bold variants set. `.emphasis` (600) is the
+ * nearer-looking role and the wrong one.
+ *
+ * THE PROJECTED SURFACE DOUBLES, which is the compatibility-relevant part and why this is a MINOR.
+ * `field-label`'s Figma set goes 12 -> 24 members and its paint grid 36 -> 72 coordinates; the census
+ * baseline records both. Its code API gains a `weight` prop.
+ *
+ * NO TOKEN NAME OR VALUE MOVES, and `CONTRACT_VERSION` stands at 9.3.0 with `--check` confirming it
+ * rather than this comment asserting it. Worth stating precisely, because "an axis was added" sounds
+ * like a surface change and is not one here: the three `type.body.*.strong` roles the new axis binds
+ * were ALREADY emitted and already guaranteed (574 names before, 574 after). A component binding is a
+ * REFERENCE to a token name, not a token name — the contract versions the latter.
  * 0.39.0: PER-MEMBER text defaults (#1018). `figmaProperties.texts.<prop>` gains an optional
  * `byVariant: { <axis>: { <value>: string } }` — the per-coordinate placeholder a set member renders,
  * with `default` staying the fallback for any coordinate it does not name. A component set carried ONE
@@ -872,7 +902,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.39.0';
+export const ENGINE_VERSION = '0.40.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

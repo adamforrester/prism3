@@ -31,6 +31,7 @@ export const fieldLabel: ComponentDef = {
     { name: 'indicator', type: "enum: 'none' | 'required' | 'optional'", values: ['none', 'required', 'optional'], default: 'none', required: false, description: 'The required/optional marker. Mark the MINORITY consistently within a form (§7): "(optional)" when most are required, a required marker when most are optional. Never the sole signal — the field also carries required/aria-required.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size. THREE steps as of #872, converging with `text-field` and `textarea`, which have declared small/medium/large since tranche 1 — #872 deferred the third rung to the substrate ("they must agree, and field-label cannot answer alone") and the substrate has since answered. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
     { name: 'tone', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (#872 — Prism 2 calls this control "color"). `secondary` is the de-emphasized label a dense form or a read-only field wants, which #872 named as the sharpest of its three gaps: the ink was hard-bound with no way to express it. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
+    { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (#1248 — Prism 2\'s third form-label control, and the last of its three to land here). `bold` resolves the `strong` type role (weight 700, Inter\'s Bold) at whichever size rung is chosen; `regular` resolves `default` (400). Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
     { name: 'isDisabled', type: 'boolean', default: false, required: false, description: 'Dims the label when its field is disabled (a visual echo — the field\'s native disabled is the source of truth).' },
   ],
 
@@ -39,6 +40,12 @@ export const fieldLabel: ComponentDef = {
   variants: {
     size: ['small', 'medium', 'large'],
     tone: ['primary', 'secondary'],
+    // PRISM 2'S THIRD CONTROL, and the last of the three (#1248, completing #872). Its enum is
+    // `["Regular", "Bold"]` with `Regular` the default, and these are those two values in this repo's
+    // casing. It crosses `size` in full over there — `{size: Medium, weight: Bold}` and
+    // `{size: Large, weight: Bold}` are both authored members — which is why it is an axis and not a
+    // second ladder folded into `size`.
+    weight: ['regular', 'bold'],
     indicator: ['none', 'required', 'optional'],
   },
 
@@ -131,13 +138,27 @@ export const fieldLabel: ComponentDef = {
     // `type.label.*` is 12 / 14, emphasis-only, and has no `lg` rung, so it can reach neither Prism 2's
     // sizes nor its regular weight. It is also the tier #862 predicted for the field family.
     //
-    // `.default` (weight 400) is Prism 2's DEFAULT cell. Prism 2 also exposes a Bold option; that is a
-    // second axis and it is NOT built here — it needs a coordinate-driven `type` resolver and a new name
-    // in #756's deliberately closed axis vocabulary, both of which are decisions rather than bindings.
-    // Filed as #1248. This def binds one weight until that lands.
-    'size.small.text': 'type.body.sm.default',
-    'size.medium.text': 'type.body.md.default',
-    'size.large.text': 'type.body.lg.default',
+    // BOTH WEIGHTS, AS OF #1248 — the two things this binding was waiting on both landed in that
+    // change: the projector fills a `type` key from the member's whole coordinate rather than from
+    // `{size}` alone, and `weight` is a name in `VARIANT_AXES`. The paragraph that stood here said
+    // this def "binds one weight until that lands"; it has landed, and the grid is now the full 3 × 2.
+    //
+    // THE ROLE EACH WEIGHT RESOLVES TO IS MEASURED, not matched by name. `bold` → `.strong`, because
+    // `type.body.*.strong` is `weight-role.strong` = `font.weight.700`, and 700 is what Inter calls
+    // Bold — which is the `fontStyle` Prism 2's Bold variants set. `.emphasis` is the trap: it reads
+    // like the emphatic one and is 600, a weight Prism 2's form-label never uses. `regular` → `.default`
+    // = `weight-role.default` = 400 = Inter Regular, which is Prism 2's default cell.
+    //
+    // SIZE × WEIGHT, FULLY CROSSED, because Prism 2 crosses them: its `{size: Medium, weight: Bold}`
+    // and `{size: Large, weight: Bold}` variants are authored and carry 16px/Bold and 18px/Bold. Six
+    // keys, and every one of them is reachable — `lint-paint`'s grid census and the projected member
+    // set both go 3 → 6.
+    'size.small.regular.text': 'type.body.sm.default',
+    'size.medium.regular.text': 'type.body.md.default',
+    'size.large.regular.text': 'type.body.lg.default',
+    'size.small.bold.text': 'type.body.sm.strong',
+    'size.medium.bold.text': 'type.body.md.strong',
+    'size.large.bold.text': 'type.body.lg.strong',
   },
 
   // TWO TEXT NODES IN A ROW, and the def's whole structure is that plus the gap between them. The
@@ -165,14 +186,20 @@ export const fieldLabel: ComponentDef = {
       },
       text: {
         kind: 'text',
-        type: 'size.{size}.text',
+        type: 'size.{size}.{weight}.text',
         // No `paintSlot` — the default IS `label`, and stating it would invite the reading that the
         // field is required on every text part.
         note: 'The accessible name. A native <label for> in the code projection; a plain text node in Figma, where the association cannot exist.',
       },
       indicator: {
         kind: 'text',
-        type: 'size.{size}.text',
+        // THE MARKER FOLLOWS THE WEIGHT, and this is measured off Prism 2 rather than inferred from
+        // the label's binding: every one of its three Bold variants sets `fontStyle: "Bold"` on the
+        // `required` element as well as on `label`. Same shape as the tone decision above — the two
+        // text nodes move together — but arrived at from the reference spec independently, since a
+        // marker that stayed Regular beside a Bold label is a perfectly coherent design that Prism 2
+        // simply does not have.
+        type: 'size.{size}.{weight}.text',
         // THE FIELD THIS PR ADDS (#796). Without it this part takes `paintOf('label')` like every other
         // text node and renders in `color.text.primary` — the de-emphasis silently lost. Measured before
         // the field existed: both text parts came back `color/text/primary`.
@@ -233,17 +260,27 @@ export const fieldLabel: ComponentDef = {
   // and because a one-glyph placeholder in a de-emphasized ink is exactly the projection a designer
   // mistakes for an empty node — the thing this fix is for.
   figmaProperties: {
-    // `tone` PROJECTS as of #872; `indicator` still does not, for the reason in `codeOnly` below — its
-    // most important value is ABSENCE, which no coordinate here can express. The set carries
-    // 3 sizes x 2 tones x 2 states = 12 members; Prism 2's own `_Form label` set is 3 x 2 x 2 over
-    // size x color x weight.
+    // `tone` PROJECTS as of #872 and `weight` as of #1248; `indicator` still does not, for the reason
+    // in `codeOnly` below — its most important value is ABSENCE, which no coordinate here can express.
+    // The set carries 3 sizes x 2 tones x 2 weights x 2 states = 24 members, against the 12 that
+    // shipped before the weight axis. Prism 2's own `_Form label` set is 3 x 2 x 2 over
+    // size x color x weight, so the three CONTROLS now match one-for-one.
     //
-    // DO NOT READ THAT AS "one axis apart". The weight axis (#1248) is the largest gap and not the only
-    // one: this def DEFAULTS to `tone: primary` and `size: medium` where Prism 2 defaults to Secondary
-    // and Small, so the two sets agree on the vocabulary and disagree on which cell a consumer lands in
-    // having chosen nothing. The size ladders match (14/16/18) and the color values match role-for-role;
-    // the defaults are a separate decision that #872 did not take, and nothing here has taken it since.
-    variantAxes: ['size', 'tone'],
+    // DO NOT READ THAT AS "the same set". What remains is DEFAULTS, and they are a real divergence
+    // rather than a rounding error: this def defaults to `tone: primary`, `size: medium` and
+    // `weight: regular` where Prism 2 defaults to Secondary, Small and Regular. Two of the three
+    // disagree, so a consumer who chooses nothing lands in a different cell in each system. The
+    // vocabularies agree — the size ladder is 14/16/18 in both, the colors match role-for-role, and
+    // the weights are 400/700 in both — and the defaults are a separate decision that #872 did not
+    // take, #1248 has not taken, and nothing here should take as a side effect of adding an axis.
+    //
+    // THE FOURTH AXIS IS NOT THE SAME AXIS, and the matching member counts hide that rather than show
+    // it. Both sets are 24, and they get there differently: Prism 2 is size x weight x color x
+    // `required` (a BOOLEAN prop, default `true`) and has no disabled treatment at all, while this is
+    // size x tone x weight x `state` (rest/disabled) with `required` living on the unprojected
+    // `indicator` axis. So the two 24s are not comparable cell-for-cell, and reading them as agreement
+    // is the kind of arithmetic coincidence this file has been wrong about before.
+    variantAxes: ['size', 'tone', 'weight'],
     stateAxis: { name: 'state', values: ['rest', 'disabled'] },
     texts: {
       children: { part: 'text', default: 'Email address' },

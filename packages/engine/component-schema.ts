@@ -1310,10 +1310,61 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
   return e;
 };
 
-/** Expand a binding key's `{size}` placeholder across a def's declared sizes. A key with no
- *  placeholder expands to itself, so callers need not special-case. */
-export const expandKey = (key: string, sizes: string[]): string[] =>
-  key.includes('{size}') ? sizes.map((s) => key.replace('{size}', s)) : [key];
+/**
+ * Every coordinate a binding key expands to — the CROSS PRODUCT of the declared values of every axis
+ * the key names. A key with no placeholder expands to itself, so callers need not special-case.
+ *
+ * WHY THIS IS NOT `{size}`-ONLY ANY MORE (#1248). It read `key.includes('{size}') ? sizes.map(…)`,
+ * which is the whole of what made `size` the only axis a binding key could vary by. Nothing decided
+ * that: it is the axis the first templated key happened to need, and every later def inherited the
+ * limit as if it were a rule. #872 hit it head-on — Prism 2's form-label crosses size × weight and the
+ * engine could express only the size half, so the def bound one weight and filed the other.
+ *
+ * ORDER IS `axes` ORDER, not the template's, and that matters only in that it is STABLE: callers use
+ * this to enumerate keys for validation, so a set that reorders between runs would make a diff appear
+ * where nothing moved. The first entry is not privileged — unlike `paintKeys`, where the first
+ * template is the one `paintOf` tries first.
+ *
+ * A template naming an axis with NO declared values expands to `[]`, deliberately, and that is the
+ * same signal the old `sizes: []` case gave: nothing to expand over, so the caller's "did this
+ * resolve" check fails rather than silently filling the placeholder with the string "undefined".
+ */
+export const expandKey = (key: string, axisValues: Record<string, readonly string[]>): string[] => {
+  let out = [key];
+  for (const axis of Object.keys(axisValues)) {
+    if (!out.some((k) => k.includes(`{${axis}}`))) continue;
+    out = out.flatMap((k) => axisValues[axis].map((v) => k.replace(`{${axis}}`, v)));
+  }
+  return out;
+};
+
+/**
+ * Fill every `{placeholder}` in a binding-key template from ONE coordinate, or `undefined` if any
+ * placeholder has no value there (#1248).
+ *
+ * The counterpart to `expandKey`: that answers "which keys can this template become", this answers
+ * "which key is it at THIS member". `fillPaintKey` is this function with `{slot}` supplied, and
+ * routing both through one substitution is the point rather than a tidy-up — the projector resolves
+ * paint keys and geometry/type keys from the same coordinate, and two substitution rules that could
+ * drift apart is how `{size}` ended up the only axis half the projector understood.
+ *
+ * `undefined` rather than a partly-substituted string, for `fillPaintKey`'s reason: a key like
+ * `size.md..text` looks up something nothing binds, which is indistinguishable from a key the def
+ * deliberately omits. Callers that MUST resolve (geometry, type) turn it into a throw; `paintOf`
+ * treats it as "try the next template".
+ */
+export const fillKey = (
+  template: string,
+  coord: Record<string, string | undefined>,
+): string | undefined => {
+  let out = template;
+  for (const ph of paintKeyPlaceholders(template)) {
+    const value = coord[ph];
+    if (!value) return undefined;
+    out = out.replace(`{${ph}}`, value);
+  }
+  return out;
+};
 
 /**
  * The paint slots the projector asks for (`anatomy-figma.ts`'s paint dispatch). Exported so
@@ -1646,11 +1697,47 @@ export type State = (typeof STATES)[number];
  * for two names: `surface` everywhere, `color` nowhere. The name `color` is deliberately NOT kept as an
  * available-but-unused entry — a dead axis name reads as a claim nobody makes, and re-adding it later is
  * one line if a genuinely distinct "which colour" axis is ever needed.
+ *
+ * ── `weight`: THE TWELFTH NAME, AND THE FIRST ADDED TO REOPEN A CLOSED LIST (#1248) ──────────────
+ *
+ * `weight` (`regular | bold`) is how HEAVY the type is, held apart from how BIG it is. It earns the
+ * entry on this list's own bar — a distinct kind of distinction that no existing name expresses — and
+ * the two that come closest are worth defeating explicitly, because "we already have a name for that"
+ * is the failure this list exists to prevent and it is also the cheapest wrong answer here.
+ * `size` is the nearest, and it is a different question: Prism 2's form-label crosses the two in full
+ * (Medium+Bold and Large+Bold are both authored members of `reference/Prism2/component-specs/form-
+ * label.json`), so collapsing them would make four of its six variants inexpressible. `appearance` is
+ * the other, and it is an EMPHASIS ladder over a whole control — filled/outline/text, a treatment of
+ * the component — where this names one property of the text inside it.
+ *
+ * VALUES ARE PRISM 2'S OWN WORDS, not the engine's type-role names. `regular`/`bold` rather than
+ * `default`/`strong`, even though those are the roles the two values resolve to, because the axis is
+ * the DESIGNER-facing control and Prism 2 spells its enum `["Regular", "Bold"]`. The roles stay on the
+ * right-hand side of the binding where they belong: `weight=bold` → `type.body.{size}.strong`, and
+ * `strong` is `weight-role.strong` = 700, which is what Inter calls Bold — measured against the
+ * reference spec rather than assumed, since `emphasis` (600) is the nearer-looking role and the wrong
+ * one. Naming the values after the roles would also pin the axis to a tier: `default`/`strong` are
+ * `type.body.*`'s cells, and a def binding `type.heading.*` has different ones.
+ *
+ * TWO VALUES AND NOT THE FIVE THE WEIGHT-ROLE LADDER HAS (`subtle`, `default`, `emphasis`, `strong`,
+ * `max`). The axis is what a designer CHOOSES on a component, not what the type scale can express, and
+ * Prism 2 offers two. A def needing a third adds it to its own `variants` — values are open, and
+ * `lint-axis-values.ts` is where the divergence would have to be argued.
+ *
+ * ── WHAT REOPENING THIS LIST COST, since #756 closed it and that decision stands ─────────────────
+ *
+ * #756 closed axis NAMES after four spellings of one axis shipped, and nothing here weakens that. The
+ * bar is unchanged and this entry was held to it. What is worth recording is that the closure did its
+ * job in the other direction too: #872 wanted this control, found the list closed, and DEFERRED rather
+ * than inventing a name — the def carried "this needs a new name in #756's deliberately closed axis
+ * vocabulary, which is a decision rather than a binding" for a release. A closed list that produces a
+ * filed issue instead of a fifth spelling is the mechanism working, and the entry it eventually admits
+ * is not evidence against it.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
-  'name', 'surface',
+  'name', 'surface', 'weight',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -1718,15 +1805,7 @@ export const fillPaintKey = (
   template: string,
   slot: string,
   coord: Record<string, string | undefined>,
-): string | undefined => {
-  let out = template;
-  for (const ph of paintKeyPlaceholders(template)) {
-    const value = ph === 'slot' ? slot : coord[ph];
-    if (!value) return undefined;
-    out = out.replace(`{${ph}}`, value);
-  }
-  return out;
-};
+): string | undefined => fillKey(template, { ...coord, slot });
 
 /**
  * Cross-reference checks for `paintKeys` (#758). Every placeholder must name something the def has.
@@ -2130,15 +2209,29 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       e.push(`anatomy part '${n}' declares paintSlots 'indicator' and has ${parts[drawn[0]].kind} child${drawn.length > 1 ? 'ren' : ''} [${drawn.join(', ')}] — a box may take an ink slot only when it DRAWS the mark itself, or the fill lands behind the node that does (#864). Move the ink to the drawing part's own slot.`);
   }
 
-  // Every binding key anatomy names must be a slot the component actually binds, at every size.
+  // Every binding key anatomy names must be a slot the component actually binds, AT EVERY COORDINATE
+  // the key varies over — not merely at every size (#1248). The expansion is over the def's whole
+  // `variants` map rather than `sizes` alone, so a key naming a second axis is checked at the cross
+  // product. Under the `{size}`-only expansion a `size.{size}.{weight}.text` key expanded to three
+  // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
+  // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
     [p.gap, p.height, p.radius, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
-      for (const expanded of expandKey(key, sizes))
+      for (const expanded of expandKey(key, def.variants ?? {}))
         if (!(expanded in (def.tokens ?? {})))
           e.push(`anatomy part '${n}': binding key '${expanded}'${expanded === key ? '' : ` (from '${key}')`} is not a slot in tokens`);
+  // A placeholder naming no declared axis expands to NOTHING and would otherwise reach the loop above
+  // as an unexpanded literal — reported as a missing token rather than as the typo it is. Asked here
+  // so the message names the axis, and asked against `variants` because that is where the axis would
+  // have to be declared for the projector to have a value to substitute.
+  for (const n of names)
+    for (const key of bindingKeys(parts[n]))
+      for (const ph of paintKeyPlaceholders(key))
+        if (!(ph in (def.variants ?? {})))
+          e.push(`anatomy part '${n}': binding key '${key}' names placeholder '{${ph}}', which is not an axis in variants — the projector fills a binding key from the member's coordinate, so a placeholder no axis supplies can never be filled`);
   if (sizes.length === 0 && names.some((n) => bindingKeys(parts[n]).some((k) => k.includes('{size}'))))
     e.push("anatomy uses the {size} placeholder but variants.size is empty — nothing to expand over");
 
