@@ -637,7 +637,16 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
       set('strokes', []);
       // Both are set by the paints branch when it strokes; neutralized together with `strokes` so the
       // three never disagree. Figma's own defaults, and invisible without a stroke to draw.
-      set('strokeWeight', 1);
+      //
+      // THE WEIGHT IS GATED ON THE PLAN'S BINDING (#1228), the corner idiom below applied one branch
+      // earlier, and it is load-bearing rather than symmetric. This function runs AFTER the bind loop, so
+      // a literal write here UNBINDS a variable `setBoundVariable` already attached — and a live unbind
+      // reports no miss, so the build would look clean and ship the wrong weight. It became reachable the
+      // moment a def bound `strokeWidth` at a coordinate with NO stroke paint, which is exactly what the
+      // three selection controls do: checkbox at `checked`/`indeterminate` and switch at `on` bind a
+      // thickness and paint no border. `strokeAlign` needs no gate — no def can bind it, and INSIDE here
+      // agrees with the two sites that write it beside a stroke.
+      if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);
       set('strokeAlign', 'INSIDE');
     }
     set('dashPattern', []);

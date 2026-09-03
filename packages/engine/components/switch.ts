@@ -382,6 +382,22 @@ export const switchDef: ComponentDef = {
     'size.small.min-height': 'size.sm.height',
     'size.medium.min-height': 'size.md.height',
 
+    // ── THE BORDER'S THICKNESS (#1228), and this def has the strongest claim on it of the three, because
+    // here the border is load-bearing (see the `track` part): it is the ONLY thing that makes an off
+    // track distinguishable from the page, so drawing it at 1px was drawing the whole 1.4.11 argument at
+    // half weight. Prism 2 ships the track at `strokeWeight: 2` / `strokeAlign: INSIDE`
+    // (`reference/Prism2/component-specs/toggle-switch.json`). The flat-2px call and the ratio caution it
+    // overrides are recorded once, in `checkbox.ts`.
+    //
+    // ONE MEASURED CONSEQUENCE, worth stating because nothing asserts it: a Figma INSIDE stroke on an
+    // auto-layout frame with `strokesIncludedInLayout = false` — which both executors set — draws OVER the
+    // padding rather than consuming it, so the thumb's visible clearance is `inset − 2`. The inset ladder
+    // is 3/4/5 at compact, 4/5/6 at comfortable, 5/6/7 at spacious, so the tightest rung in the corpus
+    // (compact `small`, a 12px track) keeps 1px of gap where Prism 2's own 32px/padding-4 track keeps 2px.
+    // It stays a visible gap at every rung, and only on the OFF track: the ON coordinate paints no border
+    // at all (its fill clears 6.85–8.29:1 and IS the boundary), so the thumb travels into full clearance.
+    'border-width': 'border-width.thick',
+
     // ── THE TRACK'S TWO DIMENSIONS AND THE THUMB'S ONE — #900's third instance, now BOUND. The tier
     // already carried all three fields: #951 emitted `control.size.<rung>` with `height` and `width`,
     // and #910 added `dot` for radio. `width` had been emitted and bound by NOTHING until here, and its
@@ -512,6 +528,9 @@ export const switchDef: ComponentDef = {
         height: 'size.{size}.control',
         width: 'size.{size}.track',
         radius: 'radius',
+        // 2px, from the token — the load-bearing border drawn at the weight it was measured at. See
+        // `border-width` in `tokens` for the measurement and the thumb-clearance consequence.
+        strokeWidth: 'border-width',
         // THE THUMB'S CLEARANCE (#997), and it belongs to the TRACK rather than the thumb. The thumb is
         // distributed to MIN or MAX by `positionWhen`; an alignment has no offset to give, so the only
         // place a gap at BOTH extremes can come from is the container's padding. Uniform on all four

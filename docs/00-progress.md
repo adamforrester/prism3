@@ -7,6 +7,116 @@
 
 ---
 
+## (2026-09-03) — the three measured selection controls paste their borders at 2px, and the executors' last ungated stroke site (#1228)
+
+**STATUS: shipped, JIT-rebased onto #1267 (`7f2c0c7`).** `ENGINE_VERSION` **→ 0.45.0**;
+`CONTRACT_VERSION` **stands at 9.4.0**. Branched off `0984589` (#1266); rebased at merge onto `7f2c0c7`,
+which is version-neutral (#1267 is gate logic and prose only, and left main at 0.44.0), so 0.45.0 was
+still free and the stamp did **not** need to move forward a second time — the #1271 rule did not bite here.
+The rebase conflicted in `docs/00-progress.md` and nowhere else, because #1267 touched only that file and
+`lint-axis-values.ts`. **The token layer does not move** — `border-width.thick` was already emitted at 2px in
+all four corpus brands, aliased to `<root>.core.dimension.2` — so the only change under `out/**` is the
+generator stamp, verified as the *only* diffed line rather than assumed. The bump is demanded from the
+other side: `lint-component-surface` arm B, #1252's case, because three projected component surfaces move
+and no `out/` diff can see it.
+
+**What moved: three defs, one part each.** `checkbox.control`, `radio.control`, `switch.track` — every
+`PartDef` in the corpus that carries a `border` paint slot *and* has a Prism 2 measurement behind it. Each
+gains `'border-width': 'border-width.thick'` in its `tokens` map and `strokeWidth: 'border-width'` on the
+part, through the field #1266 added. `lint-component-surface --accept` reports exactly those three defs,
+same member counts (54 / 36 / 24), different plans.
+
+**The measurement.** `reference/Prism2/component-specs/checkboxes.json` ships the box at `strokeWeight: 2`
+/ `strokeAlign: INSIDE`; `radio-button.json` at 2 (no `strokeAlign` recorded); `toggle-switch.json` at 2 /
+INSIDE. Without a thickness to bind, all three pasted at the executors' literal 1px. The switch's is the
+one that mattered most: its off track's border is the *only* thing distinguishing it from the page
+(WCAG 1.4.11 — no fill in the tier clears 3:1 at any brand, while this border clears it at all four,
+3.20–3.28:1), so the whole argument was being drawn at half weight.
+
+**SCOPE — 2px on the three controls and 1px on the buttons, BOTH per Prism 2.** `Button.container`,
+`Destructive Button.container`, `Neutral Button.container` and `IconButton.container` also carry `border`
+slots, and the naive reading of "bind bordered parts' stroke width" would have moved seven defs and
+doubled every outline button's border. They stay at 1px because **that is Prism 2's figure for a button**
+(owner-confirmed). So 2px is a *control* figure, not a house border weight, and the two defs' different
+answers are both faithful to the reference rather than one being finished and the other deferred. Worth
+recording precisely, because an earlier draft of this work justified the same code outcome as "unmeasured,
+so out of scope" — same diff, wrong reason, and a wrong reason is what a later sweep argues against.
+
+One asymmetry in what can be *checked*: the controls' 2 cites a file in `reference/`, while no button spec
+is checked in at all, so the buttons' 1 rests on the owner's confirmation. The prose in `checkbox.ts`,
+`version.ts` and the plugin suite each say which of the two they are carrying.
+
+**A residual, filed rather than fixed here:** the buttons' 1px is the *executor's literal*, which happens
+to equal the figure Prism 2 measures. Right value, no token provenance — one rung short of what #1266 and
+this issue have been closing, and not the same change as this one (see the filed follow-up).
+
+**The flat-2px call, made against this issue's own caution.** #1228 warned: *"Do not port Prism 2's 2px as
+a constant — it is a ratio decision on a ladder Prism 2 does not share"* (the trap #997 hit with
+`padding: 4`). The owner approved a flat 2px, and the reason it holds is that there is no ladder here to
+ride: `border-width.thick` is 2 in every brand, aliased to the shared dimension grid, so a ratio ladder
+would have nothing brand-varying to scale against. `padding: 4` sat on a ladder that *does* move per brand;
+this does not.
+
+**`strokeWidth: null` on the selected variant needed no per-variant mechanism, and that is #1011 paying
+off.** Prism 2 records a null stroke weight on the checked coordinate. Here those coordinates bind no
+border slot at all — a lighter rim on a darker fill was #1011's third finding — so there is no stroke to
+thin. An absent paint slot *is* the null. Same for the switch's ON track, whose fill clears 6.85–8.29:1
+and is itself the boundary.
+
+**THE ACTUAL WORK WAS ONE EXECUTOR LINE, and finding out which one was most of the diagnosis.** The task
+named three stroke sites; two were already correct. `write-components.ts:1169` and the studio payload
+(`anatomy-figma.ts:2173` — the prompt's `:2147` was stale) were both gated on `wrote` by #1266. The third,
+`claimDefaults`' unstroked branch (`write-components.ts:640`), was **not** gated and had been unreachable
+until now:
+
+- `claimDefaults(node, n, misses, 'created')` is invoked at `:1309`, **after** the bind loop at `:1137`.
+  A literal `strokeWeight` write there lands after `setBoundVariable`, and live that **unbinds** the
+  variable while reporting no miss — the build looks clean and ships 1px.
+- Its branch is entered only when the plan paints **no** stroke, so it needed a part that binds a
+  thickness at a coordinate with no border paint. That is exactly what these three now do at
+  `checked` / `indeterminate` / `on` — the same absent slot the paragraph above is about. The two halves
+  of this issue meet in that one line.
+
+It is now `if (!('strokeWeight' in (n?.bound ?? {}))) set('strokeWeight', 1);` — the `bound`-gating idiom
+already used for the corners one branch later. Gated on the plan rather than on `wrote` because
+`claimDefaults` has no `wrote` in scope, and the cost is nil: a binding that failed to resolve leaves the
+weight at Figma's own 1, which is the value the literal would have written. `strokeAlign` needs no gate at
+all — no def can bind it, and INSIDE (what Prism 2 specifies) is hardcoded at all three sites, which is
+why this is a thickness field and not a stroke-alignment one.
+
+**Read-backs, extended on both legs.** `BoxRow` in `test-write-components.ts` gains `weight` (the bound
+variable's **name**) and `weightPx` (the literal), reusing the `readBoxes` machinery so the existing
+reachability pin — 54 / 36 / 24 rows, zero misses — already covers the new arms. Two fields because they
+fail on different regressions: the name goes wrong when a def rebinds, the literal goes non-zero when an
+executor writes over the binding, and the name alone cannot see the second. `test.ts` gets the studio-leg
+equivalent beside #1266's ring block, one coordinate per def, deliberately the **unstroked** one — the
+already-gated stroked path would pass without the new gate. Both legs are needed for #1266's reason: the
+two executors carry this default through different code (a `wrote.includes` guard versus a
+`wrote.indexOf` inside a payload string), so one can be ungated while the parity gate reports clean.
+
+Two traps met, both caught by a reachability pin rather than by inspection:
+
+- **The negative control's first draft stripped only `plan.root`.** That works for `focus-ring`, whose one
+  part *is* the root; the track is a **child**, so every binding survived and the arm failed with the
+  weights it was asserting about. Now recursive.
+- **`button`'s `container` is its anatomy root**, so `readBoxes`' search for a part named `container` finds
+  nothing — `planComponentName` has renamed the member. The scope arm reads the member node directly, and
+  the pin (`432/432`) is what said so instead of 0 rows passing vacuously.
+
+**Five mutations, each failing the arm that names it and nothing else:** (1) rebind checkbox to
+`border-width.hairline` → both legs fail *by name*, printing `border-width/hairline`; (2) ungate
+`claimDefaults` → the "nothing wrote a literal" arm fails, and the members it names are the `checked`
+ones, which proves the reachability claim from the other direction; (3) delete the 1px default outright →
+the negative control fires, printing `(1, 0)` — the 0 is the deleted path; (4) drop `strokeWidth` from
+`switch.track` → both legs fail; (5) sweep `strokeWidth` onto `Button.container` → the scope arm fails.
+A `wip:` commit precedes each, per the rule that every mutation's restore reaches back to `HEAD`.
+
+`55/55` gates pass. `token-contract.ts --accept` was needed for the engine-version stamp alone
+(`diff.level === 'none'`), which is by design — the gate ORs `baseline.engineVersion !== live.engineVersion`
+so an ENGINE-only bump fails `--check`.
+
+---
+
 ## (2026-09-03) — the axis-values floors were guarding two thirds of the corpus, and the comment you would check that against was wrong (#1267)
 
 **STATUS: shipped.** Gate logic and prose only. **Version-neutral** — no emitted output moves, so
@@ -127,6 +237,8 @@ slack with it. Neither did.
 
 Version-neutral still holds: ENGINE stays main's 0.44.0, CONTRACT 9.4.0, and
 `git diff origin/main HEAD -- version.ts out/ schema/` is empty.
+
+---
 
 ## (2026-09-03) — the focus ring pastes at 2px, and the property that was wrong had no read-back at all (#1266)
 
