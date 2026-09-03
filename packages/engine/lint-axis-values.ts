@@ -2,9 +2,13 @@
  * Prism3 engine — EVERY AXIS VALUE SET IS DECLARED, AND ITS RELATION TO THE OTHERS IS DECLARED TOO
  * (#934).
  *
- * `VARIANT_AXES` closes the axis **NAME** vocabulary — 11 names, checked in `component-schema.ts`.
- * Nothing closed, or even OBSERVED, axis **VALUES**. This gate is the census that was missing, built
- * on an authored register rather than on a scan.
+ * `VARIANT_AXES` closes the axis **NAME** vocabulary, checked in `component-schema.ts`. Nothing
+ * closed, or even OBSERVED, axis **VALUES**. This gate is the census that was missing, built on an
+ * authored register rather than on a scan.
+ *
+ * (That line read "— 11 names" until #1267. It was 12 by then, `weight` having landed in #1248, and
+ * the count bought a reader nothing they could not get from the constant. Arm D prints
+ * `VARIANT_AXES.length` live when it fires, which is the same fact at every ref.)
  *
  * ── WHY A REGISTER AND NOT A UNIFORMITY RULE ────────────────────────────────────────────────────
  *
@@ -385,14 +389,43 @@ const MIN_REASON = 80;
 /**
  * FLOORS (`docs/34` shape 9). Every arm below is a statement about a set, so every arm passes
  * vacuously over an empty one — a broken import, a renamed directory or a `variants` field that
- * changed shape would take the census to zero and the gate would report clean. Set below the corpus
- * with room to remove a def, not at it: a floor pinned to today's exact count is a second baseline
- * that fails on legitimate change.
+ * changed shape would take the census to zero and the gate would report clean. Nothing else in the
+ * repo checks axis-value declarations, so a collapse here is unmitigated: there is no second gate to
+ * notice that this one stopped looking.
  *
- * Measured on `d9c5b2d`: 11 tracked def files, 11 defs carrying `variants`, 24 (def, axis) pairs.
+ * ── THE MARGIN IS A RULE, NOT A SNAPSHOT (#1267) ─────────────────────────────────────────────────
+ *
+ * Each floor is **the corpus minus one legitimate removal**, and the two floors differ in what one
+ * removal costs them:
+ *
+ *   FLOOR_DEFS   — minus ONE def. A def can legitimately be retired, and the gate should survive that
+ *                  without an edit; it should not survive two, because at that point something is
+ *                  deleting defs rather than someone retiring one.
+ *   FLOOR_PAIRS  — minus the WIDEST def's axis count, because removing a def takes ALL of its pairs
+ *                  with it. Sized to the widest rather than the average: the floor has to tolerate
+ *                  the most expensive single removal, or retiring the wrong def trips it.
+ *
+ * WHY THE FLOORS ARE AUTHORED AND NOT COMPUTED, since deriving them from the corpus is the obvious
+ * next thought and it is `docs/34` shape 1: a floor computed from the thing it guards agrees with
+ * that thing at every ref, including the ref where the census has collapsed to three. The number has
+ * to come from outside the subject, which means a human types it.
+ *
+ * **NO LIVE COUNT IS WRITTEN DOWN HERE, deliberately, and that is the #1267 finding rather than a
+ * style preference.** This block used to end "Measured on `d9c5b2d`: 11 tracked def files, 11 defs
+ * carrying `variants`, 24 (def, axis) pairs" — three numbers, one of which was a category error and
+ * two of which went stale. The corpus reached 13 defs and 34 pairs while the floors sat at 8 and 15,
+ * so the gate was protecting a population less than two thirds of its actual size, and the comment a
+ * reader would check that against confidently reported the wrong figures. The live population is
+ * PRINTED on the success line instead, with each floor's slack beside it, so it is true at every ref
+ * and visible without anyone mutating the gate to find out.
+ *
+ * (The category error is worth naming so it is not reintroduced: `11 tracked def files` and `11
+ * defs` were not the same claim. `button.ts` exports THREE defs through `makeButton` — button,
+ * button-destructive, button-neutral — so the file count has never equalled the def count since
+ * #1223. `FLOOR_DEFS` counts DEFS, which is what every arm below iterates.)
  */
-const FLOOR_DEFS = 8;
-const FLOOR_PAIRS = 15;
+const FLOOR_DEFS = 12;
+const FLOOR_PAIRS = 30;
 
 // ---- the corpus, read through git -----------------------------------------------------------------
 
@@ -623,20 +656,34 @@ if (hygiene.length) {
 
 const divergent = [...entriesByAxis.values()].filter((e) => e.length > 1).length;
 
+// THE POPULATION IS STATED IN ONE PLACE — the success line — and that is the #1267 rule rather than
+// terseness. A census footer used to print here too, on the failure path, and two sites stating one
+// population is the drift shape `CLAUDE.md` records for `EXPECTED_ARTIFACTS`: whichever site a later
+// change forgets goes quietly wrong, and a reader has no way to tell which one they are looking at.
+// It was also the wrong claim to make HERE. On a failing run the census is what may be broken — a
+// collapsed corpus is one of the failures listed above — so a confident "34 pairs across 13 defs"
+// beneath the findings reads as reassurance about exactly the number in question. The floor failures
+// state their own observed count, which is the FINDING rather than a summary, and they keep it.
 if (failures.length) {
   console.error('\n❌ axis VALUES are not fully accounted for\n');
   for (const line of detail) console.error(line);
   console.error('');
   for (const f of failures) console.error(`  · ${f}`);
-  console.error(
-    `\n  ${AXIS_VALUE_SETS.length} declared set(s) over ${entriesByAxis.size} axis name(s); `
-    + `${pairs.length} (def, axis) pair(s) across ${defs.length} def(s).`,
-  );
   process.exit(1);
 }
 
+// SLACK IS PRINTED so it can be read without mutating the gate (#1267). Before this, finding out how
+// much room a floor had meant deleting defs until it fired, or trusting a comment that was wrong: the
+// floors sat at 8 and 15 against a corpus of 13 and 34, and nothing said so on any passing run. A
+// floor whose margin is invisible is a floor nobody re-examines.
 console.log(
   `✓ axis values accounted for — ${pairs.length} (def, axis) pairs across ${defs.length} defs resolve to `
   + `${AXIS_VALUE_SETS.length} declared sets over ${entriesByAxis.size} axes; `
   + `${divergent} axis/axes carry more than one set, each with its relation declared and checked.`,
+);
+console.log(
+  `  floors: ${defs.length} defs vs ${FLOOR_DEFS} (slack ${defs.length - FLOOR_DEFS}), `
+  + `${pairs.length} pairs vs ${FLOOR_PAIRS} (slack ${pairs.length - FLOOR_PAIRS}) — `
+  + `each floor is the corpus minus one legitimate removal (see the FLOORS note). `
+  + `Slack of 0 does not mean broken; it means the next removal needs the floor moved WITH it.`,
 );
