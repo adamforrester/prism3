@@ -1750,7 +1750,7 @@ const famOf = (v: string): string | null => {
   const m = v.match(/^color\/(.+)\/(?:fill|border|overlay)(?:\/.+)?$/);
   return m ? m[1] : null;
 };
-type BoxRow = { def: string; member: string; selection: string; state: string; size: string; fill: string | null; stroke: string | null; radii: string[] };
+type BoxRow = { def: string; member: string; selection: string; state: string; size: string; fill: string | null; stroke: string | null; radii: string[]; weight: string | null; weightPx: unknown };
 const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: BoxRow[]; misses: string[]; members: number }> => {
   const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
   const page: Page = { children: [] };
@@ -1784,6 +1784,12 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
       stroke: paintVar(box, 'strokes'),
       radii: ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']
         .map((c) => (bv[c]?.id ?? '—').replace(/^V:/, '')),
+      // THE BORDER'S THICKNESS, carried since #1228 — both the bound variable's NAME and the LITERAL the
+      // node ended up with. Two fields because they fail on different regressions: the name goes wrong when
+      // the def rebinds, the literal goes non-zero when an executor writes over the binding (which live is
+      // an unbind, so the name alone cannot see it).
+      weight: bv.strokeWeight?.id ? bv.strokeWeight.id.replace(/^V:/, '') : null,
+      weightPx: box.strokeWeight,
     });
   }
   return { rows, misses: r.misses, members: r.variants };
@@ -1972,6 +1978,85 @@ const unbound = ((unboundPage.children.find((n) => n.type === 'COMPONENT_SET')?.
 ok(unbound.length === 2, `#1266 reachable: the binding-stripped variant built the same two rings (${unbound.length}/2)`);
 ok(unbound.every((n) => weightOf(n) === null && n.strokeWeight === 1),
   `#1266 ...and with nothing bound the 1px fallback STILL fires, so the fix gates the default rather than removing it (${unbound.map((n) => `${weightOf(n) ?? 'unbound'}@${n.strokeWeight}`).join('; ')})`);
+
+// ---- #1228: THE THREE MEASURED CONTROLS' BORDERS, READ BACK OFF THE BUILT NODE -----------------
+// #1266 gave `strokeWeight` its first read-back and the focus ring its first bound thickness. The same
+// 1px fallback was writing every OTHER border in the corpus, and Prism 2 measures these three at 2:
+// `strokeWeight: 2` on the checkbox's root (`checkboxes.json`), on the radio's (`radio-button.json`) and
+// on the switch's track (`toggle-switch.json`). The switch's is the load-bearing one — the off track's
+// border is the ONLY thing distinguishing it from the page (1.4.11), so it was the whole argument drawn
+// at half weight.
+//
+// THE NAME, NOT THE NUMBER, for #1266's reason: the shim gives every variable a synthetic value, and a
+// number would also pass on a 2 that came from an executor literal or a brand coincidence. Reuses the
+// `readBoxes` rows above, so the reachability pin (54/36/24 rows, zero misses) already covers this block
+// and the two claims are made over the same built nodes the paint and radius claims were.
+//
+// SCOPE IS ASSERTED, and deliberately: the outline BUTTONS also carry a `border` slot and stay at 1px,
+// which is Prism 2's figure for a button just as 2 is its figure for these three. So 2px is a CONTROL
+// weight, not a house border weight, and an "every bordered part gets 2px" sweep — the likely next edit —
+// must not pass here silently. Asserted at the bottom of this block.
+const borderRows = [...cb.rows, ...rb.rows, ...sw.rows];
+const misweighted = borderRows.filter((r) => r.weight !== 'border-width/thick');
+ok(misweighted.length === 0,
+  `#1228 all three measured controls bind \`border-width.thick\` as their stroke weight on every member (${misweighted.length ? misweighted.slice(0, 3).map((r) => `${r.def}/${r.member} -> ${r.weight ?? 'UNBOUND (the 1px executor fallback)'}`).join('; ') : [...new Set(borderRows.map((r) => `${r.def}→${r.weight}`))].join(', ')})`);
+// AND NO LITERAL WAS WRITTEN OVER THE BINDING — a second fact, and the one the new executor gate is for.
+// `claimDefaults` runs AFTER the bind loop, and its unstroked branch wrote `strokeWeight = 1` flat; live,
+// a literal assignment after `setBoundVariable` UNBINDS the variable and reports no miss, so the build
+// would look clean and ship 1px. The shim starts a FRAME at 0 so "nothing wrote a literal" is observable.
+const clobbered = borderRows.filter((r) => r.weightPx !== 0);
+ok(clobbered.length === 0,
+  `#1228 ...and nothing wrote a literal weight over it, which live would unbind (${clobbered.length ? clobbered.slice(0, 4).map((r) => `${r.def}/${r.member} -> ${String(r.weightPx)}`).join('; ') : 'every member at 0'})`);
+// THE ARM ABOVE NEEDS THE UNSTROKED COORDINATES TO EXIST or it never reaches the gate that fixes it.
+// `claimDefaults`'s branch is entered only when the plan paints NO stroke, which is exactly where Prism 2
+// writes `strokeWidth: null`: checkbox and radio at `checked`/`indeterminate`, switch at `on`. Those
+// members bind a thickness with no stroke to draw — invisible, and the reason the clobber went unseen.
+const unstroked = borderRows.filter((r) => r.stroke === null);
+ok(unstroked.length > 0 && new Set(unstroked.map((r) => r.def)).size === 3,
+  `#1228 reachable: the arm above spans members that paint NO border, which is the only path into the executor default it gates (${unstroked.length} of ${borderRows.length} rows, defs ${[...new Set(unstroked.map((r) => r.def))].join(', ')})`);
+// THE NEGATIVE CONTROL, #1266's, applied to a box rather than a ring: the cheapest way to pass both arms
+// is to delete the 1px default outright, which would leave every unbound border at Figma's 0 and paint
+// nothing at all. Stripped from the switch's track on BOTH kinds of coordinate — one that paints a border
+// and one that does not — because the two reach the fallback through different code.
+// RECURSIVE, unlike the ring's one-liner above, and the difference is the whole reason the ring block
+// could get away with it: `focus-ring`'s anatomy is one part and it IS the plan root, while the track is a
+// CHILD. Stripping only `plan.root` left every binding in place and the arm below caught it — which is
+// what a negative control is for.
+type BoundNode = { bound?: Record<string, string>; children?: BoundNode[] };
+const stripWeight = (n: BoundNode): void => { delete n.bound?.strokeWeight; (n.children ?? []).forEach(stripWeight); };
+const swPlansNoWeight = (JSON.parse(JSON.stringify(figmaAnatomySet(byId('switch')!, {}))) as AnatomyPlan[]);
+for (const p of swPlansNoWeight) stripWeight(p.root as unknown as BoundNode);
+const swPage: Page = { children: [] };
+await run(swPlansNoWeight, { ...fullFor(swPlansNoWeight), page: swPage });
+const swTracks = ((swPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
+const noWeight = swTracks.map((m) => allNodes(m).find((n) => n.name === 'track')).filter((n): n is Node => !!n);
+ok(noWeight.length === swPlansNoWeight.length,
+  `#1228 reachable: the binding-stripped switch built a track on every member (${noWeight.length}/${swPlansNoWeight.length})`);
+ok(noWeight.every((n) => !((n.boundVariables as Record<string, unknown>) ?? {}).strokeWeight && n.strokeWeight === 1),
+  `#1228 ...and with nothing bound the 1px fallback STILL fires on both the stroked and unstroked coordinates, so the gate gates the default rather than removing it (${[...new Set(noWeight.map((n) => String(n.strokeWeight)))].join(', ')})`);
+// AND THE SCOPE, asserted on the OTHER side rather than left to the comment above. `button`'s container
+// carries a `border` slot exactly as these three do, so "every bordered part gets 2px" is both the likely
+// next edit and the one this issue deliberately did NOT make: Prism 2 draws its outline buttons at 1px
+// (owner-confirmed — no button spec is checked in, unlike the three control specs the 2px cites), so 2px
+// is a CONTROL weight and sweeping it across the family would break the reference on four defs to match
+// it on three. Read off the built container, so a sweep fails here by name instead of shipping.
+//
+// WHAT THIS ARM DOES NOT SAY is that 1 is bound. It is the executor's literal, which happens to equal the
+// figure Prism 2 measures — the right value with no token provenance, one rung short of what #1266 and
+// this issue have been closing. That is a separate change with a separate decision behind it, so this arm
+// asserts only that nothing swept a weight onto the buttons.
+// Read off the MEMBER, not through `readBoxes`: `container` IS button's anatomy root, so it arrives as
+// the member frame under its coordinate name and a search for a part called `container` finds nothing —
+// the ring block's trap, and the reachability pin below is what said so rather than 0 rows passing.
+const btnPlans = figmaAnatomySet(byId('button')!, { swapTarget: 'FPO-default-icon' });
+const btnPage: Page = { children: [] };
+await run(btnPlans, { ...fullFor(btnPlans), page: btnPage });
+const btnMembers = ((btnPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
+ok(btnMembers.length === btnPlans.length,
+  `#1228 reachable: every button member built, so the scope claim below is made over real containers (${btnMembers.length}/${btnPlans.length})`);
+const swept = btnMembers.filter((n) => weightOf(n) !== null);
+ok(swept.length === 0,
+  `#1228 ...and the outline BUTTONS bind no weight, so they keep the 1px Prism 2 draws them at — 2px is a CONTROL figure, not a house border weight (${swept.length ? swept.slice(0, 3).map((n) => `${n.name} -> ${weightOf(n)}`).join('; ') : `no member of ${btnMembers.length} binds a stroke weight`})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

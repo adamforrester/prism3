@@ -37,15 +37,15 @@
     "textarea": null,
     "checkbox": {
       "members": 54,
-      "sha256": "e4ed2b0c78db69de1a0585b1b5026033cc12f1201f4ed471fc191b1ab8e7476e"
+      "sha256": "933c6fe6ad06dc843702fd466a51510228b2dc34ffeb247198b5761b51ac578e"
     },
     "radio": {
       "members": 36,
-      "sha256": "06ed8cee9c2bb386abefae69b80644876c3372263a86dcc82cae310d2016b088"
+      "sha256": "902d92b070f68239dda9d4bd39927abf5545c665fe91313be36d48630fb47c2b"
     },
     "switch": {
       "members": 24,
-      "sha256": "96313d3a3de0cdcb42459539232478e934e84c2ad1dc66064c9b2edf017cca42"
+      "sha256": "5dc1c84017c0fce3fbae20bcf902364986689b516957873d3a3e36e7dc813a60"
     }
   }
 }

@@ -9360,6 +9360,51 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `anatomy/ring #1266: ...and no literal weight was written over that binding at ${at}, which live would unbind it (${String(ringNode?.strokeWeight)})`);
       }
 
+      // ---- #1228: THE THREE MEASURED CONTROLS' BORDERS, EXECUTED on the STUDIO leg ----------------
+      // #1266's block above, one part deeper. The ring is its plan's ROOT, so reading `children[0]` found
+      // it; each of these borders is a CHILD part, and it is the child that made the executor's remaining
+      // ungated site reachable — a coordinate that binds a thickness and paints NO stroke, which is where
+      // Prism 2 writes `strokeWidth: null` (checkbox and radio at `checked`/`indeterminate`, switch at
+      // `on`). Both legs are asserted for #1266's reason: the two executors carry this default through
+      // different code, so one can be ungated while the parity gate still reports clean.
+      const deepFind = (n: Record<string, unknown>, name: string): Record<string, unknown> | undefined => {
+        if (n.name === name) return n;
+        for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) {
+          const hit = deepFind(c, name);
+          if (hit) return hit;
+        }
+        return undefined;
+      };
+      for (const { def, part } of [{ def: checkbox, part: 'control' }, { def: radio, part: 'control' }, { def: switchDef, part: 'track' }]) {
+        // ONE COORDINATE PER DEF, not the whole set: the payload is executed here, and 54 + 36 + 24 pastes
+        // would pay a lot of run time for the same two facts. The coordinate is chosen to be the UNSTROKED
+        // one where the def has it — `checked` / `on` — because that is the path through the executor the
+        // new gate sits on, and the arm below would otherwise pass on the already-gated stroked path.
+        const set = figmaAnatomySet(def);
+        const unstroked = set.filter((p) => {
+          const box = (p.root as unknown as Record<string, unknown>) && deepFind(p.root as unknown as Record<string, unknown>, part);
+          return box && !((box.paints as { strokes?: string } | undefined)?.strokes);
+        });
+        ok(unstroked.length > 0,
+          `anatomy/${def.id} #1228 reachable: the def projects at least one coordinate that binds a thickness and paints NO border — the only path into the executor default this gates (${unstroked.length} of ${set.length})`);
+        const p = unstroked[0] ?? set[0];
+        const at = planComponentName(p);
+        const page: StubPage = { children: [] };
+        const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon'], page });
+        const box = page.children[0] && deepFind(page.children[0], part);
+        ok(r.misses.length === 0 && !!box,
+          `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
+        // The NAME, not the number — a `=== 2` would pass on the executor's own literal, since the literal
+        // this replaces was 1 and the token is 2 only because Prism 2 measured 2.
+        const weight = ((box?.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
+        ok(weight === 'V:border-width/thick',
+          `anatomy/${def.id} #1228: the pasted \`${part}\` binds \`border-width.thick\` as its stroke weight at ${at} (${weight ?? "UNBOUND — the payload's 1px fallback, which is what shipped"})`);
+        // And no literal was written over it. The stub starts a FRAME at 0, so a fallback that ran is
+        // observable as a non-zero weight; live the same write would UNBIND the variable and report nothing.
+        ok(box?.strokeWeight === 0,
+          `anatomy/${def.id} #1228: ...and no literal weight was written over that binding at ${at}, which live would unbind it (${String(box?.strokeWeight)})`);
+      }
+
       // The offset is not a constant in the payload. Re-run with a different brand value and the geometry
       // must follow, which is what makes `absoluteInset` a variable name rather than a frozen number in
       // the plan — the whole reason the plan stays brand-invariant and the freeze happens at paste.

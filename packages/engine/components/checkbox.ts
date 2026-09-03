@@ -254,6 +254,32 @@ export const checkbox: ComponentDef = {
     'size.medium.min-height': 'size.md.height',
     'size.large.min-height': 'size.lg.height',
 
+    // ── THE BORDER'S THICKNESS (#1228). Measured, not chosen: Prism 2 ships this box at
+    // `strokeWeight: 2` / `strokeAlign: INSIDE` (`reference/Prism2/component-specs/checkboxes.json`,
+    // the root element's styles). Without this key both executors fell through to a literal 1px, so
+    // the empty box that #1011 made a BORDER rather than a fill was drawn at half the weight the
+    // border carries the whole control at.
+    //
+    // A FLAT 2px, one value at every rung, and that is the owner's call over this issue's own caution
+    // that Prism 2's 2px is a ratio on a ladder we do not share (the trap #997 hit with `padding: 4`).
+    // `border-width.thick` is 2px in all four corpus brands, aliased to `<root>.core.dimension.2`, so a
+    // brand cannot re-rung it the way a spacing token could — a ratio ladder would have nothing
+    // brand-varying to ride on here anyway.
+    //
+    // 2px IS A CONTROL FIGURE AND NOT A HOUSE STYLE, which is the part worth carrying: Prism 2 draws its
+    // outline BUTTONS at 1px, so the two weights are a deliberate contrast between a small selection
+    // control and a large one, not one border weight applied everywhere. This def moving to 2 while
+    // `button` stays at 1 is therefore both defs agreeing with the reference, and the plugin suite
+    // asserts the button half so a later "every bordered part gets 2px" sweep fails rather than ships.
+    // (The button weight is confirmed from Prism 2 by the owner; `reference/Prism2/component-specs/`
+    // holds no button spec, so nothing here can check it against the corpus the way this 2 is checked.)
+    //
+    // Prism 2's `strokeWidth: null` on the SELECTED variant needs no per-variant mechanism: `checked`
+    // and `indeterminate` bind no border slot at all (#1011's third finding), so the coordinate has no
+    // stroke to thin. And `strokeAlign: INSIDE` is settled by construction — both executors hardcode
+    // it — which is why this is a thickness field and not a stroke-alignment one.
+    'border-width': 'border-width.thick',
+
     // ── THE CONTROL SQUARE, which #951 made expressible and #910 binds. ONE key on BOTH axes of the box,
     // so the control is square by construction rather than by two values that happen to agree — `.width`
     // exists on the same tier group and is deliberately not read here; it is switch's track.
@@ -346,6 +372,9 @@ export const checkbox: ComponentDef = {
         paintSlots: ['fill', 'border'],
         size: 'size.{size}.control',
         radius: 'size.{size}.radius',
+        // 2px, from the token — see `border-width` in `tokens` for the measurement and the flat-vs-ratio
+        // call. Names the def's own key, not the token, exactly as focus-ring's part does.
+        strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['mark', 'dash', 'focusRing'],
       },

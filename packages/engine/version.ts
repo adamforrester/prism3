@@ -138,6 +138,36 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.45.0: the three MEASURED selection controls paste their borders at 2px (#1228). `checkbox`,
+ * `radio` and `switch` bind `border-width.thick` through the `strokeWidth` field 0.44.0 added, on the
+ * one bordered part each has — the box, the disc, the track. Prism 2 ships all three at
+ * `strokeWeight: 2` / `strokeAlign: INSIDE`; without a thickness to bind they pasted at the executors'
+ * 1px, which for the switch was the whole 1.4.11 argument drawn at half weight (the off track's border
+ * is the ONLY thing distinguishing it from the page — no fill in the tier clears 3:1 at any brand).
+ *
+ * A FLAT 2px, one value at every rung, and that is the owner's call over this issue's own caution that
+ * Prism 2's 2px is a ratio on a ladder we do not share. The outline BUTTONS carry a `border` slot too
+ * and stay at 1px, and that is Prism 2's figure as well (owner-confirmed; the checked-in
+ * `reference/Prism2/component-specs/` holds no button spec, which is why the controls' 2 can be cited to
+ * a file and the buttons' 1 cannot). So 2px is a CONTROL figure rather than a house border weight, the
+ * two defs' different answers are both faithful, and the scope is now asserted from the button side in
+ * the plugin suite — an "every bordered part gets 2px" sweep fails by name instead of shipping.
+ *
+ * `strokeWidth: null` on the SELECTED variant needed no per-variant mechanism, which is #1011 paying
+ * off: those coordinates bind no border slot at all, so there is no stroke to thin. That is also what
+ * made the executors' LAST ungated stroke site reachable. `claimDefaults` runs AFTER the bind loop and
+ * its unstroked branch wrote `strokeWeight = 1` flat — invisible until a part bound a thickness at a
+ * coordinate with no border paint, which is exactly what these three do at `checked`/`indeterminate`
+ * and `on`. Live, that literal UNBINDS the variable and reports no miss, so the build would have looked
+ * clean and shipped 1px. It is now gated on the plan's bindings, the corner idiom one branch earlier.
+ *
+ * THE TOKEN LAYER DOES NOT MOVE — `border-width.thick` was already emitted at 2px in all four corpus
+ * brands, aliased to `<root>.core.dimension.2` — so the only change under `out/**` is this file's own
+ * generator stamp. The bump is demanded from the other side, `lint-component-surface` arm B (#1252's
+ * case): three projected component surfaces move, and no `out/` diff can see it. `CONTRACT_VERSION`
+ * stands at 9.4.0; no token name and no `$type` moved, and `token-contract.ts --check` confirms that
+ * rather than this comment asserting it.
+ *
  * 0.44.0: the focus ring pastes at its brand's own stroke weight (#1266). `PartDef` gains
  * `strokeWidth`, a token key bound onto a `box` part's `strokeWeight`, and `focus-ring`'s one part
  * binds it to `focus.ring.width`. Before this, no def could express a stroke's THICKNESS at all: a
@@ -1020,7 +1050,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.44.0';
+export const ENGINE_VERSION = '0.45.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -265,6 +265,18 @@ export const radio: ComponentDef = {
     'size.medium.min-height': 'size.md.height',
     'size.large.min-height': 'size.lg.height',
 
+    // ── THE BORDER'S THICKNESS (#1228), checkbox's binding verbatim, and measured here in its own right:
+    // Prism 2 ships this disc at `strokeWeight: 2` (`reference/Prism2/component-specs/radio-button.json`).
+    // It records no `strokeAlign`, unlike the checkbox and switch specs — immaterial, because a stroke on
+    // a fully-round box reads the same drawn inward or centered at this weight, and both executors write
+    // INSIDE unconditionally anyway. The full reasoning, including the owner's flat-2px call over this
+    // issue's ratio caution, is in `checkbox.ts`; do not re-argue it here.
+    //
+    // The `strokeWidth: null`-on-selected half needs no mechanism for radio's own version of #1011: the
+    // checked disc paints a FILL AND NO BORDER. `checked.border.error` is the one exception and it should
+    // be thick — an error boundary is emphasis by definition.
+    'border-width': 'border-width.thick',
+
     // ── THE CONTROL CIRCLE, checkbox's binding verbatim. ONE key on BOTH axes of the box, so the
     // control is round-able by construction rather than by two values that happen to agree; `.width`
     // sits on the same tier group and is deliberately not read here — it is switch's track.
@@ -361,6 +373,8 @@ export const radio: ComponentDef = {
         paintSlots: ['fill', 'border'],
         size: 'size.{size}.control',
         radius: 'radius',
+        // 2px, from the token — see `border-width` in `tokens`. Names the def's own key, not the token.
+        strokeWidth: 'border-width',
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
         children: ['dot', 'focusRing'],
       },
