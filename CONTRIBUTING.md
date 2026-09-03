@@ -289,6 +289,42 @@ npx tsx packages/engine/lint-overlay-completeness.ts # each mode's overlay carri
                                                     # buildOverlay, or from the overlays themselves, is
                                                     # the gate agreeing with itself — do not "simplify"
                                                     # the duplicated walk away; it IS the gate
+npx tsx packages/engine/lint-overlay-provenance.ts  # an overlay leaf's provenance describes ITS OWN
+                                                    # value, not the base mode's (#1257). The sibling
+                                                    # question the completeness gate does not ask: that
+                                                    # one checks WHICH leaves are present and what their
+                                                    # `$value` is, and both were right. This asks whether
+                                                    # a leaf is internally CONSISTENT. The projector
+                                                    # spread the mode entry over the leaf's TOP level,
+                                                    # where a mode's `contrast`/`against` are not fields
+                                                    # a leaf carries — so the mode's correct rating
+                                                    # landed outside `$extensions` as a stray sibling of
+                                                    # `$type`, and the BASE's `aliasOf` and `contrast`
+                                                    # stayed inside beside a value they do not describe.
+                                                    # Measured before the fix: 2369 aliased leaves across
+                                                    # all twelve overlays, EVERY one naming a path its
+                                                    # own value does not resolve to
+                                                    # (`$value: {…palette.white}` beside
+                                                    # `aliasOf: …palette.neutral.050`), 2057 also with a
+                                                    # stale contrast. Nothing was computed wrongly — it
+                                                    # was filed at the wrong depth, which is why every
+                                                    # gate stayed green: `regen --check` compares bytes
+                                                    # of what the engine writes, and the engine wrote the
+                                                    # wrong thing consistently. Four arms: A resolves
+                                                    # `aliasOf` and `$value` through the palette by this
+                                                    # file's OWN walker and compares the colours; B
+                                                    # compares the overlay against the CANONICAL tree's
+                                                    # own `modes[mode]` entry — two artifacts, two
+                                                    # producers, and the arm that survives a refactor
+                                                    # deriving `aliasOf` from `$value` (docs/34 shape 17,
+                                                    # which arm A alone would NOT catch — stated in the
+                                                    # gate's header as its limit); C refuses any non-`$`
+                                                    # top-level key, the old spread's visible signature;
+                                                    # D checks the CAUSE upstream, that a canonical mode
+                                                    # entry carries its own `aliasOf` at all — before
+                                                    # #1257 none did, so a projector-only fix would have
+                                                    # had to invent one. Three floors, since every arm is
+                                                    # vacuous over an empty set
 npx tsx packages/engine/lint-figma-destination.ts   # a leaf's OWN claim about where it lands in Figma
                                                     # (`$extensions.prism3.figma.{collection,mode(s),
                                                     # variable}`) must agree with the collection, modes

@@ -457,6 +457,18 @@ jobs:
       - name: Overlays carry exactly the leaves that vary per mode
         run: npx --yes tsx@4 packages/engine/lint-overlay-completeness.ts
 
+      # #1257: the sibling question the completeness gate does not ask. That one checks WHICH leaves
+      # are in an overlay and what their `$value` is — both were right. This checks whether a leaf is
+      # internally CONSISTENT: its `$extensions.prism3.aliasOf` and `contrast` must describe its own
+      # value, not the base mode's. The projector spread the mode entry over the leaf's TOP level, so
+      # the mode's correct rating landed outside `$extensions` where nothing reads it and the base's
+      # provenance stayed inside beside a value it does not describe — 2369 aliased leaves across all
+      # twelve overlays, every one wrong, every gate green because the engine wrote the wrong thing
+      # consistently. EXPECTED is the canonical tree (`tree.ts`'s output), ACTUAL is the overlay
+      # (`emit-dtcg-overlay.ts`'s): two artifacts, two producers, and never `buildOverlay` re-run.
+      - name: "An overlay leaf's provenance describes its own value, not the base mode's"
+        run: npx --yes tsx@4 packages/engine/lint-overlay-provenance.ts
+
       # #1138: every pointer-tier leaf carries `$extensions.prism3.figma.{collection,mode(s),variable}`
       # — its own claim about where it materializes in Figma, and the ONLY place a DTCG consumer can
       # learn that. `tree.ts` writes those as literals; `emit-figma-*.ts` writes `$collection`/`$mode`/

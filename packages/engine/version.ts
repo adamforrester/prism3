@@ -138,6 +138,42 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.41.0: an OVERLAY LEAF'S PROVENANCE describes its own value (#1257). Two writers move together.
+ * `tree.ts`'s colour mode entry gains `aliasOf: rr.path`, mirroring the `aliasLeaf(lr.path, …)` one
+ * tier up — a value and the name it resolves through are one fact, and every other field in that
+ * entry was already per-mode. `emit-dtcg-overlay.ts` then merges the mode entry INTO
+ * `$extensions.prism3`, replacing the base's per-mode fields, instead of spreading it over the leaf.
+ *
+ * WHAT WAS WRONG, and it is a filing error rather than an arithmetic one. The projector built a
+ * mode's leaf as `{ ...projectLeaf(n), ...m, $value: m.$value }`. A mode entry's fields are
+ * `contrast`/`against`/`min`, which on a leaf live UNDER `$extensions.prism3` — so the spread put the
+ * mode's CORRECT rating outside `$extensions` as a stray sibling of `$type` that no consumer reads,
+ * and left the BASE mode's `aliasOf` and `contrast` under `$extensions` beside a value they do not
+ * describe. Measured on the parent commit: **2369 aliased colour leaves across all twelve overlays,
+ * every single one**, naming a path its own `$value` does not resolve to — `{…palette.white}` beside
+ * `aliasOf: …palette.neutral.050` — and 2057 carrying a stale contrast. The right numbers were
+ * present the whole time, 163/163 correct in `nb.hc-light`, one level too shallow.
+ *
+ * VALUES AND PROVENANCE ONLY: no token NAME and no `$type` moves, so `CONTRACT_VERSION` stands at
+ * 9.3.0 and `token-contract.ts --check` confirms it. The projected COMPONENT surface does not move
+ * either — `lint-component-surface.ts` reports 0 defs, which is the expected answer for a change in
+ * the token trees and worth having asked rather than assumed. What moves is every overlay artifact
+ * and the canonical trees' mode entries, which is why this is a MINOR: a consumer reading a projected
+ * overlay standalone — the exact use those files exist for — was being handed provenance for a
+ * different mode's value.
+ *
+ * `MODE_SCOPED` in `emit-dtcg-overlay.ts` is the authored list of fields a mode entry supersedes, and
+ * the rule it encodes is that a mode's SILENCE about one of them is a claim rather than an
+ * inheritance. `min` is the case that forces it: a role gated at 4.5 in light and ungated in
+ * `hc-light` emits no `min` there, and carrying the base's forward would print a floor the mode does
+ * not promise.
+ *
+ * VERSION NOTE: takes 0.41.0 because 0.40.0 is spent. This branch was stamped 0.40.0 while #1261
+ * (#1248, the weight axis) was in flight claiming the same number, with the collision recorded here
+ * rather than guessed around. #1261 landed first, so this re-stamped on its rebase — the outcome the
+ * note predicted, kept in place of the prediction so that the number having moved reads as the
+ * expected resolution rather than as a mis-stamp.
+ *
  * 0.40.0: a binding key resolves from the member's WHOLE COORDINATE, and `weight` joins the axis-name
  * vocabulary (#1248, completing #872's third control). Two changes, and they ship together because
  * either alone is inert: the axis has nothing to vary without the resolver, and the resolver has
@@ -902,7 +938,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.40.0';
+export const ENGINE_VERSION = '0.41.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

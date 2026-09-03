@@ -618,6 +618,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-overlay-completeness.ts'),
   },
   {
+    id: 'lint-overlay-provenance',
+    ciStep: "An overlay leaf's provenance describes its own value, not the base mode's",
+    cmd: engine('lint-overlay-provenance.ts'),
+  },
+  {
     id: 'lint-figma-destination',
     ciStep: "A leaf's declared Figma destination is the one it materializes into",
     cmd: engine('lint-figma-destination.ts'),
