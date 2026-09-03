@@ -1755,8 +1755,8 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use interactive.primary.text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{nbds.core.palette.neutral.950}",
-        "dark": "{nbds.core.palette.neutral.025}",
+        "light": "{nbds.core.palette.red.550}",
+        "dark": "{nbds.core.palette.red.400}",
         "hc-light": "{nbds.core.palette.black}",
         "hc-dark": "{nbds.core.palette.white}"
       },
@@ -1767,7 +1767,7 @@
         {
           "token": "inverse.interactive.primary.fill.rest",
           "min": "4.5:1",
-          "ratio": 15.99
+          "ratio": 4.62
         }
       ]
     },
@@ -6079,6 +6079,7 @@
         "color.inverse.interactive.destructive.border.hover",
         "color.inverse.interactive.destructive.text.hover",
         "color.inverse.interactive.primary.border.hover",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.text.link.hover",
         "color.text.link.hover"
@@ -6176,6 +6177,7 @@
         "color.inverse.interactive.destructive.border.rest",
         "color.inverse.interactive.destructive.text.rest",
         "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.brand-subtle",
         "color.inverse.text.danger-subtle",
@@ -7042,7 +7044,6 @@
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.pressed",
         "color.inverse.interactive.primary.fill.selected",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.primary"
       ]
@@ -7078,7 +7079,6 @@
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",

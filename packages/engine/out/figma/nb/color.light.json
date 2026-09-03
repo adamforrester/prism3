@@ -2932,16 +2932,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
+      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
       "value": {
-        "r": 0.0470588244497776,
-        "g": 0.05098039284348488,
-        "b": 0.05882352963089943,
+        "r": 0.8117647171020508,
+        "g": 0.04313725605607033,
+        "b": 0.1725490242242813,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/950"
+        "name": "nbds/core/palette/red/550"
       }
     },
     {

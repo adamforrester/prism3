@@ -11431,19 +11431,19 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.950}",
-              "$description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
+              "$value": "{prism.core.palette.accent.550}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.950",
-                  "contrast": 16.01,
+                  "aliasOf": "prism.core.palette.accent.550",
+                  "contrast": 4.69,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "modes": {
                     "dark": {
-                      "$value": "{prism.core.palette.neutral.025}",
-                      "contrast": 14.99,
+                      "$value": "{prism.core.palette.accent.400}",
+                      "contrast": 4.79,
                       "against": "inverse.interactive.primary.fill.rest",
                       "min": 4.5
                     },
@@ -19731,7 +19731,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.36.0",
+      "version": "0.37.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

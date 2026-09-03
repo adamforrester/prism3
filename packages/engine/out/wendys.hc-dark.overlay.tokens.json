@@ -3817,12 +3817,12 @@
             "on-fill": {
               "$type": "color",
               "$value": "{prism.core.palette.white}",
-              "$description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.950",
-                  "contrast": 16,
+                  "aliasOf": "prism.core.palette.primary.500",
+                  "contrast": 4.85,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5,
                   "figma": {
