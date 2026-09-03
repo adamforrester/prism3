@@ -127,7 +127,8 @@ leaves already disagree with their own value this way (`$value: {white}` next to
 `aliasOf: neutral.050`). `emit-dtcg-overlay.ts:187` spreads the mode entry over the base leaf, and the
 mode entry carries `contrast` but no `aliasOf`, so the correct rating lands at the leaf's TOP level
 while the stale provenance stays under `$extensions`. Pre-existing and universal — #1244 is one of the
-163, not its cause — so it is filed rather than fixed here (one concern per PR).
+163, not its cause — so it is **filed as #1257** rather than fixed here (one concern per PR). The 163
+failures on `main` are the mutation proof that gate already has in hand.
 
 ## (2026-09-03) — field-label gets the two Prism 2 controls that need no new machinery (#872; #862's field-label half)
 
