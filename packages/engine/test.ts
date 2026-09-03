@@ -9328,6 +9328,38 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // And it is an INSTANCE of the shared component, not a frame. The distinction is invisible in the
       // geometry above — a placeholder frame would measure identically — so it gets its own read.
       ok(kid?.type === 'INSTANCE', `anatomy/ring: the ring is an INSTANCE of the shared component (${kid?.type})`);
+
+      // ---- #1266: THE RING'S OWN STROKE WEIGHT, EXECUTED on the STUDIO leg -----------------------
+      // The node read above is an INSTANCE, so its stroke comes from the main component and this payload
+      // never writes it — which is precisely why the studio leg needs a run of the RING'S OWN plan. The
+      // plugin suite reads the same fact off `applyComponentPlan` (`test-write-components.ts`), and both
+      // are needed rather than one: the two executors carry the stroke default through DIFFERENT code, a
+      // `wrote.includes` guard in `write-components.ts` and a `wrote.indexOf` inside the payload STRING,
+      // so one can be ungated while the other stays correct and the parity gate still reports clean.
+      // That is measured, not feared — ungating the payload's guard left this entire suite green before
+      // this block existed, and the source-text probe at `node.strokeWeight=` above passes either way
+      // because the assignment is still there; only its condition changed.
+      for (const rp of figmaAnatomySet(focusRing)) {
+        const ownPage: StubPage = { children: [] };
+        const own = await runPayload(planToPluginJs(rp), { vars: [...planBoundVars(rp.root), ...planPaintVars(rp.root)], page: ownPage });
+        const ringNode = ownPage.children[0] as Record<string, unknown> | undefined;
+        const weight = ((ringNode?.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
+        const at = planComponentName(rp);
+        // PIN THE PASTE before reading it: a payload that reported a miss, or built nothing at all, would
+        // leave both claims below reading `undefined` against `undefined` on some future refactor.
+        ok(own.misses.length === 0 && !!ringNode,
+          `anatomy/ring #1266 reachable: the ring's own payload pastes clean at ${at} (${JSON.stringify(own.misses)})`);
+        // The NAME, not the number — the same choice the radius read-backs make. A `=== 2` would pass on a
+        // ring left at the executor's literal on a brand whose offset happens to equal its width.
+        ok(weight === 'V:focus/ring/width',
+          `anatomy/ring #1266: the pasted ring binds \`focus.ring.width\` as its stroke weight at ${at} (${weight ?? "UNBOUND — the payload's 1px fallback, which is what shipped"})`);
+        // And the fallback stood down. Live, a literal `strokeWeight` write AFTER `setBoundVariable`
+        // UNBINDS the variable, so a payload that bound the weight and then ran its default would satisfy
+        // the claim above and still paste a 1px ring. The stub starts a FRAME at 0 for exactly this.
+        ok(ringNode?.strokeWeight === 0,
+          `anatomy/ring #1266: ...and no literal weight was written over that binding at ${at}, which live would unbind it (${String(ringNode?.strokeWeight)})`);
+      }
+
       // The offset is not a constant in the payload. Re-run with a different brand value and the geometry
       // must follow, which is what makes `absoluteInset` a variable name rather than a frozen number in
       // the plan — the whole reason the plan stays brand-invariant and the freeze happens at paste.
@@ -10510,6 +10542,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         swPart('track', { layout: { ...switchDef.anatomy!.parts.track.layout!, sizing: { x: 'hug', y: 'fixed' } } }));
       ok(validateComponentDef(switchDef, nbTree, nbT.root).errors.length === 0,
         `nesting gate: and the mechanism VALIDATES as authored — a thumb positioned per selection inside a fixed-width track that also holds an absolute focus ring is clean, which is the whole of what #990 added (got [${validateComponentDef(switchDef, nbTree, nbT.root).errors.join('; ')}])`);
+
+      // The STROKE-WIDTH kind rule (#1266; the missing arm was filed as #1275 and this is it). Same shape
+      // as `width` above, for a sharper reason: only the `box` branch of the projector reads `strokeWidth`,
+      // so on any other kind it is a binding that resolves, validates, and reaches no node — the ring's own
+      // defect one layer up, where a declared stroke and no bound weight read as a build. The same slot key
+      // the `width` arm above uses, deliberately: a key that is not a slot trips the binding resolver too,
+      // and an arm that fires on either of two errors is not evidence about the one it names — with a real
+      // slot the mutation leaves EXACTLY this arm red.
+      ibBroke('a non-box binding `strokeWidth` fails — only a box projects a bound strokeWeight', /is kind 'text' but binds 'strokeWidth'/, swPart('label', { strokeWidth: 'size.{size}.track' }));
 
       // The VECTOR-SIZE split (#910). The old rule refused `size` on any vector, with the reason "its
       // rendered size comes from the host that instances it" — true of a def's ROOT glyph, where a host
@@ -12395,9 +12436,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `focus-ring passthrough: a surface=inverse Button member nests the surface=inverse ring (got ${ringNestAt('inverse')})`);
   ok(ringNestAt('default') === 'surface=default',
     `focus-ring passthrough: a surface=default Button member nests the surface=default ring (got ${ringNestAt('default')})`);
-  // Wall 1 — STILL STANDING, and it is the reason those two members are not yet rings. `PartDef` has no
-  // stroke field, so the ring's entire visual substance has nowhere to be
-  // declared. Read from the SCHEMA DECLARATION, not from this def, and not via a runtime validation
+  // Wall 1 — DOWN FOR THE WIDTH (#1266). `PartDef` now declares `strokeWidth`, so the ring's weight has
+  // somewhere to be declared and the two members draw a real stroke. This block used to assert the
+  // ABSENCE of any own-stroke field and said "fails when #740 adds one, by design" — it did, and this is
+  // that edit. What it becomes is the converse plus a forward guard: EXACTLY ONE own-stroke field exists
+  // and it is `strokeWidth`, so a second one cannot arrive unargued.
+  // Read from the SCHEMA DECLARATION, not from this def, and not via a runtime validation
   // probe either. Two dead ends worth recording so nobody re-walks them: asserting the absence on
   // `focusRing.parts.ring` proves only that I did not type one (the M18 shape — a def omitting a field
   // says nothing about whether the field EXISTS), and feeding `validateComponentDef` a part carrying
@@ -12411,26 +12455,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `focus-ring wall 1: PartDef's field list parsed from the declaration (${partDefFields.length} fields) — the parse is asserted before the absence, so a parse that silently found nothing cannot read as a pass`);
   // `strokeInset` is EXCLUDED from this wall by name, and the exclusion is the load-bearing part (#801).
   // It matches /stroke/ and is not a stroke declaration: it names the width of a stroke ANOTHER component
-  // draws, so a host can compensate its own geometry for it. A part still cannot say "I have a 2px
-  // stroke" — which is #740 and remains open — and the ring's colour, weight and style still have nowhere
-  // to live. Excluded rather than the pattern narrowed, for `lint-us-english.ts`'s reason: a narrowed
-  // pattern stops catching the field this wall exists for. So the day #740 adds a real stroke field this
-  // still fails, and adding a second compensation field is a deliberate edit here.
+  // draws, so a host can compensate its own geometry for it. Excluded rather than the pattern narrowed,
+  // for `lint-us-english.ts`'s reason: a narrowed pattern stops catching the field this wall exists for.
+  // So a third field matching /stroke|border|outline/ — a `strokeColor` duplicating `paintSlots`, a
+  // `strokeStyle` Figma has no property for — fails here and has to be argued for in this file.
   const declaresOwnStroke = partDefFields.filter((f) => /stroke|border|outline/i.test(f) && f !== 'strokeInset');
   ok(partDefFields.includes('strokeInset'),
     'focus-ring wall 1b: the exclusion below is REPRESENTED — `strokeInset` is really in the field list, so the filter is subtracting something rather than reading as a pass over a name that vanished');
-  ok(declaresOwnStroke.length === 0,
-    `focus-ring wall 1b: PartDef declares NO field for a part's OWN stroke/border/outline — a ring IS a stroke, so the one thing this component is has nowhere to be declared (#740). Its geometry vocabulary is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names another component's stroke to compensate for (#801), not this part's own. Fails when #740 adds one, by design${declaresOwnStroke.length ? ` — found [${declaresOwnStroke.join(', ')}]` : ''}`);
-  // AND THE CONSEQUENCE, measured rather than inferred from the absence above: the def projects and its
-  // members are STROKELESS. Two independent readings — the schema has no field (above), and the plans
-  // bind no stroke variable (here) — because "no field" would still permit a projector that wrote one
-  // from somewhere else, and #795's whole finding is that a claim about what a def WOULD do untested is
-  // worth nothing. The ring's colour DOES bind (asserted further down via `fillPaintKey`), so this is
-  // specifically about weight and style having no node to land on. Note what #801 did NOT change here:
-  // `focus.ring.width` now reaches a node — the HOST's absolute part reads it to widen its own gap — and
-  // the ring's own plan still binds nothing, which is the distinction this assertion is making.
-  ok(ringSet.every((p) => !planBoundVars(p.root).some((v) => /focus\/ring\/(width|style)/.test(v))),
-    'focus-ring wall 1c: the two projected members bind NO ring width or style variable — `tokens` resolves both against every brand and no PART can carry them, so what pastes is a correctly-inked box with no stroke. Fails when #740 adds the field, by design');
+  ok(declaresOwnStroke.join(',') === 'strokeWidth',
+    `focus-ring wall 1b: PartDef declares EXACTLY ONE field for a part's own stroke, and it is 'strokeWidth' (#1266 — got [${declaresOwnStroke.join(', ')}]). A ring IS a stroke, and a stroke is three things: its color left for 'paintSlots' in #933, its WIDTH is this field, and its STYLE has no Figma property to bind to (a dash rhythm is a 'dashPattern', not a keyword) so it stays in codeOnly under #740. The geometry vocabulary beside it is [${partDefFields.filter((f) => ['gap', 'height', 'radius', 'size', 'width', 'type', 'inset', 'padding'].includes(f)).join(', ')}], plus 'strokeInset' which names ANOTHER component's stroke to compensate for (#801), not this part's own`);
+  // AND THE CONSEQUENCE, measured rather than inferred from the declaration above: the def projects and
+  // its members are STROKED. Two independent readings — the schema has a field (above), and the plans
+  // bind it (here) — because "a field exists" says nothing about a projector reading it, which is #795's
+  // whole finding about untested claims, and the two `strokeWeight` sites in the executors mean the
+  // OPPOSITE mistake is silent too: an unbound weight paints 1px and reports no miss.
+  //
+  // WIDTH AND STYLE ASSERTED APART, because they are the two ends of what #1266 changed and a check over
+  // "any focus/ring/* binding" would go green on either alone. The width must bind at EVERY coordinate
+  // (both grounds — a stroke bound on one member and not the other is exactly the half-build #784's paint
+  // keys shipped), and the style must bind nowhere, which is #740's remaining scope stated as a fact
+  // rather than as prose. Note what #801 did NOT change: the HOST's absolute part reads `focus.ring.width`
+  // to widen its own gap, so before #1266 the number reached a node and never the ring's own.
+  ok(ringSet.every((p) => planBoundVars(p.root).includes('focus/ring/width')),
+    `focus-ring wall 1c: EVERY projected member binds 'focus/ring/width' as its stroke weight (#1266) — before it, both executors fell through to \`if (!node.strokeWeight) … = 1\` and the ring pasted at 1px in every brand, all of which emit 2 (got [${ringSet.map((p) => planBoundVars(p.root).join('+')).join(' | ')}])`);
+  ok(ringSet.every((p) => !planBoundVars(p.root).some((v) => /focus\/ring\/style/.test(v))),
+    'focus-ring wall 1c: and NO member binds a ring style variable — `focus.ring.style` resolves against every brand and Figma expresses style as a `dashPattern` of pixel runs, so there is no property to bind it to. Fails when #740 finds one, by design');
+  // The plan is the projector's claim; `strokeWeight` is the property Figma actually takes. Named here so
+  // a rename on either side of that boundary fails rather than silently binding a property no node has.
+  ok(ringSet.every((p) => p.root.bound?.strokeWeight === 'focus/ring/width'),
+    `focus-ring wall 1c: the binding is on 'strokeWeight' specifically — the one stroke property Figma accepts a variable for (got [${ringSet.map((p) => String(p.root.bound?.strokeWeight)).join(' | ')}])`);
 
   // ---- the codeOnly contract on both defs, and the correction to Button's ----
   // Every unprojected variant axis must be ADMITTED by a codeOnly entry that LEADS with the axis name
@@ -12493,7 +12546,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(/#795/.test(ringCeiling) && /nestVariantMatch/.test(ringCeiling),
     'button: the ring ceiling records the STRUCTURAL walls as closed by #795, citing the check that proves it (nestVariantMatch) — the same measurement this file makes directly above');
   ok(/#740/.test(ringCeiling) && /PartDef/.test(ringCeiling) && /stroke/.test(ringCeiling),
-    'button: the ring ceiling names the ONE wall that survives — PartDef has no stroke field, a schema decision under #740');
+    'button: the ring ceiling names the wall that survives — PartDef has no field for a stroke\'s STYLE, a schema decision under #740');
+  // AND THE ONE THAT CLOSED WITH #1266, required by ticket, for the reason the two assertions above this
+  // pair exist: this entry has twice described a lifted wall as live. `strokeWidth` is what lifted it, so
+  // the name is what has to be present — a `#1266` with no field name would be satisfied by an entry that
+  // merely cites the PR.
+  ok(/#1266/.test(ringCeiling) && /strokeWidth/.test(ringCeiling),
+    'button: the ring ceiling records the STROKE WIDTH as closed by #1266, naming the field that closed it (`PartDef.strokeWidth`) — the wall this entry called the ring\'s "entire visual substance" is now one keyword');
   // Sharing the ring IS still the right call, and the correction must not have thrown that away with
   // the false acceptance. Pinned because the tempting over-correction is to delete the whole rationale.
   ok(/one shared thing/.test(ringCeiling),

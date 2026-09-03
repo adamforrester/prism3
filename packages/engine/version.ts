@@ -138,6 +138,46 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.44.0: the focus ring pastes at its brand's own stroke weight (#1266). `PartDef` gains
+ * `strokeWidth`, a token key bound onto a `box` part's `strokeWeight`, and `focus-ring`'s one part
+ * binds it to `focus.ring.width`. Before this, no def could express a stroke's THICKNESS at all: a
+ * part could name the paint on its edge (`paintSlots`, #933) and nothing else, so both executors fell
+ * through to `if (!node.strokeWeight) node.strokeWeight = 1` and every ring pasted at 1px in all four
+ * corpus brands — each of which emits `focus.ring.width: 2`.
+ *
+ * THE VISIBLE HALF IS THE GAP, NOT THE THICKNESS, and that is why this is worth a version rather than a
+ * footnote. A Figma stroke is drawn INWARD from the node's bounds, which is why #801 has every host site
+ * its ring part at `-(offset + ring-width)` = -4 rather than at -2. That arithmetic assumed the 2px it
+ * was compensating for; against a 1px ring it over-compensated, so the background sliver WCAG 1.4.11
+ * requires measured 3px where 2px was designed, and the indicator itself was half its declared
+ * thickness. Both executors now write the 1px default only when nothing bound the property — gated on
+ * the list of bindings that RESOLVED, not on the plan, because an unresolved name still needs a
+ * fallback or the stroke paints nothing at all. Gating it on the presence of a literal would be worse
+ * than the bug: live, writing `node.strokeWeight = 1` after `setBoundVariable('strokeWeight', v)`
+ * UNBINDS the variable, so a build doing both would report clean and ship the old ring.
+ *
+ * THE TOKEN LAYER DOES NOT MOVE, and the bump is demanded from the other side. The ring is built at
+ * plugin/paste time, and `focus.ring.width` was already emitted, resolved and guaranteed — so the only
+ * change under `out/**` is this file's own `$extensions.generator.version` stamp, one line per tree,
+ * which every bump produces and which is therefore evidence of nothing. What ACTUALLY requires the bump
+ * is `lint-component-surface`'s arm B (#1252): `focus-ring`'s `planStamp` moves because its members now
+ * carry `bound.strokeWeight`. Three Button stamps move too and NOT for that reason — the projected field
+ * is written only where a part declares `strokeWidth`, which no Button part does, and stripping every
+ * `bound.strokeWeight` out of Button's plans leaves its digest bit-identical. What moves them is one
+ * `codeOnly` STRING whose old text ("`PartDef` still has no stroke field", "the projected members are
+ * strokeless") this change falsifies; `codeOnly` rides on the plan by design and `planStamp` hashes the
+ * plan wholesale. Restoring that one string returns all three to main's committed digests exactly, which
+ * is how the split was established rather than assumed (see `docs/00-progress.md`). No token name,
+ * `$type` or value moves, so `CONTRACT_VERSION` stands at 9.4.0 with `--check` confirming it.
+ *
+ * VERSION NOTE: takes 0.44.0, one past main, for the reason 0.42.0's own note states — every lower
+ * minor is occupied (0.40.0 #1248, 0.41.0 #1257, 0.42.0 #1226 PR-A, 0.43.0 #1015) and a re-stamp goes
+ * FORWARD to the next free minor rather than backwards into a number a merged commit already carries
+ * (#1271). THIRD stamp on this branch: 0.41.0 was correct when written, 0.43.0 was correct when written
+ * one rebase later, and each collided with a version PR that landed while this one was in review. That
+ * the number moved twice without the diff moving is the argument for keeping the stamp out of the prose
+ * that reasons about it — everything above this note is unchanged across all three.
+ *
  * 0.43.0: the CONTROL CORNER, clamped to its own box (#1015). Three writers move together. `scale.ts`
  * gains `controlRadius(edge, radiusSm) = min(radiusSm, snap2(edge ÷ 8))`; `tree.ts` emits it as a sixth
  * field beside the `height` it is derived from (`control.size.<rung>.radius`), with a per-mode override
@@ -980,7 +1020,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.43.0';
+export const ENGINE_VERSION = '0.44.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

@@ -16,6 +16,9 @@
  *   · `planSetLayout` succeeds — 2 cells, axis `color`, a 1×2 grid.
  *   · Each member's root is `{name:'ring', type:'FRAME', strokes:'color/border/focus', bound:{},
  *     children:[]}` — no `layoutMode`, no sizing mode, no `width`, no `height`, no `strokeWeight`.
+ *     (#1266 gave the ring a bound `strokeWeight`, so `bound` is no longer empty and the box is stroked
+ *     at its brand's 2px rather than the executors' 1px fallback. Nothing else in that line moved, which
+ *     is the point of this gate: a stroke is not an extent.)
  *
  * So it is a COMPLETE build of a plan that carries no geometry, which is a different defect from the one
  * #869 describes and needs a different fix. The 100×100 is Figma's default frame, supplied because
@@ -236,7 +239,7 @@ for (const def of componentDefs) {
   if (found.length === 0 && !expected) {
     failures.push(
       `${def.id}: projects ${plans.length} member(s) whose root '${root.name}' acquires NO extent — none of [${SIZE_SOURCES.map((s) => s.id).join(', ')}]. `
-      + `Built standalone this is Figma's 100×100 default frame${root.paints?.strokes ? ` with '${root.paints.strokes}' at the executor's 1px fallback` : ''}, which reads as a successful build (#869). `
+      + `Built standalone this is Figma's 100×100 default frame${root.paints?.strokes ? ` with '${root.paints.strokes}' stroked around it${root.bound?.strokeWeight ? ` at '${root.bound.strokeWeight}'` : ` at the executors' 1px fallback`}` : ''}, which reads as a successful build (#869). `
       + `Either give the root an extent, or declare figmaProperties.notStandalone: '${def.id}: <why a standalone build is meaningless, and what to build instead>'.`,
     );
   }

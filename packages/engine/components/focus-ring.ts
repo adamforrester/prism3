@@ -23,18 +23,24 @@
  * WHAT THIS DEF CAN AND CANNOT DO, measured rather than assumed — because the honest answer is
  * "less than it looks" and the previous version of that answer was wrong in a way that stopped
  * anyone looking. Four independent walls sat between this def and a ring the engine materializes, and
- * every one of them was a projector or schema gap rather than a fact about focus rings. THREE ARE NOW
- * DOWN (#795) AND THE ONE LEFT IS THE ONE THAT MATTERS MOST:
+ * every one of them was a projector or schema gap rather than a fact about focus rings. ALL FOUR ARE NOW
+ * DOWN (#795, #1266) AND WHAT SURVIVES IS ONE KEYWORD:
  *
- *  1. `PartDef` HAS NO STROKE FIELD — **STILL STANDING (#740), and it is why this def now projects and
- *     is still not DONE.** Its geometry vocabulary is gap / height / radius / size / type / inset /
- *     padding. A ring is a stroke and nothing else, so the one thing this component IS has no field to
- *     be declared in. `tokens` below binds the stroke's color, weight and style, and every binding
- *     resolves against both brands' emitted trees — but no PART can carry the weight or the style, so
- *     no plan binds them to a node. As of #795 the ring PROJECTS: 2 members, `surface=default` and
- *     `surface=inverse`, each with its stroke COLOUR bound. What comes out is a ring-shaped box with the
- *     right ink and no stroke — which is progress, and is not yet a ring. Read this as #740's scope
- *     rather than as a wall nobody has looked at.
+ *  1. `PartDef` HAD NO STROKE FIELD — **DOWN FOR THE WIDTH (#1266); STANDING FOR THE STYLE (#740).**
+ *     Its geometry vocabulary was gap / height / radius / size / type / inset / padding. A ring is a
+ *     stroke and nothing else, so for three releases the one thing this component IS had no field to be
+ *     declared in: `tokens` below bound the stroke's color, weight and style, every binding resolved
+ *     against every emitted brand, and no PART could carry any of them. All three moved separately.
+ *     COLOR moved first (#933) — a part names its edge in `paintSlots` and the projector resolves it to
+ *     a bound paint. WIDTH moved with #1266: `PartDef.strokeWidth` exists, the `ring` part binds it, and
+ *     each projected member carries `bound.strokeWeight -> focus/ring/width`. That was a defect and not
+ *     only a gap, because both executors have a `if (!node.strokeWeight) node.strokeWeight = 1` fallback
+ *     for an unweighted stroke: the ring pasted at 1px in every brand, all of which emit 2, AND the gap
+ *     came out wrong with it — a host sites the ring at `-(offset + ring-width)` on the premise the
+ *     stroke is 2px, so a 1px stroke left 3px of background where 2 was designed. What is LEFT is the
+ *     STYLE. `focus.ring.style` resolves against every brand and Figma offers no property to bind it to:
+ *     a dash rhythm is a `dashPattern` of pixel runs, not a `solid`/`dashed` keyword, so a projection
+ *     would have to invent the rhythm. That is #740's remaining scope here, and it is one keyword.
  *  2. `figmaAnatomySet` REFUSED the `surface` axis — **DOWN (#795).** `PROJECTABLE_VARIANT_AXES` was
  *     `['intent','appearance','size']`, and it threw rather than iterating around an unknown axis. The
  *     throw was right about its RULE — enumerating around an axis emits a set silently missing it (#487
@@ -57,10 +63,12 @@
  *     the projector never dispatches, so the ring's color was still reachable at 0 of 2 coordinates.
  *     #784 renamed them to `border`.
  *
- * So this def is REAL, gate-checked and PROJECTED as of #795 — 2 members, both with their ink bound —
- * and it is NOT YET A USABLE RING, because wall 1 holds the stroke that is the whole component. That
- * is a narrower and more honest position than the one this header used to describe, and the difference
- * matters for the roadmap: `focus-ring` is no longer blocked on the projector, only on `PartDef`.
+ * So this def is REAL, gate-checked, PROJECTED as of #795 and drawing its brand's own stroke as of
+ * #1266 — 2 members, ink and weight both bound. What it is still not is buildable ALONE, and that limit
+ * is GEOMETRY rather than the stroke: a ring's extent is its host's extent plus the offset, so there is
+ * no size a lone ring could correctly have and no schema field could supply one. See
+ * `figmaProperties.notStandalone`. The difference matters for the roadmap: `focus-ring` is blocked on
+ * neither the projector nor `PartDef` any more — nest it and it is correct.
  *
  * `figmaProperties` declares `surface` ALONE. `offset` stays a paste-time parameter rather than a second
  * variant axis, and #801 is why: the offset resolves to a NUMBER at paste because Figma's `x`/`y` bind
@@ -149,11 +157,14 @@ export const focusRing: ComponentDef = {
   },
 
   // ONE PART, because a ring IS one node — an absolutely-positioned sibling with zero children and
-  // `clipsContent: false` (docs/32:592). It binds no geometry, and that is the measurement rather
-  // than an omission: a ring's geometry is its stroke and its position, and `PartDef` has a field for
-  // neither. Its SIZE is its parent's bounds grown by the host's inset, so a `size` binding here
-  // would fight the stretch (`PartDef.size` is rejected outright on the host's `absolute` part for
-  // exactly this reason). Its RADIUS is the host's, derived below. Its STROKE has no field at all.
+  // `clipsContent: false` (docs/32:592). It binds exactly one thing, and which one is the measurement
+  // rather than an omission: a ring's geometry is its STROKE and its POSITION, and only the first of
+  // those is a property. Its SIZE is its parent's bounds grown by the host's inset, so a `size` binding
+  // here would fight the stretch (`PartDef.size` is rejected outright on the host's `absolute` part for
+  // exactly this reason). Its RADIUS is the host's, derived below. Its POSITION is the host's `inset`,
+  // and Figma's `x`/`y` accept no variable. Its STROKE is `strokeWidth` (#1266) — the one dimension a
+  // ring owns rather than borrows, and the reason it now pastes at its brand's 2px instead of a 1px
+  // executor fallback.
   anatomy: {
     root: 'ring',
     parts: {
@@ -165,13 +176,22 @@ export const focusRing: ComponentDef = {
         // `color.border.focus` to `color.inverse.border.focus` at `surface=inverse` (#1134), so there is
         // one slot, not two.
         paintSlots: ['border'],
+        // THE STROKE'S WIDTH, and the whole of what a Figma stroke can take from a token beyond its paint
+        // (#1266, #740's field). Bound here rather than left to the executors' `if (!node.strokeWeight)
+        // … = 1` fallback, which is what shipped: a 1px ring in every brand, all four of which emit
+        // `focus.ring.width: 2`. And thin was the smaller half — every host sites this part at
+        // `-(offset + ring-width)` because the stroke is drawn INWARD across the gap, so at 1px the ring
+        // sat 3px out where 2px was designed. Naming `width` rather than the token, like every other
+        // binding key here: `tokens` above maps it to `focus.ring.width`, so a brand that tunes its ring
+        // re-themes this the way it re-themes the ink.
+        strokeWidth: 'width',
         // `target` in the a11y/interaction sense only, which a ring never has — it is here because the
         // schema requires exactly one, and a one-part anatomy has one candidate. This comment used to
         // read "`target` in this schema's sense — the single node owning this component's paint", which
         // was true of the projector and was #933: paint moved to `paintSlots` above, and the two
         // readings this comment noticed were coming apart are now two fields.
         role: 'target',
-        note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no dimension of its own.',
+        note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no width, height or radius of its own. The one dimension it does bind is its stroke\'s width, because that one is nobody else\'s to supply.',
       },
     },
     derived: {
@@ -189,8 +209,8 @@ export const focusRing: ComponentDef = {
       // here any more; `offset` does not, and its entry is what keeps that a decision rather than a gap.
       // This check now runs for real, because `figmaProperties` is present.
       'offset — the context parameter (`control` ≈2px / `field` 0), and the one axis this def deliberately does NOT project (#795, decided on #801\'s measurement). Not a projector limit: the enumeration would carry it happily now that it reads `variantAxes`. The reason is that the offset is consumed by the HOST\'s `inset` binding and Figma\'s `x`/`y` accept no variable, so #801 measured the payload resolving it to a NUMBER at paste and writing that — an axis over it would ship two members differing only by a value the platform cannot hold, and a designer switching `offset=field` on an instance would see nothing move. So it stays a paste-time parameter the host supplies: `text-field`\'s field-specific offset comes from the PARENT at paste, not from a coordinate on this set. An already-pasted ring does not re-position when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.',
-      'stroke weight and stroke color — the ring\'s entire visual substance, and `PartDef` has no field for either. Its geometry vocabulary is gap / height / radius / size / type / inset / padding; a stroke is not among them. So `tokens` binds `color.border.focus`, `focus.ring.width` and `focus.ring.style` and every one resolves against every emitted brand, while no PART can carry them and therefore no plan can bind them to a node. This is the wall Button\'s codeOnly entry used to describe as a deliberate trade — it is not; it is an unexamined schema gap, and expressing it needs a `PartDef` stroke field, which is a schema decision under #740.',
-      'the stroke, restated as the materialization ceiling — the def PROJECTS as of #795 (`figmaProperties` below declares `surface`, and the set builds two members with their ink bound), and what it projects is not yet a ring. Before #795 this entry said the def was deliberately not materializable because a `variantAxes: [\'color\']` block would validate and then throw; that is now simply false, and the honest replacement is narrower: nesting resolves by NAME against the live file (`compByName.get(n.nestTarget)`), so once the projected set is pasted, Button\'s `nests: \'focus-ring\'` binds to OUR members rather than to a hand-built component — which closes the docs/14 §1 inversion for the NODE while wall 1 keeps it open for the stroke. Read the remaining gap as "the members are strokeless", not as "the def cannot project".',
+      'stroke style — `focus.ring.style` resolves against every emitted brand and there is no Figma property to bind it to. In CSS the ring is an `outline` and its style is a keyword (`solid`, `dashed`); Figma has no keyword, only `dashPattern`, an array of pixel runs — so projecting a `dashed` ring means inventing a rhythm the token does not carry, and projecting `solid` means writing nothing, which is what happens already. This entry is the REMAINDER of one that used to read "stroke weight and stroke color", and the narrowing is the record worth keeping: a stroke is three things and this def could express none of them, because `PartDef`\'s vocabulary was gap / height / radius / size / type / inset / padding. COLOR left in #933 (`paintSlots` names the edge and the projector binds the paint) and WIDTH in #1266 (`PartDef.strokeWidth`, bound on the `ring` part above). What is left under #740 is one keyword, not the ring\'s visual substance — and Button\'s own ceiling entry described the whole thing as a deliberate trade, which it never was.',
+      'the stroke, restated as the materialization ceiling — the def PROJECTS as of #795 (`figmaProperties` below declares `surface`, and the set builds two members with their ink bound), and what it projects is not yet a ring. Before #795 this entry said the def was deliberately not materializable because a `variantAxes: [\'color\']` block would validate and then throw; that is now simply false, and the honest replacement is narrower: nesting resolves by NAME against the live file (`compByName.get(n.nestTarget)`), so once the projected set is pasted, Button\'s `nests: \'focus-ring\'` binds to OUR members rather than to a hand-built component — which closes the docs/14 §1 inversion for the NODE. #1266 closed it for the STROKE as well — each member carries `bound.strokeWeight -> focus/ring/width`, so "the members are strokeless" is no longer the right reading and was the reading two other files quoted. What is left is narrower again and it is not a stroke: the members have their ink and their thickness and no EXTENT of their own, which is `figmaProperties.notStandalone` rather than a wall.',
       ':focus-visible condition — the ring appears on exactly one host state, and that state is a POINTER-vs-KEYBOARD distinction the browser makes at runtime. Figma has no state machine, so a projected ring is a variant coordinate a designer selects, never a state an interaction triggers. This is why Button\'s `focusRing` part declares `when: \'focus-visible\'` — the condition has to be stated in the def, because nothing downstream can infer it.',
       'high-contrast / forced-colors — a focus indicator must survive a forced-colors mode that replaces every authored color, which in CSS means `outline` rather than a border or box-shadow (an outline is preserved where a shadow is dropped). Figma has no forced-colors concept and no outline primitive distinct from a stroke, so the one property that keeps the ring visible for the users who most depend on it cannot be expressed in the Figma leg at all.',
       'the 3:1 adjacent-contrast contract — 1.4.11 requires the ring to clear 3:1 against BOTH the surface behind it and the control edge beside it, which is a relationship between three colors resolved per host and per mode. The `surface` axis is the design\'s answer to it (`inverse` exists because the default ring fails against a brand-filled surface), but the contract itself is a computation over a host this def cannot see, so no single ring component can carry it.',
@@ -224,21 +244,21 @@ export const focusRing: ComponentDef = {
     booleans: {},
     // Measured against the real projector over nb's committed emission: 2 members, 0 binding errors,
     // 0 set properties, `planSetLayout` succeeds. Each member is `{name:'ring', type:'FRAME',
-    // strokes:'color/border/focus', bound:{}, children:[]}` — no layoutMode, no sizing mode, no width,
-    // no height, no strokeWeight. Five absent fields, so Figma supplies a 100×100 default frame and the
-    // executor's `if (!node.strokeWeight) … = 1` fallback paints the correct token at 1px. Nested it is
-    // fine: Button sites it absolutely and the executor resizes it to `parent + inset*2`, which is where
-    // every one of those five comes from. Standalone there is no parent, so nothing supplies them — and
-    // there never was a code path to lose. The `codeOnly` entry above already said "the members are
-    // strokeless"; this is the same admission somewhere the picker can act on it.
-    // THE REASON IS GEOMETRY, NOT THE STROKE, and the first draft of this string said the stroke — worth
-    // recording because both are true and only one is the blocker. Wall 1 (#740) is why the projected ring
-    // paints a 1px fallback instead of its bound `focus.ring.width`; that is a fidelity loss. What makes a
-    // standalone build meaningless is that a ring's extent IS its host's extent plus the offset, so there
-    // is no size a lone ring could correctly have — #740 does not change that, and no schema field could:
-    // `PartDef`'s vocabulary already offers `size` and `height`, and this part declares neither on purpose.
+    // strokes:'color/border/focus', bound:{strokeWeight:'focus/ring/width'}, children:[]}` — no
+    // layoutMode, no sizing mode, no width, no height. Four absent fields, so Figma supplies a 100×100
+    // default frame. Nested it is fine: Button sites it absolutely and the executor resizes it to
+    // `parent + inset*2`, which is where every one of those four comes from. Standalone there is no
+    // parent, so nothing supplies them — and there never was a code path to lose.
+    // THE REASON IS GEOMETRY, NOT THE STROKE, and #1266 is now the proof rather than the argument. This
+    // comment used to have to insist on the distinction, because the first draft of the string below
+    // blamed the stroke and both were true at once: the ring pasted at the executors' 1px fallback (a
+    // fidelity loss) AND had no extent of its own (the blocker). The fallback is gone and the ring binds
+    // its brand's `focus.ring.width`, and a standalone build is exactly as useless as it was — because a
+    // ring's extent IS its host's extent plus the offset, so there is no size a lone ring could correctly
+    // have. `PartDef`'s vocabulary already offers `size` and `height`; this part declares neither on
+    // purpose, and no schema field could change that.
     notStandalone:
-      'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color at 1px. Build it as part of a host instead: Button nests it and supplies the geometry.',
+      'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color stroked around it. Build it as part of a host instead: Button nests it and supplies the geometry.',
   },
 
   accessibility: {

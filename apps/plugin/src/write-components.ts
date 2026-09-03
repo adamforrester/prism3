@@ -1151,7 +1151,13 @@ const writeComponentSet = async (
         node.strokes = [p];
         paintedStrokes = true;
         // A stroke variable with no weight binds correctly and paints nothing visible.
-        if (!node.strokeWeight) node.strokeWeight = 1;
+        //
+        // GATED ON `wrote` (#1266). A part declaring `strokeWidth` had `strokeWeight` BOUND in the loop
+        // above, and a literal assignment after a binding unbinds it: the border would come out as the
+        // right paint at a hardcoded 1px, re-theming on color and frozen on width. That is what the focus
+        // ring shipped as. `wrote` rather than `n.bound`, so a name that failed to resolve still gets the
+        // fallback and paints something.
+        if (!node.strokeWeight && !wrote.includes('strokeWeight')) node.strokeWeight = 1;
         node.strokeAlign = 'INSIDE';
         // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
         // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —

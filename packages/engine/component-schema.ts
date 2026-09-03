@@ -179,6 +179,30 @@ export type PartDef = {
   gap?: string;
   height?: string;
   radius?: string;
+  /** The binding key giving the width of the stroke THIS part draws INSIDE its own bounds — #740's
+   *  field, opened by #1266 for the one part that is nothing but a stroke.
+   *
+   *  WIDTH ALONE, and the two omissions are the decision rather than a first instalment. The stroke's
+   *  COLOR is not here: since #933 a part names its edge in `paintSlots` (`['border']`) and the projector
+   *  resolves that to a bound paint, so a color field here would be a second way to say the same thing.
+   *  The stroke's STYLE is not here either, and that one is a real gap rather than a redundancy — Figma
+   *  expresses it as `dashPattern`, a pixel rhythm rather than a keyword, so a `solid`/`dashed` token has
+   *  no property to bind to and stays admitted in `codeOnly`.
+   *
+   *  WHY IT WAS NEEDED, measured. `focus-ring`'s projected members bound their ink and no geometry at
+   *  all, so both executors fell through to their own `if (!node.strokeWeight) node.strokeWeight = 1`
+   *  fallback — a 1px ring in every brand, all four of which emit `focus.ring.width: 2`. And the number
+   *  was not merely thin: every host already sites its ring part at `-(inset + strokeInset)` on the
+   *  premise that the ring's stroke IS that width (see `inset` below), so the built gap came out 3px
+   *  where 2px was designed, and the indicator was half the thickness the brand declared. The fallback
+   *  now yields to a bound weight at both executors — left unconditional it would UNBIND the variable
+   *  Figma had just accepted, which is the trap to know about before touching either site.
+   *
+   *  Read by the `box` branch of the projector, and refused on every other kind, because no other branch
+   *  reads it and a binding that projects to nothing is worse than an error. `strokeInset` below is the
+   *  mirror-image field: the width of a stroke ANOTHER component draws, which a host adds to its own
+   *  `inset` to keep the gap it asked for. */
+  strokeWidth?: string;
   /** ONE binding key driving BOTH axes — a square. A slot's glyph artboard, and a `box` that is square
    *  by declaration rather than by two bindings that happen to agree.
    *
@@ -479,10 +503,12 @@ export type PartDef = {
    *  px-from-ratio). A derived `focus.ring.inset = 4` would be correct for one projection and a trap
    *  for every consumer who found the name.
    *
-   *  `strokeInset` below is how a part declares the stroke to compensate for. Ring-specific today only
-   *  because `focus-ring` is the only part kind that carries a stroke of its own; when #740 gives
-   *  `PartDef` a stroke field, that field supplies this width and the compensation stops being
-   *  ring-specific without either executor changing.
+   *  `strokeInset` below is how a part declares the stroke to compensate for, and `strokeWidth` above is
+   *  how the nested part declares the stroke it draws. Both halves exist as of #1266: the ring's own
+   *  weight is bound from `strokeWidth`, so the premise this compensation rests on — that the nested
+   *  stroke really is `focus.ring.width` wide — is now something the build honours rather than something
+   *  the arithmetic assumes. Still ring-specific in practice only because `focus-ring` is the only part
+   *  anyone nests; neither executor needs to change for the second one.
    *
    *  A binding key like every other geometry field, resolving through `def.tokens` identically, but note
    *  what a materializer can do with it: Figma's `x`/`y` accept NO variable binding, so both names are
@@ -677,11 +703,13 @@ export type FigmaProperties = {
    *
    * A def can project perfectly and still produce nothing a designer can use. `focus-ring` does: it
    * builds two members, 0 binding errors, nothing throws, both paints bound and correct — and each
-   * member is a bare `FRAME` with `bound: {}` and `children: []`. No `layoutMode`, no sizing mode, no
-   * width, no height, no `strokeWeight`: five absent fields, so Figma supplies its own default frame
-   * and the executor's stroke fallback (`write-components.ts` — `if (!node.strokeWeight) … = 1`, there
-   * so a bound stroke paints *something*) finishes the illusion. The result is a **100×100 white box
-   * with the right token at 1px**, which is the worst possible output because it reads as a success.
+   * member is a `FRAME` with `children: []` and, until #1266, `bound: {}`. No `layoutMode`, no sizing
+   * mode, no width, no height — so Figma supplies its own default frame and the result is a **100×100
+   * white box carrying the right token**, which is the worst possible output because it reads as a
+   * success. It was a 1px box when this was written, from the executors' `if (!node.strokeWeight) … = 1`
+   * fallback (there so a bound stroke paints *something*); #1266 gave the part a `strokeWidth` and the
+   * ring now binds its own 2px weight, which changes the thickness of the box and nothing about the
+   * argument: the missing quantity is the EXTENT, and no stroke field supplies one.
    *
    * THE KNOWLEDGE ALREADY EXISTED AND NOTHING COULD READ IT. `focus-ring`'s `codeOnly` says "the
    * members are strokeless" and "what it projects is not yet a ring" — correct, specific, written
@@ -2227,7 +2255,7 @@ const anatomyErrors = (def: ComponentDef): string[] => {
   // half-filled strings, none of which any def binds, and the failure read as "not a slot in tokens"
   // — a true statement about a key nobody wrote, pointing away from the actual gap (the expansion).
   const bindingKeys = (p: PartDef): string[] =>
-    [p.gap, p.height, p.radius, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
+    [p.gap, p.height, p.radius, p.strokeWidth, p.size, p.width, p.type, p.inset, p.padding?.block, p.padding?.inlineLabel, p.padding?.inlineVisual]
       .filter((k): k is string => typeof k === 'string');
   for (const n of names)
     for (const key of bindingKeys(parts[n]))
@@ -2329,13 +2357,15 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       // bounds, so a 2px stroke at offset 2 consumes the entire gap the offset was asked for. The check
       // above cannot see that — it asks whether a number was named, and the number was.
       //
-      // Keyed off `nests` naming the ring rather than off a stroke field, because `PartDef` has no
-      // stroke field yet: #740 is what adds one, and until it lands the only part kind that carries a
-      // stroke of its own is a focus ring. So this is deliberately the narrow rule that fires today,
-      // written to be REPLACED rather than extended — when a part can declare its own stroke, the
-      // condition becomes "declares a stroke and no strokeInset" and this name check goes away.
-      // Narrow beats absent: the alternative is that the one part kind where this is already wrong
-      // validates clean, which is exactly how #801 shipped.
+      // STILL KEYED OFF `nests` NAMING THE RING, and #1266 is the reason that is not simply overdue.
+      // `PartDef.strokeWidth` now exists, so the condition this comment predicted — "the nested part
+      // declares a stroke and this one declares no strokeInset" — is finally *expressible*; it is not
+      // decidable HERE. Reading it means resolving `p.nests` to the nested def and looking at its root
+      // part, and this module is what every def imports, so importing the def registry back would be a
+      // cycle. The check that can see both ends is `lint-absolute-inset.ts`, which reads exactly that
+      // field and fails by name (`MUST_CLEAR_STROKE`) if a ring stops declaring its own stroke. So the
+      // name check stays as the authoring-time floor and the generalization lives one layer out, rather
+      // than being deleted here on the strength of a field this file cannot follow.
       if (p.inset && p.nests === 'focus-ring' && !p.strokeInset)
         e.push(`anatomy part '${n}' is kind 'absolute' binding inset '${p.inset}' and nests 'focus-ring', but binds no 'strokeInset' — the ring draws its stroke INSIDE its own bounds, so a materializer positioning it at -inset leaves a gap of (inset - strokeWidth) and at the shipped 2px/2px that is ZERO: flush against the border it must be distinguishable from (WCAG 1.4.11, #801). Bind the ring's width key here`);
       // A part outside the flow cannot be the interaction target: `role: 'target'` is what owns the hit
@@ -2513,6 +2543,14 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeInset' — it compensates an absolute part's 'inset' for an inside-drawn stroke, and there is no inset here to compensate`);
+    // `strokeWidth` is the other half (#1266) and gets the same rule for a different reason: only the
+    // `box` branch of the projector reads it, so on any other kind it is a binding that projects to
+    // nothing — the ring's own defect one layer up, where a declared stroke and no bound weight read as
+    // a build. Refused rather than quietly widened to the other branches: a `vector`'s ink is its fill,
+    // an `absolute` part is sized by its parent, and a `nest` (#1226 PR-A) is an INSTANCE whose stroke
+    // belongs to the component it instantiates — so what a stroke would mean there is a decision.
+    if (p.kind !== 'box' && p.strokeWidth !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeWidth' — only a 'box' projects a bound strokeWeight, so this would resolve, validate, and reach no node`);
     if (p.kind !== 'absolute' && p.kind !== 'nest' && p.nests !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow) or a 'nest' (in-flow) part materializes as an instance of another component`);
     // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests and MUST be

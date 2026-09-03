@@ -7,6 +7,177 @@
 
 ---
 
+## (2026-09-03) — the focus ring pastes at 2px, and the property that was wrong had no read-back at all (#1266)
+
+**STATUS: shipped, JIT-rebased onto #1015 (`ae5d601`).** `ENGINE_VERSION` **→ 0.44.0**; `CONTRACT_VERSION`
+**stands at 9.4.0**. **The token layer does not move** — the ring is built at paste time and
+`focus.ring.width` was already emitted — so the only change under `out/**` is the
+`$extensions.generator.version` stamp itself, one line per tree. That is what every bump produces and
+is therefore evidence for nothing; the gate that actually *demands* this bump is
+**`lint-component-surface`'s arm B** (#1252's case). No new gate here; the list is at **55**, both
+additions arriving on the base (`lint-overlay-provenance` #1257, `lint-nesting` #1226 PR-A).
+
+**Re-stamped three times, forward each time.** Written as 0.41.0, which #1257 took; rebased past 0.42.0
+(#1226 PR-A) to 0.43.0, which #1015 then took; now 0.44.0. A re-stamp goes to the next free minor ABOVE
+main rather than back into a number a merged commit already carries (#1271) — and the number moving
+three times while the diff stayed still is the argument for keeping the stamp out of the prose that
+reasons about it: every paragraph below this one is unchanged across all three stamps. PR-A's `nest`
+PartKind arrived in the same two files this touches:
+`component-schema.ts`'s kind refusals — where the `strokeWidth` refusal now names `nest` as a third
+kind that must not carry one, because a nest materializes as an INSTANCE and the stroke belongs to the
+component it instantiates — and `anatomy-figma.ts`, whose new branch is beside the `box` branch this
+writes in, not inside it.
+
+**Trap for the next ENGINE-only bump:** `schema/token-contract.json` records `engineVersion`, and
+`informationalOnly` in `token-contract.ts` ORs that field into its drift test — so a bump with no token
+movement at all still fails `token-contract --check` and needs
+`npx tsx packages/engine/token-contract.ts --accept`, which is allowed here precisely because
+`diff.level === 'none'` (it prints "no surface change" and leaves `CONTRACT_VERSION` at 9.4.0). The 36
+`CONDITIONAL` lines that appear alongside it are the standing informational report, not new drift; they
+are only *printed* once something else has made the baseline stale.
+
+── THE MEASUREMENT ────────────────────────────────────────────────────────────────────────────────
+
+`focus.ring.width` resolves to **2** in all four corpus brands. Every ring ever pasted was **1px**,
+because `PartDef` had no field for a stroke's thickness and both executors fell through to
+`if (!node.strokeWeight) node.strokeWeight = 1`.
+
+**The thickness was the smaller half.** A Figma stroke is drawn INWARD from the node's bounds, which
+is why #801 has every focusable host site its ring part at `-(offset + ring-width)` = **-4** rather
+than at -2 — `strokeInset` exists exactly to compensate for the stroke eating the gap. That
+compensation assumed the 2px it was compensating for. Against a 1px ring it over-compensated, so the
+background sliver WCAG 1.4.11 requires measured **3px where 2px was designed**, on top of an indicator
+at half its declared thickness. The host's arithmetic and the stroke it compensates for have been
+different numbers for three releases.
+
+**WCAG note, stated precisely because it is easy to overclaim:** the sliver is **1.4.11 Non-text
+Contrast (AA)**. A ring's *thickness* is **2.4.13 Focus Appearance**, which is **AAA** — so the
+thickness half is a design-intent failure and a AAA miss, not an AA one.
+
+── THE FIX ────────────────────────────────────────────────────────────────────────────────────────
+
+`PartDef` gains **`strokeWidth`** — a token key bound onto a `box` part's `strokeWeight`, and the
+whole of what a Figma stroke takes from a token beyond its paint. `focus-ring`'s one part binds it to
+`focus.ring.width`; the projector fills `bound.strokeWeight` in the `box` branch beside `radius`.
+Color left this ceiling in #933 (`paintSlots`), width leaves now, and what remains under #740 is one
+keyword: a stroke's **style** has no Figma property at all (`dashPattern` is an array of pixel runs,
+not `solid`/`dashed`), so `focus.ring.style` resolves against every brand and has nowhere to land.
+
+**THE TRAP, AND IT IS AT BOTH EXECUTORS.** The 1px default cannot simply be deleted: an unresolved
+binding still needs it, or the stroke binds and paints *nothing* — a border silently absent rather
+than thin, which is worse than the bug. Nor can it be gated on the plan, and nor on the presence of a
+literal. Live, writing `node.strokeWeight = 1` **after** `setBoundVariable('strokeWeight', v)`
+**UNBINDS** the variable — Figma reads a literal assignment as the designer overriding the binding —
+so a build that did both would report zero misses and ship the old ring. Both executors now gate on
+**`wrote`**, the list of bindings that actually RESOLVED: `wrote.includes('strokeWeight')` in
+`apps/plugin/src/write-components.ts`, `wrote.indexOf('strokeWeight')<0` in the studio payload string
+at `packages/engine/anatomy-figma.ts`. A third `set('strokeWeight', 1)` site exists in
+`write-components.ts` on an **unstroked** node and is deliberately untouched.
+
+── WHY THREE PASSES OVER THIS EXACT NODE MISSED IT (docs/34) ───────────────────────────────────────
+
+**`strokeWeight` had ZERO read-backs.** #801 measured the ring's POSITION, #802 its PAINT, #1011 its
+RADIUS; each of them walked the built ring and none of them asked how thick it was. A property with no
+read-back has no oracle, and the plan-level assertions could not have caught this — the plan was
+right; the executor's fallback wrote the wrong number.
+
+So the fix ships **two** read-backs, one per executor, and both are needed rather than one: the two
+carry the same default through *different code* (a `wrote` guard vs. an `indexOf` inside a payload
+STRING), so one can be ungated while the other stays correct and the parity gate still reports clean.
+That is measured, not feared — see M5 below.
+
+Both assert the **bound variable's NAME**, not a number, matching #1011's radius arms. `=== 2` would
+pass on a ring left at an executor literal on a brand whose *offset* happens to equal its *width*.
+Each is paired with a "no literal weight was written over the binding" arm (the shims start a FRAME at
+`strokeWeight: 0` precisely so the executor's `if (!node.strokeWeight)` fires as it does live), and the
+plugin side adds a **negative control**: a plan with a stroke paint and no bound weight must STILL get
+the 1px fallback, so the fix is provably a gate on the default rather than its removal.
+
+**MUTATION BATTERY — eight, each failing the named gate** (`wip:` commit before every one; the restore
+step reaches back to `HEAD`):
+
+| | mutation | fails by name |
+|---|---|---|
+| M1 | delete `strokeWidth: 'width'` from `focus-ring.ts` | plugin read-back (2 arms, reproducing the shipped 1px), engine wall 1c (2), `lint-absolute-inset` (**20 rows across 7 hosts** — button, -destructive, -neutral, icon-button, checkbox, radio, switch — each quoting #1266) |
+| M2 | bind it to the wrong token (`offset.control`) | plugin read-back, naming `focus/ring/offset` — the arm a numeric check would have passed |
+| M3 | ungate the plugin fallback | plugin "no literal weight was written" |
+| M4 | delete the plugin fallback | plugin negative control |
+| M5 | ungate the **studio payload** fallback | `anatomy/ring #1266` (2) — **and nothing else; before this PR added that block the whole suite stayed green** |
+| M6 | delete the studio payload fallback | 4 pre-existing gates incl. the `node.strokeWeight=` source probe and the footprint-drift trio |
+| M7 | delete the projector line | 6 engine arms + 2 plugin arms |
+| M8 | delete the `strokeWidth` **kind refusal** in `component-schema.ts` | the new `ibBroke` arm, alone — `got []`, i.e. the refusal was the only error the case produced |
+
+**M8 is the arm the first pass shipped without, filed as #1275 and closed here.** The kind refusal
+(`strokeWidth` on anything but a `box` binds to nothing) had a message and no test — the same shape as a
+gate whose expected value nobody ever moved. Its first draft bound `focus.ring.width`, which is not a
+part-slot key, so the case ALSO tripped the binding resolver and the arm would have fired on either of
+two errors; rebinding it to the slot the sibling `width` arm uses (`size.{size}.track`) is what makes
+`got []` under M8 mean what it reads as. **Six sibling refusals in that same block still have no arm**
+(`inset` and `strokeInset` on a non-`absolute`, `verticalAlign` and `paintSlot` on a non-`text`,
+`paintSlots` on a non-`box`, `glyph` on a non-`vector`) — out of scope here, and filed as **#1276** rather
+than left in #1275's prose, because #1270 closes #1275 and a pointer inside a closed issue is not work
+anybody will find.
+
+── DECISIONS AND TRAPS FOR WHOEVER RE-VERIFIES THIS ───────────────────────────────────────────────
+
+**`lint-absolute-inset`'s `inwardStrokeRef` was rewired, and that closed a real blindness.** It read
+the nested def's `tokens['width']` — a token a def can NAME while binding it to nothing, which is
+exactly what `focus-ring` did. So the gate computed `gap = inset − 2` off a *declared* 2px stroke while
+the build drew 1px, and deleting the binding would have left it green. It now reads the nested def's
+**root part's `strokeWidth` field**, which is what makes M1 fail there by name via `MUST_CLEAR_STROKE`.
+
+**Two designed tripwires in `test.ts` were INVERTED, not deleted.** Wall 1b asserted that `PartDef`
+declares *no* own-stroke field and said "fails when #740 adds one, by design" — it did, and this is
+that edit; it now asserts EXACTLY ONE such field and that it is `strokeWidth`, so a third
+(`strokeColor` duplicating `paintSlots`, a `strokeStyle` Figma cannot hold) still has to be argued for
+in that file. Wall 1c became **three** arms — width bound at every coordinate, style bound nowhere, and
+the binding on `strokeWeight` specifically — split so neither end can go green alone.
+
+**The `component-schema.ts` name check STAYS**, against its own comment's prediction. The validator
+refusing a `nests: 'focus-ring'` part that omits `strokeInset` cannot be generalized to "resolve
+`p.nests` and read the nested part's `strokeWidth`", because that needs the def registry and every def
+imports this module — a cycle. The generalization lives in `lint-absolute-inset.ts`, which fails by
+name. Recorded at the check so nobody re-walks it.
+
+**Four defs' `planStamp`s moved, and the three that are not `focus-ring` were checked against #1018's
+shape rather than assumed benign.** #1018's defect was a new plan field written onto nodes that do not
+bind it, restamping unrelated defs as pure noise, and the remedy there was to narrow the write. That
+remedy is **already in force here** — `if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth)`
+writes nothing on a part that declares no `strokeWidth`, and no Button part declares one. **Measured
+two ways, because "already narrow" is exactly the kind of claim that is comfortable to assert:**
+
+1. Strip **every** `bound.strokeWeight` out of the projected plans post-hoc and re-digest. `focus-ring`
+   moves (`200aad15…` → `345a48ce…`); all three buttons are **unchanged** (`8272237e…`, `e080bbc8…`,
+   `04e1460a…` — bit-for-bit their live values). The 1296 `strokeWeight` occurrences in Button's
+   3.2 MB plan JSON are *prose and payload text*, not one binding.
+2. Restore **only** the `codeOnly` string at `button.ts:341` to main's text, leaving the field, the
+   projector line, both executors and the ring's binding in place. All three button digests land back
+   on main's committed baseline exactly — `bdb5805d…`, `34980d2d…`, `21dcc412…` — while `focus-ring`
+   still moves. One string is the entire cause.
+
+So the residual three are a **documentation-truth** change, not field noise: main's text asserts
+"`PartDef` still has no stroke field" and "the projected members are strokeless", both of which this PR
+makes false, and `codeOnly` is carried onto the plan deliberately (`anatomy-figma.ts:421` — "so the
+ceilings travel WITH the artifact that fails to honor them") and replicated per member, so `planStamp`
+hashing `JSON.stringify(plan)` wholesale sees it 432 times. The remaining ways to make the diff one row
+are to ship a knowingly false note to designers — the note ships in `apps/plugin/dist` and is gated by
+`lint-us-english`/`lint-voice`, and #869's whole finding was a defect recorded where only humans look —
+or to desensitize `planStamp` to prose, which deletes part of the gate. **Accepted at four rows, one
+geometry and three prose**, with the split named here so the `--accept` is not read as four projections
+changing.
+
+**`lint-standalone-floor` was checked and correctly does NOT fire.** A stroke is not in `SIZE_SOURCES`,
+so a bound weight gives the ring no extent and `notStandalone` still stands — the ring is still
+withheld from standalone builds. Its arm-A message now reads the stroke off the plan rather than
+asserting the 1px fallback.
+
+**Filed, not fixed here (one concern per PR):** the `strokeInset` validator generalization above is the
+schema-side half and needs the registry cycle solved; and `#1228`'s wider case — a *bordered* part's
+stroke width is still an executor default, so Prism 2's 2px rim remains unexpressible outside the ring
+— is that issue's decision half, untouched by this build.
+
+---
+
 ## (2026-09-03) — the checkbox corner, clamped to its own box (#1015)
 
 **STATUS: shipped, gates green, not merged.** ENGINE **0.42.0 → 0.43.0**; CONTRACT **9.3.0 → 9.4.0** (574 →
