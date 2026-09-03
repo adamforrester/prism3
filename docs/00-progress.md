@@ -42,20 +42,41 @@ to three is exactly the edit that could leave `medium` pointing at `sm` with eve
 colour control is an existing pattern applied. And because no weight axis is added, the `type` template
 still names ONE placeholder — the projector's `{size}`-only expansion is untouched.
 
+The projected set is 3 sizes x 2 tones x 2 states = 12 members against Prism 2's 3 x 2 x 2 over
+size x colour x weight. **Not "one axis apart"**: the weight axis (#1248) is the largest gap and not the
+only one — this def defaults to `tone: primary` / `size: medium` where Prism 2 defaults to Secondary /
+Small. The ladders match (14/16/18) and the colours match role-for-role; which cell a consumer lands in
+having chosen nothing is a separate decision #872 did not take, and nothing has taken it since.
+
 **Prism 2's third control is not built.** Its Regular/Bold weight needs a coordinate-driven `type`
 resolver (today a part's `type` fills `{size}` only, while `paintKeys` have always taken the whole
 coordinate — an asymmetry with no stated reason) AND a new name in #756's deliberately closed axis
 vocabulary. Both are decisions rather than bindings. **Filed as #1248**, routed to review before code.
 This def binds `.default` — 400, Prism 2's own default cell — until that lands.
 
-── THE PROVENANCE GATE CORRECTED A DESIGN CHOICE ─────────────────────────────────────────────────
+── THE MARKER NOW FOLLOWS THE LABEL, AND A CAPABILITY IS GONE ────────────────────────────────────
 
-The marker used to be pinned one role below the label so "(optional)" read de-emphasized. Keeping that
-under a tone axis is refused by construction: `lint-paint`'s provenance arm requires an axis-value-led
-key to name a ref carrying that value, so `primary.indicator → color.text.secondary` fails **by name**
-as *"a primary coordinate would paint another tone's color"*. Measured on the first run, not predicted.
-Prism 2 paints label and marker alike in every colour cell anyway. **The de-emphasis moved rather than
-vanished** — it is what `tone='secondary'` is for, the gap #872 called its sharpest.
+The marker used to be pinned one role below the label so "(optional)" read de-emphasized. It now takes
+the label's ink at both tones, and **the reason is Prism 2 alone**:
+`reference/Prism2/component-specs/form-label.json` paints label and required marker IDENTICALLY at every
+colour it offers — `#656A7A` for both at its default, `#24262D` for both at `color: Primary`.
+
+**A second reason was published here and in the def, and it was FALSE.** It said the muted marker was
+"not expressible anyway" once ink is tone-keyed. The reviewer built the counterexample and I reproduced
+it before correcting the prose: `paintKeys: ['{tone}.{slot}', '{slot}']` with a bare un-led
+`indicator: 'color.text.secondary'` gives **provenance ok, `reach/field-label 5/5`** — five bindings
+against the shipped six, with only the census drifting (expected, its baseline is the six). The
+provenance arm *does* refuse `primary.indicator → color.text.secondary`, and that part was measured and
+is true; but refusing ONE SPELLING is not the capability being unreachable. **A constraint invented to
+make a preference look forced** is the shape this repo keeps finding, and it went in under a green
+suite because nothing gates a comment's reasoning.
+
+**So the capability is REMOVED, not relocated** — the earlier wording here ("the de-emphasis moved
+rather than vanished") was wrong in the way that matters to a reader deciding what the def can still do.
+`tone='secondary'` mutes the WHOLE component, label and marker together; the muted-marker-RELATIVE-TO-
+LABEL treatment — a primary label beside a quieter "(optional)" — is unreachable at every coordinate.
+A deliberate tradeoff taken to match Prism 2, and re-introducing it means re-arguing it against Prism 2
+rather than looking for the control that already holds it.
 
 The `indicator` slot stays separate even though both parts now resolve alike, and its justification had
 to be REPLACED rather than kept: "Figma renders two text nodes in two colors trivially" expired with the

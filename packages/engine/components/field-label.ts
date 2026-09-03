@@ -93,16 +93,29 @@ export const fieldLabel: ComponentDef = {
     'gap': 'space.050',
     // INK, PER TONE (#872), and THE MARKER FOLLOWS THE LABEL — a reversal of what shipped, so the reason
     // is here. The marker used to be pinned one role down (`indicator` -> `color.text.secondary`) so
-    // "(optional)" read de-emphasized beside a primary label. Two things retire that. Prism 2 paints
-    // label and marker ALIKE in every one of its color cells — the asterisk is gray beside a gray label
-    // and near-black beside a near-black one — and Prism 2 is the authority on styling values here. And
-    // once ink is tone-keyed the old pairing is not expressible anyway: `lint-paint`'s provenance arm
-    // requires an axis-value-led key to name a ref carrying that value, so `primary.indicator ->
-    // color.text.secondary` is refused by construction as "a primary coordinate would paint another
-    // tone's color". Measured rather than predicted — it failed that gate by name on the first run.
+    // "(optional)" read de-emphasized beside a primary label.
     //
-    // The de-emphasis is not lost, it MOVED: a consumer wanting a quiet label sets `tone='secondary'`,
-    // which is the control Prism 2 exposes for exactly that and the gap #872 called its sharpest.
+    // THE REASON IS PRISM 2, AND ONLY PRISM 2. `reference/Prism2/component-specs/form-label.json` paints
+    // the label and the required marker IDENTICALLY at every color it offers — `#656A7A` for both at its
+    // default, `#24262D` for both at `color: Primary` — and Prism 2 is the authority on styling values
+    // for this def. That is the whole argument; it does not need a second one.
+    //
+    // A SECOND REASON STOOD HERE AND WAS FALSE, which is worth recording because it is the shape this
+    // repo keeps finding: a constraint invented to make a preference look forced. It claimed the muted
+    // marker was "not expressible anyway" once ink is tone-keyed. It is expressible —
+    // `paintKeys: ['{tone}.{slot}', '{slot}']` with a bare un-led `indicator: 'color.text.secondary'`
+    // resolves cleanly, and the counterexample was built and run rather than argued: provenance ok,
+    // `reach/field-label 5/5`, five bindings against this file's six. The provenance arm does refuse
+    // `primary.indicator -> color.text.secondary` — that part was measured and is true — but refusing
+    // ONE spelling is not the same as the capability being unreachable, and reading it that way is how
+    // a design choice acquires a fake justification.
+    //
+    // SO THE CAPABILITY IS REMOVED, NOT RELOCATED, and the distinction matters to anyone reading this
+    // for what the def can still do. `tone='secondary'` mutes the WHOLE component, label and marker
+    // together. The muted-marker-RELATIVE-TO-LABEL treatment — a primary label beside a quieter
+    // "(optional)" — is now unreachable at every coordinate. That is a deliberate tradeoff taken to
+    // match Prism 2, not a feature that moved somewhere else, and re-introducing it means re-arguing it
+    // against Prism 2 rather than looking for the control that already holds it.
     'primary.label': 'color.text.primary',
     'primary.indicator': 'color.text.primary',
     'secondary.label': 'color.text.secondary',
@@ -222,8 +235,14 @@ export const fieldLabel: ComponentDef = {
   figmaProperties: {
     // `tone` PROJECTS as of #872; `indicator` still does not, for the reason in `codeOnly` below — its
     // most important value is ABSENCE, which no coordinate here can express. The set carries
-    // 3 sizes x 2 tones x 2 states = 12 members. Prism 2's own `_Form label` set is 3 x 2 x 2 (its third
-    // axis is the weight this def defers to #1248), so the grids differ by that axis alone.
+    // 3 sizes x 2 tones x 2 states = 12 members; Prism 2's own `_Form label` set is 3 x 2 x 2 over
+    // size x color x weight.
+    //
+    // DO NOT READ THAT AS "one axis apart". The weight axis (#1248) is the largest gap and not the only
+    // one: this def DEFAULTS to `tone: primary` and `size: medium` where Prism 2 defaults to Secondary
+    // and Small, so the two sets agree on the vocabulary and disagree on which cell a consumer lands in
+    // having chosen nothing. The size ladders match (14/16/18) and the color values match role-for-role;
+    // the defaults are a separate decision that #872 did not take, and nothing here has taken it since.
     variantAxes: ['size', 'tone'],
     stateAxis: { name: 'state', values: ['rest', 'disabled'] },
     texts: {
