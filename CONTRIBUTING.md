@@ -768,6 +768,17 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # SUBTREE Figma returns. That is the executors'
                                                     # runtime NO VECTOR miss, which fails loudly rather
                                                     # than building a plausible empty frame.
+npx tsx packages/engine/lint-nesting.ts             # the component NESTING graph (anatomy.parts[*].nests)
+                                                    # resolves and is acyclic (#1226 PR-A). Two arms,
+                                                    # each mutation-proven BY NAME: nest-resolves — every
+                                                    # id named in `nests` is a real def in componentDefs
+                                                    # (EXPECTED = the registry, SUBJECT = the refs, so
+                                                    # not x===x); acyclic — the graph has no cycle, so a
+                                                    # build order (nested target first, then consumer)
+                                                    # EXISTS. FLOOR: >=1 nest edge, or the arms pass over
+                                                    # nothing. NOT an ORDER gate — index.ts's array order
+                                                    # has no consumer (#1226 PR-A item 3), so acyclicity
+                                                    # is the real invariant, pinning no one order.
 npx tsx packages/engine/lint-advisory-expiry.ts     # a stated advisory window, once it closes, fails
                                                     # the build. The one gate here whose ORACLE IS THE
                                                     # CLOCK: no API, no issue state, no network, and

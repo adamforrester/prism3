@@ -683,6 +683,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-glyph-geometry.ts'),
   },
   {
+    id: 'lint-nesting',
+    ciStep: 'The component nesting graph resolves and is acyclic',
+    cmd: engine('lint-nesting.ts'),
+  },
+  {
     // The FIRST gate outside `packages/engine/`, which is why `gateFilePattern` below now admits
     // `apps/*/lint-*.ts` as well as `.mjs`. It lives in `apps/plugin/` because it imports the plugin's
     // own executor; an engine-side copy would make the engine depend on a surface.

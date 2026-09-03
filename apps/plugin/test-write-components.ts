@@ -1123,6 +1123,14 @@ for (const c of nestCases) {
 // it is the regression guard on the fix, not a claim the fix delivers.
 ok(nestResults[0].miss !== undefined && nestResults[0].miss!.indexOf('not in this file') >= 0,
   `#681 with nothing of that name, the original message survived the fix verbatim (${nestResults[0].miss})`);
+// #1226 PR-A item 4 — the ABSENT miss is a BUILD-ORDER cue, not a bare failure. This is the failure a
+// designer hits building composed components one at a time (the plugin builds one def per run): they built
+// the consumer before its nested target existed. The advice NAMES the target INSIDE ITSELF (`build NEST
+// FIRST`), not just in the `-> ${NEST}` prefix — pinned by position because the #1262 review found the old
+// "build the component named just above" bound to a NEIGHBOUR's target once misses render concatenated
+// (`main.ts` join('; ')). This assertion fails on "just above" (no target name in the advice).
+ok(nestResults[0].miss!.indexOf(`build ${NEST} FIRST`) >= 0 && /build .*first/i.test(nestResults[0].miss!),
+  `#1226 the ABSENT advice names the nested target inside itself — "build ${NEST} FIRST" — a dependency cue self-contained in the advice, not borrowed from the prefix (${nestResults[0].miss})`);
 // Every case still BUILDS its whole set — the ring is dropped, not the run. True before the fix and after.
 ok(nestResults.every((r) => r.built === 21), `#681 every case still assembles all 21 members (${nestResults.map((r) => r.built).join('/')})`);
 

@@ -1019,7 +1019,7 @@ const writeComponentSet = async (
           : other.type === 'COMPONENT_SET' ? 'COMPONENT_SET'
           : other.type === 'INSTANCE' ? 'INSTANCE'
           : 'OTHER';
-        misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (${nestMissAdvice(found)})`);
+        misses.push(`${n.name}.nestTarget -> ${n.nestTarget} (${nestMissAdvice(found, n.nestTarget)})`);
         return null;
       } else {
         node = wr(nested.createInstance());

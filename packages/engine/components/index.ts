@@ -13,6 +13,17 @@
  * `composition.composesWith` names those parts (`text-field`). Nothing reads the order today; it is
  * stated so that a consumer that ever does has a documented reason rather than an accident.
  *
+ * A GATE ASSERTING THIS ORDER MATCHES THE NEST GRAPH WAS CONSIDERED AND REJECTED (#1226 PR-A item 3).
+ * The tempting move, once components nest components (Control → Row → Group), is a gate failing when a
+ * def is listed before something it nests. It protects nothing: nothing reads this array's order (the
+ * sentence above), `apps/plugin/src/main.ts` builds ONE def per invocation (the designer chooses which,
+ * in whatever order), and no `for (const def of componentDefs)` loop depends on the sequence. A gate that
+ * fails on a reorder while guarding no consumer is exactly the trip-wire this repo's gate-independence
+ * discipline exists to prevent. The real invariant — that a build order EXISTS at all — is the ACYCLICITY
+ * arm of `lint-nesting.ts`, which guarantees one without pinning this array to any single one. If a def
+ * EVER gains an ordered build path that walks this array, that consumer is what would make an order gate
+ * honest; until then, acyclicity is the whole of it.
+ *
  * ── WHAT ADDING A DEF HERE DOES, AND WHAT IT DOES NOT ───────────────────────────────────────────
  *
  * It puts the def in `componentDefs`, which is the set `test.ts` iterates.

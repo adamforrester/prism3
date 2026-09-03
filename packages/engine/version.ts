@@ -138,6 +138,24 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.42.0: the IN-FLOW `nest` mechanism (#1226 PR-A). The projector generalizes `nest-fixed` + `follow`
+ * from the out-of-flow `absolute` case (a focus ring) to a new in-flow `nest` PartKind — a part that
+ * materializes as an instance of another component AND takes a cell (a Checkbox.Row's control, C/D/E in
+ * the sequence). Same `NESTED_INSTANCE`, `nestVariantMatch` and `createInstance`; the only new projection
+ * is that a `nest` carries no `absoluteInset`, so it stays a flow child. Plus two gates (`lint-nesting`:
+ * nest-resolves + acyclic) and a build-order runtime miss that NAMES the target to build first. NO def uses
+ * `nest` yet (its consumers are PR C/D/E), so NO emitted TOKEN artifact moves — `regen --check` is
+ * byte-identical except this stamp, and `lint-emission-version` reports 0 artifacts moved. The bump is for
+ * the BEHAVIOR change a consumer sees (a new projectable kind, and the reworded runtime miss that ships in
+ * `apps/plugin/dist`) — principle 5's "any behaviour change", the same reasoning #872's 0.36.0 gives for a
+ * component projection not committed under `out/`. NOT decided by a gate: `lint-component-surface` is
+ * one-directional (a moved surface OWES a bump, never the converse) and this moves no surface, and
+ * `lint-emission-version` prints "the version moved with no emission change, which is legal". CONTRACT stands
+ * at 9.3.0 — `nest` adds no token name (`--check` confirms). Takes 0.42.0 on the just-in-time rebase before
+ * merge: every lower minor is occupied — 0.39.0 (#1018), 0.40.0 (#1248), 0.41.0 (#1257) — so it re-stamps
+ * FORWARD to the next free minor past main rather than merging backwards (#1271). Third re-stamp on this
+ * branch as concurrent version PRs landed first; the fix for the churn is to merge it, not to renumber again.
+ *
  * 0.41.0: an OVERLAY LEAF'S PROVENANCE describes its own value (#1257). Two writers move together.
  * `tree.ts`'s colour mode entry gains `aliasOf: rr.path`, mirroring the `aliasLeaf(lr.path, …)` one
  * tier up — a value and the name it resolves through are one fact, and every other field in that
@@ -938,7 +956,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.41.0';
+export const ENGINE_VERSION = '0.42.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

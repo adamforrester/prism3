@@ -72,6 +72,11 @@ export type PartKind =
   | 'slot'     // swappable content (icon / avatar / counter / spinner) — instance-swap in Figma
   | 'overlay'  // occupies another part's position rather than its own row cell
   | 'absolute' // takes NO position in the flow — an absolutely-positioned sibling of its siblings
+  | 'nest'     // an IN-FLOW instance of another component (#1226 PR-A) — takes a cell like a box, but its
+               //   content is a nested COMPONENT the def names in `nests`, resolved `nest-fixed` (with
+               //   `follow`) exactly as `absolute` does. The one difference from `absolute` is the flow:
+               //   a `nest` sits in the layout and takes a cell (a Checkbox.Row's control), where an
+               //   `absolute` (a focus ring) sits outside it. Projects as `NESTED_INSTANCE`, in flow.
   | 'vector';  // a filled outline — the one kind whose CONTENT is geometry rather than a box (#864)
 
 /** How a part sizes on each axis. Figma's auto-layout vocabulary, which is also CSS-expressible
@@ -429,11 +434,17 @@ export type PartDef = {
    *  host nominates a ring and where it sits, and nothing more. A host's `focus-ring` / `ring-width` /
    *  `ring-offset` binding keys therefore stay bound-but-unprojected, which is the honest reading of
    *  "the ring is shared" rather than a gap. The DECISION this encodes is that N-way duplication is
-   *  the worse cost; `absolute` without `nests` is left unsupported rather than half-supported. */
+   *  the worse cost; `absolute` without `nests` is left unsupported rather than half-supported.
+   *
+   *  **Carried by `absolute` AND `nest` (#1226 PR-A).** `absolute` nests OUT of the flow (a focus ring,
+   *  taking no cell); `nest` nests IN the flow (a Checkbox.Row's control, taking a cell). Both name the
+   *  component here and resolve it `nest-fixed` (with `follow`) the same way — the only difference is
+   *  whether the instance sits in the layout or beside it, which is the part KIND, not this field. */
   nests?: string;
   /** How this part relates to the component it points at (#681). REQUIRED on every part that points
-   *  at one — a `slot` (whose content is swapped) and an `absolute` (which materializes AS an
-   *  instance) — and rejected on the kinds that point at nothing.
+   *  at one — a `slot` (whose content is swapped), an `absolute` (out-of-flow instance) and a `nest`
+   *  (in-flow instance, #1226 PR-A) — and rejected on the kinds that point at nothing. A `nest` is
+   *  `nest-fixed` only (`nest-exposed` stays refused, #761; `swap` is a slot's relation).
    *
    *  Separate from `nests` because the two answer different questions and `nests` already has an
    *  answer: `nests` names WHICH component, this names the RELATIONSHIP to it. A `slot` has no `nests`
@@ -2502,8 +2513,21 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // off an absolute part there is nothing for it to compensate and it would project to nothing.
     if (p.kind !== 'absolute' && p.strokeInset !== undefined)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but binds 'strokeInset' — it compensates an absolute part's 'inset' for an inside-drawn stroke, and there is no inset here to compensate`);
-    if (p.kind !== 'absolute' && p.nests !== undefined)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' part materializes as an instance of another component`);
+    if (p.kind !== 'absolute' && p.kind !== 'nest' && p.nests !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'nests' — only an 'absolute' (out-of-flow) or a 'nest' (in-flow) part materializes as an instance of another component`);
+    // A `nest` (#1226 PR-A) is the in-flow twin of `absolute`: it MUST name what it nests and MUST be
+    // `nest-fixed`. Without `nests` it points at nothing (an in-flow instance of what?); `nest-exposed`
+    // stays refused (#761) and `swap` is a slot's relation, so a `nest` that is neither is a def author
+    // reaching for a mechanism this PR did not ship.
+    if (p.kind === 'nest' && p.nests === undefined)
+      e.push(`anatomy part '${n}' is kind 'nest' but declares no 'nests' — an in-flow nested instance must name the component it instantiates (like an 'absolute' focus ring does)`);
+    if (p.kind === 'nest' && p.nesting && p.nesting.kind !== 'nest-fixed')
+      e.push(`anatomy part '${n}' is kind 'nest' but declares nesting '${p.nesting.kind}' — an in-flow nest is 'nest-fixed' only (the def names the coordinate, with 'follow'); 'nest-exposed' is not built (#761) and 'swap' is a slot's relation`);
+    // A `nest` materializes as an INSTANCE, whose descendants are the nested component's own — so it
+    // builds no children of its own. A `children` list here would be built UNDER the instance, which is
+    // not what nesting means.
+    if (p.kind === 'nest' && (p.children ?? []).length)
+      e.push(`anatomy part '${n}' is kind 'nest' but declares 'children' — an instance's descendants are the nested component's own; a nest builds no children beneath itself`);
     // ---- the nesting relation (#681) ----
     // The three kinds that POINT AT another component must declare how they relate to it; the two
     // that point at nothing must not. `slot` is in the required set even though it carries no
@@ -2515,11 +2539,11 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     // gets, because a spinner is a glyph standing in a glyph's cell. Deciding this from the kind's
     // PROSE ("occupies another part's position") would have left the one part in Button's anatomy that
     // is already swap-materialized out of the field that describes swapping.
-    const pointsAtComponent = p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'absolute';
+    const pointsAtComponent = p.kind === 'slot' || p.kind === 'overlay' || p.kind === 'absolute' || p.kind === 'nest';
     if (pointsAtComponent && !p.nesting)
       e.push(`anatomy part '${n}' is kind '${p.kind}' but declares no 'nesting' relation — a part pointing at another component must say whether it is a 'swap', a 'nest-fixed' (naming the variant) or a 'nest-exposed' (#681). Omitted, the nested component's FIRST variant is nested by default, which is #656's inherit-instead-of-choose error one layer out and equally invisible`);
     if (!pointsAtComponent && p.nesting)
-      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares a 'nesting' relation — only a 'slot'/'overlay' (whose content is swapped) or an 'absolute' (which materializes as an instance) points at another component`);
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares a 'nesting' relation — only a 'slot'/'overlay' (whose content is swapped), an 'absolute' (out-of-flow instance) or a 'nest' (in-flow instance) points at another component`);
     // A `swap` REPLACES the whole component, so a variant coordinate on it has nothing to address: the
     // consumer picks a different component rather than a different coordinate of this one. Rejecting it
     // rather than ignoring it, for the same reason `absolute` rejects `size` — a def author who wrote
