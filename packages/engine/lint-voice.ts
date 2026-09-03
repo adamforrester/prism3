@@ -261,6 +261,10 @@ const gated: string[] = [
   // going short is a failure rather than a silence.
   join(repo, 'packages/engine/schema/payload-manifest.json'),
   join(repo, 'packages/engine/schema/nb-measured.json'),
+  // The component-surface baseline (#1252) — the fifth kept out of `regen`, same reason. Its `note`
+  // is instruction a contributor follows after a failure, which is the register this standard is
+  // strictest about. Named here exactly as lint-us-english.ts names it.
+  join(repo, 'packages/engine/schema/component-surface.json'),
   // Shipped skills — prose an agent reads and follows, named by hand for the same reason.
   ...walk(join(repo, 'skills')).filter((f) => f.endsWith('.md')),
 ];

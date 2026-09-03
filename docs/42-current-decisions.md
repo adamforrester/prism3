@@ -79,6 +79,7 @@ decision recorded there is correct prose forever and is not this file's subject 
 | One top-level `inverse.` group — `inverse(X) = inverse.` + X — and `on-` takes a ground, never a role or a rank | 2026-08-28 | `docs/20-interactive-color-system.md` §9.9 | #1140 |
 | ONE `color` collection — the pointer tier is deleted and the values take the short name — and the roles are written in reading order with `inverse` last *(supersedes #1135 and #1136)* | 2026-08-29 | `docs/20-interactive-color-system.md` §9.10 | #1148 + #1150 |
 | The inverse-context axis is `surface` everywhere (projected `surface=default`/`surface=inverse`), its inverse paint is the projector's `color.*` → `color.inverse.*` rewrite, and a host drives a nested component's `surface` by name (`follow`); `focus-ring`'s `color` axis is renamed and `color` leaves `VARIANT_AXES` | 2026-08-29 | `docs/20-interactive-color-system.md` §9.11 | #1134 |
+| The ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition | 2026-09-02 | `docs/30-versioning-and-compatibility.md` | #1252 |
 
 ## Known gaps, named rather than silent
 

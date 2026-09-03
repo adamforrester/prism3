@@ -1,5 +1,5 @@
 {
-  "$comment": "AUTHORED BASELINE for docs/42-current-decisions.md (#886). Not a regen artifact: regenerated from a scan of the docs, it would classify its own membership and report that as a pass, the same argument that keeps payload-manifest.json and token-contract.json out of regen.ts. A 'Decided (date, #issue): title' heading anywhere in docs/ that has no row here fails lint-decisions-index.ts's converse arm. Append with `npx tsx packages/engine/lint-decisions-index.ts --accept`, which appends only and refuses to rewrite an existing row \u2014 a superseding decision is a hand edit, same posture as lint-shape-index.ts.",
+  "$comment": "AUTHORED BASELINE for docs/42-current-decisions.md (#886). Not a regen artifact: regenerated from a scan of the docs, it would classify its own membership and report that as a pass, the same argument that keeps payload-manifest.json and token-contract.json out of regen.ts. A 'Decided (date, #issue): title' heading anywhere in docs/ that has no row here fails lint-decisions-index.ts's converse arm. Append with `npx tsx packages/engine/lint-decisions-index.ts --accept`, which appends only and refuses to rewrite an existing row — a superseding decision is a hand edit, same posture as lint-shape-index.ts.",
   "policy": "append-only",
   "document": "docs/42-current-decisions.md",
   "decisions": [
@@ -48,7 +48,7 @@
     {
       "date": "2026-08-23",
       "issue": 895,
-      "title": "the inverse surface-context is not optional \u2014 the `inverse` lever is removed",
+      "title": "the inverse surface-context is not optional — the `inverse` lever is removed",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.4"
     },
@@ -90,14 +90,14 @@
     {
       "date": "2026-08-28",
       "issue": 1133,
-      "title": "inverse is name-encoded and bounded \u2014 the `inverse` mode comes off the pointer collection",
+      "title": "inverse is name-encoded and bounded — the `inverse` mode comes off the pointer collection",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.8"
     },
     {
       "date": "2026-08-28",
       "issue": 1140,
-      "title": "one top-level `inverse.` group \u2014 `inverse(X) = inverse.` + X, and `on-` takes a ground",
+      "title": "one top-level `inverse.` group — `inverse(X) = inverse.` + X, and `on-` takes a ground",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.9"
     },
@@ -117,6 +117,13 @@
       "title": "the inverse-context axis is `surface`, everywhere, and its paint is the projector's",
       "doc": "docs/20-interactive-color-system.md",
       "section": "9.11"
+    },
+    {
+      "date": "2026-09-02",
+      "issue": 1252,
+      "title": "the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition",
+      "doc": "docs/30-versioning-and-compatibility.md",
+      "section": null
     }
   ]
 }

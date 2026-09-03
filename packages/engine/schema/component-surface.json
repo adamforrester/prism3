@@ -1,0 +1,51 @@
+{
+  "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Brand-independent: figmaAnatomySet takes a def and no theme, so this moves when the engine moves and not when a brand input does. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
+  "defs": {
+    "icon": {
+      "members": 39,
+      "sha256": "d2fbe20f60b4647bb67b8cd2d2df00911cd5f96c6896781206e025a7989f86dd"
+    },
+    "focus-ring": {
+      "members": 2,
+      "sha256": "ffb9d5ddde675c7e5b89eea817926991670ff537128e329f036c6a185a28f42e"
+    },
+    "button": {
+      "members": 432,
+      "sha256": "bdb5805dcce274cf1cf828fde83825127764b365bf5925bda9d1ab0108d282b7"
+    },
+    "button-destructive": {
+      "members": 432,
+      "sha256": "34980d2d6350cfe3690752d95ddcdc5fefb5fbd9da83c098f972d6539bafe1a5"
+    },
+    "button-neutral": {
+      "members": 432,
+      "sha256": "21dcc412384d3dc6a4ecde9c94d5ac194b8a9a52ad50dc3160fd2c6200d7de09"
+    },
+    "icon-button": {
+      "members": 162,
+      "sha256": "3e48e98314703b4c096a2dfc122e23e9208aaa95dbe15c1b753a7349a9f8cc87"
+    },
+    "field-label": {
+      "members": 12,
+      "sha256": "3535f1cfff92541b5be07f8b8ce5a0c25522f8e053557d4040abfc87d85b0ff6"
+    },
+    "field-message": {
+      "members": 4,
+      "sha256": "da7088a6c1baac44f5bf101fa22e9ea4f98a491362d4f9b55cdc1ee12086fb84"
+    },
+    "text-field": null,
+    "textarea": null,
+    "checkbox": {
+      "members": 54,
+      "sha256": "501f854bf34035c18101f7ff07029d478b4c35b266f4e672475619634f540c9b"
+    },
+    "radio": {
+      "members": 36,
+      "sha256": "06ed8cee9c2bb386abefae69b80644876c3372263a86dcc82cae310d2016b088"
+    },
+    "switch": {
+      "members": 24,
+      "sha256": "96313d3a3de0cdcb42459539232478e934e84c2ad1dc66064c9b2edf017cca42"
+    }
+  }
+}

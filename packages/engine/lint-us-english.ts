@@ -237,6 +237,12 @@ const gated: string[] = [
   // place, so the next authored file cannot reach main uncovered by being forgotten twice.
   join(repo, 'packages/engine/schema/payload-manifest.json'),
   join(repo, 'packages/engine/schema/nb-measured.json'),
+  // The component-surface baseline (#1252) — the fifth baseline kept out of `regen` for the same
+  // reason, hand-named for the same reason. It carries a `note` that tells a contributor what a
+  // failure means and which command to run, so it reaches a terminal the way the four above do. The
+  // line exists because `lint-schema-classification.ts` demands it: an authored schema file is
+  // unclassified until it is named in BOTH prose gates or exempted with a stated reason.
+  join(repo, 'packages/engine/schema/component-surface.json'),
   // Shipped skills (#492). Prose an agent reads and follows, so it ships in the same sense `out/**`
   // does — and like the token contract above it is named by hand, because skills are not a `regen`
   // artifact and so inherit none of that list's coverage.

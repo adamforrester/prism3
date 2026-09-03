@@ -377,6 +377,15 @@ export const GATES: Gate[] = [
     cmd: engine('lint-emission-version.ts'),
   },
   {
+    // Beside the gate above because it answers the same question about the surface that gate cannot
+    // see: component payloads are never committed under `out/`, so a def change that moves the
+    // projected Figma set leaves the emission gate with nothing to report. Needs no `after` — it
+    // projects from `componentDefs` in its own process and reads no other gate's output.
+    id: 'lint-component-surface',
+    ciStep: 'The projected component surface moved only with ENGINE_VERSION',
+    cmd: engine('lint-component-surface.ts'),
+  },
+  {
     id: 'drift-coverage',
     ciStep: 'Drift gate still covers the full artifact set',
     after: ['drift'],

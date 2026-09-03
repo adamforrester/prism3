@@ -223,6 +223,178 @@ shipped the axis with one working cell. And `test-write-components.ts` pinned `v
 count is now DERIVED from the plans, because #804's claim is "one set, every member added", not the size
 of this def's grid.
 
+## (2026-09-02) — a def change that moves the PROJECTED component surface owes an ENGINE_VERSION bump (#1252)
+
+**STATUS: shipped.** New gate `lint-component-surface.ts` + an authored baseline
+`packages/engine/schema/component-surface.json`. **Version-neutral by construction:** it adds a gate,
+a baseline and docs, moves no emitted output, and so takes **no `ENGINE_VERSION` bump** — which is why
+it does not collide with the pending version cluster.
+
+**THE DEFECT WAS AN UNSTATED DEFINITION, and two merged PRs answered it opposite ways on the same
+shape.** #1251 bumped for `field-label` gaining a `tone` axis and a third size rung — a Figma set going
+4 → 12 members. #1224 did **not** bump for splitting button's `intent` axis into `button-destructive`
+and `button-neutral`: two whole new defs and 864 new projected members. Both were legal, because
+`lint-emission-version.ts` — the one gate that asks "did the emission move without the version" — is
+scoped to `out/`, and **component payloads are not committed there at all.** The plugin builds them from
+the defs at run time. So over a pure def change that gate reports *0 artifacts moved* and is right; its
+silence is a fact about its scope rather than evidence that behavior held still, and the 0.36.0 entry in
+`version.ts` had already written that sentence down without anything acting on it.
+
+**Measured, not argued:** with #1224's shape reproduced (M1 below), `lint-emission-version.ts` prints
+`artifacts changed vs base: 0` and `✓ clean — nothing emitted moved, so no bump was owed` at exit 0,
+while the new gate exits 1 naming the def. That pair is the whole issue in two lines of output.
+
+**THE DECISION, now stated in `docs/30` (indexed as a `Decided (...)` heading) and in `version.ts`'s
+header:** the ENGINE surface is everything a consumer can observe — the emitted trees **and** the
+projected component surface. `out/` movement is **one trigger, not the definition**. A designer who
+opens a set and meets a new variant axis, or 864 members where there were 432, has met a different
+engine.
+
+**#1224 IS RECORDED AS AN UNDER-BUMP UNDER A CONVENTION THAT STARTS HERE, AND IS DELIBERATELY NOT
+RETRO-BUMPED.** Restamping a merged artifact would assert something that was not true at ship time —
+the same rule `DEPRECATIONS` follows for its `path` field, and the same rule the 0.26.0/0.28.0 entries
+follow when they keep spelling paths the way they were spelled then.
+
+### What the baseline records, and the three things that are decisions rather than implementation
+
+Per def in `componentDefs`: the projected **member count** and a **sha256 over the sorted
+`planComponentName|planStamp` rows** of the default projection. Today: icon 39, focus-ring 2, button /
+button-destructive / button-neutral 432 each, icon-button 162, field-label 12, field-message 4,
+checkbox 54, radio 36, switch 24, and `text-field` / `textarea` `null`.
+
+1. **`planStamp` is REUSED, never reimplemented** (`docs/34` shape 8). It is the shipped hash, already
+   asserted in `test-write-components` and already what `write-components.ts` pairs with
+   `ENGINE_VERSION` to decide staleness. The decisive property is completeness: it hashes
+   `JSON.stringify(plan)` wholesale rather than a hand-picked field list, so a plan field added tomorrow
+   moves it with no edit here. A hand-rolled copy would cover whatever its author remembered and drift
+   silently in the unsafe direction. **The reuse is not where independence comes from** — that comes
+   from a committed baseline only `--accept` rewrites, plus git's two commits, neither derived from the
+   defs the process had already read.
+2. **The DEFAULT projection only.** `applyControlShape` (the `controlShape` lever) and `swapTarget`
+   materialize a def *before* projection, so folding either in would make the baseline a **cross
+   product** of the surface with a caller's choices — and a lever's default flipping would then read as
+   a surface change. Under `rounded` the lever is the identity, which is what makes the default
+   reproducible.
+3. **A def with no `figmaProperties` is recorded as `null`, key present** — the spelling
+   `paint-census.json` already uses, and for a stronger reason here: a def **gaining or losing** a
+   `figmaProperties` block has moved the surface by exactly the amount that matters, and omitting it
+   would make the two most consequential transitions invisible. A projector **throw** is deliberately
+   NOT the same state and is fatal, so a def that broke its own projection cannot read as one that never
+   had a projection.
+
+**No `engineVersion` field in the baseline, unlike `token-contract.json`.** There, the field buys a
+forced `--accept` on every bump. Here it would buy a *false failure*: a pure value change bumps
+`ENGINE_VERSION` and moves no component surface, and the field would make the drift arm fire with a
+message claiming the projection moved. `--accept` instead reads the bump from **`ENGINE_VERSION` at the
+merge base vs the imported constant** — the same question the check will ask at merge time, so a run
+that accepts cannot produce a tree the gate then rejects, and two accepts inside one PR do not demand
+two bumps.
+
+**NEVER a `regen.ts` artifact** (principle 5, `token-contract.json`'s reason exactly): regenerated, a
+deleted member would rewrite the baseline to agree with the deletion and **both** gates would go green —
+`regen --check` because the committed copy matches what regen wrote, and the drift arm because the
+baseline matches the defs. A gate allowed to rewrite what it reads has no memory.
+
+### Why TWO arms — the spec asked for one, and one cannot fail M1
+
+The issue specified the cross-commit shape (subject: did the baseline move between merge base and HEAD;
+oracle: `ENGINE_VERSION` at the base). **That arm alone passes the #1224 case as it is actually made.**
+Someone edits a def, runs the suite and pushes; they never ran `--accept`, so the committed baseline is
+unmoved in git and a diff-only subject sees nothing. So:
+
+- **ARM A — DRIFT, inside one commit.** Live projection vs the committed baseline, both directions over
+  def ids, comparing member count, digest, and null-ness. This is the arm that fails M1.
+- **ARM B — VERSION, across commits.** The baseline's `defs` at the merge base vs this tree, against
+  whether `ENGINE_VERSION` moved. It closes two holes arm A cannot see: a **hand-edited** baseline
+  (`--accept` refuses without the bump; a text editor does not) and a bump **reverted after** the accept.
+  Verified by mutation (M4), not argued.
+
+Arm B compares the **parsed `defs` maps**, never the file bytes — rewording the `note` moves the file and
+moves no surface, and a `git diff --name-only` arm would demand a bump for a typo fix. Its BEFORE is a
+commit and its AFTER is the working tree, deliberately narrower than `lint-emission-version.ts`'s
+commit-to-commit reading: a hand edit fails on the next run rather than on the run after the commit.
+
+**One consequence worth knowing before the next PR touches a def: arm B is INERT on this PR.** The
+baseline does not exist at the merge base, so the arm reports `baseline: INTRODUCED in this diff` and
+owes no bump. It was therefore proven against a synthetic base ref
+(`git update-ref refs/remotes/origin/m1252base <this branch's first commit>` + `GITHUB_BASE_REF`), which
+is the only way to exercise it before the file has a history. The ref was deleted afterwards.
+
+**The battery was measured against base `3b6810b` (#1251), where `ENGINE_VERSION` was 0.36.0, and the
+branch was then rebased twice.** Both rebases are worth recording, because between them they exercise the
+two cases the convention has to tell apart:
+
+- **onto #1255** (`ENGINE_VERSION` 0.37.0) — measured, not assumed: **no** projected member moved, so the
+  baseline needed no re-accept.
+- **onto #1249** (0.38.0) — `icon`'s stamp DID move, and the drift arm said so by name:
+  *`surface/icon: plan digest d2fbe20f60b4…, baseline 0ba76537138b… — the same member COUNT, projecting
+  different plans`*. Verified as **exactly one** def: all 13 keys present in the same order, 12 byte-identical
+  including both `null`s, `icon` alone differing and its member count still 39. So the paint floor changed
+  what an icon member *is* without changing how many there are — the second live case (after M5) where a
+  count-only baseline would have reported clean.
+
+**That second rebase is the first instance of a distinction to expect again: SEEDING the baseline over a
+new base is not this PR making a surface change.** `icon` moved in #1249, which bumped to 0.38.0 on its
+own account, so nothing is owed here and the PR stays version-neutral. But `--accept` refuses in that
+position — it compares the live projection against the baseline **in the tree**, and cannot tell "I am
+re-seeding over a moved base" from "I changed a def and want it accepted without a bump". The honest
+expression is the **first-write path**: delete the baseline and accept, which prints *"No bump required:
+there was no prior surface to move"* and is true, because at the merge base the file does not exist.
+**That path is a bypass only while it is genuinely the introduce case, and arm B is what makes that so** —
+once this lands, the baseline exists at the base, and deleting-and-re-accepting without a bump fails arm B
+by name. It is the hand-edited-baseline hole under another spelling, which is why M4 was worth measuring.
+
+### Mutation register (each committed first, applied, measured, restored with `git checkout -- <file>`)
+
+| # | mutation | result |
+|---|---|---|
+| M1 | `field-label`'s `tone` axis loses a value (12 → 6 members), no bump — #1224's shape | **EXIT=1**, two named failures: `surface/field-label: 6 projected member(s), baseline 12 — the set SHRANK` and the digest line. `lint-emission-version.ts` on the same tree: **EXIT=0, clean** |
+| M2 | `ENGINE_VERSION` bumped one minor, no surface change | **EXIT=0** — a discretionary bump is legal, the same asymmetry `lint-emission-version.ts` states |
+| M3 | `--accept` with M1 applied and no bump | **EXIT=1**, refuses naming the def and the transition; baseline left byte-identical (`git diff --stat` empty) |
+| M4 | accept M1's move **with** the bump, commit, then revert the bump (base = synthetic ref) | arm A **silent** (every def `ok`), arm B **EXIT=1**: `version: the baseline in this tree moved 1 def(s) vs the base and ENGINE_VERSION did not`. The hole arm A cannot see |
+| M5 | `field-label`'s row gap `space.050` → `space.100` — anatomy, **no paint** | `lint-paint.ts` **EXIT=0, green**; this gate **EXIT=1**: *"the same member COUNT, projecting different plans"*. Two things at once — the two baselines are not duplicates, and a count-only baseline would have missed it |
+
+Two floors guard the vacuous pass (`docs/34` shape 9): a minimum def count and a minimum
+*projecting*-def count, because every arm is a statement about a set and the both-directions check only
+catches an empty registry while the baseline happens to be non-empty — a property of today's file rather
+than of the gate.
+
+### Cross-gate wiring, and one thing the issue asked for that is not possible
+
+Registered in all five places `lint-doc-gates.ts` checks (`ci.yml`, `verify.ts`'s `GATES` with the
+`ciStep` verbatim, `CLAUDE.md` principle 4, `CONTRIBUTING.md` §3, the PR template) — the five-file edit
+is the friction, and it is the feature.
+
+**The issue asked for the baseline in `lint-schema-classification.ts` AND in the prose gates' hand-named
+lists. Those two are mutually exclusive in that gate** — it fails a file "classified more than once", by
+design, since a file has one place. The file carries a `note` (prose a contributor reads after a
+failure), so the correct class is **2 — hand-named in BOTH `lint-us-english.ts` and `lint-voice.ts`**,
+with no `EXEMPT` entry. That is what shipped; `lint-schema-classification.ts` needed no edit and now
+covers the file automatically.
+
+### Two adjacent inaccuracies found, one fixed, one filed
+
+- **Fixed, because this change falsified it further:** `ci.yml`'s comment above
+  `lint-materialization-renames` read *"THE ONLY GATE IN THIS FILE THAT NEEDS GIT HISTORY"* while the
+  comment ten lines below it already called itself *"the second gate that reads git HISTORY"*. It had
+  been wrong since the second one landed; inserting a third directly beneath a comment saying "only" was
+  not shippable. Now *"the first of the three"*, with the correction stated in place.
+- **Filed rather than fixed as #1258** (one concern per PR): the PR template's
+  `lint-materialization-renames.ts` bullet makes the same claim in bold — *"The only gate in the repo
+  that needs git HISTORY"* — followed by the reasoning that made it look safe, *"every other
+  git-reading gate uses `git ls-files`, which needs none"*. It is a different file and a different
+  bullet from anything this PR touches. Worth an issue rather than a note here because that sentence
+  is the one that explains why `fetch-depth: 0` is on the CI checkout: read as current, it says
+  removing it blinds one gate when it now blinds three.
+
+### Stated limits
+
+It does not decide whether a surface change was **right** — a mistaken def change, accepted and bumped,
+passes here; `lint-paint.ts`, `lint-axis-values.ts` and the projection gates ask that. And it covers the
+**Figma** projection only: `variantAxes` reaching a React prop table is a real consumer surface that
+`figmaAnatomySet` does not compute, named in `docs/30`'s "what this does not cover" so the gap is visible
+rather than assumed closed.
+
 ## (2026-09-02) — every projected icon member carries an ink, and `icon.ts`'s "tone.inherit binds nothing" position is reversed (#1211)
 
 **STATUS: shipped.** Engine def + test + version, no new gate. `ENGINE_VERSION` **0.35.0 → 0.36.0**;
@@ -328,6 +500,7 @@ button is neither an emit-order issue nor an intended placeholder. `SWAP_TARGET`
 name **nothing in this repo emits**, so the instance-swap never resolves and degrades to a plain frame. The
 button needs no fill change — its existing `on-fill` push lands the moment any real icon component with a
 vector is in the slot, which is what this ticket makes possible.
+
 
 ## (2026-09-02) — field-ref read-back re-wires onto the live node when a fast-path handle went stale (#866)
 

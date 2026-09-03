@@ -19,6 +19,42 @@
  * It cares enormously if `text.primary` stops existing, because the reference silently resolves to
  * nothing. So VALUES are not versioned and NAMES are. Tying them together would either cry wolf on
  * every brand tweak or stay silent through a rename; separating them lets each be strict.
+ *
+ * ── WHAT COUNTS AS THE ENGINE SURFACE (#1252, decided) ──────────────────────────────────────────
+ *
+ * `ENGINE_VERSION` bumps on any change to what a consumer can OBSERVE, and that is BOTH the emitted
+ * trees AND the PROJECTED COMPONENT SURFACE. Movement in `out/` is ONE TRIGGER, not the definition.
+ *
+ * The distinction had gone unstated and two merged PRs answered it opposite ways on the same shape.
+ * #1251 bumped for `field-label` gaining a `tone` axis and a third size rung (a Figma set going 4 → 12
+ * members); #1224 did not bump for splitting button's `intent` axis into two whole new defs and 864 new
+ * projected members. Both were legal, because component payloads ARE NOT COMMITTED UNDER `out/` — the
+ * plugin builds them from the defs at run time — so `lint-emission-version.ts`, the gate that asks "did
+ * the emission move without the version", is structurally blind to the entire projection. Its silence
+ * over a def change is a fact about its scope rather than evidence that behavior held still.
+ *
+ * A designer who opens a set and meets a new variant axis, or 864 members where there were 432, has met
+ * a different engine. So that is a behavior change and it takes a bump — a MINOR when the surface grows
+ * or shrinks, by the ordinary rule.
+ *
+ * `lint-component-surface.ts` enforces it against `schema/component-surface.json`, an authored baseline
+ * only an explicit `--accept` rewrites. Two properties of it belong here rather than only in that file:
+ *
+ *   · IT IS BRAND-INDEPENDENT, and therefore strictly cleaner than the emission arm. `figmaAnatomySet`
+ *     takes a def and no theme, so the baseline moves when the ENGINE moves and never when a brand
+ *     input does — where `lint-emission-version.ts` states as its own limit that editing a brand file
+ *     moves `out/` and demands a bump with no engine code changed.
+ *   · IT IS DELIBERATELY OVER-SENSITIVE. The per-member digest is `planStamp`, which hashes the whole
+ *     plan rather than a hand-picked field list, so a plan field no executor reads still moves it and
+ *     the gate will sometimes demand a bump for a change no designer sees. Accepted: it errs safe, and
+ *     it is the same trade `lint-emission-version.ts` already makes by taking `out/**` wholesale. The
+ *     alternative — a curated field list — is a second statement of what a member is, and would go
+ *     silently blind the next time a plan field is added (docs/34 shape 8).
+ *
+ * #1224 IS RECORDED AS AN UNDER-BUMP UNDER A CONVENTION THAT STARTS HERE, in `docs/00-progress.md`, and
+ * is deliberately NOT retro-bumped: restamping a merged artifact would assert something that was not
+ * true at ship time. Full policy, including what this deliberately does not cover (the code-side prop
+ * API), is `docs/30-versioning-and-compatibility.md`.
  */
 
 /**
