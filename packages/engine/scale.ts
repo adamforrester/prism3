@@ -409,3 +409,31 @@ export const radiusScale = (scale: number, baseMd = 4, pill = 128, capsule = 999
   ramp.push({ name: 'capsule', px: capsule, pill: true });
   return ramp;
 };
+
+/**
+ * The CONTROL corner (#1015) — a selection control's own radius, CLAMPED to its box rather than taken
+ * from the card ramp. `min(radius.sm, snap2(edge ÷ 8))`.
+ *
+ * WHY A CLAMP AND NOT A RUNG. `radius.sm` is the FIELD radius, and a checkbox binding it was a
+ * defensible reading of the substrate rather than a measurement. It is also `radiusScale`-driven, and a
+ * 12-24px control does not scale the way a card does: on aurora (`radiusScale: 2`, `density: compact`)
+ * that ramp puts **4px on a 12px square** — a third of the edge — while every other corpus brand gets
+ * 2px on 16px, an eighth. Same rung, same binding, and the corner is not proportionally consistent
+ * across the corpus. Measured in full in #1015.
+ *
+ * THE 1/8 TARGET IS PRISM 2's, not invented here: its selection control is 2px on a 16/20/24px box
+ * (0.125 / 0.100 / 0.083). `edge ÷ 8` reproduces that ratio at the reference's own sizes, and `snap2`
+ * keeps the result on the 2px sub-grid the whole radius ramp rides — a 1.5px corner is not a rung this
+ * system can express, and rounding it to 2 is why aurora's `small` lands at 0.167 rather than at 0.125:
+ * on a 12px edge the ratio and the sub-grid cannot both be satisfied, and the sub-grid wins. Stated
+ * because the ratio is the RATIONALE and the sub-grid is the CONSTRAINT, and only one of them holds
+ * exactly.
+ *
+ * `min` IS WHAT MAKES IT NON-DESTRUCTIVE, and it is the reason this is a clamp rather than a formula.
+ * `snap2(24 ÷ 8)` is 4, so a bare ratio would ROUND UP nb's `large` corner from 2 to 4 — a value change
+ * on four of five brands out of a fix aimed at one. Clamped, the ramp stays the ceiling: a brand that
+ * dials radius DOWN keeps its softer intent (`radiusScale: 0` → sharp, since `radius.sm` is 0), and a
+ * brand that dials it up stops at what the box can carry. Four of five corpus brands are unchanged to
+ * the byte; aurora moves 4 → 2 at all three rungs.
+ */
+export const controlRadius = (edge: number, radiusSmPx: number): number => Math.min(radiusSmPx, snap2(edge / 8));
