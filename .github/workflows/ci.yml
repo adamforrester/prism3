@@ -87,7 +87,9 @@ jobs:
       # guarantees compose: regen proves the committed emission matches the emitter that produced it,
       # so the merge-base tree is a faithful witness rather than a stale copy.
       #
-      # THE ONLY GATE IN THIS FILE THAT NEEDS GIT HISTORY — see `fetch-depth: 0` on the checkout above.
+      # THE FIRST OF THE THREE GATES IN THIS FILE THAT NEED GIT HISTORY — see `fetch-depth: 0` on the
+      # checkout above. (This line read "the only gate" until #1252 added the third; the comment below
+      # already called itself "the second", so the count had been wrong since the second one landed.)
       # It FAILS rather than skips when it cannot find a base ref: a check that downgrades "cannot run"
       # into "nothing to compare, clean" reports green over the whole corpus it could not see.
       - name: A materialization rename is recorded as a rule, and the accounting over it is total
@@ -100,6 +102,18 @@ jobs:
       # job-level `fetch-depth: 0` above.
       - name: The emission moved only with ENGINE_VERSION
         run: npx --yes tsx@4 packages/engine/lint-emission-version.ts
+
+      # The THIRD git-history gate (#1252), and the one that closes the hole in the step above: the
+      # emission gate is scoped to `out/`, and COMPONENT PAYLOADS ARE NOT COMMITTED THERE — the plugin
+      # builds them from the defs at run time. So a def change that moves the projected Figma surface
+      # (a new variant axis, 432 members becoming 864) leaves `out/` byte-identical and that gate
+      # silent, which is a fact about its scope rather than evidence that nothing moved. #1224 shipped
+      # exactly that. The decision recorded here: the ENGINE surface is everything a consumer can
+      # observe, and `out/` movement is ONE trigger rather than the definition. Same two-facts problem
+      # and therefore the same need for history, plus an in-tree drift arm against an authored baseline
+      # that only `--accept` rewrites. Also covered by the job-level `fetch-depth: 0` above.
+      - name: The projected component surface moved only with ENGINE_VERSION
+        run: npx --yes tsx@4 packages/engine/lint-component-surface.ts
 
       # The token-NAME contract (#464). Deliberately NOT part of `regen`: regen rewrites every
       # generated artifact, so if the baseline were regenerated a deleted token would rewrite the

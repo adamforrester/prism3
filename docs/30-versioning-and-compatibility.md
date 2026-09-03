@@ -15,7 +15,7 @@ so that `tree.ts` can stamp a version into every emitted artifact without an imp
 
 | | question it answers | bumps when | where you see it |
 |---|---|---|---|
-| `ENGINE_VERSION` | *what code produced this file?* | any behavior change, **including a pure value change** | `$extensions.generator.version` in every emitted tree; MCP `serverInfo.version` |
+| `ENGINE_VERSION` | *what code produced this file?* | any behavior change, **including a pure value change** — and the observable surface is wider than `out/` (see the next section) | `$extensions.generator.version` in every emitted tree; MCP `serverInfo.version`; gated against the projected component surface in `packages/engine/schema/component-surface.json` |
 | `CONTRACT_VERSION` | *can my app still resolve the names it references?* | **only** when the guaranteed token-name surface moves | `contractVersion` in `packages/engine/schema/token-contract.json` |
 
 The split is the useful part. A consumer app writes `prism.color.text.primary` into a stylesheet. It
@@ -26,6 +26,55 @@ cry wolf on every brand tweak or stay silent through a rename. Separating them l
 
 `ENGINE_VERSION` starts at `0.1.0` and `CONTRACT_VERSION` at `1.0.0`. The inversion is intentional
 rather than a typo: **the code is young, the names are settled.**
+
+### Decided (2026-09-02, #1252): the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition
+
+It had gone unstated and two merged PRs answered it opposite ways on the same shape.
+
+> **The engine surface is everything a consumer can observe: the emitted trees AND the projected
+> component surface.** Movement in `out/` is **one trigger**, not the definition.
+
+`ENGINE_VERSION` answers *"what code produced this?"*, and a consumer of Prism3 is not only an app
+resolving token names. A designer opens the Figma sets the plugin builds, and a developer reads the
+variant axes those sets expose. That surface is projected from the component defs at run time and
+**is not committed under `out/` at all** — so a def change moves it while every emitted artifact stays
+byte-identical.
+
+Which is why the disagreement was invisible. `lint-emission-version.ts` is scoped to the regen
+artifacts, so over a pure def change it reports *0 artifacts moved* and is right; its silence is a fact
+about its scope rather than evidence that behavior held still. Under that gate alone:
+
+| PR | what moved | bumped? |
+|---|---|---|
+| #1251 | `field-label` gains a `tone` axis and a third size rung — its Figma set goes 4 → 12 members | yes |
+| #1224 | button's `intent` axis splits into `button-destructive` + `button-neutral` — two new defs, 864 new projected members | **no** |
+
+Both were legal at the time. Under this decision the second is an **under-bump**, and it is recorded as
+one in `docs/00-progress.md` rather than corrected: **#1224 is deliberately not retro-bumped**, because
+restamping a merged artifact would assert something that was not true at ship time. A changelog records
+what shipped at a version — the same rule `DEPRECATIONS` follows for its `path` field.
+
+The rule is enforced by `lint-component-surface.ts` against `packages/engine/schema/component-surface.json`
+— per def, the projected member count and a digest over the sorted `planComponentName|planStamp` rows of
+the **default** projection. Three properties of it are decisions rather than implementation:
+
+- **Brand-independent, and therefore strictly cleaner than the emission arm.** `figmaAnatomySet` takes a
+  def and no theme, so the baseline moves when the *engine* moves and never when a *brand input* does.
+  Compare `lint-emission-version.ts`, which states as its own limit that editing a brand file moves
+  `out/` and demands a bump with no engine code changed.
+- **The default projection only.** `applyControlShape` (the `controlShape` lever) and `swapTarget`
+  materialize a def *before* projection, so folding either in would make the baseline a cross product of
+  the surface with a caller's choices — and a lever's default flipping would then read as a surface
+  change.
+- **Deliberately over-sensitive.** The digest reuses `planStamp`, the shipped hash, which covers
+  `JSON.stringify(plan)` wholesale rather than a hand-picked field list. So a plan field no executor
+  reads still moves it, and the gate will sometimes demand a bump for a change no designer sees.
+  Accepted: it errs safe, and it is the same trade `lint-emission-version.ts` already makes by taking
+  `out/**` wholesale. A curated field list would be a second statement of what a member is, and would go
+  silently blind the next time a plan field is added (`docs/34` shape 8).
+
+Like the contract baseline below, it is **never a `regen.ts` artifact** and only an explicit `--accept`
+writes it — for the identical reason, spelled out in that section.
 
 ## What "guaranteed" means, and why it needed defining
 
@@ -119,6 +168,10 @@ same line** — the exemption and the blind spot arrive together.
 ## What this does *not* cover
 
 - **Values.** By design, per above.
+- **The code-side prop API.** `#1252` covers the FIGMA projection, which is what `figmaAnatomySet`
+  computes. A def's `variantAxes` also reach a React prop table, and that is a real consumer surface
+  nothing here measures — a def could move it without moving a projected member. Filed rather than
+  smuggled in; `ENGINE_VERSION` should still bump for it under the rule above.
 - **`brandDependent` paths.** Real tokens, but conditional on input; binding to one is the
   consumer's risk to take, and the file lists them so the risk is at least visible.
 - **The `BrandInput` schema.** Versioned separately by `PERSIST_VERSION` in `persist-input.ts`,

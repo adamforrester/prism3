@@ -171,6 +171,22 @@ npx tsx packages/engine/lint-emission-version.ts
                                                     # version-changed are only distinguishable
                                                     # ACROSS commits, so the base ref is the
                                                     # oracle and an unresolvable one FAILS
+npx tsx packages/engine/lint-component-surface.ts
+                                                    # the PROJECTED COMPONENT SURFACE moved only
+                                                    # with ENGINE_VERSION (#1252). The gate above
+                                                    # is scoped to `out/` and component payloads
+                                                    # are not committed there — the plugin builds
+                                                    # them from the defs — so a def change that
+                                                    # takes a Figma set from 432 members to 864
+                                                    # leaves it silent. #1224 shipped exactly
+                                                    # that. Two arms: DRIFT (the live projection
+                                                    # vs an authored baseline only `--accept`
+                                                    # rewrites) and VERSION (did the baseline move
+                                                    # without the bump). Reuses `planStamp`, the
+                                                    # shipped hash, rather than minting a second
+                                                    # statement of what a member is (docs/34
+                                                    # shape 8); brand-independent, because
+                                                    # `figmaAnatomySet` takes a def and no theme
 npx tsx packages/engine/lint-materialization-renames.ts
                                                     # a materialization rename — one the CONTRACT
                                                     # cannot see, because a Figma collection name and
