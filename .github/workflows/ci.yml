@@ -707,6 +707,9 @@ jobs:
       - name: A glyph draws its own filled outline on a square artboard
         run: npx --yes tsx@4 packages/engine/lint-glyph-geometry.ts
 
+      - name: The component nesting graph resolves and is acyclic
+        run: npx --yes tsx@4 packages/engine/lint-nesting.ts
+
       # THE SECOND DIRECTION (#865). Every write the component executor makes is verified by a read-back
       # — set the value, read it, report a miss if the host did not keep it. Nothing verified what it did
       # NOT write, and a Figma node is never silent: a property no def mentioned kept Figma's own default

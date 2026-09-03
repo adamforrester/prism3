@@ -9088,7 +9088,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(asInstance.indexOf('INSTANCE') >= 0 && asInstance.indexOf('main component') >= 0,
         `anatomy/ring #681: an INSTANCE — what duplicating a variant out of a set produces — is named, and pointed at the main (${asInstance})`);
       ok(asFrame.indexOf('not a component') >= 0, `anatomy/ring #681: a FRAME of that name is named as not-a-component (${asFrame})`);
-      ok(absent.indexOf('not in this file') >= 0, `anatomy/ring #681: the genuinely absent case keeps its original message verbatim (${absent})`);
+      ok(absent.indexOf('not in this file') >= 0 && absent.indexOf('build focus-ring FIRST') >= 0, `anatomy/ring #681 / #1226 PR-A item 4: the genuinely absent case keeps its 'not in this file' anchor AND names the target INSIDE the advice — "build focus-ring FIRST" — interpolated into the baked payload at paste time, not "just above" which a concatenated render binds to a neighbour (${absent})`);
       // And the payload still DROPS the ring in all four cases rather than nesting a guess. Diagnosis only
       // for a def that chose nothing — what a def that DID choose gets is the block after this one.
       const setPage: StubPage = { children: [] };
@@ -10295,6 +10295,37 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ibBroke('an `absolute` claiming `swap` fails', /kind 'absolute' but declares nesting 'swap'/, patched(iconButton, 'focusRing', { nesting: { kind: 'swap' } }));
       ibBroke('a `slot` claiming `nest-fixed` fails', /kind 'slot' but declares nesting 'nest-fixed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-fixed', variant: { color: 'default' } } }));
       ibBroke('a `slot` claiming `nest-exposed` fails too — the same contradiction from the other side', /kind 'slot' but declares nesting 'nest-exposed'/, patched(iconButton, 'icon', { nesting: { kind: 'nest-exposed' } }));
+
+      // ---- #1226 PR-A: the IN-FLOW `nest` kind ----
+      // A `nest` is the in-flow twin of `absolute`. It MUST name what it nests and be `nest-fixed`; it has
+      // no children of its own; and a NON-nest/absolute kind still cannot carry `nests`. Each mutation is
+      // confirmed to fail on the nest rule BY NAME, not merely to leave the suite red on another gate.
+      ibBroke('a `nest` with no `nests` fails', /kind 'nest' but declares no 'nests'/, patched(iconButton, 'focusRing', { kind: 'nest', nests: undefined, inset: undefined, strokeInset: undefined }));
+      ibBroke('a `nest` claiming `swap` fails', /kind 'nest' but declares nesting 'swap'/, patched(iconButton, 'focusRing', { kind: 'nest', nesting: { kind: 'swap' }, inset: undefined, strokeInset: undefined }));
+      ibBroke('a `nest` claiming `nest-exposed` fails — not built (#761)', /kind 'nest' but declares nesting 'nest-exposed'/, patched(iconButton, 'focusRing', { kind: 'nest', nesting: { kind: 'nest-exposed' }, inset: undefined, strokeInset: undefined }));
+      ibBroke('a `nest` with children fails — an instance carries the nested component\'s own descendants', /kind 'nest' but declares 'children'/, patched(iconButton, 'focusRing', { kind: 'nest', children: ['icon'], inset: undefined, strokeInset: undefined }));
+      ibBroke('a `box` declaring `nests` still fails — only absolute/nest materialize an instance', /kind 'box' but declares 'nests'/, patched(iconButton, 'container', { nests: 'focus-ring' }));
+
+      // THE MECHANISM PROOF (#1226 PR-A). Turn icon-button's focus ring — an OUT-of-flow `absolute` nest —
+      // into an IN-flow `nest`: same NESTED_INSTANCE, same nest-fixed coordinate resolved the same way, but
+      // it now takes a cell (no `absoluteInset`). This is the whole of PR-A's new projection.
+      {
+        const inflow = patched(iconButton, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined });
+        const inflowErrs = validateComponentDef(inflow, nbTree, nbT.root).errors;
+        ok(inflowErrs.length === 0, `#1226 an in-flow \`nest\` validates clean${inflowErrs.length ? ' — ' + inflowErrs.join('; ') : ''}`);
+        const findNode = (n: { name?: string; children?: unknown[] }, name: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
+          n.name === name ? n : (n.children ?? []).map((c) => findNode(c as { name?: string; children?: unknown[] }, name)).find(Boolean);
+        const ring = findNode(figmaAnatomyPlan(inflow, iconButton.variants.size[0], {}).root, 'focusRing');
+        ok(ring?.type === 'NESTED_INSTANCE' && ring?.nestTarget === 'focus-ring',
+          `#1226 an in-flow nest projects a NESTED_INSTANCE naming its target (${ring?.type} -> ${ring?.nestTarget})`);
+        ok(ring?.nestVariant && ring.nestVariant.surface !== undefined,
+          `#1226 ...carrying its nest-fixed coordinate, resolved by nestVariantOf (${JSON.stringify(ring?.nestVariant)})`);
+        ok(ring?.absoluteInset === undefined,
+          `#1226 ...and IN the flow — no absoluteInset (${JSON.stringify(ring?.absoluteInset)})`);
+        const absRing = findNode(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], { state: 'focus-visible' }).root, 'focusRing');
+        ok(absRing?.type === 'NESTED_INSTANCE' && absRing?.absoluteInset !== undefined,
+          `#1226 ...where the SAME def's unpatched absolute ring is the same NESTED_INSTANCE but WITH absoluteInset — the flow is the only difference (${JSON.stringify(absRing?.absoluteInset)})`);
+      }
 
       // The SQUARE rules. `size` and `height` both drive the height axis, so a part binding both states
       // its height twice and the projection keeps whichever branch ran last — silently, and only on one

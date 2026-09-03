@@ -1219,7 +1219,10 @@ export const figmaAnatomyPlan = (
 
     return {
       name,
-      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : p.kind === 'absolute' ? 'NESTED_INSTANCE' : p.kind === 'vector' ? 'GLYPH' : 'INSTANCE_SWAP',
+      // `nest` (#1226 PR-A) projects the SAME `NESTED_INSTANCE` as `absolute` — the difference is the flow,
+      // not the node type: a `nest` carries no `absoluteInset`, so it stays a normal flow child (a cell),
+      // where an `absolute` is positioned out of the flow below. The plugin builds both by `createInstance`.
+      type: p.kind === 'text' ? 'TEXT' : p.kind === 'box' ? 'FRAME' : (p.kind === 'absolute' || p.kind === 'nest') ? 'NESTED_INSTANCE' : p.kind === 'vector' ? 'GLYPH' : 'INSTANCE_SWAP',
       // THE GEOMETRY, resolved from the vocabulary at projection (#864). A name that no longer resolves
       // THROWS rather than projecting an empty outline, which is the whole reason the def carries a name
       // instead of path data: #864 was four artboards that built without throwing and contained nothing,
@@ -1237,12 +1240,12 @@ export const figmaAnatomyPlan = (
             glyphViewBox: viewBoxDims(),
           }
         : {}),
-      ...(p.kind === 'absolute' && p.nests ? { nestTarget: p.nests } : {}),
+      ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
       // The def's chosen coordinate, projected only for `nest-fixed` (#681). `nest-exposed` is the
       // consumer's to drive and `swap` has no variants at all, so neither writes a coordinate here —
       // and the executors read the field's ABSENCE as "do not select", which is the only reading that
       // keeps an exposed nest from being silently pinned by its own projection.
-      ...(p.kind === 'absolute' && p.nesting?.kind === 'nest-fixed' ? { nestVariant: nestVariantOf(p.nesting) } : {}),
+      ...((p.kind === 'absolute' || p.kind === 'nest') && p.nesting?.kind === 'nest-fixed' ? { nestVariant: nestVariantOf(p.nesting) } : {}),
       ...(p.kind === 'absolute' && p.inset ? { absoluteInset: varOf(p.inset) } : {}),
       // The stroke to compensate for (#801), projected only alongside an inset — on its own it has
       // nothing to correct, and the schema rejects that shape before the projection sees it.
@@ -1728,7 +1731,14 @@ export const planStamp = (plan: AnatomyPlan): string => {
  * its output for each case at emit time. That is the only way the two call sites cannot drift in wording
  * — which they would, being 500 lines and one language boundary apart.
  */
-export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT'): string => {
+/** The paste path bakes `nestMissAdvice` at EMIT time, before any node's `nestTarget` is known, so it
+ *  cannot pass the name at a call site the way `write-components.ts` does. The ABSENT advice carries this
+ *  sentinel where the name goes, and the payload replaces it with the runtime `nestTarget` — so ONE wording
+ *  reaches both executors and the name is self-contained in the advice itself (not borrowed from the miss
+ *  prefix, which a concatenated render puts next to a NEIGHBOUR's target — the #1262 review finding). */
+export const NEST_TARGET_SLOT = '__NEST_TARGET__';
+
+export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | 'ABSENT', target?: string): string => {
   switch (found) {
     case 'COMPONENT_SET':
       // WAS the 108-miss case; now the case where the file holds a set and the DEF did not say which
@@ -1746,8 +1756,14 @@ export const nestMissAdvice = (found: 'COMPONENT_SET' | 'INSTANCE' | 'OTHER' | '
     case 'OTHER':
       return 'found a node of that name that is not a component; nothing built — rename it, or publish the component under this name';
     case 'ABSENT':
-      // The one row the original message got right, kept verbatim.
-      return 'not in this file; nothing built — publish the shared component first';
+      // #1226 PR-A: this is the failure a designer hits building composed components one at a time — the
+      // consumer is built before its nested target exists (`main.ts` builds one def per run). The advice
+      // NAMES the target it wants built (`target`, or `NEST_TARGET_SLOT` when the paste path bakes this
+      // before the runtime name is known), turning the bare "not in this file" into a build-order action.
+      // The name is composed INTO the advice rather than left to the miss prefix (`… .nestTarget -> <name>`):
+      // misses render concatenated (`main.ts` `join('; ')`), where "just above" pointed at a NEIGHBOUR's
+      // target — the #1262 review finding. Was "publish the shared component first" — the focus-ring framing.
+      return `not in this file — build ${target ?? NEST_TARGET_SLOT} FIRST (it is nested here, and the plugin builds one component per run), then rebuild this one`;
   }
 };
 
@@ -2041,7 +2057,7 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
       // A SET still reaches here when the def named no coordinate for it (\`nest-exposed\`), which is what
       // the COMPONENT_SET sentence now says.
       const other=figma.root.findAll(x=>x.name===n.nestTarget)[0];
-      const found=!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))};
+      const found=(!other?${JSON.stringify(nestMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(nestMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(nestMissAdvice('INSTANCE'))}:${JSON.stringify(nestMissAdvice('OTHER'))}).split(${JSON.stringify(NEST_TARGET_SLOT)}).join(n.nestTarget);
       misses.push(n.name+'.nestTarget -> '+n.nestTarget+' ('+found+')');return null;
     }
     else{node=nested.createInstance();}

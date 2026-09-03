@@ -7,6 +7,84 @@
 
 ---
 
+## (2026-09-03) — the in-flow `nest` mechanism: components can nest components in the flow (#1226 PR-A)
+
+**STATUS: shipped, review-approved on the mechanism, JIT-rebased for merge.** ENGINE **→ 0.42.0**; CONTRACT
+stands at **9.3.0**. Full `npm run verify` **55/55** (`lint-nesting` alongside #1257's new `lint-overlay-
+provenance`, both now on this base). First PR of the #1226 A→E sequence; the def consumers (Checkbox Control →
+Row → Group, Radio) come in C/D/E. One concern: mechanism + two gates + runtime-miss naming only — no new def,
+no host uses `nest` yet.
+
+── THE MECHANISM ───────────────────────────────────────────────────────────────────────────────────
+
+Instance-nesting already existed for the OUT-of-flow case: an `absolute` part (a focus ring) `nests` a
+component, resolved `nest-fixed` with `follow`, projected as a `NESTED_INSTANCE`. PR-A generalizes it to the
+IN-flow case with a new `nest` PartKind — a part that materializes an instance AND takes a cell (a
+Checkbox.Row's control). **The only new projection is the flow:** a `nest` carries no `absoluteInset`, so it
+stays a flow child; everything else is reused — `NestingRelation`, `nestVariantOf` (which already loops all
+`follow` axes, so "one-axis → state-axes" needed no change), `nestVariantMatch`, `createInstance`. The plugin
+needs no build change: an in-flow `NESTED_INSTANCE` builds by `createInstance` exactly as the absolute one
+does. Schema validation gained the `nest` rules (must name `nests`, must be `nest-fixed`, no children, and a
+non-absolute/non-nest kind still cannot carry `nests`).
+
+── THE TWO GATES (`lint-nesting.ts`), each mutation-proven BY NAME (docs/34) ──────────────────────────
+
+- **nest-resolves** — every id named in `anatomy.parts[*].nests` is a real component in `componentDefs`.
+  EXPECTED = the registry, SUBJECT = the refs authored in the def files: independent, not `x===x`.
+- **acyclic** — the nests graph has no cycle, which is what guarantees a build order EXISTS (nested target
+  first, then consumer; the plugin builds one def per run). FLOOR: ≥1 nest edge (seven today — five files,
+  `button.ts` exports three), or both arms pass vacuously.
+
+The floor is a NON-EMPTINESS floor (docs/34 shape 9), never a per-host representation assertion: unnesting ONE
+host leaves six edges and the floor stays silent — that case is caught by `lint-component-surface` instead,
+which fails by name on the changed plan digest (the Reviewer's mutation M1). A per-host floor derived from the
+nest edges would be the circular gate the discipline forbids. The floor's count is DERIVED from the same walk,
+never authored — a hand-typed "five" was the original defect; the header keeps a corrected literal.
+
+── THE ORDERING GATE, CONSIDERED AND REJECTED (Reviewer item-3 correction) ────────────────────────────
+
+The #1226 plan proposed a "nested-before-consumer" ORDER gate. It protects nothing: `components/index.ts`'s
+own header says nothing reads the array order, `main.ts` builds one def per invocation, and no loop depends on
+it. Dropped, with `index.ts`'s header recording the rejection for want of a consumer. Acyclicity is the real
+invariant: an order EXISTS without pinning the array to one.
+
+── THE USER-VISIBLE HALF (runtime miss, item 4) ──────────────────────────────────────────────────────
+
+Because designers build one def at a time, the failure they hit is "I built the consumer and its nested target
+isn't built yet." `nestMissAdvice`'s ABSENT case NAMES the target inside the advice (`build <target> FIRST`) —
+composed at the call site for the direct executor and interpolated via a paste-time `NEST_TARGET_SLOT` for the
+baked payload, one wording both paths. The name is IN the advice rather than borrowed from the miss prefix,
+because misses render concatenated (`main.ts` `join('; ')`) where "just above" bound to a NEIGHBOUR's target
+(the #1262 review). Plain name, not backtick-wrapped — the payload's no-backtick invariant (`test.ts`) caught
+the first attempt. Both executors' tests pin the name's position inside the advice.
+
+── VERSION ──────────────────────────────────────────────────────────────────────────────────────────
+
+ENGINE bumps for the BEHAVIOUR change (a new projectable kind + the reworded runtime miss that ships in
+`apps/plugin/dist`) — principle 5's "any behaviour change", the #872 shape (a component projection not
+committed under `out/`). NOT decided by a gate: `lint-component-surface` is one-directional (a moved surface
+owes a bump, never the converse) and this moves NO surface — it reports **0 defs moved**, because no def uses
+`nest` yet and the `absolute || nest` generalization projects the focus-ring path byte-identically. So the
+bump is principle 5's call, not either version gate's. CONTRACT stands at 9.3.0 (`nest` adds no token name;
+`--check` confirms). **Landed on 0.42.0 at the just-in-time rebase before merge:** every lower minor is
+occupied — 0.39.0 (#1018), 0.40.0 (#1248), 0.41.0 (#1257) — so it re-stamped FORWARD to the next free minor
+rather than merging backwards (the version gates compare with `!==`, not an ordering, so a backwards stamp
+would pass silently — the Reviewer's #1271). This is the THIRD re-stamp as concurrent version PRs kept landing
+first; the churn ends by merging it, not by renumbering again. When PR C/D/E add defs that use `nest`, THEIR
+projections move the component-surface baseline and each owes its own `--accept`.
+
+── REVIEW ROUNDS (#1262) ──────────────────────────────────────────────────────────────────────────────
+
+The Reviewer confirmed the mechanism and both gates by their own mutation battery (0 blocking on the
+mechanism, both rounds). Round 1 (at `9034a47`) sent back three text fixes, applied: the floor count (seven,
+not five — a file count read as a def count, now derived in the failure path); the miss locator (name composed
+into the advice, not "just above"); and a cycle-message nit (no longer doubles the entry node). Round 2 (at
+`b515722`) confirmed all three by mutation and sent back ONE blocking item — the version stamp — plus a nit to
+trim the floor comment's overclaim and a note that `lint-component-surface` backstops the floor's narrowness
+(both applied). Then #1257 merged and took 0.41.0, so a third JIT rebase re-stamped to 0.42.0. Two nits filed
+as their own issues (**#1264** focus-ring-only "no placeholder" rationale; **#1265** a built read-back for an
+in-flow nest) — out of scope. The version-gate ordering gap is **#1271**.
+
 ## (2026-09-03) — every overlay leaf in the corpus carried another mode's provenance, and no gate had ever asked (#1257)
 
 **STATUS: shipped.** Two writers, one new gate. Gates **53 → 54**. `ENGINE_VERSION` 0.40.0 →
