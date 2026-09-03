@@ -93,7 +93,7 @@
  * they meet it — "the substrate already did" is how the next def stops doing so.
  *
  * One thing worth knowing about `min-height`: it binds `size.*.height`, the substrate's CONTROL-height
- * ladder (40 / 48 / 56 on nb), and it is the ROW's floor rather than a fixed height — a wrapped label
+ * ladder (36 / 44 / 56 on nb), and it is the ROW's floor rather than a fixed height — a wrapped label
  * makes the row taller. The values land on the brief's §6 target guidance without being tuned to it
  * (≥24 for SC 2.5.8, 44 Apple, 48 Material), which is the substrate ladder already being right rather
  * than a coincidence worth relying on.

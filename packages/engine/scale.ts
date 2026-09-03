@@ -212,10 +212,12 @@ export const componentSizes = (density: Density, spaceBase = 8): SizeStep[] => {
 // token aliases `dimension.<px>` rather than carrying a loose literal — asserted in `test.ts`, not
 // assumed. `baseUnit` 4 (default) puts all five on the grid; a coarser `baseUnit` is checked at emit.
 //
-// The ladder pairs 1:1 with `componentSizes`' xs…xl (32/40/48/56/64), so the component layer's
-// control-size → icon-size mapping is the identity rather than a reconciliation between a 4-step
-// and a 5-step scale. The ratio is a clean 0.5 through md and eases off above it (0.57, 0.63) —
-// a 64px control with a 32px glyph reads sparse, so the top steps intentionally run larger than half.
+// The ladder pairs 1:1 with `componentSizes`' xs…xl, so the component layer's control-size →
+// icon-size mapping is the identity rather than a reconciliation between a 4-step and a 5-step
+// scale. The fixed icon ladder runs a little over half the control height across the range and
+// widens toward the top — the largest control with a half-size glyph reads sparse, so the top
+// steps intentionally run larger than half. (The clean 0.5-through-md ratio the old 40/48/56
+// ladder gave was a coincidence of that ladder, not a contract; #1207's 36/44/56 retired it.)
 // 40 extends the field set by one on-grid step for hero / empty-state use; the KB's icon-vs-
 // illustration boundary is about NARRATIVE content ("larger, narrative, its own component"),
 // not a pixel threshold, so a 40px UI metaphor glyph is still an icon.
@@ -229,7 +231,7 @@ export const iconSizes = (): IconSizeStep[] => ICON_SIZES.map((s) => ({ ...s }))
 // ---------------------------------------------------------------------------
 // CONTROL SIZES (#900). The dimension of a SMALL CONTROL'S OWN BOX — a checkbox's square, a radio's
 // circle, a switch's track. A different quantity from either neighbour, and one with no token at
-// all until now: `size.<t>.height` is the ROW a control sits in (40/48/56 on nb) and `icon.size.*`
+// all until now: `size.<t>.height` is the ROW a control sits in (36/44/56 on nb) and `icon.size.*`
 // is the glyph ARTBOARD ladder. Three defs in a row (`checkbox`, `radio`, `switch`) left their
 // control's edge unbound rather than reach for `icon.size.*`, whose values are exactly right and
 // whose meaning is not — the #708 shape, where a binding resolves, typechecks, passes every gate

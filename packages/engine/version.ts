@@ -1011,7 +1011,7 @@ export const ENGINE_VERSION = '0.42.0';
  * from `token-contract.ts --check` (it reported MINOR and named all four), not chosen here.
  *
  * 9.2.0: `control.size.{sm,md,lg}.line-box` — three guaranteed paths added, 0 removed, 0 retyped, so
- * MINOR (#1201). The selection-control alignment box (see `ENGINE_VERSION` 0.32.0 above) reads these to
+ * MINOR (#1201). The selection-control alignment box (see `ENGINE_VERSION` 0.33.0 above) reads these to
  * size itself to one line of its label. Additive: a consumer holding any existing `control.size.*` name
  * still resolves, and no value of an existing path moves. `token-contract.ts --check` confirms the count.
  *

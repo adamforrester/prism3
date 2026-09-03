@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-09-03) — sweep the stale numeric prose left by the 36/44/56 ladder move (#1219)
+
+**STATUS: shipped.** Prose-truth only — no code, no value, no emitted-output change; **version-neutral** (ENGINE
+stays at main's 0.42.0). Full `npm run verify` green (55/55). Addresses #1219 — the freeform-comment spots;
+three `codeOnly` def-string spots it also named are deferred as bump-requiring (see DEFERRED below), so #1219
+stays open until those land.
+
+The #1207/#1216 size-ladder move (default control heights 40/48/56 → **36/44/56**, md the 44px AAA target) and
+the #1217 rebase left numbers written in prose stale. None ships or affects behaviour — all are code comments /
+changelog cross-refs, in no emitted artifact — but each misdirects a reader, the `docs/34` "don't write a number
+in prose" register. No gate catches these (the numeric gates cover emitted values, not freeform comments), which
+is why they drifted. Corrected each to the **current emitted value verified against the source** (running
+`componentSizes`/the def), never guessed:
+
+- **`version.ts` (9.2.0 / #1201 entry)** and **`test.ts`** — a cross-ref to the selection-control line-box read
+  `ENGINE_VERSION 0.32.0` (the ladder move) where the line-box is **0.33.0** (#1201); `version.ts` contradicted
+  its own headline ~12 lines up. Both → 0.33.0. (The 0.32.0/0.33.0 *changelog entries themselves* are historical
+  records and stay.)
+- **`components/checkbox.ts`** — the leading doc-comment's control-height ladder `(40 / 48 / 56 on nb)` →
+  **36/44/56**. The standards citations (≥24 SC 2.5.8, 44 Apple, 48 Material) are facts and stay.
+- **`scale.ts`** — the control-row aside `(40/48/56 on nb)` → **36/44/56**; and the icon↔control ratio comment,
+  which quoted the pre-#1207 `32/40/48/56/64` ladder and a **"clean 0.5 through md"** that #1207 retired (icons
+  are a fixed 16/20/24/32/40, so against 28/36/44/56/68 the ratios are now ~0.55–0.59, a little over half
+  throughout). Rewritten to state the durable relationship without re-stale-able specifics (the issue's preferred
+  fix), noting the clean-0.5 was a coincidence of the old ladder, not a contract.
+- **`test.ts` (#536 button geom)** — an assertion annotation hard-coded `live heights 40/48/56` beside a
+  live-printed `geom`; → **36/44/56** (gaps 8/8/12 verified unchanged).
+
+**DEFERRED — three `codeOnly` def-string spots the issue also named** (`checkbox.ts`'s `min-height` FLOOR
+`(48 at medium)` → 44 and its whole-row hit-target `reaches that at medium` claim; the identical hit-target block
+on `radio.ts`). These are NOT freeform comments — they live in a `ComponentDef`'s `codeOnly` array, part of the
+**projected component surface**, so editing them moves that def's `planStamp` and `lint-component-surface`
+(#1259) demands an ENGINE bump. #1219 was filed 2026-09-02, before #1259 landed, when these were harmless prose;
+they are no longer version-neutral. Left for a bump-carrying PR (fold into the next `checkbox`/`radio` def change,
+or a dedicated MINOR) rather than forced into this prose-only sweep. Their correct text: FLOOR `(44 at medium on
+nb)`, and "the row meets Apple's 44 at `medium` and both at `large`, but not at `small`" (md=44 meets Apple, not
+Material's 48).
+
+Left alone by design: the `0.32.0`/`0.33.0` **changelog entries** and every `docs/00-progress.md` entry (both
+genres record what shipped at a version — historical, not stale); the **standards** numbers (Apple 44 / Material
+48 / Android 48) as external facts; the switch-inset `3/4/5/6/7` and control-box `12/16/20/24/28` ladders
+(unaffected by #1216, verified current); and typography (display/title) sizes.
+
 ## (2026-09-03) — the in-flow `nest` mechanism: components can nest components in the flow (#1226 PR-A)
 
 **STATUS: shipped, review-approved on the mechanism, JIT-rebased for merge.** ENGINE **→ 0.42.0**; CONTRACT

@@ -767,7 +767,7 @@ for (const b of brands) {
     // refused on any non-`absolute` part, and `sizing: 'fill'` maps to Figma `AUTO`, so padding-plus-fill
     // projects a dot of ZERO. The group shape is what made correcting that a MINOR instead of a MAJOR.
     // #1201 added a FOURTH field, `line-box` — the baked `body.{rung}` line-box a selection control's
-    // alignment box reads (see `ENGINE_VERSION` 0.32.0). It is a deliberate addition, so the pin moves to
+    // alignment box reads (see `ENGINE_VERSION` 0.33.0). It is a deliberate addition, so the pin moves to
     // the four-field shape rather than being loosened to "at least these three".
     //
     // #997 added a FIFTH, `inset`, and the pin moving is the gate working rather than the gate yielding:
@@ -11739,7 +11739,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const { bound } = figmaAnatomyPlan(button, sz, { leading: true, trailing: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' }).root;
     return `${bound.height}|${bound.itemSpacing}`;
   });
-  ok(new Set(geom).size === 3, `#536 item 6: every size is geometrically distinct (${geom.join(' ')}) — live heights 40/48/56, gaps 8/8/12`);
+  ok(new Set(geom).size === 3, `#536 item 6: every size is geometrically distinct (${geom.join(' ')}) — live heights 36/44/56, gaps 8/8/12`);
 }
 
 // -------------------------------------------------------------- #332: malformed lever values reject
