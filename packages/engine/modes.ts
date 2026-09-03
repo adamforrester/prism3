@@ -513,6 +513,42 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // A pure-extreme fallback fires only if the softened pick can't clear `onMin`.
   const N025 = (): Cand => pStep(r2p.neutral, 25);
   const N950 = (): Cand => pStep(r2p.neutral, 950);
+  // BRAND INK ON THE INVERSE FILL (#1244), and the auto-selection is the decision rather than a
+  // convenience. The inverse fill is a uniform neutral extreme (#1231) — near-white in light, near-black
+  // in dark — and the owner's policy is a BRAND-colored label on it rather than the neutral ink #1208
+  // shipped. A fixed conservative rung was rejected: it is unnecessarily dark for brands that could
+  // carry a more vivid step, and it drifts as the palette engine changes.
+  //
+  // THE RULE, stated so it does not depend on which extreme the fill is: walk the brand ramp from the
+  // end that INCREASES contrast against this fill, and take the FIRST step clearing `onMin`. That is
+  // "the most brand-vivid step that is still readable" in both directions — the lightest passing step
+  // on a near-white fill, the darkest passing step on a near-black one.
+  //
+  // WHY DIRECTION-INDEPENDENT rather than the literal "lightest that passes": on the near-black dark-mode
+  // fill, lightest-first returns step 025 at ~15:1 — a nearly white tint, which is not brand-colored text
+  // and is what #1208 already shipped under a different name. Measured across nb / aurora / harbor before
+  // choosing: the mirrored form lands on 550 in light and 400 in dark for all three, which is the
+  // near-identical-index behavior the even-step palette predicts, and the literal form lands on 550 / 025.
+  //
+  // NO STEP PASSES is an honest failure, not a fallback to neutral: bind the most extreme step and let
+  // the mode contrast contract report it. A brand whose ramp cannot carry its own label on its own fill
+  // is a fact about that brand, and silently substituting a neutral would hide exactly the thing a
+  // designer needs to see. `test.ts` asserts the ratio independently of this function.
+  const brandOnFill = (palette: string, fill: RGB): Rated => {
+    const steps = [...(ramps.get(palette) ?? [])].sort((a, b) => a.num - b.num);
+    if (!steps.length) return onColor(fill);
+    // SCAN FROM THE LEAST-CONTRASTING END so the first passing step is the MOST VIVID one that is
+    // still legible. On a LIGHT fill that means ascending (lightest first, walking darker until one
+    // clears); on a DARK fill, descending. The test is "is the fill light", i.e. does it contrast more
+    // against black than against white — and getting this backwards is not a subtle bug: it silently
+    // ships the most EXTREME step instead of the most vivid one (red.950 rather than red.550), which
+    // clears the floor easily and so looks correct to any check that only asserts the floor. It did
+    // exactly that on the first run here; the `mostVivid` pin in `test.ts` is what now catches it.
+    const order = contrast(fill, BLACK) >= contrast(fill, WHITE) ? steps : [...steps].reverse();
+    const pick = order.find((st) => contrast(st.rgb, fill) >= onMin) ?? order[order.length - 1];
+    return rated(cand(`${ns}.${palette}.${pick.key}`, pick.rgb), fill);
+  };
+
   const onColor = (fill: RGB): Rated => {
     if (hc) return pickMostExtreme([cand(`${ns}.white`, WHITE), cand(`${ns}.black`, BLACK)], fill);
     const lightCand = cfg.family === 'light' ? cand(`${ns}.white`, WHITE) : N025();  // light side: pure white in light, soft in dark
@@ -1059,8 +1095,27 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
         `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
     }
-    put(`inverse.interactive.${name}.on-fill`, onColor(asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb)),
-      `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`, `inverse.interactive.${name}.fill.rest`, onMin);
+    // PRIMARY ONLY (#1244). `destructive` and `neutral` keep the neutral ink until their own decision
+    // lands — filed as #1253 and #1254 rather than mirrored here, and they are two different questions.
+    // A danger ramp on a near-white fill is not an action ramp on one: red ramps run darker at a given
+    // index, so the "same index across brands" property has to be re-measured, and a destructive control
+    // pushed toward the legible end can stop reading as danger. The neutral family has no brand ramp to
+    // select from at all — its ramp IS the neutral one — so there the answer is probably `onColor`
+    // already, which #1254 exists to confirm with a measurement rather than leave as an omission.
+    //
+    // `palOf` at the CALL SITE, not inside `brandOnFill`: the greyscale redirect is defined below the
+    // helper, and routing through it here means wireframe scans the NEUTRAL ramp by the same rule and
+    // lands on a grey step — which the wireframe alias contract requires ("every wireframe alias routes
+    // to palette/neutral/*"). Caught by that gate on the first run, when the ink resolved to
+    // `accent/950` in wireframe.
+    put(`inverse.interactive.${name}.on-fill`,
+      name === 'primary'
+        ? brandOnFill(palOf(r2p.action ?? r2p.brand), asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb))
+        : onColor(asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb)),
+      name === 'primary'
+        ? `Brand ink on the ${name} inverse fill — the most vivid brand step clearing ${onMin}:1 against it (#1244)`
+        : `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`,
+      `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,
     // for the same reason the page border does — the intent "the edge matches its label" is no
     // less true on a dark hero, and `invInk` is already resolved and gated against `invRgb`.

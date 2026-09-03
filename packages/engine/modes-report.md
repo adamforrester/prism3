@@ -97,7 +97,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.fill.pressed | neutral.150 | 12.33 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.13 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.150 | 12.33 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | neutral.950 | 15.99 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.450 | 5.05 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.400 | 5.98 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | red.350 | 6.97 | 3 | ✅ |
@@ -345,7 +345,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.fill.pressed | neutral.950 | 18.11 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.74 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.950 | 18.11 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | neutral.025 | 14.91 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | red.400 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.550 | 5.24 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | red.600 | 6.39 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | red.650 | 7.72 | 3 | ✅ |
@@ -593,7 +593,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.fill.pressed | neutral.150 | 13.32 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 15.26 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.150 | 13.32 | 4.5 | ✅ |
-| inverse.interactive.primary.on-fill | black | 17.27 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | red.550 | 4.62 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.350 | 7.52 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | red.300 | 8.77 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | red.250 | 10.17 | 4.5 | ✅ |
@@ -841,7 +841,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.interactive.primary.fill.pressed | neutral.950 | 19.44 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 17.97 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.950 | 19.44 | 4.5 | ✅ |
-| inverse.interactive.primary.on-fill | white | 16.00 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | red.400 | 4.92 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | red.650 | 8.29 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | red.700 | 10.03 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | red.750 | 12.08 | 4.5 | ✅ |
@@ -1160,7 +1160,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.150 | 12.36 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.150 | 12.36 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | neutral.950 | 16.01 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | accent.550 | 4.69 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.450 | 4.87 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.400 | 5.80 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.350 | 6.80 | 3 | ✅ |
@@ -1408,7 +1408,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.950 | 18.13 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.71 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.950 | 18.13 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | neutral.025 | 14.99 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | accent.400 | 4.79 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.550 | 5.31 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | accent.600 | 6.39 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.650 | 7.75 | 3 | ✅ |
@@ -1656,7 +1656,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.150 | 13.36 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 15.19 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.150 | 13.36 | 4.5 | ✅ |
-| inverse.interactive.primary.on-fill | black | 17.31 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | accent.550 | 4.69 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.350 | 7.36 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | accent.300 | 8.59 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.250 | 9.97 | 4.5 | ✅ |
@@ -1904,7 +1904,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.interactive.primary.fill.pressed | neutral.950 | 19.43 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 17.90 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.950 | 19.43 | 4.5 | ✅ |
-| inverse.interactive.primary.on-fill | white | 16.06 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | accent.400 | 4.79 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | accent.650 | 8.30 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | accent.700 | 10.03 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | accent.750 | 11.95 | 4.5 | ✅ |
@@ -2222,7 +2222,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.fill.pressed | neutral.150 | 12.36 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 14.05 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.150 | 12.36 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | neutral.950 | 15.98 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.550 | 4.62 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.450 | 5.00 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.400 | 5.93 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.350 | 6.91 | 3 | ✅ |
@@ -2470,7 +2470,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.fill.pressed | neutral.950 | 18.11 | 3 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 16.70 | 3 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.950 | 18.11 | 3 | ✅ |
-| inverse.interactive.primary.on-fill | neutral.025 | 14.96 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.400 | 4.89 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.600 | 6.33 | 3 | ✅ |
 | inverse.interactive.primary.border.hover | primary.650 | 7.72 | 3 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.700 | 9.29 | 3 | ✅ |
@@ -2718,7 +2718,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.fill.pressed | neutral.150 | 13.36 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.100 | 15.20 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.150 | 13.36 | 4.5 | ✅ |
-| inverse.interactive.primary.on-fill | black | 17.29 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.550 | 4.62 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.350 | 7.47 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.300 | 8.72 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.250 | 10.11 | 4.5 | ✅ |
@@ -2966,7 +2966,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.interactive.primary.fill.pressed | neutral.950 | 19.42 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.focused | neutral.900 | 17.90 | 4.5 | ✅ |
 | inverse.interactive.primary.fill.selected | neutral.950 | 19.42 | 4.5 | ✅ |
-| inverse.interactive.primary.on-fill | white | 16.03 | 4.5 | ✅ |
+| inverse.interactive.primary.on-fill | primary.400 | 4.89 | 4.5 | ✅ |
 | inverse.interactive.primary.border.rest | primary.650 | 8.28 | 4.5 | ✅ |
 | inverse.interactive.primary.border.hover | primary.700 | 9.96 | 4.5 | ✅ |
 | inverse.interactive.primary.border.pressed | primary.750 | 11.78 | 4.5 | ✅ |

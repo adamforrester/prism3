@@ -2643,33 +2643,6 @@
                 "min": 7
               }
             },
-            "on-fill": {
-              "$type": "color",
-              "$value": "{prism.core.palette.black}",
-              "$description": "Ink on the primary inverse fill (a dark label on the light on-dark CTA)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.950",
-                  "contrast": 16,
-                  "against": "inverse.interactive.primary.fill.rest",
-                  "min": 4.5,
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              },
-              "contrast": 17.3,
-              "against": "inverse.interactive.primary.fill.rest",
-              "min": 4.5
-            },
             "border": {
               "rest": {
                 "$type": "color",

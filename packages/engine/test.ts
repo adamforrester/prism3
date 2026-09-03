@@ -378,6 +378,89 @@ for (const b of brands) {
   }
   ok(neutralFails.length === 0, 'interactive: neutral on-fill is a passing gated contract in every mode' + (neutralFails.length ? ` — ${neutralFails.join(',')}` : ''));
 
+  // (d2) #1244 — the INVERSE PRIMARY on-fill is a BRAND step, auto-selected, and it clears the label
+  // floor. Two claims, asserted separately because a green run on one says nothing about the other: the
+  // ink is on the BRAND ramp (the point of #1244 — #1208 shipped a neutral here), and it CLEARS 4.5:1
+  // against the fill it sits on.
+  //
+  // THE RATIO IS RECOMPUTED FROM THE EMITTED HEXES, never read off the role's own `ratio` field. That
+  // field is written by the derivation under test, so asserting it would ask the selector whether the
+  // selector was right — `docs/34` shape 1, and exactly the defect #956 found in the reporting path. The
+  // expected STEP is likewise never derived from `brandOnFill`: this block does not know or care which
+  // step was chosen, only that whatever was chosen is brand-hued and legible on its ground.
+  {
+    const hexAt = (tree: any, path: string, mode: string): string | undefined => {
+      let node = at(tree, path);
+      for (let i = 0; i < 8 && node; i++) {
+        const per = node.$extensions?.prism3?.modes?.[mode];
+        const v: unknown = (per?.$value ?? node.$value);
+        if (typeof v !== 'string') return undefined;
+        const ref = /^\{(.+)\}$/.exec(v);
+        if (!ref) return v;
+        node = at(tree, ref[1].split('.').slice(1).join('.'));
+      }
+      return undefined;
+    };
+    const FLOOR = 4.5;
+    // Emitted colours are `rgb(...)` strings, not hex — `parseColor` is the shared reader and returns
+    // 0-1 floats, so scale back to the 0-255 space `contrast` works in.
+    const rgb255 = (v: string) => { const c = parseColor(v); return { r: c.r * 255, g: c.g * 255, b: c.b * 255 }; };
+    const dim: string[] = [], notBrand: string[] = [], notVivid: string[] = [];
+    let pairs = 0;
+    const themes: Array<[string, any]> = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+      ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+    ];
+    for (const [id, th] of themes) {
+      const built = buildTree(th).tree as any;
+      const root = Object.keys(built)[0];
+      const tree = built[root];
+      const neutralPal = (th as any).roleToPalette.neutral;
+      for (const mode of ['base', 'dark', 'hc-light', 'hc-dark']) {
+        const ink = hexAt(tree, 'color.inverse.interactive.primary.on-fill', mode);
+        const fill = hexAt(tree, 'color.inverse.interactive.primary.fill.rest', mode);
+        if (!ink || !fill) continue;
+        pairs++;
+        const r = contrast(rgb255(ink), rgb255(fill));
+        if (r < FLOOR) dim.push(`${id}/${mode}: ${r.toFixed(2)}:1 (${ink} on ${fill})`);
+        // WIREFRAME is exempt from the brand half and only from that half: its whole contract is that
+        // every alias routes to the neutral ramp, so a brand-hued ink there would be the greyscale
+        // violation rather than the fix. It is still held to the ratio above.
+        const raw = at(tree, 'color.inverse.interactive.primary.on-fill');
+        const refStr = String(raw?.$extensions?.prism3?.modes?.[mode]?.$value ?? raw?.$value ?? '');
+        if (!/wireframe/.test(mode) && new RegExp(`palette\\.${neutralPal}\\.`).test(refStr))
+          notBrand.push(`${id}/${mode}: ${refStr}`);
+        // THE BOUNDARY, which is what makes this a pin on the RULE rather than on the floor. "Most vivid
+        // that passes" means the neighbour one step TOWARD the fill must FAIL — otherwise the selector
+        // could return any darker step and every floor check would still be green. Measured on this run:
+        // a selector returning the ramp's extreme (red.950 on a near-white fill) cleared the floor and
+        // the brand check both, and only this arm distinguishes it.
+        const pal = /palette\.([^.]+)\.([^.}]+)/.exec(refStr);
+        const ramp = pal ? (th as any).palettes.find((q: any) => q.palette === pal[1])?.steps : undefined;
+        if (ramp && pal) {
+          const chosen = ramp.find((st: any) => st.key === pal[2]);
+          const fillIsLight = contrast(rgb255(fill), { r: 0, g: 0, b: 0 }) >= contrast(rgb255(fill), { r: 255, g: 255, b: 255 });
+          // one step toward the fill = lighter on a light fill, darker on a dark one
+          const toward = [...ramp].sort((a: any, b: any) => (fillIsLight ? a.num - b.num : b.num - a.num))
+            .filter((st: any) => (fillIsLight ? st.num < chosen?.num : st.num > chosen?.num)).pop();
+          if (chosen && toward && contrast(toward.rgb, rgb255(fill)) >= FLOOR)
+            notVivid.push(`${id}/${mode}: chose ${pal[2]} but ${toward.key} also clears (${contrast(toward.rgb, rgb255(fill)).toFixed(2)}:1)`);
+        }
+      }
+    }
+    ok(pairs >= 8, `#1244 the inverse-primary ink/fill pair was found to compare (${pairs} pairs across ${themes.length} brands)`);
+    ok(dim.length === 0,
+      `#1244 the auto-selected brand step CLEARS ${FLOOR}:1 against the inverse primary fill, in every brand and mode — recomputed from the emitted hexes, not read off the role's own ratio`
+      + (dim.length ? ` — UNDER: ${dim.join('; ')}` : ''));
+    ok(notBrand.length === 0,
+      '#1244 …and the ink is on the BRAND ramp rather than the neutral one, which is the whole point of the change (#1208 shipped a neutral here)'
+      + (notBrand.length ? ` — NEUTRAL: ${notBrand.join('; ')}` : ''));
+    ok(notVivid.length === 0,
+      '#1244 …and it is the MOST VIVID passing step, not merely a passing one — the step one closer to the fill must FAIL the floor, or the selector is being unnecessarily extreme'
+      + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));
+  }
+
   // (e) Figma slots are scoped by SLOT (fill→paint, text→TEXT_FILL, border→STROKE_COLOR).
   const { color } = buildFigmaColor(nbTheme());
   const byName = new Map<string, any>(color.find((c) => c.$mode === 'light')!.variables.map((v: any) => [v.name, v]));

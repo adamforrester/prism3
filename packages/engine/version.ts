@@ -102,6 +102,31 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.37.0: the inverse PRIMARY button takes a BRAND-colored label, auto-selected (#1244, refining #1208
+ * and #1231). The inverse fill is unchanged — still the uniform neutral extreme #1231 decided — and only
+ * `inverse.interactive.primary.on-fill` moves, from a neutral ink to the most vivid step of the brand
+ * ramp that still clears 4.5:1 against that fill. `destructive` and `neutral` keep the neutral ink; each
+ * has its own contrast story and is a separate decision (#1253, #1254).
+ *
+ * THE RULE IS DIRECTION-INDEPENDENT, and that is the part worth reading twice. Scan the brand ramp from
+ * the END THAT CONTRASTS LEAST with the fill and take the first step clearing the floor: the lightest
+ * passing step on a near-white fill, the darkest passing step on a near-black one. Both are "the most
+ * brand-vivid step that is still legible", which is the property the owner asked for. The literal
+ * "lightest that passes" was measured first and rejected: on the near-black dark-mode fill it returns
+ * step 025 at ~15:1 — a nearly white tint, i.e. what #1208 already shipped under another name. Landed
+ * values are 550 in light and 400 in dark for nb / aurora / harbor alike, which is the near-identical
+ * index the even-step palette predicts.
+ *
+ * NO STEP PASSING is an honest failure rather than a silent neutral: the most extreme step is bound and
+ * the mode contrast contract reports it. Substituting a neutral would hide the one thing a designer
+ * needs to see about that brand.
+ *
+ * WIREFRAME routes through `palOf`, so the greyscale contract still holds ("every wireframe alias routes
+ * to palette/neutral/*") — caught by that gate on the first run, when the ink resolved to `accent/950`.
+ *
+ * VALUES ONLY: no token name or `$type` moves, so `CONTRACT_VERSION` stands at 9.3.0 and
+ * `token-contract.ts --check` confirms it. Emitted colour moves in every brand and mode.
+ *
  * 0.36.0: `field-label` gains the two Prism 2 controls that use existing patterns (#872, and the
  * `field-label` half of #862). `size` goes to three rungs and TYPE follows it — `type.body.{sm,md,lg}
  * .default`, 14/16/18px at 150% line-height, which is Prism 2's form-label ladder exactly and the tier
@@ -754,7 +779,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.36.0';
+export const ENGINE_VERSION = '0.37.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

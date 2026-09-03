@@ -1755,10 +1755,10 @@
       "avoid_when": "Do not use on the page ground; that is `interactive.primary.on-fill`. Do not use on the page or on outline controls — use interactive.primary.text.",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{prism.core.palette.neutral.950}",
-        "dark": "{prism.core.palette.neutral.025}",
-        "hc-light": "{prism.core.palette.black}",
-        "hc-dark": "{prism.core.palette.white}"
+        "light": "{prism.core.palette.accent.550}",
+        "dark": "{prism.core.palette.accent.400}",
+        "hc-light": "{prism.core.palette.accent.550}",
+        "hc-dark": "{prism.core.palette.accent.400}"
       },
       "paired_with": [
         "inverse.interactive.primary.fill.rest"
@@ -1767,7 +1767,7 @@
         {
           "token": "inverse.interactive.primary.fill.rest",
           "min": "4.5:1",
-          "ratio": 16.01
+          "ratio": 4.69
         }
       ]
     },
@@ -5896,7 +5896,6 @@
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",
@@ -5950,7 +5949,6 @@
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",
@@ -6448,7 +6446,6 @@
         "color.inverse.interactive.neutral.text.rest",
         "color.inverse.interactive.primary.fill.pressed",
         "color.inverse.interactive.primary.fill.selected",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.primary"
       ]
@@ -6479,7 +6476,6 @@
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
-        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.primary"
       ]
@@ -6596,6 +6592,7 @@
         "color.interactive.primary.text.hover",
         "color.inverse.icon.link.visited",
         "color.inverse.interactive.primary.border.hover",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.hover",
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
@@ -6653,6 +6650,7 @@
         "color.interactive.primary.text.hover",
         "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.interactive.primary.text.rest",
         "color.inverse.text.link.default",
         "color.inverse.text.link.focused",
