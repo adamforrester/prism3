@@ -777,10 +777,19 @@ for (const b of brands) {
     // give and the clearance can only come from the track's padding — and the space scale carries no
     // 5px step for `md` to bind. The same "nowhere downstream for the arithmetic to happen" that made
     // `dot` a tier field makes this one. It is DERIVED from `dot` ((height − dot) / 2) rather than
-    // authored, so the two cannot drift apart; a sixth field is still a decision someone takes.
+    // authored, so the two cannot drift apart.
+    //
+    // #1015 added a SIXTH, `radius`, and it fired here too — which is the second time this checkpoint has
+    // done its job on the first run of a change. The argument is the one the other five share and nothing
+    // else: the corner has to know the box EDGE, and the edge lives HERE. A rung on the radius ramp
+    // (`radius.control`) was the obvious alternative and cannot see it, so it would be a fourth name on
+    // the card ramp that still could not scale with the box it corners. Unlike `inset` this one is not
+    // derived from a sibling — it is derived from `height` and from `radius.sm`, a value from ANOTHER
+    // group, which is why it is the first field here whose value is clamped rather than computed.
+    // A seventh field is still a decision someone takes.
     const fields = CONTROL_RUNG_NAMES.map((n) => Object.keys(grp?.[n] ?? {}).sort().join('+'));
-    ok(fields.every((f) => f === 'dot+height+inset+line-box+width'),
-      `#910/#1201/#997 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` — no sixth field drifts in (got ${[...new Set(fields)].join(' / ')})`);
+    ok(fields.every((f) => f === 'dot+height+inset+line-box+radius+width'),
+      `#910/#1201/#997/#1015 each rung carries exactly \`height\` + \`width\` + \`dot\` + \`line-box\` + \`inset\` + \`radius\` — no seventh field drifts in (got ${[...new Set(fields)].join(' / ')})`);
     ok(CONTROL_RUNG_NAMES.join(',') === Object.keys(grp ?? {}).join(','),
       `#900 three rungs, sm/md/lg — no \`xs\`/\`xl\`, because no def declares a control at either (got ${Object.keys(grp ?? {}).join(',')})`);
   }
@@ -1023,6 +1032,69 @@ for (const b of brands) {
     const spurious = CONTROL_RUNG_NAMES.filter((n) => CONTROL_FIELDS.some((f) => same[n]?.[f]?.$extensions?.prism3?.modes));
     ok(spurious.length === 0, '#900 a mode at the SAME density carries no override — an override that restates the base value is a diff that says nothing'
       + (spurious.length ? ` — SPURIOUS: ${spurious.join(', ')}` : ''));
+  }
+
+  // ---- #1015 THE CLAMPED CORNER — restated arithmetic, and the two branches no brand reaches -----
+  // The formula is SPELLED OUT here and never imported from `scale.ts`. Calling `controlRadius` would
+  // make every arm below assert `f(x) === f(x)`: it would pass on ANY formula, including the ramp value
+  // this change exists to replace, and report that as a pass rather than as silence (docs/34).
+  {
+    const clamp = (edge: number, smPx: number) => Math.min(smPx, Math.round((edge / 8) / 2) * 2);
+    // (a) EVERY corpus brand, from that brand's own two inputs — the box edge out of `control.size` and
+    // `radius.sm` out of the radius ramp, both read off the THEME rather than off the emitted tree, so
+    // the emitter is compared against its inputs and not against itself.
+    const wrong: string[] = [];
+    const moved: string[] = [];
+    for (const { id, theme } of corpus()) {
+      // Resolved through `deref` rather than read off `$extensions.prism3.px`, deliberately: the
+      // extension is the emitter's own claim about the leaf, and the alias is what a consumer follows.
+      // This asserts the corner points at a dimension primitive that really holds that px.
+      const tree = buildTree(theme).tree as any;
+      const grp = tree[Object.keys(tree)[0]]?.control?.size;
+      const smPx = theme.dims.radius.find((r) => r.name === 'sm')?.px ?? 0;
+      for (const c of theme.dims.controls) {
+        const got = grp?.[c.name]?.radius ? pxOf(tree, grp[c.name].radius) : undefined;
+        const want = clamp(c.height, smPx);
+        if (got !== want) wrong.push(`${id} ${c.name}: ${got} ≠ min(${smPx}, snap2(${c.height}÷8)) = ${want}`);
+        // The CLAMP direction, asserted separately from the value: `min` is the whole reason four of five
+        // brands are byte-identical after this change, so "never larger than the ramp rung it clamps"
+        // has to fail on its own if someone drops the `min` for a bare ratio (nb's 24px `large` would
+        // round UP from 2 to 4). A value arm alone would report that as one number being wrong.
+        if (got !== undefined && got > smPx) wrong.push(`${id} ${c.name}: ${got} EXCEEDS radius.sm ${smPx} — the clamp is not clamping`);
+        if (got !== smPx) moved.push(`${id} ${c.name}`);
+      }
+    }
+    ok(wrong.length === 0, '#1015 every corpus brand\'s `control.size.<rung>.radius` is `min(radius.sm, snap2(edge ÷ 8))`, evaluated per rung from that brand\'s own box edge — the corner keeps its proportion as the box shrinks instead of holding the card ramp\'s value'
+      + (wrong.length ? ` — ${wrong.join('; ')}` : ''));
+    // …and it MOVED somewhere, or the whole change is a rename. Aurora is the discriminating brand: its
+    // `radius.sm` is 4 (`radiusScale: 2`) on 12/16/20px edges, so all three rungs clamp 4 → 2. If this
+    // arm ever goes quiet, the corpus has lost the only member that tells the clamp from the ramp, and
+    // arm (a) above would then pass on `radius.sm` verbatim.
+    ok(moved.some((m) => m.startsWith('aurora')),
+      `#1015 at least one corpus brand's corner DIFFERS from its \`radius.sm\`, and it is aurora — without a brand whose ramp rung exceeds the clamp, the arithmetic above is indistinguishable from binding \`radius.sm\` (moved: ${moved.length ? moved.join(', ') : 'NONE'})`);
+
+    // (b) THE MODE SEAM, both inputs, neither reachable from the corpus — no corpus brand declares
+    // `wireframe`, `modeLevers.radius` or a density mode that moves the control ladder, so these two
+    // arms are the only place the per-mode clamp is evaluated at all. Stated because a green corpus
+    // sweep above says nothing about either branch.
+    //
+    // (b1) `modeLevers: { dark: { radius: 0 } }` — the ramp goes sharp in one mode, so the corner must
+    // follow it to 0 there. The clamp's FIRST input moving.
+    const sharp = (buildTree(controlBrand('comfortable', { modeLevers: { dark: { radius: 0 } } })).tree as any).prism.control.size;
+    const notSharp = CONTROL_RUNG_NAMES.filter((n) => sharp[n]?.radius?.$extensions?.prism3?.modes?.dark?.px !== 0);
+    ok(notSharp.length === 0, '#1015 a `modeLevers.radius: 0` mode re-derives the corner from THAT mode\'s ramp, so the control goes sharp with everything else — a 2px corner in a mode whose every radius is 0 is a wrong value that resolves (#708)'
+      + (notSharp.length ? ` — NOT SHARP: ${notSharp.join(', ')}` : ''));
+    // (b2) wireframe, which zeroes radius WITHOUT a `modeLevers` entry (it refuses one — see D(c)), so
+    // it is a separate code path from b1 rather than the same one under another name.
+    const wf = (buildTree(controlBrand('comfortable', { modes: ['light', 'wireframe'] })).tree as any).prism.control.size;
+    const notWf = CONTROL_RUNG_NAMES.filter((n) => wf[n]?.radius?.$extensions?.prism3?.modes?.wireframe?.px !== 0);
+    ok(notWf.length === 0, '#1015 wireframe zeroes the control corner too, and by its own path — wireframe REFUSES a `modeLevers` entry, so the b1 arm above cannot reach it'
+      + (notWf.length ? ` — NOT SHARP: ${notWf.join(', ')}` : ''));
+    // (b3) the other direction: a two-mode brand with neither input moving carries NO corner override.
+    const quiet = (buildTree(controlBrand('comfortable')).tree as any).prism.control.size;
+    const noisy = CONTROL_RUNG_NAMES.filter((n) => quiet[n]?.radius?.$extensions?.prism3?.modes);
+    ok(noisy.length === 0, '#1015 a brand whose modes move neither the ramp nor the box carries no corner override — an override restating the base value is a diff that says nothing'
+      + (noisy.length ? ` — SPURIOUS: ${noisy.join(', ')}` : ''));
   }
 }
 

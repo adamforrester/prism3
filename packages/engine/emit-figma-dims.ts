@@ -245,17 +245,21 @@ export const buildFigmaDims = (theme: Theme): FigmaDimsCollections => {
     // bound to a variable the client's file does not carry resolves to nothing. The authored list is
     // what caught that — `tools/exporter-comparison/gate.ts` reported the three new paths as
     // prism3-only on the first run, which is this list's stated purpose working as designed.
-    for (const field of ['height', 'width', 'dot', 'line-box', 'inset']) {
+    // `radius` with #1015, and it is the field this list exists for: checkbox's box binds its CORNER to
+    // it, so a client file without the variable renders the corner unbound — the DTCG tier carrying the
+    // value would not help, because nothing in Figma reads DTCG.
+    for (const field of ['height', 'width', 'dot', 'line-box', 'inset', 'radius']) {
       const leaf = brand.control.size[rung][field];
       if (!leaf) continue;
       const isAlias = typeof leaf.$value === 'string' && /^\{.+\}$/.test(leaf.$value);
       controlVars.push({
         name: ns(`control/size/${rung}/${field}`),
         resolvedType: 'FLOAT',
-        // GAP for `inset`, WIDTH_HEIGHT for the rest — the same split line 211 makes for `size.*`, and
-        // it is not cosmetic: Figma offers a FLOAT variable only in the fields its scopes name, so an
-        // inset scoped WIDTH_HEIGHT would be invisible in the padding control that is its only consumer.
-        scopes: field === 'inset' ? SIZE_PADDING_SCOPES : SIZE_HEIGHT_SCOPES,
+        // GAP for `inset`, CORNER_RADIUS for `radius`, WIDTH_HEIGHT for the rest — the same split line
+        // 211 makes for `size.*`, and it is not cosmetic: Figma offers a FLOAT variable only in the
+        // fields its scopes name, so an inset scoped WIDTH_HEIGHT would be invisible in the padding
+        // control that is its only consumer, and a corner scoped the same way invisible in the radius one.
+        scopes: field === 'inset' ? SIZE_PADDING_SCOPES : field === 'radius' ? RADIUS_SCOPES : SIZE_HEIGHT_SCOPES,
         description: desc(leaf),
         value: pxFromValue(tree, leaf.$value),
         alias: isAlias ? { type: 'VARIABLE_ALIAS', name: aliasFigName(leaf.$value) } : null,

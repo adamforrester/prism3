@@ -65,6 +65,19 @@
       }
     },
     {
+      "name": "nbds/control/size/sm/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/2"
+      }
+    },
+    {
       "name": "nbds/control/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -127,6 +140,19 @@
       }
     },
     {
+      "name": "nbds/control/size/md/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/2"
+      }
+    },
+    {
       "name": "nbds/control/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
@@ -186,6 +212,19 @@
       "alias": {
         "type": "VARIABLE_ALIAS",
         "name": "nbds/core/dimension/6"
+      }
+    },
+    {
+      "name": "nbds/control/size/lg/radius",
+      "resolvedType": "FLOAT",
+      "scopes": [
+        "CORNER_RADIUS"
+      ],
+      "description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+      "value": 2,
+      "alias": {
+        "type": "VARIABLE_ALIAS",
+        "name": "nbds/core/dimension/2"
       }
     }
   ]

@@ -15,7 +15,7 @@
 import { RGB, contrast, hex } from './color';
 import { Step } from './ramp';
 import { Theme, ShadowStep, ShadowLayer, ResolvedGradient, typefaceSlug, lineHeightStepKey, letterSpacingStepKey, CORE_TIER } from './theme';
-import { SizeStep, ControlSizeStep } from './scale';
+import { SizeStep, ControlSizeStep, controlRadius } from './scale';
 import { resolveAllModes, ModeResult } from './modes';
 import { ENGINE_VERSION } from './version';
 
@@ -667,6 +667,55 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
   // `type.body.{rung}` label (small→sm, medium→md, large→lg), so the box matches the line the label
   // renders on. Emitted as a LITERAL (`dimLeaf`), never aliased to the dimension grid: a line-box is a
   // type-derived quantity, and landing on a grid step (24 = body.md) is a coincidence, not a meaning.
+  // #1015 — the CONTROL CORNER, clamped to the box instead of taken from the card ramp. The arithmetic
+  // and the whole argument for it (why a clamp and not a rung, why `min` is what keeps four of five
+  // brands byte-identical, and why aurora's `small` lands at 0.167 rather than the 0.125 the ratio
+  // targets) live on `controlRadius` in `scale.ts`. Read it there; it is not restated here.
+  //
+  // A SIBLING OF `height` RATHER THAN A RADIUS RUNG, and that placement is the decision. A new
+  // `radius.control` rung would be a fourth name on a ramp whose rungs are all one scalar apart, and it
+  // would still not be derivable from the box — the corner has to know the EDGE, which lives here. So it
+  // sits beside the edge it is derived from, in the group the #900 header already argues should be a
+  // GROUP rather than a leaf: this is the second field that argument bought.
+  //
+  // Aliases the dimension grid when the value is on it and degrades to a literal when not — the same
+  // shape as `controlLeaf`, and NOT for the same reason. `controlLeaf`'s literal branch is unreachable
+  // because `buildDims` feeds the control px into the grid extras; the clamp's output is fed to nothing,
+  // so its literal branch is genuinely reachable on a brand whose grid happens to exclude it. Every
+  // corpus brand lands on 2 or 0 and both are on the grid today.
+  const radiusSmPx = theme.dims.radius.find((r) => r.name === 'sm')?.px ?? 0;
+  const controlRadiusLeaf = (px: number, rung: string, edge: number): Token =>
+    gridSet.has(px)
+      ? dimAlias(`${root}.${CORE_TIER}.dimension.${px}`, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).`, { px, radiusScale: theme.dims.radiusScaleValue, clampedFrom: radiusSmPx })
+      : dimLeaf(px, `control.size.${rung} radius — ${px}px corner on the ${edge}px box edge (off-grid literal; min of radius.sm ${radiusSmPx}px and the ${edge}÷8 control ratio) (#1015)`);
+  // THE MODE SEAM, and both of its inputs move on it — which is why this is not a single baked value the
+  // way `line-box` is. `radius.sm` is re-derived by a `modeLevers.radius` mode and ZEROED by wireframe;
+  // the box edge is re-derived by a mode at another density. A corner that kept the light value while
+  // either moved is #708 (a wrong value that resolves), and in wireframe specifically it is visible: a
+  // 2px control corner in a mode whose entire point is that every radius is 0. So the clamp is evaluated
+  // per mode from THAT mode's own two inputs, and an override is emitted only where it differs from
+  // light — one formula, one code path, three ways in.
+  //
+  // No corpus brand exercises either input: none declares `wireframe`, `radiusByMode` or
+  // `controlsByMode`. The wireframe arm is covered by a synthetic theme in `test.ts` rather than by the
+  // corpus, and the lever arm is covered by the same construction — stated because a branch no fixture
+  // reaches is not verified by a green corpus sweep.
+  const controlRadiusModes = (rung: string, edge: number, ownPx: number): Record<string, unknown> | undefined => {
+    const names = new Set<string>([...Object.keys(radiusByMode), ...Object.keys(controlsByMode)]);
+    if (wireframe) names.add('wireframe');
+    const modeOverrides: Record<string, unknown> = {};
+    for (const mode of names) {
+      const smPx = mode === 'wireframe' ? 0
+        : radiusByMode[mode]?.find((s) => s.name === 'sm')?.px ?? radiusSmPx;
+      const edgePx = controlsByMode[mode]?.find((c) => c.name === rung)?.height ?? edge;
+      const px = controlRadius(edgePx, smPx);
+      if (px === ownPx) continue;   // same px → no diff → no override
+      modeOverrides[mode] = gridStepOverride(px, mode === 'wireframe'
+        ? 'wireframe zeroes all radius (sharp corners), so the control corner clamps to 0'
+        : `control-radius re-derivation — ${mode} (${px}px: min of radius.sm ${smPx}px and ${edgePx}÷8)`);
+    }
+    return Object.keys(modeOverrides).length ? modeOverrides : undefined;
+  };
   const lhRatio = new Map(theme.typography.lineHeights.map((l) => [l.key, l.value]));
   const bodyLineBox: Record<string, number> = {};
   for (const c of theme.typography.composites) {
@@ -708,7 +757,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     const lineBox = lineBoxPx !== undefined
       ? dimLeaf(lineBoxPx, `control.size.${c.name} line-box — ${lineBoxPx}px, the height of one line of the \`body.${c.name}\` label (fontSize × line-height, baked). A selection control sits in a box this tall and centres within it, so it tracks the FIRST line of a wrapping label instead of floating mid-paragraph (#1201 / #1009).`)
       : undefined;
-    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
+    // #1015 — the corner, clamped to this rung's own edge (see `controlRadiusLeaf` above).
+    const radiusPx = controlRadius(c.height, radiusSmPx);
+    const radiusLeaf = controlRadiusLeaf(radiusPx, c.name, c.height);
+    const rMods = controlRadiusModes(c.name, c.height, radiusPx);
+    if (rMods) radiusLeaf.$extensions.prism3.modes = rMods;
+    controlSize[c.name] = { height: heightLeaf, width: widthLeaf, dot: dotLeaf, inset: insetLeaf, radius: radiusLeaf, ...(lineBox ? { 'line-box': lineBox } : {}) };
   }
   const control = { size: controlSize };
 

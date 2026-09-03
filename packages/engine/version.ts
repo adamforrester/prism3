@@ -138,6 +138,30 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.43.0: the CONTROL CORNER, clamped to its own box (#1015). Three writers move together. `scale.ts`
+ * gains `controlRadius(edge, radiusSm) = min(radiusSm, snap2(edge ÷ 8))`; `tree.ts` emits it as a sixth
+ * field beside the `height` it is derived from (`control.size.<rung>.radius`), with a per-mode override
+ * wherever either input moves; `emit-figma-dims.ts` adds it to the AUTHORED field list, because a corner
+ * bound to a variable a client's file does not carry renders unbound. Checkbox's def repoints from
+ * `radius.sm` to the per-rung key.
+ *
+ * A VALUE MOVES, on one brand, and that is the whole reason this bump is a MINOR rather than a stamp:
+ * aurora's built checkbox corner goes 4px → 2px at all three rungs. Four of five brands are BYTE-IDENTICAL,
+ * and `min` is what buys that — a bare ⅛ ratio would round nb's 24px `large` corner UP from 2 to 4 and
+ * move four brands to fix one. So the clamp direction is load-bearing, not defensive.
+ *
+ * What was wrong before is not the value but the RUNG-BLINDNESS: `radius.sm` is a rung on the card ramp,
+ * so one token served three box sizes, and aurora's 4px landed on a 12px `small` square — a third of its
+ * edge, where the same token is a fourteenth of a card's corner. Prism 2's own controls sit near ⅛ of
+ * their edge, which is where the ratio comes from. NOT fully reached, stated because the target and the
+ * mechanism disagree: aurora's `small` lands at 0.167 rather than 0.125, because on a 12px edge the ratio
+ * and the 2px radius sub-grid cannot both hold, and the sub-grid wins (a 1.5px corner is not a corner).
+ *
+ * `CONTRACT_VERSION` moves too — to 9.4.0, for the three ADDED names, not for the moved value. See there
+ * for why the value move is invisible to the contract, which is the cleanest example of the split in
+ * this file. Takes 0.43.0 provisionally; re-stamps forward on the just-in-time rebase before merge if a
+ * concurrent version PR lands first (#1271).
+ *
  * 0.42.0: the IN-FLOW `nest` mechanism (#1226 PR-A). The projector generalizes `nest-fixed` + `follow`
  * from the out-of-flow `absolute` case (a focus ring) to a new in-flow `nest` PartKind — a part that
  * materializes as an instance of another component AND takes a cell (a Checkbox.Row's control, C/D/E in
@@ -956,7 +980,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.42.0';
+export const ENGINE_VERSION = '0.43.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -1002,6 +1026,21 @@ export const ENGINE_VERSION = '0.42.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 9.4.0: `control.size.{sm,md,lg}.radius` — three guaranteed paths added, 0 removed, 0 retyped, so MINOR
+ * (#1015). A selection control's corner, clamped to its OWN box edge — `min(radius.sm, snap2(edge ÷ 8))`
+ * — rather than taken from the card ramp, so it keeps its proportion as the box shrinks with brand
+ * density. Additive on the NAME surface, which is the only surface this version answers for: every
+ * existing `control.size.*` and every `radius.*` name still resolves, nothing was renamed, nothing
+ * retyped.
+ *
+ * The part worth reading twice is what this bump does NOT cover, because it is the clean illustration of
+ * the split this file exists to keep: checkbox's built corner CHANGES on aurora, 4px → 2px at all three
+ * rungs. That is a value move on a brand-dependent quantity — `ENGINE_VERSION` answers for it (0.43.0
+ * below) and `CONTRACT_VERSION` deliberately does not. A consumer holding `prism.control.size.md.radius`
+ * resolves it before and after; a consumer holding `prism.radius.sm` resolves it before and after too,
+ * because the old binding lived in a component DEF, not in the token surface. The level was DERIVED from
+ * `token-contract.ts --check` (it reported MINOR and named all three), not chosen here. (574 → 577)
  *
  * 9.3.0: `control.size.{sm,md,lg}.inset` plus `core.dimension.5` — four guaranteed paths added, 0
  * removed, 0 retyped, so MINOR (#997). The switch track reads the inset as uniform padding so its thumb
@@ -1330,7 +1369,7 @@ export const ENGINE_VERSION = '0.42.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '9.3.0';
+export const CONTRACT_VERSION = '9.4.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {

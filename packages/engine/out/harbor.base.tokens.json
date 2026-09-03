@@ -13945,6 +13945,20 @@
               }
             }
           },
+          "radius": {
+            "$type": "dimension",
+            "$value": "{prism.core.dimension.2}",
+            "$description": "control.size.sm radius — 2px corner on the 16px box edge (min of radius.sm 2px and the 16÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.core.dimension.2",
+                "px": 2,
+                "radiusScale": 1,
+                "clampedFrom": 2
+              }
+            }
+          },
           "line-box": {
             "$type": "dimension",
             "$value": "21px",
@@ -14007,6 +14021,20 @@
                 "aliasOf": "prism.core.dimension.5",
                 "px": 5,
                 "density": "comfortable"
+              }
+            }
+          },
+          "radius": {
+            "$type": "dimension",
+            "$value": "{prism.core.dimension.2}",
+            "$description": "control.size.md radius — 2px corner on the 20px box edge (min of radius.sm 2px and the 20÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.core.dimension.2",
+                "px": 2,
+                "radiusScale": 1,
+                "clampedFrom": 2
               }
             }
           },
@@ -14075,6 +14103,20 @@
               }
             }
           },
+          "radius": {
+            "$type": "dimension",
+            "$value": "{prism.core.dimension.2}",
+            "$description": "control.size.lg radius — 2px corner on the 24px box edge (min of radius.sm 2px and the 24÷8 control ratio, snapped to the 2px radius sub-grid). CLAMPED to the box rather than taken from the radius ramp: a fixed-size control does not scale its corner the way a card does (#1015).",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "aliasOf": "prism.core.dimension.2",
+                "px": 2,
+                "radiusScale": 1,
+                "clampedFrom": 2
+              }
+            }
+          },
           "line-box": {
             "$type": "dimension",
             "$value": "27px",
@@ -14093,7 +14135,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.42.0",
+      "version": "0.43.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

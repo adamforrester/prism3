@@ -7777,6 +7777,9 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "border-width.thick",
+        "control.size.lg.radius",
+        "control.size.md.radius",
+        "control.size.sm.radius",
         "focus.ring.offset",
         "focus.ring.width",
         "size.xs.padding-y",

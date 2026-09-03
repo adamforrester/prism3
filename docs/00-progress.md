@@ -7,6 +7,135 @@
 
 ---
 
+## (2026-09-03) — the checkbox corner, clamped to its own box (#1015)
+
+**STATUS: shipped, gates green, not merged.** ENGINE **0.42.0 → 0.43.0**; CONTRACT **9.3.0 → 9.4.0** (574 →
+577 guaranteed paths). PR #1274, branch `claude/checkbox-radius-1015`, rebased onto `0dbe744` (#1219 landed
+under it mid-review; see REBASE at the end). checkbox ONLY — radio and switch keep `radius.round`, text-field
+and textarea keep `radius.sm`.
+
+── THE DIAGNOSIS, WHICH IS WHAT MADE THE FIX SMALL ─────────────────────────────────────────────────
+
+`checkbox`'s own `notes.contested` had argued three revisions running that `radius.sm` was CORRECT and needed
+no def change: 2px is what four of five brands resolve, and aurora's 4px is its own `radiusScale: 2` lever
+working as designed. Both halves were true. The question they answer is the wrong one. `radius.sm` is a rung
+on the CARD ramp, so **one token served three box sizes** — and aurora's 4px landed on a 12px `small` square,
+a third of its edge, where the same token is a fourteenth of a card's corner. The defect is the PROPORTION,
+not the value, which is why "2px is correct" and "the binding is wrong" were both true and the entry could not
+see it. Measured before writing any emission code: nb/harbor/wendys sit at 0.125/0.100/0.083 of their edge
+(Prism 2's ~⅛), aurora at **0.333/0.250/0.200**.
+
+── WHAT SHIPPED ────────────────────────────────────────────────────────────────────────────────────
+
+`control.size.<rung>.radius = min(radius.sm, snap2(edge ÷ 8))`, `snap2 = round(v/2)·2` (the 2px radius
+sub-grid). Four writers: `controlRadius` in `scale.ts` (the arithmetic and the whole argument, in one
+docblock); `tree.ts` emits it as a sixth field of the `control.size` rung group, with a per-mode override;
+`emit-figma-dims.ts` adds it to the AUTHORED field list; `checkbox.ts` repoints to `size.{size}.radius`.
+
+**`min` is load-bearing, not defensive.** A bare ⅛ ratio rounds nb's 24px `large` corner UP from 2 to 4
+(`snap2(24÷8) = 4`) — it would move four brands to fix one. With the clamp, aurora moves 4 → 2 at all three
+rungs and **nothing else moves at all**.
+
+**A `radius.control` rung was the obvious alternative and was rejected on a structural ground, not a taste
+one:** the corner has to know the box EDGE, and the edge lives in `control.size`. A rung on the radius ramp
+cannot see it, so it would be a fourth name on the card ramp that still could not scale with the box it
+corners. So the field is a SIBLING of the `height` it is derived from — the second field #900's "a GROUP from
+the start, not a leaf" argument has now bought.
+
+**The Figma field list was the trap.** `emit-figma-dims.ts:248` carries an AUTHORED list of which
+`control.size` fields become variables, and a field added to the DTCG tier does not reach a client's file
+until someone puts it there. The DTCG tier alone would have left checkbox's corner bound to a variable no
+client file carries — which renders unbound, silently. Its own header says this is what the list is for; it
+worked as designed, but only because someone read it.
+
+── WHAT THE PROMPT ASKED FOR AND THE FORMULA DOES NOT DELIVER ──────────────────────────────────────
+
+The adopted formula does **not** put aurora on the stated 0.125/0.100/0.083. Measured, aurora goes
+0.333/0.250/0.200 → **0.167/0.125/0.100**. Aurora's edges are 12/16/20 (one rung smaller than the other
+brands'), and `snap2(12/8) = snap2(1.5) = 2`, not 1.5. The ratio target and the 2px radius sub-grid cannot
+both hold on a 12px edge, and the sub-grid wins on purpose: a 1.5px corner is not a corner. Recorded here and
+in `controlRadius`'s docblock rather than quietly accepted, because a later reader comparing the issue's
+target against the emitted values will otherwise read a bug.
+
+── THE GATE, AND WHY IT IS IN ONE PLACE RATHER THAN TWO ────────────────────────────────────────────
+
+`apps/plugin/test-write-components.ts`, four arms. The harness's stated ceiling (its own header) is that the
+shim gives every variable a SYNTHETIC value, so a built node can only tell you WHICH variable a corner binds —
+never what it holds. #1010 resolved that by putting the value half in `test.ts`, which leaves the
+**composition** unasserted: nothing says the name checked for a value is the name the node was found binding.
+Here both halves are co-located, because `theme`, `tree`, `nb-fixture` and `emit-brandinput` are all already in
+the engine's `exports` map. Arm 1 reads the name off the built corner **at its own rung**; arm 2 resolves that
+name in nb/aurora/harbor and compares to the clamp **recomputed locally**; arm 3 asserts aurora is clamped
+BELOW its `radius.sm` somewhere (without it, arm 2 passes on `radius.sm` bound verbatim); arm 4 keeps radio's
+`radius/round`, so "checkbox only" is enforced rather than intended.
+
+INDEPENDENT per docs/34: the arithmetic is spelled out, never `controlRadius` imported. Calling the function
+under test would make arm 2 assert `f(x) === f(x)` — green on the old ramp, green on any formula.
+
+**Mutation-proven three ways, each failing BY NAME** (`wip:` commit before every mutation, #986):
+
+| mutation | fails |
+|---|---|
+| def back to `'radius': 'radius.sm'` | arm 1 — `radii -> radius/sm` at `[small]` |
+| `min` dropped for a bare ratio | arm 2 (`nb lg: 4 ≠ min(2, …) = 2`) + engine `EXCEEDS radius.sm` + both mode arms |
+| emitter returns `radiusSmPx` (the old ramp) | arm 2 (`aurora sm: 4 ≠ 2`) + arm 3 (`clamped: NONE`) |
+
+── ONE THING THE GATE CAUGHT ON ITSELF ─────────────────────────────────────────────────────────────
+
+The rung came back `undefined` on the first run: `figmaAnatomySet` keeps `size` OUT of `plan.coord` on
+purpose, so a structure-only plan can have an empty one — it lives on `plan.size`. Read from `coord`, every
+expectation became `control/size/undefined/radius` and every value arm went **vacuous**. The reachability arm
+beside them ("all three size rungs are among the built members") is what surfaced it, which is exactly what a
+reachability arm is for. Recorded at the read site.
+
+── ENGINE-SIDE ARMS, INCLUDING TWO BRANCHES NO BRAND REACHES ───────────────────────────────────────
+
+`test.ts` gains the corpus sweep (all six members, from each theme's own two inputs, resolved through `deref`
+rather than read off `$extensions.prism3.px`) plus the mode seam. **Both clamp inputs are mode-varying and
+NEITHER is reachable from the corpus** — no corpus brand declares `wireframe`, `modeLevers.radius` or a
+density mode that moves the control ladder. So the per-mode clamp is evaluated only by synthetic themes:
+`modeLevers: { dark: { radius: 0 } }` (input 1 moving) and `modes: ['light','wireframe']` (a separate code
+path — wireframe REFUSES a `modeLevers` entry, so the first arm cannot reach it), plus the negative direction,
+that a brand moving neither input emits no override. Stated in `tree.ts` at the branch itself, because a green
+corpus sweep says nothing about either.
+
+The six-field pin at `test.ts:782` fired on the first run, as designed — the second time that checkpoint has
+made growing the `control.size` family an argument someone has to write down rather than one that drifts in.
+
+── VERSIONING ──────────────────────────────────────────────────────────────────────────────────────
+
+CONTRACT raised **first**, then `token-contract.ts --accept` (which refuses the other order). `--check`
+reported MINOR and named all three ADDED paths; the level was derived, not chosen. `lint-component-surface.ts
+--accept` printed **"1 def(s) moved: checkbox"** — the confirmation that the clamp did not sweep the family.
+
+The clean illustration of the two-version split: a VALUE moves (aurora's built corner, 4 → 2) and the CONTRACT
+does not answer for it. A consumer holding `prism.control.size.md.radius` resolves it before and after; one
+holding `prism.radius.sm` resolves it before and after too, because the old binding lived in a component DEF,
+not on the token surface. ENGINE bumps for the behavior change; CONTRACT bumps only for the three added names.
+
+ENGINE 0.43.0 is **provisional** — JIT re-stamp forward at merge if a concurrent version PR lands first
+(#1271).
+
+── REBASE ONTO `0dbe744` (#1219 landed under this branch) ──────────────────────────────────────────
+
+#1219's version-neutral prose sweep merged mid-review and touched four of the same files. **One conflict,
+`docs/00-progress.md`** — both entries at the top, resolved by keeping both with this one first; #1219's entry
+is intact. The four code files auto-merged on disjoint regions and #1219's corrected numbers are all preserved:
+`checkbox.ts`'s `min-height` ladder (`36 / 44 / 56 on nb`), `scale.ts`'s two `36/44/56` corrections plus the
+retired "clean 0.5-through-md ratio" paragraph, `test.ts`'s `0.33.0` changelog pointer and `36/44/56` live
+heights, `version.ts`'s `0.33.0` pointer in the 9.2.0 entry. Verified by grepping for the old strings (`40/48/56`,
+`0.32.0` outside the historical entries) after the rebase, not by trusting the auto-merge. ENGINE 0.43.0 is
+still free — #1219 was version-neutral and #1266 has not landed.
+
+**NOT adopted from #1219's DEFERRED list, deliberately.** It names three `codeOnly` def-string spots it could
+not fix version-neutrally and suggests folding them into "the next `checkbox`/`radio` def change" — which this
+is, and which is already paying the surface move. Left out anyway: they are a different concern (the row's
+target-size FLOOR, `48 at medium` → `44 at medium`, and the Apple/Material claim beside it), and folding
+unrelated prose into a def change is how a PR stops being reviewable against one question. Still #1219's to
+close.
+
+---
+
 ## (2026-09-03) — sweep the stale numeric prose left by the 36/44/56 ladder move (#1219)
 
 **STATUS: shipped.** Prose-truth only — no code, no value, no emitted-output change; **version-neutral** (ENGINE
@@ -49,6 +178,8 @@ Left alone by design: the `0.32.0`/`0.33.0` **changelog entries** and every `doc
 genres record what shipped at a version — historical, not stale); the **standards** numbers (Apple 44 / Material
 48 / Android 48) as external facts; the switch-inset `3/4/5/6/7` and control-box `12/16/20/24/28` ladders
 (unaffected by #1216, verified current); and typography (display/title) sizes.
+
+---
 
 ## (2026-09-03) — the in-flow `nest` mechanism: components can nest components in the flow (#1226 PR-A)
 

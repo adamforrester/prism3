@@ -64,6 +64,14 @@ import { fieldLabel } from '@prism3/engine/components/field-label';
 import { fieldMessage } from '@prism3/engine/components/field-message';
 import { componentDefs } from '@prism3/engine/components/index';
 import type { ComponentDef } from '@prism3/engine/component-schema';
+// #1015 — the token VALUE half of the corner read-back. The shim gives every variable a synthetic value,
+// so a built node can only name the variable it binds; these three resolve that name against real brands.
+// All in the engine's `exports` map, which is why the value assertion can be co-located with the node one
+// instead of stranded in `test.ts` the way #1010's was.
+import { brandTheme } from '@prism3/engine/theme';
+import { buildTree, pxOf } from '@prism3/engine/tree';
+import { nbTheme } from '@prism3/engine/nb-fixture';
+import { exampleBrands } from '@prism3/engine/emit-brandinput';
 import { applyComponentPlan, CHUNK, partialWriteOf } from './src/write-components';
 import { partialWriteHeadline, partialWriteNote, componentHeadline, staleNote } from './src/apply-summary';
 import type { ComponentApplyOptions, ComponentProgress } from './src/write-components';
@@ -1742,7 +1750,7 @@ const famOf = (v: string): string | null => {
   const m = v.match(/^color\/(.+)\/(?:fill|border|overlay)(?:\/.+)?$/);
   return m ? m[1] : null;
 };
-type BoxRow = { def: string; member: string; selection: string; state: string; fill: string | null; stroke: string | null; radii: string[] };
+type BoxRow = { def: string; member: string; selection: string; state: string; size: string; fill: string | null; stroke: string | null; radii: string[] };
 const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: BoxRow[]; misses: string[]; members: number }> => {
   const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
   const page: Page = { children: [] };
@@ -1764,6 +1772,14 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
       member: member!.name as string,
       selection: coord.selection,
       state: coord.state ?? 'rest',
+      // The SIZE rung, carried since #1015 — the corner is now per-rung, so a claim about it that could
+      // not tell `small` from `large` would pass on one variable bound at all three.
+      //
+      // Off `plan.size`, NOT off `coord`: `figmaAnatomySet` keeps `size` out of the coord on purpose, so
+      // that a structure-only plan can have an EMPTY one. Read from `coord` it comes back `undefined`,
+      // which made every per-rung expectation `control/size/undefined/radius` and every value arm
+      // vacuous — caught by the reachability arm beside them, which is what those arms are for.
+      size: (p as unknown as { size?: string }).size ?? '',
       fill: paintVar(box, 'fills'),
       stroke: paintVar(box, 'strokes'),
       radii: ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']
@@ -1825,17 +1841,71 @@ ok(sameFamily.every((r) => r.def === 'switch' && r.selection === 'off'),
 ok(sw.rows.filter((r) => r.selection === 'off' && r.state !== 'error').every((r) => r.fill !== null && r.stroke !== null),
   '#1011 ...and it binds both on every non-error member, so the exception above is a fact about this build and not a hole');
 
-// ---- FINDING 1: the radius, which is NOT a def defect ----------------------------------------
-// The issue asks for 2px. `radius.sm` is what the def binds and what the built node carries on all four
-// corners; it resolves to 2 on nb, wendys and harbor and to 4 on aurora, whose whole radius ladder is
-// 0/4/8/12/128. So the observed 4px is aurora's own scale reaching a 12px box, not a wrong binding — the
-// only in-def alternative is `radius.none`, which is wrong on all four brands. Filed separately as a
-// control-radius rung (see `notes.contested`). What IS assertable here is that the binding reaches the
-// node on every corner of every member: a radius bound on three corners is a defect nothing else sees.
-ok(cb.rows.every((r) => r.radii.every((v) => v === 'radius/sm')),
-  `#1011 checkbox's box binds \`radius.sm\` on all four corners of every member (${[...new Set(cb.rows.flatMap((r) => r.radii))].join(', ')})`);
+// ---- FINDING 1: the radius — the clamped control corner (#1011 → #1015) ------------------------
+// The issue asked for 2px and this block used to answer "the binding is correct, `radius.sm` resolves to
+// 2 on four of five brands and aurora's 4 is its own `radiusScale` lever". Both halves were true and the
+// conclusion was wrong: `radius.sm` is a rung on the CARD ramp, so one value served three box sizes and
+// aurora's 4px landed on a 12px `small` square — a third of its edge. #1015 replaced it with
+// `control.size.<rung>.radius` = `min(radius.sm, snap2(edge ÷ 8))`, per rung.
+//
+// THIS GATE HAS TO SPAN TWO THINGS THAT NEITHER HALF OF THE REPO CAN SEE ALONE, which is why it is here
+// and not split the way #1010's was. The shim gives every variable a SYNTHETIC value (see its header), so
+// a built node can only tell you WHICH variable a corner binds — never what that variable holds. The
+// engine's suite knows what it holds but builds no node. So: arm 1 reads the NAME off the built corner,
+// arm 2 resolves THAT NAME in each real brand's tree and compares it to the clamp recomputed here. The
+// composition is the claim — the name checked for a value is the name the node was found binding.
+//
+// INDEPENDENT, and the arithmetic below is deliberately RESTATED rather than imported. `controlRadius`
+// is exported from `scale.ts` and calling it would turn arm 2 into `f(x) === f(x)`: green on the old
+// ramp, green on any formula, and reported as a pass rather than as silence (docs/34).
+const RUNG_OF: Record<string, string> = { small: 'sm', medium: 'md', large: 'lg' };
+const clampPx = (edge: number, smPx: number) => Math.min(smPx, Math.round((edge / 8) / 2) * 2);
+// (1) THE NAME, per rung. Authored from the def's size axis rather than read off the plan, so a corner
+// bound to the WRONG rung's variable — `lg` at `small`, the single most likely slip in a `{size}`
+// interpolation — fails here instead of resolving to a real variable and looking fine.
+const misbound = cb.rows.filter((r) => !r.radii.every((v) => v === `control/size/${RUNG_OF[r.size]}/radius`));
+ok(misbound.length === 0,
+  `#1015 checkbox's box binds \`control.size.<rung>.radius\` on all four corners of every member, at ITS OWN rung (${misbound.length ? misbound.slice(0, 3).map((r) => `${r.member} [${r.size}] -> ${[...new Set(r.radii)].join('|')}`).join('; ') : [...new Set(cb.rows.map((r) => `${r.size}→${r.radii[0]}`))].join(', ')})`);
+// …and all three rungs are actually present, or the arm above is true over one size.
+ok(new Set(cb.rows.map((r) => r.size)).size === 3,
+  `#1015 reachable: all three size rungs are among the built members (${[...new Set(cb.rows.map((r) => r.size))].join(', ')})`);
+// (2) THE VALUE that name resolves to, in every brand reachable from here — nb through its fixture,
+// aurora and harbor through the committed example briefs. Expected is recomputed from the brand's OWN
+// two inputs (the box edge out of `control.size`, `radius.sm` out of the radius ramp); actual is the px
+// the corner's variable resolves to after `deref`, which is what a consumer following the alias gets.
+const brandThemes: Array<{ id: string; theme: ReturnType<typeof nbTheme> }> = [
+  { id: 'nb', theme: nbTheme() },
+  ...Object.entries(exampleBrands()).map(([id, input]) => ({ id, theme: brandTheme(input as never) })),
+];
+const badPx: string[] = [];
+const clampedBelow: string[] = [];
+for (const { id, theme } of brandThemes) {
+  const tree = buildTree(theme).tree as Record<string, any>;
+  const grp = tree[Object.keys(tree)[0]]?.control?.size;
+  const smPx = theme.dims.radius.find((r) => r.name === 'sm')?.px ?? 0;
+  for (const c of theme.dims.controls) {
+    // Keyed by the rung the BUILT NODE named, not by iterating the tier — that is what makes this arm a
+    // statement about the corner the node carries rather than about the token tier in isolation.
+    const rung = RUNG_OF[cb.rows.find((r) => RUNG_OF[r.size] === c.name)?.size ?? ''];
+    if (rung !== c.name) continue;
+    const leaf = grp?.[rung]?.radius;
+    const got = leaf ? pxOf(tree as never, leaf) : undefined;
+    const want = clampPx(c.height, smPx);
+    if (got !== want) badPx.push(`${id} ${rung}: ${got} ≠ min(${smPx}, snap2(${c.height}÷8)) = ${want}`);
+    if (got !== smPx) clampedBelow.push(`${id} ${rung} (${smPx}→${got})`);
+  }
+}
+ok(badPx.length === 0,
+  `#1015 ...and that variable resolves to \`min(radius.sm, snap2(edge ÷ 8))\` in every brand reachable here — the built corner carries the CLAMP, not the card ramp (${badPx.length ? badPx.join('; ') : brandThemes.map((b) => b.id).join(', ') + ' all agree'})`);
+// The arm that fails if someone drops the `min` for a bare ratio, or reverts to the ramp. Aurora is the
+// only brand where the two answers differ (radius.sm 4 on 12/16/20px edges → 2 at every rung), so
+// without it arm (2) above cannot tell the clamp from `radius.sm` bound verbatim.
+ok(clampedBelow.some((c) => c.startsWith('aurora')),
+  `#1015 ...and aurora's corner is CLAMPED BELOW its \`radius.sm\` at some rung — the discriminating brand, without which the arm above passes on the old ramp binding too (clamped: ${clampedBelow.length ? clampedBelow.join(', ') : 'NONE'})`);
+// CHECKBOX ONLY, asserted rather than intended. Radio keeps `radius.round` and switch its track rung; a
+// change that swept the clamp across every selection control fails here.
 ok(rb.rows.every((r) => r.radii.every((v) => v === 'radius/round')),
-  `#1011 ...and radio's binds \`radius.round\`, so the two controls are distinguished by shape at the node (${[...new Set(rb.rows.flatMap((r) => r.radii))].join(', ')})`);
+  `#1011/#1015 ...and radio's binds \`radius.round\` still, so the two controls are distinguished by shape at the node and the clamp did not sweep the family (${[...new Set(rb.rows.flatMap((r) => r.radii))].join(', ')})`);
 
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);
