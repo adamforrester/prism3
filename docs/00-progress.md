@@ -7,6 +7,62 @@
 
 ---
 
+## (2026-09-03) — per-member text defaults; field-message's error member stops rendering helper copy (#1018)
+
+**STATUS: shipped.** ENGINE → **0.39.0** (0.36.0/0.37.0/0.38.0 spent — #872 field-label, #1244 inverse
+label, #1211/#1249); CONTRACT stands at **9.3.0** (a placeholder is not a token name). Full `npm run verify`
+**53/53** (rebased over #1259's `lint-component-surface` gate, now on main).
+
+── THE DEFECT ────────────────────────────────────────────────────────────────────────────────────
+
+`figmaProperties.texts.<prop>` carried ONE `default` string for the whole component set, applied per PROP
+and never re-read against a member's coordinate (`anatomy-figma.ts`). So `field-message` — whose `tone` axis
+IS the message's meaning — rendered its `tone=default` helper copy ("Use 8+ characters", the labelPattern
+example) on the error / warning / success members too: a red alert triangle beside helper text, the opposite
+of the `content.errorPattern` rule the def exists to make unavoidable.
+
+── WHY IT COULD NOT BE A DEF-ONLY FIX ──────────────────────────────────────────────────────────────
+
+There is no single string that is simultaneously correct helper AND error copy, so the default had to become
+**coordinate-aware** — a schema + projector change, not just new copy (the issue said so, and it holds). The
+change is #1018's ONE concern; **`field-message` is the only component whose copy changes** — no other def is
+touched.
+
+── THE MECHANISM (`byVariant`) ─────────────────────────────────────────────────────────────────────
+
+1. **Schema** (`component-schema.ts`): `texts.<prop>` gains optional `byVariant: { <axis>: { <value>: string } }`
+   — the per-coordinate placeholder, with `default` the fallback for any coordinate not named. `default` stays
+   required (an empty one is still #510's blank component).
+2. **Validation** (`figmaPropertyErrors`): a `byVariant` key naming an axis the set does not project, or a
+   value the axis does not have, is **rejected** (#1018 asked for this) — a typo'd tone fails loudly instead
+   of silently resolving to nothing and falling back. Mutation-tested in `test.ts` (bad axis, bad value, empty
+   string, and the positive) — `docs/34`: mutate the subject, confirm the gate fails by name.
+3. **Projector** (`anatomy-figma.ts`): the per-member placeholder resolves against the member's coordinate via
+   `axisValue`, first matching axis wins — the exact shape `positionOf` uses. The SET-LEVEL Figma property keeps
+   ONE `defaultValue` (the fallback `default`, carried on the plan as a new `textDefault` field, constant across
+   the set) so `planSetProperties` sees agreement, while each member's node overrides its own `characters`.
+   `textDefault` is declared UNCHECKED in the round-trip reader with a reason (it feeds the property declaration,
+   not the per-node diff). A def with no `byVariant` has `textDefault === characters` on every member —
+   byte-identical.
+4. **Def** (`field-message.ts`): `tone=default` keeps "Use 8+ characters"; `byVariant.tone` gives error /
+   warning / success their own copy, from the staged `helper-message.json` spec ("This is an error message." …).
+
+── VERIFICATION + A NOTE ON COVERAGE ───────────────────────────────────────────────────────────────
+
+Read at the NODE, in `apps/plugin/test-write-components.ts` (the issue's Verify): the four tone members' built
+caption `characters` are now pairwise distinct — `Use 8+ characters | This is an error message. | This is a
+warning message. | This is a success message.` A plan-level check would not have caught the original bug
+(`placeholder` resolved for every member), which is why the assertion reads the built node.
+
+The ENGINE bump is per the value-change principle (#5) and the task. Worth recording: `field-message`'s Figma
+component emission is NOT a committed `out/**` artifact — it is materialized at plugin build time — so the only
+`out/**` diff is the ENGINE version STAMP on the token trees. The projected-surface change IS caught, though —
+by #1259's `lint-component-surface` gate: field-message's member `characters` move its `planStamp` in
+`schema/component-surface.json`, and **`field-message` is the only def whose stamp moves**, so `--accept`
+restamps just that row. `token-contract.ts --accept` restamped the baseline's `engineVersion` (0.39.0) with no
+name-surface change; `--check` confirms CONTRACT stands at 9.3.0. The behaviour change itself is covered by the
+node-level write-test above, not by a regen diff.
+
 ## (2026-09-03) — the inverse primary button gets a brand label, auto-selected, and my first implementation shipped the wrong end of the ramp (#1244)
 
 **STATUS: shipped.** One derivation in `modes.ts` (`brandOnFill`) plus three arms in `test.ts`. Gates

@@ -138,6 +138,23 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.39.0: PER-MEMBER text defaults (#1018). `figmaProperties.texts.<prop>` gains an optional
+ * `byVariant: { <axis>: { <value>: string } }` — the per-coordinate placeholder a set member renders,
+ * with `default` staying the fallback for any coordinate it does not name. A component set carried ONE
+ * text default for the whole set, so `field-message`'s error / warning / success members rendered the
+ * `tone=default` helper copy ("Use 8+ characters") — a validation-message set shipping helper text on its
+ * error member, the opposite of the errorPattern rule the def exists to make unavoidable. The projector
+ * (`anatomy-figma.ts`) now resolves the placeholder against the member's coordinate (mirroring `positionOf`);
+ * `figmaPropertyErrors` rejects a `byVariant` key naming an axis or value the set does not enumerate (#1018).
+ * `field-message` is the only def that uses it — its error/warning/success members now carry their own copy;
+ * `tone=default` keeps "Use 8+ characters" (the labelPattern example the def deliberately chose). VALUES-only
+ * in the token layer: a placeholder is not a token, so no token name or `$type` moves and `CONTRACT_VERSION`
+ * stands at 9.3.0 (`token-contract.ts --check` confirms). The ENGINE bump is for BEHAVIOR a consumer sees —
+ * `field-message`'s error/warning/success members render different `characters`, which also moves that def's
+ * `planStamp` in `schema/component-surface.json` (#1259's gate, `--accept` restamps it; `field-message` is
+ * the only def whose stamp moves). Takes 0.39.0 — 0.36.0/0.37.0/0.38.0 are spent (#872, #1244, #1211/#1249),
+ * rebased over the component-surface gate landing on main.
+ *
  * 0.38.0: every projected ICON MEMBER carries an ink (#1211). `icon`'s `paintKeys` gains a second,
  * SLOT-keyed entry — `['tone.{tone}', '{slot}']` — bound to `color.icon.primary`, so a coordinate that
  * names no tone resolves the primary icon role instead of resolving nothing. `paintOf` walks the list in
@@ -855,7 +872,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.38.0';
+export const ENGINE_VERSION = '0.39.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

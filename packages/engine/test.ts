@@ -10662,6 +10662,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // produces: 21 variants, every binding resolved, nothing readable in any of them.
     brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { children: { part: 'label', default: '' } } });
     brokeFp('a whitespace-only default fails too — a space is not copy', /no placeholder/, { texts: { children: { part: 'label', default: '  ' } } });
+    // #1018 — a per-member text default (`byVariant`) must key on a projected axis and a value that axis
+    // has, or it never resolves at any member and silently falls back to `default` (the set-wide wrong-copy
+    // defect one level out). Button projects `appearance` (`['filled','outline','text']`); `tone` is not an
+    // axis it has.
+    brokeFp('a byVariant keyed on a non-projected axis fails', /is not a projected variant axis/,
+      { texts: { children: { part: 'label', default: 'Button', byVariant: { tone: { error: 'x' } } } } });
+    brokeFp('a byVariant naming a value the axis does not have fails', /the 'appearance' axis does not have/,
+      { texts: { children: { part: 'label', default: 'Button', byVariant: { appearance: { nope: 'x' } } } } });
+    brokeFp('an empty byVariant string fails like an empty default', /per-member placeholder is unreadable/,
+      { texts: { children: { part: 'label', default: 'Button', byVariant: { appearance: { filled: '' } } } } });
+    // AND THE POSITIVE — a byVariant on a real axis/value adds no error, so the checks above fail the bad
+    // shape rather than the field itself.
+    ok(figmaPropertyErrors(withFp({ texts: { children: { part: 'label', default: 'Button', byVariant: { appearance: { filled: 'Filled' } } } } })).length === 0,
+      '#1018 a byVariant keyed on a real axis and value validates clean');
     // A ZERO-WIDTH space passed this check until #513's review probed it: `.trim()` handles the space
     // family including U+00A0, but `'\u200B'.trim()` is truthy. It advances the caret by nothing, which
     // is the exact condition the field exists to catch. Written as an escape because the literal

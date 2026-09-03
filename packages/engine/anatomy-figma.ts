@@ -122,6 +122,15 @@ export type FigmaNodePlan = {
    *  throws — and absent on a TEXT node the def declares no TEXT property for, which is the case
    *  where an empty label is the correct output rather than an oversight. */
   characters?: string;
+  /** The CANONICAL default for the SET-LEVEL text property (#1018), which is `figmaProperties.texts[*].default`
+   *  — NOT `characters`. `characters` is this MEMBER's copy (per-coordinate via `byVariant`); the component
+   *  set's property has ONE `defaultValue`, and it is the fallback. Kept separate so `planSetProperties`
+   *  reads a value that is CONSTANT across the set while each member's node overrides its own `characters`.
+   *  Present ONLY where it DIVERGES from this member's `characters` — a `byVariant` member whose copy differs
+   *  from the fallback. Omitted everywhere else (every member of a def with no `byVariant`, and `byVariant`'s
+   *  own `default`-coordinate member), so those plans stay byte-identical and their `planStamp` does not move;
+   *  `planSetProperties` reads `n.textDefault ?? n.characters`, so an omitted value resolves the same default. */
+  textDefault?: string;
   /** Which Figma COMPONENT PROPERTY this node is driven by, and through which field:
    *  `characters` for a TEXT property, `mainComponent` for an INSTANCE_SWAP, `visible` for a BOOLEAN.
    *
@@ -974,6 +983,21 @@ export const figmaAnatomyPlan = (
     return undefined;
   };
 
+  // THE TEXT PLACEHOLDER FOR THIS MEMBER (#1018). `default` is one string for the whole set, so a def whose
+  // axis changes what the text should SAY (a validation message's `tone`) rendered the same copy on every
+  // member — `field-message`'s error member shipping the `tone=default` helper string. `byVariant` names,
+  // per axis, the copy a member at that coordinate renders; resolved here against `axisValue`, first matching
+  // axis wins (the exact shape `positionOf` uses one field up), and any coordinate it does not name falls
+  // back to `default`. A structure-only plan supplies no axis values, so it reads `default` — byte-identical
+  // to before for every def that declares no `byVariant`.
+  const textDefaultOf = (t: { default: string; byVariant?: Record<string, Record<string, string>> }): string => {
+    for (const [axis, byValue] of Object.entries(t.byVariant ?? {})) {
+      const v = axisValue(axis);
+      if (v !== undefined && byValue[v] !== undefined) return byValue[v];
+    }
+    return t.default;
+  };
+
   /* Padding asks about the CELL, not the slot. #326 insets a side less when a glyph sits against it,
    * and a spinner is a glyph — asking `leading` alone would inset a pending button as though its
    * leading cell were empty while a spinner sits in it.
@@ -1001,9 +1025,13 @@ export const figmaAnatomyPlan = (
   const fp = def.figmaProperties;
   const drivenBy = new Map<string, FigmaNodePlan['propertyRef']>();
   const placeholder = new Map<string, string>();
+  // #1018: the canonical (fallback) default per text part, for the SET-LEVEL property — constant across
+  // members, unlike `placeholder` which is this member's own copy.
+  const textDefaults = new Map<string, string>();
   for (const [prop, t] of Object.entries(fp?.texts ?? {})) {
     drivenBy.set(t.part, { field: 'characters', prop });
-    placeholder.set(t.part, t.default);
+    placeholder.set(t.part, textDefaultOf(t));
+    textDefaults.set(t.part, t.default);
   }
   for (const [prop, part] of Object.entries(fp?.swaps ?? {})) drivenBy.set(part, { field: 'mainComponent', prop });
   for (const [prop, part] of Object.entries(fp?.booleans ?? {})) drivenBy.set(part, { field: 'visible', prop });
@@ -1155,6 +1183,15 @@ export const figmaAnatomyPlan = (
     // that part. A `characters` write on a FRAME throws, and a text part with no declared property is
     // a part whose copy nothing is claiming to own.
     const chars = p.kind === 'text' ? placeholder.get(name) : undefined;
+    // #1018: the canonical set-level default (the fallback `default`, constant across the set), carried
+    // on the plan ONLY where it DIVERGES from this member's own `chars` — i.e. only on a `byVariant`
+    // member whose per-coordinate copy differs from the fallback. Where the two are equal (every member
+    // of a def with no `byVariant`, and `byVariant`'s own `default`-coordinate member) it is omitted, so
+    // those plans stay byte-identical and their `planStamp` (lint-component-surface, #1259) does not move
+    // — the surface change is scoped to the members that actually changed, which is `field-message`'s
+    // error / warning / success. `planSetProperties` reads `n.textDefault ?? n.characters`, so an omitted
+    // `textDefault` still resolves the same set-level default.
+    const textDef = p.kind === 'text' ? textDefaults.get(name) : undefined;
     // An overlay inherits the CELL's property, not its own. It stands in the replaced part's
     // position, so the swap that pointed at that cell should keep pointing at it — one cell, one
     // INSTANCE_SWAP property, contents varying by state. Without this the spinner builds as an
@@ -1213,6 +1250,7 @@ export const figmaAnatomyPlan = (
       ...(overlaidPart && name === activeOverlay?.[0] ? { absoluteCenter: true, absoluteCenterOn: overlaidPart } : {}),
       ...(overlaidPart && name === overlaidPart ? { zeroOpacity: true } : {}),
       ...(chars !== undefined ? { characters: chars } : {}),
+      ...(textDef !== undefined && textDef !== chars ? { textDefault: textDef } : {}),
       ...(propertyRef ? { propertyRef } : {}),
       ...(textStyle ? { textStyle } : {}),
       // ON EVERY TEXT NODE, not only the overriding ones — see the field's own note. The default lives
@@ -1497,9 +1535,15 @@ export const planSetProperties = (plans: AnatomyPlan[]): FigmaPropertyPlan[] => 
       const ref = n.propertyRef!;
       let prop: FigmaPropertyPlan;
       if (ref.field === 'characters') {
-        // The placeholder is the node's own `characters`, so the property's default and the text a
-        // member actually shows cannot disagree — they are one value read once.
-        prop = { name: ref.prop, type: 'TEXT', default: n.characters ?? '' };
+        // The SET-LEVEL property carries ONE `defaultValue` — the canonical fallback (`textDefault`, i.e.
+        // `figmaProperties.texts[*].default`), NOT this member's own `characters`. #1018 made those two
+        // diverge: a member's copy is per-coordinate (`byVariant`), while the set property's default is the
+        // fallback and is constant across the set. Reading `characters` here — the member's copy — is what
+        // made the set property "declared two different ways" the moment two members showed different text.
+        // `textDefault` is the same on every member, so the contradiction check below sees agreement, and
+        // each member still overrides its own `characters` on its node. Falls back to `characters` for a
+        // def with no `byVariant`, where the two are equal anyway (byte-identical).
+        prop = { name: ref.prop, type: 'TEXT', default: n.textDefault ?? n.characters ?? '' };
       } else if (ref.field === 'mainComponent') {
         // No target nominated means no id for Figma to default to, and `''` is rejected outright — so
         // the property is not emitted and the payload says so, rather than a swap property that

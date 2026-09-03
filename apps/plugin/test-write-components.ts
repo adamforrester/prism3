@@ -1466,6 +1466,19 @@ const fmInk = (n: Node): string =>
 ok(fmMembers.length === 4 && fmMembers.map((m) => m.name).join(' | ') === 'tone=default | tone=error | tone=warning | tone=success',
   `#1010 the members are named for the tone axis, in order (${fmMembers.map((m) => m.name).join(' | ')})`);
 
+// (#1018) EACH MEMBER RENDERS ITS OWN CAPTION COPY, read at the NODE. A component set carries ONE text
+// default, so before this every member's caption read "Use 8+ characters" — the error member shipping the
+// helper string, the opposite of the errorPattern the def exists to enforce. `byVariant.tone` now gives each
+// tone its own placeholder. Read back off the built TEXT node, NOT the plan: a plan-level check sees
+// `placeholder` resolve for every member (that is how this shipped), so only the node distinguishes a
+// per-member default from a set-wide one.
+const fmCaption = (m: Node): string => String(fmKids(m).find((c) => c.type === 'TEXT')?.characters ?? '<none>');
+const fmCaptions = fmMembers.map(fmCaption);
+ok(fmCaptions.join(' | ') === 'Use 8+ characters | This is an error message. | This is a warning message. | This is a success message.',
+  `#1018 each tone member renders its OWN caption copy at the node — the error member no longer ships the tone=default helper string (${fmCaptions.join(' | ')})`);
+ok(new Set(fmCaptions).size === 4,
+  `#1018 ...and the four captions are pairwise distinct, so no single set-wide default leaks onto the wrong member (${new Set(fmCaptions).size} distinct)`);
+
 // (1) THE DEFAULT MEMBER HAS NO GLYPH, and the three validation members have exactly one each. Read as a
 // COUNT PER MEMBER rather than a total: 3 artboards across 4 members is also what "two on error, one on
 // success, none on warning" looks like, and that tree would satisfy every other arm below.

@@ -271,7 +271,25 @@ export const fieldMessage: ComponentDef = {
     // `icon.size.xs` on both axes (`apps/plugin/test-write-components.ts`) and that ref resolves to 16px in
     // all five corpus brands (`test.ts`). See `FigmaProperties.footprintVaries`.
     footprintVaries: ['tone'],
-    texts: { children: { part: 'text', default: 'Use 8+ characters' } },
+    // PER-MEMBER copy (#1018). `default` stays `content.labelPattern`'s own example ("Use 8+ characters"),
+    // correct for `tone=default` — the format shown before failure. Before this, that string was ALSO what
+    // the error / warning / success members rendered, because a set carried one text default: a red alert
+    // triangle beside helper copy, the opposite of `content.errorPattern`. `byVariant.tone` gives each of
+    // the other three members its own copy (from the staged `helper-message.json` spec); a coordinate not
+    // named here still falls back to `default`. Keyed on `tone`, this def's only variant axis.
+    texts: {
+      children: {
+        part: 'text',
+        default: 'Use 8+ characters',
+        byVariant: {
+          tone: {
+            error: 'This is an error message.',
+            warning: 'This is a warning message.',
+            success: 'This is a success message.',
+          },
+        },
+      },
+    },
     // NO `swaps`, as of #1010, and the absence is the fix rather than a gap. This read
     // `swaps: { icon: 'icon' }` against a slot part with no glyph, which is what made the projection
     // build a placeholder frame. The glyph is now chosen by `tone` in the anatomy, so there is no slot
