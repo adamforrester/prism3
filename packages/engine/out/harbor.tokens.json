@@ -10994,7 +10994,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{prism.core.palette.primary.550}",
-              "$description": "Brand ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it (#1244)",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -11010,14 +11010,14 @@
                       "min": 4.5
                     },
                     "hc-light": {
-                      "$value": "{prism.core.palette.primary.550}",
-                      "contrast": 4.62,
+                      "$value": "{prism.core.palette.black}",
+                      "contrast": 17.29,
                       "against": "inverse.interactive.primary.fill.rest",
                       "min": 4.5
                     },
                     "hc-dark": {
-                      "$value": "{prism.core.palette.primary.400}",
-                      "contrast": 4.89,
+                      "$value": "{prism.core.palette.white}",
+                      "contrast": 16.03,
                       "against": "inverse.interactive.primary.fill.rest",
                       "min": 4.5
                     }

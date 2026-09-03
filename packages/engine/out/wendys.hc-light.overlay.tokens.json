@@ -2643,6 +2643,33 @@
                 "min": 7
               }
             },
+            "on-fill": {
+              "$type": "color",
+              "$value": "{prism.core.palette.black}",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "prism.core.palette.primary.500",
+                  "contrast": 4.85,
+                  "against": "inverse.interactive.primary.fill.rest",
+                  "min": 4.5,
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              },
+              "contrast": 17.3,
+              "against": "inverse.interactive.primary.fill.rest",
+              "min": 4.5
+            },
             "border": {
               "rest": {
                 "$type": "color",

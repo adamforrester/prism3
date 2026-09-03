@@ -87,6 +87,48 @@ to palette/neutral/*"). Caught by that gate on the first run, when the ink resol
 `palOf` is applied at the CALL SITE rather than inside the helper because the greyscale redirect is
 defined below it.
 
+── SEND-BACK: THE BRAND STEP HAD TAKEN HIGH CONTRAST WITH IT (#1255) ─────────────────────────────
+
+**DECIDED: high contrast is exempt.** `hc-light` and `hc-dark` keep the max-extreme ink `onColor`
+already gives them; only `base` and `dark` take the brand step. One line at the top of `brandOnFill`,
+`if (hc) return onColor(fill);`, before the ramp scan.
+
+| mode | shipped for review | after the fix |
+|---|---|---|
+| `hc-light` | `red.550` **4.62:1** | `black` **17.27:1** |
+| `hc-dark` | `red.400` **4.92:1** | `white` **16.00:1** |
+| `base` / `dark` | 550 / 400 | unchanged |
+
+A 73% contrast drop in the two modes that exist FOR low-vision users. #1244 is a decision about the
+DEFAULT appearance; extending it to high contrast is a different trade and was never put to anyone.
+
+**The gate ratified it, and the reason is the same shape as the inverted-direction miss above.** The
+FLOOR arm asserted `>= 4.5`, which 4.62 satisfies and 17.27 satisfies — a pin on a floor cannot see a
+regression that lands above the floor. Two arms, two misses, one lesson: **a floor characterises
+legality, never a choice.** The suite now carries an **HC arm** holding those modes to the extreme —
+`max(contrast(black, fill), contrast(white, fill))`, recomputed from the emitted fill hex, so it moves
+with the fill instead of pinning a constant (`docs/34` shape 4). Proof mutation: removing `if (hc)`
+again fails **that arm and only that arm**, by name, naming all 8 HC cells across the 4 brands.
+
+Three things came with it. **`wendys` joined the test `themes` array** — it lands on different indices
+(500 / 350) with boundary neighbours at 3.95 / 4.06, so it exercises the boundary arm on a ramp the
+other three do not. **The dead `wireframe` guard came out**: the loop walks base/dark/hc-light/hc-dark
+and no corpus brand emits `wireframe` there, so the guard could never fire and its comment claimed
+coverage the block cannot exercise; the real guarantee is `palOf` plus the greyscale alias contract,
+and the comment now says so. **The `$description` was false in HC** — a leaf carries one
+`$description` for all four modes, so "the most vivid brand step" described pure black in `hc-light` as
+a brand step. It now names both arms.
+
+── FOUND WHILE VERIFYING, NOT FIXED HERE ─────────────────────────────────────────────────────────
+
+An overlay leaf's `$extensions.prism3.aliasOf` and `contrast` are the BASE mode's, printed beside the
+MODE's `$value`. On `nb.hc-light.overlay.tokens.json` at `origin/main`, **all 163** aliased colour
+leaves already disagree with their own value this way (`$value: {white}` next to
+`aliasOf: neutral.050`). `emit-dtcg-overlay.ts:187` spreads the mode entry over the base leaf, and the
+mode entry carries `contrast` but no `aliasOf`, so the correct rating lands at the leaf's TOP level
+while the stale provenance stays under `$extensions`. Pre-existing and universal — #1244 is one of the
+163, not its cause — so it is filed rather than fixed here (one concern per PR).
+
 ## (2026-09-03) — field-label gets the two Prism 2 controls that need no new machinery (#872; #862's field-label half)
 
 **STATUS: shipped.** `field-label` gains a `tone` axis and a third size rung, and its TYPE now follows

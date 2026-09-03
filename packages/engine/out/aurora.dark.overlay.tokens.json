@@ -3331,7 +3331,7 @@
             "on-fill": {
               "$type": "color",
               "$value": "{prism.core.palette.accent.400}",
-              "$description": "Brand ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it (#1244)",
+              "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",

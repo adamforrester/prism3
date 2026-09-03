@@ -535,6 +535,17 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // is a fact about that brand, and silently substituting a neutral would hide exactly the thing a
   // designer needs to see. `test.ts` asserts the ratio independently of this function.
   const brandOnFill = (palette: string, fill: RGB): Rated => {
+    // HC KEEPS ITS MAX-EXTREME INK, and this branch is the whole reason the rule below is safe to apply
+    // by default. `onColor` in an HC mode returns `pickMostExtreme` — pure black or pure white — which is
+    // ~17:1 on this fill. The brand step is ~4.6:1. Substituting it in `hc-light` / `hc-dark` is a 73%
+    // contrast drop in the two modes that exist FOR low-vision users, which is the opposite of what HC
+    // is for, and it is the trade the brand-ink decision was never asked to make: #1244 is about the
+    // DEFAULT appearance, not about relaxing the high-contrast one.
+    //
+    // It shipped for review without this branch, and the gate ratified it: a flat 4.5 floor passes at
+    // 4.62 and at 17.27 alike, so it could not tell the regression from the fix. `test.ts` now carries
+    // an HC-specific arm holding these modes to the extreme rather than the floor.
+    if (hc) return onColor(fill);
     const steps = [...(ramps.get(palette) ?? [])].sort((a, b) => a.num - b.num);
     if (!steps.length) return onColor(fill);
     // SCAN FROM THE LEAST-CONTRASTING END so the first passing step is the MOST VIVID one that is
@@ -1112,8 +1123,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
       name === 'primary'
         ? brandOnFill(palOf(r2p.action ?? r2p.brand), asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb))
         : onColor(asGround(`inverse.interactive.${name}.fill.rest`, fillRest.rgb)),
+      // ONE description serves all four modes. A leaf carries a single `$description`; the per-mode
+      // entries under `$extensions.prism3.modes.*` carry a value and its rating, and no prose. So the
+      // wording has to hold in every mode, and "the most vivid brand step" alone does not: `hc-light`
+      // and `hc-dark` take the max-contrast extreme instead (see the `hc` branch in `brandOnFill`).
+      // Naming both arms is the only phrasing that stays true across the set — it shipped for review
+      // naming only the brand arm, and described pure black in `hc-light` as a brand step.
       name === 'primary'
-        ? `Brand ink on the ${name} inverse fill — the most vivid brand step clearing ${onMin}:1 against it (#1244)`
+        ? `Ink on the ${name} inverse fill — the most vivid brand step clearing ${onMin}:1 against it, ` +
+          `or the max-contrast extreme in the high-contrast modes (#1244)`
         : `Ink on the ${name} inverse fill (a dark label on the light on-dark CTA)`,
       `inverse.interactive.${name}.fill.rest`, onMin);
     // The outline EDGE on the dark band, now per state (#576) and following the inverse-context ink,

@@ -121,6 +121,14 @@
  * the mode contrast contract reports it. Substituting a neutral would hide the one thing a designer
  * needs to see about that brand.
  *
+ * HIGH CONTRAST IS EXEMPT: `hc-light` and `hc-dark` keep the max-extreme ink `onColor` already gives
+ * them — pure black at 17.27:1 and pure white at 16.00:1 on nb — and only `base` and `dark` take the
+ * brand step. The brand step measures ~4.6:1, so applying #1244 there was a 73% contrast drop in the
+ * two modes that exist FOR low-vision users. #1244 is a decision about the DEFAULT appearance; it was
+ * never a decision to relax the high-contrast one, and the two are not the same trade. It shipped for
+ * review without this branch and the first gate ratified it, because a flat 4.5 floor passes at 4.62
+ * and at 17.27 alike; `test.ts` now holds the HC modes to the extreme rather than to the floor.
+ *
  * WIREFRAME routes through `palOf`, so the greyscale contract still holds ("every wireframe alias routes
  * to palette/neutral/*") — caught by that gate on the first run, when the ink resolved to `accent/950`.
  *

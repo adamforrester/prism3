@@ -2932,16 +2932,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Brand ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it (#1244)",
+      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
       "value": {
-        "r": 0.7843137383460999,
-        "g": 0.062745101749897,
-        "b": 0.18039216101169586,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/primary/500"
+        "name": "prism/core/palette/black"
       }
     },
     {

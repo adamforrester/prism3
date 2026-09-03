@@ -405,12 +405,18 @@ for (const b of brands) {
     // Emitted colours are `rgb(...)` strings, not hex — `parseColor` is the shared reader and returns
     // 0-1 floats, so scale back to the 0-255 space `contrast` works in.
     const rgb255 = (v: string) => { const c = parseColor(v); return { r: c.r * 255, g: c.g * 255, b: c.b * 255 }; };
-    const dim: string[] = [], notBrand: string[] = [], notVivid: string[] = [];
+    const dim: string[] = [], notBrand: string[] = [], notVivid: string[] = [], hcWeak: string[] = [];
     let pairs = 0;
     const themes: Array<[string, any]> = [
       ['nb', nbTheme()],
       ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
       ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+      // WENDYS EARNS ITS PLACE rather than padding the list: it is the brand that does NOT land on the
+      // same indices as the others (500 / 350 against 550 / 400), so it is the one that would expose a
+      // rule quietly relying on "every brand lands at the same step". Its boundary neighbours measure
+      // 3.95 and 4.06 — both under the floor — so the most-vivid arm is exercised on a brand where the
+      // answer differs, not just confirmed three more times on brands that agree.
+      ['wendys', brandTheme(standardToBrandInput(parseStandardDesignMd(readFileSync(resolve(HERE, './examples/wendys.design.md'), 'utf8'))).input)],
     ];
     for (const [id, th] of themes) {
       const built = buildTree(th).tree as any;
@@ -424,20 +430,39 @@ for (const b of brands) {
         pairs++;
         const r = contrast(rgb255(ink), rgb255(fill));
         if (r < FLOOR) dim.push(`${id}/${mode}: ${r.toFixed(2)}:1 (${ink} on ${fill})`);
-        // WIREFRAME is exempt from the brand half and only from that half: its whole contract is that
-        // every alias routes to the neutral ramp, so a brand-hued ink there would be the greyscale
-        // violation rather than the fix. It is still held to the ratio above.
+        // NO WIREFRAME GUARD HERE, deliberately, and the guard that used to sit on this line was DEAD:
+        // the loop walks base / dark / hc-light / hc-dark, and no corpus brand emits a `wireframe` entry
+        // among them, so the branch never ran. Its comment claimed wireframe "is still held to the ratio
+        // above", which this block cannot exercise — a false statement in shipped prose, which is the
+        // #1222 class. What actually holds wireframe is `palOf` at the call site plus the greyscale
+        // alias contract in `test.ts`'s emit-figma block, which fails by name on a non-neutral alias.
         const raw = at(tree, 'color.inverse.interactive.primary.on-fill');
         const refStr = String(raw?.$extensions?.prism3?.modes?.[mode]?.$value ?? raw?.$value ?? '');
-        if (!/wireframe/.test(mode) && new RegExp(`palette\\.${neutralPal}\\.`).test(refStr))
+        // HC binds an EXTREME (pure black / white), not a ramp step, so the brand-ramp claim applies to
+        // the standard modes only — HC has its own arm below holding it to a stricter bar.
+        const isHc = mode.startsWith('hc-');
+        if (!isHc && new RegExp(`palette\\.${neutralPal}\\.`).test(refStr))
           notBrand.push(`${id}/${mode}: ${refStr}`);
         // THE BOUNDARY, which is what makes this a pin on the RULE rather than on the floor. "Most vivid
         // that passes" means the neighbour one step TOWARD the fill must FAIL — otherwise the selector
         // could return any darker step and every floor check would still be green. Measured on this run:
         // a selector returning the ramp's extreme (red.950 on a near-white fill) cleared the floor and
         // the brand check both, and only this arm distinguishes it.
+        // HC IS HELD TO THE EXTREME, NOT THE FLOOR — the arm the flat 4.5 could not provide. `hc-light`
+        // / `hc-dark` exist for low-vision users and bind pure black / white here, ~17:1 and ~16:1. A
+        // brand step is ~4.6:1: it clears the flat floor and is a 73% contrast drop, so a gate that only
+        // knows 4.5 passes the regression and the fix identically and cannot catch a revert.
+        //
+        // The bar is computed from the FILL, not hard-coded: the best available extreme is whichever of
+        // pure black / pure white contrasts more with this fill, and HC must be AT it (within rounding).
+        // That is an oracle independent of `brandOnFill` and of `onColor` — it is the definition of
+        // "maximum contrast ink", recomputed here from the emitted fill.
+        if (isHc) {
+          const best = Math.max(contrast({ r: 0, g: 0, b: 0 }, rgb255(fill)), contrast({ r: 255, g: 255, b: 255 }, rgb255(fill)));
+          if (r < best - 0.01) hcWeak.push(`${id}/${mode}: ${r.toFixed(2)}:1 where the extreme gives ${best.toFixed(2)}:1 (${refStr})`);
+        }
         const pal = /palette\.([^.]+)\.([^.}]+)/.exec(refStr);
-        const ramp = pal ? (th as any).palettes.find((q: any) => q.palette === pal[1])?.steps : undefined;
+        const ramp = pal && !isHc ? (th as any).palettes.find((q: any) => q.palette === pal[1])?.steps : undefined;
         if (ramp && pal) {
           const chosen = ramp.find((st: any) => st.key === pal[2]);
           const fillIsLight = contrast(rgb255(fill), { r: 0, g: 0, b: 0 }) >= contrast(rgb255(fill), { r: 255, g: 255, b: 255 });
@@ -456,6 +481,9 @@ for (const b of brands) {
     ok(notBrand.length === 0,
       '#1244 …and the ink is on the BRAND ramp rather than the neutral one, which is the whole point of the change (#1208 shipped a neutral here)'
       + (notBrand.length ? ` — NEUTRAL: ${notBrand.join('; ')}` : ''));
+    ok(hcWeak.length === 0,
+      '#1244 …and hc-light / hc-dark keep their MAX-EXTREME ink rather than the brand step — HC exists for low-vision users, and a brand step there clears the 4.5 floor while dropping ~73% of the contrast, which a flat-floor arm cannot distinguish from the fix'
+      + (hcWeak.length ? ` — WEAKENED: ${hcWeak.join('; ')}` : ''));
     ok(notVivid.length === 0,
       '#1244 …and it is the MOST VIVID passing step, not merely a passing one — the step one closer to the fill must FAIL the floor, or the selector is being unnecessarily extreme'
       + (notVivid.length ? ` — TOO FAR: ${notVivid.join('; ')}` : ''));

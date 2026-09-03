@@ -1757,8 +1757,8 @@
       "mode_overrides": {
         "light": "{prism.core.palette.primary.550}",
         "dark": "{prism.core.palette.primary.400}",
-        "hc-light": "{prism.core.palette.primary.550}",
-        "hc-dark": "{prism.core.palette.primary.400}"
+        "hc-light": "{prism.core.palette.black}",
+        "hc-dark": "{prism.core.palette.white}"
       },
       "paired_with": [
         "inverse.interactive.primary.fill.rest"
@@ -5871,6 +5871,7 @@
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",
@@ -5924,6 +5925,7 @@
         "color.inverse.interactive.neutral.text.hover",
         "color.inverse.interactive.neutral.text.pressed",
         "color.inverse.interactive.neutral.text.rest",
+        "color.inverse.interactive.primary.on-fill",
         "color.inverse.text.primary",
         "color.text.on-brand",
         "color.text.on-danger",

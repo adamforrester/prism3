@@ -2932,16 +2932,16 @@
         "SHAPE_FILL",
         "TEXT_FILL"
       ],
-      "description": "Brand ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it (#1244)",
+      "description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
       "value": {
-        "r": 0.8117647171020508,
-        "g": 0.04313725605607033,
-        "b": 0.1725490242242813,
+        "r": 0,
+        "g": 0,
+        "b": 0,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/550"
+        "name": "nbds/core/palette/black"
       }
     },
     {
