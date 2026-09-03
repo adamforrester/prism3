@@ -137,6 +137,51 @@ export const buildBase = (tree: unknown): unknown => {
   return strip(tree) ?? {};
 };
 
+/**
+ * The descriptive fields that describe ONE MODE'S VALUE rather than the leaf (#1257).
+ *
+ * AUTHORED, and the list is the whole rule: a base field named here is DROPPED when the mode entry
+ * does not restate it, because for these fields a mode's silence is a claim rather than an
+ * inheritance. `min` is the sharp case — a role gated at 4.5 in light and ungated in `hc-light`
+ * emits no `min` in that mode entry, and carrying the base's forward would print a floor the mode
+ * does not promise. Everything NOT named here (`role`, `figma`, `generated`, `layers`) describes the
+ * leaf and survives untouched.
+ *
+ * The list is short because the producer is narrow: `tree.ts`'s colour writer emits exactly these,
+ * and shadow mode entries carry none of them (a shadow's `layers` is a COUNT and is mode-invariant —
+ * measured, both modes carry 2). A new per-mode field must be added here or the overlay will print
+ * the base's copy of it beside a different value, which is #1257 exactly.
+ */
+const MODE_SCOPED = ['aliasOf', 'contrast', 'against', 'min', 'contrastModel', 'legibleFor'] as const;
+
+/**
+ * One leaf as ONE MODE sees it: the mode's value, and the mode's OWN provenance (#1257).
+ *
+ * THE DEFECT THIS REPLACES, because the shape is worth more than the fix. The line was
+ * `{ ...projectLeaf(n), ...m, $value: m.$value }` — the mode entry spread over the leaf's TOP level.
+ * Its fields are `contrast`/`against`/`min`, which on a leaf live under `$extensions.prism3`, so the
+ * spread landed the mode's correct rating OUTSIDE `$extensions` as a stray sibling of `$type` that no
+ * consumer reads, and left the BASE's `aliasOf` and `contrast` sitting under `$extensions` beside a
+ * value they do not describe. Measured on `main` before the fix: **2369 aliased colour leaves across
+ * all twelve overlays, every single one** naming a path its own `$value` does not resolve to —
+ * `$value: {…palette.white}` beside `aliasOf: …palette.neutral.050` — and 2057 carrying a stale
+ * contrast. The correct rating was present the whole time, at the top level, 163/163 right in
+ * `nb.hc-light`. Nothing was computed wrongly; it was filed in the wrong place, which is why every
+ * gate stayed green: `regen --check` compares bytes of what the engine writes, and the engine wrote
+ * the wrong thing consistently.
+ *
+ * The merge is therefore INTO `$extensions.prism3`, not over the leaf, and it REPLACES rather than
+ * overlays the `MODE_SCOPED` fields — see that list for why silence has to mean absence.
+ */
+const modeLeaf = (n: Node, m: Node): Node => {
+  const { $value: modeValue, ...modeFields } = m;
+  const projected = projectLeaf(n);
+  const ext = (projected.$extensions as Node | undefined) ?? {};
+  const p3: Node = { ...((ext.prism3 as Node | undefined) ?? {}) };
+  for (const f of MODE_SCOPED) delete p3[f];
+  return { ...projected, $value: modeValue, $extensions: { ...ext, prism3: { ...p3, ...modeFields } } };
+};
+
 /** The diagnostic for a mode entry the projector cannot read. Its own function so the message is one
  *  string rather than assembled at a throw site, and so a test can assert on it. */
 const unreadableMode = (mode: string, m: unknown): string =>
@@ -182,9 +227,7 @@ export const buildOverlay = (tree: unknown, mode: string): unknown => {
       const m = modes[mode] as Node | undefined;
       if (!m || typeof m !== 'object' || !('$value' in m)) throw new Error(unreadableMode(mode, m));
       if (JSON.stringify(m.$value) === JSON.stringify((n as Node).$value)) return undefined;
-      // The leaf as the mode sees it — the mode's `$value`, and the base leaf's descriptive fields
-      // so the overlay is a valid standalone DTCG token rather than a bare value.
-      return { ...projectLeaf(n), ...m, $value: m.$value };
+      return modeLeaf(n, m);
     }
     const out: Node = {};
     for (const [k, v] of Object.entries(n as Node)) {

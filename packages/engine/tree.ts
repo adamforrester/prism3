@@ -477,7 +477,12 @@ export const buildTree = (theme: Theme): { tree: any; modes: ModeResult[]; stats
     for (const m of OVERRIDE_MODES) {
       const rr = byMode.get(m)?.roles[roleKey];
       if (!rr) continue; // defensive — every mode resolves the same role set today
-      modeOverrides[m] = { $value: `{${rr.path}}`, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}) };
+      // `aliasOf` IS PART OF A MODE ENTRY (#1257), for the same reason the base leaf carries one: a
+      // value and the name it resolves through are one fact, and separating them is how they drift.
+      // Every other field here is already per-mode; `aliasOf` was the one the base kept to itself, so
+      // a consumer reading a mode's value found the LIGHT mode's provenance beside it. Mirrors
+      // `aliasLeaf(lr.path, …)` below — same field, same source shape, one tier down.
+      modeOverrides[m] = { $value: `{${rr.path}}`, aliasOf: rr.path, contrast: round(rr.ratio, 2), against: rr.against, ...washFields(rr), ...(rr.min > 0 ? { min: rr.min } : {}) };
     }
     // Elevation is not a colour group — a component composes a foreground tier +
     // a shadow step (see docs/06). No parallel `elevation.*` tree is emitted.

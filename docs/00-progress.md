@@ -7,6 +7,120 @@
 
 ---
 
+## (2026-09-03) — every overlay leaf in the corpus carried another mode's provenance, and no gate had ever asked (#1257)
+
+**STATUS: shipped.** Two writers, one new gate. Gates **53 → 54**. `ENGINE_VERSION` 0.40.0 →
+**0.41.0** (see the version note — 0.40.0 was claimed and taken by #1261 while this was in review).
+`CONTRACT_VERSION` **stands at 9.3.0**. The projected COMPONENT surface does not move: 0 defs, asked
+rather than assumed.
+
+── THE DEFECT WAS A FILING ERROR, NOT AN ARITHMETIC ONE ──────────────────────────────────────────
+
+`emit-dtcg-overlay.ts` built a mode's leaf as `{ ...projectLeaf(n), ...m, $value: m.$value }` — the
+mode entry spread over the leaf's **top level**. A mode entry's fields are `contrast`/`against`/`min`,
+which on a leaf live under `$extensions.prism3`. So the spread put the mode's **correct** rating
+outside `$extensions`, a stray sibling of `$type` that no consumer reads, and left the **base** mode's
+`aliasOf` and `contrast` under `$extensions` beside a value they do not describe.
+
+| measured on the parent commit | |
+|---|---|
+| aliased colour leaves across the twelve overlays | **2369** |
+| …whose `aliasOf` names a path their own `$value` does not resolve to | **2369 — every one** |
+| …also carrying a stale `contrast` | **2057** |
+| the mode's correct contrast, at the leaf's top level, in `nb.hc-light` | **163 / 163 right** |
+
+The issue reported 163. That was one file. Nothing was computed wrongly anywhere — the right numbers
+were present the whole time, one level too shallow.
+
+**Why every gate was green, which is the durable part.** `regen --check` compares bytes of what the
+engine writes, and the engine wrote the wrong thing *consistently*. #708's completeness gate asks
+WHICH leaves are in an overlay and what their `$value` is — both correct. #956's `lint-ratio-truth`
+recomputes ratios from the CANONICAL tree and never opens an overlay. The projected files are the
+artifact a conforming consumer is told to read standalone, and **no gate had ever asked whether a leaf
+there is internally consistent.**
+
+── THE FIX IS TWO WRITERS, BECAUSE ONE ALONE WOULD HAVE HAD TO INVENT A VALUE ────────────────────
+
+Measured first: **no colour mode entry carried an `aliasOf` at all** — 729 per brand, zero with one.
+So a fix confined to the projector would have had to synthesise the provenance rather than copy it.
+
+1. **`tree.ts`** — the colour mode entry gains `aliasOf: rr.path`, mirroring `aliasLeaf(lr.path, …)`
+   one tier up. Every other field there was already per-mode; this was the one the base kept to itself.
+2. **`emit-dtcg-overlay.ts`** — `modeLeaf()` merges the mode entry **into** `$extensions.prism3`,
+   REPLACING the base's per-mode fields rather than overlaying them.
+
+`MODE_SCOPED` is the authored list of fields a mode entry supersedes, and the rule it encodes is that
+a mode's **silence** about one is a claim, not an inheritance. `min` forces it: a role gated at 4.5 in
+light and ungated in `hc-light` emits no `min` there, and carrying the base's forward would print a
+floor the mode does not promise.
+
+Result: 2369 → **0**, and the leaf I flagged during #1255 now reads `$value: {…palette.black}`,
+`aliasOf: …palette.black`, `contrast: 17.27`, all three agreeing.
+
+── THE GATE, AND THE ARM THAT EXISTS BECAUSE THE STRONG ONE HAS A HOLE ───────────────────────────
+
+`lint-overlay-provenance.ts`, four arms. **A** resolves `aliasOf` and `$value` through the palette with
+the gate's own walker and compares the colours. **B** compares the overlay against the CANONICAL
+tree's own `modes[mode]` entry — two artifacts, two producers. **C** refuses any non-`$` top-level key,
+the old spread's visible signature. **D** checks the CAUSE upstream: a canonical mode entry must carry
+its own `aliasOf`.
+
+**Arm B exists because arm A has a stated hole.** Arm A would NOT catch a future writer that derived
+`aliasOf` by stripping the braces off `$value` — the two would agree by construction, `docs/34` shape
+17. That limit is written in the gate's header rather than left for someone to discover, and arm B is
+the answer to it: it compares two separate artifacts by two separate producers, so a projector that
+derived provenance from its own output would still have to match what `tree.ts` says.
+
+Three floors (shape 9), since every arm is vacuous over an empty set: every discovered overlay must be
+read, each must yield at least one aliased leaf, and the corpus count has a floor at 1500 against
+today's 2369 — set below the current number with room for legitimate change, not pinned at it.
+
+── THE PROOF ─────────────────────────────────────────────────────────────────────────────────────
+
+Both halves of the fix reverted to `main`'s versions, regenerated, gate run:
+
+```
+✗ 9180 overlay provenance failure(s)
+```
+
+which decomposes exactly: 2369 (arm A) + 2369 + 2057 (arm B, alias and contrast) + 2369 (arm C) + 16
+(arm D, capped at 3 messages plus a summary per brand) = **9180**. Restored → exit 0, 2369 leaves
+clean. The arithmetic is worth stating because a large failure count is easy to accept without
+checking, and a number that decomposes is a number that was measured.
+
+**The restore failed on the first attempt, and the reason is a CLAUDE.md hazard in a form the file
+does not spell out.** `git checkout origin/main -- <path>` **stages** what it writes, so the
+`git checkout -- <path>` that followed restored from the INDEX — which held main's version — and
+reported success while reverting nothing. Caught by the script's own post-restore dirty-tree
+assertion. `git restore --staged --worktree` is the correct undo. Committing before the proof is what
+made this a diagnosis rather than a loss.
+
+── VERSION ───────────────────────────────────────────────────────────────────────────────────────
+
+`CONTRACT_VERSION` holds at 9.3.0 — 574 guaranteed names either side, `--check` clean. No token NAME
+or `$type` moves; provenance and per-mode values are not the name surface.
+
+**This takes 0.41.0 because 0.40.0 is spent, and the way that resolved is worth one line.** The
+branch was stamped **0.40.0** while **#1261 (#1248, the weight axis)** was in flight claiming the same
+number — a collision known in advance and written down here rather than guessed around, since
+skipping to 0.41.0 pre-emptively would have burned a number if #1261 had not landed. It did land
+first (`e2cf0e9`), so this re-stamped on its rebase: the outcome the note predicted. Kept in place of
+the prediction so that the number having moved reads as the expected resolution rather than as a
+mis-stamp.
+
+── REBASE ────────────────────────────────────────────────────────────────────────────────────────
+
+Rebased onto `e2cf0e9` (#1261). Two conflicts, both expected: `version.ts` and this file, resolved
+newest-first with both entries kept; every `out/**` conflict auto-merged and was re-stamped by
+`regen` anyway. `lint-component-surface` re-run after the rebase reports **0 def(s) moved** — the same
+answer as before it, which is what makes it evidence that nothing drifted in the merge rather than a
+result carried over.
+
+**No `gates` check-run ever registered on the pre-rebase head.** Not a red run — an absent one, which
+is #1213's second cause: the PR was unmergeable against a moved `main`, so GitHub could compute no
+merge ref and dispatched nothing. Worth naming because an absent check reads as "not finished yet"
+and is indistinguishable from a queue delay until you look for the run and find there is none.
+
 ## (2026-09-03) — a binding key resolves from the whole coordinate, `weight` reopens the axis vocabulary, and the sweep found two bindings the brief did not name (#1248)
 
 **STATUS: shipped.** Completes #872's third form-label control. `ENGINE_VERSION` 0.39.0 → **0.40.0**;
