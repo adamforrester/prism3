@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, radio, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
@@ -7613,16 +7613,34 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // …and TYPE follows size across three rungs, on `type.body.*` — the tier #862 predicted and the one
   // that matches Prism 2's 14/16/18 ladder. `type.label.*` is 12/14 with no `lg`, so naming the tier is
   // part of the claim rather than decoration.
+  //
+  // NOW CROSSED WITH `weight` (#1248), and pinned as a GRID rather than as a ladder: all six cells,
+  // each naming the role it must land on. The rung and the weight-cell are asserted TOGETHER because
+  // the failure this catches is a transposition — `size.small.bold` pointing at `type.body.sm.default`
+  // is a def that ships the axis with both values rendering identically, which every "does it resolve"
+  // check passes.
   ok((['small', 'medium', 'large'] as const).every((sz, i) =>
-    fieldLabel.tokens[`size.${sz}.text`] === `type.body.${(['sm', 'md', 'lg'] as const)[i]}.default`),
-    'component: FieldLabel binds type.body.{sm,md,lg}.default across all three size rungs (#872/#862)');
+    (['regular', 'bold'] as const).every((w, j) =>
+      fieldLabel.tokens[`size.${sz}.${w}.text`]
+        === `type.body.${(['sm', 'md', 'lg'] as const)[i]}.${(['default', 'strong'] as const)[j]}`)),
+    'component: FieldLabel binds the full 3 x 2 size x weight type grid onto type.body.{sm,md,lg}.{default,strong} (#1248/#872/#862)');
+  // The two weights must land on DIFFERENT roles, as its own arm rather than inferred from the grid
+  // above. The grid pins six NAMES; this pins the CONSEQUENCE — that choosing `bold` changes
+  // something. A def whose six keys all pointed at `.default` would satisfy every "the key resolves"
+  // reading and ship an axis that does nothing (`docs/34` shape 5).
+  ok((['small', 'medium', 'large'] as const).every((sz) =>
+    fieldLabel.tokens[`size.${sz}.regular.text`] !== fieldLabel.tokens[`size.${sz}.bold.text`]),
+    'component: FieldLabel\'s weight axis resolves to a DIFFERENT type role at every size rung — the axis changes the output (#1248)');
   // #756 arm 3, pinned at the def rather than left to the gate: the DEFAULT size must land on the `md`
   // rung. `lint-rung-names` checks this corpus-wide, and it is restated here because #872 moved the
   // ladder from two rungs to three — the edit that could most easily have left `medium` pointing at
-  // `sm` while every other check stayed green.
+  // `sm` while every other check stayed green. Read at the DEFAULT weight, and both defaults are named
+  // in the assertion: #1248 turned this key from a point into a row, and reading it at `bold` would
+  // pin a cell no consumer lands in having chosen nothing.
   ok(fieldLabel.props.find((p) => p.name === 'size')?.default === 'medium'
-    && fieldLabel.tokens['size.medium.text'] === 'type.body.md.default',
-    'component: FieldLabel\'s default size resolves to the `md` type rung (#756 arm 3)');
+    && fieldLabel.props.find((p) => p.name === 'weight')?.default === 'regular'
+    && fieldLabel.tokens['size.medium.regular.text'] === 'type.body.md.default',
+    'component: FieldLabel\'s default size x weight resolves to the `md` rung at `default` (#756 arm 3, #1248)');
 
   // The drift gate bites: a broken def is caught (missing avoid_when + an unresolvable binding).
   const broken = { ...button, ai: { ...button.ai, avoidWhen: '' }, tokens: { ...button.tokens, bogus: 'color.nope.nope' } } as ComponentDef;
@@ -7881,6 +7899,126 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // The two name mappings are NOT the same function: variables keep their full dotted path,
     // text styles drop the `type.` root. Asserting the asymmetry stops a future "simplification".
     ok(figmaVarName('type.label.md.emphasis') !== labelNode.textStyle, 'anatomy: text-style naming differs from variable naming (the `type.` root is dropped)');
+
+    // ---- THE TYPE-KEY GRID, CORPUS-WIDE (#1248) ------------------------------------------------
+    //
+    // Until #1248 a `type` binding key could vary by `{size}` and nothing else — not by decision, but
+    // because the resolver substituted that one placeholder. Widening it to fill from the member's
+    // whole coordinate is the change, and the hazard a widening carries is the opposite of the one a
+    // narrowing carries: nothing breaks, six defs keep resolving, and a suite that only re-runs comes
+    // back green whether the resolver still DISCRIMINATES or has quietly started ignoring the
+    // placeholder it cannot fill. Six greens after a widening are evidence about the six, not about
+    // the resolver. So this block asserts the property directly, per binding, by name.
+    //
+    // THE VOCABULARY IS AUTHORED, NOT DERIVED, and that is `docs/34` shape 1 stated as a rule rather
+    // than discovered as a bug. Reading the axis list back out of `def.variants` — the obvious way to
+    // write this — makes every arm below assert `table === table`: a def that templated `{colour}` and
+    // declared a `colour` axis would agree with itself perfectly, which is exactly the agreement the
+    // gate is supposed to be unable to reach. The list is written here, and the corpus is checked
+    // against IT.
+    const TYPE_KEY_AXES = ['size', 'weight'] as const;
+    // The (def, part) pairs that template a `type` key, and the axes each one names — authored from
+    // reading the six defs, and asserted below to be exactly the set the corpus contains. Both
+    // directions matter: a seventh binding added without a row here fails, and a row naming a binding
+    // that no longer templates fails. A table checked in one direction only is a table that grows
+    // stale in the other.
+    // `axes` maps each templated axis to the number of DISTINCT text styles that axis must produce —
+    // authored per binding, not counted from the def. Normally that is the axis's value count; where
+    // it is fewer, the row says why, and the number failing when the reason is fixed is the point (a
+    // collapse recorded as an expectation is a collapse someone has to come back and delete).
+    //
+    // EIGHT ROWS, NOT SIX. #1248's brief named button, checkbox, radio, switch and field-label ×2;
+    // `button-destructive` and `button-neutral` also carry one, because #1223 built them off button's
+    // own factory and the factory copies the anatomy. Found by DIRECTION 1 below on its first run —
+    // the authored table disagreed with the corpus and said so — which is the two-direction check
+    // earning its place immediately rather than in principle.
+    const TYPE_GRID: { def: ComponentDef; part: string; axes: Readonly<Record<string, number>> }[] = [
+      // THREE SIZE VALUES, TWO STYLES, and this is a real pre-existing gap rather than a resolver
+      // fault: `size.large.type` binds `type.label.md.emphasis`, the same role as `medium`, because
+      // there is no `type.label.lg` rung to bind. The def has carried it as an open FINDING in a
+      // trailing comment since the ladder went to three; filed as an issue by #1248 rather than left
+      // as prose. `2` here is what the corpus MEASURES today — when the `lg` rung lands, this arm
+      // fails and whoever fixes it updates the number, which is the only way a recorded collapse gets
+      // re-examined. All three siblings come off one factory, so all three collapse identically.
+      { def: button, part: 'label', axes: { size: 2 } },
+      { def: buttonDestructive, part: 'label', axes: { size: 2 } },
+      { def: buttonNeutral, part: 'label', axes: { size: 2 } },
+      { def: checkbox, part: 'label', axes: { size: 3 } },
+      { def: radio, part: 'label', axes: { size: 3 } },
+      // TWO, and not a collapse: `switch` declares `size: [small, medium]` only, on its brief's own
+      // words ("switches rarely warrant a large"). Two values, two styles — full discrimination over
+      // a shorter ladder, which is why the authored number is the right oracle and "one per declared
+      // value" would have read this as a pass and button's real gap as one too.
+      { def: switchDef, part: 'label', axes: { size: 2 } },
+      // The two text nodes of `field-label`, the only bindings in the corpus that cross two axes.
+      { def: fieldLabel, part: 'text', axes: { size: 3, weight: 2 } },
+      { def: fieldLabel, part: 'indicator', axes: { size: 3, weight: 2 } },
+    ];
+
+    // DIRECTION 1 — the authored table is the corpus. Discovered by walking every def's anatomy for a
+    // `type` carrying a placeholder, which is a different question from "which defs did we list".
+    const discovered = componentDefs.flatMap((d) =>
+      Object.entries(d.anatomy?.parts ?? {})
+        .filter(([, p]) => typeof p.type === 'string' && p.type.includes('{'))
+        .map(([n, p]) => `${d.id}/${n}:${[...(p.type as string).matchAll(/\{([^}]+)\}/g)].map((m) => m[1]).sort().join('+')}`))
+      .sort();
+    const authored = TYPE_GRID.map((r) => `${r.def.id}/${r.part}:${Object.keys(r.axes).sort().join('+')}`).sort();
+    ok(discovered.length > 0 && JSON.stringify(discovered) === JSON.stringify(authored),
+      `anatomy: the authored type-key grid is exactly the corpus's templated \`type\` bindings, axes included (#1248)\n    authored:   ${authored.join(' | ')}\n    discovered: ${discovered.join(' | ')}`);
+
+    // DIRECTION 2 — every axis any binding names is in the authored vocabulary. This is the arm that
+    // keeps the widening bounded: the resolver will now fill ANY placeholder the coordinate carries,
+    // so without this a def could template `{tone}` or `{intent}` into a type key and nothing would
+    // say the type tier had quietly acquired a colour axis.
+    for (const row of TYPE_GRID)
+      ok(Object.keys(row.axes).every((a) => (TYPE_KEY_AXES as readonly string[]).includes(a)),
+        `anatomy: ${row.def.id}/${row.part}'s type key names only axes in the authored TYPE_KEY_AXES vocabulary [${TYPE_KEY_AXES.join(', ')}] (#1248)`);
+
+    // DIRECTION 3 — THE DISCRIMINATION SWEEP, the arm condition (a) is about. For each binding and
+    // each axis it names, project two members that differ in that axis ALONE and assert the resolved
+    // text style differs. A resolver that stopped substituting an axis returns the same style at both
+    // coordinates while every key still resolves and every def still validates — the silent half of a
+    // widening, and the only thing that distinguishes it from the working version is this comparison.
+    //
+    // Projected through `figmaAnatomyPlan`, i.e. the REAL projector, rather than by calling `fillKey`
+    // and looking the result up: `fillKey` is the subject here, so asking it what it resolves to would
+    // be `docs/34` shape 2 with the DRY spelled as a convenience.
+    // `PlanSlots` is FLAT — axis values sit beside the boolean slot toggles, not nested under an
+    // `axes` key. Getting that wrong throws `'[object Object]' is not a declared size` rather than
+    // failing an assertion, which is #680's rule arriving as a live example while this block was being
+    // written: a crashing arm is not a failing one, and it takes the whole sweep down instead of
+    // naming the one binding that broke.
+    const styleOfPart = (d: ComponentDef, part: string, size: string | undefined, coord: Record<string, string>): string | undefined => {
+      const walk = (n: { name: string; textStyle?: string; children?: unknown[] }): string | undefined =>
+        n.name === part ? n.textStyle : (((n.children as typeof n[]) ?? []).map(walk).find((s) => s !== undefined));
+      return walk(figmaAnatomyPlan(d, size, coord as never).root as never);
+    };
+    for (const row of TYPE_GRID) {
+      const variants = row.def.variants ?? {};
+      // The coordinate every other axis is held at — the def's FIRST declared value per axis, which is
+      // the rest coordinate by this repo's own ordering convention (see `AxisValueSet.values`).
+      const base: Record<string, string> = Object.fromEntries(
+        Object.entries(variants).filter(([a]) => a !== 'size').map(([a, vs]) => [a, vs[0]]));
+      for (const [axis, expectedDistinct] of Object.entries(row.axes)) {
+        const values = variants[axis] ?? [];
+        ok(values.length >= 2,
+          `anatomy: ${row.def.id}'s '${axis}' axis declares at least two values, or the discrimination arm below cannot fail (#1248)`);
+        // `size` is a positional argument to the projector, every other axis rides in the coordinate.
+        const styles = values.map((v) => axis === 'size'
+          ? styleOfPart(row.def, row.part, v, base)
+          : styleOfPart(row.def, row.part, variants.size?.[0], { ...base, [axis]: v }));
+        ok(styles.every((s) => typeof s === 'string' && s.length > 0),
+          `anatomy: ${row.def.id}/${row.part} resolves a text style at every '${axis}' value — an unresolved type key projects a node with no typography (#1248)`);
+        // THE DISCRIMINATION COUNT, against the AUTHORED number rather than against `values.length`.
+        // Comparing to the value count would be the def checking itself — and it would also have no
+        // way to express a collapse that is genuinely correct today (button's missing `lg` rung), so
+        // the arm would have to be deleted or the def bent to satisfy it. Authored, it fails in BOTH
+        // directions: a resolver that stopped substituting drops the count, and fixing the `lg` gap
+        // raises it.
+        ok(new Set(styles).size === expectedDistinct,
+          `anatomy: ${row.def.id}/${row.part}'s type style DISCRIMINATES across '${axis}' into the ${expectedDistinct} authored style(s) — ${values.length} values gave ${new Set(styles).size} distinct [${styles.join(', ')}] (#1248)`);
+      }
+    }
 
     // The plugin shell is the transport, not the contract — but it must at least carry the plan and
     // the ceilings, and resolve variables by NAME so one plan works in any file with the token

@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { expandKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
 import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
@@ -745,28 +745,35 @@ export const figmaAnatomyPlan = (
       throw new Error(`${def.id}: a partial paint coordinate — '${template}' needs [${axes.join(', ')}] and [${missing.join(', ')}] was not given, so every key in that grammar goes unresolved and the plan projects unpainted`);
   }
 
-  // THE EXPANSION LIST, ONE PLACE, because there are TWO `expandKey` call sites and only one of them is
-  // in `varOf` (#795). The other is the TEXT-STYLE lookup below, and it was missed on the first pass —
-  // `expandKey(p.type, [size])` typechecks under the engine's own config, where the engine is buildless
-  // and run via tsx, and fails only under `apps/studio`'s `tsc --noEmit`, which is what caught it. The
-  // same trap as `VariantCoord`'s index signature (see `00-progress`, #758's traps): a sizeless def
-  // would have expanded against `[undefined]` and filled `{size}` with the string "undefined".
+  // BINDING KEYS RESOLVE FROM THE COORDINATE, the same way paint keys do (#1248). There were TWO
+  // `expandKey` call sites here — `varOf` and the TEXT-STYLE lookup below — and both substituted
+  // `{size}` and nothing else, which is what made `size` the only axis a geometry or type binding
+  // could vary by. Nothing had decided that. It was the axis the first templated key needed, and
+  // every later def inherited the limit as a rule; #872 is where it bit, with Prism 2's form-label
+  // crossing size × weight and only the size half expressible.
   //
-  // `[size]` where there is a size, `[]` where there is not. Measured rather than assumed, because the
-  // two cases differ: against an empty list `expandKey` returns `[]` for a `{size}`-templated key (so
-  // `resolved` is `undefined` and the throws below report `'undefined'`), and `[key]` for a plain one.
-  // Only the plain case is reachable — `anatomyErrors` refuses a `{size}` placeholder when
-  // `variants.size` is empty (`component-schema.ts:1282`), which is what keeps a sizeless def from ever
-  // carrying a template that needs expanding.
-  const sizesForExpansion = size === undefined ? [] : [size];
-
-  // binding key (possibly `{size}`-templated) → Figma variable name, via def.tokens.
-  const varOf = (key: string): string => {
-    const [resolved] = expandKey(key, sizesForExpansion);
+  // `paintCoord` is the map to fill from, and it is the SAME map `fillPaintKey` reads a few lines
+  // down — one coordinate, one substitution rule, for both kinds of key. It carries `size` (see its
+  // own note) and every grid axis this member sits at, and a sizeless def contributes no `size` entry
+  // at all rather than `size: undefined`, which is what keeps `{size}` from filling with the string
+  // "undefined".
+  //
+  // An unfillable key is a THROW here rather than a skip, and that is the difference from `paintOf`:
+  // a paint template that cannot fill means "try the next one" (a ragged grid is expressible), while
+  // a geometry or type key that cannot fill means the node projects with no size or no type style —
+  // the silent-loss shape this file keeps finding. `anatomyErrors` refuses a placeholder naming no
+  // declared axis, so the reachable case is a coordinate that legitimately lacks the axis.
+  const resolveKey = (key: string, what: string): string => {
+    const resolved = fillKey(key, paintCoord);
+    if (resolved === undefined)
+      throw new Error(`${def.id}: anatomy names ${what} key '${key}', whose placeholders [${paintKeyPlaceholders(key).filter((p) => !paintCoord[p]).join(', ')}] have no value at this coordinate ${JSON.stringify(paintCoord)} — the member would project with that binding silently dropped`);
     const ref = def.tokens[resolved];
-    if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
-    return figmaVarName(ref);
+    if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}'${resolved === key ? '' : ` (from '${key}')`}, which tokens does not bind`);
+    return ref;
   };
+
+  // binding key (possibly axis-templated) → Figma variable name, via def.tokens.
+  const varOf = (key: string): string => figmaVarName(resolveKey(key, 'binding'));
 
   /**
    * Resolve one paint slot for the current coordinate, or undefined if the def does not key it.
@@ -1095,13 +1102,11 @@ export const figmaAnatomyPlan = (
       if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
     }
 
+    // THE TYPE KEY, resolved from the coordinate like every other binding key (#1248). This lookup
+    // used to expand `{size}` alone, so a def could scale its type by size and by nothing else —
+    // which is exactly the constraint #872 hit and deferred here.
     let textStyle: string | undefined;
-    if (p.type) {
-      const [resolved] = expandKey(p.type, sizesForExpansion);
-      const ref = def.tokens[resolved];
-      if (!ref) throw new Error(`${def.id}: anatomy names binding key '${resolved}', which tokens does not bind`);
-      textStyle = figmaTextStyleName(ref);
-    }
+    if (p.type) textStyle = figmaTextStyleName(resolveKey(p.type, 'type'));
 
     // PAINT BY PART KIND, and for a box by the part's OWN DECLARATION. `label` takes ink because it is
     // text; a slot takes ink on its VECTOR descendants; a box takes the slots it names in `paintSlots`.

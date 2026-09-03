@@ -26,8 +26,8 @@
       "sha256": "3e48e98314703b4c096a2dfc122e23e9208aaa95dbe15c1b753a7349a9f8cc87"
     },
     "field-label": {
-      "members": 12,
-      "sha256": "3535f1cfff92541b5be07f8b8ce5a0c25522f8e053557d4040abfc87d85b0ff6"
+      "members": 24,
+      "sha256": "0d59cb6d4e84dcd649655e22dd057bd4f956a25e645137f5cd6894c8d751f8e8"
     },
     "field-message": {
       "members": 4,

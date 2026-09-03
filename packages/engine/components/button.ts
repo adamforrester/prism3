@@ -210,7 +210,13 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     'size.large.gap': 'size.lg.gap',
     'size.large.height': 'size.lg.height',
     'size.large.icon': 'icon.size.lg',
-    'size.large.type': 'type.label.md.emphasis', // FINDING (still open): no type.label.lg — reuses md
+    // FILED as #1260, and #1248 is what measured it: there is no `type.label.lg` rung, so `large`
+    // reuses `md` and a large button's label is typographically identical to a medium one while every
+    // other dimension moves. This was a bare "FINDING (still open)" trailing comment for three
+    // tickets — a comment is not a work item, so it now has an issue. `test.ts`'s type-key sweep
+    // authors `2` distinct styles for this binding with the reason attached, which is what makes the
+    // collapse fail loudly on the day someone fixes it rather than staying invisible.
+    'size.large.type': 'type.label.md.emphasis',
 
     // THE PER-FAMILY PAINT — the full appearance × slot × state skin, bound to `interactive.<family>.*`.
     // Authored once in `intentTokens` above and spread here so the three components cannot silently
