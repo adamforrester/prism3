@@ -11834,11 +11834,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // for that string would be vacuously true and would stop witnessing anything.
   ok(paths.has('icon.size.xl') && !Object.values(icon.tokens as Record<string, string>).includes('icon.size.xl'),
     'icon: icon.size.xl (40) is emitted and bound by no def — a token tier broader than one component\'s enum is the layering working, not a leak');
-  // `tone.inherit` binds NOTHING, and that is the point: `currentColor` is the ABSENCE of a pinned ink,
-  // so a binding key for it would have to resolve to some real path and every candidate would lie about
-  // what the default does. Pinned because adding one would read as completing the map.
+  // `tone.inherit` STILL binds nothing, and #1211 kept that half while reversing the other. There is no
+  // token whose value is "inherit", so a key spelled that way would lie about what the default does — but
+  // the conclusion that therefore NOTHING should answer a tone-less coordinate is what shipped 39 unbound
+  // black glyphs. Both halves are pinned together on purpose: the absent tone key AND the `icon` slot
+  // floor that answers in its place. Splitting them lets either be "fixed" back into the other.
   ok(icon.variants.tone.includes('inherit') && !('tone.inherit' in icon.tokens),
-    'icon: `tone: inherit` is a declared value that binds no token — currentColor is the absence of a pinned ink, not a token whose value is "inherit"');
+    'icon: `tone: inherit` is a declared value that binds no token of its own — there is no token whose value is "inherit"');
+  ok(icon.tokens.icon === 'color.icon.primary' && (icon.paintKeys ?? []).indexOf('{slot}') === (icon.paintKeys ?? []).length - 1,
+    `icon: the default ink is a SLOT FLOOR keyed last (#1211) — \`icon\` → color.icon.primary behind \`tone.{tone}\`, so a named tone wins and a tone-less coordinate resolves an ink instead of leaving Figma to turn fill="currentColor" into black (got paintKeys [${(icon.paintKeys ?? []).join(', ')}], icon → ${String(icon.tokens.icon)})`);
   // The brief's `tokens-not-props` discipline (§3): width, height and stroke are bound to the grid, not
   // exposed. A prop for any of them is an icon system with no grid.
   for (const banned of ['width', 'height', 'stroke'])
@@ -11903,8 +11907,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // used to check the square bound `icon/size/md` to both dimensions; the part is now the vector itself,
     // which is scaled to whatever box it is instanced into, so the artboard is the HOST's binding
     // (`size.{size}.icon` on button's and icon-button's slots) and the schema refuses one here.
-    ok(planBoundVars(onePlan.root).length === 0,
-      `icon: the glyph binds NO dimension variable — a vector is scaled to the box it sits in, so its artboard is the host's binding to make (got [${planBoundVars(onePlan.root).join(', ')}])`);
+    // PAINTS SUBTRACTED, not because they are uninteresting but because `planBoundVars` folds them in
+    // (`paintVarsOwn` is one of its four sources, deliberately — the emit gate asks one question of both).
+    // Before #1211 the glyph carried no paint either, so the raw count was zero and the difference did not
+    // show; now the floor puts one there, and left unsubtracted this line would fail while claiming the
+    // def had grown a DIMENSION binding it has not grown. The paint is asserted on its own below.
+    const iconPaints = planPaintVars(onePlan.root);
+    const iconDims = planBoundVars(onePlan.root).filter((v) => !iconPaints.includes(v));
+    ok(iconDims.length === 0,
+      `icon: the glyph binds NO dimension variable — a vector is scaled to the box it sits in, so its artboard is the host's binding to make (got [${iconDims.join(', ')}])`);
     // THE GEOMETRY, which is the whole of #864: the member named `check` carries the `check` path.
     // Compared against `ICON_PATHS` — the vocabulary, read independently of the projector that filled it.
     // The plan no longer carries the bare path: `createNodeFromSvg` takes a DOCUMENT, so the assertion is
@@ -11919,26 +11930,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const expectDims = ICON_VIEWBOX.split(/\s+/).map(Number).slice(2);
     ok(JSON.stringify(onePlan.root.glyphViewBox) === JSON.stringify(expectDims),
       `icon: the glyph's read-back box is the viewBox's own dimensions ([${expectDims.join(', ')}]) — this is what makes every member a square artboard, which is what lets a host bind one square \`size.{size}.icon\` onto its slot (got ${JSON.stringify(onePlan.root.glyphViewBox)})`);
-    // THE MEASURED CEILING — still zero, and #784 corrects WHY, which is the whole value of this line.
-    // It was written expecting to fail when #758 landed. #758 landed and it still passed, and the reason
-    // it gave for the zero had become false: `paintOf` no longer keys paint as
-    // `{intent}.{appearance}.{slot}`, and `icon`'s `tone.{tone}` resolves all eight inks perfectly when
-    // called at a coordinate that HAS a tone (measured: 8/8 over the full grid).
+    // THE CEILING WAS ASSERTED AT ZERO FOR THREE TICKETS, AND #1211 IS WHY THE ZERO WAS THE DEFECT RATHER
+    // THAN THE MEASUREMENT OF ONE. The line here read `planPaintVars(onePlan.root).length === 0` and its message explained the
+    // zero carefully: the grammar resolves 8/8 given a tone, `variantAxes` is `['name']`, so every member
+    // has no `tone` in its coordinate and `tone.{tone}` is unfillable. Every clause of that was TRUE. The
+    // conclusion — that zero is therefore the right number — was never checked against what a member with
+    // no fill actually renders as, and the answer is BLACK: Figma has no `currentColor`, so the literal in
+    // the glyph document resolves to it. Three tickets of prose defended a measurement nobody disputed and
+    // an interpretation nobody had tested.
     //
-    // The live ceiling is one axis further out, and #795 CHANGED ITS NATURE without changing the number.
-    // It read: `figmaAnatomySet` does not enumerate `tone` at all, because `PROJECTABLE_VARIANT_AXES` is
-    // intent/appearance/size. That list is deleted, so the set would carry `tone` today — and this def
-    // does not list it, for the `inherit` reason in its own codeOnly (Figma has no `currentColor`, so the
-    // DEFAULT tone has no coordinate). Every member still has `coord: {}` and `paintOf` is still handed
-    // `tone: undefined`, so the template is still unfillable at all four coordinates. What moved is who
-    // owns the zero: it was the projector's refusal, it is now the def's declaration.
+    // So the number moves to ONE and the name is asserted, not the count. `descendantFills` is what carries
+    // it (a glyph's ink goes on the VECTOR, never on the frame, which would paint a square behind it), and
+    // `planPaintVars` reaches it through `paintVarsOwn`.
     //
-    // A test that passes for a reason its own message denies is worse than a missing test, because the
-    // message is what the next reader believes — this line was that test once already (it was written
-    // expecting to fail when #758 landed, #758 landed, and it passed for a reason that had gone false).
-    // So it is asserted at zero against the CURRENT cause, and it fails the day this def lists `tone`.
-    ok(planPaintVars(onePlan.root).length === 0,
-      'icon: the projected glyph carries NO paint — not because the grammar cannot key it (it resolves 8/8 given a tone), and since #795 not because the projector refuses the axis either: this def does not DECLARE `tone` in variantAxes, so every member has coord {} and the template is unfillable. Fails the day the def lists it, by design');
+    // WHAT THIS STILL FAILS ON, unchanged in spirit from the old line: it names the ROLE rather than
+    // counting, so re-pointing the floor at a different role fails here by name, and so does dropping the
+    // `{slot}` key — which returns all 39 members to the unbound black this ticket exists to remove.
+    ok(planPaintVars(onePlan.root).join(',') === 'color/icon/primary',
+      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left 39 glyphs unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
+    // AND IT IS THE VECTOR THAT CARRIES IT, not the frame — the distinction the floor would be worthless
+    // without, since a fill on the artboard paints a coloured square with the glyph invisible inside it.
+    ok(onePlan.root.descendantFills === 'color/icon/primary' && !onePlan.root.paints?.fills,
+      `icon: the ink lands on the glyph's VECTOR via descendantFills and NOT on the artboard frame — a frame fill would paint a solid square behind the glyph (descendantFills=${String(onePlan.root.descendantFills)}, frame fills=${String(onePlan.root.paints?.fills)})`);
     // The declaration is now the cause, so the declaration is what gets pinned — otherwise the zero above
     // is a fact with no stated owner, which is exactly the state it spent two tickets in.
     ok(!(icon.figmaProperties?.variantAxes ?? []).includes('tone'),

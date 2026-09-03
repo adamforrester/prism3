@@ -223,6 +223,112 @@ shipped the axis with one working cell. And `test-write-components.ts` pinned `v
 count is now DERIVED from the plans, because #804's claim is "one set, every member added", not the size
 of this def's grid.
 
+## (2026-09-02) — every projected icon member carries an ink, and `icon.ts`'s "tone.inherit binds nothing" position is reversed (#1211)
+
+**STATUS: shipped.** Engine def + test + version, no new gate. `ENGINE_VERSION` **0.35.0 → 0.36.0**;
+`CONTRACT_VERSION` **stands at 9.3.0** (`token-contract.ts --accept` reported *"no surface change"* — the only
+baseline field that moved is the informational `engineVersion` stamp). Gates stay at 52. Closes #1211.
+Deliberately NOT in scope: the 39-separate-components reshape (#1226's PR-A) and the 16/20/24 size ladder
+(#1206) — see the last section.
+
+── THE DEFECT, AND WHY EVERY GATE WAS GREEN OVER IT ────────────────────────────────────────────
+
+`icon` declared `paintKeys: ['tone.{tone}']` and `figmaProperties.variantAxes: ['name']`. Those two facts do
+not compose: **no projected member carries a `tone` coordinate at all**, so `fillPaintKey` cannot fill the
+template at any of the 39, and all 39 shipped with no fill bound. Measured before the fix — `lint-paint.ts`'s
+census read `icon.set: 0 members with paint / 39`, and `icon.grid: 312 assignments` over 351 coordinates
+(39 names × 8 named tones; the 39 `inherit` coordinates resolved nothing).
+
+What an unbound glyph renders as is the part nothing had checked. `glyphDocument()` writes
+`<path d="…" fill="currentColor"/>`, **Figma has no `currentColor`, and resolves the literal to BLACK.** So
+the set did not ship "a glyph that inherits its host's ink"; it shipped 39 hard-black glyphs that ignore
+every band, every inverse surface and every `on-fill` push a host makes.
+
+── THE REVERSAL, STATED AS A REVERSAL ──────────────────────────────────────────────────────────
+
+`icon.ts` argued the opposite, in two comment blocks and one pinned assertion: *"`tone.inherit` binds
+NOTHING and is absent from this map deliberately: `currentColor` is the absence of a pinned ink"*, and *"a
+coordinate at `inherit` resolves no paint and the glyph keeps whatever ink it inherits — the correct
+projection of `currentColor`, not a dropped binding."* **That prose predates any rendered default icon and is
+wrong on contact with the output.** Every clause of its reasoning about the token layer was true; the
+inference — that *nothing* should therefore answer a tone-less coordinate — was never checked against what
+Figma does with the absence, and Figma's answer is not inheritance. It is black.
+
+`test.ts` had the same shape and is the more instructive half, because it was **asserted at zero for three
+tickets and defended twice**. The line read `planPaintVars(onePlan.root).length === 0` with a comment that
+had been carefully corrected at #758 and again at #795 — each time re-explaining *why* the zero was right,
+never asking whether zero was right. Its own comment warns that "a test that passes for a reason its own
+message denies is worse than a missing test"; the failure mode one step out is a test that passes for a
+reason that is *true* and an interpretation nobody tested. Both are now flipped, and the assertion names the
+ROLE rather than counting, so re-pointing the floor fails by name.
+
+**One half of the old argument survives, and it is what shapes the fix.** There genuinely is no token whose
+value is "inherit", so a `tone.inherit` entry would still be a lie. The floor is therefore keyed on the
+**slot** — `icon: 'color.icon.primary'`, with `paintKeys: ['tone.{tone}', '{slot}']` — which is not a ninth
+tone but what `paintOf('icon')` finds *after* the tone template fails to fill.
+
+── WHY THIS NEEDED NO ENGINE CHANGE ────────────────────────────────────────────────────────────
+
+Three properties of machinery that already existed, checked in the source rather than assumed:
+
+1. `paintOf` walks `def.paintKeys` in **declaration order** and returns the first template that both fills
+   and has a `tokens` key — so a floor listed SECOND cannot shadow a named tone. All eight still resolve
+   (`test.ts` plans `{tone: danger}` and asserts `color/icon/danger`, unchanged).
+2. `paintKeyErrors` explicitly permits a **placeholder-free** paint key (`component-schema.ts`: *"a literal
+   key ('border', 'focus-ring') — checked against 'tokens' below"*), and `'{slot}'` is not even that — it is
+   the fallback `checkbox`, `radio`, `switch` and `field-label` already end on. This follows the corpus
+   convention rather than inventing a shape.
+3. `paintOf`'s guard skips a slot-free template unless the slot is in `PRIMARY_PAINT_SLOTS`; `icon` is a
+   member, and `'{slot}'` carries the placeholder anyway, so neither route excludes it.
+
+The ink lands on the **vector** via `descendantFills`, never on the artboard frame — a frame fill paints a
+solid coloured square with the glyph invisible inside it, so that placement is now its own assertion rather
+than a property inherited from the projector's `kind: 'vector'` branch.
+
+── WHAT MOVED, MEASURED ────────────────────────────────────────────────────────────────────────
+
+Census after: **`icon.set` 39 members / 39 assignments** (from 0/39) and **`icon.grid` 351 coords / 351
+assignments** (from 312/351). Every coordinate in the grid and every member Figma actually receives now
+resolves exactly one paint. Emitted `out/**` moves only the generator version stamp in the eight brand trees
+— this changes a component def, not the token layer, and `color.icon.primary` was already emitted and
+already bound by `tone.primary`.
+
+**A note on reading a gate's exit code here.** `lint-paint.ts | tail` reported `EXIT=0` while printing four
+named failures — the pipeline's status, not the gate's. The four failures were the measurement wanted, so
+nothing was missed, but it is the exact trap `verify.ts` exists to close and it fired on the first run.
+
+── TWO ADJACENT PROSE CORRECTIONS, AND ONE DEFERRED ────────────────────────────────────────────
+
+The `codeOnly` `tone` entry's stated reason had to move with the fix, not merely be left standing: it argued
+that `inherit` "has no coordinate to occupy". It has one now. The surviving objection is stronger and is what
+the entry says instead — a projected `tone=inherit` member would paint the floor and be **pixel-identical to
+`tone=primary`**, so the axis would offer a value whose entire job (defer to the host) the projection drops
+while looking complete. A duplicate member that lies is worse than an absent one. The entry still LEADS with
+`tone`, per `figmaPropertyErrors`' #563 requirement.
+
+The same sentence said the set "projects over `size`", stale since #864 made it `name`. Corrected in place —
+one word, inside a sentence already being rewritten — rather than filed, because shipping a known-false
+clause in prose that this very entry is about would be the defect twice.
+
+── WHAT WAS HELD, AND WHY EACH IS SOMEONE ELSE'S ───────────────────────────────────────────────
+
+**The 39-separate-components reshape is blocked, not deprioritized.** Measured: `figmaAnatomySet` throws on
+any member with no variant coordinate (#795/#802's guard), and `applyComponentPlan` calls
+`combineAsVariants` unconditionally — there is no "N loose components" output shape anywhere in the write
+lane. It needs a projector singleton mode, which is #1226's PR-A. So `icon` stays ONE `ComponentDef` with
+`variantAxes: ['name']` projecting a 39-member COMPONENT_SET, and nothing here anticipates that reshape.
+
+**The 16/20/24 size ladder (#1206) is untouched.** `ICON_SIZES` and every `size.*.icon` rung binding stand,
+because moving them reverses #756's gated rule that a def's default resolves to its tier's `md` rung —
+mutation-measured on this branch: rebinding button's icon rungs failed `lint-rung-names.ts` with three named
+failures. That is a decision to take deliberately, not alongside a fill fix.
+
+**And #1206's own open question is answered here rather than left open:** the empty icon slot in a built
+button is neither an emit-order issue nor an intended placeholder. `SWAP_TARGET` is `'FPO-default-icon'`, a
+name **nothing in this repo emits**, so the instance-swap never resolves and degrades to a plain frame. The
+button needs no fill change — its existing `on-fill` push lands the moment any real icon component with a
+vector is in the slot, which is what this ticket makes possible.
+
 ## (2026-09-02) — field-ref read-back re-wires onto the live node when a fast-path handle went stale (#866)
 
 **STATUS: shipped as CAUSE-INDEPENDENT HARDENING.** Plugin-only (`apps/plugin/src/write-components.ts`,
