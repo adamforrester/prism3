@@ -7,6 +7,127 @@
 
 ---
 
+## (2026-09-03) — the axis-values floors were guarding two thirds of the corpus, and the comment you would check that against was wrong (#1267)
+
+**STATUS: shipped.** Gate logic and prose only. **Version-neutral** — no emitted output moves, so
+`ENGINE_VERSION` and `CONTRACT_VERSION` both stand. This PR adds no gate; the list reads **55**,
+#1262's having landed on main while this was in progress.
+
+── WHAT THE AUDIT FOUND ──────────────────────────────────────────────────────────────────────────
+
+`lint-axis-values.ts` carried `FLOOR_DEFS = 8` and `FLOOR_PAIRS = 15` against a live corpus of **13
+defs and 34 pairs**. So the floors were protecting a population about two thirds of the actual size:
+the census could shed five defs or nineteen pairs and still report clean. **Nothing else in the repo
+checks axis-value declarations**, so unlike most scope-silence findings this one had no second gate
+behind it — a collapse here was unmitigated.
+
+**And the comment a reader would check the floors against was wrong in two different ways.** It said
+*"Measured on `d9c5b2d`: 11 tracked def files, 11 defs carrying `variants`, 24 (def, axis) pairs."*
+
+| the claim | the truth |
+|---|---|
+| 11 tracked def files | **still 11** — the one number that held |
+| 11 defs | **13** — and it was never 11; a category error, not drift |
+| 24 pairs | **34** — ordinary staleness |
+
+The middle row is the interesting one. `11 files` and `11 defs` were never the same claim:
+`button.ts` exports **three** defs through `makeButton` (button, button-destructive,
+button-neutral), so file count has not equalled def count since #1223. The comment read as one
+measurement of one thing and was two measurements of two things, one of them wrong on the day it was
+written. Every arm in the gate iterates DEFS, so that is the number the floor is about.
+
+── THE FIX: THE MARGIN IS A RULE, THE COUNT IS PRINTED ───────────────────────────────────────────
+
+Per the audit's remediation doctrine, each floor is now **the corpus minus one legitimate removal**,
+and the two floors differ in what one removal costs:
+
+- **`FLOOR_DEFS = 12`** — minus one def. A def can be retired without an edit here; two cannot,
+  because at that point something is deleting defs rather than someone retiring one.
+- **`FLOOR_PAIRS = 30`** — minus the **widest** def's axis count, because removing a def takes all
+  of its pairs with it. Sized to the widest (4 axes: the three button siblings and `field-label`)
+  rather than the average, or retiring the wrong def trips it.
+
+**No live count is written down any more.** The success line prints the population and each floor's
+slack instead, so it is true at every ref and readable without mutating the gate:
+
+```
+✓ axis values accounted for — 34 (def, axis) pairs across 13 defs resolve to 17 declared sets over 12 axes; …
+  floors: 13 defs vs 12 (slack 1), 34 pairs vs 30 (slack 4) — each floor is the corpus minus one
+  legitimate removal (see the FLOORS note). Slack of 0 does not mean broken; it means the next
+  removal needs the floor moved WITH it.
+```
+
+**The census duplicate came OUT of the failure path**, which is the load-bearing half. Two sites
+stating one population is the drift shape `CLAUDE.md` records for `EXPECTED_ARTIFACTS`: whichever
+site a later change forgets goes quietly wrong and a reader cannot tell which they are looking at.
+It was also the wrong claim to make there — on a failing run the census is among the things that may
+be broken, so a confident *"34 pairs across 13 defs"* printed beneath the findings reads as
+reassurance about precisely the number in question. The floor failures keep their own observed count,
+because there it is the FINDING (*"only 10 def(s) found, below the floor of 12"*) rather than a
+summary.
+
+**The floors stay AUTHORED, not computed**, and that is worth stating because deriving them from the
+corpus is the obvious next thought and is `docs/34` shape 1: a floor computed from the thing it
+guards agrees with that thing at every ref, including the ref where the census has collapsed to
+three.
+
+One more stale count in the same class, in the same file's header: *"`VARIANT_AXES` closes the axis
+NAME vocabulary — 11 names"*. It was 12, `weight` having landed in #1248. The count is gone; arm D
+prints `VARIANT_AXES.length` live when it fires.
+
+── THE PROOF, AND MY FIRST HARNESS TESTED THE WRONG THING ────────────────────────────────────────
+
+**Take one targeted `components/index.ts`'s `componentDefs` array — and the gate does not read it.**
+Its population comes from `git ls-files packages/engine/components` plus an import of every tracked
+def file, so removing a name from the registry array changed nothing it counts: the gate reported 13
+defs across two mutations that were supposed to have removed one and two. It reported that
+*correctly*; the harness was measuring a lever with nothing attached. A third round dropped
+`button`'s `width` axis and did fail — but at the register-staleness arm (a declared set no def
+uses), not at the pairs floor, since 33 is still above 30. Three rounds, no floor exercised, and a
+red suite each time that would have read as proof.
+
+Take two mutates the **discovery path**, which is what the floors are actually for:
+
+| mutation | result |
+|---|---|
+| discovery truncated to 8 def files | **both** floors fire by name — `only 10 def(s) … below 12`, `only 28 pair(s) … below 30` |
+| `variants` read under a wrong field name | **PAIRS floor alone** fires — `only 0 pair(s) … below 30` — with defs still at 13, above their floor. The two floors are independently reachable. |
+| `DEFS_DIR` repointed at another directory | exit 1, but **neither floor** — the registry-exclusion guard catches it first and hard-exits above them |
+
+The third row is a corrected prediction, not a pass: I expected both floors and got a different
+guard. Correct layering — the more specific check fires first and the gate still fails loudly — but
+the honest statement is that the directory-repoint case is covered by the registry guard, and the
+floors' demonstrated scope is the two rows above it.
+
+**A pipeline nearly ate that finding.** `npx tsx … | head -6` reported `exit=0` for a gate that
+exits 1 — `$?` was `head`'s. Re-measured with no pipeline between the command and the check, which
+is the property `verify.ts` was built to have and the reason it has it.
+
+── REBASES ───────────────────────────────────────────────────────────────────────────────────────
+
+Twice, and each time the only conflict was this file's top entry — a version-neutral gate change
+racing a busy `main`. Both were rebuilt deterministically from main's file plus this entry rather
+than by editing conflict markers, and both measure to the line:
+
+| onto | incoming | conflict | measured |
+|---|---|---|---|
+| `ae5d601` | #1219, #1015 | `docs/00-progress.md` | main 35909 + entry 96 = 36005, **0 deletions either side** |
+| `0984589` | #1266 | `docs/00-progress.md` | main 36080 + entry 110 = 36190, **0 deletions either side** |
+
+`lint-axis-values.ts` auto-merged both times, and that was **checked rather than assumed** — #1219 is
+*"sweep the stale numeric prose left by the 36/44/56 ladder move"*, close enough to this change's own
+subject that "nothing else touched it" is exactly the claim worth a `git log` before trusting. It
+touched `scale.ts`, `checkbox.ts`, `test.ts` and `version.ts`; #1266 touched the focus-ring path.
+Neither goes near this gate, and the code delta stayed identical hunk-for-hunk across both rebases.
+
+**The gate's population is unchanged at 13 defs / 34 pairs on every base**, which is the check worth
+repeating rather than assuming: #1015 edited `checkbox.ts` and #1266 the focus-ring def, both of
+which carry `variants` blocks, so either could plausibly have moved the pair count and the floors'
+slack with it. Neither did.
+
+Version-neutral still holds: ENGINE stays main's 0.44.0, CONTRACT 9.4.0, and
+`git diff origin/main HEAD -- version.ts out/ schema/` is empty.
+
 ## (2026-09-03) — the focus ring pastes at 2px, and the property that was wrong had no read-back at all (#1266)
 
 **STATUS: shipped, JIT-rebased onto #1015 (`ae5d601`).** `ENGINE_VERSION` **→ 0.44.0**; `CONTRACT_VERSION`
