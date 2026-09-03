@@ -1907,5 +1907,71 @@ ok(clampedBelow.some((c) => c.startsWith('aurora')),
 ok(rb.rows.every((r) => r.radii.every((v) => v === 'radius/round')),
   `#1011/#1015 ...and radio's binds \`radius.round\` still, so the two controls are distinguished by shape at the node and the clamp did not sweep the family (${[...new Set(rb.rows.flatMap((r) => r.radii))].join(', ')})`);
 
+// ---- #1266: THE RING'S STROKE WEIGHT, READ BACK OFF THE BUILT NODE ----------------------------
+// THE FIRST READ-BACK ON `strokeWeight` IN THIS SUITE, AND THAT ABSENCE IS WHY THE DEFECT SHIPPED
+// (docs/34 §3 — a property with no read-back has no oracle, so three passes over this exact node
+// missed it). #801 measured the ring's POSITION, #802 its PAINT, #1011 its RADIUS; every one of them
+// walked the built ring and none of them looked at how thick it was. It was 1px in every brand, all
+// four of which emit `focus.ring.width: 2`, and because every host sites the part at
+// `-(offset + ring-width)` — the stroke draws INWARD across the gap — the built gap was 3px where 2px
+// was designed. Both halves are invisible to a plan-only assertion: the plan is right, the executor's
+// `if (!node.strokeWeight) node.strokeWeight = 1` fallback is what wrote the wrong number.
+//
+// SO THE ACTUAL HERE IS THE NODE, and what is asserted is the bound variable's NAME rather than a
+// number, exactly as the #1011 radius arms above do. A number would pass on a stroke that happens to
+// be 2 for the wrong reason (an executor literal, a brand coincidence); the name fails on both of the
+// ways this can regress — the binding going away and returning the node to the 1px fallback, and the
+// binding pointing at some other token that resolves to 2 on one brand.
+const ringDef = byId('focus-ring');
+ok(!!ringDef, '#1266 reachable: `focus-ring` resolves from its id');
+const ringPlans = figmaAnatomySet(ringDef!, {});
+const ringPage: Page = { children: [] };
+const ringRun = await run(ringPlans, { ...fullFor(ringPlans), page: ringPage });
+// THE RING **IS** THE MEMBER, which is why this reads the member node rather than searching for a part
+// named `ring` inside it: `focus-ring`'s anatomy is one part and it is the root, so the executor builds
+// it as the member frame and `planComponentName` RENAMES it to its coordinate (`surface=default`). An
+// `allNodes(m).find((n) => n.name === 'ring')` — the shape the #1011 block above uses, correctly, for a
+// CHILD part — finds nothing here, and the reachability pin below is what said so rather than 2 arms
+// passing over zero rings.
+const builtRings = (((ringPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [])
+  .map((m) => ({ member: m.name as string, node: m }));
+// PIN THE INPUT FIRST, same discipline as the two blocks above: every claim below is vacuously true
+// over zero rings, and the `offset` axis is deliberately unprojected (#795) so the set is 2 members —
+// `surface=default` and `surface=inverse` — not 4.
+ok(ringPlans.length === 2 && builtRings.length === 2,
+  `#1266 reachable: the projected set built and its ring node was found on every member (${builtRings.length}/${ringPlans.length})`);
+ok(ringRun.misses.length === 0,
+  `#1266 ...with no misses, so the weight variable RESOLVED rather than being reported absent (${ringRun.misses.join('; ') || 'none'})`);
+const weightOf = (n: Node): string | null => {
+  const id = ((n.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
+  return id ? id.replace(/^V:/, '') : null;
+};
+ok(builtRings.every((r) => weightOf(r.node) === 'focus/ring/width'),
+  `#1266 every built ring binds \`focus.ring.width\` as its stroke weight (${builtRings.map((r) => `${r.member} -> ${weightOf(r.node) ?? 'UNBOUND (the 1px executor fallback)'}`).join('; ')})`);
+// AND THE FALLBACK STOOD DOWN, which is a second fact and not the same one. Live, writing
+// `node.strokeWeight = 1` AFTER `setBoundVariable('strokeWeight', v)` UNBINDS the variable — Figma
+// treats a literal assignment as the designer overriding the binding — so a build that both bound the
+// weight and then ran the fallback would satisfy the arm above in this shim (which records the binding
+// separately) and ship a 1px ring anyway. The shim starts a FRAME at `strokeWeight: 0` precisely so
+// the executor's `if (!node.strokeWeight)` fires as it does live, which makes "nothing wrote a literal"
+// observable as 0. That is what gates the `wrote.includes('strokeWeight')` half of the fix.
+ok(builtRings.every((r) => r.node.strokeWeight === 0),
+  `#1266 ...and no literal weight was written over the binding, which live would unbind it (${builtRings.map((r) => `${r.member} -> ${r.node.strokeWeight}`).join('; ')})`);
+// THE NEGATIVE CONTROL, because the fix is a GATE on an existing default and the cheapest way to pass
+// the arms above is to delete the default outright. A box that paints a stroke and binds no weight must
+// still get the 1px fallback: without it Figma leaves `strokeWeight` at 0 and the stroke paints nothing
+// at all — a border silently absent rather than a thin one, which is worse than the bug being fixed.
+// Built from the same plan with the binding stripped, so the two runs differ in exactly one thing.
+const unboundPlans = (JSON.parse(JSON.stringify(ringPlans)) as AnatomyPlan[]).map((p) => {
+  delete (p.root as { bound?: Record<string, string> }).bound?.strokeWeight;
+  return p;
+});
+const unboundPage: Page = { children: [] };
+await run(unboundPlans, { ...fullFor(unboundPlans), page: unboundPage });
+const unbound = ((unboundPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
+ok(unbound.length === 2, `#1266 reachable: the binding-stripped variant built the same two rings (${unbound.length}/2)`);
+ok(unbound.every((n) => weightOf(n) === null && n.strokeWeight === 1),
+  `#1266 ...and with nothing bound the 1px fallback STILL fires, so the fix gates the default rather than removing it (${unbound.map((n) => `${weightOf(n) ?? 'unbound'}@${n.strokeWeight}`).join('; ')})`);
+
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

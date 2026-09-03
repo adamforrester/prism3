@@ -148,7 +148,8 @@
  *      too, and fails for the right reason: the gate cannot compute a gap it was given no stroke for,
  *      and #801 is precisely what happens when it guesses zero. `component-schema.ts` rejects that
  *      combination at authoring time for the ring specifically; this is the same claim over the
- *      emitted artifact, and it generalizes the day #740 lets any part declare its own stroke.
+ *      emitted artifact, and since #1266 it reads the nested part's own `strokeWidth` rather than a
+ *      token key standing in for the field `PartDef` used not to have — see `inwardStrokeRef`.
  *   D. BOTH DIRECTIONS, so the gate cannot pass over an empty set:
  *        · Every part the DEF declares as `kind: 'absolute'` with an `inset` must be REPRESENTED in
  *          some projected plan. Without this, a projector that stopped emitting `absoluteInset`
@@ -228,18 +229,28 @@ const nameOf = (ref: string): string => ref.replace(/\./g, '/');
 
 /**
  * DOES THE COMPONENT THIS PART NESTS DRAW A STROKE INSIDE ITS OWN BOUNDS? — read from the NESTED
- * def's own `tokens`, which is the half of C that the host cannot fake. If it does, the host's part
+ * def's own declaration, which is the half of C that the host cannot fake. If it does, the host's part
  * must declare a `strokeInset` for it, and that binding must name the SAME token: a host compensating
  * for the wrong width leaves a gap of the wrong size, silently, exactly as #801 did.
  *
- * A `width` token key IS the stand-in for the stroke `PartDef` has no field for (#740, and the reason
- * `focus-ring`'s own header lists that as wall 1). It is a stand-in and it is not a guess: `focus-ring`
- * binds `width: 'focus.ring.width'`, its `codeOnly` says in as many words that the stroke weight is
- * bound in `tokens` because no part can carry it, and the ring's whole substance IS that stroke. When
- * #740 gives a part a stroke field, this function reads that field instead and the claim below is
- * unchanged — which is the generalization the fix was shaped for.
+ * READ FROM THE NESTED ROOT PART'S `strokeWidth`, as of #1266, and that is the generalization this
+ * function's own note predicted rather than a refactor. It used to read `nested.tokens?.['width']` — a
+ * token KEY standing in for the stroke field `PartDef` did not have (#740), honest at the time and
+ * strictly weaker in one way that mattered: a def can name a `width` token and bind it to nothing, which
+ * is precisely what `focus-ring` did. So the gate computed `gap = inset` off a declared 2px stroke while
+ * the build drew 1px and the real gap was 3. Reading the PART's field asks the question the arithmetic
+ * depends on — does this component draw that stroke — and it fails by name through `MUST_CLEAR_STROKE`
+ * below if a ring ever stops declaring one, which the token-key form could not.
+ *
+ * Still resolved THROUGH `tokens`, because `strokeWidth` is a binding key like every other geometry
+ * field: the part names `width` and the def maps it to `focus.ring.width`. Both halves are needed, and a
+ * part naming a key its def does not bind is `validateComponentDef`'s to refuse, not this file's.
  */
-const inwardStrokeRef = (nested: ComponentDef): string | undefined => nested.tokens?.['width'];
+const inwardStrokeRef = (nested: ComponentDef): string | undefined => {
+  const a = nested.anatomy;
+  const key = a ? a.parts[a.root]?.strokeWidth : undefined;
+  return key ? nested.tokens?.[key] : undefined;
+};
 
 /** Brands DISCOVERED from the emitted tree, not listed, so a new brand is covered the day it emits.
  *  Asserted non-empty below: a scan that finds nothing must fail, not report clean. */
@@ -406,7 +417,7 @@ for (const def of componentDefs) {
 
         if (inwardRef && d.strokeKey === undefined) {
           failures.push(
-            `${at}: '${node.name}' nests '${node.nestTarget}', whose own tokens bind a stroke width ('${inwardRef}') it draws INSIDE its bounds (strokeAlign: 'INSIDE' at both executors) — and this part declares no \`strokeInset\` to compensate for it. The part is sited at -inset, the stroke is drawn back across the gap, and the visible separation is (inset − ${inwardRef}). That is #801: at the shipped 2px/2px it is ZERO, and it resolves, writes and reports no miss.`,
+            `${at}: '${node.name}' nests '${node.nestTarget}', whose root part declares a stroke width ('${inwardRef}') it draws INSIDE its bounds (strokeAlign: 'INSIDE' at both executors) — and this part declares no \`strokeInset\` to compensate for it. The part is sited at -inset, the stroke is drawn back across the gap, and the visible separation is (inset − ${inwardRef}). That is #801: at the shipped 2px/2px it is ZERO, and it resolves, writes and reports no miss.`,
           );
           continue;
         }
@@ -416,7 +427,7 @@ for (const def of componentDefs) {
             continue;
           }
           if (!inwardRef)
-            failures.push(`${at}: '${node.name}' declares \`strokeInset\` → '${strokeRef}', and the def it nests ('${node.nestTarget ?? 'nothing'}') binds no stroke width of its own — so the host is adding a compensation for a stroke that is not there, and the gap is (inset + ${strokeRef}) rather than inset`);
+            failures.push(`${at}: '${node.name}' declares \`strokeInset\` → '${strokeRef}', and the def it nests ('${node.nestTarget ?? 'nothing'}') declares no \`strokeWidth\` on its root part — so either the host is compensating for a stroke that is not drawn (the gap becomes inset + ${strokeRef} rather than inset), or the nested def lost the binding and now paints the executors' 1px fallback under a compensation sized for something else. That second reading is #1266`);
           else if (inwardRef !== strokeRef)
             failures.push(`${at}: '${node.name}' compensates for '${strokeRef}' and the def it nests draws '${inwardRef}' — the wrong width leaves a gap of the wrong size in every brand where the two values differ, silently`);
           if (!node.absoluteStrokeInset)

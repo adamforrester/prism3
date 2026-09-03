@@ -1076,6 +1076,12 @@ export const figmaAnatomyPlan = (
       // needed here — but the reason it is safe is that call, not the arithmetic.
       if (p.width) bound.width = varOf(p.width);
       if (p.radius) for (const c of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius']) bound[c] = varOf(p.radius);
+      // THE PART'S OWN STROKE (#1266, #740's field). One property, and the only one Figma offers: a
+      // stroke's color is a bound PAINT (`paintSlots`) and its style is a `dashPattern`, so `strokeWeight`
+      // is the whole of what a `strokeWidth` key can reach. Both executors' `if (!node.strokeWeight) … = 1`
+      // fallback now stands down when this binding wrote — unconditional it would UNBIND what Figma just
+      // accepted, which is the same last-write-wins silence the aspect-ratio unlock exists for.
+      if (p.strokeWidth) bound.strokeWeight = varOf(p.strokeWidth);
       if (p.padding) {
         bound.paddingTop = varOf(p.padding.block);
         bound.paddingBottom = varOf(p.padding.block);
@@ -2155,12 +2161,16 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     const p=paint(n.paints.strokes,'strokes');
     // A stroke variable with no strokeWeight paints nothing visible, so the border appearance would
     // bind correctly and render as no border at all.
+    // GATED ON \`wrote\` (#1266). A part that declares \`strokeWidth\` has \`strokeWeight\` BOUND a few lines
+    // up, and a literal assignment after a binding unbinds it — the border would then be the right paint
+    // at a hardcoded 1px, re-theming on color and frozen on width. \`wrote\` rather than \`n.bound\`, because
+    // a name that failed to resolve was skipped and still needs the fallback to paint something.
     // BORDER-BOX, and \`strokesIncludedInLayout\` defaults the other way. Left at Figma's default the
     // stroke is ADDED to the auto-layout size, so an outline button measured 62 wide where the filled
     // one measured 60 — swapping \`appearance\` moved the footprint, which is the one thing a variant
     // axis must not do. It showed up on the hug axis only: the fixed (bound) height absorbed the same
     // 2px silently, so a component with two fixed axes would have hidden this completely.
-    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;}
+    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&wrote.indexOf('strokeWeight')<0)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a
