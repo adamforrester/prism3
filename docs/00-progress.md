@@ -7,6 +7,106 @@
 
 ---
 
+## (2026-09-04) — the focus ring becomes buildable ALONE, which is what every host nesting it was waiting on (#1280 PR-B)
+
+**STATUS: shipped, engine-side. `ENGINE_VERSION` 0.47.0 → 0.48.0; `CONTRACT_VERSION` stands at 9.4.0.**
+Rebased onto `3e5b157` (main with #1279 + #1281/#1282 + #1012); first cut off `b116d7b` and first stamped
+0.46.0, which #1281/#1282 took while this was in review, and #1012 then took 0.47.0 — a plain integer
+collision, no interaction with either change. Two source files — `packages/engine/components/focus-ring.ts` and
+`packages/engine/lint-standalone-floor.ts` — plus the two accepted baselines and the generator stamp.
+`npm run verify` stays **55/55**. **No token name, no `$type` and no token VALUE moved**: the only diff
+under `out/**` is `$extensions.generator.version` in the eight emitted trees, which is exactly the case
+`lint-component-surface` arm B (#1252) exists for — the projected component surface moved and no `out/`
+diff can see it.
+
+**The defect was a DEADLOCK between two correct halves, which is why it survived two releases in plain
+sight.** A host reaches the ring through `nests: 'focus-ring'`, which projects a `NESTED_INSTANCE` whose
+`nestTarget` resolves by NAME against the designer's live file — so the ring must be **built and published
+before any host can nest one**. That standalone build was refused, correctly, by
+`figmaProperties.notStandalone`: the def's two members bound no extent at all, so Figma would supply a
+100x100 default frame and the artifact would read as a success (#869). And the refusal's own remedy
+sentence said *"Build it as part of a host instead"* — naming a path that does not exist. So the loop
+closed on itself: build Button, read `focusRing.nestTarget -> not in this file — build focus-ring FIRST`,
+open the picker, and the ring is not offered. Neither half was wrong. Together they made the ring
+unbuildable and therefore un-nestable, and because an unresolved `nestTarget` **builds nothing and returns
+null**, every host built silently without a ring. The owner's QA reported it as *"the focus ring never
+appears on the button"*.
+
+**The fix is geometric, and nothing structural moved.** Per the owner's locked decision: keep the nesting
+(all seven `nests` edges resolved before this change and resolve identically after), and give the
+standalone ring a nominal fixed square at the `md` control height. The `ring` part gains
+`size: 'nominal-side'` → `tokens['nominal-side'] = 'size.md.height'`, one binding key driving both axes via
+the projector's `box` branch, so the two members acquire `bound.width` + `bound.height` where they
+previously acquired nothing. **No `SIZE_SOURCES` mechanism was added** — `bound.width` and `bound.height`
+were already mechanisms 1 and 2 of `lint-standalone-floor`'s seven, each already carrying its positive and
+near-miss negative in `PREDICATE_CASES`, so the docs/34 obligation attached to a *new* mechanism does not
+arise here.
+
+**A BINDING, never an AXIS, and that constraint is load-bearing rather than stylistic.** Since #795 a
+`size` **axis** would make `planComponentName` write a `size=` segment into every member name, and
+`nestVariantMatch` requires a host's nesting coordinate to account for **every** axis a member name
+carries — so all five hosts' `nesting: { variant: { surface: 'default' } }` would match nothing and every
+host's ring would vanish at once. That failure mode is invisible: an absent stroke where a ring should be
+reads exactly like a build that worked. A `size` **binding** gives each member one square side and renames
+no member; `variantAxes` stays `['surface']`, and the def's existing comment explaining why `size` is not
+an axis got **more** load-bearing when the binding arrived, so it now says so against the binding by name.
+
+**The number is nominal, and it is labelled rather than left to be inferred.** A ring has no intrinsic
+size — nested, its extent is its host's grown by the offset, written by the host's `absoluteInset`
+executor — so `nominal-side` exists only to make the library artifact ring-shaped, and it is overwritten
+the moment the ring is nested. `size.md.height` because the ring's commonest host is a control at that
+rung; any other rung would have been equally defensible, and none of them is a design decision. The def's
+own prior comment argued *against* this change (*"a `size` binding here would fight the stretch"*); rather
+than delete it, the new comment quotes it verbatim and answers it — `PartDef.size` is rejected on the
+**host's** `absolute` part because the host's executor resizes that node on the next line, and none of
+that reasoning reaches this def's own `box` part, because nothing in a nested build reads the ring def's
+root dimensions.
+
+**The deletion was gate-FORCED, not remembered.** Once the root acquired an extent,
+`lint-standalone-floor` arm B fired on `focus-ring` — a stale refusal — and stayed red until
+`figmaProperties.notStandalone` was deleted. That is arm B doing exactly what its header predicted while
+predicting the wrong cause: it expected a schema field (#740) to eventually give the ring a size it could
+not express, and what actually arrived was a reason two tiers from geometry. Worth recording, because the
+converse arm asks whether the declaration is still TRUE, not whether the author's story about how it might
+stop being true came about. It also retires the unactionable *"build it as part of a host instead"* string,
+so the deadlock's prose half needs no separate fix.
+
+**Removing the declaration removed arm B's only corpus input — this PR's own docs/34 hazard, answered
+rather than left.** `focus-ring` was the *only* def in the corpus declaring `notStandalone`, so after this
+change the corpus walk cannot reach arm B at all: a vacuous floor, the shape docs/34 names one level up in
+this same gate's `layoutMode` measurement. The gate gains `ARM_CASES`, a four-row truth table over
+(`sized`, `declared`) — arm A fires, arm B fires on the stale-refusal row, and neither fires on the two
+honest rows — checked against `armA`/`armB` predicates the **corpus walk itself now runs**, so the table is
+not `x === x`, plus a coverage assertion that a table asserting only the passing combinations is rejected.
+The gate also prints `arm B reach: 0 def(s) declare notStandalone` so the vacuity is visible in the output
+rather than inferred from the source.
+
+**Mutation-tested, by name.** Stripping the ring's `size` binding makes `lint-standalone-floor` fail on
+arm A naming `focus-ring`; inverting either arm predicate makes `ARM_CASES` fail naming the offending row;
+reverting the `notStandalone` deletion with the binding in place makes arm B fail by name. The
+`component-surface` baseline moved by one row (`focus-ring`, 2 members → 2 members, digest changed) and was
+taken with `--accept`, which refuses without the ENGINE bump; `token-contract --accept` was taken at
+`diff.level === 'none'` for the `engineVersion`-only line.
+
+**ONE THING THIS PR CANNOT PROVE, and the owner QA that would.** An INSTANCE inherits its main component's
+bindings, and the executor's measured note says `resize()` **clears** every dimension binding — so the
+nominal side should not survive onto a nested ring, which the host resizes. Both of those were measured on
+bindings the executor **set**, never on one **inherited** through an instance, and the #874 shim cannot
+tell the difference. The measurement: build `focus-ring`, then Button, and compare the nested ring's box
+against the host's grown by 2·(offset + width). If a nested ring is found sitting at the md control height
+instead, that is this binding surviving the resize, and the fix is in the host executor — clear the
+instance's inherited width/height before resizing — not in this def.
+
+**#1290 is the real-host check that settles it**, filed so the question is a lane rather than a paragraph.
+The risk is stated in three places for three readers, and they are **named here rather than counted**: the
+`nominal-side` comment in `packages/engine/components/focus-ring.ts` (for whoever next edits the def), the
+0.48.0 entry in `packages/engine/version.ts` (for whoever reads the release), and this entry. An earlier
+write-up of this change said "all four places" and counted its own PR body among them — a count of its own
+sites cannot help including whatever is doing the counting, and goes stale the moment one site moves, which
+is the same name-don't-count rule `verify.ts`'s `EXPECTED_ARTIFACTS` and this repo's own CLAUDE.md follow.
+
+---
+
 ## (2026-09-04) — interactive states move two genome rungs, the outline ink tracks its border, and pressed stops owing contrast (#1281 + #1282)
 
 **STATUS: shipped.** `ENGINE_VERSION` 0.45.0 → **0.46.0**; `CONTRACT_VERSION` **stands at 9.4.0**.

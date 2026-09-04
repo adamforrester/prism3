@@ -55,8 +55,10 @@
  * ── WHY A RULE OVER SIX MECHANISMS RATHER THAN "IS IT focus-ring" ───────────────────────────────
  *
  * The rule is authored from a corpus measurement, not from the def that failed. Across all six
- * projecting defs, every node acquires extent through one of seven mechanisms and **21 of 22 node names
- * have one**:
+ * projecting defs at the time, every node acquired extent through one of seven mechanisms and **21 of 22
+ * node names had one** — the table is left at its original measurement because the ONE that did not is
+ * what this file was built to catch, and #1280 has since closed it (see the arm-B note below), which the
+ * table would hide if it were refreshed to read 22 of 22:
  *
  *     icon         glyph          glyphViewBox (bound.width + bound.height until #864)
  *     button       container      bound.height + layoutMode with 1-4 children
@@ -67,7 +69,7 @@
  *     field-label  label          layoutMode with 2 children
  *                  text/indicator characters
  *     field-message message       layoutMode with 2 children
- *     focus-ring   ring           ← NOTHING
+ *     focus-ring   ring           ← NOTHING (until #1280: bound.width + bound.height, a nominal square)
  *
  * A def-name allowlist would have been one line and would catch exactly today's case. `SIZE_SOURCES`
  * below is checkable instead, and the property it buys is worth stating precisely because the first
@@ -107,6 +109,20 @@
  * declaration becoming a permanent exemption: #740 or a later schema field may give the ring its own
  * size, at which point `notStandalone` is a stale refusal — a def that CAN be built and is not offered,
  * with a sentence on screen explaining a limit that no longer exists. Arm B fails then, by name.
+ *
+ * IT DID, IN #1280, AND THE OUTCOME IS WORTH RECORDING because arm B was written on a guess about how it
+ * would be reached and the guess was wrong in an instructive way. It predicted a SCHEMA field arriving
+ * (#740) and giving the ring a size it had been unable to express. What actually happened is that the
+ * refusal turned out to be one half of a deadlock: a host resolves `nests: 'focus-ring'` by NAME against
+ * the designer's live file, so the ring must be BUILT before any host can nest it, and this field refused
+ * the only build that could put it there. Nothing was blocking the size; the def had simply never needed
+ * one, and needed one for a reason two tiers away from geometry. Arm B did not care — the whole value of
+ * the converse is that it asks whether the declaration is still TRUE, not whether the author's story about
+ * why it might stop being true came about. It fired on `bound.width + bound.height` and named the def.
+ *
+ * AND IT COST ARM B ITS ONLY CORPUS INPUT, which is why `ARM_CASES` now exists below: `focus-ring` was
+ * the one def that ever declared the floor, so with the declaration gone arm B ranges over an empty set.
+ * A gate whose arm nothing can reach is this file's own `layoutMode` measurement one level up.
  *
  * And arm C is the scope floor, because both arms above range over "defs that project": if
  * `figmaAnatomySet` began throwing for every def, A and B would pass over an empty set and this file
@@ -211,9 +227,52 @@ const MUST_PROJECT = ['icon', 'focus-ring', 'button', 'icon-button', 'field-labe
 /** Whether the def declares the floor. Read here, ONCE, off the def — the EXPECTED half. */
 const declares = (def: ComponentDef): string | undefined => def.figmaProperties?.notStandalone;
 
+/**
+ * THE TWO ARMS AS PREDICATES, TRUTH-TABLED — and this table exists because of #1280, which is arm B
+ * working as designed and taking arm B's only input away with it.
+ *
+ * `focus-ring` was the one def in the corpus that ever declared the floor. #1280 gave its root a nominal
+ * square side, arm B fired on the stale refusal exactly as this file's header predicted it would, and the
+ * declaration went. So as of that change **NO def declares `notStandalone` and every projecting def has
+ * an extent** — which means arm A ranges over defs that all pass it and arm B over an empty set. Both
+ * arms still run, and neither can any longer be reached by anything committed.
+ *
+ * That is the same defect this file already refuses to commit one level down. `PREDICATE_CASES` exists
+ * because collapsing `layoutMode+children` to a bare `layoutMode` changed NOTHING over six defs, and the
+ * header's conclusion was that **a mutation that changes nothing is indistinguishable from a blind spot**.
+ * Deleting either arm's body today changes nothing over eleven. `docs/34` calls this the vacuous-floor
+ * shape, and the cheapest honest answer is the one already in this file: state the classification the arms
+ * implement, and check the arms against it before the walk.
+ *
+ * Four combinations of (does the root acquire an extent, does the def declare the floor), each with the
+ * arm that must fire. EXPECTED is `fires`, authored in the words of what the case IS; ACTUAL is the
+ * predicate. `sized`/`declared` are booleans rather than the plans and strings the walk holds, because
+ * the arms only ever ask those two questions of them — passing richer inputs would make this table
+ * re-derive the walk instead of checking the arms.
+ */
+const armA = (sized: boolean, declared: boolean): boolean => !sized && !declared;
+const armB = (sized: boolean, declared: boolean): boolean => sized && declared;
+
+const ARM_CASES: Array<{ sized: boolean; declared: boolean; fires: 'A' | 'B' | 'neither'; why: string }> = [
+  { sized: false, declared: false, fires: 'A', why: '#869 itself: a geometry-free root offered as a build target, which pastes Figma\'s 100x100 default frame and reads as a success' },
+  { sized: false, declared: true, fires: 'neither', why: 'the state `focus-ring` was in from #869 to #1280 — a def that cannot be built alone and says so, which is the whole point of the field' },
+  { sized: true, declared: true, fires: 'B', why: 'a STALE refusal: the def gained an extent and kept the declaration, so the picker withholds a buildable def and shows a designer a reason that is no longer true. This is the case #1280 hit, and no committed def is in it any more' },
+  { sized: true, declared: false, fires: 'neither', why: 'every projecting def today, `focus-ring` included since #1280 — buildable, and not claiming otherwise' },
+];
+
+for (const c of ARM_CASES) {
+  const fired = [...(armA(c.sized, c.declared) ? ['A'] : []), ...(armB(c.sized, c.declared) ? ['B'] : [])];
+  const expected = c.fires === 'neither' ? [] : [c.fires];
+  if (fired.join(',') !== expected.join(','))
+    failuresPre.push(`ARM_CASES {sized:${c.sized}, declared:${c.declared}} must fire [${expected.join(',') || 'nothing'}] and fires [${fired.join(',') || 'nothing'}] — ${c.why}. As of #1280 no committed def reaches arm B, so this table is the only thing exercising it: an arm broken here goes unnoticed by the corpus walk below.`);
+}
+if (!ARM_CASES.some((c) => c.fires === 'A') || !ARM_CASES.some((c) => c.fires === 'B'))
+  failuresPre.push('ARM_CASES covers neither arm A nor arm B — a table that asserts only the passing combinations restates that the gate is quiet, which is what it is here to stop being enough.');
+
 const failures: string[] = [...failuresPre];
 const notes: string[] = [];
 const projected: string[] = [];
+let declaringCount = 0;
 
 for (const def of componentDefs) {
   let plans;
@@ -234,9 +293,16 @@ for (const def of componentDefs) {
   const root = plans[0].root;
   const found = SIZE_SOURCES.filter((s) => s.has(root));
   const expected = declares(def);
+  // Through the SAME predicates `ARM_CASES` checks, so the truth table is a claim about the code that
+  // runs rather than about a copy of it. Written out here as `found.length === 0 && !expected` and
+  // `found.length > 0 && expected`, the table above would be asserting a second spelling of the rule and
+  // could pass while these two drifted — `docs/34`'s x === x, at the one place this file cannot afford it.
+  const sized = found.length > 0;
+  const declared = Boolean(expected);
+  if (declared) declaringCount++;
 
   // ---- arm A: a geometry-free root must be declared ----------------------------------------------
-  if (found.length === 0 && !expected) {
+  if (armA(sized, declared)) {
     failures.push(
       `${def.id}: projects ${plans.length} member(s) whose root '${root.name}' acquires NO extent — none of [${SIZE_SOURCES.map((s) => s.id).join(', ')}]. `
       + `Built standalone this is Figma's 100×100 default frame${root.paints?.strokes ? ` with '${root.paints.strokes}' stroked around it${root.bound?.strokeWeight ? ` at '${root.bound.strokeWeight}'` : ` at the executors' 1px fallback`}` : ''}, which reads as a successful build (#869). `
@@ -246,7 +312,7 @@ for (const def of componentDefs) {
 
   // ---- arm B: a declared def must actually be geometry-free --------------------------------------
   // The converse, and the half that keeps the declaration from becoming a permanent exemption.
-  if (found.length > 0 && expected) {
+  if (armB(sized, declared)) {
     failures.push(
       `${def.id}: declares figmaProperties.notStandalone, and its root '${root.name}' DOES acquire an extent — ${found.map((s) => `${s.id} (${s.why})`).join('; ')}. `
       + `The refusal is stale: the picker withholds a def that can now be built, and shows a designer a reason that is no longer true. Remove the declaration. `
@@ -264,6 +330,10 @@ for (const id of MUST_PROJECT)
 
 console.log(`Standalone floor — ${projected.length} projecting def(s) of ${componentDefs.length}, ${SIZE_SOURCES.length} extent mechanism(s) each checked against a positive and a near-miss case: ${projected.join(', ')}`);
 for (const n of notes) console.log(`    ${n}`);
+// SAID OUT LOUD, because a reader counting failures cannot see it: with no def declaring the floor, arm B
+// has nothing in the corpus to range over and `ARM_CASES` is the whole of what exercises it. Printed as a
+// number rather than left to be inferred from the absence of `[notStandalone declared]` above.
+console.log(`    arm B reach: ${declaringCount} def(s) declare notStandalone${declaringCount === 0 ? ' — so the corpus walk cannot reach arm B at all, and ARM_CASES above is the only thing that does (#1280)' : ''}`);
 if (failures.length) {
   console.error(`\n❌ ${failures.length} standalone-floor failure(s):`);
   for (const f of failures) console.error(`  · ${f}`);

@@ -138,6 +138,60 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.48.0: the focus ring is BUILDABLE ALONE, which is what every host that nests it was waiting on
+ * (#1280 PR-B). `focus-ring`'s one part binds a NOMINAL square side — `size: 'nominal-side'` →
+ * `size.md.height`, one key driving both axes — so its two members acquire `bound.width` +
+ * `bound.height` where they previously acquired nothing, and `figmaProperties.notStandalone` is deleted.
+ *
+ * THE DEFECT WAS A DEADLOCK BETWEEN TWO CORRECT HALVES, which is why it survived two releases in plain
+ * sight. A host reaches the ring through `nests: 'focus-ring'`, and a `nestTarget` resolves by NAME
+ * against the designer's LIVE FILE — so the ring must be built and published before any host can nest
+ * one. The standalone build was refused, correctly, because the members bound no extent and Figma
+ * supplied a 100x100 default frame (#869). And the refusal's own remedy sentence said *"build it as part
+ * of a host instead"*, naming a path that does not exist. So the loop closed on itself: build Button,
+ * read `focusRing.nestTarget -> not in this file — build focus-ring FIRST`, open the picker, and the ring
+ * is not offered. Neither half was wrong; together they made the ring unbuildable and therefore
+ * un-nestable, and because an unresolved `nestTarget` builds NOTHING and returns null, every host built
+ * silently without a ring. The owner's QA reported it as "the focus ring never appears on the button".
+ *
+ * THE NUMBER IS NOMINAL AND LABELLED SO. A ring genuinely has no size of its own — nested, its extent is
+ * its host's grown by the offset, written by the host's executor — so `nominal-side` exists only to make
+ * the library artifact ring-shaped, and it is overwritten the moment the ring is nested. `size.md.height`
+ * because the ring's commonest host is a control at that rung; any other rung would have been as
+ * defensible, and none of them is a design decision.
+ *
+ * A BINDING, NEVER AN AXIS, and the distinction is the whole trap. Since #795 a `size` AXIS would make
+ * `planComponentName` write a `size=` segment into every member name, and `nestVariantMatch` requires a
+ * host's coordinate to account for every axis a member name carries — so `{surface:'default'}` would
+ * match nothing and all five hosts' nesting would break at once, invisibly. A `size` BINDING renames no
+ * member. `variantAxes` stays `['surface']`, and the omission is now more load-bearing than before.
+ *
+ * `lint-standalone-floor` arm B FORCED the deletion rather than the author remembering it, which is that
+ * arm doing precisely what its header predicted — while predicting the wrong cause: it expected a SCHEMA
+ * field (#740) to give the ring a size it could not express, and what actually arrived was a reason two
+ * tiers from geometry. The converse asks whether the declaration is still TRUE, not whether the author's
+ * story about how it might stop being true came about. Removing the declaration also removed arm B's only
+ * corpus input, so the gate gains `ARM_CASES` — a four-row truth table over (sized, declared) checked
+ * against the same predicates the walk runs, because an arm nothing can reach is this gate's own
+ * `layoutMode` measurement one level up.
+ *
+ * THE TOKEN LAYER DOES NOT MOVE — `size.md.height` was already emitted in every corpus brand and is not
+ * touched — so the only change under `out/**` is this file's own generator stamp. The bump is demanded
+ * from the other side, `lint-component-surface` arm B (#1252's case): one projected component surface
+ * moves and no `out/` diff can see it. `CONTRACT_VERSION` stands at 9.4.0; no token name and no `$type`
+ * moved, and `token-contract.ts --check` confirms that rather than this comment asserting it. Rebased past
+ * #1281+#1282 (0.46.0) and #1012 (0.47.0) while this was in review, so it stamps 0.48.0 rather than the
+ * 0.46.0 it was first cut as — a plain integer collision, no interaction with either change.
+ *
+ * ONE THING THIS RELEASE CANNOT PROVE, recorded because no gate here can reach it: an INSTANCE inherits
+ * its main component's bindings, and the executor's measured note says `resize()` CLEARS every dimension
+ * binding — so the nominal side should not survive onto a nested ring, which the host resizes. Both of
+ * those were measured on bindings the executor SET, never on one INHERITED through an instance, and no
+ * shim can tell the difference. If a nested ring is ever found sitting at the md control height instead
+ * of its host's box, that is this binding surviving the resize, and the fix is in the host executor. The
+ * real-host check that settles it is #1290; the risk is stated for a reader here, in the `nominal-side`
+ * comment in `components/focus-ring.ts`, and in the `docs/00-progress.md` entry for this change.
+ *
  * 0.47.0: `icon` materializes as SEPARATE slash-grouped components, and a 40th glyph joins the set
  * (#1012). Two moves, one MINOR. (1) The projected component SURFACE grows: `icon` gains a 40th member,
  * `FPO-default-icon` — a "for placement only" lettered disc, a real nameable `icon/FPO-default-icon`
@@ -1129,7 +1183,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.47.0';
+export const ENGINE_VERSION = '0.48.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
