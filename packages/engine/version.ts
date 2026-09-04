@@ -138,6 +138,42 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.47.0: `icon` materializes as SEPARATE slash-grouped components, and a 40th glyph joins the set
+ * (#1012). Two moves, one MINOR. (1) The projected component SURFACE grows: `icon` gains a 40th member,
+ * `FPO-default-icon` — a "for placement only" lettered disc, a real nameable `icon/FPO-default-icon`
+ * inside the vocabulary rather than a fallback outside it — so the surface baseline moves 39 → 40 and
+ * `lint-component-surface --accept` restamps it (which is why the bump is owed and the gate refuses the
+ * accept until it is made). (2) `figmaProperties.emitAsComponents` lets a def materialize as separate
+ * top-level `<id>/<glyph>` COMPONENTs instead of one COMPONENT_SET — Figma folds the slash into an
+ * assets-panel folder, which is the delivery an icon library wants and a variant set is not. That flag is
+ * read by the plugin at write time and never enters the plan, so it moves NO plan stamp: the 40-member
+ * count is the only thing that moves the surface digest, and the projected members themselves are
+ * byte-identical to what a set would have combined. The token layer does not move — no `out/**` diff but
+ * the generator stamp — so this is an ENGINE bump the `out/` diff cannot fully see, demanded from the
+ * projected-surface side (#1252's case). JIT-rebased past #1281+#1282, which took 0.46.0 while this was in
+ * review, so this is 0.47.0 rather than the 0.46.0 it was first stamped — a plain integer collision, no
+ * interaction between the two changes.
+ *
+ * A NEW PIPELINE CAPABILITY rode in with the glyph and is worth recording because it is reusable: the FPO
+ * disc knocks its "FPO" letters out with `fill-rule="evenodd"`, which nonzero winding fills back solid.
+ * The glyph pipeline carried no winding rule (`emit-icons.ts` extracted only the `d`, `glyphDocument`
+ * emitted `<path d fill="currentColor">`), so the placeholder forced the gap open: sources may now
+ * declare `fill-rule`, `icon-glyphs.ts` carries the non-default ones in a sparse `ICON_FILL_RULES`, and
+ * `glyphDocument` writes the attribute — gated by a round-trip test, and inert (byte-identical) for every
+ * glyph that needs no rule.
+ *
+ * `CONTRACT_VERSION` STANDS at 9.4.0, and the reason is worth stating because a first reading (and this
+ * issue's own plan) expected it to move: adding `FPO-default-icon` grows the `icon.name` VALUE vocabulary,
+ * but `CONTRACT_VERSION` governs the guaranteed TOKEN-NAME surface — the color/dimension paths every brand
+ * emits — and a glyph name is not a token path. `token-contract.ts --check` confirms it: the guaranteed
+ * set is byte-identical (577 → 577), so the token contract did not move. The gate is even stricter than
+ * that permits — a `none`-level `--accept` refuses to stamp a raised `CONTRACT_VERSION` — so 9.5.0 could
+ * not be recorded without inventing a token-path change that does not exist. The vocabulary growth is
+ * carried where it belongs: the projected component-surface baseline (39 → 40, ENGINE-gated) and the
+ * `icon.name` component-API contract that `docs/30` and `icon-set.ts` describe, neither of which is the
+ * token-name contract this const versions. The baseline's informational `engineVersion` stamp is
+ * refreshed by `--accept` to track the ENGINE bump above, at contract 9.4.0 unchanged.
+ *
  * 0.46.0: interactive states move TWO genome rungs each, and the outline ink tracks its border at
  * every state (#1281 + #1282). Both are one change to how a control expresses engagement, which is
  * why they ship together: the deeper interval is what makes the ink's tracking visible, and the ink
@@ -1093,7 +1129,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.46.0';
+export const ENGINE_VERSION = '0.47.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

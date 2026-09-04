@@ -2,8 +2,8 @@
   "note": "AUTHORED BASELINE, never a regen artifact (see lint-component-surface.ts). Rewritten only by an explicit `npx tsx packages/engine/lint-component-surface.ts --accept`, which refuses unless ENGINE_VERSION has already moved — a gate allowed to rewrite what it reads has no memory. Per def: the member count of the DEFAULT Figma projection and a sha256 over its sorted `planComponentName|planStamp` rows. `null` means the def declares no figmaProperties and projects no set. Brand-independent: figmaAnatomySet takes a def and no theme, so this moves when the engine moves and not when a brand input does. It records no engine version of its own on purpose — a pure value change bumps the engine and moves no component surface. A failure here is a CHANGED projection: read the diff, decide whether the change was intended, bump ENGINE_VERSION, then accept.",
   "defs": {
     "icon": {
-      "members": 39,
-      "sha256": "d2fbe20f60b4647bb67b8cd2d2df00911cd5f96c6896781206e025a7989f86dd"
+      "members": 40,
+      "sha256": "ab2b0c80e12bee57320d07406498a68ada354ac525dcfef0bfb775c2756234fa"
     },
     "focus-ring": {
       "members": 2,

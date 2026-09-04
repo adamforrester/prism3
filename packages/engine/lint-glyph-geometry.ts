@@ -20,12 +20,12 @@
  *   · IT IS FILLED. A `<path>` with `fill="none"` and no stroke has a perfectly good bounding box and
  *     paints nothing. Box area is necessary and not sufficient.
  *   · IT IS THE MEMBER'S OWN OUTLINE. Templating `glyph: '{name}'` wrong is not four members carrying
- *     none, it is 39 members carrying ONE — the same defect at the opposite extreme, and the one a
+ *     none, it is 40 members carrying ONE — the same defect at the opposite extreme, and the one a
  *     count of members reports as a pass.
  *
  * ── AND THE ARTBOARD, WHICH IS THE OTHER HALF OF #864 AND WAS FOUND WHILE FIXING IT ─────────────
  *
- * A Figma `VectorNode`'s box IS its ink: measured over this corpus, only 19 of 39 glyphs are square,
+ * A Figma `VectorNode`'s box IS its ink: measured over this corpus, only 19 of 40 glyphs are square,
  * `minus` is 14×2 and `more-vertical-filled` is 4×18. Every host binds ONE SQUARE variable onto the
  * slot it swaps a glyph into (`button.ts` and `icon-button.ts` both bind `size.{size}.icon` to width
  * AND height), so a 14×2 main component stretched into that square is a bar 7× too thick — which
@@ -61,7 +61,7 @@
  *     (`MUST_COVER`). Without this, a projector that stopped emitting `type: 'GLYPH'` altogether
  *     satisfies everything above vacuously and this file reports clean over nothing.
  *   · Every name in the vocabulary must be carried by exactly one member, and every member must carry
- *     a name in the vocabulary. A member count would pass on 39 copies of `check`.
+ *     a name in the vocabulary. A member count would pass on 40 copies of `check`.
  *   · A node that is NOT a glyph must not acquire a `glyphSvg`, and a glyph must not be missing one.
  *
  * ── WHAT THIS CANNOT CLAIM, STATED RATHER THAN IMPLIED ──────────────────────────────────────────
@@ -77,7 +77,7 @@
  * The corpus's own duplication is admitted rather than hidden. Three of the source set's `-fill` files
  * draw their `-line` sibling's shape, because a pure stroke has no filled form: `plus`/`plus-filled`
  * and `close`/`close-filled` are byte-identical, and `minus`/`minus-filled` are the SAME RECTANGLE
- * STARTED AT A DIFFERENT VERTEX. So 39 names are 36 distinct **shapes** and 37 distinct **path
+ * STARTED AT A DIFFERENT VERTEX. So 40 names are 37 distinct **shapes** and 38 distinct **path
  * strings**. `DUPLICATE_SHAPES` records all three collisions by name with the reason, and it is checked
  * in BOTH directions — an entry that stops colliding fails as stale, a new collision fails as
  * undeclared. Without it, "every member draws its own outline" would either be false or would have to
@@ -120,7 +120,7 @@ const MUST_COVER = ['icon.glyph', 'checkbox.mark', 'checkbox.dash'];
  * Until #910 this gate refused a literal `glyph` outright, and its message said what to do about it:
  * *"a fixed glyph makes every member of the set draw one shape, which is #864's other extreme, so it
  * needs a decision recorded here rather than a pass."* This is that record. `icon` is a vocabulary
- * browser — one part, 39 members, one glyph each — and every arm below was written for it. A checkbox's
+ * browser — one part, 40 members, one glyph each — and every arm below was written for it. A checkbox's
  * mark is the opposite claim: one shape at every coordinate the part appears at, with a SECOND part
  * carrying the other shape, and which shape belongs to which part is a design fact.
  *
@@ -487,7 +487,7 @@ for (const def of componentDefs as ComponentDef[]) {
         failures.push(`${def.id}.${partName} @ ${at}: the outline measures ${ink.w}×${ink.h} — an outline with no area in one dimension is an invisible glyph, and the artboard around it looks exactly like a correct build.`);
 
       // ---- D: THE ARTBOARD is square, declared, and contains the ink ----------------------------
-      // This is #864's second half. A Figma VectorNode's box IS its ink (only 19 of these 39 glyphs are
+      // This is #864's second half. A Figma VectorNode's box IS its ink (only 19 of these 40 glyphs are
       // square), and every host binds ONE square variable to width AND height, so a non-square main
       // component distorts non-uniformly. The declared width/height are what deny the importer the
       // freedom to size the frame to the outline.
@@ -525,7 +525,7 @@ for (const def of componentDefs as ComponentDef[]) {
     }
 
     // ---- E: EVERY name in the vocabulary, and no others -----------------------------------------
-    // "39 members" is the number a count would check and the number 39 copies of `check` also satisfies.
+    // "40 members" is the number a count would check and the number 40 copies of `check` also satisfies.
     const missing = ICON_NAMES.filter((n) => !seenNames.has(n));
     const extra = [...seenNames.keys()].filter((n) => !(ICON_NAMES as readonly string[]).includes(n));
     if (missing.length)
@@ -535,7 +535,7 @@ for (const def of componentDefs as ComponentDef[]) {
 
     // ---- F: EVERY MEMBER DRAWS ITS OWN SHAPE, duplicates admitted by name -----------------------
     // The arm that fails when `glyph: '{name}'` is templated wrong. A collision must be DECLARED, in
-    // both directions, or "39 members carrying one path" reads as a pass.
+    // both directions, or "40 members carrying one path" reads as a pass.
     //
     // KEYED ON THE RENDERED SHAPE SINCE #917, not on the `d` string. `canonicalShape` collapses the
     // spellings that do not reach the raster — start vertex, whole-shape direction, subpath order, H/V,
@@ -550,7 +550,7 @@ for (const def of componentDefs as ComponentDef[]) {
         // A path this comparison cannot parse EXACTLY is a failure, never a name excused from the arm.
         // Skipping it would shrink the population silently and the note below would still read clean —
         // `docs/34` shape 9, and the reason `glyph-shape.ts` throws rather than returning a partial shape.
-        failures.push(`${def.id}.${partName}: the outline for '${name}' cannot be compared by shape — ${(e instanceof GlyphPathError ? e.message : String(e)).replace(/\.$/, '')}. Until it parses, this name is outside the "every member draws its own shape" arm, so the arm fails rather than measuring 38 of 39.`);
+        failures.push(`${def.id}.${partName}: the outline for '${name}' cannot be compared by shape — ${(e instanceof GlyphPathError ? e.message : String(e)).replace(/\.$/, '')}. Until it parses, this name is outside the "every member draws its own shape" arm, so the arm fails rather than measuring 39 of 40.`);
         continue;
       }
       byShape.set(shape, [...(byShape.get(shape) ?? []), name].sort());

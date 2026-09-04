@@ -68,7 +68,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, radio, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
-import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
+import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 import { canonicalShape, GlyphPathError } from './glyph-shape';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -7943,6 +7943,24 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       'vocabulary: axis VALUES are deliberately OPEN — renaming size\'s values raises no `variants` error, because a value set is the component\'s own design and closing it would force icon or button to rekey for no gain in meaning');
   }
 
+  // #1012 — `emitAsComponents` is constrained to the one shape it means: a single variant axis and none
+  // of the properties only a SET can hold. Button carries a stateAxis, swaps and multiple axes, so turning
+  // the flag on THERE must fire — the validation arms are not vacuous — while `icon`, the one def that
+  // legitimately sets it, validates clean. Both directions, so a check that fired on everything (or on
+  // nothing) shows here.
+  {
+    const cloneOf = (d: ComponentDef) => JSON.parse(JSON.stringify(d)) as any;
+    const flagged = (mutate: (d: any) => void) => { const d = cloneOf(button); d.figmaProperties.emitAsComponents = true; mutate(d); return validateComponentDef(d).errors; };
+    ok(flagged(() => {}).some((e) => /emitAsComponents needs exactly one variantAxes entry/.test(e)),
+      '#1012: emitAsComponents on a multi-axis def (Button) fails — a standalone component is named by ONE coordinate value, so more than one axis leaves the slash name ambiguous');
+    ok(flagged(() => {}).some((e) => /emitAsComponents cannot carry a stateAxis/.test(e)),
+      '#1012: emitAsComponents alongside a stateAxis fails — a state is a set variant property, and this mode builds no set to hold one');
+    ok(flagged((d) => { d.figmaProperties.notStandalone = `${d.id}: placeholder`; }).some((e) => /emitAsComponents and notStandalone are opposites/.test(e)),
+      '#1012: emitAsComponents and notStandalone together fail — one ships standalone components, the other refuses a standalone build');
+    ok(figmaPropertyErrors(icon).length === 0,
+      `#1012 control: the real \`icon\` def — the only one that sets emitAsComponents — validates clean, so the arms above reject MISUSE rather than the mode itself (${figmaPropertyErrors(icon).slice(0, 2).join('; ') || 'no errors'})`);
+  }
+
   // The three FIELD TYPES, read out of the declaration — the only source available here, for the reason
   // `focus-ring wall 1` records: a def that omits a bad key proves nothing about whether the key WOULD
   // be accepted, and the type layer cannot be invoked from a tsx suite. Parsed rather than grepped whole,
@@ -12335,7 +12353,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // consumer's, the tier's four rungs are the engine's, and the REF THE DEF ITSELF BINDS is what joins
   // them. So the check reads `icon.tokens` instead of rebuilding a path, which is the only version that
   // survives the two halves being spelled differently.
-  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the 39-glyph `name` axis
+  // READ FROM THE PROP, not from `variants` (#864). `icon`'s Figma grid is now the 40-glyph `name` axis
   // and a def cannot declare a `variants` axis it does not project, so `variants.size` is gone and the
   // ladder lives in `props.size` plus `tokens` — the two halves this block compares anyway. That absence
   // is admitted by name in `lint-rung-names.ts`'s `LADDER_STATED_ONCE` rather than skipped, so it costs a
@@ -12406,7 +12424,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // The message is built OUTSIDE the template that reports it — `ok(...)`'s argument evaluates eagerly,
   // so a null-safe condition with an unguarded message string still crashes (the second half of M14).
   ok(iconSetThrow === '', `icon: the def PROJECTS — every anatomy binding key resolves in tokens${iconSetThrow ? ` (threw: ${iconSetThrow})` : ''}`);
-  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as 39 — the set
+  // ONE MEMBER PER GLYPH, and the count is read from the VOCABULARY rather than written as 40 — the set
   // grows the day a `.svg` lands in `icons/`, and a literal here would fail for the wrong reason.
   ok(iconSet.length === ICON_NAMES.length,
     `icon: projects one member per glyph in the set — ${ICON_NAMES.length} (#864; it used to project four members, one per size rung, and every one of them was empty)`);
@@ -12451,7 +12469,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // The plan no longer carries the bare path: `createNodeFromSvg` takes a DOCUMENT, so the assertion is
     // that the document submitted to Figma's importer contains this glyph's `d`, on the declared viewBox.
     ok((onePlan.root.glyphSvg ?? '').includes(`d="${ICON_PATHS.check}"`),
-      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is 39 members carrying one`);
+      `icon: the member named 'check' carries the CHECK geometry from the set (${ICON_PATHS.check.length} chars) — #864 was four members carrying none, and templating \`glyph: '{name}'\` wrong is 40 members carrying one`);
     ok((onePlan.root.glyphSvg ?? '').includes(`viewBox="${ICON_VIEWBOX}"`),
       `icon: the glyph document declares the set's viewBox ('${ICON_VIEWBOX}') — a path drawn on a 24-unit grid inside a document that claims another one imports at the wrong scale, which builds fine and renders wrong`);
     // AND THE READ-BACK EXPECTATION the executors compare the imported frame against. Parsed here from
@@ -12460,6 +12478,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const expectDims = ICON_VIEWBOX.split(/\s+/).map(Number).slice(2);
     ok(JSON.stringify(onePlan.root.glyphViewBox) === JSON.stringify(expectDims),
       `icon: the glyph's read-back box is the viewBox's own dimensions ([${expectDims.join(', ')}]) — this is what makes every member a square artboard, which is what lets a host bind one square \`size.{size}.icon\` onto its slot (got ${JSON.stringify(onePlan.root.glyphViewBox)})`);
+    // THE WINDING RULE ROUND-TRIP (#1012). `FPO-default-icon` is the ONE glyph whose source declares
+    // `fill-rule="evenodd"` — its "FPO" letters are knocked out of the disc, which nonzero winding fills
+    // back solid — and the pipeline must carry that from the source through `ICON_FILL_RULES` into the
+    // glyph document Figma imports. Asserted by NAME and by ABSENCE together, because either half alone is
+    // weak: the presence check alone passes if `glyphDocument` stamps `fill-rule` on EVERY glyph, and the
+    // absence check alone passes if it stamps it on NONE. Dropping the `fillRule` argument in
+    // `glyphDocument`, or the extraction in `emit-icons.ts`, fails the first two by name.
+    const fpoPlan = iconSet.find((p) => p.coord.name === 'FPO-default-icon');
+    ok(ICON_FILL_RULES['FPO-default-icon'] === 'evenodd',
+      `icon: the FPO placeholder's source winding rule survives into the vocabulary (ICON_FILL_RULES['FPO-default-icon']=${String(ICON_FILL_RULES['FPO-default-icon'])})`);
+    ok(!!fpoPlan && (fpoPlan.root.glyphSvg ?? '').includes('fill-rule="evenodd"'),
+      `icon: the FPO member's glyph document carries fill-rule="evenodd" — without it the "FPO" counters fill solid and the placeholder reads as a blank disc (present=${!!fpoPlan && (fpoPlan.root.glyphSvg ?? '').includes('fill-rule="evenodd"')})`);
+    ok(!(onePlan.root.glyphSvg ?? '').includes('fill-rule'),
+      `icon: a glyph with no declared winding rule ('check') carries NO fill-rule attribute — the default nonzero is left to the importer rather than every glyph being stamped evenodd (check glyphSvg has fill-rule=${(onePlan.root.glyphSvg ?? '').includes('fill-rule')})`);
     // THE CEILING WAS ASSERTED AT ZERO FOR THREE TICKETS, AND #1211 IS WHY THE ZERO WAS THE DEFECT RATHER
     // THAN THE MEASUREMENT OF ONE. The line here read `planPaintVars(onePlan.root).length === 0` and its message explained the
     // zero carefully: the grammar resolves 8/8 given a tone, `variantAxes` is `['name']`, so every member
@@ -12475,9 +12507,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     //
     // WHAT THIS STILL FAILS ON, unchanged in spirit from the old line: it names the ROLE rather than
     // counting, so re-pointing the floor at a different role fails here by name, and so does dropping the
-    // `{slot}` key — which returns all 39 members to the unbound black this ticket exists to remove.
+    // `{slot}` key — which returns all 40 members to the unbound black this ticket exists to remove.
     ok(planPaintVars(onePlan.root).join(',') === 'color/icon/primary',
-      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left 39 glyphs unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
+      `icon: every projected member carries the DEFAULT INK (#1211) — no member has a \`tone\` coordinate, so \`tone.{tone}\` is unfillable and the \`{slot}\` floor answers instead; asserted at zero until #1211, which is what left 40 glyphs unbound and rendering as Figma's resolution of fill="currentColor" (got [${planPaintVars(onePlan.root).join(', ')}])`);
     // AND IT IS THE VECTOR THAT CARRIES IT, not the frame — the distinction the floor would be worthless
     // without, since a fill on the artboard paints a coloured square with the glyph invisible inside it.
     ok(onePlan.root.descendantFills === 'color/icon/primary' && !onePlan.root.paints?.fills,
@@ -12567,8 +12599,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const c = canonicalShape(ICON_PATHS[n]);
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
-    ok(byShape.size === 36,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 36 distinct RENDERED shapes (got ${byShape.size}) — 37 distinct path STRINGS, so string comparison is off by one`);
+    ok(byShape.size === 37,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 37 distinct RENDERED shapes (got ${byShape.size}) — 38 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);

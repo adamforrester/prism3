@@ -24,8 +24,8 @@
  *
  * ── THE `-filled` SUFFIX, AND A WART WE ARE KEEPING RATHER THAN HIDING ───────────────────────────
  *
- * Line style is NOT an axis. 39 files are 29 concepts and only 10 carry both styles, so an
- * `icon.style: line | fill` variant would be undefined for 19 of 29 — an axis whose members do not
+ * Line style is NOT an axis. 40 files are 30 concepts and only 10 carry both styles, so an
+ * `icon.style: line | fill` variant would be undefined for 20 of 30 — an axis whose members do not
  * all exist, which is #795's trap one tier down. The style therefore lives in the NAME: the line
  * form is unsuffixed and the filled form takes `-filled`.
  *
@@ -44,10 +44,10 @@
  *     VERTEX — `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`. Same 14×2 ink box, same pixels.
  *
  * So `plus-filled` and `plus` render the same glyph, as do `close-filled`/`close` and
- * `minus-filled`/`minus`: **6 of the 39 names are 3 distinct shapes**, and the vocabulary holds 37
- * distinct paths rather than 39. That is not a mapping error — each name resolves to the file it
- * claims — so `emit-icons.ts`, which compares both directions of *filenames*, structurally cannot
- * see it. Filed as #917.
+ * `minus-filled`/`minus`: **6 of the 40 names are 3 distinct shapes**, and the vocabulary holds 38
+ * distinct paths across its 40 names (the shape-distinct `FPO-default-icon` is the 40th). That is not a
+ * mapping error — each name resolves to the file it claims — so `emit-icons.ts`, which compares both
+ * directions of *filenames*, structurally cannot see it. Filed as #917.
  *
  * **#917 corrected the third line above, and the correction matters more than it looks.** This file
  * said the subtract pair "differ by exactly the winding of one rectangle", and #917's own body repeated
@@ -74,7 +74,7 @@
  * `-fill`, and borrowing the circled forms collides with names that already exist (`plus-circle-filled`
  * → `add-circle-fill`) while adding an enclosure the name does not mention.
  *
- * We therefore keep all 39 names. Dropping one is a MAJOR contract break to fix a cosmetic duplication,
+ * We therefore keep all 40 names. Dropping one is a MAJOR contract break to fix a cosmetic duplication,
  * and a branded set swapped in later may well draw all six distinctly — `docs/40` §5.3 now states that
  * as a delivery constraint, which is the durable fix. What is corrected here is the *claim*: they are
  * duplicates, not bolder variants. Anyone reasoning about `-filled` as a weight axis would be reasoning
@@ -160,6 +160,17 @@ export const ICON_SOURCES: Record<string, string> = {
   search: 'search-line',
   link: 'link-m',
   'external-link-filled': 'external-link-fill',
+
+  // ── placeholder ───────────────────────────────────────────────────────────────────────────────
+  // The FPO ("for placement only") default glyph — a lettered disc shown wherever a name has not been
+  // chosen yet, so an unresolved icon reads as DELIBERATELY unset rather than as a missing asset. It is
+  // the 40th member of the vocabulary and a real, nameable `icon/FPO-default-icon`, not a fallback that
+  // lives outside the set. It is also the FIRST glyph whose source declares `fill-rule="evenodd"`: the
+  // "FPO" letters are knocked out of the disc, which nonzero winding would fill back in solid. That is a
+  // real, reusable pipeline gap the placeholder forced open (#1012) — `emit-icons.ts` now preserves the
+  // attribute and `icon-glyphs.ts` carries it in `ICON_FILL_RULES`. Not the winding story #917 warns
+  // against on the subtract pair: this glyph genuinely relies on even-odd, and the source declares it.
+  'FPO-default-icon': 'fpo-default-icon',
 };
 
 /** Every glyph name this engine defines — the literal vocabulary `icon.name` is typed against. */

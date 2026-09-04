@@ -208,6 +208,66 @@ re-run makes zero of its searches — it rebuilt nothing whose binding combine c
 
 ---
 
+## (2026-09-04) — `icon` ships as separate slash-grouped components, plus a 40th placeholder glyph (#1012)
+
+**STATUS: shipped, rebased onto `5915911` (main with #1279 + #1281/#1282).** `ENGINE_VERSION` **→ 0.47.0**
+— #1281/#1282 took 0.46.0 while this was in review, so the JIT-rebase re-stamped to the next free integer;
+a plain collision, no interaction between the changes. `CONTRACT_VERSION` **STANDS at 9.4.0** — see the
+version note below, because the issue's own plan expected it to move and the code says otherwise.
+
+**What #1012 is.** `icon` was projecting one 39-member `COMPONENT_SET`, which is the wrong shape for a
+glyph library: a designer reaches for `search`, not a variant set they must then pick a `name=` out of. It
+now materializes as SEPARATE top-level `icon/<glyph>` components — Figma folds the slash into an
+assets-panel FOLDER — and gains a 40th member, `FPO-default-icon`, a real nameable `icon/FPO-default-icon`
+inside the vocabulary.
+
+**The emission mode.** A new `figmaProperties.emitAsComponents` flag (schema-validated: exactly one variant
+axis, and none of the set-only properties — `stateAxis`, `slotAxes`, `swaps`, `booleans`, or the opposite
+`notStandalone`). The plugin's `writeComponentSet` branches at the combine site: for such a def it skips
+`combineAsVariants` and the whole set-level tail (layout-as-set, `addComponentProperty`, ref-wiring, the
+set read-backs), names each fresh component `<id>/<glyph>` (the glyph parsed from the member's single
+coordinate value), and returns a verdict shaped for a new `emittedComponents` arm. The flag is read at
+WRITE TIME (a `ComponentApplyOptions`, forwarded from `def.figmaProperties` like `SWAP_TARGET`) and NEVER
+enters the plan — verified: the plan digest is byte-identical with the flag on or off, so the projected
+surface is the 40 members and the flag moves no `planStamp`. Re-runs stay idempotent: the existing
+`icon/<glyph>` components are re-keyed by coordinate so the `#827` skip/stale machinery keeps working.
+
+**The 40th glyph forced a real pipeline gap open — `fill-rule`.** The FPO disc knocks its "FPO" letters
+out with `fill-rule="evenodd"`, which nonzero winding fills back solid. The glyph pipeline carried no
+winding rule at all: `emit-icons.ts` extracted only the `d`, and `glyphDocument` emitted
+`<path d fill="currentColor">`. So sources may now declare `fill-rule`, `icon-glyphs.ts` carries the
+non-default ones in a sparse `ICON_FILL_RULES` (only `FPO-default-icon` today), and `glyphDocument` writes
+the attribute — gated by a round-trip test in `test.ts`, and byte-identical for every glyph that needs no
+rule. The FPO path uses only `M C H V Z` (inkBox-safe) and is shape- and string-distinct, so it collides
+with nothing: the corpus is now 40 names, 38 distinct path strings, 37 distinct rendered shapes.
+
+**Why `CONTRACT_VERSION` does NOT move, against the plan.** Adding a glyph grows the `icon.name` VALUE
+vocabulary, but `CONTRACT_VERSION` governs the guaranteed TOKEN-NAME surface — color/dimension paths every
+brand emits — and a glyph name is not a token path. `token-contract.ts --check` confirms it: the
+guaranteed set is byte-identical (577 → 577). The gate is stricter still — a `none`-level `--accept`
+refuses to stamp a raised `CONTRACT_VERSION`, and `test.ts` ties the baseline's stamp to it — so 9.5.0
+literally cannot ship green without inventing a token change that does not exist. The vocabulary growth is
+carried where it belongs: the projected component-surface baseline (39 → 40, ENGINE-gated) and the
+`icon.name` component-API contract `docs/30`/`icon-set.ts` describe. The token-contract baseline's
+informational `engineVersion` stamp is refreshed by `--accept` (contract 9.4.0 unchanged) because it
+records the ENGINE bump.
+
+**Baselines re-accepted (all ENGINE-bump-gated):** `lint-component-surface` (icon 39 → 40 + digest),
+`lint-paint` census (icon grid/set paint assignments), and the `lint-axis-values` register gains
+`FPO-default-icon`. `out/**` moves only by the generator stamp (0.45.0 → 0.46.0).
+
+**Out of scope, untouched (PR-D owns):** the `SWAP_TARGET` edit, button leading/trailing slot rewiring,
+and the `test-write-components.ts:646` swap-target inversion. `FPO-default-icon` happens to double as the
+existing swap-target placeholder name; #1012 only adds it to the glyph vocabulary and leaves the button
+exactly as it is (its stale nomination is pre-existing, no regression).
+
+**Gates:** full `npm run verify` green (55/55). New coverage: the emission mode has its own
+mutation-testable test (the same plans WITHOUT the flag combine into one set, so flipping it off fails by
+name), the `fill-rule` round-trip is asserted by presence AND absence, and the schema arms reject misuse
+(`emitAsComponents` on Button fires) while the real `icon` validates clean.
+
+---
+
 ## (2026-09-03) — the three measured selection controls paste their borders at 2px, and the executors' last ungated stroke site (#1228)
 
 **STATUS: shipped, JIT-rebased onto #1267 (`7f2c0c7`).** `ENGINE_VERSION` **→ 0.45.0**;

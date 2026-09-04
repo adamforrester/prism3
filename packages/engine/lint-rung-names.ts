@@ -175,7 +175,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
  * DEFS WHOSE SIZE LADDER IS STATED ONCE — a `props.size` enum and `size.*` bindings, but NO
  * `variants.size` — admitted by name with the reason, for the same argument `NO_SIZE_AXIS` makes.
  *
- * `icon` (#864) is the first and only one. Its Figma set enumerates `name` (39 glyphs), and a def cannot
+ * `icon` (#864) is the first and only one. Its Figma set enumerates `name` (40 glyphs), and a def cannot
  * declare a `variants` axis it does not project: `figmaAnatomySet` hands the plan an undefined size for an
  * unprojected axis and `figmaAnatomyPlan` refuses a sizeless coordinate for a def that DECLARES sizes.
  * The size PROP stays — a code consumer sizes an icon directly — so arms 1, 2 and 3 all still run on it.
@@ -187,7 +187,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
  * admission, and a def that loses it without being listed fails as an unadmitted skip.
  */
 const LADDER_STATED_ONCE: Record<string, string> = {
-  icon: 'its Figma grid is the 39-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
+  icon: 'its Figma grid is the 40-glyph `name` axis (#864), and a def cannot declare a `variants` axis it does not project — so the ladder lives in `props.size` and `tokens` only',
 };
 
 /**
