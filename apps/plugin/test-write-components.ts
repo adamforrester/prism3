@@ -643,12 +643,160 @@ ok(!bare.misses.some((m) => m.includes('DISCARDED')),
   'an unresolved name reports its ONE true cause — never also "DISCARDED", which would name a write that was never attempted');
 
 // ---- DEGRADED: the swap target is not in the file -------------------------------------------
+// STILL AN ABSENCE-PATH BLOCK. The four assertions below describe a file with no swap target in it, and
+// they stay that way: `comps: []` is the state, and #1012 is what will eventually make a present-path
+// version of them possible. What #1280 PR-C moved is the expected TEXT — the misses now carry a diagnosis
+// and a consequence where they used to carry a bare name and, on the property line, the word "not found",
+// which was the wrong claim for three of the four file states (the table further down is what makes that
+// claim checkable rather than asserted).
 const noComp = await run(grid, { ...full(), comps: [], page: { children: [] } });
 ok(noComp.variants === 21, `a missing swap target still builds every member (as a placeholder frame) — ${noComp.variants}`);
 ok(noComp.misses.some((m) => m.includes('.swapTarget -> FPO-default-icon')), 'the missing swap target is named as a miss');
-ok(noComp.misses.some((m) => m.includes('swap target FPO-default-icon (not found; property not created)')),
-  'and the INSTANCE_SWAP property is NOT created, because Figma demands a node id it cannot supply');
+// The property line's two load-bearing facts, unchanged in substance: it names the target, and it says the
+// property was not created. Matched on those two rather than on the whole sentence, so the wording can be
+// improved without this pin going stale — the table below is where the wording itself is gated.
+ok(noComp.misses.some((m) => m.startsWith('property ') && m.includes('swap target FPO-default-icon') && m.includes('the property is NOT created')),
+  `and the INSTANCE_SWAP property is NOT created, because Figma demands a node id it cannot supply — stated in the miss rather than left to be inferred (${noComp.misses.filter((m) => m.startsWith('property ') && m.includes('swap target')).join(' | ')})`);
 ok(!noComp.properties.some((p) => p.endsWith(':INSTANCE_SWAP')), `no INSTANCE_SWAP property is left half-declared (${noComp.properties.join(', ')})`);
+
+// ---- #1280 PR-C: what the file HOLDS under a missing swap target, in the message ---------------
+// The swap path had #681's defect one node type over, and had it longer: both consumers reported a bare
+// name — `leadingVisual.swapTarget -> FPO-default-icon`, and `... (not found; property not created)` — so
+// "the slot is empty" and "the slot is not swappable" were indistinguishable in the report, which is
+// exactly how the owner's button-icon symptom read.
+//
+// FOUR FILE STATES, the same four the nest path diagnoses, because they are a property of Figma rather
+// than of what a plan wanted: `findAllWithCriteria({types:['COMPONENT']})` matches `ComponentNode` and
+// never `ComponentSetNode`, so a second name-based search on the failure path is what lets the message
+// name what is actually there.
+//
+// THE COMPONENT_SET ROW IS THE ONE THAT MATTERS, and it is the reason this is not a tidier version of the
+// same non-advice: the engine emits `icon` as a SET of 39 members, an INSTANCE_SWAP default is a single
+// node id, so once icons are wired the designer has published EXACTLY what the engine built and still
+// gets a miss. "Not found" is a lie in that state. The set row says what is missing — a nomination of one
+// member — which is the thing no message said.
+//
+// REACHABILITY IS ASSERTED FIRST, per docs/34: a table driven by a shim that models one file state four
+// times reports four passes and gates nothing.
+const SWAP = 'FPO-default-icon';
+const withoutSwap = full().comps!.filter((c) => c !== SWAP);
+const swapCases: { label: string; opts: ShimOpts }[] = [
+  { label: 'nothing of that name', opts: { ...full(), comps: withoutSwap } },
+  { label: 'a COMPONENT_SET', opts: { ...full(), comps: withoutSwap, fileNodes: [{ name: SWAP, type: 'COMPONENT_SET', variants: ['size=md', 'size=lg'] }] } },
+  { label: 'an INSTANCE', opts: { ...full(), comps: withoutSwap, fileNodes: [{ name: SWAP, type: 'INSTANCE', main: SWAP }] } },
+  { label: 'a FRAME', opts: { ...full(), comps: withoutSwap, fileNodes: [{ name: SWAP, type: 'FRAME' }] } },
+];
+// Asserted against the shim's own search rather than the executor's map, because the map is the subject.
+for (const c of swapCases.slice(1)) {
+  const api = makeShim(c.opts) as unknown as {
+    root: { findAllWithCriteria: (crit: { types: string[] }) => { name: string }[]; _allNamed: (n: string) => { type: string }[] };
+  };
+  const held = api.root._allNamed(SWAP).map((n) => n.type);
+  ok(held.length === 1, `#1280 reachable: the file holds exactly one node named ${SWAP}, ${c.label} (${held.join(', ')})`);
+  ok(!api.root.findAllWithCriteria({ types: ['COMPONENT'] }).map((n) => n.name).includes(SWAP),
+    `#1280 reachable: a COMPONENT search does NOT return ${SWAP} when it is ${c.label} — the lookup the swap path uses is genuinely blind to it`);
+}
+// And the ABSENT case really is absent, which the loop above cannot check — a `withoutSwap` that filtered
+// nothing would drive row 0 against a fully resolved file and pass it as a diagnosis of nothing.
+ok(full().comps!.includes(SWAP) && !withoutSwap.includes(SWAP),
+  `#1280 reachable: the real plans DO nominate ${SWAP} and row 0's file genuinely lacks it (${full().comps!.length} -> ${withoutSwap.length} components)`);
+
+const nodeSwapMiss = (misses: string[]): string | undefined => misses.find((m) => m.indexOf(`.swapTarget -> ${SWAP}`) >= 0);
+const propSwapMiss = (misses: string[]): string | undefined => misses.find((m) => m.startsWith('property ') && m.indexOf(`swap target ${SWAP}`) >= 0);
+const swapResults: { label: string; node: string | undefined; prop: string | undefined; built: number }[] = [];
+for (const c of swapCases) {
+  const r = await run(grid, { ...c.opts, page: { children: [] } });
+  swapResults.push({ label: c.label, node: nodeSwapMiss(r.misses), built: r.variants });
+  swapResults[swapResults.length - 1].prop = propSwapMiss(r.misses);
+}
+// Every case still assembles the whole set — the slot degrades to a placeholder frame, the run does not.
+ok(swapResults.every((r) => r.built === 21 && r.node !== undefined && r.prop !== undefined),
+  `#1280 all four file states build all 21 members and report BOTH consumers' misses (${swapResults.map((r) => r.built).join('/')})`);
+// FOUR DISTINGUISHABLE MESSAGES, both consumers. Counted first, then each row checked by name — four
+// distinct strings could still all be wrong, which is why the count is never the last word here.
+ok(new Set(swapResults.map((r) => r.node)).size === 4 && new Set(swapResults.map((r) => r.prop)).size === 4,
+  `#1280 all four file states report a DIFFERENT message on BOTH swap consumers (${new Set(swapResults.map((r) => r.node)).size}/4 node, ${new Set(swapResults.map((r) => r.prop)).size}/4 property)`);
+ok(swapResults[0].node!.indexOf('not in this file') >= 0 && swapResults[0].node!.indexOf(`build ${SWAP} FIRST`) >= 0,
+  `#1280 nothing of that name is a BUILD-ORDER cue naming the target inside the advice — "build ${SWAP} FIRST" (${swapResults[0].node})`);
+ok(swapResults[1].node!.indexOf('COMPONENT_SET') >= 0 && swapResults[1].node!.indexOf('ONE component') >= 0,
+  `#1280 the COMPONENT_SET case says so by name AND says why a set cannot fill a swap — the row a designer hits once icons are wired (${swapResults[1].node})`);
+ok(swapResults[1].node!.indexOf(`Publish one member of ${SWAP}`) >= 0,
+  `#1280 ...and carries an action for THAT case rather than one generic instruction (${swapResults[1].node})`);
+ok(swapResults[2].node!.indexOf('INSTANCE') >= 0 && swapResults[2].node!.indexOf('main component') >= 0,
+  `#1280 an INSTANCE — what duplicating a variant out of a set produces — says so and points at the main (${swapResults[2].node})`);
+ok(swapResults[3].node!.indexOf('not a component') >= 0,
+  `#1280 the FRAME case says the node is not a component (${swapResults[3].node})`);
+// NO CASE CLAIMS ABSENCE OF A NODE THAT IS PRESENT — the half of #681's finding that made the old message
+// actively misleading rather than merely thin, asserted here for the swap path.
+for (const r of swapResults.slice(1))
+  ok(r.node!.indexOf('not in this file') < 0 && r.prop!.indexOf('not in this file') < 0,
+    `#1280 with ${r.label} named ${SWAP} in the file, neither consumer's miss claims it is "not in this file" — ${r.node}`);
+// THE TWO CONSUMERS' CONSEQUENCES ARE OPPOSITE, and that is the distinction the owner could not read: a
+// node-level miss leaves a box you can fill, a property-level miss leaves the slot unswappable. Same
+// diagnosis, different cost, and each says which.
+ok(swapResults.every((r) => r.node!.indexOf('placeholder frame') >= 0 && r.node!.indexOf('NOT created') < 0),
+  '#1280 the node-level miss reports the placeholder frame, and never the property consequence');
+ok(swapResults.every((r) => r.prop!.indexOf('the property is NOT created') >= 0 && r.prop!.indexOf('placeholder frame') < 0),
+  `#1280 the property-level miss reports that the slot is not swappable at all, and never the placeholder (${swapResults[0].prop})`);
+
+// ---- #1280 PR-C / #1262: each advice names ITS OWN target, not a neighbour's -------------------
+// Misses render CONCATENATED — `main.ts` joins them with '; ' — so advice that locates its subject by
+// position ("the component named just above") binds to whichever miss precedes it. On the nest path #1262
+// found that by review; here it is reachable in a file a designer can actually produce, because one def
+// can carry a leading and a trailing slot nominating DIFFERENT components. Two targets, two adjacent
+// misses, and the check is that each advice's target equals its own prefix's — never a fixed name, which
+// is what makes this a binding assertion rather than a spelling one.
+const OTHER_SWAP = 'FPO-other-icon';
+const twoSlot = button.variants!.appearance!.flatMap((ap) => button.states!.map((st) =>
+  figmaAnatomyPlan(button, 'medium', { leading: true, trailing: true, swapTarget: SWAP, intent: 'primary', appearance: ap, state: st })));
+/** The same plans with the TRAILING slot nominating a different component. Derived from the real plans for
+ *  the reason `full()` derives its variables: a hand-built tree stops resembling the def the moment a part
+ *  moves, and this block would keep passing against a shape the engine no longer emits. */
+const retarget = (plans: AnatomyPlan[]): AnatomyPlan[] => {
+  const walk = (n: Record<string, unknown>): Record<string, unknown> => ({
+    ...n,
+    ...(n.name === 'trailingVisual' && n.swapTarget ? { swapTarget: OTHER_SWAP } : {}),
+    children: ((n.children ?? []) as Record<string, unknown>[]).map(walk),
+  });
+  return plans.map((p) => ({ ...p, root: walk(p.root as unknown as Record<string, unknown>) })) as unknown as AnatomyPlan[];
+};
+const twoTarget = retarget(twoSlot);
+const targetsOf = (plans: AnatomyPlan[]): string[] => [...new Set(plans.flatMap((p) => {
+  const walk = (n: Record<string, unknown>): string[] => [
+    ...(n.swapTarget ? [String(n.swapTarget)] : []),
+    ...((n.children ?? []) as Record<string, unknown>[]).flatMap(walk),
+  ];
+  return walk(p.root as unknown as Record<string, unknown>);
+}))].sort();
+// BOTH DIRECTIONS, because a `retarget` that silently did nothing would drive the whole block with one
+// target, find every advice naming it, and report a vacuous pass on the exact property under test.
+ok(targetsOf(twoSlot).length === 1 && targetsOf(twoSlot)[0] === SWAP,
+  `#1262 reachable: the real two-slot plans nominate ONE component (${targetsOf(twoSlot).join(', ')})`);
+ok(targetsOf(twoTarget).length === 2 && targetsOf(twoTarget).includes(SWAP) && targetsOf(twoTarget).includes(OTHER_SWAP),
+  `#1262 reachable: the retargeted plans nominate TWO, so two misses with different subjects sit adjacent (${targetsOf(twoTarget).join(', ')})`);
+
+const twoRun = await run(twoTarget, {
+  ...fullFor(twoTarget),
+  comps: fullFor(twoTarget).comps!.filter((c) => c !== SWAP && c !== OTHER_SWAP),
+  page: { children: [] },
+});
+const swapAdvice = twoRun.misses.filter((m) => m.indexOf('.swapTarget -> ') >= 0 || (m.startsWith('property ') && m.indexOf('swap target ') >= 0));
+const binding = swapAdvice.map((m) => {
+  const own = /(?:\.swapTarget -> |swap target )(\S+?) \(/.exec(m)?.[1] ?? '';
+  const advice = m.slice(m.indexOf('('));
+  return { own, named: [SWAP, OTHER_SWAP].filter((t) => advice.indexOf(t) >= 0), m };
+});
+// THE HAZARD IS REAL IN THIS RUN, asserted before the property that guards it: both subjects present, and
+// the render that puts them next to each other is the one `main.ts` performs.
+ok(new Set(binding.map((b) => b.own)).size === 2 && twoRun.misses.join('; ').indexOf(SWAP) >= 0 && twoRun.misses.join('; ').indexOf(OTHER_SWAP) >= 0,
+  `#1262 both targets miss in one run and render concatenated, which is the state positional advice binds wrong in (${[...new Set(binding.map((b) => b.own))].join(', ')})`);
+ok(binding.length >= 4 && binding.every((b) => b.named.length === 1 && b.named[0] === b.own),
+  `#1262 every swap advice names ITS OWN target and no neighbour's, across ${binding.length} misses on both consumers`
+  + ` (${binding.filter((b) => b.named.length !== 1 || b.named[0] !== b.own).map((b) => b.m).join(' | ') || 'none mismatched'})`);
+// AND BOTH CONSUMERS ARE IN THAT SET — a run whose property loop reported nothing would satisfy the
+// assertion above on node misses alone, which is the shape of a check that gates half of what it claims.
+ok(binding.some((b) => b.m.indexOf('.swapTarget -> ') >= 0) && binding.some((b) => b.m.startsWith('property ')),
+  `#1262 ...and the set covers BOTH swap consumers, not just the node loop (${binding.filter((b) => b.m.startsWith('property ')).length} property misses)`);
 
 // ---- DEGRADED: a stray member someone added by hand -----------------------------------------
 const strayPage: Page = { children: [] };

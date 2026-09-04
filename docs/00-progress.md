@@ -7,6 +7,83 @@
 
 ---
 
+## (2026-09-04) — a missing SWAP TARGET gets a diagnosis, not just a name (#1280 PR-C, #1212 residue)
+
+**STATUS: shipped, plugin-side. `ENGINE_VERSION` 0.48.0 → 0.49.0; `CONTRACT_VERSION` stands at 9.4.0.**
+Rebased onto `b10d0de` (main with #1279 + #1281/#1282 + #1012 + #1280 PR-B); first cut off `b116d7b` and
+**independent of PR-B, never stacked on it** — the two touch disjoint code and each carry their own progress
+entry, and PR-B simply landed first. Two files: `apps/plugin/src/write-components.ts` and
+`apps/plugin/test-write-components.ts`. `npm run verify` stays **55/55**. No def changed, no projected
+component surface moved (`lint-component-surface`: *0 def(s) moved vs base*), and the only `out/**` diff is
+this release's own generator stamp.
+
+**The swap path had #681's defect one node type over, and had it longer.** Both `INSTANCE_SWAP` consumers
+reported a bare name: the node loop said `leadingVisual.swapTarget -> FPO-default-icon` and nothing else,
+and the property loop said `... (not found; property not created)` — where *"not found"* is the exact claim
+`nestMissAdvice` retired for the nest path, wrong for three of the four file states it covers. Neither line
+said what the file held under that name, and neither said what to do. The consequence is what made the
+owner's button-icon symptom unreadable: **"the slot is empty" and "the slot is not swappable" are two
+different failures on two different lines, and the report could not tell them apart.**
+
+**The fix: `swapMissAdvice`, the same four-way shape as `nestMissAdvice`.** `ABSENT | COMPONENT_SET |
+INSTANCE | OTHER`, reached by the #681 mechanism — a second name-based search (`api.root.findAll`) on the
+**failure path only**, because the happy path already pays 2,592 subtree searches on a cold build (#701)
+and must not gain one per member. The four file states are a property of Figma rather than of what a plan
+wanted from it: `findAllWithCriteria({types:['COMPONENT']})` matches `ComponentNode` and never
+`ComponentSetNode`.
+
+**The `COMPONENT_SET` row is the one a designer actually hits, and it is why this is a fix rather than a
+rewording.** An `INSTANCE_SWAP` default is a single node id — Figma refuses the component key, `''` and
+`null` alike — and the engine emits `icon` as a **set of 39 members**. So once icons are wired the designer
+has published *exactly what the engine built*, correctly, and still gets a miss. "Not found" is a lie in
+that state. What is actually missing is a nomination of one member, and no message said so; the set row now
+does, with both remedies (publish one member under that name today; nominating a member is not yet
+expressible in a plan).
+
+**Each sentence names its own target, and that is correctness rather than wording.** Misses render
+concatenated — `main.ts` joins with `'; '` — so advice that locates its subject by position ("the component
+named just above") binds to a NEIGHBOR's target. That is the #1262 review finding on the nest path, and it
+is **more reachable here**: one def can carry a leading and a trailing slot nominating different
+components, so two misses with different subjects genuinely sit adjacent. The harness proves the binding by
+comparing each miss's advice against **its own prefix** rather than against a fixed name — 44 misses across
+both consumers in a two-target run, each naming exactly one target and that target its own.
+
+**The consequences are opposite and are held apart from the diagnosis.** The node loop degrades to a
+placeholder frame (a box a designer can still fill, which is why `build` returns it rather than the `null`
+an unresolved nest returns); the property loop cannot degrade at all, because there is nothing to create
+the property *with*. Two constants, one per call site, rather than multiplying four diagnoses into eight
+sentences — each site has exactly one of these, permanently. Asserted in both directions: the node miss
+never mentions the property consequence and the property miss never mentions the placeholder.
+
+**The absence-path tests were UPDATED, not inverted, and the distinction is the scope boundary.** The four
+assertions at the old `noComp` block still describe a file with `comps: []`; what moved is their expected
+TEXT. `SWAP_TARGET` is untouched and the FPO nomination stands — flipping these to the present path is
+PR-D's, once #1012 makes the FPO target real. The property line is now matched on its two load-bearing
+facts (it names the target; it says the property was not created) rather than on the whole sentence, so the
+wording is gated in one place — the four-way table — instead of in four.
+
+**One thing deliberately left, and filed rather than noted here.** `nestMissAdvice` lives in
+`anatomy-figma.ts` precisely so the plugin and the emitted paste payload cannot drift in wording, and the
+paste path has **both** of these swap sites too (`PAYLOAD_BUILD`'s node branch, and the property loop it
+emits; `packages/engine/test.ts` pins the latter's bare wording). This PR is scoped to the plugin — the
+surface the owner's symptom came through — so the two executors now differ on swap misses where they agree
+on nest misses. That is a real divergence of the kind #710 established the shared-function pattern to
+prevent, so it is filed as **#1288**, not left as a paragraph. The design question named there is the
+reason it is not a five-line move: the paste path composes its advice at EMIT time and has no
+`api.root.findAll` to read the file state from, so it needs a `SWAP_TARGET_SLOT` counterpart to
+`NEST_TARGET_SLOT` before it can say any of this.
+
+**Why this bumps ENGINE at all, given that the entry immediately below argues the opposite.** #1279 was
+also plugin-only and explicitly stood pat on both versions, reasoning from `out/**` movement. The reason to
+bump here is a different one: these strings are **shipped prose in `apps/plugin/dist`**, a surface
+`lint-us-english` already scans as this engine's, and they are the only channel a designer has for this
+failure. Recorded because the two entries otherwise read as a contradiction. **On the integer:** first
+stamped 0.46.0 off `b116d7b`, then the rest of the cluster landed ahead of it — #1281/#1282 took 0.46.0,
+#1012 took 0.47.0, #1280 PR-B took 0.48.0 — so this is 0.49.0 and closes the cluster. A plain integer
+collision, no interaction with any of the three.
+
+---
+
 ## (2026-09-04) — the focus ring becomes buildable ALONE, which is what every host nesting it was waiting on (#1280 PR-B)
 
 **STATUS: shipped, engine-side. `ENGINE_VERSION` 0.47.0 → 0.48.0; `CONTRACT_VERSION` stands at 9.4.0.**

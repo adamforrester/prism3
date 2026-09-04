@@ -138,6 +138,44 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.49.0: a missing SWAP TARGET is diagnosed instead of merely named (#1280 PR-C, #1212 residue). Both
+ * `INSTANCE_SWAP` consumers in `apps/plugin/src/write-components.ts` — the node loop and the property loop
+ * — now run the #681 second search on the failure path and report through a four-way `swapMissAdvice`
+ * (`ABSENT | COMPONENT_SET | INSTANCE | OTHER`), each sentence naming its own target and each call site
+ * adding the one consequence clause it owns.
+ *
+ * THE SWAP PATH HAD #681's DEFECT ONE NODE TYPE OVER, and had it longer. The node loop reported
+ * `leadingVisual.swapTarget -> FPO-default-icon` and nothing else; the property loop reported
+ * `... (not found; property not created)`, and "not found" is the same wrong claim `nestMissAdvice`
+ * retired — wrong for three of the four file states it covers. So "the slot is empty" and "the slot is not
+ * swappable" were indistinguishable in the report, which is exactly how the owner's button-icon symptom
+ * read.
+ *
+ * THE `COMPONENT_SET` ROW IS THE ONE A DESIGNER ACTUALLY HITS once icons are wired, and it is why this is
+ * a fix rather than a rewording. An `INSTANCE_SWAP` default is a single node id (Figma refuses the
+ * component key, `''` and `null` alike) and the engine emits `icon` as a set of 39 members — so in that
+ * state the designer has published EXACTLY what the engine built and still gets a miss. What is missing is
+ * a nomination of one member, and no message said so.
+ *
+ * WHY THIS BUMPS ENGINE AT ALL, stated because the immediately preceding release argued the opposite for
+ * its own plugin-only change (0.45.0's #1279 entry: no `out/**` movement, so no bump). These strings are
+ * SHIPPED PROSE in `apps/plugin/dist`, which `lint-us-english` already scans as a surface of this engine,
+ * and they are the only channel a designer has for this failure. First cut off `b116d7b` and first stamped
+ * 0.46.0; the rest of that cluster then landed ahead of it — #1281/#1282 took 0.46.0, #1012 took 0.47.0 and
+ * #1280 PR-B took 0.48.0 — so this rebases to 0.49.0 and closes the cluster. A plain integer collision, no
+ * interaction with any of the three.
+ *
+ * `CONTRACT_VERSION` stands at 9.4.0, and so does every byte under `out/**` except this file's own
+ * generator stamp: no def moved, no projected component surface moved, and `lint-component-surface`
+ * reports 0 def(s) moved against base. The whole diff is one plugin source file and its harness.
+ *
+ * NOT SHARED WITH THE PASTE PATH, and that is a scope boundary rather than a judgment that the two should
+ * differ. `nestMissAdvice` lives in `anatomy-figma.ts` precisely so the plugin and the emitted payload
+ * cannot drift in wording, and the paste path has both of these swap sites too. This release enriches the
+ * plugin's messages only — the surface the symptom came through — so the paste path keeps the bare
+ * wording, filed as #1288 rather than left in a comment: the design question there is that the paste path
+ * composes its advice at EMIT time and has no `root.findAll` to read the file state from.
+ *
  * 0.48.0: the focus ring is BUILDABLE ALONE, which is what every host that nests it was waiting on
  * (#1280 PR-B). `focus-ring`'s one part binds a NOMINAL square side — `size: 'nominal-side'` →
  * `size.md.height`, one key driving both axes — so its two members acquire `bound.width` +
@@ -1183,7 +1221,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.48.0';
+export const ENGINE_VERSION = '0.49.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
