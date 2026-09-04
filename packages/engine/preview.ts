@@ -46,15 +46,38 @@ export const previewSpec: PreviewSpec = {
           text: s === 'disabled' ? 'color.disabled.on-fill' : 'color.interactive.primary.on-fill',
           radius: 'radius.md', padX: 'space.300', padY: 'space.150', type: 'type.label.md.emphasis',
         },
-        // The label is gated at the TEXT bar on `rest` only. On hover/pressed it is held to UI —
-        // an OWNER DECISION, not a derivation from WCAG: SC 1.4.3 has no exemption for transient
-        // states, so strictly the label owes 4.5 in every reachable state. The call was to treat
-        // hover/pressed label contrast as out of scope rather than add a stateful `on-fill` token
-        // family (which would flip the label's color mid-interaction — worse than a subtler hover).
-        // Load-bearing as of #352 item 2: with fills relaxed toward their anchors, harbor/dark
-        // measures 4.28 on hover and 3.62 on pressed, and NO single ink clears 4.5 across all five
-        // fill states for that column. Revisit here if that decision is ever reversed.
-        contracts: [{ fg: s === 'disabled' ? 'color.disabled.on-fill' : 'color.interactive.primary.on-fill', bg: s === 'disabled' ? 'color.disabled.fill' : `color.interactive.primary.fill.${s}`, min: s === 'disabled' || s === 'hover' || s === 'pressed' ? UI : TEXT, label: 'label on fill' }],
+        // The label is gated at the TEXT bar on `rest` only. On hover it is held to UI, and on
+        // PRESSED it is UNGATED — both are OWNER DECISIONS, not derivations from WCAG: SC 1.4.3 has
+        // no exemption for transient states, so strictly the label owes 4.5 in every reachable one.
+        // The original call was to treat hover/pressed label contrast as out of scope rather than add
+        // a stateful `on-fill` token family (which would flip the label's color mid-interaction —
+        // worse than a subtler hover). Load-bearing as of #352 item 2: with fills relaxed toward their
+        // anchors, harbor/dark measured 4.28 on hover and 3.62 on pressed, and NO single ink clears
+        // 4.5 across all five fill states for that column.
+        //
+        // #1281 WIDENED THE SECOND HALF, and the reason is the two-rung state interval. Pressed now
+        // sits FOUR rungs from rest rather than two, and in dark mode the fill walks toward the light
+        // end — so the one rest-derived ink loses its now-lighter pressed fill in three corpus cells:
+        // harbor/primary 2.62, wendys/primary 2.54, wendys/destructive 2.41, all against the 3 bar.
+        // Put to the owner with those numbers and DECIDED: pressed is exempt, because what a pressed
+        // state has to communicate is DISTINCTION FROM REST, and the alternative was either a smaller
+        // interval (the thing #1281 exists to fix) or a stateful on-fill family (the thing the
+        // paragraph above rejected for flipping the label mid-press).
+        //
+        // CATEGORICAL, not per-cell: pressed and selected are never floored for ink-on-fill contrast,
+        // anywhere, on any brand or component. The rule is a predicate on the STATE, so a fifth
+        // brand's pressed cell needs no entry anywhere — which is the difference between a rule and a
+        // growing list of exceptions. `test.ts` carries the scope guard that keeps it honest: every
+        // `min: 0` contract must BE a pressed/selected state, so zeroing a rest floor fails by name.
+        //
+        // Declared as `min: 0` rather than left to fail, which is the whole difference between an
+        // exemption and a broken gate: `pass: raw >= min` is then TRUE by construction, the preview
+        // still records and displays the real ratio, and a reader sees a contract that says "not
+        // gated here" instead of a red cell nobody can distinguish from a regression. Hover keeps UI.
+        //
+        // WHAT PRESSED STILL OWES is distinction from rest, and that is now its SOLE gated
+        // invariant — swept per cell across the corpus in `test.ts`, unconditionally.
+        contracts: [{ fg: s === 'disabled' ? 'color.disabled.on-fill' : 'color.interactive.primary.on-fill', bg: s === 'disabled' ? 'color.disabled.fill' : `color.interactive.primary.fill.${s}`, min: s === 'pressed' ? 0 : s === 'disabled' || s === 'hover' ? UI : TEXT, label: 'label on fill' }],
       })),
     },
     {

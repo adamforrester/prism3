@@ -11,15 +11,15 @@
     },
     "button": {
       "members": 432,
-      "sha256": "8272237e005b90958cb8c643d46149e1a1baef7313f782bd03192fe60c816cb0"
+      "sha256": "4fd77a9e3593b9063e694004c7318dc9c230116731c17af2f7a7dd1fe0a5d960"
     },
     "button-destructive": {
       "members": 432,
-      "sha256": "e080bbc8b8869c2c5b542c76fd1c84c0e224121dfa725d5555034c514c997908"
+      "sha256": "656c81708b532b07415fe74419fbd85976021ffd19c307ba0743b5c98a3e518a"
     },
     "button-neutral": {
       "members": 432,
-      "sha256": "04e1460ade9bd0c972d9611f6bc2fabeb3c4512359b0c3bd68baefd5e8e54d20"
+      "sha256": "dc5959069edabc93c354d2a8bb7da693bc744054ee006739d2ca06758114166b"
     },
     "icon-button": {
       "members": 162,

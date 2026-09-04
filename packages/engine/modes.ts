@@ -600,6 +600,36 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // would overshoot and collapse the states onto one step — `walk` reflects inward there (L-01),
   // i.e. an action colour pinned at the far end steps the OTHER way rather than saturating.
   const dir = cfg.family === 'light' ? +1 : -1;
+  // ---- GENOME RUNGS PER INTERACTIVE STATE (#1281) ------------------------------------------------
+  //
+  // ONE rule, stated once, for every interactive state progression: fill, outline ink, and the
+  // inverse-band twins of both. Each engaged state is `STATE_RUNGS` further along the palette than
+  // the one before it — hover is that far from rest, pressed twice that far.
+  //
+  // TWO rather than one, decided in #1281 on the size of the genome rather than on any single
+  // brand's numbers. The ramp is ~20 rungs 50 apart, so a one-rung state moved nb's primary
+  // 550 → 600 → 650: a change a designer has to hunt for, and one that vanishes entirely on a brand
+  // whose ramp is flatter through the mid range. At two rungs the same column reads 550 → 650 → 750.
+  // Expressed as RUNGS, not as values: the whole point of a genome is that a brand re-derives the
+  // colours and the *interval* is what the system promises, so a per-value table would be this rule
+  // written down once per brand and wrong for the next one.
+  //
+  // WHY IT IS A CONSTANT AND NOT A LEVER, which is a real question and this is the answer today
+  // rather than forever: no brand has asked to tune it, a lever costs a manifest entry, a studio
+  // control and a documented contract, and the derivation has to be right before it is configurable.
+  // Filed as the open question in the #1281 progress entry rather than pre-emptively built.
+  //
+  // THE FOUR SITES THIS REPLACES were four copies of `st === 'hover' ? 1 : 2`, and the file already
+  // knew it: the inverse fill loop's own comment read "the step rule below is the page rule verbatim
+  // (`fillStateCand`: hover/focused one step, pressed/selected two)". A rule that has to describe its
+  // own duplicate is a rule with a drift hazard, and #576's `iBorder` note says the same thing about
+  // a different pair — "two derivations of 'the same step' are two things that can drift". This is
+  // production code sharing one derivation, NOT a gate sharing one with its subject: `test.ts` must
+  // assert the rung delta from the emitted ramp positions and must never import this (`docs/34`).
+  const STATE_RUNGS = 2;
+  /** How many genome rungs past `rest` a given interactive state sits. */
+  const stateRungs = (st: string): number =>
+    st === 'default' ? 0 : (st === 'hover' || st === 'focused') ? STATE_RUNGS : STATE_RUNGS * 2;
   // `d` overrides the walk direction — the page dir by default; the inverse-context text walks the OTHER
   // way (toward MORE contrast with the dark band, i.e. lighter in a light mode) so its ink comes forward.
   const walk = (palette: string, fromNum: number, steps: number, d: number = dir, guard?: { surf: RGB; min: number }): Cand => {
@@ -878,16 +908,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   const dangerRest = paletteRole('danger', floorRgb, fillFloorMin);
   fills.danger = dangerRest;
   put('foreground.danger', dangerRest, `Bold danger fill — clears ${fillFloorMin}:1 on the floor (${cfg.floorName})`, cfg.floorName, fillFloorMin);
-  // Interactive fill states walk the palette (rest → hover/focused +1 → pressed/selected +2).
+  // Interactive fill states walk the palette (rest → hover/focused → pressed/selected), by the rung
+  // rule below.
   // `fillMin` is the floor the walked step is guarded against (#557) — the SAME floor `put` then
   // measures it by, so the walk can no longer land a state under its own declared contract.
   const fillStateCand = (rest: RatedNum, palette: string, st: typeof FILL_STATES[number], fillMin: number): Cand => {
     // Measure the origin here rather than trusting `rest.ratio` — an `exact` pin carries the ratio
     // it was picked with, and this must be the contrast against the ground `put` will use.
     const g = guardFrom(contrast(rest.rgb, floorRgb), floorRgb, fillMin);
-    return st === 'default' ? rest
-      : st === 'hover' || st === 'focused' ? walk(palette, rest.num, 1, dir, g)
-      : walk(palette, rest.num, 2, dir, g); // pressed | selected
+    return st === 'default' ? rest : walk(palette, rest.num, stateRungs(st), dir, g);
   };
 
   // The action palette's rest colour — the source for interactive.primary, the focus ring,
@@ -944,7 +973,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = (st === 'default' || !walkable) ? restCand
-        : walk(palette, restNum, st === 'hover' ? 1 : 2, dir, guardFrom(contrast(restCand.rgb, baseRgb), baseRgb, cfg.secondaryMin));
+        : walk(palette, restNum, stateRungs(st), dir, guardFrom(contrast(restCand.rgb, baseRgb), baseRgb, cfg.secondaryMin));
       put(`interactive.${name}.text.${stKey}`, rated(c, baseRgb),
         `${name} interactive ink — ${stKey} (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
       byState[stKey] = c;
@@ -1069,7 +1098,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = (st === 'default' || !palette) ? textRest
-        : walk(palette, textNum, st === 'hover' ? 1 : 2, -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
+        : walk(palette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
       put(`inverse.interactive.${name}.text.${stKey}`, rated(c, invRgb),
         `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'inverse.background.primary', cfg.secondaryMin);
       invInk[stKey] = c;
@@ -1096,13 +1125,15 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // It was ONE omission, not two: the same literal appears in the `text` loop above, and both
     // were written when the inverse column only had rest/hover/pressed to mirror. Reading the state
     // list from the shared constant is what stops the next state added to `FILL_STATES` from
-    // silently skipping the inverse column again. The step rule below is the page rule verbatim
-    // (`fillStateCand`: hover/focused one step, pressed/selected two) with the direction reversed,
-    // which is the only thing that legitimately differs on an inverse ground.
+    // silently skipping the inverse column again. The step rule below IS the page rule — literally,
+    // through `stateRungs`, as of #1281 — with the direction reversed, which is the only thing that
+    // legitimately differs on an inverse ground. This comment used to RESTATE the rule instead
+    // ("hover/focused one step, pressed/selected two"), which is how a copy stays in step right up
+    // until the day it does not.
     for (const st of FILL_STATES) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = st === 'default' ? fillRest
-        : walk(r2p.neutral, fillRest.num, (st === 'hover' || st === 'focused') ? 1 : 2, -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
+        : walk(r2p.neutral, fillRest.num, stateRungs(st), -dir, guardFrom(contrast(fillRest.rgb, invRgb), invRgb, cfg.nonTextMin));
       put(`inverse.interactive.${name}.fill.${stKey}`, rated(c, invRgb),
         `${name} interactive fill on a dark / inverse surface — ${stKey} (a light filled CTA on a dark hero)`, 'inverse.background.primary', cfg.nonTextMin);
     }
@@ -1309,7 +1340,26 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
           // the surface. The variable being chosen is the tint; the ink is already fixed by `iText`.
           // So the promise worth publishing is "this tint keeps its own state ink legible", and the
           // ink is what it is measured against.
-          `interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`, cfg.secondaryMin);
+          //
+          // PRESSED / SELECTED ARE CATEGORICALLY UNGATED as of #1281 — the same owner decision the
+          // preview spec's `label on fill` contract records, expressed the same way and gated by the
+          // same predicate. At four rungs from rest the tint can no longer always carry its own ink
+          // (hot-yellow/hc-dark measured 5.77 against the 7 bar HC sets), and a pressed state's job
+          // is distinction from rest rather than legibility in its own right.
+          //
+          // A PREDICATE ON THE STATE, never a list of cells: no brand, mode or column is named here
+          // or anywhere, so a fifth brand's pressed tint needs no entry. `test.ts` runs the rule in
+          // BOTH directions over this family — a floored pressed role fails, and an unfloored rest or
+          // hover role fails — which is what stops "pressed is exempt" from decaying into "floors are
+          // optional".
+          //
+          // `min: 0` DECLARES the exemption — the ratio is still computed, recorded and published, it
+          // simply carries no floor — rather than leaving a contract to fail and be read as a
+          // regression. The tint SELECTION above is untouched: it still prefers the most saturated
+          // step that keeps the ink legible, so where legibility is reachable it is still taken. Only
+          // the promise changes, not the pick.
+          `interactive.${color}.text.${st === 'selected' ? 'pressed' : st}`,
+          (st === 'pressed' || st === 'selected') ? 0 : cfg.secondaryMin);
       }
     }
   }

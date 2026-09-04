@@ -1045,7 +1045,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{prism.core.palette.primary.750}",
               "$description": "primary interactive fill — hover",
               "$extensions": {
                 "prism3": {
@@ -1060,8 +1060,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.700",
-                  "contrast": 9.41,
+                  "aliasOf": "prism.core.palette.primary.750",
+                  "contrast": 10.91,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1069,7 +1069,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.750}",
+              "$value": "{prism.core.palette.primary.850}",
               "$description": "primary interactive fill — pressed",
               "$extensions": {
                 "prism3": {
@@ -1084,8 +1084,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.750",
-                  "contrast": 10.91,
+                  "aliasOf": "prism.core.palette.primary.850",
+                  "contrast": 13.92,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1093,7 +1093,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{prism.core.palette.primary.750}",
               "$description": "primary interactive fill — focused",
               "$extensions": {
                 "prism3": {
@@ -1108,8 +1108,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.700",
-                  "contrast": 9.41,
+                  "aliasOf": "prism.core.palette.primary.750",
+                  "contrast": 10.91,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1117,7 +1117,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.750}",
+              "$value": "{prism.core.palette.primary.850}",
               "$description": "primary interactive fill — selected",
               "$extensions": {
                 "prism3": {
@@ -1132,8 +1132,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.750",
-                  "contrast": 10.91,
+                  "aliasOf": "prism.core.palette.primary.850",
+                  "contrast": 13.92,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1167,32 +1167,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
-              "$description": "primary interactive ink — hover (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "prism.core.palette.primary.650",
-                  "contrast": 9.77,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{prism.core.palette.primary.700}",
-              "$description": "primary interactive ink — pressed (outline / text appearance)",
+              "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1208,6 +1184,30 @@
                   },
                   "aliasOf": "prism.core.palette.primary.700",
                   "contrast": 11.42,
+                  "against": "background.primary",
+                  "min": 7
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.core.palette.primary.800}",
+              "$description": "primary interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "prism.core.palette.primary.800",
+                  "contrast": 15.09,
                   "against": "background.primary",
                   "min": 7
                 }
@@ -1241,32 +1241,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
-              "$description": "primary interactive border — hover (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "prism.core.palette.primary.650",
-                  "contrast": 9.77,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{prism.core.palette.primary.700}",
-              "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1282,6 +1258,30 @@
                   },
                   "aliasOf": "prism.core.palette.primary.700",
                   "contrast": 11.42,
+                  "against": "background.primary",
+                  "min": 4.5
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.core.palette.primary.800}",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "prism.core.palette.primary.800",
+                  "contrast": 15.09,
                   "against": "background.primary",
                   "min": 4.5
                 }
@@ -1317,7 +1317,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.750}",
+              "$value": "{prism.core.palette.danger.800}",
               "$description": "destructive interactive fill — hover",
               "$extensions": {
                 "prism3": {
@@ -1332,8 +1332,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.750",
-                  "contrast": 9.87,
+                  "aliasOf": "prism.core.palette.danger.800",
+                  "contrast": 11.67,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1341,7 +1341,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.800}",
+              "$value": "{prism.core.palette.danger.900}",
               "$description": "destructive interactive fill — pressed",
               "$extensions": {
                 "prism3": {
@@ -1356,8 +1356,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.800",
-                  "contrast": 11.67,
+                  "aliasOf": "prism.core.palette.danger.900",
+                  "contrast": 14.99,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1365,7 +1365,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.750}",
+              "$value": "{prism.core.palette.danger.800}",
               "$description": "destructive interactive fill — focused",
               "$extensions": {
                 "prism3": {
@@ -1380,8 +1380,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.750",
-                  "contrast": 9.87,
+                  "aliasOf": "prism.core.palette.danger.800",
+                  "contrast": 11.67,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1389,7 +1389,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.800}",
+              "$value": "{prism.core.palette.danger.900}",
               "$description": "destructive interactive fill — selected",
               "$extensions": {
                 "prism3": {
@@ -1404,8 +1404,8 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.800",
-                  "contrast": 11.67,
+                  "aliasOf": "prism.core.palette.danger.900",
+                  "contrast": 14.99,
                   "against": "neutral.050",
                   "min": 7
                 }
@@ -1439,32 +1439,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.700}",
-              "$description": "destructive interactive ink — hover (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "prism.core.palette.danger.700",
-                  "contrast": 9.99,
-                  "against": "background.primary",
-                  "min": 7
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{prism.core.palette.danger.750}",
-              "$description": "destructive interactive ink — pressed (outline / text appearance)",
+              "$description": "destructive interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1480,6 +1456,30 @@
                   },
                   "aliasOf": "prism.core.palette.danger.750",
                   "contrast": 11.98,
+                  "against": "background.primary",
+                  "min": 7
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.core.palette.danger.850}",
+              "$description": "destructive interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "prism.core.palette.danger.850",
+                  "contrast": 16.33,
                   "against": "background.primary",
                   "min": 7
                 }
@@ -1513,32 +1513,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.700}",
-              "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  },
-                  "aliasOf": "prism.core.palette.danger.700",
-                  "contrast": 9.99,
-                  "against": "background.primary",
-                  "min": 4.5
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{prism.core.palette.danger.750}",
-              "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+              "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -1554,6 +1530,30 @@
                   },
                   "aliasOf": "prism.core.palette.danger.750",
                   "contrast": 11.98,
+                  "against": "background.primary",
+                  "min": 4.5
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{prism.core.palette.danger.850}",
+              "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  },
+                  "aliasOf": "prism.core.palette.danger.850",
+                  "contrast": 16.33,
                   "against": "background.primary",
                   "min": 4.5
                 }
@@ -2321,32 +2321,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.250}",
-                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "prism.core.palette.primary.250",
-                    "contrast": 9.19,
-                    "against": "inverse.background.primary",
-                    "min": 7
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{prism.core.palette.primary.200}",
-                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2362,6 +2338,30 @@
                     },
                     "aliasOf": "prism.core.palette.primary.200",
                     "contrast": 10.86,
+                    "against": "inverse.background.primary",
+                    "min": 7
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{prism.core.palette.primary.100}",
+                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    },
+                    "aliasOf": "prism.core.palette.primary.100",
+                    "contrast": 14.73,
                     "against": "inverse.background.primary",
                     "min": 7
                   }
@@ -2419,32 +2419,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.250}",
-                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "prism.core.palette.primary.250",
-                    "contrast": 9.19,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{prism.core.palette.primary.200}",
-                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2460,6 +2436,30 @@
                     },
                     "aliasOf": "prism.core.palette.primary.200",
                     "contrast": 10.86,
+                    "against": "inverse.background.primary",
+                    "min": 4.5
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{prism.core.palette.primary.100}",
+                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    },
+                    "aliasOf": "prism.core.palette.primary.100",
+                    "contrast": 14.73,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }
@@ -2495,32 +2495,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.300}",
-                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "prism.core.palette.danger.300",
-                    "contrast": 8.71,
-                    "against": "inverse.background.primary",
-                    "min": 7
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{prism.core.palette.danger.250}",
-                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2536,6 +2512,30 @@
                     },
                     "aliasOf": "prism.core.palette.danger.250",
                     "contrast": 10.09,
+                    "against": "inverse.background.primary",
+                    "min": 7
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{prism.core.palette.danger.150}",
+                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    },
+                    "aliasOf": "prism.core.palette.danger.150",
+                    "contrast": 13.35,
                     "against": "inverse.background.primary",
                     "min": 7
                   }
@@ -2593,32 +2593,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.300}",
-                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    },
-                    "aliasOf": "prism.core.palette.danger.300",
-                    "contrast": 8.71,
-                    "against": "inverse.background.primary",
-                    "min": 4.5
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{prism.core.palette.danger.250}",
-                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -2634,6 +2610,30 @@
                     },
                     "aliasOf": "prism.core.palette.danger.250",
                     "contrast": 10.09,
+                    "against": "inverse.background.primary",
+                    "min": 4.5
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{prism.core.palette.danger.150}",
+                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    },
+                    "aliasOf": "prism.core.palette.danger.150",
+                    "contrast": 13.35,
                     "against": "inverse.background.primary",
                     "min": 4.5
                   }

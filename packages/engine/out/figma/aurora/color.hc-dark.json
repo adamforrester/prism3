@@ -1183,14 +1183,14 @@
       ],
       "description": "primary interactive fill — hover",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/250"
+        "name": "prism/core/palette/accent/200"
       }
     },
     {
@@ -1202,14 +1202,14 @@
       ],
       "description": "primary interactive fill — pressed",
       "value": {
-        "r": 0.6274510025978088,
-        "g": 0.772549033164978,
-        "b": 0.8627451062202454,
+        "r": 0.800000011920929,
+        "g": 0.8705882430076599,
+        "b": 0.9137254953384399,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/200"
+        "name": "prism/core/palette/accent/100"
       }
     },
     {
@@ -1221,14 +1221,14 @@
       ],
       "description": "primary interactive fill — focused",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.6274510025978088,
+        "g": 0.772549033164978,
+        "b": 0.8627451062202454,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/250"
+        "name": "prism/core/palette/accent/200"
       }
     },
     {
@@ -1240,14 +1240,14 @@
       ],
       "description": "primary interactive fill — selected",
       "value": {
-        "r": 0.6274510025978088,
-        "g": 0.772549033164978,
-        "b": 0.8627451062202454,
+        "r": 0.800000011920929,
+        "g": 0.8705882430076599,
+        "b": 0.9137254953384399,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/200"
+        "name": "prism/core/palette/accent/100"
       }
     },
     {
@@ -1296,14 +1296,14 @@
       ],
       "description": "primary interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.5372549295425415,
+        "g": 0.7254902124404907,
+        "b": 0.8392156958580017,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/300"
+        "name": "prism/core/palette/accent/250"
       }
     },
     {
@@ -1314,14 +1314,14 @@
       ],
       "description": "primary interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.7137255072593689,
+        "g": 0.8235294222831726,
+        "b": 0.886274516582489,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/250"
+        "name": "prism/core/palette/accent/150"
       }
     },
     {
@@ -1350,14 +1350,14 @@
       ],
       "description": "primary interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4431372582912445,
-        "g": 0.6784313917160034,
-        "b": 0.8156862854957581,
+        "r": 0.5372549295425415,
+        "g": 0.7254902124404907,
+        "b": 0.8392156958580017,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/300"
+        "name": "prism/core/palette/accent/250"
       }
     },
     {
@@ -1368,14 +1368,14 @@
       ],
       "description": "primary interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.5372549295425415,
-        "g": 0.7254902124404907,
-        "b": 0.8392156958580017,
+        "r": 0.7137255072593689,
+        "g": 0.8235294222831726,
+        "b": 0.886274516582489,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/250"
+        "name": "prism/core/palette/accent/150"
       }
     },
     {
@@ -1463,14 +1463,14 @@
       ],
       "description": "destructive interactive fill — hover",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/250"
+        "name": "prism/core/palette/danger/200"
       }
     },
     {
@@ -1482,14 +1482,14 @@
       ],
       "description": "destructive interactive fill — pressed",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7058823704719543,
-        "b": 0.6745098233222961,
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/200"
+        "name": "prism/core/palette/danger/100"
       }
     },
     {
@@ -1501,14 +1501,14 @@
       ],
       "description": "destructive interactive fill — focused",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9254902005195618,
+        "g": 0.7058823704719543,
+        "b": 0.6745098233222961,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/250"
+        "name": "prism/core/palette/danger/200"
       }
     },
     {
@@ -1520,14 +1520,14 @@
       ],
       "description": "destructive interactive fill — selected",
       "value": {
-        "r": 0.9254902005195618,
-        "g": 0.7058823704719543,
-        "b": 0.6745098233222961,
+        "r": 0.9490196108818054,
+        "g": 0.8352941274642944,
+        "b": 0.8235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/200"
+        "name": "prism/core/palette/danger/100"
       }
     },
     {
@@ -1576,14 +1576,14 @@
       ],
       "description": "destructive interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.9137254953384399,
+        "g": 0.6352941393852234,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/300"
+        "name": "prism/core/palette/danger/250"
       }
     },
     {
@@ -1594,14 +1594,14 @@
       ],
       "description": "destructive interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9333333373069763,
+        "g": 0.772549033164978,
+        "b": 0.7490196228027344,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/250"
+        "name": "prism/core/palette/danger/150"
       }
     },
     {
@@ -1630,14 +1630,14 @@
       ],
       "description": "destructive interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.9019607901573181,
-        "g": 0.5647059082984924,
-        "b": 0.5254902243614197,
+        "r": 0.9137254953384399,
+        "g": 0.6352941393852234,
+        "b": 0.6000000238418579,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/300"
+        "name": "prism/core/palette/danger/250"
       }
     },
     {
@@ -1648,14 +1648,14 @@
       ],
       "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.9137254953384399,
-        "g": 0.6352941393852234,
-        "b": 0.6000000238418579,
+        "r": 0.9333333373069763,
+        "g": 0.772549033164978,
+        "b": 0.7490196228027344,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/250"
+        "name": "prism/core/palette/danger/150"
       }
     },
     {
@@ -1743,14 +1743,14 @@
       ],
       "description": "neutral interactive fill — hover",
       "value": {
-        "r": 0.1725490242242813,
-        "g": 0.1725490242242813,
-        "b": 0.18431372940540314,
+        "r": 0.21960784494876862,
+        "g": 0.21960784494876862,
+        "b": 0.23137255012989044,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/800"
+        "name": "prism/core/palette/neutral/750"
       }
     },
     {
@@ -1762,14 +1762,14 @@
       ],
       "description": "neutral interactive fill — pressed",
       "value": {
-        "r": 0.21960784494876862,
-        "g": 0.21960784494876862,
-        "b": 0.23137255012989044,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/750"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -1781,14 +1781,14 @@
       ],
       "description": "neutral interactive fill — focused",
       "value": {
-        "r": 0.1725490242242813,
-        "g": 0.1725490242242813,
-        "b": 0.18431372940540314,
+        "r": 0.21960784494876862,
+        "g": 0.21960784494876862,
+        "b": 0.23137255012989044,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/800"
+        "name": "prism/core/palette/neutral/750"
       }
     },
     {
@@ -1800,14 +1800,14 @@
       ],
       "description": "neutral interactive fill — selected",
       "value": {
-        "r": 0.21960784494876862,
-        "g": 0.21960784494876862,
-        "b": 0.23137255012989044,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/750"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -2802,13 +2802,13 @@
       "description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
         "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "g": 0.23137255012989044,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/700"
+        "name": "prism/core/palette/accent/750"
       }
     },
     {
@@ -2820,13 +2820,13 @@
       "description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
         "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "g": 0.1411764770746231,
+        "b": 0.21176470816135406,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/750"
+        "name": "prism/core/palette/accent/850"
       }
     },
     {
@@ -2857,14 +2857,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.09019608050584793,
-        "g": 0.09019608050584793,
-        "b": 0.09803921729326248,
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/900"
+        "name": "prism/core/palette/neutral/950"
       }
     },
     {
@@ -2876,14 +2876,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/950"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -2895,14 +2895,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.09019608050584793,
-        "g": 0.09019608050584793,
-        "b": 0.09803921729326248,
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/900"
+        "name": "prism/core/palette/neutral/950"
       }
     },
     {
@@ -2914,14 +2914,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/950"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -2971,13 +2971,13 @@
       "description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
         "r": 0,
-        "g": 0.27843138575553894,
-        "b": 0.4000000059604645,
+        "g": 0.23137255012989044,
+        "b": 0.3333333432674408,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/700"
+        "name": "prism/core/palette/accent/750"
       }
     },
     {
@@ -2989,13 +2989,13 @@
       "description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
         "r": 0,
-        "g": 0.23137255012989044,
-        "b": 0.3333333432674408,
+        "g": 0.1411764770746231,
+        "b": 0.21176470816135406,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/accent/750"
+        "name": "prism/core/palette/accent/850"
       }
     },
     {
@@ -3081,14 +3081,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.4117647111415863,
+        "g": 0.09803921729326248,
+        "b": 0.08627451211214066,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/700"
+        "name": "prism/core/palette/danger/750"
       }
     },
     {
@@ -3099,14 +3099,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.27450981736183167,
+        "g": 0.019607843831181526,
+        "b": 0.0235294122248888,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/750"
+        "name": "prism/core/palette/danger/850"
       }
     },
     {
@@ -3137,14 +3137,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.09019608050584793,
-        "g": 0.09019608050584793,
-        "b": 0.09803921729326248,
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/900"
+        "name": "prism/core/palette/neutral/950"
       }
     },
     {
@@ -3156,14 +3156,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/950"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -3175,14 +3175,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.09019608050584793,
-        "g": 0.09019608050584793,
-        "b": 0.09803921729326248,
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/900"
+        "name": "prism/core/palette/neutral/950"
       }
     },
     {
@@ -3194,14 +3194,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/950"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -3250,14 +3250,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.48235294222831726,
-        "g": 0.13725490868091583,
-        "b": 0.12156862765550613,
+        "r": 0.4117647111415863,
+        "g": 0.09803921729326248,
+        "b": 0.08627451211214066,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/700"
+        "name": "prism/core/palette/danger/750"
       }
     },
     {
@@ -3268,14 +3268,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4117647111415863,
-        "g": 0.09803921729326248,
-        "b": 0.08627451211214066,
+        "r": 0.27450981736183167,
+        "g": 0.019607843831181526,
+        "b": 0.0235294122248888,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/danger/750"
+        "name": "prism/core/palette/danger/850"
       }
     },
     {
@@ -3417,14 +3417,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.09019608050584793,
-        "g": 0.09019608050584793,
-        "b": 0.09803921729326248,
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/900"
+        "name": "prism/core/palette/neutral/950"
       }
     },
     {
@@ -3436,14 +3436,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/950"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {
@@ -3455,14 +3455,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.09019608050584793,
-        "g": 0.09019608050584793,
-        "b": 0.09803921729326248,
+        "r": 0.05098039284348488,
+        "g": 0.05098039284348488,
+        "b": 0.054901961237192154,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/900"
+        "name": "prism/core/palette/neutral/950"
       }
     },
     {
@@ -3474,14 +3474,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.05098039284348488,
-        "g": 0.05098039284348488,
-        "b": 0.054901961237192154,
+        "r": 0.30980393290519714,
+        "g": 0.30980393290519714,
+        "b": 0.3294117748737335,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/palette/neutral/950"
+        "name": "prism/core/palette/neutral/650"
       }
     },
     {

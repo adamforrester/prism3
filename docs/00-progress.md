@@ -7,6 +7,158 @@
 
 ---
 
+## (2026-09-04) — interactive states move two genome rungs, the outline ink tracks its border, and pressed stops owing contrast (#1281 + #1282)
+
+**STATUS: shipped.** `ENGINE_VERSION` 0.45.0 → **0.46.0**; `CONTRACT_VERSION` **stands at 9.4.0**.
+Gates stay at **55**. Two owner decisions were taken mid-build and both are recorded below.
+
+── #1281: THE INTERVAL, EXPRESSED AS RUNGS ───────────────────────────────────────────────────────
+
+`stateRungs` replaces **four** copies of `st === 'hover' ? 1 : 2` — page fill, page ink, and the
+inverse-band twins of both. The file already knew they were one rule: the inverse fill loop's own
+comment read *"the step rule below is the page rule verbatim (`fillStateCand`: hover/focused one
+step, pressed/selected two)"*. A rule that has to describe its own duplicate is a rule with a drift
+hazard, and #576's `iBorder` note says the same thing one slot over — *"two derivations of 'the same
+step' are two things that can drift"*.
+
+`STATE_RUNGS = 2`: hover is two rungs past rest, pressed twice that. On a ~20-rung genome 50 apart,
+one rung moved nb's primary **550 → 600 → 650**; two reads **550 → 650 → 750**.
+
+── #1282: THE COUPLING #576 LEFT HALF-DONE ───────────────────────────────────────────────────────
+
+The premise needed checking and it was wrong where I first looked. At the TOKEN tier the ink and the
+border already tracked perfectly — `iText` has emitted `text.{rest,hover,pressed}` since #576, and
+`iBorder` does not re-derive the step, it **consumes iText's own candidates by value**. So the
+defect was one tier down: `button.ts` bound `outline.border{,.hover,.pressed}` and pinned
+`outline.label` / `outline.icon` to `.rest`. The border moved and the text it surrounds did not,
+against roles that were sitting there emitted and unbound. Three keys, no derivation change.
+
+── DECISION 1: PRESSED IS UNGATED FOR CONTRAST ───────────────────────────────────────────────────
+
+The deeper interval broke the `on-fill` label contract. In dark mode the fill walks toward the LIGHT
+end and one rest-derived ink serves all states, so at four rungs it loses its own pressed fill:
+
+| cell | measured | bar |
+|---|---|---|
+| harbor / dark / primary | **2.62** | 3 |
+| wendys / dark / primary | **2.54** | 3 |
+| wendys / dark / destructive | **2.41** | 3 |
+| hot-yellow / hc-dark / primary subtle-fill | **5.77** | 7 |
+
+Put to the owner with those numbers. **Decided: pressed is exempt** — what a pressed state owes is
+DISTINCTION FROM REST, not legibility in its own right. The alternatives were a smaller interval
+(the thing #1281 exists to fix) or a stateful `on-fill` family, which the preview spec had already
+rejected years earlier for flipping the label's colour mid-press.
+
+**Declared as `min: 0`, never left to fail**, and that distinction is the whole of it: `pass` is then
+true by construction, the ratio is still computed and published, and a reader sees a contract saying
+*"not gated here"* rather than a red cell indistinguishable from a regression.
+
+**CATEGORICAL, NOT ENUMERATED — and the first draft got this backwards.** It shipped a per-cell
+allow-list (`UNGATED_OK = Set(['button/pressed'])`), which is the opposite model: it makes every new
+pressed cell a decision someone has to re-take, and it reads as a set of exceptions rather than a
+rule. The owner's final decision is that pressed and selected are **never** floored for
+ink-on-state-surface contrast, system-wide. The list is gone. What replaces it is a **predicate on
+the state** — `state ∈ {pressed, selected}` — so a fifth brand, a new mode or a new component needs
+no entry anywhere.
+
+**THE SCOPE GUARD IS WHAT KEEPS IT HONEST**, and it is the load-bearing check now. A categorical
+exemption is one edit away from *"all floors are optional"*: zero a rest contract's floor and it
+passes forever, because a floor that is not there cannot fail. So the guard runs the implication in
+the direction that catches that — **`min: 0` IMPLIES pressed or selected**, i.e. no rest, hover,
+focus or disabled contract may be unfloored. The same predicate runs at the subtle-fill site in
+**both** directions, because there each catches a different mistake: an unfloored rest role is a
+deleted floor, and a *floored pressed* role is the exemption quietly reverted, which would surface as
+a colour regression rather than as the policy change it is.
+
+**THE EMITTED-ROLE TIER COULD NOT TAKE THE RULE UNSCOPED, and the scope is forced rather than
+chosen.** `min === 0` already carries **three** meanings there, only one of which is this exemption:
+
+1. a **surface**, marked `against: 'self'` — a ground is not ink on anything, so it has no pairing to
+   floor (backgrounds, foregrounds, veils, scrims);
+2. a **pre-existing unfloored pairing** against a real ground — the `border.*` and `inverse.border.*`
+   tiers, the disabled edges, and the neutral interactive fill whose whole design is to sit at page
+   luminance. These predate this PR and are unfloored at **rest and hover**, not only at pressed;
+3. this exemption.
+
+Set 2 is what makes a blanket *"every min-0 role is pressed"* assertion impossible at that tier: it
+is false for roles that have nothing to do with states at all. So the guard runs over the
+`subtle-fill` family the decision is about, and says so in its own comment, rather than reporting a
+rule it cannot keep. The preview tier has no such ambiguity — every contract there is an explicit
+ink-on-bg pairing — so the predicate applies unscoped.
+
+**AND THE FIRST DRAFT OF THAT COMMENT COUNTED INSTEAD OF DESCRIBING**, which is `docs/34`'s
+name-don't-count rule failing inside its own remedy. It read *"24 roles carry `against: 'self'` and
+`inverse.border.tertiary` is unfloored against a real ground"*. Re-measured in review: the
+self-against set is larger than that, and the second set is not one role but a whole tier plus the
+neutral fill across every state. **Wrong in both halves while reading as precise** — the exact failure
+mode a numeral in prose has. The counts are now gone rather than corrected: they move whenever a
+surface or an edge tier is added, and the SHAPE of the excluded set is what forces the scoping, not
+its size.
+
+── PRESSED'S SOLE GATED INVARIANT, AND THE HOLE IT HAD ───────────────────────────────────────────
+
+Under the categorical rule, distinction from rest is the ONLY thing a pressed state still owes — so
+it is the single thing standing between "states step" and a silent no-op, and it had to be checked
+where it actually was. It was not. The per-cell collapse check sat inside the sweep's `else` branch,
+reached only by cells that did NOT walk the plain interval, so a cell walking exactly two rungs never
+reached it. That was sound while the interval was itself gated (exact interval implies distinct), and
+stopped being sound the moment pressed's contrast floor came off. Now asserted **unconditionally, per
+cell, before the interval is classified**, with a non-empty floor over the cells examined.
+
+── DECISION 2: THE INTERVAL IS SYSTEM-WIDE ───────────────────────────────────────────────────────
+
+Also confirmed rather than assumed: the rule lives on `color.interactive.*`, so `icon-button` moves
+with the three buttons. Intended — a state rule is a property of the family — and there is no
+per-consumer mechanism at the token tier that could have scoped it anyway.
+
+── WHAT STILL HOLDS, MEASURED AT EVERY STATE ─────────────────────────────────────────────────────
+
+The thing the brief asked to be sure of, swept across 4 brands × 4 modes × 3 intents × 3 states:
+
+- **outline INK (`text.*`) below 4.5 at any state: NONE** — including HC, and including the
+  hover/pressed roles #1282 newly binds. The per-state ink #1282 adds is fully legible everywhere.
+- **outline BORDER below 3 at any state: NONE.**
+- **three cells currently land sub-floor** — harbor/dark/primary 2.62, wendys/dark/primary 2.54,
+  wendys/dark/destructive 2.41, all `on-fill` vs `fill.pressed`. This is an OBSERVATION, not an
+  invariant: under the categorical rule nothing asserts *how many* pressed cells clear a bar, and
+  nothing should — the count is expected to move as brands and ramps change, and pinning it would
+  re-introduce the per-cell model through the back door. What IS asserted about pressed is
+  distinction from rest, per cell, everywhere.
+
+── THE BATTERY ───────────────────────────────────────────────────────────────────────────────────
+
+| mutation | fired |
+|---|---|
+| `STATE_RUNGS` back to 1 | the interval arm, by name — *"0 cells walk +2 → +4, 60 land elsewhere"* |
+| pressed at 3 rungs instead of 4 | same arm, plus the L-02×#331 exact-step pin (`100 → 200 → 250`) |
+| `outline.label.hover` reverted to the rest ink | the #1282 coupling arm on all three siblings, naming `label=rest` beside `border=hover` |
+| the four per-state ink keys deleted | the coupling arm at both states on all three, naming `label=undefined` |
+| a REST preview contract set to `min: 0` | the **scope guard**, by name — `UNFLOORED: button/rest (state 'rest')` |
+| pressed walks ZERO rungs (`pressed === rest`) | the **per-cell distinction** arm, by name, naming `nb/light/primary: pressed and rest both land on 550` |
+| the subtle-fill pressed exemption reverted | the subtle-fill rule's OTHER direction, by name — `carries min 4.5 — pressed/selected are categorically unfloored` |
+
+The last three are the categorical rework's own proof, and the middle one needed checking BY NAME
+rather than by count: forcing `pressed === rest` turns the suite red 53 ways, and the arms at the top
+of that list are a pre-existing distinctness check, not this one. A reader counting failures would
+have called it proved without the new arm having fired at all (`docs/34` corollary 4).
+
+The interval arm asserts the RUNG DELTA off each role's own emitted ramp position, with `RUNG` and
+the per-state count **written** — `stateRungs` is not in scope in `test.ts`, because importing the
+rule to check the rule is `docs/34` shape 1. At the correct setting the corpus is **60 cells exact,
+0 elsewhere**; the arm's floor is authored below that with margin, and the live count prints on the
+message rather than being written down (#1267's doctrine).
+
+── OPEN ──────────────────────────────────────────────────────────────────────────────────────────
+
+`STATE_RUNGS` is a **constant, not a lever**. No brand has asked to tune it, and a lever costs a
+manifest entry, a studio control and a documented contract — the derivation should be right before it
+is configurable. Recorded here rather than pre-emptively built.
+
+`appearance=text` deliberately keeps its fixed ink. #1282's argument is that the ink had to track a
+BORDER already moving without it; a ghost button draws no border, and its state is the overlay wash.
+Whether it should also deepen its ink is a live question and a separate one.
+
 ## (2026-09-04) — the combine-drop repair reaches VARIABLE BINDINGS, not just field refs (#1279)
 
 **STATUS: shipped, plugin-side, no engine bump.** Branched off latest `main` (`515981d`). Three files

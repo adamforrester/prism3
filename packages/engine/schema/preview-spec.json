@@ -59,7 +59,7 @@
             {
               "fg": "color.interactive.primary.on-fill",
               "bg": "color.interactive.primary.fill.pressed",
-              "min": 3,
+              "min": 0,
               "label": "label on fill"
             }
           ]

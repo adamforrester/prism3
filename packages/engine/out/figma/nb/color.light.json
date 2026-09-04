@@ -1183,14 +1183,14 @@
       ],
       "description": "primary interactive fill — hover",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1202,14 +1202,14 @@
       ],
       "description": "primary interactive fill — pressed",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1221,14 +1221,14 @@
       ],
       "description": "primary interactive fill — focused",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1240,14 +1240,14 @@
       ],
       "description": "primary interactive fill — selected",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1296,14 +1296,14 @@
       ],
       "description": "primary interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1314,14 +1314,14 @@
       ],
       "description": "primary interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1350,14 +1350,14 @@
       ],
       "description": "primary interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1368,14 +1368,14 @@
       ],
       "description": "primary interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1463,14 +1463,14 @@
       ],
       "description": "destructive interactive fill — hover",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1482,14 +1482,14 @@
       ],
       "description": "destructive interactive fill — pressed",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1501,14 +1501,14 @@
       ],
       "description": "destructive interactive fill — focused",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1520,14 +1520,14 @@
       ],
       "description": "destructive interactive fill — selected",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1576,14 +1576,14 @@
       ],
       "description": "destructive interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1594,14 +1594,14 @@
       ],
       "description": "destructive interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1630,14 +1630,14 @@
       ],
       "description": "destructive interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.7215686440467834,
+        "r": 0.6313725709915161,
         "g": 0,
-        "b": 0.1411764770746231,
+        "b": 0.11764705926179886,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/600"
+        "name": "nbds/core/palette/red/650"
       }
     },
     {
@@ -1648,14 +1648,14 @@
       ],
       "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.6313725709915161,
+        "r": 0.45098039507865906,
         "g": 0,
-        "b": 0.11764705926179886,
+        "b": 0.07450980693101883,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/650"
+        "name": "nbds/core/palette/red/750"
       }
     },
     {
@@ -1743,14 +1743,14 @@
       ],
       "description": "neutral interactive fill — hover",
       "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -1762,14 +1762,14 @@
       ],
       "description": "neutral interactive fill — pressed",
       "value": {
-        "r": 0.6941176652908325,
-        "g": 0.7058823704719543,
-        "b": 0.7215686440467834,
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/250"
+        "name": "nbds/core/palette/neutral/350"
       }
     },
     {
@@ -1781,14 +1781,14 @@
       ],
       "description": "neutral interactive fill — focused",
       "value": {
-        "r": 0.7450980544090271,
-        "g": 0.7568627595901489,
-        "b": 0.7686274647712708,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/200"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -1800,14 +1800,14 @@
       ],
       "description": "neutral interactive fill — selected",
       "value": {
-        "r": 0.6941176652908325,
-        "g": 0.7058823704719543,
-        "b": 0.7215686440467834,
+        "r": 0.5882353186607361,
+        "g": 0.6078431606292725,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/250"
+        "name": "nbds/core/palette/neutral/350"
       }
     },
     {
@@ -2801,14 +2801,14 @@
       ],
       "description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
+        "name": "nbds/core/palette/red/350"
       }
     },
     {
@@ -2819,14 +2819,14 @@
       ],
       "description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/250"
       }
     },
     {
@@ -2857,14 +2857,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -2876,14 +2876,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -2895,14 +2895,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -2914,14 +2914,14 @@
       ],
       "description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -2970,14 +2970,14 @@
       ],
       "description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
+        "name": "nbds/core/palette/red/350"
       }
     },
     {
@@ -2988,14 +2988,14 @@
       ],
       "description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/250"
       }
     },
     {
@@ -3081,14 +3081,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
+        "name": "nbds/core/palette/red/350"
       }
     },
     {
@@ -3099,14 +3099,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/250"
       }
     },
     {
@@ -3137,14 +3137,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -3156,14 +3156,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -3175,14 +3175,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -3194,14 +3194,14 @@
       ],
       "description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -3250,14 +3250,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8705882430076599,
-        "g": 0.42352941632270813,
-        "b": 0.4117647111415863,
+        "r": 0.8823529481887817,
+        "g": 0.49803921580314636,
+        "b": 0.48235294222831726,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/400"
+        "name": "nbds/core/palette/red/350"
       }
     },
     {
@@ -3268,14 +3268,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8823529481887817,
-        "g": 0.49803921580314636,
-        "b": 0.48235294222831726,
+        "r": 0.9098039269447327,
+        "g": 0.6392157077789307,
+        "b": 0.6235294342041016,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/red/350"
+        "name": "nbds/core/palette/red/250"
       }
     },
     {
@@ -3417,14 +3417,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -3436,14 +3436,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
@@ -3455,14 +3455,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.8549019694328308,
-        "g": 0.8627451062202454,
-        "b": 0.8666666746139526,
+        "r": 0.800000011920929,
+        "g": 0.8078431487083435,
+        "b": 0.8196078538894653,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/100"
+        "name": "nbds/core/palette/neutral/150"
       }
     },
     {
@@ -3474,14 +3474,14 @@
       ],
       "description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
       "value": {
-        "r": 0.800000011920929,
-        "g": 0.8078431487083435,
-        "b": 0.8196078538894653,
+        "r": 0.6941176652908325,
+        "g": 0.7058823704719543,
+        "b": 0.7215686440467834,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "nbds/core/palette/neutral/150"
+        "name": "nbds/core/palette/neutral/250"
       }
     },
     {
