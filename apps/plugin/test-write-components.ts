@@ -750,18 +750,23 @@ ok(r1.misses.length === 0 && r2.misses.filter((m) => !m.includes('ALREADY PRESEN
 // So this counts calls the HOST received. The two numbers now have independent sources — one from the
 // branch the code took, one from the shim's own `findOne` — and are asserted to agree.
 //
-// THE READ-BACK LOOP SEARCHES BY DESIGN (deliberately, see above), so a bare total proves nothing: it
+// THE READ-BACK LOOPS SEARCH BY DESIGN (deliberately, see above), so a bare total proves nothing: it
 // would be satisfied by a wire loop that searched everything and a read-back that searched nothing. The
 // expected figure is therefore decomposed by loop, and each term is derived from the plans rather than from
-// the result: the read-back re-finds exactly the references it WROTE (`r1.refs`), and the wire loop must
-// add nothing on a cold run.
-ok(hostAfterR1 === r1.refs + r1.refsSearched,
-  `the host received exactly ${r1.refs} subtree searches on the cold run — one per reference the read-back verifies, and NOT ONE from the wire loop (${hostAfterR1} actual vs ${r1.refs} read-back + ${r1.refsSearched} reported wire)`);
+// the result: the ref read-back re-finds exactly the references it WROTE (`r1.refs`), the #1279 BINDING
+// read-back re-finds each bound part it verifies (`r1.boundSearched`) — a SECOND read-back that searches
+// for the same docs/34 reason, added when field bindings gained the same combine-drop repair as refs —
+// and the wire loop must add nothing on a cold run. The wire-loop-zero invariant this gate exists for is
+// unchanged: `refsSearched` stays 0, and the new term is a read-back cost, not a wire cost.
+ok(hostAfterR1 === r1.refs + r1.refsSearched + r1.boundSearched,
+  `the host received exactly ${r1.refs} ref + ${r1.boundSearched} binding subtree searches on the cold run — one per thing each read-back verifies, and NOT ONE from the wire loop (${hostAfterR1} actual vs ${r1.refs} ref read-back + ${r1.boundSearched} binding read-back + ${r1.refsSearched} reported wire)`);
 // AND THE CONVERSE RUN, which is what makes the assertion above falsifiable rather than a coincidence of
 // small numbers: the re-run has no map, so its wire loop really does search all 63, and the host must see
-// those 63 ON TOP of the read-back's. A `refsSearched` that under-reported would fail here, not above.
-ok(hostInR2 === r2.refs + r2.refsSearched && r2.refsSearched === wantLookups,
-  `and the searching run's ${r2.refsSearched} wire lookups all reach the host too — ${hostInR2} calls = ${r2.refs} read-back + ${r2.refsSearched} wire, so the counter tracks reality in BOTH directions`);
+// those 63 ON TOP of the read-back's. A `refsSearched` that under-reported would fail here, not above. The
+// binding read-back is scoped to members this run combined, so a warm re-run makes zero of its searches
+// (`r2.boundSearched === 0`) — it rebuilt nothing, so there is nothing whose binding combine could drop.
+ok(hostInR2 === r2.refs + r2.refsSearched + r2.boundSearched && r2.refsSearched === wantLookups,
+  `and the searching run's ${r2.refsSearched} wire lookups all reach the host too — ${hostInR2} calls = ${r2.refs} ref read-back + ${r2.boundSearched} binding read-back + ${r2.refsSearched} wire, so the counter tracks reality in BOTH directions`);
 // THE COUNTER IS NOT DEAD, stated separately because the two assertions above are equalities and an
 // always-zero counter satisfies neither honestly but a reader cannot tell at a glance. If `hostSearches`
 // were never threaded through `mkNode`, both sides would read 0 and the assertions would be vacuous.

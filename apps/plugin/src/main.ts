@@ -514,6 +514,10 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // landed it on the live node instead — the divergence has not reproduced by hand, so this line is the
     // live signal #1218 verifies against, not routine telemetry.
     if (r.refsRepaired > 0) console.log(`[prism3 #866] repaired ${r.refsRepaired} field-ref write(s) onto the live post-combine node`);
+    // #1279: the field-binding sibling of the line above. A non-zero count means the read-back caught a
+    // `boundVariables` write (a bound `strokeWeight`, padding or radius) dropped by `combineAsVariants`'s
+    // id rewrite and re-applied it onto the live node — the live signal #1218 verifies against.
+    if (r.boundRepaired > 0) console.log(`[prism3 #1279] repaired ${r.boundRepaired} variable binding(s) onto the live post-combine node`);
     // The telemetry block, printed LAST so it is the bottom of the console and can be copied in one
     // selection. It is the deliverable of the calibration run: `CHUNK` is set from these numbers.
     for (const line of summaryLines(reports, settleMs)) console.log(line);
