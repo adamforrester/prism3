@@ -92,7 +92,10 @@
  *
  * ARM B — VERSION, across commits. `ENGINE_VERSION` at the merge base against the constant this process
  * imported, versus whether the baseline's `defs` moved between the merge base and HEAD. FAIL iff the
- * surface moved and the version did not.
+ * surface moved and the version did not move STRICTLY FORWARD — unchanged, OR rolled BACKWARD to a lower
+ * value than the base carried (#1271). The comparison was `!==` (mere inequality), which passed a
+ * backward roll as though it were a bump; a moved surface must land at a version GREATER than the base's,
+ * so `--accept` and this arm both ask ordering now, via `isForward`.
  *
  * Arm A alone would leave two reachable holes, which is why arm B is not decoration:
  *
@@ -160,13 +163,19 @@
  *   M5  An anatomy change that moves no PAINT — `field-label`'s row gap. `lint-paint.ts` stays green
  *       (its rows are paint assignments only) while this gate's digest moves, which is the measurement
  *       that shows the two baselines are not duplicates of each other.
+ *   M6  A surface moved (committed at a forward bump), then ENGINE_VERSION rolled BACKWARD below the base
+ *       in the working tree (#1271). Under the old `!==` arm B PASSED — the strings differed, so "the
+ *       version moved" read true. With `isForward` it FAILS BY NAME, naming the backward roll and the
+ *       moved defs; `--accept` refuses the same backward stamp. The forward case (a real bump) still
+ *       passes, and a backward roll over an UNCHANGED surface still passes — the ordering check guards a
+ *       moved surface only, so it cannot fail a run that moved nothing (the vacuity guard).
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_VERSION } from './version';
+import { ENGINE_VERSION, satisfiesBump } from './version';
 import { componentDefs } from './components/index';
 import { figmaAnatomySet, planComponentName, planStamp } from './anatomy-figma';
 import type { AnatomyPlan } from './anatomy-figma';
@@ -191,6 +200,28 @@ const die = (lines: string[]): never => {
   console.error(`\n❌ ${lines[0]}`);
   for (const l of lines.slice(1)) console.error(l);
   process.exit(1);
+};
+
+/**
+ * Is `to` STRICTLY GREATER than `from` (#1271)? Arm B and `--accept` both asked mere inequality
+ * (`!==` / `===`), which passed a version rolled BACKWARD as a legitimate bump — a moved surface stamped
+ * under a lower version than the base carried. The question is ORDERING: a moved surface must land at a
+ * version greater than the base's. `satisfiesBump(from, to, 'patch')` is the shipped strictly-greater
+ * predicate (any patch/minor/major increment is true; equal and backward are false), reused rather than
+ * reimplemented (docs/34 shape 8). A non-semver version is a "cannot run", the same posture the base-
+ * version read takes — never a silent pass over an unanswerable comparison.
+ */
+const isForward = (from: string, to: string): boolean => {
+  try {
+    return satisfiesBump(from, to, 'patch');
+  } catch (e) {
+    return die([
+      `cannot order ENGINE_VERSION '${from}' -> '${to}' — ${(e as Error).message}. This gate CANNOT RUN.`,
+      '',
+      '  One of the two versions is not `MAJOR.MINOR.PATCH`, so "did the version move forward" is',
+      '  unanswerable. That is not the same as "the version is fine", so this fails rather than passing.',
+    ]);
+  }
 };
 
 // ---- THE SUBJECT: the default projection, computed live -------------------------------------------
@@ -388,8 +419,13 @@ const doAccept = (): void => {
   // SECOND bump for a second accept inside one PR, which is friction with no defect behind it.
   const { base, ref, via } = resolveBase();
   const before = baseEngineVersion(base);
-  if (before === ENGINE_VERSION) {
-    console.error(`\n❌ ${moved.length} def(s) moved their projected surface and ENGINE_VERSION is still ${ENGINE_VERSION}.`);
+  // FORWARD-ONLY (#1271): the accept is refused unless ENGINE_VERSION is STRICTLY GREATER than the base's,
+  // not merely different. `before === ENGINE_VERSION` alone let a BACKWARD stamp through — a surface moved
+  // and re-accepted at a version LOWER than the base carried — which arm B would then have to catch at
+  // merge. Refusing it here keeps the accept and the check asking the same ordering question.
+  if (!isForward(before, ENGINE_VERSION)) {
+    const backward = before !== ENGINE_VERSION;
+    console.error(`\n❌ ${moved.length} def(s) moved their projected surface and ENGINE_VERSION ${backward ? `rolled BACKWARD (${before} → ${ENGINE_VERSION})` : `is still ${ENGINE_VERSION}`}.`);
     console.error(`    base ${base.slice(0, 8)} (${ref}, via ${via})`);
     console.error('');
     for (const id of moved) {
@@ -465,22 +501,27 @@ const doCheck = (): void => {
   // ── ARM B: VERSION, across commits ─────────────────────────────────────────────────────────────
   const { base, ref, via } = resolveBase();
   const beforeVersion = baseEngineVersion(base);
+  // FORWARD-ONLY (#1271): the surface moving demands a version STRICTLY GREATER than the base's, not
+  // merely different. `beforeVersion !== ENGINE_VERSION` passed a BACKWARD roll — a moved surface stamped
+  // under a lower version — as a legitimate bump. `versionMoved` now only words the reporting line.
+  const forward = isForward(beforeVersion, ENGINE_VERSION);
   const versionMoved = beforeVersion !== ENGINE_VERSION;
+  const wentBackward = versionMoved && !forward;
   const wasDefs = baseDefs(base);
   const movedInDiff = wasDefs ? movedDefs(wasDefs, committed!.defs) : [];
 
   console.log(`  base ${base.slice(0, 8)} (${ref}, via ${via})`);
-  console.log(`  ENGINE_VERSION: ${beforeVersion} -> ${ENGINE_VERSION}${versionMoved ? ' (moved)' : ' (unchanged)'}`);
+  console.log(`  ENGINE_VERSION: ${beforeVersion} -> ${ENGINE_VERSION}${forward ? ' (moved forward)' : versionMoved ? ' (moved BACKWARD)' : ' (unchanged)'}`);
   if (!wasDefs) {
     console.log(`  baseline: INTRODUCED in this diff — no prior surface to compare, so no bump is owed for it`);
   } else {
     console.log(`  baseline: ${movedInDiff.length} def(s) moved vs base`);
   }
 
-  if (movedInDiff.length && !versionMoved) {
+  if (movedInDiff.length && !forward) {
     fails.push(
-      `version: the baseline in this tree moved ${movedInDiff.length} def(s) vs the base and ENGINE_VERSION did not — ` +
-        `still ${ENGINE_VERSION} at base ${base.slice(0, 8)}. Moved: ${movedInDiff.join(', ')}`,
+      `version: the baseline in this tree moved ${movedInDiff.length} def(s) vs the base and ENGINE_VERSION ` +
+        `${wentBackward ? `rolled BACKWARD (${beforeVersion} → ${ENGINE_VERSION})` : `did not — still ${ENGINE_VERSION}`} at base ${base.slice(0, 8)}. Moved: ${movedInDiff.join(', ')}`,
     );
   }
 
@@ -495,9 +536,10 @@ const doCheck = (): void => {
     console.error('');
     console.error('  A DRIFT failure is a changed projection: read the diff, bump ENGINE_VERSION, then');
     console.error('    npx tsx packages/engine/lint-component-surface.ts --accept');
-    console.error('  A VERSION failure means the baseline moved without the bump — most often a hand-edited');
-    console.error('  baseline, or a bump reverted after the accept. `--accept` refuses without the bump; a');
-    console.error('  text editor does not, which is the hole this arm exists to close.');
+    console.error('  A VERSION failure means the baseline moved without a FORWARD bump — a hand-edited baseline,');
+    console.error('  a bump reverted after the accept, or a version rolled BACKWARD below the base (#1271). The');
+    console.error('  version must move strictly forward when the surface moves; `--accept` refuses otherwise, a');
+    console.error('  text editor does not, which is the hole these arms exist to close.');
     process.exit(1);
   }
 

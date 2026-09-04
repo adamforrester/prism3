@@ -99,6 +99,45 @@ projection and is inert with respect to the name.
 
 ---
 
+## (2026-09-04) — the version gates go forward-only, not just "different" (#1271)
+
+**STATUS: shipped. Gate-only, version-neutral — `ENGINE_VERSION` and `CONTRACT_VERSION` unchanged, no
+`out/**` move** (the same posture as every other `lint-*.ts` change). Branched off `origin/main`
+(`1b9608f`, ENGINE 0.49.0).
+
+**The hole.** Both version gates asked whether the base's `ENGINE_VERSION` stamp DIFFERED from HEAD's, not
+whether HEAD's was GREATER. `lint-emission-version.ts` computed `baseVersion !== ENGINE_VERSION` and failed
+only on `changed && !that`; `lint-component-surface.ts` arm B computed `beforeVersion !== ENGINE_VERSION`
+and failed only on `movedInDiff && !that`; and its `--accept` refused only on `before === ENGINE_VERSION`.
+So a version rolled BACKWARD — a bad rebase, or a hand re-stamp to a lower integer — satisfied "moved" and
+passed GREEN over a real emission/surface move. This is not hypothetical: the 0.46 → 0.49 cluster was
+re-stamped by hand across four PRs, and any of those mis-landing at a lower integer would have shipped
+newer bytes under an older answer to "what code produced this?", which a consumer comparing stamps reads
+as a rollback.
+
+**The fix.** The comparison is now ORDERING. `satisfiesBump(base, HEAD, 'patch')` — the shipped
+strictly-greater predicate (any patch/minor/major increment is true; equal and backward are false) — is
+reused rather than reimplemented (docs/34 shape 8), wrapped as a local `isForward` in each gate (following
+the repo's convention that these two gates restate their git logic locally rather than share it). Where an
+artifact's content OR the projected component surface moved between merge-base and HEAD, HEAD's
+`ENGINE_VERSION` must be strictly greater than the base's; equal-with-a-change and backward-with-a-change
+both FAIL, and the messages name which. `--accept` refuses a non-forward stamp the same way, so the accept
+and the check ask one question. A non-semver version is a "cannot run" (the posture these gates already
+take for an unreadable base version), never a silent pass over an unanswerable comparison.
+
+**Conditional on a move, so not vacuous.** The ordering check fires only when something moved; a version
+that moves any direction over an UNCHANGED emission stays legal (a discretionary bump, and even a backward
+one over nothing, is not this gate's business). So the rule cannot fail a run that emitted nothing new.
+
+**Mutation-tested by name (docs/34), both directions.** Taken a tree where an artifact/surface moved
+between base and HEAD, rolled `ENGINE_VERSION` BACKWARD below the base, and confirmed each gate now FAILS
+BY NAME naming the backward roll — where the pre-fix `!==` gate (restored from `origin/main` and run on the
+identical tree) passed GREEN, which is the hole this closes. The forward case (a real bump over the same
+move) passes, and a backward roll over an unchanged surface passes (the vacuity guard). Recorded in each
+gate's own mutation register (`lint-component-surface.ts` M6; the emission gate's header).
+
+---
+
 ## (2026-09-04) — a missing SWAP TARGET gets a diagnosis, not just a name (#1280 PR-C, #1212 residue)
 
 **STATUS: shipped, plugin-side. `ENGINE_VERSION` 0.48.0 → 0.49.0; `CONTRACT_VERSION` stands at 9.4.0.**
