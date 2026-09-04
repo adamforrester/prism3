@@ -22,9 +22,12 @@
  *
  * WHAT THIS DEF CAN AND CANNOT DO, measured rather than assumed — because the honest answer is
  * "less than it looks" and the previous version of that answer was wrong in a way that stopped
- * anyone looking. Four independent walls sat between this def and a ring the engine materializes, and
- * every one of them was a projector or schema gap rather than a fact about focus rings. ALL FOUR ARE NOW
- * DOWN (#795, #1266) AND WHAT SURVIVES IS ONE KEYWORD:
+ * anyone looking. FIVE independent walls sat between this def and a ring the engine materializes, and
+ * every one of them was a projector, schema or surface gap rather than a fact about focus rings. ALL
+ * FIVE ARE NOW DOWN (#795, #1266, #1280) AND WHAT SURVIVES IS ONE KEYWORD. The first four are listed
+ * here; the fifth is stated after them, because it was not visible until these four had fallen — while
+ * the def could not project, "it cannot be built" was true for a reason that had nothing to do with the
+ * one that outlived it:
  *
  *  1. `PartDef` HAD NO STROKE FIELD — **DOWN FOR THE WIDTH (#1266); STANDING FOR THE STYLE (#740).**
  *     Its geometry vocabulary was gap / height / radius / size / type / inset / padding. A ring is a
@@ -63,12 +66,27 @@
  *     the projector never dispatches, so the ring's color was still reachable at 0 of 2 coordinates.
  *     #784 renamed them to `border`.
  *
- * So this def is REAL, gate-checked, PROJECTED as of #795 and drawing its brand's own stroke as of
- * #1266 — 2 members, ink and weight both bound. What it is still not is buildable ALONE, and that limit
- * is GEOMETRY rather than the stroke: a ring's extent is its host's extent plus the offset, so there is
- * no size a lone ring could correctly have and no schema field could supply one. See
- * `figmaProperties.notStandalone`. The difference matters for the roadmap: `focus-ring` is blocked on
- * neither the projector nor `PartDef` any more — nest it and it is correct.
+ * So this def is REAL, gate-checked, PROJECTED as of #795, drawing its brand's own stroke as of #1266
+ * — 2 members, ink and weight both bound — and BUILDABLE ALONE as of #1280. That last one was a FIFTH
+ * wall and it is worth reading as a deadlock rather than as a missing feature, because the two halves
+ * were each correct on their own:
+ *
+ *  5. THE RING COULD NOT BE BUILT AT ALL — **DOWN (#1280).** Every host reaches this def through
+ *     `nests: 'focus-ring'`, which projects a `NESTED_INSTANCE` whose `nestTarget` must ALREADY be a
+ *     published component in the designer's file; the only way to put it there is a standalone build.
+ *     And a standalone build was refused, by this def's own `figmaProperties.notStandalone`, on the
+ *     correct measurement that its members bound no extent. The refusal was right, the instruction it
+ *     gave ("build it as part of a host instead") named a path that did not exist, and the loop closed:
+ *     build Button, read `focusRing.nestTarget -> not in this file — build focus-ring FIRST`, go to the
+ *     picker, and the ring is not offered. The owner's QA reported it as "the focus ring never appears
+ *     on the button", which is the symptom of the deadlock rather than of a missing emit-list entry.
+ *     What broke it is one binding — see `nominal-side` in `tokens` and the `ring` part's `size` — and
+ *     it is a NOMINAL extent, not a discovered one. Nothing structural moved: the nesting shape is
+ *     untouched, all seven `nests` edges resolve exactly as they did, and a nested ring is still sized
+ *     by its host.
+ *
+ * The difference matters for the roadmap: `focus-ring` is blocked on neither the projector, nor
+ * `PartDef`, nor the picker any more.
  *
  * `figmaProperties` declares `surface` ALONE. `offset` stays a paste-time parameter rather than a second
  * variant axis, and #801 is why: the offset resolves to a NUMBER at paste because Figma's `x`/`y` bind
@@ -154,17 +172,57 @@ export const focusRing: ComponentDef = {
     'style': 'focus.ring.style',
     'offset.control': 'focus.ring.offset',
     'offset.field': 'focus.ring.offset-field',
+    // THE NOMINAL SIDE (#1280) — the one binding here that is not a design decision, and it is labelled
+    // so rather than left to be inferred. A ring has no intrinsic size: nested, its extent is its host's
+    // grown by the offset, and the host's executor writes it. This exists ONLY so a standalone build is
+    // a ring-shaped artifact instead of Figma's 100x100 default frame, which is what let the def be
+    // refused as a build target and deadlock every host that nests it. `size.md.height` is the md
+    // CONTROL height — chosen because the ring's commonest host is a control at that rung, so the
+    // library artifact reads at the scale a designer expects — and any other rung would have been
+    // equally defensible. It is OVERWRITTEN ON NEST, so no brand tunes a ring by tuning this.
+    'nominal-side': 'size.md.height',
   },
 
   // ONE PART, because a ring IS one node — an absolutely-positioned sibling with zero children and
-  // `clipsContent: false` (docs/32:592). It binds exactly one thing, and which one is the measurement
-  // rather than an omission: a ring's geometry is its STROKE and its POSITION, and only the first of
-  // those is a property. Its SIZE is its parent's bounds grown by the host's inset, so a `size` binding
-  // here would fight the stretch (`PartDef.size` is rejected outright on the host's `absolute` part for
-  // exactly this reason). Its RADIUS is the host's, derived below. Its POSITION is the host's `inset`,
-  // and Figma's `x`/`y` accept no variable. Its STROKE is `strokeWidth` (#1266) — the one dimension a
-  // ring owns rather than borrows, and the reason it now pastes at its brand's 2px instead of a 1px
-  // executor fallback.
+  // `clipsContent: false` (docs/32:592). It binds two things, and the SECOND one is a nominal placeholder
+  // rather than a design decision, which is the distinction to hold on to while reading the rest of this
+  // comment: a ring's geometry is its STROKE and its POSITION, and only the first of those is a property.
+  // Its RADIUS is the host's, derived below. Its POSITION is the host's `inset`, and Figma's `x`/`y`
+  // accept no variable. Its STROKE is `strokeWidth` (#1266) — the one dimension a ring owns rather than
+  // borrows, and the reason it now pastes at its brand's 2px instead of a 1px executor fallback.
+  //
+  // AND ITS SIZE IS `nominal-side` (#1280), WHICH THIS COMMENT USED TO ARGUE AGAINST BY NAME. The
+  // sentence that stood here read: *"Its SIZE is its parent's bounds grown by the host's inset, so a
+  // `size` binding here would fight the stretch (`PartDef.size` is rejected outright on the host's
+  // `absolute` part for exactly this reason)."* The first clause is still true and the inference from it
+  // was wrong, so the reversal is recorded rather than quietly overwritten.
+  //
+  // The parenthesis is the tell. `PartDef.size` is rejected on the HOST'S `absolute` part — on Button's
+  // `focusRing`, a different part in a different def — and it is rejected there because the host's
+  // executor resizes that node itself (`write-components.ts`: `kid.resize(node.width + inset*2, …)`
+  // followed by `constraints: STRETCH`), so a binding there would be overwritten by the very next line.
+  // NONE of that reasoning reaches this part. Nothing in a nested build reads this def's own root
+  // dimensions: the host's plan carries a `NESTED_INSTANCE` with no bound dimensions, and the geometry
+  // is written by the parent, from the parent. So what a `size` here changes is the STANDALONE artifact
+  // and nothing else — which was the whole of the deadlock (header wall 5).
+  //
+  // THE ONE THING THAT IS NOT PROVABLE FROM THIS REPO, stated here so it is not rediscovered as a
+  // surprise: an INSTANCE inherits its main component's bindings (which is exactly why the executor
+  // calls `unlockAspectRatio()` before every dimension write), and the executor's own measured note says
+  // `resize()` CLEARS every dimension binding. Those two together say the nominal side does not survive
+  // onto a nested ring — but they were both measured on bindings this code SET, never on one INHERITED
+  // through an instance, and no shim can tell the difference. If a nested ring is ever found sitting at
+  // the md control height instead of its host's box, that is this binding surviving the resize, and the
+  // fix is in the host executor (clear the instance's inherited width/height before resizing), not here.
+  // #1290 is the real-host check that settles it, and it is where the answer will be recorded. The same
+  // risk is stated for two other readers: `version.ts`'s 0.48.0 changelog entry and this change's
+  // `docs/00-progress.md` entry. Named rather than counted, because a count of its own sites has to
+  // include whatever is doing the counting and then goes stale the moment one moves.
+  //
+  // Bound rather than literal because `size` is the field that exists: it drives BOTH axes from one key,
+  // so the square cannot drift from itself (see `PartDef.size`), and it is what `lint-standalone-floor`'s
+  // `bound.width` + `bound.height` mechanisms read. A literal would have needed a new schema field and a
+  // new extent mechanism to say something less well.
   anatomy: {
     root: 'ring',
     parts: {
@@ -185,13 +243,23 @@ export const focusRing: ComponentDef = {
         // binding key here: `tokens` above maps it to `focus.ring.width`, so a brand that tunes its ring
         // re-themes this the way it re-themes the ink.
         strokeWidth: 'width',
+        // THE NOMINAL SQUARE (#1280) — one key, both axes, so the standalone artifact is a ring-shaped
+        // box instead of Figma's 100x100 default frame. See the comment above this `anatomy` block for
+        // why this does not fight the host's stretch, and `tokens['nominal-side']` for why the number is
+        // nominal. Not a variant axis, and that constraint is load-bearing rather than stylistic: since
+        // #795 a `size` AXIS would make `planComponentName` write a `size=` segment into every member
+        // name, and `nestVariantMatch` requires a host's coordinate to account for every axis a member
+        // name carries — so all five hosts' `nesting: { variant: { surface: 'default' } }` would match
+        // nothing, and an unresolved `nestTarget` builds NOTHING and returns null. That failure is
+        // invisible: an absent stroke where a ring should be reads exactly like a build that worked.
+        size: 'nominal-side',
         // `target` in the a11y/interaction sense only, which a ring never has — it is here because the
         // schema requires exactly one, and a one-part anatomy has one candidate. This comment used to
         // read "`target` in this schema's sense — the single node owning this component's paint", which
         // was true of the projector and was #933: paint moved to `paintSlots` above, and the two
         // readings this comment noticed were coming apart are now two fields.
         role: 'target',
-        note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no width, height or radius of its own. The one dimension it does bind is its stroke\'s width, because that one is nobody else\'s to supply.',
+        note: 'The ring itself: one node, zero children, `clipsContent: false`. Nested by a host as an ABSOLUTE sibling, so it takes no cell in the host\'s row and its size is the host\'s bounds grown by the host\'s `inset` — which is why it binds no radius of its own and why its own square side is nominal, supplied only so the component is buildable on its own and overwritten the moment it is nested. The one dimension it truly owns is its stroke\'s width, because that one is nobody else\'s to supply.',
       },
     },
     derived: {
@@ -210,7 +278,7 @@ export const focusRing: ComponentDef = {
       // This check now runs for real, because `figmaProperties` is present.
       'offset — the context parameter (`control` ≈2px / `field` 0), and the one axis this def deliberately does NOT project (#795, decided on #801\'s measurement). Not a projector limit: the enumeration would carry it happily now that it reads `variantAxes`. The reason is that the offset is consumed by the HOST\'s `inset` binding and Figma\'s `x`/`y` accept no variable, so #801 measured the payload resolving it to a NUMBER at paste and writing that — an axis over it would ship two members differing only by a value the platform cannot hold, and a designer switching `offset=field` on an instance would see nothing move. So it stays a paste-time parameter the host supplies: `text-field`\'s field-specific offset comes from the PARENT at paste, not from a coordinate on this set. An already-pasted ring does not re-position when a brand changes `focus.ring.offset`, unlike every bound paint, which re-themes.',
       'stroke style — `focus.ring.style` resolves against every emitted brand and there is no Figma property to bind it to. In CSS the ring is an `outline` and its style is a keyword (`solid`, `dashed`); Figma has no keyword, only `dashPattern`, an array of pixel runs — so projecting a `dashed` ring means inventing a rhythm the token does not carry, and projecting `solid` means writing nothing, which is what happens already. This entry is the REMAINDER of one that used to read "stroke weight and stroke color", and the narrowing is the record worth keeping: a stroke is three things and this def could express none of them, because `PartDef`\'s vocabulary was gap / height / radius / size / type / inset / padding. COLOR left in #933 (`paintSlots` names the edge and the projector binds the paint) and WIDTH in #1266 (`PartDef.strokeWidth`, bound on the `ring` part above). What is left under #740 is one keyword, not the ring\'s visual substance — and Button\'s own ceiling entry described the whole thing as a deliberate trade, which it never was.',
-      'the stroke, restated as the materialization ceiling — the def PROJECTS as of #795 (`figmaProperties` below declares `surface`, and the set builds two members with their ink bound), and what it projects is not yet a ring. Before #795 this entry said the def was deliberately not materializable because a `variantAxes: [\'color\']` block would validate and then throw; that is now simply false, and the honest replacement is narrower: nesting resolves by NAME against the live file (`compByName.get(n.nestTarget)`), so once the projected set is pasted, Button\'s `nests: \'focus-ring\'` binds to OUR members rather than to a hand-built component — which closes the docs/14 §1 inversion for the NODE. #1266 closed it for the STROKE as well — each member carries `bound.strokeWeight -> focus/ring/width`, so "the members are strokeless" is no longer the right reading and was the reading two other files quoted. What is left is narrower again and it is not a stroke: the members have their ink and their thickness and no EXTENT of their own, which is `figmaProperties.notStandalone` rather than a wall.',
+      'the stroke, restated as the materialization ceiling — the def PROJECTS as of #795 (`figmaProperties` below declares `surface`, and the set builds two members with their ink bound), and what it projects is not yet a ring. Before #795 this entry said the def was deliberately not materializable because a `variantAxes: [\'color\']` block would validate and then throw; that is now simply false, and the honest replacement is narrower: nesting resolves by NAME against the live file (`compByName.get(n.nestTarget)`), so once the projected set is pasted, Button\'s `nests: \'focus-ring\'` binds to OUR members rather than to a hand-built component — which closes the docs/14 §1 inversion for the NODE. #1266 closed it for the STROKE as well — each member carries `bound.strokeWeight -> focus/ring/width`, so "the members are strokeless" is no longer the right reading and was the reading two other files quoted. #1280 closed the last of it: the members carried no EXTENT, which made the def unbuildable and therefore unpublishable, and therefore un-nestable by the very hosts the nesting resolved for — a deadlock, admitted here for two releases as `figmaProperties.notStandalone`. A nominal square side closes it. What remains under this entry is one keyword and no geometry at all.',
       ':focus-visible condition — the ring appears on exactly one host state, and that state is a POINTER-vs-KEYBOARD distinction the browser makes at runtime. Figma has no state machine, so a projected ring is a variant coordinate a designer selects, never a state an interaction triggers. This is why Button\'s `focusRing` part declares `when: \'focus-visible\'` — the condition has to be stated in the def, because nothing downstream can infer it.',
       'high-contrast / forced-colors — a focus indicator must survive a forced-colors mode that replaces every authored color, which in CSS means `outline` rather than a border or box-shadow (an outline is preserved where a shadow is dropped). Figma has no forced-colors concept and no outline primitive distinct from a stroke, so the one property that keeps the ring visible for the users who most depend on it cannot be expressed in the Figma leg at all.',
       'the 3:1 adjacent-contrast contract — 1.4.11 requires the ring to clear 3:1 against BOTH the surface behind it and the control edge beside it, which is a relationship between three colors resolved per host and per mode. The `surface` axis is the design\'s answer to it (`inverse` exists because the default ring fails against a brand-filled surface), but the contract itself is a computation over a host this def cannot see, so no single ring component can carry it.',
@@ -227,6 +295,11 @@ export const focusRing: ComponentDef = {
   //    `planComponentName` writes no `size=` segment, which is precisely what lets Button's
   //    `nesting: { variant: { surface: 'default' } }` match (`nestVariantMatch` needs the coordinate to
   //    account for EVERY axis in the member name, so a `size=md` this def invented would match nothing).
+  //    READ THIS AGAINST THE `ring` PART'S `size: 'nominal-side'` (#1280), because the two look like a
+  //    contradiction and are not: a `size` BINDING gives one square side to every member and changes no
+  //    member NAME, while a `size` AXIS enumerates members and renames all of them. The binding is what
+  //    makes the def buildable; the axis is what would break all five hosts, silently. So this omission
+  //    got MORE load-bearing when the binding arrived, not less.
   //  · `offset` is NOT listed on #801's measurement, not on a projector limit — see its `codeOnly`
   //    entry. The enumeration would carry it; Figma's `x`/`y` cannot bind it, so the two members would
   //    differ only by a number the platform freezes at paste.
@@ -235,30 +308,32 @@ export const focusRing: ComponentDef = {
   //  · `booleans` / `texts` / `swaps` are stated-empty rather than omitted — one node, no children, no
   //    text, no slot. `booleans: {}` is the "considered, and none survive" statement the schema asks for.
   //
-  // AND IT PROJECTS TWO MEMBERS THAT ARE NOT A RING — `notStandalone` below, added under #869. The
-  // paragraph above was written to correct an over-claim (the def cannot project) and replaced it with
-  // one: *it projects* reads, to anyone deciding whether to build it, as *it builds*. Wall 1 is still
-  // up, and what it costs standalone is measurable — see the field's own reason.
+  // AND IT NOW PROJECTS TWO MEMBERS THAT ARE A RING — `notStandalone` IS GONE (#1280), after two
+  // releases here. What it said was measured and true: 2 members, 0 binding errors, 0 set properties,
+  // `planSetLayout` succeeding, and each member `{name:'ring', type:'FRAME', strokes:'color/border/focus',
+  // bound:{strokeWeight:'focus/ring/width'}, children:[]}` — no layoutMode, no sizing mode, no width, no
+  // height, so Figma supplied a 100x100 default frame and the build read as a success while producing a
+  // white box. The field was the right answer to that (#869: a decision recorded where only humans look,
+  // moved somewhere the picker and `buildComponents` can act on it).
+  //
+  // WHAT IT GOT WRONG WAS NOT THE MEASUREMENT BUT THE REMEDY. The string ended *"Build it as part of a
+  // host instead: Button nests it and supplies the geometry"*, and there is no such path: a host's
+  // `nestTarget` resolves by NAME against the designer's live file, so the ring has to be built and
+  // published BEFORE any host can nest it. Refusing the standalone build refused the only way to satisfy
+  // the nesting — so every host that nested the ring built without one, silently, because an unresolved
+  // `nestTarget` builds nothing and an absent stroke reads like a build that worked. The prose and the
+  // code were each locally correct and jointly a deadlock. #1280 broke it from the geometry side: the
+  // `ring` part binds a NOMINAL square side, the members acquire `bound.width` + `bound.height`, and the
+  // declaration had to go — `lint-standalone-floor`'s arm B FORCES it, which is that arm doing exactly
+  // what its header predicted it would do the day the ring gained a size of its own.
+  //
+  // What did NOT change, because the original measurement stands: a ring still has no size of its own to
+  // discover. `nominal-side` is a placeholder for the library artifact, overwritten on nest. So the honest
+  // reading of this def is no longer "it projects but does not build" — it is "it builds, at a size that
+  // means nothing until a host tells it one".
   figmaProperties: {
     variantAxes: ['surface'],
     booleans: {},
-    // Measured against the real projector over nb's committed emission: 2 members, 0 binding errors,
-    // 0 set properties, `planSetLayout` succeeds. Each member is `{name:'ring', type:'FRAME',
-    // strokes:'color/border/focus', bound:{strokeWeight:'focus/ring/width'}, children:[]}` — no
-    // layoutMode, no sizing mode, no width, no height. Four absent fields, so Figma supplies a 100×100
-    // default frame. Nested it is fine: Button sites it absolutely and the executor resizes it to
-    // `parent + inset*2`, which is where every one of those four comes from. Standalone there is no
-    // parent, so nothing supplies them — and there never was a code path to lose.
-    // THE REASON IS GEOMETRY, NOT THE STROKE, and #1266 is now the proof rather than the argument. This
-    // comment used to have to insist on the distinction, because the first draft of the string below
-    // blamed the stroke and both were true at once: the ring pasted at the executors' 1px fallback (a
-    // fidelity loss) AND had no extent of its own (the blocker). The fallback is gone and the ring binds
-    // its brand's `focus.ring.width`, and a standalone build is exactly as useless as it was — because a
-    // ring's extent IS its host's extent plus the offset, so there is no size a lone ring could correctly
-    // have. `PartDef`'s vocabulary already offers `size` and `height`; this part declares neither on
-    // purpose, and no schema field could change that.
-    notStandalone:
-      'focus-ring: a ring is sized by the control it surrounds, so it projects members that bind no width or height of their own — built alone it is a 100×100 default frame with the focus color stroked around it. Build it as part of a host instead: Button nests it and supplies the geometry.',
   },
 
   accessibility: {
@@ -277,7 +352,7 @@ export const focusRing: ComponentDef = {
 
   docs: {
     usage:
-      'Do not place this directly. A focusable component nests it as an absolutely-positioned sibling — see Button\'s `focusRing` part — and picks `surface` for the ground it sits on and `offset` for its kind (`control` for a button, `field` for an input). One ring component serves every host: that is the point, and re-drawing it per component is the failure mode it exists to prevent. In code the ring is an `outline` with an `outline-offset`, not a border or a box-shadow, so it survives forced-colors mode.',
+      'Build this, then do not place it. The two halves are separate instructions and both matter: the component has to exist in your file before any host can nest it — every focusable component reaches it by name, so build the ring FIRST and the controls after — and once it is there, nothing places a ring on its own. A focusable component nests it as an absolutely-positioned sibling instead — see Button\'s `focusRing` part — and picks `surface` for the ground it sits on and `offset` for its kind (`control` for a button, `field` for an input). The square you get from a standalone build is nominal and means nothing; a host overwrites it with its own bounds grown by the offset. One ring component serves every host: that is the point, and re-drawing it per component is the failure mode it exists to prevent. In code the ring is an `outline` with an `outline-offset`, not a border or a box-shadow, so it survives forced-colors mode.',
     do: [
       'Nest the shared ring rather than re-authoring a focus treatment per component',
       'Pick `color: inverse` on a dark or brand-filled surface, where the default ring loses its 3:1 separation',
@@ -297,7 +372,7 @@ export const focusRing: ComponentDef = {
     primaryPurpose: 'Render the shared keyboard-focus indicator for a focusable control.',
     whenToUse: 'Nested by any component that can receive keyboard focus, as an absolute sibling — the host declares it and picks the surface and offset.',
     avoidWhen:
-      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs.',
+      'As a standalone element, as a decorative outline, or as a hover/selected treatment. It is not a border and not an emphasis ring: rendering it outside `:focus-visible` destroys the one signal keyboard users navigate by. Never re-author a per-component focus treatment instead of nesting this — that is how a system ends up with N rings and N contrast bugs. "Standalone" here means placed in a layout: the component IS built on its own, because a host can only nest one that already exists.',
     commonPartners: ['button', 'icon-button', 'text-field', 'select', 'checkbox', 'link'],
     triggerKeywords: ['focus ring', 'focus indicator', 'focus outline', 'focus visible', 'keyboard focus'],
     generationPriority: 2,
