@@ -28,7 +28,7 @@ import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
 // plugin sandbox, which has no filesystem — see `emit-icons.ts`'s header.
-import { ICON_NAMES, ICON_PATHS, ICON_VIEWBOX } from './icon-glyphs';
+import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
 
 /** A node in the materialization plan. Property names are Figma Plugin API property names
  *  deliberately — this is the projection's whole job, and naming them anything else would put a
@@ -282,8 +282,8 @@ export type FigmaNodePlan = {
    *  measurements killed it, and the second is the one that mattered:
    *
    *    1. `vectorPaths` accepts a SUBSET of SVG's path grammar — the typings enumerate `M`, `L`, `Q`, `C`
-   *       and `Z` and no more. **22 of the set's 39 glyphs use `H`/`V`** (every arrow, both minuses, both
-   *       plusses, both warning triangles). Writing a converter is possible; keeping one right for every
+   *       and `Z` and no more. **23 of the set's 40 glyphs use `H`/`V`** (every arrow, both minuses, both
+   *       plusses, both warning triangles, and the FPO placeholder). Writing a converter is possible; keeping one right for every
    *       glyph added later is a new correctness surface whose failure mode is a wrong shape that builds.
    *    2. **A `VectorNode`'s box IS its ink**, so the member component would be as big as the drawing
    *       rather than as big as the artboard. Measured across all 39: only 19 are square, `minus` is
@@ -515,7 +515,7 @@ const glyphPath = (defId: string, part: string, glyph: string | undefined): stri
  *
  * Why this exists is worth stating, because the first working version of this branch did not have it and
  * was wrong in exactly #864's own shape. `PartDef.glyph` is a static per-part string, so a set enumerated
- * over a 39-value `name` axis projected 39 members that every gate accepted — the right count, the right
+ * over a 40-value `name` axis projected 40 members that every gate accepted — the right count, the right
  * names, one chunk, no throw — **all carrying the same outline**. Measured, not feared: member 0
  * `arrow-down` and member 38 `warning-triangle-filled` both came back with the `check` path. That is a
  * component that builds and shows the wrong thing with the suite green, which is #864 reproduced one tier
@@ -582,9 +582,19 @@ const viewBoxDims = (): [number, number] => {
  * inside, from `descendantFills`. Carrying it anyway keeps this document identical to the source file,
  * which is what makes `emit-icons.ts`'s assertions about the source assertions about this too.
  */
-const glyphDocument = (path: string): string =>
+const glyphDocument = (path: string, fillRule?: string): string =>
   `<svg width="${viewBoxDims()[0]}" height="${viewBoxDims()[1]}" viewBox="${ICON_VIEWBOX}" fill="none" xmlns="http://www.w3.org/2000/svg">` +
-  `<path d="${path}" fill="currentColor"/></svg>`;
+  // `fill-rule` is written only when the source declared a non-default one (#1012). It sits BEFORE `d`
+  // the way the source authored it, and it is the attribute that keeps a lettered disc's counters cut
+  // OUT rather than filled solid — Figma's importer honours it, so a glyph that stored `evenodd` renders
+  // as drawn. Absent means `nonzero`, the default both SVG and Figma already assume, so the string is
+  // byte-identical to before for every glyph that needs no rule.
+  `<path ${fillRule ? `fill-rule="${fillRule}" ` : ''}d="${path}" fill="currentColor"/></svg>`;
+
+/** `glyphDocument` for a resolved glyph NAME — looks its path and (sparse) winding rule up together, so
+ *  the two lookups stay in one place and the caller passes a name rather than re-deriving both (#1012). */
+const glyphSvgFor = (defId: string, part: string, glyph: string | undefined): string =>
+  glyphDocument(glyphPath(defId, part, glyph), glyph ? ICON_FILL_RULES[glyph as keyof typeof ICON_PATHS] : undefined);
 
 const ALIGN: Record<string, 'MIN' | 'CENTER' | 'MAX' | 'BASELINE'> = {
   start: 'MIN', center: 'CENTER', end: 'MAX', baseline: 'BASELINE',
@@ -1236,13 +1246,13 @@ export const figmaAnatomyPlan = (
       // executors expect the built frame to COME BACK as, so a host that sizes the import to the ink
       // instead of the artboard is reported rather than shipped.
       // `resolveGlyph` first, so `glyph: '{name}'` reaches the vocabulary as the member's own name — a
-      // static string per part would ship one outline 39 times, measured (see `resolveGlyph`).
+      // static string per part would ship one outline 40 times, measured (see `resolveGlyph`).
       // `paintCoord` rather than `coord` for the same reason paint keys use it: it is the grid coordinate
       // WITH `size` folded in, so `glyph: '{size}'` — an optically-sized glyph set, which no def has today
       // but which the field's grammar allows — resolves instead of throwing on an axis that is in fact known.
       ...(p.kind === 'vector'
         ? {
-            glyphSvg: glyphDocument(glyphPath(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord))),
+            glyphSvg: glyphSvgFor(def.id, name, resolveGlyph(def.id, name, p.glyph, paintCoord)),
             glyphViewBox: viewBoxDims(),
           }
         : {}),

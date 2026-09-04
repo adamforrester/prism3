@@ -374,6 +374,10 @@ export type ComponentApplyResult = {
    *  the search-count gate can decompose the host total by loop. Zero on a warm re-run (its scope is the
    *  members this run combined). */
   boundSearched: number;
+  /** When the def emits as SEPARATE top-level components (#1012), the `<id>/<glyph>` names this run
+   *  produced — `undefined` for the normal COMPONENT_SET path. Present is what tells the verdict it has
+   *  no set to describe (the set-derived fields above are all 0/empty in this mode). */
+  emittedComponents?: string[];
   /** Non-fatal: a name that did not resolve, a write Figma discarded, a read-back that disagreed. */
   misses: string[];
 };
@@ -439,6 +443,19 @@ export type ComponentApplyOptions = {
   /** Members per chunk. Named `chunk` rather than baked in so the live calibration run can sweep it
    *  without a rebuild, and so the harness can force many small chunks over a small plan set. */
   chunk?: number;
+  /** Materialize the projection as SEPARATE top-level `<id>/<value>` components instead of one
+   *  COMPONENT_SET (#1012). The plugin reads `def.figmaProperties.emitAsComponents` and passes it here —
+   *  it is a write-time BEHAVIOR, not plan data, so it stays off the plan and out of `planStamp`. */
+  emitAsComponents?: boolean;
+};
+
+/** The value of a single-axis member coordinate — `name=search` → `search` (#1012). The
+ *  `emitAsComponents` mode names each standalone component `<id>/<this>`, and `planComponentName` writes
+ *  the coordinate with an `<axis>=` prefix; a coordinate carrying no `=` (defensive) is returned whole. */
+const emitCoordValue = (coord: string): string => {
+  const first = coord.split(', ')[0] ?? coord;
+  const eq = first.indexOf('=');
+  return eq >= 0 ? first.slice(eq + 1) : first;
 };
 
 /**
@@ -1346,7 +1363,20 @@ const writeComponentSet = async (
   // the NODE and not just the fact of it: name-matching is what #827 is about, and the stamp it compares
   // instead lives on the member. `c.name` can be undefined on the port, so the entries are filtered
   // rather than keyed by `string | undefined` — an unnamed child cannot be matched by name anyway.
-  const have = new Map((set?.children ?? []).flatMap((c) => (c.name ? [[c.name, c] as const] : [])));
+  // KEYED BY COORDINATE (`name=search`), which is what the build loop's `have.get(spec.name)` asks for.
+  // In the normal path those keys ARE the set members' names. In `emitAsComponents` mode (#1012) there is
+  // no set — the existing members are top-level `<id>/<glyph>` components — so this re-keys them from
+  // their slash names back to the coordinate, and the whole skip/stale machinery keeps working: a re-run
+  // finds each existing icon by name and compares its stamp exactly as it would a set member.
+  const have = opts.emitAsComponents
+    ? new Map(cells.flatMap((c) => {
+        // `compByName` is a document-wide COMPONENT lookup typed as the lighter `CompRef`, but the objects
+        // ARE full component nodes — the skip branch reads `getSharedPluginData` off them exactly as it
+        // does a set member, so the cast reflects reality rather than widening it.
+        const existing = compByName.get(`${component}/${emitCoordValue(c.name)}`) as CompNode | undefined;
+        return existing ? [[c.name, existing] as const] : [];
+      }))
+    : new Map((set?.children ?? []).flatMap((c) => (c.name ? [[c.name, c] as const] : [])));
   const byCell = new Map(cells.map((c) => [c.name, c] as const));
   // WHAT THIS BUILD WOULD WRITE, per member (#827). Derived here rather than carried on the cell for a
   // measured reason: `planSetLayout`'s cells are `JSON.stringify`d wholesale into the paste payload, so a
@@ -1440,6 +1470,63 @@ const writeComponentSet = async (
     // and the pill's last progress reading would never equal the total.
     if ((i + 1) % chunkSize === 0 || i + 1 === cells.length) await breathe('build', i + 1, cells.length);
   }
+
+  // SEPARATE TOP-LEVEL COMPONENTS, NOT A SET (#1012). An `emitAsComponents` def — `icon` — leaves each
+  // member as its own `<id>/<glyph>` component so Figma folds them into one assets-panel folder, which is
+  // the delivery an icon library wants and a variant set is not. EVERYTHING BELOW this branch is the SET
+  // path — combine, the measured grid layout + resize, `addComponentProperty`, the ref-wiring loops, the
+  // set read-backs — and none of it applies: a standalone icon has no set to combine into, no variant
+  // property to declare, and no `propertyRef` to wire (`icon` declares none). So the set path is skipped
+  // wholesale and this returns its own verdict, shaped for the caller's `emittedComponents` arm.
+  if (opts.emitAsComponents) {
+    // The freshly built members are ALREADY top-level page children — `build` appended each root to the
+    // page and `createComponentFromNode` converted it in place, and the combine that would have gathered
+    // them into a set is exactly what this mode skips. So the work left is to NAME and lay them out; the
+    // skipped/stale ones were never rebuilt and keep their names and positions.
+    const emitted: string[] = [];
+    const cols = Math.max(1, Math.ceil(Math.sqrt(fresh.length)));
+    const PITCH = 48;   // a fixed grid pitch — cosmetic; the assets panel groups by slash name, not by x/y
+    fresh.forEach((c, i) => {
+      const newName = `${component}/${emitCoordValue(String(c.name))}`;
+      wr(c).name = newName;
+      emitted.push(newName);
+      // Placed, not litter: drop it from the partial-write trail so a later throw does not try to park a
+      // component that is exactly where it belongs.
+      trail.loose.delete(c);
+      // A SIMPLE GRID so N components are not stacked at the origin. Fixed pitch rather than measured
+      // widths, because the layout here is a nicety (a designer opens the folder, not the canvas), not the
+      // measured column pitch the set path needs to keep hug-width members from overlapping.
+      wr(c).x = (i % cols) * PITCH;
+      wr(c).y = Math.floor(i / cols) * PITCH;
+    });
+    return {
+      // `component` (the def id, e.g. `icon`) is the GROUP label — non-null so the caller's `ok` and its
+      // summary resolve, and `emittedComponents` below is what routes the summary to the no-set arm.
+      set: component,
+      id: '',
+      variants: emitted.length + skipped + stale,
+      added: fresh.length,
+      skipped,
+      stale,
+      size: [0, 0],
+      grid: [0, 0],
+      axes: [],
+      properties: [],
+      refs: 0,
+      wiredMembers: 0,
+      refsRetained: 0,
+      refsKnownAbsent: 0,
+      refsSearched: 0,
+      refsRepaired: 0,
+      // #1279's binding-repair counters — 0 here by construction: this mode never combines, so no binding
+      // is ever dropped by a combine to repair or to search for.
+      boundRepaired: 0,
+      boundSearched: 0,
+      emittedComponents: emitted,
+      misses,
+    };
+  }
+
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');

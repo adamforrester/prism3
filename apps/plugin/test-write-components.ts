@@ -2063,5 +2063,36 @@ const swept = btnMembers.filter((n) => weightOf(n) !== null);
 ok(swept.length === 0,
   `#1228 ...and the outline BUTTONS bind no weight, so they keep the 1px Prism 2 draws them at — 2px is a CONTROL figure, not a house border weight (${swept.length ? swept.slice(0, 3).map((n) => `${n.name} -> ${weightOf(n)}`).join('; ') : `no member of ${btnMembers.length} binds a stroke weight`})`);
 
+// ── #1012: SEPARATE SLASH-GROUPED COMPONENTS, NOT A SET ─────────────────────────────────────────
+// `icon` materializes with `emitAsComponents`, so its projection must NOT combine into a COMPONENT_SET:
+// each member is left as its own top-level `icon/<glyph>` component, which Figma folds into an assets-
+// panel folder. This is the whole of #1012's write-path change, asserted against its own MUTATION — the
+// SAME plans run WITHOUT the flag combine into one set — so these checks discriminate on the flag rather
+// than passing regardless (docs/34: a test that a set was AVOIDED must show a set would otherwise form).
+// The shim models `createComponentFromNode` as identity, so its "components" stay FRAME-typed; the load-
+// bearing distinction it CAN show is set vs no-set and the slash-grouped names, which is exactly the change.
+const iconPlans = figmaAnatomySet(byId('icon')!);
+const iconVars = fullFor(iconPlans);
+
+const emitPage: Page = { children: [] };
+const rEmit = await run(iconPlans, { ...iconVars, page: emitPage }, { emitAsComponents: true });
+ok(rEmit.misses.length === 0,
+  `#1012 the emit-as-components run is clean — every glyph's ink resolves and nothing is stranded (${rEmit.misses.length}${rEmit.misses.length ? ` — ${rEmit.misses.slice(0, 3).join('; ')}` : ''})`);
+ok(emitPage.children.length === iconPlans.length && emitPage.children.every((c) => c.type !== 'COMPONENT_SET'),
+  `#1012 the page holds ${iconPlans.length} SEPARATE nodes and NO component set — the projection did not combine (${emitPage.children.length} nodes, ${emitPage.children.filter((c) => c.type === 'COMPONENT_SET').length} sets)`);
+ok(emitPage.children.every((c) => String(c.name).startsWith('icon/')),
+  `#1012 every emitted component is slash-grouped under 'icon/' so Figma folds them into one assets-panel folder (${emitPage.children.filter((c) => !String(c.name).startsWith('icon/')).map((c) => c.name).slice(0, 3).join(', ') || 'all prefixed'})`);
+ok(emitPage.children.some((c) => c.name === 'icon/check') && emitPage.children.some((c) => c.name === 'icon/FPO-default-icon'),
+  `#1012 the glyph is the coordinate VALUE — 'icon/check' and the 40th member 'icon/FPO-default-icon' are both present by name, not left as a 'name=check' coordinate`);
+ok(rEmit.set === 'icon' && rEmit.emittedComponents?.length === iconPlans.length && (rEmit.emittedComponents ?? []).every((n) => n.startsWith('icon/')),
+  `#1012 the verdict carries the group and the ${iconPlans.length} emitted names, which is what routes main.ts's no-set summary arm (set=${rEmit.set}, emitted=${rEmit.emittedComponents?.length})`);
+
+// THE MUTATION: the same plans, flag OFF, combine into exactly one set and carry NO `emittedComponents` —
+// so flipping `emitAsComponents` off makes every assertion above fail by name rather than silently pass.
+const setPage: Page = { children: [] };
+const rSet = await run(iconPlans, { ...iconVars, page: setPage });
+ok(setPage.children.length === 1 && setPage.children[0].type === 'COMPONENT_SET' && rSet.emittedComponents === undefined,
+  `#1012 MUTATION: the same plans WITHOUT emitAsComponents combine into ONE COMPONENT_SET with no emittedComponents (page ${setPage.children.length}, type ${setPage.children[0]?.type}, emitted ${rSet.emittedComponents === undefined ? 'undefined' : rSet.emittedComponents.length})`);
+
 console.log(`\nplugin COMPONENT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

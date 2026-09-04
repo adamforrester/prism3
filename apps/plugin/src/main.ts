@@ -431,6 +431,10 @@ const buildComponents = async (defId?: string): Promise<void> => {
     // and the alternative is a running aggregate that cannot report a distribution.
     const reports: ComponentProgress[] = [];
     const r = await applyComponentPlan(plans, figma, {
+      // #1012: `icon` materializes as separate `icon/<glyph>` components, not one set. Read off the def
+      // and passed as a write-time option — inert for every def that does not set it, the same shape as
+      // `SWAP_TARGET`, so no per-def branch here beyond forwarding the flag the projector already carries.
+      emitAsComponents: def.figmaProperties?.emitAsComponents,
       // Posted straight through, unaggregated: the executor owns the phase/fraction and this is the
       // only place that can see the timing. `chunkMs` is CALIBRATION data (see `CHUNK`) — the shim has
       // no event loop, so chunk size can only be tuned from a live run, and this is how it gets out.
@@ -463,13 +467,19 @@ const buildComponents = async (defId?: string): Promise<void> => {
       // one clause. Placed after `missNote` because the per-member STALE lines are inside that list, and
       // this is what explains them.
       const stale = staleNote(r.stale, ENGINE_VERSION);
-      const summary = r.set === null
-        ? `nothing assembled — no set on this page and no member built${missNote}`
-        : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
-          `${r.stale ? `, ${r.stale} stale` : ''}), ` +
-          `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
-          `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
-          `${r.refs} refs across ${r.wiredMembers} members${missNote}${stale ? `. ${stale}` : ''}`;
+      const summary = r.emittedComponents !== undefined
+        // #1012: the no-set arm. `emitAsComponents` defs build SEPARATE `<id>/<glyph>` components, so the
+        // grid / axes / properties / refs the set arm prints do not exist — the useful facts are how many
+        // components now sit under the folder and how many this run built.
+        ? `${r.emittedComponents.length} '${r.set}/…' components (+${r.added} built, ${r.skipped} already present` +
+          `${r.stale ? `, ${r.stale} stale` : ''})${missNote}${stale ? `. ${stale}` : ''}`
+        : r.set === null
+          ? `nothing assembled — no set on this page and no member built${missNote}`
+          : `set '${r.set}': ${r.variants} variants (+${r.added} built, ${r.skipped} already present` +
+            `${r.stale ? `, ${r.stale} stale` : ''}), ` +
+            `grid ${r.grid[0]}×${r.grid[1]}, ${Math.round(r.size[0])}×${Math.round(r.size[1])}px, ` +
+            `axes ${r.axes.join('/') || '—'}, properties ${r.properties.join('/') || '—'}, ` +
+            `${r.refs} refs across ${r.wiredMembers} members${missNote}${stale ? `. ${stale}` : ''}`;
       // `ok` is NOT `misses.length === 0`, and the difference is the whole reason `skipped` is a number:
       // a re-run skips every member by name and reports each as a miss, so a miss-count test would call
       // the idempotent case a failure. The headline is derived from the three COUNTS for the same reason

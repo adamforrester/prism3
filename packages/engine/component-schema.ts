@@ -317,7 +317,7 @@ export type PartDef = {
    *
    *  TEMPLATABLE ON A VARIANT AXIS, `{name}` in the same `{...}` grammar `paintKeys` uses — because a
    *  static string per part is a real defect and not a limitation. A set enumerated over a 39-value `name`
-   *  axis with `glyph: 'check'` projects 39 correctly-named members that all draw a check mark, and every
+   *  axis with `glyph: 'check'` projects 40 correctly-named members that all draw a check mark, and every
    *  gate accepts it: the count is right, the names are right, nothing throws. That is #864's own shape one
    *  tier in, and it was measured on this branch before it was fixed. An unfillable placeholder throws at
    *  projection and is refused at authoring time by `anatomyErrors`.
@@ -740,6 +740,22 @@ export type FigmaProperties = {
    * since become buildable fails too.
    */
   notStandalone?: string;
+  /**
+   * EMIT AS SEPARATE TOP-LEVEL COMPONENTS rather than one COMPONENT_SET (#1012). Absent (the default)
+   * means the projection combines into a variant set, which is what every control def wants. Set means
+   * each member is left as its own top-level COMPONENT named `<id>/<coordinate value>` — Figma folds a
+   * slash prefix into an assets-panel FOLDER, so `icon/search`, `icon/check`, … group under `icon`
+   * without a set wrapping them. That folder IS the point for `icon`: a designer reaches for one glyph,
+   * not a 40-variant set they must then pick a coordinate out of.
+   *
+   * Constrained to the one shape it means (validated in `figmaPropertyErrors`): exactly one variant axis
+   * (the coordinate that names each component), and none of the properties only a SET can hold — no
+   * `stateAxis`, `slotAxes`, `swaps` or `booleans`, and not `notStandalone`, which is its opposite. A def
+   * with this flag still projects the same members; it changes only how the plugin MATERIALIZES them,
+   * which is why the plugin reads it at write time and it never enters the plan (so it moves no plan
+   * stamp — the projected surface is the members, unchanged by whether they end up in a set).
+   */
+  emitAsComponents?: boolean;
 };
 
 export type ComponentDef = {
@@ -1346,6 +1362,25 @@ export const figmaPropertyErrors = (def: ComponentDef): string[] => {
     else if (!t.startsWith(`${def.id}:`)) e.push(`figmaProperties.notStandalone must LEAD with '${def.id}:' so the reason names its own subject — read "${t.slice(0, 40)}…"`);
   }
 
+  // ---- the separate-components emission mode (#1012) ----
+  //
+  // Shape and consistency only, like the arms above — whether the flag is WELL-FORMED for the mode it
+  // names, not whether the plugin honours it (that is `test-write-components.ts`'s job over the live
+  // write). `emitAsComponents` says a def materializes as SEPARATE top-level `<id>/<value>` components
+  // rather than one COMPONENT_SET, so the properties only a set can hold — a state axis, slot axes,
+  // swaps, set-level booleans — have nothing to live on, and the slash name is `<id>/<the single
+  // coordinate value>`, so the mode needs exactly one variant axis. `notStandalone` is its opposite (it
+  // refuses a standalone build) and cannot coexist.
+  if (fp.emitAsComponents) {
+    if (fp.variantAxes.length !== 1)
+      e.push(`figmaProperties.emitAsComponents needs exactly one variantAxes entry — each member becomes a standalone '${def.id}/<value>' component named by a single coordinate, and ${fp.variantAxes.length} axes give it no unambiguous name`);
+    if (fp.stateAxis) e.push('figmaProperties.emitAsComponents cannot carry a stateAxis — a state is a variant property on a set, and this mode builds no set');
+    if (fp.slotAxes?.length) e.push('figmaProperties.emitAsComponents cannot carry slotAxes — a slot-presence axis is a set variant property, and this mode builds no set');
+    if (fp.swaps && Object.keys(fp.swaps).length) e.push('figmaProperties.emitAsComponents cannot carry swaps — an instance-swap property lives on a set member, and this mode builds no set');
+    if (fp.booleans && Object.keys(fp.booleans).length) e.push('figmaProperties.emitAsComponents cannot carry booleans — a boolean property lives on a set, and this mode builds no set');
+    if (fp.notStandalone !== undefined) e.push('figmaProperties.emitAsComponents and notStandalone are opposites — one ships standalone components, the other refuses a standalone build; a def cannot declare both');
+  }
+
   return e;
 };
 
@@ -1603,7 +1638,7 @@ export type State = (typeof STATES)[number];
  *     tone        2        icon[9 values] · field-message[4 values] — disjoint, opposite key grammars
  *     color       1        focus-ring
  *     indicator   1        field-label
- *     name        1        icon[39 values] — the glyph vocabulary (#864)
+ *     name        1        icon[40 values] — the glyph vocabulary (#864)
  *     offset      1        focus-ring
  *     width       1        button
  *
@@ -1705,7 +1740,7 @@ export type State = (typeof STATES)[number];
  * ── `name`: THE ELEVENTH NAME, THE FIRST WHOSE VALUES ARE A VOCABULARY (#864) ────────────────────
  *
  * `name` (#864) is the admission that tests the "names close, values stay open" rule hardest, because it
- * is the first axis whose values are a VOCABULARY rather than a design choice: its 39 values are
+ * is the first axis whose values are a VOCABULARY rather than a design choice: its 40 values are
  * `ICON_NAMES`, spread from the icon set, so `icon.ts` does not author them and cannot spell one wrong.
  * It earns the entry on the same ground every other one does — a distinct kind of distinction, and one no
  * existing name expresses. `tone` is which ink, `size` is how big, and neither says WHICH GLYPH; `style`
