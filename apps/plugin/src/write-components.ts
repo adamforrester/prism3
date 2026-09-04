@@ -364,6 +364,16 @@ export type ComponentApplyResult = {
    *  `findOne` now sees it. Almost always 0 — the divergence has not reproduced by hand, so a non-zero
    *  count is the live signal #1218 verifies against, not routine. Plugin-only, like the counters above. */
   refsRepaired: number;
+  /** VARIABLE bindings the read-back re-applied onto a LIVE node because the pre-combine handle had a
+   *  DIFFERENT id (#1279) — the field-binding sibling of `refsRepaired`. `combineAsVariants` drops
+   *  `boundVariables` written before it (a bound `strokeWeight`, padding or radius), so the re-find +
+   *  `setBoundVariable` lands the binding where `findOne` now sees it. Almost always 0 — the divergence
+   *  has not reproduced by hand — so a non-zero count is the live signal #1218 verifies against. */
+  boundRepaired: number;
+  /** Host subtree searches the #1279 binding read-back made — its `refsSearched` analogue, exposed so
+   *  the search-count gate can decompose the host total by loop. Zero on a warm re-run (its scope is the
+   *  members this run combined). */
+  boundSearched: number;
   /** Non-fatal: a name that did not resolve, a write Figma discarded, a read-back that disagreed. */
   misses: string[];
 };
@@ -1433,7 +1443,7 @@ const writeComponentSet = async (
   if (!set) {
     if (fresh.length === 0) {
       misses.push('set -> nothing to combine (no members built)');
-      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, misses };
+      return { set: null, id: '', variants: 0, added: 0, skipped, stale, size: [0, 0], grid: [rows, cols], axes: [], properties: [], refs: 0, wiredMembers: 0, refsRetained: 0, refsKnownAbsent: 0, refsSearched: 0, refsRepaired: 0, boundRepaired: 0, boundSearched: 0, misses };
     }
     // COMBINE, once. Every later member joins by `appendChild`, which re-derives the axes correctly —
     // measured: appending `state=pressed` to a `state=rest|hover` set extends that axis.
@@ -1674,6 +1684,78 @@ const writeComponentSet = async (
     misses.push(`ref ${mName}/${part}.${field} -> DISCARDED (set ${id}, reads ${held?.[field]})`);
   }
 
+  // READ BACK every VARIABLE BINDING the same way, and repair the same divergence (#1279). The loop
+  // above wires `componentPropertyReferences`; this covers the OTHER node-metadata a member carries —
+  // `boundVariables`, written by `setBoundVariable` inside `build` (a bound `strokeWeight` on a border
+  // box, a bound padding, a bound corner radius). Both are NODE METADATA, and both are dropped by the
+  // same mechanism: `combineAsVariants` rewrites the ids of everything declared before it, and a binding
+  // written onto the pre-combine node does not travel to the id-rewritten twin `findOne` returns now.
+  //
+  // WHY THIS NEEDS ITS OWN REPAIR AND THE ICON FILL (#1211) DID NOT — a real asymmetry, and the reason
+  // this is not a timing fix. A PAINT binding lives in the fills ARRAY VALUE on a descendant vector
+  // (`setBoundVariableForPaint` returns a paint object assigned into `node.fills`), and that descendant
+  // travels through the combine intact — the value rides along with the node, so the icon's ink is
+  // retained with nothing to repair. A FIELD binding is not a value on the node; it is an entry in the
+  // node's own `boundVariables` metadata, and that entry is what the id rewrite drops. So the difference
+  // is the binding MECHANISM (value-on-descendant vs field-on-node), NOT set-before/set-after: both are
+  // written pre-combine inside `build`, so "move the strokeWeight bind after combine to match fills" is a
+  // false root fix — the fields are set node-by-node during the recursive build, there is no post-combine
+  // seam to move them to short of re-walking every member, which is exactly what this repair does, and
+  // only for the bindings that actually failed to read back.
+  //
+  // CAUSE-INDEPENDENT, and inert three ways, exactly like the ref repair above: it fires ONLY when the
+  // binding did not read back on the live node AND the pre-combine handle's id disagrees with the live
+  // node's id; when the ids AGREE it falls straight through to the miss unchanged; and offline the #874
+  // shim keeps one node object across combine, so the binding still reads back and the loop `continue`s
+  // before either branch (identity preserved would also make the id check false). The live effect is
+  // UNCONFIRMED — the divergence cannot be provoked offline for that same identity-preserving reason — so
+  // this is a write/read-back consistency improvement, not a claimed symptom fix. #1279 stays open; #1218
+  // is the regression home; the owner confirms the dropped `strokeWeight` is repaired on the next
+  // real-host plugin build. docs/34: the re-verify uses a FRESH `findOne`, never the object just written.
+  let boundRepaired = 0;
+  // Host subtree searches THIS read-back makes, counted for the same reason the ref read-back's are
+  // (#701): it re-finds by name rather than reading the pre-combine handle (docs/34), so it pays real
+  // host lookups, and the search-count gate decomposes the host total per loop. Scoped to `builtParts`
+  // like the repair itself — only members this run combined can have had a binding dropped — so a warm
+  // re-run (empty map) makes zero searches here, exactly as it rebuilds nothing.
+  let boundSearched = 0;
+  for (const [mName, builtFor] of builtParts) {
+    const member = members.find((c) => c.name === mName);
+    if (!member) continue;
+    const spec = cells.find((c) => c.name === mName);
+    if (!spec) continue;
+    // WHICH FIELDS each part bound, read from THIS member's own plan — the same source `build` iterated.
+    // Walk the plan tree once; a part with no `bound` contributes nothing.
+    const boundByPart = new Map<string, Record<string, string>>();
+    const collect = (pn: FigmaNodePlan): void => {
+      if (pn.bound && Object.keys(pn.bound).length) boundByPart.set(pn.name, pn.bound);
+      for (const c of pn.children ?? []) collect(c);
+    };
+    collect(spec.root);
+    for (const [part, bound] of boundByPart) {
+      // The pre-combine handle this run captured. Absent for the member ROOT — `build` registers only
+      // descendants in `parts` — but so is `findOne`'s reach (it excludes the node it is called on), so a
+      // root binding takes the `!live` continue below and never reaches the id compare.
+      const written = builtFor.get(part);
+      boundSearched++;
+      const live = member.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+      if (!live) continue;
+      const got = (live.boundVariables ?? {}) as Record<string, unknown>;
+      for (const [field, varName] of Object.entries(bound)) {
+        if (got[field]) continue;   // retained — the common case, nothing to do
+        const v = byName.get(varName);
+        if (!v) continue;   // the name never resolved; `build` already reported that as its own miss
+        if (written && written.id != null && live.id != null && live.id !== written.id) {
+          try { live.setBoundVariable?.(field, v); } catch { /* the re-bind itself threw — fall through */ }
+          boundSearched++;
+          const reNode = member.findOne?.((x) => x.name === part) as CompNode | null | undefined;
+          if ((reNode?.boundVariables as Record<string, unknown> | undefined)?.[field]) { boundRepaired++; continue; }
+        }
+        misses.push(`bound ${mName}/${part}.${field} -> DISCARDED (set ${varName}, not retained on the live node)`);
+      }
+    }
+  }
+
   // RE-READ the definitions: the read above happened BEFORE the properties existed, and left stale it
   // reports every property "declared but absent from the set" on a perfectly correct run — noise that
   // masks the two checks below.
@@ -1736,6 +1818,8 @@ const writeComponentSet = async (
     refsKnownAbsent,
     refsSearched,
     refsRepaired,
+    boundRepaired,
+    boundSearched,
     misses: misses.concat(stray, boxMiss, axisMiss, coincident, footprint, propMiss),
   };
 };

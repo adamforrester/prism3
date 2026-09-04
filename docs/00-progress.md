@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-09-04) — the combine-drop repair reaches VARIABLE BINDINGS, not just field refs (#1279)
+
+**STATUS: shipped, plugin-side, no engine bump.** Branched off latest `main` (`515981d`). Three files
+under `apps/plugin/`: `src/write-components.ts`, `src/main.ts`, `test-write-components.ts`. **No `out/**`
+change** — this touches the plugin write path, not the generator — so `ENGINE_VERSION` and
+`CONTRACT_VERSION` both stand where main left them. `npm run verify` stays **55/55**, and the change is
+inert offline (below), so nothing in the suite moves except the one search-count gate that now decomposes
+the host total by one more read-back loop.
+
+**The symptom (#1279, verified home #1218).** On the real host a bound `strokeWeight` is discarded on the
+combined set — the focus ring, and the three measured controls' borders (#1228), reach a member without
+their thickness binding — while the icon FILL (#1211) is retained through the same combine. Two node
+metadata written the same way (`setBoundVariable`) behaving differently across `combineAsVariants` looked
+like a timing bug; it is not.
+
+**The diagnosis, and why "move the bind after combine" is a FALSE root fix.** A PAINT binding lives in the
+fills-array VALUE on a descendant vector (`setBoundVariableForPaint` returns a paint object assigned into
+`node.fills`), and that descendant travels through the combine intact — the value rides along with the
+node. A FIELD binding is not a value on the node; it is an entry in the node's own `boundVariables`
+metadata, and `combineAsVariants` "rewrites the ids of everything declared before it", so the entry on the
+pre-combine node does not travel to the id-rewritten twin `findOne` returns afterward. The difference is
+the binding MECHANISM (value-on-descendant vs field-on-node), NOT set-before/set-after: both are written
+pre-combine inside `build`. There is no post-combine seam to relocate the field bind to short of
+re-walking every member — which is exactly what the repair does, only for the bindings that failed to read
+back.
+
+**The fix: the #866/#1247 pattern, extended to `boundVariables`.** After the existing ref read-back, a
+second read-back walks `builtParts` (the pre-combine handles captured before the combine), re-finds each
+bound part by name on the LIVE member, and — when the binding did not read back AND the pre-combine
+handle's id disagrees with the live node's id — re-applies it with `setBoundVariable` onto the live node,
+then re-verifies with a FRESH `findOne` (docs/34: the check never reads the object it just wrote).
+Cause-independent hardening, inert three ways: it fires only on an id divergence; when the ids agree it
+falls straight through to a `DISCARDED` miss unchanged; and offline the #874 shim keeps one node object
+across combine, so the binding still reads back and the loop `continue`s before either branch. The live
+effect is UNCONFIRMED — the divergence cannot be provoked offline for that same identity-preserving reason
+— so this is a write/read-back consistency improvement, not a claimed symptom fix. `#1279` stays open;
+the owner confirms the repaired `strokeWeight` on the next real-host plugin build; `#1218` is the
+regression home.
+
+**The one gate that moved, and why honestly.** `test-write-components.ts`'s #701 search-count gate asserts
+the host received exactly the read-back's subtree searches and NOT ONE from the wire loop (the fast path).
+The binding read-back is a SECOND read-back that searches by design (docs/34), so the cold-run host total
+gains its searches. The gate now decomposes the total by loop into a third term (`boundSearched`, the
+`refsSearched` analogue, exposed on the result), and the wire-loop-zero invariant the gate exists for is
+untouched: `refsSearched` stays 0. The binding read-back is scoped to members this run combined, so a warm
+re-run makes zero of its searches — it rebuilt nothing whose binding combine could drop.
+
+---
+
 ## (2026-09-03) — the three measured selection controls paste their borders at 2px, and the executors' last ungated stroke site (#1228)
 
 **STATUS: shipped, JIT-rebased onto #1267 (`7f2c0c7`).** `ENGINE_VERSION` **→ 0.45.0**;
