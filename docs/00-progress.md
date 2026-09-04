@@ -7,6 +7,98 @@
 
 ---
 
+## (2026-09-04) — the button's icon slots resolve a REAL icon, not an empty box (#1280 PR-D, #1206)
+
+**STATUS: shipped, plugin-side. VERSION-NEUTRAL — `ENGINE_VERSION` stays 0.49.0, `CONTRACT_VERSION` stays
+9.4.0.** Branched off `1b9608f` (main with #1279 + #1281/#1282 + #1012 + #1280 PR-B + PR-C). Four files, and
+only one of them is behavior: `apps/plugin/src/main.ts` (one constant), `apps/plugin/test-write-components.ts`
+(the two arms), plus a one-comment truth repair in `packages/engine/lint-glyph-geometry.ts` and
+`packages/engine/lint-component-surface.ts`. `npm run verify` **55/55, 0 SKIP**. No def changed, no `out/**`
+byte moved, `lint-component-surface` and `lint-emission-version` both pass without a bump.
+
+**The change is one string.** `SWAP_TARGET` was `'FPO-default-icon'`; it is now `'icon/FPO-default-icon'`.
+That is the name #1012's `emitAsComponents` actually writes — each glyph lands as its own top-level
+`icon/<glyph>` component, so the 40th is literally `icon/FPO-default-icon` — and both swap consumers key on
+the LITERAL node name through `compByName`. The bare name matched nothing any run produces, so every button
+icon slot degraded to the empty placeholder frame the miss path builds, which is the symptom #1206 was filed
+on. Because the frame is empty it also carries no `VECTOR`, so `descendantFills` reported *"no VECTOR inside
+this node to paint"* — the second half of the QA note, and the same root cause rather than a separate bug.
+
+**Neither consumer needed anything beyond the constant, and that was checked rather than assumed.** The node
+loop (`write-components.ts:1094`) and the property loop (`:1731`) both read `compByName`, which is built from
+`findAllWithCriteria({types:['COMPONENT']})`; #1012 emits single `COMPONENT`s and no set, so both resolve on
+the same lookup they always used. Measured, at the built node: 21/21 members get an `INSTANCE`, the set
+declares `leadingVisual:INSTANCE_SWAP`, the glyph `VECTOR` is present and painted with the button's icon ink
+(`color/interactive/primary/on-fill` on filled, `.../text/rest` on outline and text, `color/disabled/icon`
+when disabled) — bound, not literal. `write-components.ts` is untouched.
+
+**The slot is still `nesting: { kind: 'swap' }`, deliberately, and this is the decision worth not re-opening.**
+A button icon is OPTIONAL and DESIGNER-CHOSEN: pick a glyph, or none. That is what `INSTANCE_SWAP` is for, and
+it is why the fix wants a real component in the slot rather than PR-A's `nest` PartKind — `nest` is for fixed
+sub-components a consumer does not choose, like `focus-ring`. The def is unchanged; only the caller's
+nomination moved.
+
+**WHICH PART HOLDS THE SLOT IS NOT ALWAYS `leadingVisual`, and finding that out is the one thing this work did
+not expect.** A check hard-coded to that name found 18 of 21 members and reported the other three as missing
+their slot. At `state=pending` the leading slot is REPLACED by the `spinner` (#612), which is a second
+`INSTANCE_SWAP` nominating the same target — so the pending spinner resolves to a real icon instance too, and
+the arm reads the part name off the PLAN rather than assuming one. Recorded because a reader arriving at
+`18/21` would reasonably conclude the wiring was partial.
+
+**The harness carried its own copy of the name, and that is why the defect could ship.**
+`test-write-components.ts` hard-coded `swapTarget: 'FPO-default-icon'` in nine places and never read
+`main.ts`, so moving the constant left the suite exercising a name the plugin no longer uses: with the fix in
+place and the tests unchanged, the suite stayed **ALL PASS** on the stale name. It now parses `SWAP_TARGET`
+out of `main.ts`'s source — the same source-text handle block `(5)` already uses, because `main.ts` calls
+`figma.showUI` at module scope and cannot be imported — and every arm drives off that one value.
+
+**One assertion is load-bearing alone, and it is the only one whose two sides come from different places:**
+the name `main.ts` nominates must be among the names the `icon` def ACTUALLY emits, where the second list
+comes from running that def through the executor with #1012's flag on. Measured: reverting `main.ts` to
+`FPO-default-icon` fails **that arm and nothing else** in the whole suite. Everything else stays green because
+`fullFor` derives the shim's `comps` FROM THE PLANS, so the harness's file always holds whatever name is
+nominated, however wrong, and every "the slot resolves" arm resolves it. That convenience is exactly what let
+#1206 ship, and this is the one line that does not share it.
+
+**TWO ARMS, EACH THE OTHER'S MUTATION (#1278 discipline).** The old block could only describe `comps: []`, so
+the success path had no test at all. Now both arms are file states a designer produces: PRESENT (they built
+`icon` first — the slot resolves, the property exists, the glyph takes the ink) and ABSENT (they have not —
+every slot degrades and both consumers name the component to build FIRST, PR-C's diagnosis). A final arm
+states the disagreement as a relationship, so neither can be satisfied by a shim modelling one file state
+twice.
+
+**Mutation battery — four, each failing BY NAME (`docs/34`):**
+
+| # | mutation | result |
+|---|---|---|
+| M1 | `main.ts` back to `'FPO-default-icon'` | **1 FAILED** — only the emitted-name agreement arm, by name |
+| M2 | node consumer builds a frame even when the target resolves | the `INSTANCE`, no-`VECTOR`-miss and `VECTOR`-present arms all fail by name |
+| M3 | property consumer never resolves its target | the `INSTANCE_SWAP`-declared arm and the two-arms-disagree arm fail by name |
+| M4 | strip the icon component from the PRESENT arm's file | all five present-path arms fail, and the miss text is PR-C's *"build `icon/FPO-default-icon` FIRST"* |
+
+**VERSION-NEUTRAL, and the reasoning differs from PR-C's on purpose.** PR-C bumped ENGINE for a plugin-only
+change because its diff was SHIPPED PROSE that `lint-us-english` scans as an engine surface. This diff moves
+no prose a designer reads and no `out/**` byte, so it follows 0.45.0's #1279 precedent instead: both
+version-gating gates pass without a bump, and bumping would rewrite every emitted generator stamp for a
+change that moves no token.
+
+**Two stale comments repaired, both made false by this change and neither a value edit.**
+`lint-glyph-geometry.ts` said its own `SWAP_TARGET` was *"passed unconditionally exactly as
+`apps/plugin/src/main.ts` does"* — the call SHAPE still matches, the name deliberately does not (the gate
+probes `icon`, which declares no swap parts, and the engine cannot read a plugin constant).
+`lint-component-surface.ts` pinned `lint-paint.ts`'s literal in prose; it now says *a* name, since paints do
+not depend on which. **And one correction to the record:** PR-C's entry below and its `version.ts` changelog
+both say the engine emits `icon` as a *"set of 39 members"*. That was true when PR-C was cut and false by the
+time it landed — #1012 had already made icons 40 separate components — which is what makes the present arm
+above possible at all. The `COMPONENT_SET` row it justifies is still live, for a different reason now stated
+in the test: a designer's own icon library is very often a set.
+
+**Out of scope, unchanged:** #1288's paste path still composes the bare wording at emit time; the button def's
+slot kind; `apps/studio/src/main.ts:4410`'s `swapTarget` argument, which exists only to read `.length` off a
+projection and is inert with respect to the name.
+
+---
+
 ## (2026-09-04) — a missing SWAP TARGET gets a diagnosis, not just a name (#1280 PR-C, #1212 residue)
 
 **STATUS: shipped, plugin-side. `ENGINE_VERSION` 0.48.0 → 0.49.0; `CONTRACT_VERSION` stands at 9.4.0.**

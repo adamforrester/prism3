@@ -234,9 +234,11 @@ const DUPLICATE_SHAPES: Record<string, string> = {
   'minus|minus-filled': 'subtract-line.svg and subtract-fill.svg are two DIFFERENT strings drawing one rectangle — `M5 11V13H19V11H5Z` against `M19 11H5V13H19V11Z`, the same four vertices in the same direction from a different start vertex. Invisible to string comparison, which is why this entry could not exist before #917',
 };
 
-/** The placeholder swap target, passed unconditionally exactly as `apps/plugin/src/main.ts` does — it
- *  is inert on a def with no swap parts, and a def with them would otherwise project differently here
- *  than in the plugin. */
+/** A placeholder swap target, passed UNCONDITIONALLY the way `apps/plugin/src/main.ts` passes its own —
+ *  the call shape is what has to match, so a def with swap parts does not project differently here than
+ *  in the plugin. The NAME deliberately does not track the plugin's (#1280/#1206 moved that one to
+ *  `icon/FPO-default-icon`, a component the plugin can build): this gate probes `icon`, which declares no
+ *  swap parts, so the value is inert here — and the engine cannot read a plugin constant anyway. */
 const SWAP_TARGET = 'FPO-default-icon';
 
 /**
