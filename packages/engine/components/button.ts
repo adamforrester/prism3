@@ -63,12 +63,34 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   'outline.border': `color.interactive.${family}.border.rest`,
   'outline.border.hover': `color.interactive.${family}.border.hover`,
   'outline.border.pressed': `color.interactive.${family}.border.pressed`,
+  // THE INK CARRIES STATE TOO (#1282), and this is the half #576 left behind. That change made the
+  // outline EDGE stateful and bound all three of its steps above; the label and icon stayed pinned to
+  // `.rest`, so an outline button's border moved on hover and pressed while the text it surrounds did
+  // not. The roles were already there — `iText` has emitted `text.{rest,hover,pressed}` since #576,
+  // and `iBorder` consumes those very candidates, so the border was tracking an ink the component
+  // then declined to bind. Nothing was missing from the token tier; three keys were missing here.
+  //
+  // Same rung delta as the border by construction rather than by agreement: both resolve
+  // `color.interactive.<family>.{text,border}.<state>`, and `border` IS `text` passed by value
+  // (`iBorder`). So "the edge matches its label" now holds at every state, which is what #576 said it
+  // was for and could only deliver at rest.
   'outline.label': `color.interactive.${family}.text.rest`,
+  'outline.label.hover': `color.interactive.${family}.text.hover`,
+  'outline.label.pressed': `color.interactive.${family}.text.pressed`,
   'outline.icon': `color.interactive.${family}.text.rest`,
+  'outline.icon.hover': `color.interactive.${family}.text.hover`,
+  'outline.icon.pressed': `color.interactive.${family}.text.pressed`,
   'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
   'outline.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
   // text — ink only; hover/pressed are the translucent overlay wash (#536 item 1: both states keyed, or
-  // a pressed ghost button falls back to rest and projects byte-identical to it)
+  // a pressed ghost button falls back to rest and projects byte-identical to it).
+  //
+  // DELIBERATELY NOT given the per-state ink #1282 gave `outline`, and the reason is the one #1282
+  // argues from: there the ink had to track a BORDER that was already moving without it. This
+  // appearance draws no border, so there is nothing for the ink to fall out of step WITH — its state
+  // is the overlay wash, which is a different mechanism and already keyed at both states. Whether a
+  // ghost button should ALSO deepen its ink is a live question and a separate one; it is not this
+  // change, which is about a coupling that broke rather than about state expression in general.
   'text.label': `color.interactive.${family}.text.rest`,
   'text.icon': `color.interactive.${family}.text.rest`,
   'text.overlay.hover': `color.interactive.${family}.overlay.hover`,

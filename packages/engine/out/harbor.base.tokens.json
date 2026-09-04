@@ -5702,13 +5702,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
+              "$value": "{prism.core.palette.primary.700}",
               "$description": "primary interactive fill — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.650",
-                  "contrast": 5.99,
+                  "aliasOf": "prism.core.palette.primary.700",
+                  "contrast": 7.21,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -5726,13 +5726,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{prism.core.palette.primary.800}",
               "$description": "primary interactive fill — pressed",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.700",
-                  "contrast": 7.21,
+                  "aliasOf": "prism.core.palette.primary.800",
+                  "contrast": 10.11,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -5750,13 +5750,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
+              "$value": "{prism.core.palette.primary.700}",
               "$description": "primary interactive fill — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.650",
-                  "contrast": 5.99,
+                  "aliasOf": "prism.core.palette.primary.700",
+                  "contrast": 7.21,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -5774,13 +5774,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{prism.core.palette.primary.800}",
               "$description": "primary interactive fill — selected",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.700",
-                  "contrast": 7.21,
+                  "aliasOf": "prism.core.palette.primary.800",
+                  "contrast": 10.11,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -5848,13 +5848,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
+              "$value": "{prism.core.palette.primary.700}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.650",
-                  "contrast": 6.81,
+                  "aliasOf": "prism.core.palette.primary.700",
+                  "contrast": 8.2,
                   "against": "background.primary",
                   "min": 4.5,
                   "figma": {
@@ -5872,13 +5872,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{prism.core.palette.primary.800}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.700",
-                  "contrast": 8.2,
+                  "aliasOf": "prism.core.palette.primary.800",
+                  "contrast": 11.49,
                   "against": "background.primary",
                   "min": 4.5,
                   "figma": {
@@ -5922,13 +5922,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
+              "$value": "{prism.core.palette.primary.700}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.650",
-                  "contrast": 6.81,
+                  "aliasOf": "prism.core.palette.primary.700",
+                  "contrast": 8.2,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -5946,13 +5946,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{prism.core.palette.primary.800}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.primary.700",
-                  "contrast": 8.2,
+                  "aliasOf": "prism.core.palette.primary.800",
+                  "contrast": 11.49,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -6078,13 +6078,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.550}",
+              "$value": "{prism.core.palette.danger.600}",
               "$description": "destructive interactive fill — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.550",
-                  "contrast": 4.04,
+                  "aliasOf": "prism.core.palette.danger.600",
+                  "contrast": 4.92,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6102,13 +6102,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.600}",
+              "$value": "{prism.core.palette.danger.700}",
               "$description": "destructive interactive fill — pressed",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.600",
-                  "contrast": 4.92,
+                  "aliasOf": "prism.core.palette.danger.700",
+                  "contrast": 7.24,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6126,13 +6126,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.550}",
+              "$value": "{prism.core.palette.danger.600}",
               "$description": "destructive interactive fill — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.550",
-                  "contrast": 4.04,
+                  "aliasOf": "prism.core.palette.danger.600",
+                  "contrast": 4.92,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6150,13 +6150,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.600}",
+              "$value": "{prism.core.palette.danger.700}",
               "$description": "destructive interactive fill — selected",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.600",
-                  "contrast": 4.92,
+                  "aliasOf": "prism.core.palette.danger.700",
+                  "contrast": 7.24,
                   "against": "neutral.100",
                   "min": 3,
                   "figma": {
@@ -6224,13 +6224,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.600}",
+              "$value": "{prism.core.palette.danger.650}",
               "$description": "destructive interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.600",
-                  "contrast": 5.59,
+                  "aliasOf": "prism.core.palette.danger.650",
+                  "contrast": 6.79,
                   "against": "background.primary",
                   "min": 4.5,
                   "figma": {
@@ -6248,13 +6248,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.650}",
+              "$value": "{prism.core.palette.danger.750}",
               "$description": "destructive interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.650",
-                  "contrast": 6.79,
+                  "aliasOf": "prism.core.palette.danger.750",
+                  "contrast": 9.92,
                   "against": "background.primary",
                   "min": 4.5,
                   "figma": {
@@ -6298,13 +6298,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.600}",
+              "$value": "{prism.core.palette.danger.650}",
               "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.600",
-                  "contrast": 5.59,
+                  "aliasOf": "prism.core.palette.danger.650",
+                  "contrast": 6.79,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -6322,13 +6322,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.650}",
+              "$value": "{prism.core.palette.danger.750}",
               "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.danger.650",
-                  "contrast": 6.79,
+                  "aliasOf": "prism.core.palette.danger.750",
+                  "contrast": 9.92,
                   "against": "background.primary",
                   "min": 3,
                   "figma": {
@@ -6453,13 +6453,13 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.200}",
+              "$value": "{prism.core.palette.neutral.250}",
               "$description": "neutral interactive fill — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.200",
-                  "contrast": 1.3,
+                  "aliasOf": "prism.core.palette.neutral.250",
+                  "contrast": 1.51,
                   "against": "neutral.100",
                   "figma": {
                     "collection": "color",
@@ -6476,13 +6476,13 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.250}",
+              "$value": "{prism.core.palette.neutral.350}",
               "$description": "neutral interactive fill — pressed",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.250",
-                  "contrast": 1.51,
+                  "aliasOf": "prism.core.palette.neutral.350",
+                  "contrast": 2.03,
                   "against": "neutral.100",
                   "figma": {
                     "collection": "color",
@@ -6499,13 +6499,13 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.200}",
+              "$value": "{prism.core.palette.neutral.250}",
               "$description": "neutral interactive fill — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.200",
-                  "contrast": 1.3,
+                  "aliasOf": "prism.core.palette.neutral.250",
+                  "contrast": 1.51,
                   "against": "neutral.100",
                   "figma": {
                     "collection": "color",
@@ -6522,13 +6522,13 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.250}",
+              "$value": "{prism.core.palette.neutral.350}",
               "$description": "neutral interactive fill — selected",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "prism.core.palette.neutral.250",
-                  "contrast": 1.51,
+                  "aliasOf": "prism.core.palette.neutral.350",
+                  "contrast": 2.03,
                   "against": "neutral.100",
                   "figma": {
                     "collection": "color",
@@ -7808,13 +7808,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.400}",
+                "$value": "{prism.core.palette.primary.350}",
                 "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.primary.400",
-                    "contrast": 5.93,
+                    "aliasOf": "prism.core.palette.primary.350",
+                    "contrast": 6.91,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "figma": {
@@ -7832,13 +7832,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.350}",
+                "$value": "{prism.core.palette.primary.250}",
                 "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.primary.350",
-                    "contrast": 6.91,
+                    "aliasOf": "prism.core.palette.primary.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "figma": {
@@ -7882,13 +7882,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.100}",
+                "$value": "{prism.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.100",
-                    "contrast": 14.05,
+                    "aliasOf": "prism.core.palette.neutral.150",
+                    "contrast": 12.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7906,13 +7906,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.150}",
+                "$value": "{prism.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "prism.core.palette.neutral.250",
+                    "contrast": 9.3,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7930,13 +7930,13 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.100}",
+                "$value": "{prism.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.100",
-                    "contrast": 14.05,
+                    "aliasOf": "prism.core.palette.neutral.150",
+                    "contrast": 12.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -7954,13 +7954,13 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.150}",
+                "$value": "{prism.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "prism.core.palette.neutral.250",
+                    "contrast": 9.3,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8028,13 +8028,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.400}",
+                "$value": "{prism.core.palette.primary.350}",
                 "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.primary.400",
-                    "contrast": 5.93,
+                    "aliasOf": "prism.core.palette.primary.350",
+                    "contrast": 6.91,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8052,13 +8052,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.350}",
+                "$value": "{prism.core.palette.primary.250}",
                 "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.primary.350",
-                    "contrast": 6.91,
+                    "aliasOf": "prism.core.palette.primary.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8184,13 +8184,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.400}",
+                "$value": "{prism.core.palette.danger.350}",
                 "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.danger.400",
-                    "contrast": 5.84,
+                    "aliasOf": "prism.core.palette.danger.350",
+                    "contrast": 6.9,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "figma": {
@@ -8208,13 +8208,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.350}",
+                "$value": "{prism.core.palette.danger.250}",
                 "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.danger.350",
-                    "contrast": 6.9,
+                    "aliasOf": "prism.core.palette.danger.250",
+                    "contrast": 9.36,
                     "against": "inverse.background.primary",
                     "min": 4.5,
                     "figma": {
@@ -8258,13 +8258,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.100}",
+                "$value": "{prism.core.palette.neutral.150}",
                 "$description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.100",
-                    "contrast": 14.05,
+                    "aliasOf": "prism.core.palette.neutral.150",
+                    "contrast": 12.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8282,13 +8282,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.150}",
+                "$value": "{prism.core.palette.neutral.250}",
                 "$description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "prism.core.palette.neutral.250",
+                    "contrast": 9.3,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8306,13 +8306,13 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.100}",
+                "$value": "{prism.core.palette.neutral.150}",
                 "$description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.100",
-                    "contrast": 14.05,
+                    "aliasOf": "prism.core.palette.neutral.150",
+                    "contrast": 12.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8330,13 +8330,13 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.150}",
+                "$value": "{prism.core.palette.neutral.250}",
                 "$description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "prism.core.palette.neutral.250",
+                    "contrast": 9.3,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8404,13 +8404,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.400}",
+                "$value": "{prism.core.palette.danger.350}",
                 "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.danger.400",
-                    "contrast": 5.84,
+                    "aliasOf": "prism.core.palette.danger.350",
+                    "contrast": 6.9,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8428,13 +8428,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.350}",
+                "$value": "{prism.core.palette.danger.250}",
                 "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.danger.350",
-                    "contrast": 6.9,
+                    "aliasOf": "prism.core.palette.danger.250",
+                    "contrast": 9.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8634,13 +8634,13 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.100}",
+                "$value": "{prism.core.palette.neutral.150}",
                 "$description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.100",
-                    "contrast": 14.05,
+                    "aliasOf": "prism.core.palette.neutral.150",
+                    "contrast": 12.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8658,13 +8658,13 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.150}",
+                "$value": "{prism.core.palette.neutral.250}",
                 "$description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "prism.core.palette.neutral.250",
+                    "contrast": 9.3,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8682,13 +8682,13 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.100}",
+                "$value": "{prism.core.palette.neutral.150}",
                 "$description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.100",
-                    "contrast": 14.05,
+                    "aliasOf": "prism.core.palette.neutral.150",
+                    "contrast": 12.36,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -8706,13 +8706,13 @@
               },
               "selected": {
                 "$type": "color",
-                "$value": "{prism.core.palette.neutral.150}",
+                "$value": "{prism.core.palette.neutral.250}",
                 "$description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "prism.core.palette.neutral.150",
-                    "contrast": 12.36,
+                    "aliasOf": "prism.core.palette.neutral.250",
+                    "contrast": 9.3,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "figma": {
@@ -14135,7 +14135,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

@@ -138,6 +138,49 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.46.0: interactive states move TWO genome rungs each, and the outline ink tracks its border at
+ * every state (#1281 + #1282). Both are one change to how a control expresses engagement, which is
+ * why they ship together: the deeper interval is what makes the ink's tracking visible, and the ink
+ * tracking is what stops the deeper interval reading as a border that moved on its own.
+ *
+ * #1281 — THE INTERVAL. `stateRungs` replaces four copies of `st === 'hover' ? 1 : 2` (page fill,
+ * page ink, and the inverse-band twins of both) with one rule: hover is `STATE_RUNGS` past rest,
+ * pressed twice that, and `STATE_RUNGS` is 2. On a ~20-rung genome 50 apart, one rung moved nb's
+ * primary 550 → 600 → 650 — a change a designer has to hunt for, and one that vanishes on a brand
+ * whose ramp is flat through the mid range. Two rungs reads 550 → 650 → 750. Expressed as RUNGS
+ * rather than values, because the interval is what a genome promises and a per-value table would be
+ * the rule written once per brand and wrong for the next one.
+ *
+ * #1282 — THE COUPLING. `outline.{label,icon}.{hover,pressed}` are bound. #576 made the outline EDGE
+ * stateful and left the ink pinned to `.rest`, so the border moved and the text it surrounds did not.
+ * The roles existed the whole time — `iText` has emitted `text.{rest,hover,pressed}` since #576, and
+ * `iBorder` consumes those very candidates — so the border was tracking an ink the component then
+ * declined to bind. Three keys, no derivation change, and "the edge matches its label" now holds at
+ * every state rather than only at rest.
+ *
+ * PRESSED IS UNGATED FOR CONTRAST, and this is an OWNER DECISION taken on measured numbers rather
+ * than a derivation. At four rungs the one rest-derived `on-fill` ink loses its now-lighter pressed
+ * fill in dark mode: harbor/primary 2.62, wendys/primary 2.54, wendys/destructive 2.41 against the 3
+ * bar, plus hot-yellow/hc-dark's subtle fill at 5.77 against HC's 7. Put to the owner with those
+ * numbers and decided: what a pressed state owes is DISTINCTION FROM REST, not legibility in its own
+ * right. The alternatives were a smaller interval (the thing #1281 exists to fix) or a stateful
+ * `on-fill` family (rejected long before this, for flipping the label's colour mid-press). Declared
+ * as `min: 0` at both sites, so the ratio is still computed and published and a reader sees a
+ * contract that says "not gated here" — never a red cell indistinguishable from a regression. The
+ * preview's ungated set is ENUMERATED and checked both ways, because a floor zeroed by accident
+ * passes forever.
+ *
+ * SYSTEM-WIDE, confirmed with the owner rather than assumed: the interval lives on
+ * `color.interactive.*`, so every consumer of that family moves with it — `icon-button` as well as
+ * the three buttons. That is the intent (a state rule is a property of the family, not of one
+ * component), and there is no per-consumer mechanism at the token tier that could scope it anyway.
+ *
+ * VALUES ONLY: no token NAME and no `$type` moves — `text.{hover,pressed}` and
+ * `border.{hover,pressed}` have been emitted since #576 and #1282 only BINDS them — so
+ * `CONTRACT_VERSION` stands at 9.4.0 and `token-contract.ts --check` confirms it. Emitted colour
+ * moves in every brand and mode, and the button family's projected surface moves with the four new
+ * bindings (`lint-component-surface --accept`).
+ *
  * 0.45.0: the three MEASURED selection controls paste their borders at 2px (#1228). `checkbox`,
  * `radio` and `switch` bind `border-width.thick` through the `strokeWidth` field 0.44.0 added, on the
  * one bordered part each has — the box, the disc, the track. Prism 2 ships all three at
@@ -1050,7 +1093,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.45.0';
+export const ENGINE_VERSION = '0.46.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

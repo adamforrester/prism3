@@ -6681,34 +6681,34 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "primary interactive fill — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 5.64,
+                  "aliasOf": "nbds.core.palette.red.650",
+                  "contrast": 6.82,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.500}",
-                      "aliasOf": "nbds.core.palette.red.500",
-                      "contrast": 3.92,
+                      "$value": "{nbds.core.palette.red.450}",
+                      "aliasOf": "nbds.core.palette.red.450",
+                      "contrast": 4.66,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.red.750}",
-                      "aliasOf": "nbds.core.palette.red.750",
-                      "contrast": 9.94,
+                      "$value": "{nbds.core.palette.red.800}",
+                      "aliasOf": "nbds.core.palette.red.800",
+                      "contrast": 11.66,
                       "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.red.250}",
-                      "aliasOf": "nbds.core.palette.red.250",
-                      "contrast": 8.7,
+                      "$value": "{nbds.core.palette.red.200}",
+                      "aliasOf": "nbds.core.palette.red.200",
+                      "contrast": 10.01,
                       "against": "neutral.900",
                       "min": 7
                     }
@@ -6728,34 +6728,34 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.650}",
+              "$value": "{nbds.core.palette.red.750}",
               "$description": "primary interactive fill — pressed",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.650",
-                  "contrast": 6.82,
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 9.94,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.450}",
-                      "aliasOf": "nbds.core.palette.red.450",
-                      "contrast": 4.66,
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 6.44,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.red.800}",
-                      "aliasOf": "nbds.core.palette.red.800",
-                      "contrast": 11.66,
+                      "$value": "{nbds.core.palette.red.900}",
+                      "aliasOf": "nbds.core.palette.red.900",
+                      "contrast": 14.98,
                       "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.red.200}",
-                      "aliasOf": "nbds.core.palette.red.200",
-                      "contrast": 10.01,
+                      "$value": "{nbds.core.palette.red.100}",
+                      "aliasOf": "nbds.core.palette.red.100",
+                      "contrast": 13.04,
                       "against": "neutral.900",
                       "min": 7
                     }
@@ -6775,55 +6775,8 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
-              "$description": "primary interactive fill — focused",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 5.64,
-                  "against": "neutral.050",
-                  "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.red.500}",
-                      "aliasOf": "nbds.core.palette.red.500",
-                      "contrast": 3.92,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.red.750}",
-                      "aliasOf": "nbds.core.palette.red.750",
-                      "contrast": 9.94,
-                      "against": "neutral.050",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.red.250}",
-                      "aliasOf": "nbds.core.palette.red.250",
-                      "contrast": 8.7,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "selected": {
-              "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "primary interactive fill — selected",
+              "$description": "primary interactive fill — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -6850,6 +6803,53 @@
                       "$value": "{nbds.core.palette.red.200}",
                       "aliasOf": "nbds.core.palette.red.200",
                       "contrast": 10.01,
+                      "against": "neutral.900",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.750}",
+              "$description": "primary interactive fill — selected",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 9.94,
+                  "against": "neutral.050",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 6.44,
+                      "against": "neutral.900",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.900}",
+                      "aliasOf": "nbds.core.palette.red.900",
+                      "contrast": 14.98,
+                      "against": "neutral.050",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.100}",
+                      "aliasOf": "nbds.core.palette.red.100",
+                      "contrast": 13.04,
                       "against": "neutral.900",
                       "min": 7
                     }
@@ -6965,55 +6965,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
-              "$description": "primary interactive ink — hover (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 6.85,
-                  "against": "background.primary",
-                  "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.red.400}",
-                      "aliasOf": "nbds.core.palette.red.400",
-                      "contrast": 5.98,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.red.700}",
-                      "aliasOf": "nbds.core.palette.red.700",
-                      "contrast": 10.03,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.red.300}",
-                      "aliasOf": "nbds.core.palette.red.300",
-                      "contrast": 8.77,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "primary interactive ink — pressed (outline / text appearance)",
+              "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -7040,6 +6993,53 @@
                       "$value": "{nbds.core.palette.red.250}",
                       "aliasOf": "nbds.core.palette.red.250",
                       "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.750}",
+              "$description": "primary interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 12.08,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 9.42,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 16.32,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.150}",
+                      "aliasOf": "nbds.core.palette.red.150",
+                      "contrast": 13.44,
                       "against": "background.primary",
                       "min": 7
                     }
@@ -7108,55 +7108,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
-              "$description": "primary interactive border — hover (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 6.85,
-                  "against": "background.primary",
-                  "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.red.400}",
-                      "aliasOf": "nbds.core.palette.red.400",
-                      "contrast": 5.98,
-                      "against": "background.primary",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.red.700}",
-                      "aliasOf": "nbds.core.palette.red.700",
-                      "contrast": 10.03,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.red.300}",
-                      "aliasOf": "nbds.core.palette.red.300",
-                      "contrast": 8.77,
-                      "against": "background.primary",
-                      "min": 4.5
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
+              "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -7183,6 +7136,53 @@
                       "$value": "{nbds.core.palette.red.250}",
                       "aliasOf": "nbds.core.palette.red.250",
                       "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.750}",
+              "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 12.08,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 9.42,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 16.32,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.150}",
+                      "aliasOf": "nbds.core.palette.red.150",
+                      "contrast": 13.44,
                       "against": "background.primary",
                       "min": 4.5
                     }
@@ -7420,34 +7420,34 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
+              "$value": "{nbds.core.palette.red.650}",
               "$description": "destructive interactive fill — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 5.64,
+                  "aliasOf": "nbds.core.palette.red.650",
+                  "contrast": 6.82,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.500}",
-                      "aliasOf": "nbds.core.palette.red.500",
-                      "contrast": 3.92,
+                      "$value": "{nbds.core.palette.red.450}",
+                      "aliasOf": "nbds.core.palette.red.450",
+                      "contrast": 4.66,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.red.750}",
-                      "aliasOf": "nbds.core.palette.red.750",
-                      "contrast": 9.94,
+                      "$value": "{nbds.core.palette.red.800}",
+                      "aliasOf": "nbds.core.palette.red.800",
+                      "contrast": 11.66,
                       "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.red.250}",
-                      "aliasOf": "nbds.core.palette.red.250",
-                      "contrast": 8.7,
+                      "$value": "{nbds.core.palette.red.200}",
+                      "aliasOf": "nbds.core.palette.red.200",
+                      "contrast": 10.01,
                       "against": "neutral.900",
                       "min": 7
                     }
@@ -7467,34 +7467,34 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.650}",
+              "$value": "{nbds.core.palette.red.750}",
               "$description": "destructive interactive fill — pressed",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.650",
-                  "contrast": 6.82,
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 9.94,
                   "against": "neutral.050",
                   "min": 3,
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.red.450}",
-                      "aliasOf": "nbds.core.palette.red.450",
-                      "contrast": 4.66,
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 6.44,
                       "against": "neutral.900",
                       "min": 3
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.red.800}",
-                      "aliasOf": "nbds.core.palette.red.800",
-                      "contrast": 11.66,
+                      "$value": "{nbds.core.palette.red.900}",
+                      "aliasOf": "nbds.core.palette.red.900",
+                      "contrast": 14.98,
                       "against": "neutral.050",
                       "min": 7
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.red.200}",
-                      "aliasOf": "nbds.core.palette.red.200",
-                      "contrast": 10.01,
+                      "$value": "{nbds.core.palette.red.100}",
+                      "aliasOf": "nbds.core.palette.red.100",
+                      "contrast": 13.04,
                       "against": "neutral.900",
                       "min": 7
                     }
@@ -7514,55 +7514,8 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
-              "$description": "destructive interactive fill — focused",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 5.64,
-                  "against": "neutral.050",
-                  "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.red.500}",
-                      "aliasOf": "nbds.core.palette.red.500",
-                      "contrast": 3.92,
-                      "against": "neutral.900",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.red.750}",
-                      "aliasOf": "nbds.core.palette.red.750",
-                      "contrast": 9.94,
-                      "against": "neutral.050",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.red.250}",
-                      "aliasOf": "nbds.core.palette.red.250",
-                      "contrast": 8.7,
-                      "against": "neutral.900",
-                      "min": 7
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "selected": {
-              "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "destructive interactive fill — selected",
+              "$description": "destructive interactive fill — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -7589,6 +7542,53 @@
                       "$value": "{nbds.core.palette.red.200}",
                       "aliasOf": "nbds.core.palette.red.200",
                       "contrast": 10.01,
+                      "against": "neutral.900",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.750}",
+              "$description": "destructive interactive fill — selected",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 9.94,
+                  "against": "neutral.050",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.350}",
+                      "aliasOf": "nbds.core.palette.red.350",
+                      "contrast": 6.44,
+                      "against": "neutral.900",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.900}",
+                      "aliasOf": "nbds.core.palette.red.900",
+                      "contrast": 14.98,
+                      "against": "neutral.050",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.100}",
+                      "aliasOf": "nbds.core.palette.red.100",
+                      "contrast": 13.04,
                       "against": "neutral.900",
                       "min": 7
                     }
@@ -7704,55 +7704,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
-              "$description": "destructive interactive ink — hover (outline / text appearance)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 6.85,
-                  "against": "background.primary",
-                  "min": 4.5,
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.red.400}",
-                      "aliasOf": "nbds.core.palette.red.400",
-                      "contrast": 5.98,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.red.700}",
-                      "aliasOf": "nbds.core.palette.red.700",
-                      "contrast": 10.03,
-                      "against": "background.primary",
-                      "min": 7
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.red.300}",
-                      "aliasOf": "nbds.core.palette.red.300",
-                      "contrast": 8.77,
-                      "against": "background.primary",
-                      "min": 7
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "destructive interactive ink — pressed (outline / text appearance)",
+              "$description": "destructive interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -7779,6 +7732,53 @@
                       "$value": "{nbds.core.palette.red.250}",
                       "aliasOf": "nbds.core.palette.red.250",
                       "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 7
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.750}",
+              "$description": "destructive interactive ink — pressed (outline / text appearance)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 12.08,
+                  "against": "background.primary",
+                  "min": 4.5,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 9.42,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 16.32,
+                      "against": "background.primary",
+                      "min": 7
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.150}",
+                      "aliasOf": "nbds.core.palette.red.150",
+                      "contrast": 13.44,
                       "against": "background.primary",
                       "min": 7
                     }
@@ -7847,55 +7847,8 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.red.600}",
-              "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.red.600",
-                  "contrast": 6.85,
-                  "against": "background.primary",
-                  "min": 3,
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.red.400}",
-                      "aliasOf": "nbds.core.palette.red.400",
-                      "contrast": 5.98,
-                      "against": "background.primary",
-                      "min": 3
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.red.700}",
-                      "aliasOf": "nbds.core.palette.red.700",
-                      "contrast": 10.03,
-                      "against": "background.primary",
-                      "min": 4.5
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.red.300}",
-                      "aliasOf": "nbds.core.palette.red.300",
-                      "contrast": 8.77,
-                      "against": "background.primary",
-                      "min": 4.5
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "pressed": {
-              "$type": "color",
               "$value": "{nbds.core.palette.red.650}",
-              "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+              "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -7922,6 +7875,53 @@
                       "$value": "{nbds.core.palette.red.250}",
                       "aliasOf": "nbds.core.palette.red.250",
                       "contrast": 10.17,
+                      "against": "background.primary",
+                      "min": 4.5
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "pressed": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.red.750}",
+              "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.red.750",
+                  "contrast": 12.08,
+                  "against": "background.primary",
+                  "min": 3,
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.red.250}",
+                      "aliasOf": "nbds.core.palette.red.250",
+                      "contrast": 9.42,
+                      "against": "background.primary",
+                      "min": 3
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.red.850}",
+                      "aliasOf": "nbds.core.palette.red.850",
+                      "contrast": 16.32,
+                      "against": "background.primary",
+                      "min": 4.5
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.red.150}",
+                      "aliasOf": "nbds.core.palette.red.150",
+                      "contrast": 13.44,
                       "against": "background.primary",
                       "min": 4.5
                     }
@@ -8155,31 +8155,31 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.200}",
+              "$value": "{nbds.core.palette.neutral.250}",
               "$description": "neutral interactive fill — hover",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.neutral.200",
-                  "contrast": 1.49,
+                  "aliasOf": "nbds.core.palette.neutral.250",
+                  "contrast": 1.71,
                   "against": "neutral.050",
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.neutral.800}",
-                      "aliasOf": "nbds.core.palette.neutral.800",
-                      "contrast": 1.29,
+                      "$value": "{nbds.core.palette.neutral.750}",
+                      "aliasOf": "nbds.core.palette.neutral.750",
+                      "contrast": 1.52,
                       "against": "neutral.900"
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.neutral.200}",
-                      "aliasOf": "nbds.core.palette.neutral.200",
-                      "contrast": 1.49,
+                      "$value": "{nbds.core.palette.neutral.250}",
+                      "aliasOf": "nbds.core.palette.neutral.250",
+                      "contrast": 1.71,
                       "against": "neutral.050"
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.neutral.800}",
-                      "aliasOf": "nbds.core.palette.neutral.800",
-                      "contrast": 1.29,
+                      "$value": "{nbds.core.palette.neutral.750}",
+                      "aliasOf": "nbds.core.palette.neutral.750",
+                      "contrast": 1.52,
                       "against": "neutral.900"
                     }
                   },
@@ -8198,31 +8198,31 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.250}",
+              "$value": "{nbds.core.palette.neutral.350}",
               "$description": "neutral interactive fill — pressed",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
-                  "aliasOf": "nbds.core.palette.neutral.250",
-                  "contrast": 1.71,
+                  "aliasOf": "nbds.core.palette.neutral.350",
+                  "contrast": 2.31,
                   "against": "neutral.050",
                   "modes": {
                     "dark": {
-                      "$value": "{nbds.core.palette.neutral.750}",
-                      "aliasOf": "nbds.core.palette.neutral.750",
-                      "contrast": 1.52,
+                      "$value": "{nbds.core.palette.neutral.650}",
+                      "aliasOf": "nbds.core.palette.neutral.650",
+                      "contrast": 2.21,
                       "against": "neutral.900"
                     },
                     "hc-light": {
-                      "$value": "{nbds.core.palette.neutral.250}",
-                      "aliasOf": "nbds.core.palette.neutral.250",
-                      "contrast": 1.71,
+                      "$value": "{nbds.core.palette.neutral.350}",
+                      "aliasOf": "nbds.core.palette.neutral.350",
+                      "contrast": 2.31,
                       "against": "neutral.050"
                     },
                     "hc-dark": {
-                      "$value": "{nbds.core.palette.neutral.750}",
-                      "aliasOf": "nbds.core.palette.neutral.750",
-                      "contrast": 1.52,
+                      "$value": "{nbds.core.palette.neutral.650}",
+                      "aliasOf": "nbds.core.palette.neutral.650",
+                      "contrast": 2.21,
                       "against": "neutral.900"
                     }
                   },
@@ -8241,51 +8241,8 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{nbds.core.palette.neutral.200}",
-              "$description": "neutral interactive fill — focused",
-              "$extensions": {
-                "prism3": {
-                  "role": "semantic",
-                  "aliasOf": "nbds.core.palette.neutral.200",
-                  "contrast": 1.49,
-                  "against": "neutral.050",
-                  "modes": {
-                    "dark": {
-                      "$value": "{nbds.core.palette.neutral.800}",
-                      "aliasOf": "nbds.core.palette.neutral.800",
-                      "contrast": 1.29,
-                      "against": "neutral.900"
-                    },
-                    "hc-light": {
-                      "$value": "{nbds.core.palette.neutral.200}",
-                      "aliasOf": "nbds.core.palette.neutral.200",
-                      "contrast": 1.49,
-                      "against": "neutral.050"
-                    },
-                    "hc-dark": {
-                      "$value": "{nbds.core.palette.neutral.800}",
-                      "aliasOf": "nbds.core.palette.neutral.800",
-                      "contrast": 1.29,
-                      "against": "neutral.900"
-                    }
-                  },
-                  "figma": {
-                    "collection": "color",
-                    "modes": [
-                      "light",
-                      "dark",
-                      "hc-light",
-                      "hc-dark"
-                    ],
-                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                  }
-                }
-              }
-            },
-            "selected": {
-              "$type": "color",
               "$value": "{nbds.core.palette.neutral.250}",
-              "$description": "neutral interactive fill — selected",
+              "$description": "neutral interactive fill — focused",
               "$extensions": {
                 "prism3": {
                   "role": "semantic",
@@ -8309,6 +8266,49 @@
                       "$value": "{nbds.core.palette.neutral.750}",
                       "aliasOf": "nbds.core.palette.neutral.750",
                       "contrast": 1.52,
+                      "against": "neutral.900"
+                    }
+                  },
+                  "figma": {
+                    "collection": "color",
+                    "modes": [
+                      "light",
+                      "dark",
+                      "hc-light",
+                      "hc-dark"
+                    ],
+                    "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                  }
+                }
+              }
+            },
+            "selected": {
+              "$type": "color",
+              "$value": "{nbds.core.palette.neutral.350}",
+              "$description": "neutral interactive fill — selected",
+              "$extensions": {
+                "prism3": {
+                  "role": "semantic",
+                  "aliasOf": "nbds.core.palette.neutral.350",
+                  "contrast": 2.31,
+                  "against": "neutral.050",
+                  "modes": {
+                    "dark": {
+                      "$value": "{nbds.core.palette.neutral.650}",
+                      "aliasOf": "nbds.core.palette.neutral.650",
+                      "contrast": 2.21,
+                      "against": "neutral.900"
+                    },
+                    "hc-light": {
+                      "$value": "{nbds.core.palette.neutral.350}",
+                      "aliasOf": "nbds.core.palette.neutral.350",
+                      "contrast": 2.31,
+                      "against": "neutral.050"
+                    },
+                    "hc-dark": {
+                      "$value": "{nbds.core.palette.neutral.650}",
+                      "aliasOf": "nbds.core.palette.neutral.650",
+                      "contrast": 2.21,
                       "against": "neutral.900"
                     }
                   },
@@ -10732,55 +10732,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.red.400}",
-                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.98,
-                    "against": "inverse.background.primary",
-                    "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.red.600}",
-                        "aliasOf": "nbds.core.palette.red.600",
-                        "contrast": 6.39,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.red.300}",
-                        "aliasOf": "nbds.core.palette.red.300",
-                        "contrast": 8.77,
-                        "against": "inverse.background.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.red.700}",
-                        "aliasOf": "nbds.core.palette.red.700",
-                        "contrast": 10.03,
-                        "against": "inverse.background.primary",
-                        "min": 7
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.red.350}",
-                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -10807,6 +10760,53 @@
                         "$value": "{nbds.core.palette.red.750}",
                         "aliasOf": "nbds.core.palette.red.750",
                         "contrast": 12.08,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.250}",
+                "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 9.42,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 11.26,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.150}",
+                        "aliasOf": "nbds.core.palette.red.150",
+                        "contrast": 13.44,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.850}",
+                        "aliasOf": "nbds.core.palette.red.850",
+                        "contrast": 16.32,
                         "against": "inverse.background.primary",
                         "min": 7
                       }
@@ -10875,34 +10875,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.100}",
+                "$value": "{nbds.core.palette.neutral.150}",
                 "$description": "primary interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.100",
-                    "contrast": 14.13,
+                    "aliasOf": "nbds.core.palette.neutral.150",
+                    "contrast": 12.33,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 16.74,
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 18.11,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.100}",
-                        "aliasOf": "nbds.core.palette.neutral.100",
-                        "contrast": 15.26,
+                        "$value": "{nbds.core.palette.neutral.150}",
+                        "aliasOf": "nbds.core.palette.neutral.150",
+                        "contrast": 13.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 17.97,
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 19.44,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -10922,34 +10922,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.150}",
+                "$value": "{nbds.core.palette.neutral.250}",
                 "$description": "primary interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.150",
-                    "contrast": 12.33,
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.150}",
-                        "aliasOf": "nbds.core.palette.neutral.150",
-                        "contrast": 13.32,
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -10969,55 +10969,8 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.100}",
-                "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.100",
-                    "contrast": 14.13,
-                    "against": "inverse.background.primary",
-                    "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 16.74,
-                        "against": "inverse.background.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.100}",
-                        "aliasOf": "nbds.core.palette.neutral.100",
-                        "contrast": 15.26,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 17.97,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "selected": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.neutral.150}",
-                "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$description": "primary interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -11044,6 +10997,53 @@
                         "$value": "{nbds.core.palette.neutral.950}",
                         "aliasOf": "nbds.core.palette.neutral.950",
                         "contrast": 19.44,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.250}",
+                "$description": "primary interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11159,55 +11159,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.red.400}",
-                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.98,
-                    "against": "inverse.background.primary",
-                    "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.red.600}",
-                        "aliasOf": "nbds.core.palette.red.600",
-                        "contrast": 6.39,
-                        "against": "inverse.background.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.red.300}",
-                        "aliasOf": "nbds.core.palette.red.300",
-                        "contrast": 8.77,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.red.700}",
-                        "aliasOf": "nbds.core.palette.red.700",
-                        "contrast": 10.03,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.red.350}",
-                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -11234,6 +11187,53 @@
                         "$value": "{nbds.core.palette.red.750}",
                         "aliasOf": "nbds.core.palette.red.750",
                         "contrast": 12.08,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.250}",
+                "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 9.42,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 11.26,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.150}",
+                        "aliasOf": "nbds.core.palette.red.150",
+                        "contrast": 13.44,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.850}",
+                        "aliasOf": "nbds.core.palette.red.850",
+                        "contrast": 16.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11471,55 +11471,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.red.400}",
-                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.98,
-                    "against": "inverse.background.primary",
-                    "min": 4.5,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.red.600}",
-                        "aliasOf": "nbds.core.palette.red.600",
-                        "contrast": 6.39,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.red.300}",
-                        "aliasOf": "nbds.core.palette.red.300",
-                        "contrast": 8.77,
-                        "against": "inverse.background.primary",
-                        "min": 7
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.red.700}",
-                        "aliasOf": "nbds.core.palette.red.700",
-                        "contrast": 10.03,
-                        "against": "inverse.background.primary",
-                        "min": 7
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.red.350}",
-                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -11546,6 +11499,53 @@
                         "$value": "{nbds.core.palette.red.750}",
                         "aliasOf": "nbds.core.palette.red.750",
                         "contrast": 12.08,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.250}",
+                "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 9.42,
+                    "against": "inverse.background.primary",
+                    "min": 4.5,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 11.26,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.150}",
+                        "aliasOf": "nbds.core.palette.red.150",
+                        "contrast": 13.44,
+                        "against": "inverse.background.primary",
+                        "min": 7
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.850}",
+                        "aliasOf": "nbds.core.palette.red.850",
+                        "contrast": 16.32,
                         "against": "inverse.background.primary",
                         "min": 7
                       }
@@ -11614,34 +11614,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.100}",
+                "$value": "{nbds.core.palette.neutral.150}",
                 "$description": "destructive interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.100",
-                    "contrast": 14.13,
+                    "aliasOf": "nbds.core.palette.neutral.150",
+                    "contrast": 12.33,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 16.74,
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 18.11,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.100}",
-                        "aliasOf": "nbds.core.palette.neutral.100",
-                        "contrast": 15.26,
+                        "$value": "{nbds.core.palette.neutral.150}",
+                        "aliasOf": "nbds.core.palette.neutral.150",
+                        "contrast": 13.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 17.97,
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 19.44,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11661,34 +11661,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.150}",
+                "$value": "{nbds.core.palette.neutral.250}",
                 "$description": "destructive interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.150",
-                    "contrast": 12.33,
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.150}",
-                        "aliasOf": "nbds.core.palette.neutral.150",
-                        "contrast": 13.32,
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11708,55 +11708,8 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.100}",
-                "$description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.100",
-                    "contrast": 14.13,
-                    "against": "inverse.background.primary",
-                    "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 16.74,
-                        "against": "inverse.background.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.100}",
-                        "aliasOf": "nbds.core.palette.neutral.100",
-                        "contrast": 15.26,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 17.97,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "selected": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.neutral.150}",
-                "$description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$description": "destructive interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -11783,6 +11736,53 @@
                         "$value": "{nbds.core.palette.neutral.950}",
                         "aliasOf": "nbds.core.palette.neutral.950",
                         "contrast": 19.44,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.250}",
+                "$description": "destructive interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -11898,55 +11898,8 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.red.400}",
-                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.red.400",
-                    "contrast": 5.98,
-                    "against": "inverse.background.primary",
-                    "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.red.600}",
-                        "aliasOf": "nbds.core.palette.red.600",
-                        "contrast": 6.39,
-                        "against": "inverse.background.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.red.300}",
-                        "aliasOf": "nbds.core.palette.red.300",
-                        "contrast": 8.77,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.red.700}",
-                        "aliasOf": "nbds.core.palette.red.700",
-                        "contrast": 10.03,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "pressed": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.red.350}",
-                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -11973,6 +11926,53 @@
                         "$value": "{nbds.core.palette.red.750}",
                         "aliasOf": "nbds.core.palette.red.750",
                         "contrast": 12.08,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "pressed": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.red.250}",
+                "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.red.250",
+                    "contrast": 9.42,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.red.750}",
+                        "aliasOf": "nbds.core.palette.red.750",
+                        "contrast": 11.26,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.red.150}",
+                        "aliasOf": "nbds.core.palette.red.150",
+                        "contrast": 13.44,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.red.850}",
+                        "aliasOf": "nbds.core.palette.red.850",
+                        "contrast": 16.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12353,34 +12353,34 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.100}",
+                "$value": "{nbds.core.palette.neutral.150}",
                 "$description": "neutral interactive fill on a dark / inverse surface — hover (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.100",
-                    "contrast": 14.13,
+                    "aliasOf": "nbds.core.palette.neutral.150",
+                    "contrast": 12.33,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 16.74,
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 18.11,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.100}",
-                        "aliasOf": "nbds.core.palette.neutral.100",
-                        "contrast": 15.26,
+                        "$value": "{nbds.core.palette.neutral.150}",
+                        "aliasOf": "nbds.core.palette.neutral.150",
+                        "contrast": 13.32,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 17.97,
+                        "$value": "{nbds.core.palette.neutral.950}",
+                        "aliasOf": "nbds.core.palette.neutral.950",
+                        "contrast": 19.44,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12400,34 +12400,34 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.150}",
+                "$value": "{nbds.core.palette.neutral.250}",
                 "$description": "neutral interactive fill on a dark / inverse surface — pressed (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.150",
-                    "contrast": 12.33,
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
                     "against": "inverse.background.primary",
                     "min": 3,
                     "modes": {
                       "dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 18.11,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
                         "against": "inverse.background.primary",
                         "min": 3
                       },
                       "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.150}",
-                        "aliasOf": "nbds.core.palette.neutral.150",
-                        "contrast": 13.32,
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       },
                       "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.950}",
-                        "aliasOf": "nbds.core.palette.neutral.950",
-                        "contrast": 19.44,
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -12447,55 +12447,8 @@
               },
               "focused": {
                 "$type": "color",
-                "$value": "{nbds.core.palette.neutral.100}",
-                "$description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
-                "$extensions": {
-                  "prism3": {
-                    "role": "semantic",
-                    "aliasOf": "nbds.core.palette.neutral.100",
-                    "contrast": 14.13,
-                    "against": "inverse.background.primary",
-                    "min": 3,
-                    "modes": {
-                      "dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 16.74,
-                        "against": "inverse.background.primary",
-                        "min": 3
-                      },
-                      "hc-light": {
-                        "$value": "{nbds.core.palette.neutral.100}",
-                        "aliasOf": "nbds.core.palette.neutral.100",
-                        "contrast": 15.26,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      },
-                      "hc-dark": {
-                        "$value": "{nbds.core.palette.neutral.900}",
-                        "aliasOf": "nbds.core.palette.neutral.900",
-                        "contrast": 17.97,
-                        "against": "inverse.background.primary",
-                        "min": 4.5
-                      }
-                    },
-                    "figma": {
-                      "collection": "color",
-                      "modes": [
-                        "light",
-                        "dark",
-                        "hc-light",
-                        "hc-dark"
-                      ],
-                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
-                    }
-                  }
-                }
-              },
-              "selected": {
-                "$type": "color",
                 "$value": "{nbds.core.palette.neutral.150}",
-                "$description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$description": "neutral interactive fill on a dark / inverse surface — focused (a light filled CTA on a dark hero)",
                 "$extensions": {
                   "prism3": {
                     "role": "semantic",
@@ -12522,6 +12475,53 @@
                         "$value": "{nbds.core.palette.neutral.950}",
                         "aliasOf": "nbds.core.palette.neutral.950",
                         "contrast": 19.44,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      }
+                    },
+                    "figma": {
+                      "collection": "color",
+                      "modes": [
+                        "light",
+                        "dark",
+                        "hc-light",
+                        "hc-dark"
+                      ],
+                      "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                    }
+                  }
+                }
+              },
+              "selected": {
+                "$type": "color",
+                "$value": "{nbds.core.palette.neutral.250}",
+                "$description": "neutral interactive fill on a dark / inverse surface — selected (a light filled CTA on a dark hero)",
+                "$extensions": {
+                  "prism3": {
+                    "role": "semantic",
+                    "aliasOf": "nbds.core.palette.neutral.250",
+                    "contrast": 9.34,
+                    "against": "inverse.background.primary",
+                    "min": 3,
+                    "modes": {
+                      "dark": {
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 7.59,
+                        "against": "inverse.background.primary",
+                        "min": 3
+                      },
+                      "hc-light": {
+                        "$value": "{nbds.core.palette.neutral.250}",
+                        "aliasOf": "nbds.core.palette.neutral.250",
+                        "contrast": 10.09,
+                        "against": "inverse.background.primary",
+                        "min": 4.5
+                      },
+                      "hc-dark": {
+                        "$value": "{nbds.core.palette.neutral.650}",
+                        "aliasOf": "nbds.core.palette.neutral.650",
+                        "contrast": 8.15,
                         "against": "inverse.background.primary",
                         "min": 4.5
                       }
@@ -19501,7 +19501,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.45.0",
+      "version": "0.46.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

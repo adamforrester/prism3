@@ -297,6 +297,73 @@ for (const b of brands) {
     `L-02: skipping a non-qualifying step does NOT collapse hover onto pressed (${p('interactive.primary.fill.hover').split('.').pop()} vs ${p('interactive.primary.fill.pressed').split('.').pop()}) — the naive "walk until it clears" repair would have made these equal`);
   ok(p('interactive.primary.fill.rest') !== p('interactive.primary.fill.hover'), 'L-02: rest and hover stay distinct on a non-monotonic ramp');
 
+  // ---- #1281: TWO GENOME RUNGS PER STATE, corpus-wide -------------------------------------------
+  //
+  // The interval is the promise, so it is asserted as an interval: the ramp POSITION of each state,
+  // read off the resolved role's own path, differs from the one before it by exactly two rungs of
+  // the 50-unit genome. Not "hover is darker than rest" — that was true at one rung too, and one
+  // rung is the thing #1281 exists to replace.
+  //
+  // AUTHORED, never imported: `RUNG` and `PER_STATE` are written here and `stateRungs` is not in
+  // scope. Deriving the expectation from the derivation is `docs/34` shape 1 — it would agree at
+  // every value of the constant, including the one this arm exists to reject.
+  //
+  // WHERE IT DOES NOT APPLY, enumerated rather than silently skipped. A state that RE-ANCHORS or
+  // reflects is not walking the plain interval: `walk` reflects inward at a ramp end (L-01), and the
+  // floor guard (#557) counts only qualifying steps, so a column whose rest sits near an end
+  // legitimately lands short. Those are recorded as a COUNT with a floor rather than waved through —
+  // if most of the corpus stopped walking the interval, the exact-match population would collapse
+  // and the floor below catches it, which a per-cell `continue` never would.
+  {
+    const RUNG = 50, PER_STATE = 2;
+    let exact = 0, reflected = 0, cells = 0;
+    const wrong: string[] = [];
+    // The same corpus the #288 tint contract sweeps, including the two extremes — a rule about ramp
+    // INTERVALS has to hold where the ramp is hardest, which is exactly where reflection kicks in.
+    const corpus: Array<[string, any]> = [
+      ['nb', nbTheme()],
+      ['aurora', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8')).input)],
+      ['harbor', brandTheme(parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input)],
+      ['near-black', brandTheme({ id: 'nbk', primary: { l: 0.18, c: 0.04, h: 260 }, neutral: { hue: 260, chroma: 0.006, auto: true } } as any)],
+      ['hot-yellow', brandTheme({ id: 'hy', primary: { l: 0.86, c: 0.19, h: 95 }, neutral: { hue: 95, chroma: 0.006, auto: true } } as any)],
+    ];
+    for (const [id, theme] of corpus) {
+      for (const m of resolveAllModes(theme)) {
+        for (const col of ['primary', 'destructive', 'neutral'] as const) {
+          const numOf = (k: string) => { const r = m.roles[`interactive.${col}.fill.${k}`]; if (!r) return undefined; const n = Number(r.path.split('.').pop()); return Number.isFinite(n) ? n : undefined; };
+          const rest = numOf('rest'), hover = numOf('hover'), pressed = numOf('pressed');
+          if (rest === undefined || hover === undefined || pressed === undefined) continue;
+          const dh = Math.abs(hover - rest) / RUNG, dp = Math.abs(pressed - rest) / RUNG;
+          // DISTINCTION FIRST, AND AT EVERY CELL — unconditionally, before the interval is
+          // classified (#1281 categorical rework). This check used to live inside the `else` branch
+          // below, so a cell walking the exact interval never reached it. That was sound while the
+          // interval was itself gated: exact interval implies distinct, so the check was redundant
+          // there. It stopped being sound when pressed became CATEGORICALLY exempt from contrast.
+          // Distinction from rest is now the ONLY invariant a pressed state owes, which makes it the
+          // single thing standing between "states step" and a silent no-op — and an invariant that
+          // is only checked on the cells that took the unusual path is not an invariant. Asserted
+          // per cell, on every cell, whatever the interval did.
+          cells++;
+          if (pressed === rest)
+            wrong.push(`${id}/${m.mode}/${col}: pressed and rest both land on ${rest} — pressed is exempt from CONTRAST, never from being DISTINCT (#1281)`);
+          if (hover === rest || pressed === hover)
+            wrong.push(`${id}/${m.mode}/${col}: rest ${rest} hover ${hover} pressed ${pressed} — a state collapsed onto another`);
+          // The plain interval. Anything else is a reflection or a guarded short walk — counted, and
+          // required to stay a minority by the floor below.
+          if (dh === PER_STATE && dp === PER_STATE * 2) { exact++; continue; }
+          reflected++;
+        }
+      }
+    }
+    ok(wrong.length === 0, `#1281 pressed is DISTINCT from rest at every cell, and no state collapses onto another, in any brand or mode${wrong.length ? ` — ${wrong.slice(0, 4).join(' | ')}` : ''}`);
+    // The distinction sweep is an implication over cells, so it is vacuous over none.
+    ok(cells > 0, `#1281 the distinction sweep examined ${cells} column×mode cells — at zero it asserts nothing`);
+    // The floor: the plain two-rung interval must be what the corpus MOSTLY does, or the rule is not
+    // the rule. A bare `exact > 0` would pass with one cell walking and every other reflected.
+    ok(exact > reflected && exact >= 20,
+      `#1281 the two-rung interval is the corpus norm — ${exact} column×mode cells walk rest → +${PER_STATE} → +${PER_STATE * 2} rungs exactly, ${reflected} land elsewhere (a ramp end reflects, a floor guard shortens); exact must exceed those and clear 20`);
+  }
+
   // L-02 × #331 — the guard applies only where a floor was actually INHERITED. An authored anchor
   // pin that misses its floor is applied verbatim and reported (#331 apply-but-warn), so its
   // walked states have no verified floor to inherit; guarding them would walk hover/pressed off to
@@ -310,12 +377,16 @@ for (const b of brands) {
     const r = resolveAllModes(pinnedT).find((m) => m.mode === 'light')!.roles;
     const num = (k: string) => Number(r[k].path.split('.').pop());
     ok(r['interactive.accent.fill.rest'].ratio < r['interactive.accent.fill.rest'].min, 'L-02×#331: the pinned anchor still misses its floor (applied, not substituted) — the precondition for the next assertion');
-    // ADJACENCY, not merely direction: the plain walk off 100 is exactly 150 then 200. A
-    // "forward and increasing" assertion is VACUOUS here — with the guard wrongly applied these
-    // land on 450/550, which is still forward and still increasing, so only pinning the exact
-    // steps distinguishes "kept the pin" from "relocated to wherever the floor is met".
-    ok(num('interactive.accent.fill.hover') === 150 && num('interactive.accent.fill.pressed') === 200,
-      `L-02×#331: states off a FAILING pin keep the plain adjacent walk (100 -> ${num('interactive.accent.fill.hover')} -> ${num('interactive.accent.fill.pressed')}, want 150 -> 200) — the floor guard must not relocate them to where the floor happens to be met`);
+    // THE EXACT STEPS, not merely direction: the plain walk off 100 is 200 then 300 — TWO genome
+    // rungs per state as of #1281, where it used to be one (150 / 200). A "forward and increasing"
+    // assertion is VACUOUS here: with the guard wrongly applied these land on 450/550, still forward
+    // and still increasing, so only pinning the exact steps distinguishes "kept the pin" from
+    // "relocated to wherever the floor is met".
+    //
+    // The numbers are WRITTEN, never computed from `stateRungs` — importing the rule to check the
+    // rule is `docs/34` shape 1. 100 + 2 rungs of 50 = 200; 100 + 4 = 300.
+    ok(num('interactive.accent.fill.hover') === 200 && num('interactive.accent.fill.pressed') === 300,
+      `L-02×#331: states off a FAILING pin keep the plain adjacent walk at the #1281 interval (100 -> ${num('interactive.accent.fill.hover')} -> ${num('interactive.accent.fill.pressed')}, want 200 -> 300) — the floor guard must not relocate them to where the floor happens to be met`);
   }
 }
 
@@ -634,6 +705,63 @@ for (const b of brands) {
     ok(bad.length === 0, `#288 every subtle-fill keeps its state ink legible (${checked} roles across ${brands.length} brands)`
       + (bad.length ? ` — FAILING: ${bad.slice(0, 4).join(', ')}` : ''));
     ok(checked > 0, '#288 the subtle-fill contract check is live (it found roles to judge)');
+
+    // ---- THE SAME CATEGORICAL RULE, AT THE SUBTLE-FILL SITE (#1281) ---------------------------
+    //
+    // The preview spec's scope guard and this one express ONE rule the same way: pressed and
+    // selected are never floored for ink-on-state-surface contrast; every other state is. A
+    // predicate on the state, never a list of cells — a fifth brand needs no entry here either.
+    //
+    // BOTH DIRECTIONS, because each catches a different mistake. `min === 0` on a rest or hover
+    // subtle-fill is a floor deleted by accident, which passes forever. A FLOOR on a pressed one is
+    // the exemption quietly reverted, which turns the corpus red on brands the interval pushes past
+    // the tint's reach — and would look like a colour regression rather than a policy change.
+    //
+    // SCOPED TO `subtle-fill`, and the scope is FORCED rather than chosen: at the emitted-role tier
+    // `min === 0` already carries THREE meanings, only one of which is this exemption.
+    //
+    //   1. A SURFACE, marked by `against: 'self'` — a ground is not ink on anything, so it has no
+    //      pairing to floor. Backgrounds, foregrounds, veils and scrims are all in this set.
+    //   2. A PRE-EXISTING UNFLOORED PAIRING against a real ground — decorative and structural edges
+    //      (the `border.*` and `inverse.border.*` tiers, the disabled edges) and the neutral
+    //      interactive fill, whose whole design is to sit at page luminance. These predate this PR
+    //      and are unfloored at REST and HOVER, not only at pressed.
+    //   3. This exemption.
+    //
+    // DESCRIBED AS A RULE, NOT COUNTED, and that is `docs/34`'s name-don't-count discipline applied
+    // to its own remedy: an earlier draft of this comment said "24 roles carry `against: 'self'` and
+    // `inverse.border.tertiary` is unfloored against a real ground". Re-measured in review, the
+    // self-against set is larger than that and the second set is not one role but a whole tier —
+    // so the sentence was wrong in both halves while reading as precise. The numbers are omitted
+    // deliberately: they move whenever a surface or an edge tier is added, and the SHAPE of the set
+    // is what makes the scoping necessary, not its size.
+    //
+    // Set 2 is why a blanket "every min-0 role is pressed" assertion cannot hold at this tier: it is
+    // false for roles that have nothing to do with states at all. So the guard runs over the family
+    // the decision is about, and says so, rather than reporting a rule it cannot keep.
+    const isPressedState = (state: string): boolean => state === 'pressed' || state === 'selected';
+    const wrongFloor: string[] = [];
+    let pressedSeen = 0, flooredSeen = 0;
+    for (const [id, t] of brands) {
+      for (const m of tintRoles(t)) {
+        for (const [key, r] of Object.entries(m.roles) as [string, any][]) {
+          if (!key.includes('.subtle-fill.')) continue;
+          const state = key.split('.').pop()!;
+          const ungated = r.min === 0;
+          if (isPressedState(state)) {
+            pressedSeen++;
+            if (!ungated) wrongFloor.push(`${id}/${m.mode}/${key} carries min ${r.min} — pressed/selected are categorically unfloored (#1281)`);
+          } else {
+            flooredSeen++;
+            if (ungated) wrongFloor.push(`${id}/${m.mode}/${key} is UNFLOORED at state '${state}' — only pressed/selected are exempt (#1281)`);
+          }
+        }
+      }
+    }
+    ok(wrongFloor.length === 0, `#1281 subtle-fill floors follow the categorical rule — pressed/selected unfloored, every other state floored${wrongFloor.length ? ` — ${wrongFloor.slice(0, 4).join(' | ')}` : ''}`);
+    // FLOORS: both branches are implications, so each is vacuous over an empty population.
+    ok(pressedSeen > 0 && flooredSeen > 0,
+      `#1281 the subtle-fill floor rule saw BOTH populations — ${pressedSeen} pressed/selected and ${flooredSeen} other-state roles; either at zero makes its half of the rule untested`);
 
     // And the tint must be VISIBLE against the page, or the hover does nothing — the inert-control
     // class this repo has now hit three times (#288 itself, #305, pre-#297 leading). ΔE00 2.3 is the
@@ -4848,11 +4976,41 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   const missing = previewTokenRefs().filter((p) => !isLeaf(p));
   ok(missing.length === 0, 'preview spec: every bound token path resolves to a leaf in the token tree' + (missing.length ? ` — MISSING: ${missing.join(', ')}` : ''));
 
+  // ---- THE PRESSED EXEMPTION IS CATEGORICAL, AND THIS IS ITS SCOPE GUARD (#1281) ---------------
+  //
+  // 0 joins 3 and 4.5 as a legal `min`: an UNGATED contract, one the spec still measures and
+  // publishes but sets no floor on. Pressed and selected are never floored for ink-on-fill contrast
+  // — the owner decision recorded at the declaration in `preview.ts` — and the rule is CATEGORICAL:
+  // it is a predicate on the STATE, so a fifth brand's pressed cell, or a new component's, needs no
+  // entry anywhere. There is deliberately no allow-list of cells here; an earlier draft had one and
+  // it was the wrong model, because a per-cell register makes every new pressed cell a decision
+  // someone has to re-take and makes the rule look like a set of exceptions rather than a rule.
+  //
+  // WHAT KEEPS "ONLY PRESSED" REAL. A categorical exemption is one edit away from "all floors are
+  // optional": zero a rest contract's floor and it passes forever, silently, because a floor that is
+  // not there cannot fail. So the guard runs the implication in the direction that catches that —
+  // `min === 0` IMPLIES the state is pressed or selected. Equivalently, and this is the sentence
+  // worth holding: no rest, hover, focus or disabled contract may be unfloored. Mutation-verified by
+  // zeroing a rest contract, which fails this arm by name.
+  const isPressedState = (state: string): boolean => state === 'pressed' || state === 'selected';
   const badContracts: string[] = [];
+  const unfloored: string[] = [];
+  let ungatedSeen = 0;
   for (const c of previewSpec.components) for (const v of c.variants) for (const ct of v.contracts ?? []) {
-    if (![3, 4.5].includes(ct.min) || ct.fg === ct.bg) badContracts.push(`${c.id}/${v.name}`);
+    const id = `${c.id}/${v.name}`;
+    if (ct.min === 0) {
+      ungatedSeen++;
+      if (!isPressedState(v.name)) unfloored.push(`${id} (state '${v.name}')`);
+      continue;
+    }
+    if (![3, 4.5].includes(ct.min) || ct.fg === ct.bg) badContracts.push(id);
   }
-  ok(badContracts.length === 0, 'preview spec: every contract has a sane min (3|4.5) and distinct fg/bg' + (badContracts.length ? ` — BAD: ${badContracts.join(', ')}` : ''));
+  ok(badContracts.length === 0, 'preview spec: every contract has a sane min (0|3|4.5) and distinct fg/bg' + (badContracts.length ? ` — BAD: ${badContracts.join(', ')}` : ''));
+  ok(unfloored.length === 0,
+    `#1281 every UNGATED preview contract is a pressed/selected state — the exemption is categorical, so an unfloored rest/hover/focus contract is a floor deleted by accident, which passes forever${unfloored.length ? ` — UNFLOORED: ${unfloored.join(', ')}` : ''}`);
+  // FLOOR (`docs/34` shape 9): the implication above is vacuously true over zero ungated contracts,
+  // so a spec that stopped declaring any would report clean while the rule went untested.
+  ok(ungatedSeen > 0, '#1281 the preview spec declares at least one ungated contract — the arm above is an implication and passes vacuously over none');
 
   // A declared contract must not CLAIM MORE than the engine guarantees. For any pair
   // whose (fg role, bg) equals an engine role's (path key, `against`), require
@@ -7608,13 +7766,44 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const nfRef = nonFamilyTokens(button);
   const nfDiverged = buttonFamily.filter((d) => nonFamilyTokens(d) !== nfRef).map((d) => d.id);
   ok(nfDiverged.length === 0, `#1223 the three share every NON-colour token byte-for-byte — geometry, #326 padding, slots, disabled (diverged: ${nfDiverged.join(', ') || 'none'})`);
+
+  // ---- #1282: THE OUTLINE INK TRACKS THE BORDER, AT EVERY STATE ---------------------------------
+  //
+  // #576 made the outline EDGE stateful and left the label pinned to `.rest`, so the border moved on
+  // hover/pressed and the text it surrounds did not. The token roles existed the whole time; three
+  // keys were missing from the def. This asserts the COUPLING as a consequence a designer would
+  // report ("the border moved and the text didn't"), not as a restatement of the binding table.
+  //
+  // Read off the DEF's own bindings and compared PAIRWISE — border state N against ink state N — so
+  // it fails if either side stops being stateful, or if they are stateful at different states. A
+  // per-key existence check would pass a def whose label bound `hover` to the REST role.
+  for (const d of buttonFamily) {
+    const fam = FAMILY_OF[d.id];
+    for (const st of ['rest', 'hover', 'pressed'] as const) {
+      const suffix = st === 'rest' ? '' : `.${st}`;
+      const border = d.tokens![`outline.border${suffix}`];
+      const label = d.tokens![`outline.label${suffix}`];
+      const icon = d.tokens![`outline.icon${suffix}`];
+      // The state segment each binding resolves — `border.hover` -> 'hover'. Compared, not assumed:
+      // the failure #1282 fixes is precisely a label whose segment says `rest` at every state.
+      const seg = (ref?: string) => ref?.split('.').pop();
+      ok(seg(border) === st && seg(label) === st && seg(icon) === st,
+        `#1282 ${d.id} outline ${st}: border, label and icon all resolve the '${st}' interactive role — the edge and the ink it surrounds move together (got border=${seg(border)}, label=${seg(label)}, icon=${seg(icon)})`);
+      ok(label === `color.interactive.${fam}.text.${st}` && border === `color.interactive.${fam}.border.${st}`,
+        `#1282 ${d.id} outline ${st}: the ink binds text.${st} and the edge binds border.${st} — the two roles the engine derives from ONE candidate (iBorder consumes iText), so matching bindings is matching colour`);
+    }
+  }
   // The colour tokens: each def binds ONLY its own family, and binds the full 16-key skin (not zero).
   for (const d of buttonFamily) {
     const fam = FAMILY_OF[d.id];
     const stray = Object.entries(d.tokens!).filter(([, v]) => FAMILY_RE.test(v as string) && !(v as string).startsWith(`color.interactive.${fam}.`)).map(([k]) => k);
     ok(stray.length === 0, `#1223 ${d.id} binds ONLY interactive.${fam} — no cross-family paint leaked in (stray: ${stray.join(', ') || 'none'})`);
     const famCount = Object.values(d.tokens!).filter((v) => (v as string).startsWith(`color.interactive.${fam}.`)).length;
-    ok(famCount === 16, `#1223 ${d.id} carries its full interactive.${fam} skin — 16 bindings (got ${famCount})`);
+    // 20 as of #1282, which added the four per-state outline ink keys (`outline.{label,icon}.{hover,pressed}`).
+    // Written, not derived from the def — counting the def's own keys to check the def's own keys is
+    // `docs/34` shape 1, and this arm's job is to notice a binding QUIETLY going missing from one
+    // sibling. 16 = filled 5 + outline 5 + text 4 + overlay 2, plus #1282's 4.
+    ok(famCount === 20, `#1223 ${d.id} carries its full interactive.${fam} skin — 20 bindings (got ${famCount})`);
   }
 
   const guidance = [button.docs!.usage, ...button.docs!.do, ...button.docs!.dont].join(' ');
