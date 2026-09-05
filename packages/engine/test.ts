@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkbox, radio, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -1153,9 +1153,13 @@ for (const b of brands) {
     // respect except the set it runs over. `docs/34` shape 15 one tier up: not a scope that counts instead
     // of naming, but a scope pinned to its first member.
     //
-    // Discovered from `componentDefs` and then pinned by NAME, so a third control def is covered the day it
+    // Discovered from `componentDefs` and then pinned by NAME, so a new control def is covered the day it
     // lands, and a discovery that silently returns nothing fails instead of passing over an empty set.
-    const CONTROL_DEFS = ['checkbox', 'radio', 'switch'];
+    // `checkbox-control` (#1226 step 2) is the atomic box, and `checkbox` (the Row) KEEPS a `size.*.control`
+    // binding too — the nest pins the nested control's own square through it — so both read the varying
+    // family and both belong here; the property this arm checks (px differs by brand) holds for the atom
+    // and for the Row's pin alike.
+    const CONTROL_DEFS = ['checkbox-control', 'checkbox', 'radio', 'switch'];
     const withControl = componentDefs.filter((d) =>
       Object.keys(d.tokens ?? {}).some((k) => /^size\.[^.]+\.(control|dot|track)$/.test(k)));
     ok(CONTROL_DEFS.every((n) => withControl.some((d) => d.id === n)) && withControl.length === CONTROL_DEFS.length,
@@ -9748,7 +9752,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // rungs are DIFFERENT (`hairline` for a button's edge, `thick` for a selection control's), so a loop
       // with one expected name baked in would have to be widened by whoever swept them together.
       for (const { def, part, want, atRoot, opts } of [
-        { def: checkbox, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        // #1226 step 2 moved checkbox's painted `control` box to `checkbox-control`, so the border-width
+        // binding this arm executes lives on the ATOM now — `checkbox` itself nests it and paints no box.
+        // `atRoot: true` because `control` IS the atom's anatomy root (the same trap `container` is for
+        // button), so it arrives as the member frame itself and `deepFind` for a child would miss it.
+        { def: checkboxControl, part: 'control', want: 'V:border-width/thick', atRoot: true, opts: {} },
         { def: radio, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
         { def: switchDef, part: 'track', want: 'V:border-width/thick', atRoot: false, opts: {} },
         // …with the swap target NOMINATED, which the three controls need no equivalent of: button is
@@ -11214,10 +11222,11 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // symptom is a part ABSENT from every coordinate, and absence is the direction that ships — a node
       // that is never built throws nothing, resolves nothing, and reads in the def exactly like one that
       // is. Each rule was deleted from `anatomyErrors` in turn and the matching line here confirmed to
-      // fail by name. Patched onto `checkbox`, the only def that uses the field.
-      const cbPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(checkbox, part, patch);
+      // fail by name. Patched onto `checkbox-control` since #1226 step 2 — the two glyph parts and the
+      // focus ring moved to the atom, so it is the def that uses `presentWhen` now (the Row nests it).
+      const cbPart = (part: string, patch: Record<string, unknown>): ComponentDef => patched(checkboxControl, part, patch);
       ibBroke('an EMPTY presentWhen fails — a gate on no axis is not "always present"', /declares an EMPTY 'presentWhen'/, cbPart('mark', { presentWhen: {} }));
-      ibBroke('gating the anatomy ROOT fails — a coordinate whose root is absent has no tree', /is the anatomy ROOT and declares 'presentWhen'/, cbPart('row', { presentWhen: { selection: ['checked'] } }));
+      ibBroke('gating the anatomy ROOT fails — a coordinate whose root is absent has no tree', /is the anatomy ROOT and declares 'presentWhen'/, cbPart('control', { presentWhen: { selection: ['checked'] } }));
       // Two presence mechanisms on one part. `present()` reads `when` through an early return, so one of
       // the two silently decides and the other reads as though it were still doing work.
       ibBroke('an `absolute` (already state-gated by `when`) declaring presentWhen fails', /is kind 'absolute' and declares 'presentWhen' as well as its own 'when'/, cbPart('focusRing', { presentWhen: { selection: ['checked'] } }));
@@ -13456,18 +13465,21 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the rule to read an absent axis as PRESENT left every gate in the repo green, and it would put the
   // tick and the dash in one box at once — a tree no member of the set ever builds, so no census, no
   // paint arm and no geometry arm can see it.
+  // #1226 step 2 moved the two glyph parts to `checkbox-control` (the atom), so the mark/dash presence
+  // gating is now the atom's — the Row nests it and carries no glyphs of its own. The mechanism and the
+  // three directions are unchanged; only the def that owns them moved.
   const cbGlyphs = (o: Record<string, unknown>): string =>
-    planPartNames(figmaAnatomyPlan(checkbox, 'medium', o as never).root).filter((n) => n === 'mark' || n === 'dash').join('+') || 'neither';
+    planPartNames(figmaAnatomyPlan(checkboxControl, 'medium', o as never).root).filter((n) => n === 'mark' || n === 'dash').join('+') || 'neither';
   ok(cbGlyphs({ selection: 'checked', state: 'rest' }) === 'mark',
-    `checkbox: at selection=checked the tree carries the MARK and not the dash (got '${cbGlyphs({ selection: 'checked', state: 'rest' })}')`);
+    `checkbox-control: at selection=checked the tree carries the MARK and not the dash (got '${cbGlyphs({ selection: 'checked', state: 'rest' })}')`);
   ok(cbGlyphs({ selection: 'indeterminate', state: 'rest' }) === 'dash',
-    `checkbox: at selection=indeterminate it carries the DASH and not the mark — the two gates are read independently, not as an if/else (got '${cbGlyphs({ selection: 'indeterminate', state: 'rest' })}')`);
+    `checkbox-control: at selection=indeterminate it carries the DASH and not the mark — the two gates are read independently, not as an if/else (got '${cbGlyphs({ selection: 'indeterminate', state: 'rest' })}')`);
   ok(cbGlyphs({ selection: 'unchecked', state: 'rest' }) === 'neither',
-    `checkbox: at selection=unchecked it carries NEITHER — the third value is the absence of both parts, which is why it is a coordinate rather than a glyph (got '${cbGlyphs({ selection: 'unchecked', state: 'rest' })}')`);
+    `checkbox-control: at selection=unchecked it carries NEITHER — the third value is the absence of both parts, which is why it is a coordinate rather than a glyph (got '${cbGlyphs({ selection: 'unchecked', state: 'rest' })}')`);
   ok(cbGlyphs({ state: 'rest' }) === 'neither',
-    `checkbox: with NO selection supplied it carries neither — an unsupplied axis reads as ABSENT, the same answer 'absolute' gives when 'state' is undefined, and the conservative one. Returning true here is the mutation every other gate passes (got '${cbGlyphs({ state: 'rest' })}')`);
+    `checkbox-control: with NO selection supplied it carries neither — an unsupplied axis reads as ABSENT, the same answer 'absolute' gives when 'state' is undefined, and the conservative one. Returning true here is the mutation every other gate passes (got '${cbGlyphs({ state: 'rest' })}')`);
   ok(cbGlyphs({}) === 'neither',
-    `checkbox: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
+    `checkbox-control: and with neither axis supplied — the structure-only plan a consumer asking "what parts does this def have" gets (got '${cbGlyphs({})}')`);
 
   // ---- the same three directions as a RULE over every gated part, because the block above is
   // ---- CHECKBOX-SHAPED and the second def to use the mechanism does not fit it (#910) -------------
@@ -13496,7 +13508,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // assignments and the census cannot see it either.
   const gatedDefs = componentDefs.filter((d) =>
     d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.presentWhen));
-  const GATED_EXPECTED = ['field-message', 'checkbox', 'radio'];
+  const GATED_EXPECTED = ['field-message', 'checkbox-control', 'radio'];
   ok(GATED_EXPECTED.every((n) => gatedDefs.some((d) => d.id === n)) && gatedDefs.length === GATED_EXPECTED.length,
     `#910 the presentWhen projection rule below covers exactly [${GATED_EXPECTED.join(', ')}] — a def gaining a variant-gated part must be represented here, and a def losing one is a stale claim (found: ${gatedDefs.map((d) => d.id).join(', ') || 'none'})`);
   for (const def of gatedDefs) {
@@ -14730,8 +14742,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     `#1009: a part declaring verticalAlign:'top' projects TOP — the per-part override reaches the plan (TOP ${sawTop}, CENTER ${sawCenter})`);
 
   // BOTH WRONG-DECLARATION DIRECTIONS. Figma throws on the write, so nothing but this refusal stands
-  // between the mistake and a failure in the live file.
-  ok(validateComponentDef(withPart('control', { verticalAlign: 'center' })).errors.some((e) => /verticalAlign/.test(e) && /kind 'box'/.test(e)),
+  // between the mistake and a failure in the live file. `controlBox` since #1226 step 2 (the old target
+  // `control` is a `nest` now) — still a non-text BOX, which is the kind the "kind 'box'" half checks.
+  ok(validateComponentDef(withPart('controlBox', { verticalAlign: 'center' })).errors.some((e) => /verticalAlign/.test(e) && /kind 'box'/.test(e)),
     '#1009: a NON-text part declaring verticalAlign is refused BY NAME — otherwise it validates clean, projects a write Figma rejects, and fails at paste time rather than in any gate');
   ok(validateComponentDef(withPart('label', { verticalAlign: 'middle' })).errors.some((e) => /verticalAlign/.test(e) && /middle/.test(e)),
     "#1009: and a fourth word is refused — Figma has three values, so 'middle' would be written and silently discarded");
@@ -14816,11 +14829,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   for (const def of selection) {
     const ps = def.anatomy!.parts;
     const rootRow = ps[def.anatomy!.root];
-    // The painted control — the box carrying the fill (checkbox/radio square-or-disc, switch track).
-    const ctrlName = Object.keys(ps).find((n) => ps[n].kind === 'box' && (ps[n].paintSlots ?? []).includes('fill'));
-    ok(!!ctrlName, `#1201 ${def.id}: has a painted control part (a box with a 'fill' paintSlot)`);
+    // The control-bearing part is one of two shapes now (#1226 step 2). radio/switch INLINE the painted
+    // box (a box carrying the 'fill' paintSlot — the square/disc or the track). checkbox DECOMPOSED it:
+    // the painted box moved to `checkbox-control` and the row holds a `kind: 'nest'` of it instead. The
+    // #1201 guarantee is the same for both — the control sits one level below the row, wrapped by the
+    // line-box box — so this arm accepts either and then checks the extra invariant the nest introduces.
+    const ctrlName = Object.keys(ps).find((n) =>
+      (ps[n].kind === 'box' && (ps[n].paintSlots ?? []).includes('fill'))
+      || (ps[n].kind === 'nest' && (ps[n].nests ?? '').endsWith('-control')));
+    ok(!!ctrlName, `#1201 ${def.id}: has a control part (an inline 'fill' box, or a nested '*-control' instance)`);
     ok(!(rootRow.children ?? []).includes(ctrlName!),
-      `#1201 ${def.id}: the painted control is NOT a direct child of the row — the row top-aligns and the control centres one level down (row children: [${(rootRow.children ?? []).join(', ')}])`);
+      `#1201 ${def.id}: the control is NOT a direct child of the row — the row top-aligns and the control centres one level down (row children: [${(rootRow.children ?? []).join(', ')}])`);
     // Its wrapper: the part whose children include the control, height bound to the line-box, centred.
     const boxName = Object.keys(ps).find((n) => (ps[n].children ?? []).includes(ctrlName!));
     const box = boxName ? ps[boxName] : undefined;
@@ -14828,6 +14847,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       `#1201 ${def.id}: the control sits in a line-box wrapper — height→'…control-box', cross-axis centred (got '${boxName}' height='${box?.height}' align='${box?.layout?.align}')`);
     ok(rootRow.layout?.align === 'start',
       `#1201 ${def.id}: and the row itself stays top-aligned (align='${rootRow.layout?.align}') — the centring lives in the box, never the row`);
+    // #1226 step 2 — THE NESTED CONTROL DOES NOT STRETCH TO THE LINE BOX. A nested instance in an
+    // auto-layout cell can be made to FILL the counter axis; the decided shape forbids it. The nest pins
+    // its OWN square (`size`→'…control' = `control.size.*.height`, 16/20/24 on nb), which is strictly
+    // SHORTER than the wrapper's '…control-box' line box (21/24/27) it centres within. Binding the line
+    // box on the nest instead — the one plausible mutation that would stretch the control — flips the
+    // second clause and fails THIS assertion by name; the nb token check below proves the two keys
+    // resolve to different heights, so `…control ≠ …control-box` is the whole of "does not stretch".
+    if (ps[ctrlName!].kind === 'nest') {
+      const sz = ps[ctrlName!].size ?? '';
+      ok(sz.includes('.control') && !sz.includes('control-box'),
+        `#1201 ${def.id}: the nested control pins its OWN square via 'size'→'…control' (the shorter control height), never the wrapper's '…control-box' line box — a nest bound to the line box would stretch the control to fill the taller cell instead of centring within it (got size='${sz}')`);
+    }
   }
   // MEASURED (nb): a line-box is strictly TALLER than the control at every rung, so "centre within" is a
   // real inset — the control tracks the first line instead of sitting at cap height. Reads the emitted
