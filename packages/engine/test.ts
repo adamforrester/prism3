@@ -8037,11 +8037,22 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // different vocabularies and the old key conflated them, which is why four of eight never painted.
   ok(([['error', 'danger'], ['warning', 'warning'], ['success', 'success']] as const).every(([tone, role]) => fieldMessage.tokens[`${tone}.label`] === `color.text.${role}` && fieldMessage.tokens[`${tone}.icon`] === `color.icon.${role}`), 'component: FieldMessage tones bind text.<role> + icon.<role> (icon + text, never colour-only)');
   ok(fieldMessage.states.length === 0 && JSON.stringify(fieldMessage.variants.tone) === JSON.stringify(['default', 'error', 'warning', 'success']), 'component: FieldMessage is presentational with a tone axis');
+  // #1242 — the text property is `Message`, not `children`. Checked BOTH as the declared prop and as the
+  // PROJECTED Figma property name (built from the set, compared against a hand-written literal), so the
+  // sweep off the React-ism is caught here by name on this def too — not only on Button (docs/34). The
+  // two are coupled by `figmaPropertyErrors`, so a rename that touched one and not the other would fail
+  // validation; these assert the landing name is the meaningful `Message`, not merely "not children".
+  ok(!!fieldMessage.props.find((p) => p.name === 'Message')?.required
+    && !fieldMessage.props.some((p) => p.name === 'children'),
+    'component: FieldMessage names its text prop `Message` (the meaningful designer-facing name), not the React-ism `children` (#1242)');
+  ok(planSetProperties(figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' }))
+    .some((p) => p.type === 'TEXT' && p.name === 'Message'),
+    'component: FieldMessage projects its TEXT property as `Message` (#1242) — mutating the def `texts` key back to `children` fails here by name');
   // #872: ink is TONE-QUALIFIED now (`{tone}.{slot}`, FieldMessage's shape one def over), so the bare
   // `label` key is gone. BOTH tones are pinned rather than just the default — `secondary` is the
   // de-emphasized label #872 called the sharpest of its three gaps, and a check reading only `primary`
   // would pass a def that shipped the axis with one working cell.
-  ok(!!fieldLabel.props.find((p) => p.name === 'children')?.required
+  ok(!!fieldLabel.props.find((p) => p.name === 'Label')?.required
     && fieldLabel.tokens['primary.label'] === 'color.text.primary'
     && fieldLabel.tokens['secondary.label'] === 'color.text.secondary'
     && fieldLabel.tokens['label'] === undefined,
@@ -9314,7 +9325,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // live API was measured to behave (#487 step 6). Four behaviors, each of which the payload has a
         // read-back for, and each of which a permissive stub would let pass silently:
         //  · non-VARIANT keys come back with a `#nodeId` SUFFIX; VARIANT keys do not
-        //  · a DUPLICATE name is accepted and RENAMED (`children` → `children2`), with no throw
+        //  · a DUPLICATE name is accepted and RENAMED (`Label` → `Label2`), with no throw
         //  · an `INSTANCE_SWAP` default must be a node id — `''` / a key / null are refused
         //  · `componentPropertyReferences` naming an unknown property THROWS
         combineAsVariants: (members: Record<string, unknown>[]) => {
@@ -10041,9 +10052,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // def declares `swaps` for BOTH visuals, and this grid is uniformly `leading=true, trailing=false`,
       // so a def-driven list would declare a `trailingVisual` property no node in the set references.
       // Figma accepts that, shows it in the panel, and it does nothing when a designer changes it.
-      ok(JSON.stringify(names) === JSON.stringify(['children', 'leadingVisual']),
+      ok(JSON.stringify(names) === JSON.stringify(['Label', 'leadingVisual']),
         `set properties: derived from the nodes BUILT, so an unbuilt slot declares nothing — got [${names.join(', ')}], and trailingVisual is correctly absent from a leading-only grid`);
-      ok(props.some((p) => p.type === 'TEXT' && p.name === 'children' && p.default === 'Button'),
+      // The TEXT property is named `Label`, not `children` (#1242): the panel name a designer reads is
+      // the def's prop name, and `children` was a React-ism. Compared against a hand-written literal, so
+      // mutating the def's `texts` key back to `children` fails HERE by name (docs/34).
+      ok(props.some((p) => p.type === 'TEXT' && p.name === 'Label' && p.default === 'Button'),
         'set properties: the TEXT placeholder comes from the def (`Button`), not the payload — the def is the layer a second brand overrides');
       ok(props.some((p) => p.type === 'INSTANCE_SWAP' && p.name === 'leadingVisual' && p.swapTarget === 'FPO-default-icon'),
         'set properties: the swap carries the target NAME — Figma demands a node id, which only the live file can supply');
@@ -10060,7 +10074,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(boolProps.some((p) => p.type === 'BOOLEAN' && p.name === 'fullWidth' && p.default === true),
         'set properties: a declared BOOLEAN projects, defaulting to `true` because the node EXISTS in the plan — an absent optional part builds no node and so declares nothing');
       // And a contradiction is refused rather than resolved by iteration order.
-      const otherCopy: ComponentDef = { ...button, figmaProperties: { ...button.figmaProperties!, texts: { children: { part: 'label', default: 'Other' } } } };
+      const otherCopy: ComponentDef = { ...button, figmaProperties: { ...button.figmaProperties!, texts: { Label: { part: 'label', default: 'Other' } } } };
       let contradiction = '';
       try { planSetProperties([grid[0], figmaAnatomyPlan(otherCopy, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })]); }
       catch (e) { contradiction = (e as Error).message; }
@@ -10086,7 +10100,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(setRun.misses.length === 0, `set properties: the set payload runs CLEAN end to end${setRun.misses.length ? ` — ${JSON.stringify(setRun.misses)}` : ''}`);
       // Sorted, because the order `componentPropertyDefinitions` returns is Figma's to choose and
       // asserting it would gate a promise the API does not make.
-      ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+      ok(JSON.stringify([...(setRun.properties ?? [])].sort()) === JSON.stringify(['Label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
         `set properties: the set comes back carrying both properties — got ${JSON.stringify(setRun.properties)}`);
       // 21 members × 2 refs, asserted as SPREAD and not just volume. `refs` alone is a push-count, so a
       // loop that wired member 0 twenty-one times would satisfy `refs === 42` with twenty members left
@@ -10288,7 +10302,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       };
       const boolRun = await runPayload(planSetToPluginJs(boolGrid), boolOpts);
       ok(boolRun.misses.length === 0, `set properties: a set carrying a BOOLEAN runs CLEAN end to end${boolRun.misses.length ? ` — ${JSON.stringify(boolRun.misses)}` : ''}`);
-      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'fullWidth:BOOLEAN', 'leadingVisual:INSTANCE_SWAP']),
+      ok(JSON.stringify([...(boolRun.properties ?? [])].sort()) === JSON.stringify(['Label:TEXT', 'fullWidth:BOOLEAN', 'leadingVisual:INSTANCE_SWAP']),
         `set properties: the BOOLEAN comes back alongside the other two — got ${JSON.stringify(boolRun.properties)}`);
       // SPREAD, for the same reason as the 21-member assertion: a `visible` reference does not propagate
       // to siblings any more than `characters` does, so a set wired once shows the toggle working on
@@ -10314,7 +10328,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // triages it looking for a second one.
         ok(!r.misses.some((m) => /ORPHAN/.test(m)),
           `set properties: a refused property is reported ONCE — it is never declared, so it cannot also be an orphan (${JSON.stringify(r.misses)})`);
-        ok((r.properties ?? []).includes('children:TEXT') && !(r.properties ?? []).some((p) => p.startsWith('fullWidth')),
+        ok((r.properties ?? []).includes('Label:TEXT') && !(r.properties ?? []).some((p) => p.startsWith('fullWidth')),
           `set properties: the refused property is ABSENT and the others survive — got ${JSON.stringify(r.properties)}`);
       })();
       // ---- CHUNKED pasting: one set across N `figma_execute` calls ------------------------------
@@ -10392,7 +10406,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // both why they are declared last and why declaring them early would be undetectable offline.
         ok(runs.slice(0, -1).every((r) => (r.properties ?? []).length === 0),
           `chunked: no chunk but the last declares a property — combineAsVariants rewrites ids, so an early declaration holds ids the combine has invalidated (${JSON.stringify(runs.map((r) => r.properties?.length))})`);
-        ok(JSON.stringify([...(runs[runs.length - 1].properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+        ok(JSON.stringify([...(runs[runs.length - 1].properties ?? [])].sort()) === JSON.stringify(['Label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
           `chunked: the finished set carries both properties — got ${JSON.stringify(runs[runs.length - 1].properties)}`);
         ok(runs[runs.length - 1].wiredMembers === 36 && runs[runs.length - 1].refs === 72,
           `chunked: every one of the 36 members is wired, not just the last chunk's slice — ${runs[runs.length - 1].wiredMembers} members across ${runs[runs.length - 1].refs} writes`);
@@ -10415,14 +10429,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // AND SO IS RE-PASTING THE *LAST* CHUNK, which is a second, sharper hazard the member skip does
         // nothing about. Measured live on the 12-variant set: `addComponentProperty` with a name the set
         // already carries does NOT throw — Figma silently creates a SECOND property (`leadingVisual2`,
-        // `children2`) and returns an id whose own name does not even match the key it made
+        // `Label2`) and returns an id whose own name does not even match the key it made
         // (`leadingVisual#113:102` for the key `leadingVisual2#113:102`). So a designer who re-runs the
         // final step would double every property and wire the refs to the copies, orphaning the originals,
         // and every read-back in the payload would still report a clean paste. Hence declaration skips by
         // name too, reusing the existing id — which is the id the refs want anyway.
         const replayLast = await runPayload(chunks[chunks.length - 1].js, { ...bigOpts, page });
-        ok(JSON.stringify([...(replayLast.properties ?? [])].sort()) === JSON.stringify(['children:TEXT', 'leadingVisual:INSTANCE_SWAP']),
-          `chunked: re-pasting the LAST chunk leaves exactly two properties — not four, and none named 'children2' (${JSON.stringify(replayLast.properties)})`);
+        ok(JSON.stringify([...(replayLast.properties ?? [])].sort()) === JSON.stringify(['Label:TEXT', 'leadingVisual:INSTANCE_SWAP']),
+          `chunked: re-pasting the LAST chunk leaves exactly two properties — not four, and none named 'Label2' (${JSON.stringify(replayLast.properties)})`);
         ok(!replayLast.misses.some((m) => /ORPHAN/.test(m)) && replayLast.wiredMembers === 36,
           `chunked: and the refs still point at the original properties — no orphans, ${replayLast.wiredMembers} members wired${replayLast.misses.some((m) => /ORPHAN/.test(m)) ? ` — got ${JSON.stringify(replayLast.misses.filter((m) => /ORPHAN/.test(m)).slice(0, 3))}` : ''}`);
         // The MUTATION, and it needs the replay for the same reason the duplicate-name one did: on a first
@@ -11777,35 +11791,35 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     }
     brokeFp('a state axis named like a variant axis fails', /collides with a variants axis/, { stateAxis: { name: 'size', values: button.states } });
     brokeFp('an INSTANCE_SWAP pointed at a text node fails', /is kind 'text', expected 'slot'/, { swaps: { leadingVisual: 'label' } });
-    brokeFp('a TEXT property pointed at a slot fails', /is kind 'slot', expected 'text'/, { texts: { children: { part: 'leadingVisual', default: 'Button' } } });
-    brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { children: { part: 'ghost', default: 'Button' } } });
+    brokeFp('a TEXT property pointed at a slot fails', /is kind 'slot', expected 'text'/, { texts: { Label: { part: 'leadingVisual', default: 'Button' } } });
+    brokeFp('a property pointed at a part that does not exist fails', /does not exist in anatomy.parts/, { texts: { Label: { part: 'ghost', default: 'Button' } } });
     brokeFp('a property keyed on an undeclared prop fails', /is not a declared prop/, { texts: { notAProp: { part: 'label', default: 'Button' } } });
     brokeFp('a BOOLEAN toggling a REQUIRED part fails', /anatomy must allow the part to be absent/, { booleans: { fullWidth: 'label' } });
-    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { children: { part: 'label', default: 'Button' } }, booleans: { fullWidth: 'label' } });
+    brokeFp('two property kinds on one node fails', /carries at most one property kind/, { texts: { Label: { part: 'label', default: 'Button' } }, booleans: { fullWidth: 'label' } });
     // The PLACEHOLDER is required to say something. Figma accepts `''` and #510's set is what that
     // produces: 21 variants, every binding resolved, nothing readable in any of them.
-    brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { children: { part: 'label', default: '' } } });
-    brokeFp('a whitespace-only default fails too — a space is not copy', /no placeholder/, { texts: { children: { part: 'label', default: '  ' } } });
+    brokeFp('a TEXT property with an empty default fails', /no placeholder/, { texts: { Label: { part: 'label', default: '' } } });
+    brokeFp('a whitespace-only default fails too — a space is not copy', /no placeholder/, { texts: { Label: { part: 'label', default: '  ' } } });
     // #1018 — a per-member text default (`byVariant`) must key on a projected axis and a value that axis
     // has, or it never resolves at any member and silently falls back to `default` (the set-wide wrong-copy
     // defect one level out). Button projects `appearance` (`['filled','outline','text']`); `tone` is not an
     // axis it has.
     brokeFp('a byVariant keyed on a non-projected axis fails', /is not a projected variant axis/,
-      { texts: { children: { part: 'label', default: 'Button', byVariant: { tone: { error: 'x' } } } } });
+      { texts: { Label: { part: 'label', default: 'Button', byVariant: { tone: { error: 'x' } } } } });
     brokeFp('a byVariant naming a value the axis does not have fails', /the 'appearance' axis does not have/,
-      { texts: { children: { part: 'label', default: 'Button', byVariant: { appearance: { nope: 'x' } } } } });
+      { texts: { Label: { part: 'label', default: 'Button', byVariant: { appearance: { nope: 'x' } } } } });
     brokeFp('an empty byVariant string fails like an empty default', /per-member placeholder is unreadable/,
-      { texts: { children: { part: 'label', default: 'Button', byVariant: { appearance: { filled: '' } } } } });
+      { texts: { Label: { part: 'label', default: 'Button', byVariant: { appearance: { filled: '' } } } } });
     // AND THE POSITIVE — a byVariant on a real axis/value adds no error, so the checks above fail the bad
     // shape rather than the field itself.
-    ok(figmaPropertyErrors(withFp({ texts: { children: { part: 'label', default: 'Button', byVariant: { appearance: { filled: 'Filled' } } } } })).length === 0,
+    ok(figmaPropertyErrors(withFp({ texts: { Label: { part: 'label', default: 'Button', byVariant: { appearance: { filled: 'Filled' } } } } })).length === 0,
       '#1018 a byVariant keyed on a real axis and value validates clean');
     // A ZERO-WIDTH space passed this check until #513's review probed it: `.trim()` handles the space
     // family including U+00A0, but `'\u200B'.trim()` is truthy. It advances the caret by nothing, which
     // is the exact condition the field exists to catch. Written as an escape because the literal
     // character is invisible here too — a reader could not tell this case from the empty-string one.
     brokeFp('a zero-width space fails — the test is whether the label RENDERS, not whether the string is non-empty',
-      /no placeholder/, { texts: { children: { part: 'label', default: '\u200B' } } });
+      /no placeholder/, { texts: { Label: { part: 'label', default: '\u200B' } } });
     ok(figmaPropertyErrors({ ...button, anatomy: undefined }).some((x) => /requires `anatomy`/.test(x)),
       'figmaProperties gate: a projection without anatomy fails (its maps target anatomy parts)');
   }
