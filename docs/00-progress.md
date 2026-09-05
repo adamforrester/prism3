@@ -2353,6 +2353,88 @@ new `border-width.default` alias would be CONTRACT 9.3.0 → 9.4.0 (MINOR, addit
 0.36.0; RE-VALUING the existing rungs leaves the contract untouched but makes a rung named `hairline`
 resolve to 2px, which is the #708 name-lies-about-value class.
 
+## (2026-09-02) — the two desk-QA colour fixes are gated, and the gate says out loud what it cannot see (#1234)
+
+**STATUS: shipped.** `packages/engine/test.ts` only — five assertions beside the veil block. Gates stay
+at **52** (assertions inside an existing gate, so no new step and none of the five authored lists move).
+**No version bump**, derived: `lint-emission-version` reports *artifacts changed vs base: 0*.
+
+── WHY A GATE AT ALL ─────────────────────────────────────────────────────────────────────────────
+
+#1208 (uniform neutral inverse fill) and #576's engine half (a neutral border follows its own text ink)
+both landed in #1231 as **desk-QA fixes closed without a check**. Nothing stopped a `modes.ts` edit
+putting the family tint or the grey special-case back — the same silence that let the originals ship.
+
+── WHAT IS ASSERTED, AND WHY IT IS NOT A RECOMPUTATION ───────────────────────────────────────────
+
+Both arms compare **siblings or roles** in the emitted artifact. Re-deriving `neutralStepR(50|850)` here
+would put the answer and the check under one function (`docs/34` shape 2) and the gate would then agree
+with any edit to it. What is asserted instead is a RELATION the derivation must preserve:
+
+- **Arm A** — `inverse.interactive.{primary,neutral,destructive}.fill.rest` are ONE value, **and** that
+  value is on the NEUTRAL ramp. Two halves, and measurement shows neither implies the other.
+- **Arm B** — `interactive.neutral.border.rest == interactive.neutral.text.rest`, on the page ground and
+  on the inverse band.
+
+Read from `out/*.tokens.json`, which carries each leaf's base value **plus every mode inline** under
+`$extensions.prism3.modes` — so one walk covers base / dark / hc-light / hc-dark per brand rather than
+opening four overlay files. 16 fill triples and 32 border/text pairs across the four brands.
+
+Two floors, because both arms are statements about sets and pass vacuously over an empty one: every
+brand tree must **contribute to both arms** (represented, not counted), and a role present for some
+families and not others is a **defect rather than a skip** — a family dropping out of the uniform set is
+#1208 arriving by omission instead of by tint.
+
+── WHERE THE COVERAGE STOPS, STATED IN THE GATE ──────────────────────────────────────────────────
+
+`docs/34` **shape 17**: the three fills descend from ONE producer, so an ancestor move carries all three
+in lockstep and the equality survives. The reviewer's own reproduction on #1234 is exactly that —
+`fillRest → neutralStepR(500)`, a uniform move to a mid neutral. **It still passes, and that is
+measured rather than assumed** (M3 below). Catching it needs a value oracle nothing here has, and
+inventing one from the derivation would be the shape these arms exist to avoid. The limit is written
+into the block's header so the arms do not read as reach.
+
+**A second limit, found on the rebase and measured rather than left open.** #898 landed while this was in
+flight and lets a brand put its inverse BAND on a brand or custom palette; no corpus brand does, so these
+arms have never swept one (`docs/34` shape 15). Checked by hand: `inverseBase: { palette: 'red', step:
+800 }` on the nb fixture leaves the fill UNIFORM and on `neutral.050` — unchanged — so the fill
+derivation is band-independent and both arms hold under the new lever. Recorded in the gate's header
+with the instruction to re-measure if that stops being true, since it is a fact about `modes.ts` that
+these arms would not notice.
+
+── MUTATIONS ─────────────────────────────────────────────────────────────────────────────────────
+
+Committed before the battery; `regen` inside the loop, because the arms read committed artifacts and a
+mutation that never reaches them is not a passing gate (#986).
+
+| mutation | regen | which of my arms fired | other failures |
+|---|---|---|---|
+| one family → a different NEUTRAL rung | 0 | **UNIFORMITY only** | 0 |
+| all three → the action palette (still uniform) | 1* | **PROVENANCE only** | 20 |
+| one family → the action palette | 1* | UNIFORMITY + PROVENANCE | 19 |
+| grey special-case back on the neutral border | 0 | **BORDER only** | 0 |
+| uniform move to a mid neutral (the stated limit) | 0 | **none** | 0 |
+
+\* a family-tinted inverse fill genuinely breaks the contrast contracts, so `regen` exits non-zero after
+writing far enough for the arms to read it. Those two runs are noisy by nature; the clean single-arm
+isolations are rows 1 and 4, which fire alone with `regen` green.
+
+**Row 2 is the one that matters.** Tinting ALL THREE families uniformly leaves uniformity intact and
+fails provenance alone — which is the empirical proof that the two halves of arm A are independent, and
+that uniformity by itself would accept three families agreeing on a tint. Without that row the second
+half would be a plausible-sounding clause nobody had shown was load-bearing.
+
+── THREE FAILED MUTATIONS BEFORE THE BATTERY WORKED, ALL MINE ────────────────────────────────────
+
+Worth recording because each looked like a passing gate. The first attempt used `r2p[name](100)` —
+`r2p` is `theme.roleToPalette`, a map of role → palette NAME, so it is not callable. The second used
+`ramps.get(r2p.primary)`, which is `undefined`: the keys are roles (`brand`, `action`, `danger`), not
+the family names in the emitted paths, so the primary family's palette is `r2p.action`. The third passed
+`neutralStepR(500)` as `iBorder`'s second argument, which takes a per-state `Record<string, Cand>`, not
+one candidate. **Every one of those printed `regen exit=1` and `0 arms fired`** — indistinguishable at a
+glance from a gate that does not work, and the reason the battery script asserts the regen exit code
+beside the arm count rather than reporting the arms alone.
+
 ## (2026-09-02) — the inverse/dark-band surface may be a BRAND or custom palette, not neutral-only (#898)
 
 **STATUS: shipped.** Engine + studio. A brand's dark hero band can now be brand navy / a deep accent, not
