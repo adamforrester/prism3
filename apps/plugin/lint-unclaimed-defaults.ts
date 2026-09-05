@@ -314,10 +314,15 @@ const VISUALLY_SIGNIFICANT: readonly Row[] = [
   { prop: 'bottomLeftRadius', types: BOXES, deflt: '0 on a frame · 5 on a set from combineAsVariants', seen: 'a rounded corner nobody authored', claimedBy: ['bottomLeftRadius', 'cornerRadius'] },
   { prop: 'bottomRightRadius', types: BOXES, deflt: '0 on a frame · 5 on a set from combineAsVariants', seen: 'a rounded corner nobody authored', claimedBy: ['bottomRightRadius', 'cornerRadius'] },
   { prop: 'clipsContent', types: BOXES, deflt: 'true', seen: 'children cropped at the frame edge', claimedBy: ['clipsContent'] },
-  { prop: 'strokesIncludedInLayout', types: BOXES, deflt: 'false', seen: 'whether a border pushes the auto-layout box outwards', claimedBy: ['strokesIncludedInLayout'] },
 
   // AutoLayoutMixin, parent side. Figma documents these as applicable only on an auto-layout frame, so
   // with no `layoutMode` there is no gap and no padding to see.
+  // `strokesIncludedInLayout` belongs in THIS arm, not with the corners above: Figma allows it only on
+  // an auto-layout frame and THROWS on a `layoutMode: NONE` one, so the executor now claims it only
+  // under `layoutMode` (both executors do). Without the arm this row would demand the claim on a
+  // non-auto-layout box too — the standalone focus ring, an absolute stroked frame — where the executor
+  // correctly makes no such write, and the gate would trip on the fix (#1266).
+  { prop: 'strokesIncludedInLayout', types: BOXES, deflt: 'false', seen: 'whether a border pushes the auto-layout box outwards', claimedBy: ['strokesIncludedInLayout'], arm: 'autolayout' },
   { prop: 'itemSpacing', types: BOXES, deflt: '0', seen: 'the gap between auto-layout children', claimedBy: ['itemSpacing'], arm: 'autolayout' },
   { prop: 'paddingLeft', types: BOXES, deflt: '0', seen: 'inner padding', claimedBy: ['paddingLeft'], arm: 'autolayout' },
   { prop: 'paddingRight', types: BOXES, deflt: '0', seen: 'inner padding', claimedBy: ['paddingRight'], arm: 'autolayout' },

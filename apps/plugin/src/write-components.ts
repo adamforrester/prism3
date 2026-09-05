@@ -690,7 +690,6 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const)
       if (!(corner in bound)) set(corner as keyof CompNode, 0);
     set('clipsContent', false);
-    set('strokesIncludedInLayout', false);
     // PARENT-SIDE auto-layout properties, and these DO need the applicability test: Figma documents them
     // as "applicable only on auto-layout frames". Gated on the plan's `layoutMode` rather than a live
     // read for the reason in the header — and when there is no auto-layout there is no gap and no
@@ -699,6 +698,12 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
       if (!('itemSpacing' in bound)) set('itemSpacing', 0);
       for (const pad of ['paddingLeft', 'paddingRight', 'paddingTop', 'paddingBottom'] as const)
         if (!(pad in bound)) set(pad as keyof CompNode, 0);
+      // `strokesIncludedInLayout` belongs HERE, not above it: Figma allows it only on an auto-layout frame
+      // and THROWS on a `layoutMode: NONE` one. Outside the gate the `set` swallowed that throw into a
+      // "#865 UNCLAIMED" miss on every non-auto-layout frame — 40 of them per icon run — and on the real
+      // host the sibling site at the paint branch (uncaught) parked the standalone focus ring. It is a
+      // border-only default anyway: with no auto-layout there is no footprint for the stroke to grow.
+      set('strokesIncludedInLayout', false);
       // The alignment and sizing four are written unconditionally by the `layoutMode` branch above, so
       // they are claimed whenever they apply and there is nothing to neutralize.
     }
@@ -1226,7 +1231,16 @@ const writeComponentSet = async (
         // BORDER-BOX, and Figma defaults the other way: left alone, the stroke is ADDED to the
         // auto-layout size, so an outline button measured 62 where its filled sibling measured 60 —
         // swapping `appearance` moved the footprint, the one thing a variant axis must not do.
-        if ('strokesIncludedInLayout' in node) node.strokesIncludedInLayout = false;
+        //
+        // GATED ON AUTO-LAYOUT: Figma only ALLOWS this property on an auto-layout frame and THROWS on a
+        // `layoutMode: NONE` one — and this branch runs on any STROKED node, which since PR-B includes the
+        // standalone focus ring: a stroked (#1266), absolute, layoutMode-NONE root frame. Unguarded the
+        // throw was UNCAUGHT here (unlike `claimDefaults`' `set`), so it propagated to the top-level catch
+        // and PARKED the ring at 100×100 — fatal, and cascading to every def that nests it. The border-box
+        // motive is moot on an absolute node anyway: with no auto-layout there is no footprint for the
+        // stroke to grow. `&& node.layoutMode` so an undefined layoutMode (a non-auto-layout frame) is
+        // skipped, not compared true against `'NONE'`.
+        if ('strokesIncludedInLayout' in node && node.layoutMode && node.layoutMode !== 'NONE') node.strokesIncludedInLayout = false;
       }
     }
     if (n.descendantFills) {

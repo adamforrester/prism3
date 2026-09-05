@@ -8939,8 +8939,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // — the exact #503 defect, and the only realistic way this set drifts. A stub with a constant
           // width lets `footprint` be deleted with a green suite, since every member measures the same
           // no matter what the payload does. `strokeWeight` starts at 0 so the payload's
-          // `if(!node.strokeWeight)` default fires, as it does live.
-          ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+          // `if(!node.strokeWeight)` default fires, as it does live. `strokesIncludedInLayout` is a BACKING
+          // FIELD here, not the property itself — it is installed as a throwing accessor after this literal
+          // (see the block before `return node`), mirroring the plugin shim so the two offline models stay
+          // in lockstep: Figma allows the property only on an auto-layout frame and THROWS otherwise, and a
+          // stub that let it be set on a `layoutMode: NONE` frame would let the paste executor's guard be
+          // ungated with the suite still green — the exact half-fix the ring's real-host crash was.
+          ...(type === 'FRAME' ? { strokeWeight: 0, _strokesInLayout: true } : {}),
           // #1009: a `TextNode` property. Mirrors the plugin shim exactly, which is the whole point of the
           // parity gate — TEXT starts at Figma's default `'TOP'`, and every other type THROWS on the write
           // as Figma does. A stub that accepted it on a frame would let the two executors diverge on the
@@ -9101,6 +9106,27 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           },
           findOne(pred: (n: unknown) => boolean) { return (node.findAll as (p?: unknown) => unknown[])(pred)[0] ?? null; },
         };
+        // `strokesIncludedInLayout` is AUTO-LAYOUT-ONLY, and the real host THROWS on a `layoutMode: NONE`
+        // (or unset) frame — the constraint the ring's paste crash fell through. Installed with
+        // `defineProperty` so the setter survives (an accessor in the spread literal above would be
+        // flattened to a plain value — the reason the `textAlignVertical` accessor there never actually
+        // throws), and auto-layout-POSITIVE so an unset `layoutMode` (a plain absolute frame like the ring)
+        // is refused too, mirroring the payload guard's `&&node.layoutMode`. Mirrors the plugin shim: a
+        // model that cannot refuse cannot witness a refusal, and the parity gate drives both executors
+        // against these two stubs.
+        if (type === 'FRAME') {
+          Object.defineProperty(node, 'strokesIncludedInLayout', {
+            configurable: true,
+            enumerable: true,
+            get() { return node._strokesInLayout as boolean; },
+            set(v: boolean) {
+              const lm = node.layoutMode;
+              if (lm !== 'HORIZONTAL' && lm !== 'VERTICAL')
+                throw new Error('in set_strokesIncludedInLayout: The strokesIncludedInLayout property is only available on auto-layout frames');
+              node._strokesInLayout = v;
+            },
+          });
+        }
         return node;
       };
       const figmaStub = {
@@ -9974,7 +10000,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // next size-token change while the claim it stands for — the stroke adds exactly 2px to the hug
       // axis — is unchanged. Backreference, so it is still the SAME group being compared.
       const drift = await mutate('FOOTPRINT drift is reported — an outlined member outgrows its group when the stroke joins the layout',
-        "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
+        "if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;", '',
         /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       const deltas = drift.map((m) => {
         const [, w1, h1, w2, h2] = /measures (\d+)x(\d+) but .* measures (\d+)x(\d+)/.exec(m)!;
@@ -10324,7 +10350,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         // What this one adds is the SPLIT: `state` and `appearance` are exactly the siblings a chunk
         // boundary separates, so the report has to come from comparing the whole set.
         await mutateChunks('footprint drift is caught even when the cohort is split across chunks',
-          "if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;", '',
+          "if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;", '',
           /footprint -> .*appearance=outline.* measures \d+x\d+ but .*appearance=filled.* measures \d+x\d+/);
       }
 

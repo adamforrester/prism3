@@ -22,7 +22,9 @@
  *     `INSTANCE_SWAP` default; `componentPropertyDefinitions` THROWS on duplicate member names while
  *     `addComponentProperty` keeps succeeding.
  *   · `componentPropertyReferences` naming an unknown property throws.
- *   · `strokesIncludedInLayout` starts TRUE (Figma's default), so border-box has something to prove.
+ *   · `strokesIncludedInLayout` starts TRUE (Figma's default), so border-box has something to prove,
+ *     and is AUTO-LAYOUT-ONLY — its setter THROWS on a `layoutMode: NONE` frame as the host does, which
+ *     is what makes the standalone focus ring's crash (a stroked, absolute root frame) catchable here.
  *
  * Asserts: the 21-variant button grid assembles into one set with the right axes, grid and box; every
  * binding, paint, text style and swap lands; the focus ring is absolute and 2px larger on every side;
@@ -1646,6 +1648,34 @@ ok(byId('feild-label') === undefined,
 const offerable = componentDefs.filter((d) => { try { figmaAnatomySet(d, { swapTarget: SWAP }); return true; } catch { return false; } });
 ok(offerable.length >= 4 && offerable.some((d) => d.id === 'field-label') && offerable.some((d) => d.id === 'button'),
   `#804 every def the UI can offer projects here too (${offerable.map((d) => d.id).join(', ')})`);
+
+// ---- #1266 the STANDALONE focus ring builds without throwing ----------------------------------
+// PR-B made the focus ring standalone-buildable and #1266 gave it its own stroke, and the two
+// together made its ROOT a stroked, absolute, `layoutMode: NONE` frame. `strokesIncludedInLayout` is
+// AUTO-LAYOUT-ONLY and the real host THROWS on a non-auto-layout frame, so the executor's border-box
+// write reached it unguarded, threw, and — unlike `claimDefaults`' try/caught `set` — propagated to
+// `applyComponentPlan`'s top-level catch, which re-throws: the ring parked at 100×100 and every def
+// that nests it cascaded. The write is now gated on auto-layout in BOTH executors, and the shim
+// models the host constraint (see `component-shim.ts`), so this run is the offline witness: remove
+// the guard and the shim's setter throws, `run` rejects, and the first assertion below goes red.
+const standaloneRingPlans = figmaAnatomySet(byId('focus-ring')!, { swapTarget: SWAP });
+// PIN THE SHAPE that makes the write reachable: the ring's ROOT must be stroked (so the paint branch
+// runs) AND carry no auto-layout (so the write it makes is the throwing one). Without this the test
+// could pass vacuously on a ring that lost its stroke or gained a layoutMode, with the guard never
+// exercised — exactly the DRY-with-the-subject trap docs/34 warns about, one indirection out.
+ok(standaloneRingPlans.length > 0 && standaloneRingPlans.every((p) => {
+    const root = p.root as { paints?: { strokes?: unknown }; layoutMode?: string };
+    return !!root.paints?.strokes && !root.layoutMode;
+  }),
+  `#1266 reachable: every standalone focus-ring plan root is stroked and carries no auto-layout, so the border-box write is the auto-layout-only one that throws (${standaloneRingPlans.length} plans)`);
+let ringBuildErr: string | null = null;
+let ringMisses: string[] = ['never ran'];
+try { ringMisses = (await run(standaloneRingPlans, fullFor(standaloneRingPlans))).misses; }
+catch (e) { ringBuildErr = (e as Error).message; }
+ok(ringBuildErr === null,
+  `#1266 the standalone focus ring builds without throwing — a stroked, absolute, layoutMode-NONE root frame no longer trips the auto-layout-only \`strokesIncludedInLayout\` write (${ringBuildErr ?? 'clean'})`);
+ok(ringBuildErr === null && ringMisses.length === 0,
+  `#1266 ...and it builds with no misses — the border-box default is skipped where it does not apply rather than swallowed into a #865 report (${ringBuildErr ? 'threw' : JSON.stringify(ringMisses)})`);
 
 const labelPlans = figmaAnatomySet(fieldLabel, { swapTarget: SWAP });
 // SWAP TARGET PASSED AND INERT, which is what lets the main thread pass it unconditionally rather than
