@@ -204,6 +204,24 @@ const makeButton = (id: string, name: string, description: string, family: Inten
   tokens: {
     // base (variant-independent)
     'radius': 'radius.md',
+    // THE OUTLINE BORDER'S THICKNESS (#1278). The WIDTH does not move — Prism 2 draws its outline
+    // buttons at 1px and that is owner-confirmed — so this binds the token that already resolves to 1
+    // rather than choosing a new figure. What moves is PROVENANCE: the 1 was the executors' literal
+    // (`if (!node.strokeWeight) … = 1`), the right number with nothing behind it, and a brand re-runging
+    // its border floor changed every other bordered part while the button stayed at Figma's fallback.
+    //
+    // `border-width.hairline` is 1px in all four corpus brands, aliased to `<root>.core.dimension.1`,
+    // and its own `$description` calls it the *default border floor* — which is what a button's edge is.
+    // No token is added, so `CONTRACT_VERSION` does not move; #1228 bound the three selection controls to
+    // `border-width.thick` by the identical mechanism, and the two figures staying DIFFERENT is the point
+    // rather than an inconsistency: 2px is a control weight, 1px is a button's, and both defs now agree
+    // with the reference through a token instead of one through a token and one through a fallback.
+    //
+    // BOUND ON THE SHARED CONTAINER, so it is carried at `filled` and `text` too, where no border paints.
+    // That is #1228's own shape one def along — checkbox at `checked` and switch at `on` bind a thickness
+    // and paint nothing — and it is precisely the coordinate `claimDefaults`' gate exists for: the literal
+    // would otherwise run AFTER the bind loop and UNBIND what Figma just accepted, reporting no miss.
+    'border-width': 'border-width.hairline',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
@@ -309,6 +327,10 @@ const makeButton = (id: string, name: string, description: string, family: Inten
         gap: 'size.{size}.gap',
         height: 'size.{size}.height',
         radius: 'radius',
+        // The EDGE's thickness (#1278) — see `border-width` in `tokens` for the figure and why it is
+        // 1 and not 2. Names the def's own key rather than the token, exactly as `radius` above and as
+        // checkbox/radio/switch do.
+        strokeWidth: 'border-width',
       },
       // `nesting: swap` on all three swap-materialized parts (#681). A slot's target is nominated per
       // FILE by the caller and its content is the designer's to change, so there is no variant for the

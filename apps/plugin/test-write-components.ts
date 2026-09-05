@@ -2374,29 +2374,79 @@ ok(noWeight.length === swPlansNoWeight.length,
   `#1228 reachable: the binding-stripped switch built a track on every member (${noWeight.length}/${swPlansNoWeight.length})`);
 ok(noWeight.every((n) => !((n.boundVariables as Record<string, unknown>) ?? {}).strokeWeight && n.strokeWeight === 1),
   `#1228 ...and with nothing bound the 1px fallback STILL fires on both the stroked and unstroked coordinates, so the gate gates the default rather than removing it (${[...new Set(noWeight.map((n) => String(n.strokeWeight)))].join(', ')})`);
-// AND THE SCOPE, asserted on the OTHER side rather than left to the comment above. `button`'s container
-// carries a `border` slot exactly as these three do, so "every bordered part gets 2px" is both the likely
-// next edit and the one this issue deliberately did NOT make: Prism 2 draws its outline buttons at 1px
-// (owner-confirmed — no button spec is checked in, unlike the three control specs the 2px cites), so 2px
-// is a CONTROL weight and sweeping it across the family would break the reference on four defs to match
-// it on three. Read off the built container, so a sweep fails here by name instead of shipping.
+// AND THE SCOPE, asserted on the OTHER side rather than left to the comment above — TWO TOKENS, NOT ONE
+// TOKEN AND ONE FALLBACK (#1278). `button`'s container carries a `border` slot exactly as these three do,
+// and Prism 2 draws its outline buttons at 1px against the 2px it draws these three at (the button figure
+// is owner-confirmed; no button spec is checked in, unlike the three control specs the 2px cites). So the
+// two weights are a deliberate contrast — 2px is a CONTROL weight, 1px is a button's — and "every bordered
+// part gets 2px" is both the likely next edit and the one that must fail here rather than ship.
 //
-// WHAT THIS ARM DOES NOT SAY is that 1 is bound. It is the executor's literal, which happens to equal the
-// figure Prism 2 measures — the right value with no token provenance, one rung short of what #1266 and
-// this issue have been closing. That is a separate change with a separate decision behind it, so this arm
-// asserts only that nothing swept a weight onto the buttons.
+// WHAT CHANGED IN #1278 is the provenance of the 1, and it is what makes this arm stronger than the one it
+// replaces. Until now the buttons bound NOTHING and this arm asserted exactly that: the 1px came from the
+// executors' `if (!node.strokeWeight) … = 1`, the right number with no token behind it, and the arm could
+// only catch a sweep to 2 — a sweep to a DIFFERENT 1px source, or a brand re-runging its border floor while
+// the button stayed on Figma's fallback, were both invisible. Now the button binds `border-width.hairline`
+// and the three controls bind `border-width.thick`, so BOTH directions of the sweep fail by name.
+//
+// THE NAME, NOT THE NUMBER, for #1266's reason: the shim gives every variable a synthetic value, so a
+// numeric check would pass on a 1 that came from an executor literal. That the token RESOLVES to 1px in
+// every corpus brand — which is the "no visual change" half of #1278 — is asserted in `test.ts`, against
+// the emitted trees, where the real figures are.
+//
 // Read off the MEMBER, not through `readBoxes`: `container` IS button's anatomy root, so it arrives as
 // the member frame under its coordinate name and a search for a part called `container` finds nothing —
 // the ring block's trap, and the reachability pin below is what said so rather than 0 rows passing.
-const btnPlans = figmaAnatomySet(byId('button')!, { swapTarget: SWAP });
-const btnPage: Page = { children: [] };
-await run(btnPlans, { ...fullFor(btnPlans), page: btnPage });
-const btnMembers = ((btnPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
-ok(btnMembers.length === btnPlans.length,
-  `#1228 reachable: every button member built, so the scope claim below is made over real containers (${btnMembers.length}/${btnPlans.length})`);
-const swept = btnMembers.filter((n) => weightOf(n) !== null);
-ok(swept.length === 0,
-  `#1228 ...and the outline BUTTONS bind no weight, so they keep the 1px Prism 2 draws them at — 2px is a CONTROL figure, not a house border weight (${swept.length ? swept.slice(0, 3).map((n) => `${n.name} -> ${weightOf(n)}`).join('; ') : `no member of ${btnMembers.length} binds a stroke weight`})`);
+//
+// BOTH BUTTON DEFS, and that plural is the scope gap #1278's first cut left open. `icon-button` is a
+// SEPARATE def with its own 162-member set: `inherits: 'button'` is PROSE — nothing in the projector
+// resolves through it, as that file's own `paintKeys` note says — so binding the `makeButton` factory
+// covered three intents and reached `icon-button` not at all. An arm that inspected only `button`'s
+// members would have reported a clean scope over a def still on the executor's literal, and
+// `lint-unclaimed-defaults` cannot see the difference either: a literal `strokeWeight = 1` is a
+// CLAIMED default there, which is the whole point of that gate and the exact reason it is not this one.
+const buildSet = async (id: string): Promise<Node[]> => {
+  const plans = figmaAnatomySet(byId(id)!, { swapTarget: SWAP });
+  const page: Page = { children: [] };
+  await run(plans, { ...fullFor(plans), page });
+  const members = ((page.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
+  ok(members.length === plans.length,
+    `#1228 reachable: every \`${id}\` member built, so the scope claim below is made over real containers (${members.length}/${plans.length})`);
+  return members;
+};
+const btnMembers = await buildSet('button');
+const iconBtnMembers = await buildSet('icon-button');
+// ONE POOL, BOTH DEFS. Kept as a single list rather than two parallel arms so a def joining the family
+// cannot be added to the build above and left out of the claim — which is the shape of the miss this
+// paragraph exists to record.
+const edgeMembers = [...btnMembers, ...iconBtnMembers];
+const btnWeights = edgeMembers.map((n) => weightOf(n));
+const btnMisbound = edgeMembers.filter((n) => weightOf(n) !== 'border-width/hairline');
+ok(btnMisbound.length === 0,
+  `#1278 every member of BOTH button defs binds \`border-width.hairline\` as its stroke weight — the 1px is the TOKEN's now, not the executor fallback's (${btnMisbound.length ? btnMisbound.slice(0, 3).map((n) => `${n.name} -> ${weightOf(n) ?? 'UNBOUND (the 1px executor fallback)'}`).join('; ') : `all ${btnMembers.length} button + ${iconBtnMembers.length} icon-button members at ${[...new Set(btnWeights)].join(', ')}`})`);
+// …AND BOTH DEFS ARE REPRESENTED, which a length check over one pooled list cannot say. A build that
+// returned zero icon-button members would leave the arm above true of button alone — `docs/34` shape 9,
+// the arm passing over a set that quietly lost half its subject.
+ok(btnMembers.length > 0 && iconBtnMembers.length > 0,
+  `#1278 reachable: the claim above spans BOTH button defs — ${btnMembers.length} button members and ${iconBtnMembers.length} icon-button members, which is the scope the issue names (3 intents + IconButton.container)`);
+// THE TWO WEIGHTS ARE DIFFERENT, stated as its own arm rather than left implicit in the two above. Either
+// sweep — controls down to the button's rung, or buttons up to the controls' — makes this set size 1.
+const familyWeights = new Set([...btnWeights, ...borderRows.map((r) => r.weight)]);
+ok(familyWeights.size === 2 && familyWeights.has('border-width/hairline') && familyWeights.has('border-width/thick'),
+  `#1278 the corpus binds exactly TWO border weights and the button is not on the control's one — a sweep in either direction collapses this to one (${[...familyWeights].join(', ')})`);
+// AND NOTHING WROTE A LITERAL OVER THE BINDING, the same second fact the three controls' block asserts and
+// for the same reason: `claimDefaults` runs after the bind loop, so its `strokeWeight = 1` would UNBIND
+// what Figma just accepted and report no miss. The shim starts a FRAME at 0, so "no literal" reads as 0 —
+// and note the trap this arm is immune to only by accident of that: the literal it would write is ALSO 1,
+// so a clobber here changes no pixel and could never be found by looking at the picture.
+const btnClobbered = edgeMembers.filter((n) => n.strokeWeight !== 0);
+ok(btnClobbered.length === 0,
+  `#1278 ...and nothing wrote a literal weight over it, which live would unbind — invisible here, because the literal and the token are the SAME 1px (${btnClobbered.length ? btnClobbered.slice(0, 4).map((n) => `${n.name} -> ${String(n.strokeWeight)}`).join('; ') : `every member of ${edgeMembers.length} at 0`})`);
+// REACHABILITY, the half the three-control block needed too: `filled` and `text` paint no border at all,
+// so most of these members bind a thickness with nothing to draw — which is exactly the coordinate that
+// enters `claimDefaults`' unstroked branch and the only path into the gate the arm above depends on.
+const btnUnstroked = edgeMembers.filter((n) => ((n.strokes as unknown[]) ?? []).length === 0);
+ok(btnUnstroked.length > 0 && btnUnstroked.length < btnMembers.length,
+  `#1278 reachable: the button sets span BOTH kinds of coordinate — ${btnUnstroked.length} of ${edgeMembers.length} members paint no border (filled/text) and the rest do (outline), so the arm above covers the unstroked path into the executor default as well as the stroked one`);
 
 // ── #1012: SEPARATE SLASH-GROUPED COMPONENTS, NOT A SET ─────────────────────────────────────────
 // `icon` materializes with `emitAsComponents`, so its projection must NOT combine into a COMPONENT_SET:

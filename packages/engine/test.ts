@@ -8903,7 +8903,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // leaves every node measuring 0 and the ring's `parent + 2 × inset` arithmetic unfalsifiable (see
       // the `width` note). The particular numbers are arbitrary; that they DIFFER between names is not,
       // since equal values would let a payload bind the wrong variable and still measure right.
-      const varValue = (name: string) => 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
+      // BORDER WIDTHS ARE PINNED TO THEIR REAL PIXELS (#1278); everything else stays synthetic.
+      // A bound `strokeWeight` now reads back through this table (see the width/height getters), so a
+      // name-derived number would make the footprint arm's hand-written `2` unfalsifiable — the drift
+      // would be `2 x whatever the stub invented` and the expected side would have to be computed from
+      // the same value it is checking. These four are the one group where a real figure is available and
+      // brand-INVARIANT: `border-width.{none,hairline,thick,heavy}` resolve to 0/1/2/4 in all four corpus
+      // brands, aliased to `<root>.core.dimension.{0,1,2,4}`. Authored here from the emitted tokens, not
+      // read off the def under test, so the expected drift stays independent of what `button.ts` binds.
+      const BORDER_PX: Record<string, number> = { none: 0, hairline: 1, thick: 2, heavy: 4 };
+      const varValue = (name: string): number => {
+        const rung = /^border-width\/(.+)$/.exec(name)?.[1];
+        if (rung !== undefined && rung in BORDER_PX) return BORDER_PX[rung];
+        return 8 + ([...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 7) * 4;
+      };
       // PER NAME, not one value for every variable (#801). The ring's coordinate is now the sum of TWO
       // resolved variables — the offset and the ring's own stroke width — and a resolver that answered the
       // same number regardless of name would make `gap + strokeWidth` indistinguishable from `2 × gap`,
@@ -8990,13 +9003,20 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           get width() {
             const bv = node.boundVariables as Record<string, { value?: number }>;
             const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
+            // THE WEIGHT MAY BE BOUND (#1278). Live, `setBoundVariable('strokeWeight', v)` makes the
+            // property read back as the variable's resolved value; the stub kept measuring the LITERAL,
+            // so the moment `button`'s container bound its 1px the border-box term went to `2 x 0` and
+            // the footprint drift below vanished — the arm reporting `[]`, which reads as "no drift" and
+            // is really "cannot see the stroke". Bound-or-literal is what Figma does and what the padding
+            // and size terms beside this already do.
+            const weight = (bv.strokeWeight?.value ?? (node.strokeWeight as number)) || 0;
             if (bv.width) return bv.width.value ?? 0;
             if (node.type === 'TEXT') return ((node.characters as string) || '').length * 6;
             const pad = (bv.paddingLeft?.value ?? 0) + (bv.paddingRight?.value ?? 0);
             const hug = ((node.children as Record<string, unknown>[]) ?? [])
               .filter((c) => c.layoutPositioning !== 'ABSOLUTE')
               .reduce((a, c) => a + ((c.width as number) || 0), 0);
-            return pad + hug + (stroked ? 2 * (node.strokeWeight as number) : 0);
+            return pad + hug + (stroked ? 2 * weight : 0);
           },
           // BOTH AXES, for one reason: a claim about only one of them is half-unfalsifiable. `height` was
           // a plain `0` field, so `kid.resize(node.width+off*2, off*2)` — the ring's height ignoring its
@@ -9007,11 +9027,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           get height() {
             const bv = node.boundVariables as Record<string, { value?: number }>;
             const stroked = (node.strokes as unknown[]).length > 0 && node.strokesIncludedInLayout !== false;
+            const weight = (bv.strokeWeight?.value ?? (node.strokeWeight as number)) || 0;   // bound-or-literal, #1278 — see the width getter
             if (bv.height) return bv.height.value ?? 0;
             const pad = (bv.paddingTop?.value ?? 0) + (bv.paddingBottom?.value ?? 0);
             const flow = ((node.children as Record<string, unknown>[]) ?? []).filter((c) => c.layoutPositioning !== 'ABSOLUTE');
             // Max, not sum: the row is HORIZONTAL, so the cross axis hugs the tallest child.
-            return pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * (node.strokeWeight as number) : 0);
+            return pad + flow.reduce((a, c) => Math.max(a, (c.height as number) || 0), 0) + (stroked ? 2 * weight : 0);
           },
           // Modeled as a plain settable field, so a payload that never writes it leaves `''` — which is
           // the empty-label set #510 shipped, and the state the read-back has to be able to report.
@@ -9720,14 +9741,34 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         }
         return undefined;
       };
-      for (const { def, part } of [{ def: checkbox, part: 'control' }, { def: radio, part: 'control' }, { def: switchDef, part: 'track' }]) {
+      // BUTTON JOINS THIS LOOP AT #1278, and `atRoot` is why it could not before: `container` IS button's
+      // anatomy root, so it arrives as the member frame itself and `deepFind(page, 'container')` returns
+      // nothing — the plugin suite's own trap, recorded there. The entry carries the token it expects
+      // rather than the loop assuming one: the whole content of #1278's scope claim is that these two
+      // rungs are DIFFERENT (`hairline` for a button's edge, `thick` for a selection control's), so a loop
+      // with one expected name baked in would have to be widened by whoever swept them together.
+      for (const { def, part, want, atRoot, opts } of [
+        { def: checkbox, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        { def: radio, part: 'control', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        { def: switchDef, part: 'track', want: 'V:border-width/thick', atRoot: false, opts: {} },
+        // …with the swap target NOMINATED, which the three controls need no equivalent of: button is
+        // the only def here with `swap` slots, and an un-nominated one pastes as a placeholder and reports
+        // four misses — real, correct, and nothing to do with the stroke this block is about.
+        { def: button, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' } },
+        // …and `icon-button`, which is a SEPARATE def with its own 162-member set. `inherits: 'button'`
+        // is prose — nothing in the projector resolves through it — so the factory binding reaches it
+        // not at all, and an arm covering only `button` would have reported a clean scope over a def
+        // still on the executors' literal. Same rung, same reason: Prism 2 draws both at 1px.
+        { def: iconButton, part: 'container', want: 'V:border-width/hairline', atRoot: true, opts: { swapTarget: 'FPO-default-icon' } },
+      ] as { def: ComponentDef; part: string; want: string; atRoot: boolean; opts: Record<string, unknown> }[]) {
         // ONE COORDINATE PER DEF, not the whole set: the payload is executed here, and 54 + 36 + 24 pastes
         // would pay a lot of run time for the same two facts. The coordinate is chosen to be the UNSTROKED
         // one where the def has it — `checked` / `on` — because that is the path through the executor the
         // new gate sits on, and the arm below would otherwise pass on the already-gated stroked path.
-        const set = figmaAnatomySet(def);
+        const set = figmaAnatomySet(def, opts);
+        const partOf = (n: Record<string, unknown>): Record<string, unknown> | undefined => (atRoot ? n : deepFind(n, part));
         const unstroked = set.filter((p) => {
-          const box = (p.root as unknown as Record<string, unknown>) && deepFind(p.root as unknown as Record<string, unknown>, part);
+          const box = (p.root as unknown as Record<string, unknown>) && partOf(p.root as unknown as Record<string, unknown>);
           return box && !((box.paints as { strokes?: string } | undefined)?.strokes);
         });
         ok(unstroked.length > 0,
@@ -9736,18 +9777,55 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const at = planComponentName(p);
         const page: StubPage = { children: [] };
         const r = await runPayload(planToPluginJs(p), { vars: [...planBoundVars(p.root), ...planPaintVars(p.root)], styles: planTextStyles(p.root), comps: ['FPO-default-icon'], page });
-        const box = page.children[0] && deepFind(page.children[0], part);
+        const box = page.children[0] && partOf(page.children[0]);
         ok(r.misses.length === 0 && !!box,
           `anatomy/${def.id} #1228 reachable: the payload pastes clean at ${at} and its \`${part}\` was found (${JSON.stringify(r.misses)})`);
         // The NAME, not the number — a `=== 2` would pass on the executor's own literal, since the literal
         // this replaces was 1 and the token is 2 only because Prism 2 measured 2.
         const weight = ((box?.boundVariables as Record<string, { id?: string }> | undefined) ?? {}).strokeWeight?.id;
-        ok(weight === 'V:border-width/thick',
-          `anatomy/${def.id} #1228: the pasted \`${part}\` binds \`border-width.thick\` as its stroke weight at ${at} (${weight ?? "UNBOUND — the payload's 1px fallback, which is what shipped"})`);
+        ok(weight === want,
+          `anatomy/${def.id} #1228/#1278: the pasted \`${part}\` binds \`${want.replace('V:', '').replace(/\//g, '.')}\` as its stroke weight at ${at} (${weight ?? "UNBOUND — the payload's 1px fallback, which is what shipped"})`);
         // And no literal was written over it. The stub starts a FRAME at 0, so a fallback that ran is
         // observable as a non-zero weight; live the same write would UNBIND the variable and report nothing.
         ok(box?.strokeWeight === 0,
           `anatomy/${def.id} #1228: ...and no literal weight was written over that binding at ${at}, which live would unbind it (${String(box?.strokeWeight)})`);
+      }
+
+      // ---- #1278: THE WIDTH DID NOT MOVE, AND THAT IS THE HALF THE NAME CHECKS CANNOT SAY --------
+      //
+      // Every arm above asserts the NAME a stroke binds, deliberately — a number would pass on an
+      // executor literal (#1266's reason). So nothing above can tell a button that still draws at 1px
+      // from one that quietly became 2, which is precisely the claim #1278 makes: the border becomes
+      // token-DRIVEN and stays the same pixel. Two independently-sourced halves, joined here:
+      //
+      //   · the DEF names a rung — read out of `button.tokens`, which is what the projector resolves;
+      //   · the RUNG measures 1px — read out of every brand's committed `out/figma/**` emission, which
+      //     is written by the emitters and knows nothing about any def.
+      //
+      // Neither side can move the other. A sweep that repointed the button at `border-width.thick` fails
+      // the first arm by name; a brand or genome change that re-runged `hairline` off 1px fails the second
+      // across the corpus, which is the case that used to be invisible because the button was on Figma's
+      // fallback rather than on a token at all.
+      {
+        const rung = button.tokens['border-width'];
+        ok(rung === 'border-width.hairline',
+          `#1278 button's container binds a border-width RUNG by name, and it is the 1px one (got '${rung ?? 'NOTHING — still on the executor fallback'}')`);
+        // ALL FOUR NAMED PARTS, which is the scope #1278 names and the scope its first cut missed. The
+        // three intents come off ONE factory, so they cannot disagree; `icon-button` is a separate def
+        // whose `inherits: 'button'` is prose, so it can and did. Listed by def rather than counted, so
+        // a fifth bordered button-family def is a decision here rather than a silent extra loop pass.
+        const edgeDefs = { button, buttonDestructive, buttonNeutral, iconButton };
+        const rungs = Object.entries(edgeDefs).map(([k, d]) => [k, d.tokens['border-width']] as const);
+        ok(rungs.every(([, r]) => r === rung),
+          `#1278 ...and all FOUR parts the issue names bind that same rung — 3 intents off one factory plus IconButton.container, which inherits nothing that resolves (${rungs.map(([k, r]) => `${k}@${r ?? 'NOTHING — still on the executor fallback'}`).join(' · ')})`);
+        const px = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
+          const f = resolve(HERE, `./out/figma/${brand}/border-width.json`);
+          const vars = (JSON.parse(readFileSync(f, 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
+          const hit = vars.find((v) => v.name.endsWith(`/${rung.replace('.', '/')}`));
+          return [brand, hit?.value] as const;
+        });
+        ok(px.length >= 3 && px.every(([, v]) => v === 1),
+          `#1278 ...and that rung measures 1px in every brand the corpus emits, so the border is token-driven and UNCHANGED — the whole of this issue (${px.map(([b, v]) => `${b}@${String(v)}`).join(' · ')})`);
       }
 
       // The offset is not a constant in the payload. Re-run with a different brand value and the geometry
@@ -10913,8 +10991,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // per feature, and the check below — every chunk under budget — is the one that stays true by
       // construction while this one drifts. Re-pin it when a payload change moves it; do not delete it,
       // because the count is what makes shell growth visible at all.
+      //
+      // WAS 6, AND MOVED TO 7 IN #1278 — the same shape as #681's 5→6 above, and re-pinned on the same
+      // instruction rather than worked around. The cause is a PER-MEMBER growth this time rather than a
+      // shell growth: `container` gained a bound `strokeWeight`, so every one of the 162 members carries
+      // one more binding. Measured across the change: 27/28/27/28/27/25 members per chunk became
+      // 26/26/26/26/26/26/6, i.e. ~1–2 fewer members fit per chunk and the remainder needs a seventh.
+      // No chunk breached the budget at any point (peak 41,987 → 41,861 against 42,000) — the packer
+      // absorbed it exactly as designed, which is again the argument for a byte budget over a variant
+      // count. The seventh chunk is 24,601 bytes, i.e. a half-empty tail rather than a packing failure.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 6, `anatomy/icon-button: the set packs into 6 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 7, `anatomy/icon-button: the set packs into 7 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a

@@ -7,6 +7,89 @@
 
 ---
 
+## (2026-09-05) — the outline button's border stops being a literal and starts being a token (#1278)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.53.0 → 0.54.0; `CONTRACT_VERSION` stands at 9.4.0.** Rebased onto
+`8264872` — the nest cluster (#1203, #1266, #1298, #1299) plus #1283 all landed under this branch, taking
+0.51.0 through 0.53.0 with it. #1271's forward-only gate requires strictly GREATER rather than merely
+different, so each re-stamp is mandatory rather than cosmetic; 0.54.0 is the first free integer. `npm run verify` **55/55**. Both button defs' containers bind `strokeWidth: 'border-width'` →
+`border-width.hairline` — the three intents off one factory, and `icon-button` explicitly — and **the
+width does not move**:
+the token resolves to 1px in every brand the corpus emits, which is what the QA finding asked for and what
+the owner confirmed against Prism 2.
+
+**The finding was "1px but not bound to any variable", and that is exactly what it was.** The 1 came from
+`if (!node.strokeWeight) … = 1` in both executors — the right number with nothing behind it. The cost is
+not visible today and would not be visible on the day it bit: a brand re-runging its border floor moves
+every other bordered part in the system while the button sits on Figma's fallback, and no gate anywhere
+could have said so, because a fallback is not a binding that can drift.
+
+**`CONTRACT_VERSION` HOLDS, and `ENGINE` bumps for a reason `lint-emission-version` structurally cannot
+see.** No token is added — `border-width.hairline` already exists in all four corpus brands, aliased to
+`<root>.core.dimension.1` — so `token-contract --check` reports the guaranteed surface unchanged and the
+baseline moves by exactly one line, the engine stamp. **This release's `out/` diff is otherwise EMPTY.**
+What moves is the projected component surface: all three intents keep their 432 members and every one now
+carries a bound `strokeWeight`, which a designer sees in Figma. `lint-component-surface` reported the three
+DRIFTED rows and demanded the bump — #1252's decision working exactly as specified, on the first change
+since it landed where the emission genuinely does not move.
+
+**Worth reading the `token-contract --check` output carefully before believing it.** With the version
+bumped it printed **36 `CONDITIONAL` migration rows**, which reads as a large contract change and is
+nothing of the sort: those rows are pre-existing and unchanged, and `report()` dumps everything it knows
+whenever *any* baseline field mismatches — here the informational `engineVersion`. Confirmed by reverting
+the bump alone (clean at 0.50.0, 36 rows at 0.51.0) and by diffing the accepted baseline: **one line**.
+
+**The scope claim became two tokens where it had been one token and one fallback, and that is a real gain
+rather than tidiness.** #1228 bound the three measured selection controls to `border-width.thick` and left
+an arm asserting the buttons bound **nothing** — which could only ever catch a sweep in ONE direction. A
+change putting every border on 1px would have moved the controls alone and read as correct at every gate.
+Both directions fail by name now, and the two rungs staying different (2px is a control figure, 1px is a
+button's — both agreeing with Prism 2) is asserted rather than assumed.
+
+**ONE FIXTURE HAD TO STOP MEASURING A LITERAL, and it failed in the direction that looks like success.**
+`test.ts`'s stub derived a node's border-box footprint from `node.strokeWeight`. The moment the weight
+became BOUND, that term went to `2 × 0` and #503's footprint-drift arm reported `[]` — **"no drift", which
+is really "cannot see the stroke"**. The mutation it guards (deleting `strokesIncludedInLayout=false`)
+still produced the defect; the detector had simply gone blind, and a blind detector reports the same empty
+list a fixed system does. The stub now reads bound-or-literal, as Figma does live, and the four
+`border-width` rungs are pinned to their real pixels (0/1/2/4, brand-invariant across the corpus) so the
+arm's hand-written `2` stays falsifiable instead of becoming `2 × whatever the stub invented`.
+
+**Mutation battery — five, committed before each, restored after each:**
+
+| # | mutation | what failed, by name |
+|---|---|---|
+| 1 | **the issue's own regression** — delete the part binding, back to the literal | plugin: *"#1278 every button member binds `border-width.hairline` … (UNBOUND (the 1px executor fallback))"*; engine paste path: same by name; `lint-component-surface` red |
+| 2 | sweep the button up to `border-width.thick` | five arms: the rung-by-name arm, the resolves-to-1px arm (*aurora@2 · nb@2 · wendys@2*), both plugin arms, and the footprint drift (now 4px, which is the stub genuinely reading the bound value) |
+| 3 | **the previously-invisible sweep** — controls down to `hairline` | #1228's own arm *and* the new two-weights arm; before this change nothing caught this direction |
+| 4 | stub reads the literal again | the footprint arm reports `[]` — the blindness above, reproduced deliberately |
+| 5 | drop the `BORDER_PX` pin | *"the drift is exactly 2px on the HUGGING axis"* — so the pin is load-bearing and the `2` is not tautological |
+
+**THE SCOPE WAS FOUR PARTS AND THE FIRST CUT BOUND THREE, which is worth recording because the missing
+one is the one `inherits` made invisible.** `icon-button` carries the same `border` slot on its own
+`container` and is a **separate def** with a 162-member set; `inherits: 'button'` records the API delta and
+nothing in the projector resolves through it — that file's own `paintKeys` note says exactly this, one
+field along. So binding the `makeButton` factory covered three intents and reached `icon-button` not at
+all. **No gate could have caught it**, and the reason is the interesting part: `lint-unclaimed-defaults`
+reads the executors' literal `strokeWeight = 1` as a **claimed** default, which is correct and is the whole
+point of that gate — a property with a decision behind it, even Figma's own, is claimed. "Claimed" and
+"bound to a token" are different questions, and only the second one is #1278's.
+
+The arms now span **594 members across both sets** (432 + 162) as one pool rather than two parallel checks,
+so a def added to the build cannot be left out of the claim, and a separate arm asserts both defs are
+**represented** rather than the pool merely being non-empty (`docs/34` shape 9).
+
+**`icon-button`'s chunk pin moved 6 → 7, and it is re-pinned rather than worked around** — that pin's own
+comment instructs exactly this, because the count is what makes payload growth visible. #681's 5 → 6 was
+SHELL growth; this is per-MEMBER growth, one extra binding on each of 162 members: 27/28/27/28/27/25 per
+chunk became 26 × 6 + 6. No chunk breached the budget at any point (peak 41,987 → 41,861 against 42,000),
+which is the byte budget doing the job a variant count could not, and the seventh chunk is a half-empty
+tail (24,601 bytes) rather than a packing failure.
+
+**Deliberately not changed:** the width. This is a provenance change and the pixel is identical, which is
+why the "no visual change" half is asserted from the **emitted trees** (the rung measures 1px per brand)
+rather than from the def that names it — the def naming a rung and the rung measuring 1px are two
+independently-sourced halves, and neither can move the other.
 ## (2026-09-05) — a nest's `height` was ACCEPTED and dropped; the third posture on a non-box part (#1299, #1226 PR-B)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.52.0 → 0.53.0; `CONTRACT_VERSION` stands at 9.4.0.** Second of the two

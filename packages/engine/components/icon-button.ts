@@ -63,6 +63,22 @@ export const iconButton: ComponentDef = {
 
   tokens: {
     'radius': 'radius.md',
+    // THE OUTLINE BORDER'S THICKNESS (#1278) — 1px, and it does not move; only its PROVENANCE does.
+    // The number used to be the executors' `if (!node.strokeWeight) … = 1` fallback, the right figure
+    // with nothing behind it, so a brand re-runging its border floor moved every other bordered part in
+    // the system while this def stayed on Figma's default.
+    //
+    // STATED HERE RATHER THAN INHERITED, on this file's own standing rule: `inherits: 'button'` records
+    // the API delta and nothing resolves through it — `paintKeys` above carries the same note for the
+    // same reason. The 162-member set's border weight must not depend on a file this one does not name.
+    // Repeating the pair is the cheaper error. It is also why #1278 had to name this def separately at
+    // all: binding the button FACTORY covers three intents and reaches nothing here.
+    //
+    // The rung is the same one `button` binds and deliberately NOT the one the selection controls bind:
+    // Prism 2 draws its outline buttons at 1px and its checkbox/radio/switch at 2px, so `hairline` here
+    // is this def agreeing with the reference rather than with its neighbors. See `checkbox.ts`'s
+    // `border-width` note for the argument, and the #1278 arms for both directions of the sweep.
+    'border-width': 'border-width.hairline',
     'focus-ring': 'color.border.focus',
     'ring-width': 'focus.ring.width',
     'ring-offset': 'focus.ring.offset',
@@ -176,6 +192,9 @@ export const iconButton: ComponentDef = {
         // nobody checks. See `PartDef.size`.
         size: 'size.{size}.side',
         radius: 'radius',
+        // The EDGE's thickness (#1278) — names this def's own key, like `radius` and `size` above. See
+        // `border-width` in `tokens` for the figure and why it is stated here rather than inherited.
+        strokeWidth: 'border-width',
       },
       // REQUIRED, and this is the load-bearing difference from Button's two optional visuals. The whole
       // reason IconButton is a separate component is that its content and its accessible name cannot
