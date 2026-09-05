@@ -97,16 +97,28 @@
         "sha256": "2994122cc2c2f9db043ec15ad75a9dd74cf58b5b49148dfa49cddee77aa1f592"
       }
     },
+    "checkbox-control": {
+      "set": {
+        "members": 54,
+        "assignments": 96,
+        "sha256": "b58df5f3df1f92602febd7fdf76e67ca247cc60dc39bceea40001a874ec006e1"
+      },
+      "grid": {
+        "members": 54,
+        "assignments": 96,
+        "sha256": "1868ee1efce8d7ac78a0862d5dfd75dce76b6f36acc9dc0d578a341c0e7bb0db"
+      }
+    },
     "checkbox": {
       "set": {
         "members": 54,
-        "assignments": 150,
-        "sha256": "0cdadefb1525758a6d48d1bff248e15e38f568826bba12a8186477c0b644d9d1"
+        "assignments": 54,
+        "sha256": "49030fce402e5e7e4ba2eb847d8f8aa9fceb38c5694fbc013c4a69adaee9df06"
       },
       "grid": {
         "members": 63,
-        "assignments": 174,
-        "sha256": "f201c5e7d973182920f3f3204a7f142a22b226b91882d4dbf548e57a532eb8d8"
+        "assignments": 63,
+        "sha256": "9d626f0b45d46e3ab838274179f2b716fd754381d7f54a46deb06357232c5d60"
       }
     },
     "radio": {

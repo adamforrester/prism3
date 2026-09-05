@@ -112,7 +112,7 @@ import type { ComponentDef } from './component-schema';
  * covered — including by being deleted — this file fails rather than reporting clean over a smaller
  * set. A count would read that as a pass.
  */
-const MUST_COVER = ['icon.glyph', 'checkbox.mark', 'checkbox.dash'];
+const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.dash'];
 
 /**
  * VECTOR PARTS THAT DRAW ONE FIXED GLYPH, keyed `<def>.<part>` → the name they draw and why.
@@ -150,12 +150,12 @@ const MUST_COVER = ['icon.glyph', 'checkbox.mark', 'checkbox.dash'];
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
-  'checkbox.mark': {
+  'checkbox-control.mark': {
     glyph: 'check',
     at: { selection: ['checked'] },
-    why: "the checked mark. `glyph: '{selection}'` cannot express this set — the vocabulary holds no `unchecked` glyph, because an empty box draws nothing — so the two drawn values are two parts gated by `presentWhen` and the third is the absence of both",
+    why: "the checked mark, now on the atomic control (#1226 step 2 — the glyphs moved off the Row into `checkbox-control`). `glyph: '{selection}'` cannot express this set — the vocabulary holds no `unchecked` glyph, because an empty box draws nothing — so the two drawn values are two parts gated by `presentWhen` and the third is the absence of both",
   },
-  'checkbox.dash': {
+  'checkbox-control.dash': {
     glyph: 'minus',
     at: { selection: ['indeterminate'] },
     why: 'the indeterminate dash, the other half of the same split. Deliberately `minus` and not `minus-filled`: the two draw ONE rectangle from a different start vertex (see `DUPLICATE_SHAPES`; this reason said "differ only in the winding" until #917 measured it and found a rotation, not a reversal) and the line form is the one the rest of the corpus draws',

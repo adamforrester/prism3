@@ -138,6 +138,38 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.55.0: the CHECKBOX COMPOSES — `checkbox-control` is a new atomic def and `checkbox` becomes the
+ * labelled Row that NESTS it in flow (#1226 step 2, #901). The first real consumer of `kind: 'nest'`,
+ * ever: PR-A shipped the mechanism with zero consumers and #1298/#1299 (0.52.0/0.53.0) made its `follow`
+ * axes and its own height reach the node, so this is the shape those three PRs were built for.
+ *
+ * WHAT MOVED, AND THE SHAPE THE OWNER DECIDED. The painted box, its two glyphs and its focus ring — the
+ * whole of `control` and below — extract VERBATIM into `checkbox-control` (54 members, `selection × size
+ * × state`, nesting `focus-ring` unchanged). `checkbox` keeps its `id` and its 54-member Row set; where
+ * it inlined the box it now holds a `nest` of the atom. The `controlBox` line-box wrapper (#1201) and the
+ * top-aligned row STAY on the Row: the owner decided the wrapper remains a real `box` (carrying the
+ * line-box height and the centring) and only its CHILD becomes the nest — so the small control is centred
+ * within the taller line box and does NOT stretch to fill it. That is why #1299 was not the direct
+ * dependency the plan first assumed: the centring box handles alignment, and the nest carries the inner
+ * control's own square (`size`→`control.size.*.height`), shorter than the line box it sits in.
+ *
+ * THE NEST FOLLOWS ALL THREE AXES the atom carries — `selection`, `size`, `state` — resolved from
+ * `paintCoord` (#1298), so a checked/large/hover Row nests the checked/large/hover Control member. The
+ * no-stretch pin is asserted BY NAME in `test.ts` #1201: a nest bound to the line box instead of the
+ * control square fails that assertion, and the nb token check proves the two keys resolve to different
+ * heights. The Row sheds its `{selection}`-led paint keys (its remaining paint is the label ink), so
+ * `lint-paint`'s `selection` exemption is now exercised by `checkbox-control` with `radio`/`switch`.
+ *
+ * NEW SETS ARE NOT COMMITTED UNDER `out/`, so `regen --check` moves only this file's generator stamp —
+ * the token trees are untouched (the new def binds existing tokens; no token name, `$type` or value
+ * moves). The bump is demanded from the projected-surface side (#1252's case): `lint-component-surface`
+ * gains `checkbox-control`'s 54 members and re-lays `checkbox`'s (its `control` part is now a
+ * `NESTED_INSTANCE`), so `--accept` restamps the baseline, and `paint-census` gains the new def's grid.
+ * `lint-nesting` edges go 7 → 8: `checkbox`'s direct `focus-ring` edge moves onto `checkbox-control`,
+ * and `checkbox` → `checkbox-control` is the new one (net +1). `CONTRACT_VERSION`
+ * stands at 9.4.0, and `token-contract.ts --check` confirms it rather than this comment asserting it: a
+ * component binding is a REFERENCE to a token name, never a token name, so no guaranteed path moves.
+ *
  * 0.54.0: BOTH button defs' borders are BOUND to `border-width.hairline` (#1278). The width does not
  * move — Prism 2 draws its outline buttons at 1px and that is owner-confirmed — so this binds the token
  * that already resolves to 1 rather than choosing a figure. What moves is PROVENANCE. The 1 was the two
@@ -1381,7 +1413,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.54.0';
+export const ENGINE_VERSION = '0.55.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

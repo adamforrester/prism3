@@ -11,15 +11,16 @@
  *
  * ── WHAT THIS DEF IS, AND THE TWO SURFACES IT IS NOT ────────────────────────────────────────────
  *
- * **This def is the labelled ROW only** — the ~90% case. `CheckboxGroup` and `Checkbox.Control` are
- * separate components and are not authored here, which is worth stating rather than leaving to be
- * inferred from an absence: a reader who assumes the group is folded in will look for `orientation`
+ * **This def is the labelled ROW only** — the ~90% case. `Checkbox.Control` is now its OWN def
+ * (`checkbox-control`, #1226 step 2), which this Row NESTS in flow rather than inlining; `CheckboxGroup`
+ * is still separate and unbuilt (`#901`). That the group is not folded in is worth stating rather than
+ * leaving to be inferred from an absence: a reader who assumes it is here will look for `orientation`
  * and `value: string[]` in `props` and conclude they were forgotten. They are in `composition` and in
- * `notes.unverified`, and both are filed as #901 rather than deferred in prose.
+ * `notes.unverified`, filed as #901 rather than deferred in prose.
  *
  * So this is the first def where a brief's decomposition does NOT map one-to-one onto engine defs, and
  * that is the calibration: the brief decides a component's public surface, and a `ComponentDef`
- * describes exactly one component of it.
+ * describes exactly one component of it — here the labelled Row, nesting the atom, filing the group.
  *
  * ── `inherits`, WHICH IS PROSE (the rule `textarea` established, #863) ──────────────────────────
  *
@@ -50,31 +51,18 @@
  *     emphatic about the second half (§4: *"a third visual state, not a third value"*). Both are true
  *     and they are about different tiers: the DATA is still a boolean, which is why `indeterminate` is
  *     its own boolean prop set through the DOM property; the PAINT has three coordinates, because the
- *     dash box is a real thing that has to be coloured. Collapsing either into the other is the misread
+ *     dash box is a real thing that has to be colored. Collapsing either into the other is the misread
  *     this note exists to prevent.
  *
- * ── THE PAINT GRAMMAR IS AXIS-LED LIKE EVERY OTHER DEF, AND THE EXEMPTION IS DECLARED ───────────
+ * ── THE PAINT GRAMMAR MOVED TO THE ATOM (#1226 step 2) ──────────────────────────────────────────
  *
- * `['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}']` — the axis value leads, as
- * `button`'s `{intent}` and `field-message`'s `{tone}` do. The bare `{slot}` still answers the
- * bindings that do not vary by selection (`label`) and the ones outside the grammar entirely
- * (`focus-ring`, `disabled.*`, geometry).
- *
- * **`lint-paint.ts` arm 1's premise is false for this axis, and that is recorded THERE rather than
- * worked around here.** The rule is *"an intent's paint comes from that intent's family"*; the tier
- * emits no `color.checked.*` and must not grow one, because a checked box is not a different color
- * FAMILY — it is the same interactive family in a different ROLE (`interactive.primary.*` for a filled
- * control, `field.*` for an empty one). So `selection` is declared in that gate's `NON_FAMILY_AXES`,
- * which exempts the axis once, prints the exempted binding count on every run, and fails in both
- * directions if the exemption stops doing work.
- *
- * **THIS DEF FIRST SHIPPED SLOT-LED (`fill.checked`) AND THAT WAS WRONG**, which is worth keeping
- * because the error is subtle and reusable. Arm 1 only examines a key whose LITERAL leading segment is
- * an axis value, so slot-led keys are skipped by construction — the same net coverage as an exemption,
- * with none of the visibility. It is the shape this repo's own rule forbids: **a false positive is
- * fixed by adding to the exemption list, never by narrowing a scan.** Reordering a key so the pattern
- * stops matching *is* narrowing the scan, by shape instead of by declaration. Doing it properly cost
- * ~20 renames here, paid once, and `radio` / `switch` inherit the convention for free.
+ * The axis-led grammar this def used to carry — `['{selection}.{slot}.{state}', '{selection}.{slot}',
+ * '{slot}']` — went to `checkbox-control` with the painted box it describes, and so did every color
+ * binding it resolved and `lint-paint.ts`'s `selection` exemption (`NON_FAMILY_AXES`). What the Row
+ * paints now is one ink, the label, so its `paintKeys` are just `['{slot}']`. The Row keeps the
+ * `selection` AXIS — the nest follows it, and a designer must be able to show a checked row — but
+ * nothing on the Row is keyed on it. The full grammar argument (why axis-led, why the exemption, the
+ * slot-led error that first shipped) lives in `checkbox-control.ts` now, where the box does.
  *
  * ── #871: NO SURFACE / INVERSE AXIS, AND ITS ABSENCE IS THE DECISION ────────────────────────────
  *
@@ -145,108 +133,32 @@ export const checkbox: ComponentDef = {
     selection: ['unchecked', 'checked', 'indeterminate'],
   },
 
-  // Slot-led, most specific first — see the header for why the slot leads. The bare `{slot}.{selection}`
-  // is the REST value of its coordinate, which is why no `.rest` key is bound: a rest coordinate skips
-  // the state-qualified template (it is unfillable) and falls through to it.
-  paintKeys: ['{selection}.{slot}.{state}', '{selection}.{slot}', '{slot}'],
+  // ONE KEY since #1226 step 2: the painted box moved to `checkbox-control`, so the Row's whole color
+  // surface is the label ink (`label`, `disabled.label` — the bare slot). The `{selection}`-led
+  // templates went with the box; keeping them here with nothing selection-dependent left to resolve
+  // would be unreachable keys `lint-paint.ts` arm 2 flags. The `selection` axis stays for the nest to
+  // follow — an axis with no paint key is fine; a paint key with no binding is not.
+  paintKeys: ['{slot}'],
 
   tokens: {
-    // ── THE UNCHECKED BOX — the form-field substrate's own chrome, since an empty checkbox is a small
-    // empty field. `pressed` is unbound here on purpose: `color.field.border.*` emits `rest` and
-    // `hover` only, and reaching into `interactive.neutral.*` for one state would mix two families in
-    // one ladder. It falls through to the rest border (`notes.unverified`).
+    // ── THE ROW'S OWN PAINT IS ONE INK: THE LABEL (#1226 step 2). Every color binding for the painted
+    // box — the unchecked border, the checked/indeterminate fills, the glyph ink, the focus ring, the
+    // box's disabled skin, the corner and the 2px border — MOVED to `checkbox-control` with the box
+    // itself. What paints on the Row is the label text beside the nested control, so the grammar sheds
+    // its `{selection}`-led templates: `paintKeys` is `['{slot}']` and the two keys below are its whole
+    // color surface. The `selection` axis stays (the nest follows it, and a designer shows a checked
+    // row), but nothing on the Row is keyed on it any more — which is why the Row no longer exercises
+    // `lint-paint.ts`'s `selection` exemption and `checkbox-control` does.
     //
-    // NO FILL, and the absence is the binding (#1011). An empty checkbox is a BORDER on the page, not a
-    // filled square: `color.field.fill` is an OPAQUE near-white at 1.00–1.22:1 against the page in all
-    // 5 brands × 4 modes, so binding it painted a box that is invisible against its own ground and
-    // occludes whatever the checkbox actually sits on. Every reference implementation ships this
-    // transparent, Prism2 included. `paintOf` returning `undefined` for an unbound slot is how a def
-    // says "this coordinate does not paint that slot" — there is nothing else to write here.
-    'unchecked.border': 'color.field.border.rest',
-    'unchecked.border.hover': 'color.field.border.hover',
-    'unchecked.border.error': 'color.border.danger',
-
-    // ── THE CHECKED BOX — a filled control, so it paints from the primary interactive family. This is
-    // the half that `checked`-as-a-state could not express: `fill.checked.hover` is the coordinate a
-    // hovered checked box actually sits at.
-    //
-    // NO STRUCTURAL BORDER, and this is #1011's third finding rather than a tidy-up. The def used to
-    // bind `checked.border` → `interactive.primary.border.rest` beside `checked.fill` →
-    // `interactive.primary.fill.SELECTED`, and both bindings resolved, satisfied provenance, were
-    // reachable and were recorded by the census. What shipped was a lighter blue rim around a darker
-    // blue box. The measurement that explains it: `interactive.<intent>.fill.*` and
-    // `interactive.<intent>.border.*` are BYTE-IDENTICAL at every rung they SHARE (5 brands × 4 modes),
-    // and the border ladder has no `selected` rung at all — so naming `fill.selected` on one slot and
-    // letting the other fall through to `border.rest` was the only way to make the pair disagree, and
-    // the def found it. At `hover` and `pressed`, where both slots DID name the same rung, the border
-    // was a second edge in the fill's own color: contrast 1.00, invisible, and paid for at 24
-    // coordinates each.
-    //
-    // So the border comes off the filled coordinates entirely. A primary fill is 4.94–14.17:1 against
-    // the page across the whole corpus — it clears SC 1.4.11's 3:1 non-text floor everywhere, which
-    // means the fill IS this box's boundary and a same-family border can only agree with it invisibly
-    // or disagree with it visibly. `lint-paint.ts` arm 4 is the rule; it fails on the configuration
-    // that shipped, naming this coordinate.
-    //
-    // `checked.border.error` STAYS. `border.danger` is a different family — a cross-family border on a
-    // filled box is SIGNALLING, not bounding, and the arm holds it out of scope for that reason.
-    'checked.fill': 'color.interactive.primary.fill.selected',
-    'checked.fill.hover': 'color.interactive.primary.fill.hover',
-    'checked.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'checked.border.error': 'color.border.danger',
-    'checked.icon': 'color.interactive.primary.on-fill',
-
-    // ── THE INDETERMINATE BOX — identical to checked at every coordinate, because only the GLYPH shape
-    // differs (dash, not check). Bound explicitly rather than folded into a fallback: with nothing
-    // here, an indeterminate coordinate would fall through to the bare `{slot}` — unbound for `fill`
-    // and `border` — and a dash in `on-fill` ink would be drawn on a box with no fill under it at all.
-    // Verbose and visible beats terse and wrong. It loses its structural border for the same reason
-    // `checked` does, and keeps `border.error` for the same reason too.
-    'indeterminate.fill': 'color.interactive.primary.fill.selected',
-    'indeterminate.fill.hover': 'color.interactive.primary.fill.hover',
-    'indeterminate.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'indeterminate.border.error': 'color.border.danger',
-    'indeterminate.icon': 'color.interactive.primary.on-fill',
-
-    // ── THE ROW'S LABEL — one ink at every coordinate, so it is the bare slot. It is page text sitting
-    // BESIDE the control rather than value text inside a fill, which is why its disabled ink is
-    // `disabled.text` (field-label's pairing) and not `disabled.on-fill` (text-field's).
+    // THE LABEL — one ink at every coordinate, so it is the bare slot. It is page text sitting BESIDE
+    // the control rather than value text inside a fill, which is why its disabled ink is `disabled.text`
+    // (field-label's pairing) and not `disabled.on-fill` (text-field's).
     'label': 'color.text.primary',
-
-    // ── FOCUS RING — the CONTROL ring, not the field's. `focus.ring.offset-field` is 0 by design (the
-    // ring sits flush inside a field's own boundary); a checkbox's box is a small tight control that
-    // the ring surrounds, so it takes `focus.ring.offset` exactly as `button` does. Bound, not
-    // authored: the ring is a separate def reached through `composesWith`.
-    'focus-ring': 'color.border.focus',
-    'ring-width': 'focus.ring.width',
-    'ring-offset': 'focus.ring.offset',
-
-    // ── DISABLED SKIN (contrast-exempt), the shared cross-cutting family. The glyph takes the on-fill
-    // ink because a disabled CHECKED box still has a fill under it; the row label takes page ink.
-    //
-    // Which of these two REACHES a given coordinate is decided by `restKey` in the projector, and #1011
-    // moved both halves without touching a line here — worth stating because the keys look unchanged.
-    // A disabled UNCHECKED box now takes only `disabled.border` (it has no fill at rest, so it gets no
-    // disabled fill either, and stays the empty outline it is when enabled); a disabled CHECKED box now
-    // takes only `disabled.fill` (it has no border at rest). Each disabled coordinate paints exactly the
-    // structure its rest coordinate has, which is what `restKey` is for.
-    'disabled.fill': 'color.disabled.fill',
-    'disabled.border': 'color.disabled.border',
-    'disabled.icon.on-fill': 'color.disabled.on-fill',
     'disabled.label': 'color.disabled.text',
 
-    // ── GEOMETRY. The corner is PER-RUNG and CLAMPED TO THE BOX (#1015), not a rung off the card ramp.
-    // `radius.sm` was the previous binding and it was not wrong, it was rung-blind: one value for three
-    // box sizes, so aurora's 4px landed on a 12px `small` square — a third of its edge, where the same
-    // token is a fourteenth of a card's. `control.size.<rung>.radius` is `min(radius.sm, snap2(edge ÷ 8))`,
-    // evaluated per rung from that rung's own edge, so the corner keeps the SAME PROPORTION as the box
-    // shrinks. The clamp is why this is not a value change on four of five brands: `min` never rounds a
-    // corner UP, so nb/wendys/harbor stay at 2 and only aurora moves (4 → 2 at all three rungs).
-    // Still what distinguishes this control from `radio`, which keeps `radius.round` — the shape contrast
-    // survives, it just stops being a contrast between two card-ramp rungs.
-    'size.small.radius': 'control.size.sm.radius',
-    'size.medium.radius': 'control.size.md.radius',
-    'size.large.radius': 'control.size.lg.radius',
+    // ── THE CONTROL-TO-LABEL GAP and the ROW'S FLOOR. `min-height` is the code projection's floor (48
+    // at medium on nb); Figma has no floor, so the row hugs its children and the key stays bound only
+    // for code (see `codeOnly`).
     'size.small.gap': 'size.sm.gap',
     'size.medium.gap': 'size.md.gap',
     'size.large.gap': 'size.lg.gap',
@@ -254,62 +166,25 @@ export const checkbox: ComponentDef = {
     'size.medium.min-height': 'size.md.height',
     'size.large.min-height': 'size.lg.height',
 
-    // ── THE BORDER'S THICKNESS (#1228). Measured, not chosen: Prism 2 ships this box at
-    // `strokeWeight: 2` / `strokeAlign: INSIDE` (`reference/Prism2/component-specs/checkboxes.json`,
-    // the root element's styles). Without this key both executors fell through to a literal 1px, so
-    // the empty box that #1011 made a BORDER rather than a fill was drawn at half the weight the
-    // border carries the whole control at.
-    //
-    // A FLAT 2px, one value at every rung, and that is the owner's call over this issue's own caution
-    // that Prism 2's 2px is a ratio on a ladder we do not share (the trap #997 hit with `padding: 4`).
-    // `border-width.thick` is 2px in all four corpus brands, aliased to `<root>.core.dimension.2`, so a
-    // brand cannot re-rung it the way a spacing token could — a ratio ladder would have nothing
-    // brand-varying to ride on here anyway.
-    //
-    // 2px IS A CONTROL FIGURE AND NOT A HOUSE STYLE, which is the part worth carrying: Prism 2 draws its
-    // outline BUTTONS at 1px, so the two weights are a deliberate contrast between a small selection
-    // control and a large one, not one border weight applied everywhere. This def moving to 2 while
-    // `button` stays at 1 is therefore both defs agreeing with the reference, and the plugin suite
-    // asserts the button half so a later "every bordered part gets 2px" sweep fails rather than ships.
-    // (The button weight is confirmed from Prism 2 by the owner; `reference/Prism2/component-specs/`
-    // holds no button spec, so nothing here can check it against the corpus the way this 2 is checked.)
-    //
-    // SINCE #1278 THE BUTTON HALF IS A TOKEN TOO — `border-width.hairline` — so the contrast is now two
-    // named rungs rather than one rung and one executor fallback. That matters to this comment rather
-    // than merely updating it: while the button was unbound, the sweep this paragraph guards against
-    // could only be caught in ONE direction (controls staying at 2), and a change that put every border
-    // on 1px would have moved this def alone and read as correct. Both directions fail by name now.
-    //
-    // Prism 2's `strokeWidth: null` on the SELECTED variant needs no per-variant mechanism: `checked`
-    // and `indeterminate` bind no border slot at all (#1011's third finding), so the coordinate has no
-    // stroke to thin. And `strokeAlign: INSIDE` is settled by construction — both executors hardcode
-    // it — which is why this is a thickness field and not a stroke-alignment one.
-    'border-width': 'border-width.thick',
-
-    // ── THE CONTROL SQUARE, which #951 made expressible and #910 binds. ONE key on BOTH axes of the box,
-    // so the control is square by construction rather than by two values that happen to agree — `.width`
-    // exists on the same tier group and is deliberately not read here; it is switch's track.
-    //
-    // `control.size.*.height` AND NOT `icon.size.*`, which is the one substitution that would resolve,
-    // typecheck and pass every gate. Measured across the corpus: `icon.size` is 16/20/24/32/40 and
-    // BYTE-IDENTICAL in all four brands, because a glyph artboard is a fixed grid the icon set draws on.
-    // `control.size.*.height` is 16/20/24 on nb, wendys and harbor and 12/16/20 on AURORA — it shifts a
-    // whole rung with brand density, which is what a control that scales with the type has to do. A box
-    // bound to the glyph ladder would be right on three brands and one rung too large on the fourth, and
-    // nothing downstream could see it: both refs resolve, both are dimensions, both are square.
-    'size.small.control': 'control.size.sm.height',
-    'size.medium.control': 'control.size.md.height',
-    'size.large.control': 'control.size.lg.height',
-
     // ── THE ALIGNMENT BOX (#1201, building #1009's filed fix). One line of the LABEL tall, per rung —
-    // `control.size.*.line-box` is the baked `body.{rung}` line-box (21/24/27 on nb). The control centres
-    // inside a box this tall while the ROW stays top-aligned, so on a single line the control reads
-    // centred and on a WRAPPING label it holds the first line instead of floating to the paragraph's
-    // middle. This is the construction that passes `lint`/`test.ts` #1009 half-1: the control centres
-    // within its OWN box, never the row.
+    // `control.size.*.line-box` is the baked `body.{rung}` line-box (21/24/27 on nb). The nested control
+    // centres inside a box this tall while the ROW stays top-aligned, so on a single line the control
+    // reads centred and on a WRAPPING label it holds the first line instead of floating to the
+    // paragraph's middle. #1226 step 2 kept this construction on the Row unchanged — the centring box is
+    // a real `box` here, and only its CHILD became the nested control (see the anatomy).
     'size.small.control-box': 'control.size.sm.line-box',
     'size.medium.control-box': 'control.size.md.line-box',
     'size.large.control-box': 'control.size.lg.line-box',
+
+    // ── THE NESTED CONTROL'S OWN SQUARE (#1226 step 2). The `control` nest part binds this so the nested
+    // instance is PINNED to the control square — 16/20/24 on nb, 12/16/20 on aurora — and does NOT
+    // stretch to fill the taller `control-box` line box it is centred within. `control.size.*.height`
+    // and NOT `icon.size.*` for the same reason the atom binds it (the control ladder shifts a rung with
+    // brand density where the glyph grid is fixed). The atom (`checkbox-control`) binds the identical key
+    // on its own root; a binding is a reference, so both defs naming it is single-sourcing, not a copy.
+    'size.small.control': 'control.size.sm.height',
+    'size.medium.control': 'control.size.md.height',
+    'size.large.control': 'control.size.lg.height',
 
     // ── THE ROW'S TYPE. `type.body.*` and not `type.label.*.emphasis` (field-label's binding) for two
     // reasons, and the second is the one that decides it. Semantically this is running text sitting
@@ -322,22 +197,23 @@ export const checkbox: ComponentDef = {
     'size.large.text': 'type.body.lg.default',
   },
 
-  // ── ANATOMY (#910) ──────────────────────────────────────────────────────────────────────────────
+  // ── ANATOMY — THE LABELLED ROW THAT NESTS THE CONTROL (#910, #1226 step 2) ──────────────────────
   //
-  // The first SELECTION control to project, and the first def in the corpus whose interaction target and
-  // painted box are different parts. Both facts are load-bearing for the two that follow it.
+  // Three parts now, not seven: the whole ROW is the hit target, the `controlBox` is the #1201 line-box
+  // wrapper, and its CHILD is a `nest` of `checkbox-control` where the painted box, the two glyphs and
+  // the focus ring used to be authored in place. The atom paints itself; the Row paints the label. This
+  // is the composition #1226 asked for — a shared box single-sourced, a fix to it propagating here.
   //
-  // TWO BOXES, and #933 is what makes that safe to author. The whole ROW is the hit target (SC 2.5.8 — a
-  // 16-24px square fails in isolation, and `accessibility.focus` above has said so since the def shipped),
-  // while the fill and border belong to the CONTROL. Before `paintSlots` the projector read
-  // `role: 'target'` to decide what carries color, so this shape painted the checked fill across the
-  // entire label row — structurally valid, every variable resolved, nothing threw.
+  // WHY THE WRAPPER STAYS A BOX AND ITS CHILD IS THE NEST (owner-decided). The obvious reading — make
+  // `controlBox` itself the nest — would need the nest to carry the LINE-BOX height, and a nested
+  // instance stretched to the line box is a control floating in a tall cell. Instead the centring box
+  // (a real `box`) keeps the line-box height and the `align: center`, and the nest is the inner control
+  // at its OWN square: the box handles alignment, the nest handles extent. So the small control reads
+  // centred on the first line rather than filling the taller box.
   //
-  // AND THE MARK IS A COORDINATE, not a state. `unchecked` has no glyph — an empty box draws nothing —
-  // so `glyph: '{selection}'` has no third value, and the check and the dash are two `vector` parts each
-  // gated by `presentWhen`. That field is the mechanism #910 had to add, and it is what `radio`'s dot and
-  // `switch`'s thumb inherit: see its own note in `component-schema.ts` for why the cheaper shapes
-  // (an invisible tick, or deferring the mark to `codeOnly`) are worse than a new field.
+  // THE ROW MUST NOT CENTRE. On a wrapping consent label `align: center` floats the control to the
+  // middle of the paragraph (the wrong repair `test.ts` #1009 half-1 forbids by name). The row stays
+  // top-aligned and the centring lives one level down, in `controlBox`. `test.ts` #1201 asserts both.
   anatomy: {
     root: 'row',
     parts: {
@@ -369,59 +245,30 @@ export const checkbox: ComponentDef = {
         layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'hug', y: 'fixed' } },
         children: ['control'],
       },
-      // THE PAINTED SURFACE. `presentation` in the interaction sense and the owner of the ink in the
-      // paint sense — the split #933 made expressible. FIXED on both axes because `size` binds one
-      // variable to width and height, and a hugging box would collapse around a glyph instead.
+      // THE NESTED CONTROL (#1226 step 2). Where the painted box, the two glyphs and the focus ring
+      // used to be authored in place, the Row now nests ONE instance of `checkbox-control` — an in-flow
+      // `kind: 'nest'`, the twin of the `absolute` focus ring but taking a cell. A fix to the box
+      // (its corner, its border weight, its fill grammar) reaches here without being copied.
+      //
+      // IT FOLLOWS all three axes the atom carries — `selection`, `size` and `state` — so a checked,
+      // large, hovered Row nests the checked/large/hover Control member. `#1298` is what makes `size` and
+      // `state` followable (they resolve from `paintCoord`, not the caller's argument map); before it,
+      // `follow: ['size']` was accepted and dropped and a small Row nested a MEDIUM control. The fixed
+      // `variant` is the non-empty fallback the schema requires; `follow` overrides it at every member.
+      //
+      // IT PINS ITS OWN SQUARE and does NOT stretch. `size: 'size.{size}.control'` (→ `control.size.*.height`,
+      // 16/20/24 on nb) binds the instance to the control square, which is SHORTER than the `control-box`
+      // line box (21/24/27) it is centred within — so the small control reads centred on the first line
+      // rather than filling the taller box. This is #1299's nest-height mechanism applied to the inner
+      // control: the centring box (a real `box`, above) handles ALIGNMENT, and the nest carries the
+      // control's own extent. `test.ts` #1201 asserts the pin by name, so a change binding the line box
+      // here instead — which would stretch the control — fails rather than ships.
       control: {
-        kind: 'box',
-        role: 'presentation',
-        paintSlots: ['fill', 'border'],
+        kind: 'nest',
+        nests: 'checkbox-control',
         size: 'size.{size}.control',
-        radius: 'size.{size}.radius',
-        // 2px, from the token — see `border-width` in `tokens` for the measurement and the flat-vs-ratio
-        // call. Names the def's own key, not the token, exactly as focus-ring's part does.
-        strokeWidth: 'border-width',
-        layout: { direction: 'row', align: 'center', justify: 'center', sizing: { x: 'fixed', y: 'fixed' } },
-        children: ['mark', 'dash', 'focusRing'],
-      },
-      // THE CHECK. Sized from the CONTROL'S OWN key rather than from a mark ladder of its own, and that
-      // is deliberate on two counts. The optical inset is already in the artboard: `check` draws
-      // 16.97×12 of ink on a 24×24 grid (~71%), `minus` draws 14×2 (58%), so a full-bleed glyph frame
-      // renders a correctly inset mark and a second ladder would inset it twice. And a `icon.size.*`
-      // binding here would put 24px of artboard in a 20px box at `medium` — `lint-rung-names.ts` arm 3
-      // requires the default enum value to reach `md`, and `icon.size.md` IS 24.
-      mark: {
-        kind: 'vector',
-        glyph: 'check',
-        size: 'size.{size}.control',
-        presentWhen: { selection: ['checked'] },
-        note: 'The check. Its ink is `checked.icon` (`descendantFills`, never a fill on the artboard — #864), and its micro-motion has no expression in this schema (see `notes.unverified`).',
-      },
-      // THE DASH. Same geometry, same reason; only the outline differs, which is the whole of what
-      // separates `indeterminate` from `checked` in this def's tokens.
-      dash: {
-        kind: 'vector',
-        glyph: 'minus',
-        size: 'size.{size}.control',
-        presentWhen: { selection: ['indeterminate'] },
-        note: 'The mixed-state dash. Never the sole signal — `aria-checked="mixed"` carries it to assistive tech (see `accessibility.aria`).',
-      },
-      // Button's ring, verbatim, on the CONTROL rather than on the row: `accessibility.focus` says the
-      // ring is on the control, and `focus.ring.offset` (2) is the control offset rather than the field's
-      // flush `offset-field` (0). The two insets SUM in the executor, siting the ring at -(2+2) = -4, so
-      // the visible gap is a full 2px — #801's finding, that the ring's own inside-drawn stroke eats the
-      // offset unless it is compensated for.
-      focusRing: {
-        kind: 'absolute',
-        when: 'focus-visible',
-        nests: 'focus-ring',
-        inset: 'ring-offset',
-        strokeInset: 'ring-width',
-        // FIXED at `surface=default` (#1134): this def has no `surface` axis of its own, so there is no host
-        // coordinate to pass through. The ring's axis was renamed `color` -> `surface`; a `follow` here
-        // would be rejected, since `follow` names a host axis and this def declares none.
-        nesting: { kind: 'nest-fixed', variant: { surface: 'default' } },
-        note: 'An absolutely-positioned sibling nesting the shared `focus-ring` component, inset from the CONTROL so the ring surrounds the square rather than the whole row.',
+        nesting: { kind: 'nest-fixed', variant: { selection: 'unchecked' }, follow: ['selection', 'size', 'state'] },
+        note: 'An in-flow instance of `checkbox-control` taking the control cell inside the line-box wrapper. It follows the Row\'s selection/size/state, and binds its own square so it is centred within the taller wrapper rather than stretched to fill it.',
       },
       // No `paintSlot` — the default is `label`, and at `disabled` the projector reaches `disabled.label`
       // (page ink) rather than `disabled.label.on-fill`, because this text sits beside the fill and not
@@ -439,14 +286,15 @@ export const checkbox: ComponentDef = {
       'min-height — `size.*.min-height` is the row\'s FLOOR (48 at medium on nb) and Figma has no floor. `PartDef` carries `height`, which is fixed, so binding it here would state the wrong quantity and clip a wrapping consent label at the one coordinate that matters most. The row hugs its children instead and the keys stay bound for the code projection, where `min-height` is the property they name.',
       'The whole-row hit target beyond the row\'s own extent. SC 2.5.8 wants 24x24 and Apple/Material want 44/48 on touch; the row reaches that at `medium` and not at `small`, and the padding that would expand it is a per-consumer decision about the surrounding layout rather than a property of this component. `row` is the node it lands on — that is what this block newly makes expressible — but the value is not the def\'s to pick.',
       'The label\'s RICH CONTENT. `label` is typed `node` and its commonest real value is a consent line with a link in it; a Figma text node holds characters, so the projected placeholder is flat text and the link exists only in code.',
-      'The check-glyph draw animation (brief §8: a stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed under prefers-reduced-motion). Neither the def schema nor a Figma variant carries motion, so the two glyph parts are static outlines at every coordinate.',
+      'The nested control\'s glyph micro-motion (brief §8: a stroke-dasharray draw morphing dash to check). It lives in `checkbox-control` now, not here — the Row nests the control and carries none of its geometry or motion — and has no expression in the def schema at either level.',
     ],
   },
 
   figmaProperties: {
-    // BOTH axes, and `selection` is not optional here: `presentWhen` gates the two glyph parts on it, so
-    // an unprojected `selection` would make the mark absent from every member of the set. `anatomyErrors`
-    // refuses that combination rather than leaving it to be discovered in a Figma file.
+    // BOTH axes, and `selection` is not optional here: the `control` nest FOLLOWS `selection`, `size` and
+    // `state`, and the schema refuses a `follow` on an axis the host does not project — so an unprojected
+    // `selection` would break the nest's coordinate rather than merely dropping paint. 3 selections x 3
+    // sizes x 6 states = 54 members, matching the atom it nests.
     variantAxes: ['selection', 'size'],
     // Six of the seven states — `read-only` is admitted in `codeOnly` above, on `button`'s precedent for
     // `inactive`. 3 selections x 3 sizes x 6 states = 54 members.
@@ -457,9 +305,8 @@ export const checkbox: ComponentDef = {
       // reviewing the set will see, so it should be the shape the component is hardest at.
       label: { part: 'label', default: 'I agree to the Terms of Service' },
     },
-    // No `swaps` — the mark is geometry this def owns, not a glyph a consumer nominates. No `slotAxes`
-    // — both glyph parts are gated by a coordinate rather than by presence, which is the distinction
-    // `presentWhen` exists to draw.
+    // No `swaps` — the Row nests a FIXED `checkbox-control` (the def picks the control, not the
+    // designer), and the two glyphs that were gated by `presentWhen` live in that atom now. No `slotAxes`.
     booleans: {},
   },
 
@@ -513,7 +360,7 @@ export const checkbox: ComponentDef = {
   },
 
   composition: {
-    composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'form'],
+    composesWith: ['checkbox-control', 'field-label', 'field-message', 'focus-ring', 'icon', 'form'],
     alternativeTo: ['switch', 'radio', 'toggle-button', 'combobox', 'select'],
     supersedes: [
       'a bare <input type="checkbox"> with no label wiring',
@@ -539,7 +386,7 @@ export const checkbox: ComponentDef = {
       'The unchecked box has no `pressed` binding. `color.field.border.*` emits `rest` and `hover` only, so a pressed unchecked box falls through to its rest border. Reaching into `color.interactive.neutral.border.pressed` for that one coordinate would put two families on one ladder, which is the inconsistency `lint-paint.ts` arm 1 exists to see in its axis-led form. The checked and indeterminate coordinates DO paint pressed, so the gap is asymmetric — worth knowing before anyone reads the pressed row as covered.',
       '`read-only` is declared and binds nothing (see `states`). The brief calls it "the awkward one" and recommends static text over a styled locked control, so there is no treatment to bind; a consumer choosing `aria-readonly` plus a prevented toggle has no token telling them what it should look like.',
       'The whole-row hit target — at least 24x24 (SC 2.5.8), 44 (Apple) / 48 (Material) on touch — is STILL not expressed, and the anatomy block landing is what makes that precise rather than resolving it. The row hugs its content on both axes, so its height is the taller of the square and the label\'s line box; `size.*.min-height` is a floor that `PartDef` has no field to state (it carries `height`, which is fixed, and binding a floor there would clip a consent label that wraps to two lines — the common case). So the keys stay bound for the code projection and the Figma row carries no floor at all. Measured on aurora at `small`: a 12px square beside `body.sm` at 14px on `line-height-role.normal` (1.5), so the row hugs to 21px — short of 24, and the square is not what closes the gap. Named in `anatomy.codeOnly` as well, where the projection can see it.',
-      '`CheckboxGroup` and `Checkbox.Control` are separate components the brief specifies (§2) and this def does not describe. The group in particular owns real contract — the value array, group-level required/validation, `orientation` — and none of it is expressible from here. Filed as #901 rather than deferred in prose — it is a three-def decision, since radio refines this decomposition with the group made mandatory and switch with no group at all.',
+      '`Checkbox.Control` IS NOW A SEPARATE COMPONENT (`checkbox-control`, #1226 step 2) — the atom this Row nests. `CheckboxGroup` is still deferred: it owns real contract the brief specifies (§2) — the value array, group-level required/validation, `orientation` — and none of it is expressible from here. Filed as #901 rather than in prose, and it is a three-def decision, since radio refines this decomposition with the group made mandatory and switch with no group at all.',
       'The check-glyph micro-motion (brief §8: an SVG stroke-dasharray draw at roughly 100-150ms, morphing dash to check, bypassed entirely under prefers-reduced-motion) has no expression in the def schema at all — there is no motion field — and the engine emits `motion.duration-ms.*` that nothing here can point at.',
     ],
   },

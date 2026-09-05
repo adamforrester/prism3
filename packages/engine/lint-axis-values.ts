@@ -243,7 +243,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'selection',
     values: ['unchecked', 'checked', 'indeterminate'],
-    defs: ['checkbox'],
+    defs: ['checkbox-control', 'checkbox'],
     relation: 'canonical',
     reason:
       'The canonical set because it is the widest and it is ARIA\'s own vocabulary: `aria-checked` covers '
@@ -280,7 +280,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox', 'radio', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox-control', 'checkbox', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
       'The three-rung ladder, and canonical on weight of use — eight of the defs with a size axis, the '

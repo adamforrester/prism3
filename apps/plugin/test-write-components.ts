@@ -2103,7 +2103,12 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
   const rows: BoxRow[] = [];
   for (const p of plans) {
     const member = members.find((n) => n.name === planComponentName(p));
-    const box = member && allNodes(member).find((n) => n.name === boxName);
+    // The box is usually a CHILD found by name (radio's `control`, switch's `track`). Since #1226 step 2
+    // it can also BE the member root: `checkbox-control`'s `control` part is its anatomy root, so it
+    // materializes as the member frame itself (named by the coordinate, not 'control'), the same shape
+    // button's `container` has. Fall back to the member frame when the sought box is the def's root.
+    const box = member && (allNodes(member).find((n) => n.name === boxName)
+      ?? (def.anatomy?.root === boxName ? member : undefined));
     if (!box) continue;
     const coord = (p as unknown as { coord: Record<string, string> }).coord;
     const bv = (box.boundVariables as Record<string, { id?: string }>) ?? {};
@@ -2135,9 +2140,12 @@ const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: Bo
   return { rows, misses: r.misses, members: r.variants };
 };
 
-ok(!!byId('checkbox') && !!byId('radio') && !!byId('switch'),
+ok(!!byId('checkbox-control') && !!byId('radio') && !!byId('switch'),
   '#1011 reachable: all three selection controls resolve from their ids');
-const cb = await readBoxes(byId('checkbox')!, 'control');
+// #1226 step 2 — the painted box moved off `checkbox` (now the Row, which nests it) into the atomic
+// `checkbox-control`, so the box these arms read off the built node is the atom's. radio/switch still
+// inline theirs. The atom's box is its member ROOT (see the fallback in `readBoxes`).
+const cb = await readBoxes(byId('checkbox-control')!, 'control');
 const rb = await readBoxes(byId('radio')!, 'control');
 const sw = await readBoxes(byId('switch')!, 'track');
 // PIN THE INPUT, same discipline as the Button block: every claim below is vacuously true over zero rows.

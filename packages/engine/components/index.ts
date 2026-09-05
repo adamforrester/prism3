@@ -52,6 +52,7 @@ import { fieldLabel } from './field-label';
 import { fieldMessage } from './field-message';
 import { textField } from './text-field';
 import { textarea } from './textarea';
+import { checkboxControl } from './checkbox-control';
 import { checkbox } from './checkbox';
 import { radio } from './radio';
 import { switchDef } from './switch';
@@ -62,7 +63,7 @@ import { switchDef } from './switch';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkbox, radio, switchDef };
+export { button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -86,9 +87,14 @@ export const componentDefs: readonly ComponentDef[] = [
   // `textarea` follows `text-field` for the same reason `icon-button` follows `button`: composition
   // order, and it `inherits` the def above it.
   textarea,
+  // `checkbox-control` is the ATOMIC box (#1226 step 2, #901), extracted from `checkbox` so the labelled
+  // Row can nest it rather than redraw it. It leads `checkbox` on composition order — `checkbox` nests
+  // `checkbox-control`, which nests `focus-ring` — though nothing reads this array's order (see above).
+  checkboxControl,
   // `checkbox` likewise `inherits` the field substrate. It sits after `textarea` rather than beside it
   // because composition order is the ordering rule and nothing more: both are children of the same
-  // parent, so their relative order carries no claim.
+  // parent, so their relative order carries no claim. Since #1226 step 2 it is the labelled ROW that
+  // nests `checkbox-control` in flow, rather than inlining the painted box.
   checkbox,
   // `radio` follows `checkbox` because it `inherits` it — the one place in this list where the order
   // does carry a claim beyond convention, since the chain is real: radio inherits the field substrate

@@ -7,6 +7,71 @@
 
 ---
 
+## (2026-09-05) — the checkbox composes: `checkbox-control` is a def, `checkbox` nests it (#1226 step 2, #901)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.54.0 → 0.55.0; `CONTRACT_VERSION` stands at 9.4.0.** Based on
+`d01b585` (main, ENGINE 0.54.0), preserving #1300/#1303/#1301 and the #1298/#1299 nest machinery. `npm run
+verify` **55/55**. The pre-split `checkbox` was the labelled Row with the painted box inlined
+(`row → controlBox → control → {mark, dash, focusRing}`). It is now two defs: **`checkbox-control`** — the
+atomic box, its two glyphs and its focus ring, extracted VERBATIM and rooted at `control` — and
+**`checkbox`** (id unchanged), the labelled Row that NESTS one `checkbox-control` in flow where it used to
+inline the box. This is the first real consumer of `kind: 'nest'`, ever: PR-A shipped the mechanism with
+zero consumers and #1298/#1299 (0.52.0/0.53.0) made its `follow` axes and its own height reach the node.
+
+**THE OWNER-DECIDED SHAPE, and why it is not the plan's first guess.** The investigation plan
+([#1226 comment](https://github.com/adamforrester/prism3/issues/1226)) proposed making `controlBox` ITSELF
+the nest, which needed #1299 to give the nest the line-box height. The owner decided otherwise:
+`controlBox` **stays a real `box`** (carrying the #1201 line-box height and the `align: center`), and only
+its CHILD becomes the nest. So the centring box handles ALIGNMENT and the nest carries the inner control's
+OWN square (`size` → `control.size.*.height`, 16/20/24 on nb), which is strictly shorter than the line box
+(21/24/27) it is centred within — **the small control is centred within the taller line box and does NOT
+stretch to fill it.** That is precisely why #1299 was not the direct dependency the plan assumed.
+
+**THE NEST FOLLOWS ALL THREE AXES the atom carries** — `selection`, `size`, `state` — resolved from
+`paintCoord` (#1298), so a checked/large/hover Row nests the checked/large/hover Control member. Verified
+by projection: the nest node carries `nestTarget: checkbox-control`, `nestVariant: {selection, size,
+state}` and `bound.{width,height} → control/size/*/height` (the square, NOT the line box). Both sets are 54
+members (3 selection × 3 size × 6 state).
+
+**THE NO-STRETCH ASSERTION IS BY NAME.** `test.ts` #1201 now handles two shapes — radio/switch inline the
+painted box, checkbox nests it — and adds an assertion that the nested control pins its own square
+(`size` → `…control`) and NEVER the wrapper's `…control-box` line box. Binding the line box on the nest —
+the one plausible mutation that would stretch the control — flips the clause and fails **that** assertion
+by name; the pre-existing nb token check proves `…control` and `…control-box` resolve to different heights,
+so `…control ≠ …control-box` is the whole of "does not stretch". The mutation was run: repointing the
+nest's `size` at `size.{size}.control-box` fails only `#1201 checkbox: the nested control pins its OWN
+square…`, nothing else.
+
+**WHAT MOVED IN THE GATES, all subject-coupled to where the parts now live** (not a redesign — an
+extraction). The paint census keyed by def id: `checkbox` grid 174 → 63 assignments (down to the label
+ink), `checkbox-control` added at 54 (the box it inherited). `lint-component-surface` gains the atom's 54
+members and re-lays `checkbox`'s (its `control` is a `NESTED_INSTANCE` now) — `--accept` restamped both
+baselines at the forward bump. `lint-nesting` 7 → 8 edges (`checkbox`'s direct `focus-ring` edge moved to
+`checkbox-control`; `checkbox → checkbox-control` is the net-new one). The engine test suite's arms that
+named `checkbox` parts — the #910 control-box set, the presentWhen glyph projection, the #1228 border-width
+paste, the nesting/verticalAlign mutations — re-point to `checkbox-control` because the parts genuinely
+moved there; `FIXED_GLYPH`/`MUST_COVER`/`MUST_CLEAR_STROKE` registers in the glyph and absolute-inset gates
+likewise. `lint-paint`'s reachability register renamed `checkbox|focus-ring` → `checkbox-control|focus-ring`
+(the ring nomination travelled with the box). The Row sheds its `{selection}`-led paint keys — its only
+paint is the label ink now — so `lint-paint`'s `selection` exemption is exercised by `checkbox-control`
+with radio/switch.
+
+**`CONTRACT_VERSION` HOLDS at 9.4.0, and the `out/` token trees are byte-identical but for the generator
+stamp.** New component sets are not committed under `out/`; a component binding is a REFERENCE to a token
+name, never a token name, so no guaranteed path moves — `token-contract --check` reports the 577-name
+surface unchanged and refreshes only the informational `engineVersion`. The bump is demanded entirely from
+the projected-surface side (#1252's case).
+
+**REAL-HOST QA STILL OWED, batched with #1290.** No `kind: nest` had ever been built in flow before this,
+so the in-flow instance's sizing (must HUG its square, not FILL the wrapper) is a live question the offline
+shim cannot answer; the symptom is a control stretched to the line-box height. Same batch: #1280's open
+question of whether the ring's nominal side survives `resize()` when inherited through an instance, now two
+layers deep. Both are `notes.unverified` on `checkbox-control`. `radio` and `switch` are unchanged — radio
+is the mirror (one `dot`, no dash) and is the next in the sequence; switch stays out of scope (its thumb
+moves between selection values, an unsolved wall).
+
+---
+
 ## (2026-09-05) — the outline button's border stops being a literal and starts being a token (#1278)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.53.0 → 0.54.0; `CONTRACT_VERSION` stands at 9.4.0.** Rebased onto
