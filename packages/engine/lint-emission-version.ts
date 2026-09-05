@@ -10,12 +10,19 @@
  * leaves `ENGINE_VERSION` where it was has published different bytes under an unchanged answer to
  * that question, and every consumer reading the stamp is told the producer did not move.
  *
- * FAIL iff, between the merge base and HEAD: **an artifact's content changed AND `ENGINE_VERSION`
- * did not.**
+ * FAIL iff, between the merge base and HEAD: **an artifact's content changed AND `ENGINE_VERSION` did
+ * not move STRICTLY FORWARD** — did not move at all, or moved BACKWARD (#1271). The gate first asked
+ * only whether the two version strings DIFFERED, which passed a backward roll — a bad rebase, or a hand
+ * re-stamp to a lower integer during a version cluster — as though it were a legitimate bump: newer bytes
+ * published under an older answer to "what code produced this?", which a consumer comparing stamps reads
+ * as a rollback. So the comparison is ORDERING, not inequality: HEAD's version must be greater than the
+ * base's, and equal-with-a-change or backward-with-a-change both fail here.
  *
  * The converse is NOT a defect and is not checked: `ENGINE_VERSION` may legitimately move without the
- * corpus emission moving (a plugin-side behavior change produces no `out/` diff at all). Only the one
- * direction is wrong.
+ * corpus emission moving (a plugin-side behavior change produces no `out/` diff at all), and the ordering
+ * check is CONDITIONAL on a moved emission — a version that moves any direction over an UNCHANGED emission
+ * is legal, so the forward-only rule cannot fail a run that emitted nothing new. Only the one direction,
+ * over a real emission move, is wrong.
  *
  * ── WHY THIS HAS TO READ GIT, AND WHY EVERY IN-TREE VERSION OF IT IS A TAUTOLOGY ────────────────
  *
@@ -67,7 +74,7 @@
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ENGINE_VERSION } from './version';
+import { ENGINE_VERSION, satisfiesBump } from './version';
 import { ENGINE_ARTIFACTS, SCHEMA_ARTIFACTS } from './regen';
 
 const here = resolve(fileURLToPath(import.meta.url), '..');
@@ -82,6 +89,27 @@ const die = (lines: string[]): never => {
   console.error(`\n❌ ${lines[0]}`);
   for (const l of lines.slice(1)) console.error(l);
   process.exit(1);
+};
+
+/**
+ * Is `to` STRICTLY GREATER than `from` (#1271)? The verdict below asks ordering, not mere inequality —
+ * `satisfiesBump(from, to, 'patch')` is true for any patch/minor/major increment and false for equal OR
+ * backward. Reused rather than reimplemented so version ordering is stated once (docs/34 shape 8). A
+ * version that does not parse as semver is a "cannot run", the same posture the base-version reads above
+ * take, never a silent pass — an unparseable version compared with `<` would answer confidently about
+ * nonsense.
+ */
+const isForward = (from: string, to: string): boolean => {
+  try {
+    return satisfiesBump(from, to, 'patch');
+  } catch (e) {
+    return die([
+      `cannot order ENGINE_VERSION '${from}' -> '${to}' — ${(e as Error).message}. This check CANNOT RUN.`,
+      '',
+      '  One of the two versions is not `MAJOR.MINOR.PATCH`. The comparison is unanswerable, which is not',
+      '  the same as "the version is fine", so this fails rather than passing over it.',
+    ]);
+  }
 };
 
 /** Regen's artifact universe as pathspecs, so the scope cannot drift from what regen writes. */
@@ -213,24 +241,39 @@ if (!m)
     '  every PR rather than a silent pass — loud, but still wrong.',
   ]);
 const baseVersion = m[1];
+// FORWARD-ONLY (#1271). The old check was `baseVersion !== ENGINE_VERSION` — mere inequality — so a
+// version rolled BACKWARD (a bad rebase, or a hand re-stamp to a lower integer during a version cluster)
+// read as "changed" and passed, publishing different bytes under a version that says the producer went
+// back in time. The question is ordering: when the emission moved, HEAD's version must be STRICTLY
+// GREATER than the base's. `versionMoved` is kept only to word the reporting line; the VERDICT is `forward`.
+const forward = isForward(baseVersion, ENGINE_VERSION);
 const versionMoved = baseVersion !== ENGINE_VERSION;
+const wentBackward = versionMoved && !forward;   // differs AND not strictly greater = a lower stamp
 
 // ---- the verdict ---------------------------------------------------------------------------------
 const where = `base ${base.slice(0, 8)} (${baseRef}, via ${baseVia})`;
 
-if (changed.length > 0 && !versionMoved) {
+if (changed.length > 0 && !forward) {
   const show = changed.slice(0, 12);
   die([
-    `the emission moved and ENGINE_VERSION did not — ${changed.length} artifact(s) changed at ${ENGINE_VERSION}.`,
+    wentBackward
+      ? `the emission moved and ENGINE_VERSION rolled BACKWARD — ${baseVersion} → ${ENGINE_VERSION}, over ${changed.length} changed artifact(s).`
+      : `the emission moved and ENGINE_VERSION did not — ${changed.length} artifact(s) changed at ${ENGINE_VERSION}.`,
     `    ${where}`,
     '',
     ...show.map((f) => `      ${f}`),
     ...(changed.length > show.length ? [`      … and ${changed.length - show.length} more`] : []),
     '',
-    '  Different bytes are being published under an unchanged answer to "what code produced this?".',
-    '  Every consumer reading `$extensions.generator.version` is told the producer did not move.',
+    wentBackward
+      ? '  A lower version publishes newer bytes under an OLDER answer to "what code produced this?" — a'
+      : '  Different bytes are being published under an unchanged answer to "what code produced this?".',
+    wentBackward
+      ? '  consumer comparing stamps would read this build as a rollback of a producer that moved forward.'
+      : '  Every consumer reading `$extensions.generator.version` is told the producer did not move.',
     '',
-    '  Bump `ENGINE_VERSION` in `packages/engine/version.ts` and re-run `regen.ts` so the stamp follows.',
+    wentBackward
+      ? '  Set `ENGINE_VERSION` in `packages/engine/version.ts` ABOVE the base\'s value and re-run `regen.ts`'
+      : '  Bump `ENGINE_VERSION` in `packages/engine/version.ts` and re-run `regen.ts` so the stamp follows.',
     '  If you believe this emission change genuinely does not warrant a bump, that is a decision worth',
     '  arguing in the PR rather than working around here — see this gate\'s header, limit 2.',
   ]);
@@ -238,13 +281,13 @@ if (changed.length > 0 && !versionMoved) {
 
 console.log(`Emission-version gate — ${where}`);
 console.log(`  scope: ${SCOPE.length} pathspec(s) imported from regen.ts — all ${REQUIRED_SURFACES.length} promised surfaces represented, both directions`);
-console.log(`  ENGINE_VERSION: ${baseVersion} -> ${ENGINE_VERSION}${versionMoved ? ' (moved)' : ' (unchanged)'}`);
+console.log(`  ENGINE_VERSION: ${baseVersion} -> ${ENGINE_VERSION}${forward ? ' (moved forward)' : versionMoved ? ' (moved BACKWARD)' : ' (unchanged)'}`);
 console.log(`  artifacts changed vs base: ${changed.length}`);
 if (changed.length === 0 && !versionMoved)
   console.log('  ✓ clean — nothing emitted moved, so no bump was owed.');
-else if (changed.length === 0 && versionMoved)
-  console.log('  ✓ clean — the version moved with no emission change, which is legal (see the header).');
+else if (changed.length === 0)
+  console.log(`  ✓ clean — the version moved with no emission change, which is legal (see the header)${wentBackward ? ' — even a backward move, since the ordering check only guards a moved emission' : ''}.`);
 else
-  console.log(`  ✓ clean — ${changed.length} artifact(s) moved and the version moved with them.`);
+  console.log(`  ✓ clean — ${changed.length} artifact(s) moved and the version moved FORWARD with them.`);
 console.log('    Note the limit: this compares COMMITS. An uncommitted artifact change with no bump is');
 console.log('    invisible here until it is committed.');
