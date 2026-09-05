@@ -2624,14 +2624,35 @@ const anatomyErrors = (def: ComponentDef): string[] => {
     if (p.nesting?.kind === 'nest-fixed' && !Object.keys(p.nesting.variant).length)
       e.push(`anatomy part '${n}' declares nesting 'nest-fixed' with an empty variant — the whole point of 'fixed' is that the def picks the coordinate rather than inheriting the nested set's first child (#656)`);
     // `follow` names a HOST axis whose value the nested coordinate takes per member (#1134). Each entry
-    // must be an axis THIS def declares in `variants` — a followed axis the host does not carry has no
-    // value to pass through, so it would silently fall back to `variant` at every coordinate and read as
-    // a passthrough that never fires. (That the NESTED set also has the axis is checked at projection,
-    // against the members' own names, by `nestVariantMatch`.)
-    if (p.nesting?.kind === 'nest-fixed' && p.nesting.follow)
+    // must be an axis that REACHES the projected coordinate — a followed axis the host does not carry
+    // there has no value to pass through, so it silently falls back to `variant` at every coordinate and
+    // reads as a passthrough that never fires. (That the NESTED set also has the axis is checked at
+    // projection, against the members' own names, by `nestVariantMatch`.)
+    //
+    // THE REACHABLE SET IS `variantAxes` ∪ `state`, NOT `variants` (#1298). Membership in `variants` was
+    // the wrong question in both directions, and each direction shipped a real defect:
+    //
+    //  - TOO PERMISSIVE. `size` is a `variants` axis on every sized def, so `follow: ['size']` validated —
+    //    and `figmaAnatomySet` passes `size` POSITIONALLY, so it never lands in the slots the projector
+    //    read. The follow was accepted and dropped, and it failed toward a REAL member: the fixed
+    //    `variant: { size: 'medium' }` still resolved, so a `size=small` host would nest a MEDIUM child
+    //    and build green. Same shape for any axis in `variants` but absent from `variantAxes` — button
+    //    declares `width` in `variants` and does not project it, so `follow: ['width']` was inert too.
+    //  - TOO STRICT. `state` is the one projected axis that is deliberately NOT a `variants` key (it is
+    //    `figmaProperties.stateAxis`, and 1202 above refuses the collision), so `follow: ['state']` was
+    //    rejected for an axis that has always reached the coordinate correctly.
+    //
+    // The literal `'state'` rather than `fp.stateAxis.name`, because `state` is the key the projector puts
+    // on the coord and the segment `planComponentName` writes, whatever the def calls the axis. A def
+    // naming it anything else is already refused by the axis-parity gate, which compares `figmaAxisNames`
+    // (which DOES read `stateAxis.name`) against the emitted member names — so this is the reachable
+    // spelling, not a shortcut around a second one.
+    if (p.nesting?.kind === 'nest-fixed' && p.nesting.follow) {
+      const projected = [...(def.figmaProperties?.variantAxes ?? []), ...(def.figmaProperties?.stateAxis ? ['state'] : [])];
       for (const axis of p.nesting.follow)
-        if (!(axis in (def.variants ?? {})))
-          e.push(`anatomy part '${n}' declares nesting 'follow' on '${axis}', which is not an axis this def declares in variants [${Object.keys(def.variants ?? {}).join(', ')}] — a followed axis the host does not carry never passes a value through`);
+        if (!projected.includes(axis))
+          e.push(`anatomy part '${n}' declares nesting 'follow' on '${axis}', which is not an axis this def PROJECTS — the projected coordinate is [${projected.join(', ') || 'none'}] (figmaProperties.variantAxes, plus 'state' when a stateAxis is declared). A followed axis the host member does not carry never passes a value through: it falls back to the fixed 'variant' at every coordinate, which resolves a real member of the wrong coordinate rather than failing (#1298)`);
+    }
     // An `absolute` part cannot be a `swap`: it materializes as an INSTANCE of the component `nests`
     // names, and a swap is the caller nominating a target per file. The two are different
     // materialization paths, and `NESTED_INSTANCE` is the one this kind takes.

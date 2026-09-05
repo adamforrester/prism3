@@ -7,6 +7,87 @@
 
 ---
 
+## (2026-09-05) — a nested coordinate can follow the RUNG, and PR-A's changelog said it already could (#1298, #1226 PR-B)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.51.0 → 0.52.0; `CONTRACT_VERSION` stands at 9.4.0.** First cut off
+`4850a00` (main with #1283), rebased onto `025ebe5` (main with #1301/#1303) after review — 0.52.0 is still
+forward of main's 0.51.0, so the stamp stands rather than being re-cut. First of the two foundation PRs
+under #1226's composed-consumer plan; the
+`height` half (#1299) follows as its own PR. **No committed artifact content moves** — the only diff in
+`out/**` and `schema/token-contract.json` is the version stamp, which is what the changelog entry claims
+and what `git diff --stat` shows (9 files, one line each).
+
+**The blocker was one word in PR-A's changelog: `nestVariantOf` "already loops all follow axes".** True of
+the loop, false of the mechanism, and worth recording as a lesson about *where* a claim is anchored — the
+sentence described the code in front of it correctly and said nothing about the map that code was reading.
+It is why nobody looked again, including me until I probed a projected plan rather than the function.
+
+**What actually reached the loop.** `nestVariantOf` resolved each `follow` axis with `axisValue(axis)`,
+which reads `slots` — the caller's argument map. Two of the three axes a Control→Row nest must follow are
+not in it:
+
+  · **`size` never arrives at all.** It is a POSITIONAL parameter of `figmaAnatomyPlan`, and
+    `figmaAnatomySet` deliberately filters it out of the grid-axis spread (`gridAxes = declared.filter(a
+    => a !== 'size')`), so `slots.size` does not exist by construction. `follow: ['size']` passed the
+    schema — `size` IS a `variants` key — and was dropped by the projector.
+  · **`state` reached the loop and was refused one layer up.** The schema tested `axis in variants`, and
+    `state` is deliberately *not* a `variants` key: it is `figmaProperties.stateAxis`, and the validator
+    already refuses the collision. So the one followable axis that always worked was the one a def could
+    not name.
+
+**The `size` half failed TOWARD a real member, which is what made it the blocker rather than a nuisance.**
+A dropped follow falls back to the fixed `variant`, and the fixed variant resolves: a `size=small` Row
+would have nested a `size=medium` Control and built green in a live file, with `nestVariantMatch` reporting
+a clean match and every gate agreeing. Measured in the suite rather than asserted in prose — both
+coordinates resolve against a two-rung member list, so the test states the hazard rather than describing
+it. The same silence covered any axis in `variants` but absent from `variantAxes`: button declares `width`
+and does not project it (#1223, "a drag, not projected"), so `follow: ['width']` validated and reached
+nothing, with no fallback mismatch to make it visible.
+
+**The fix is one map, not one axis.** `nestVariantOf` now resolves from **`paintCoord`** — the grid axes,
+plus `state`, plus `size` — which is already the map paint keys and binding keys fill from (#1248). So a
+nest coordinate becomes the third consumer of one substitution rule instead of a third rule.
+
+**`axisValue` is deliberately NOT widened, and this is the trap for whoever revisits it.** The obvious fix
+is to make `axisValue('size')` return the positional `size`. It is wrong: `size` is a key of
+`def.variants`, so the `coord` spread would then pick it up, every plan's `coord` would become non-empty,
+and the **"structure-only plan ⇒ empty coord"** invariant would retire silently. That invariant is what
+lets `lint-paint` tell *legitimately unpainted* from *dropped the paints*. `coord`'s own comment says so;
+the shortest path to a green suite goes straight through it.
+
+**The schema's reachability test is now `figmaProperties.variantAxes` ∪ `state`, not `variants`** — the
+axes a member's *name* can carry, which is the set `nestVariantMatch` resolves against. The literal
+`'state'` rather than `fp.stateAxis.name`, because `state` is the key the projector puts on the coord and
+the segment `planComponentName` writes whatever the def calls the axis; a def naming it anything else is
+already refused by the axis-parity gate, which *does* read `stateAxis.name`. So this is the reachable
+spelling, not a shortcut past a second one.
+
+**Mutation-tested by name (docs/34), committed between mutations:**
+
+  · revert `paintCoord` → `axisValue` in `nestVariantOf` → `#1298 a size=small host member nests the
+    size=small child` fails, and its `got` shows `{"surface":"default","size":"medium","state":"hover"}` —
+    the defect and the state half's innocence in one line;
+  · revert the reachability test to `axis in variants` → **3** failures by name: the `['surface','size',
+    'state']` and `['state']` acceptance lines, plus the `width` refusal (`got []`).
+
+The independence guard is asserted *first*: the patched def's fixed fallback names `size=medium,
+state=rest`, read back off the def rather than restated as a literal, so the two projection assertions
+cannot pass on the fallback. Original coverage kept — a `follow` on an axis the def does not declare at
+all (`tone`) still fails, so the widening did not turn the rule into a pass for everything.
+
+**Nothing in the corpus changes.** The only defs using `follow` are the three button intents, all
+following `['surface']`, all with `surface` in `variantAxes` — reachable before and after. So the stricter
+schema is safe today and the projector's behavior on every current def is byte-identical, which is why the
+ENGINE bump is for the mechanism and `CONTRACT_VERSION` stands.
+
+**One finding for #1226 PR-C, ahead of building it.** The #1299 `height` fix (next PR) is filed as
+unblocking checkbox's #1201 line box, and on reading the anatomy that is probably not how the extraction
+should use it: `controlBox` is a `box` whose `align/justify: center` is what centers a smaller control
+inside a taller line box, and an instance bound to the line-box height would *stretch* rather than center.
+The likely shape is `controlBox` staying a box and its CHILD becoming the `nest` — which needs no `height`
+on a nest at all. #1299 is still worth fixing as a silent drop in its own right; it just may not be PR-C's
+dependency. Flagged so the next lane does not build around the assumption.
+
 ## (2026-09-05) — the `strokesIncludedInLayout` crash on `layoutMode: NONE` nodes, fixed in both executors (#1266 regression)
 
 **STATUS: shipped. `ENGINE_VERSION` stays 0.51.0; `CONTRACT_VERSION` stays 9.4.0 — version-neutral.**

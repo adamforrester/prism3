@@ -138,6 +138,36 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.52.0: a nested coordinate can follow the axes a composed consumer actually needs — `size` and
+ * `state` (#1298, #1226 PR-B). `nestVariantOf` resolves each `follow` axis from `paintCoord` instead of
+ * the caller's argument map, and the schema's reachability test becomes `figmaProperties.variantAxes` ∪
+ * `state` instead of membership in `variants`.
+ *
+ * THIS CORRECTS PR-A'S CHANGELOG, which said `nestVariantOf` "already loops all follow axes". True of the
+ * loop, false of the mechanism, and worth stating plainly because the sentence was the reason nobody
+ * looked: what the loop read was `slots`, and two of the three axes a Control→Row nest must follow do not
+ * arrive there. `size` is a POSITIONAL parameter of `figmaAnatomyPlan` and is filtered out of
+ * `figmaAnatomySet`'s grid spread on purpose, so `slots.size` never exists; `state` did reach the loop and
+ * was refused one layer up, by a schema test asking `axis in variants` — where `state` is deliberately
+ * NOT a `variants` key (the two collide, and 1202 says so).
+ *
+ * The `size` half FAILED TOWARD A REAL MEMBER, which is why it blocked the composed consumers rather than
+ * merely annoying them: the fixed fallback still resolved, so a `size=small` Row would have nested a
+ * `size=medium` Control and built green in a live file. The same silence covered every axis in `variants`
+ * but absent from `variantAxes` — button declares `width` and does not project it, so `follow: ['width']`
+ * validated and reached nothing. Both are now refused by name, and the message names the projected
+ * coordinate rather than the declared one.
+ *
+ * `axisValue` is deliberately untouched: `size` IS a `variants` key, so widening it there would fold
+ * `size` into `coord` and retire the "structure-only plan ⇒ empty coord" invariant `lint-paint` reads.
+ * Routing through `paintCoord` also collapses a third substitution rule — paint keys, binding keys
+ * (#1248) and nest coordinates now fill from one map.
+ *
+ * NO COMMITTED ARTIFACT MOVES, and that is measured rather than argued: the only defs using `follow`
+ * today are the three button intents, all following `['surface']`, which was already reachable. So the
+ * bump is for the MECHANISM, per the rule this constant states — and `CONTRACT_VERSION` stands, because
+ * no token name is involved at all.
+ *
  * 0.51.0: every SHIPPED brand roots at a namespace of its own, and `prism`/`pds3` are RESERVED (#1283).
  * aurora `prism` -> `ads`, harbor `prism` -> `hds`, wendys `prism` -> `wds`, joining New Balance's
  * long-standing `nbds` under the same `<brand>ds` convention. Three of the four had been sitting on the
@@ -1288,7 +1318,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.51.0';
+export const ENGINE_VERSION = '0.52.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
