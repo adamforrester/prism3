@@ -51,7 +51,7 @@ import { verifyReadback, verifyFloatReadback, verifyTypographyReadback, Readback
 import { tailOf } from './figma-names';
 import { serializeBrandInput, deserializeBrandInput, PERSIST_VERSION, UnrecognizedPersistedInputError } from './persist-input';
 import { validateComponentDef, figmaPropertyErrors, figmaAxisNames, figmaVariantCount, fillPaintKey, replacesCandidates, statesOf, PAINT_SLOTS, ComponentDef, AnatomyDef } from './component-schema';
-import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, type AnatomyPlan } from './anatomy-figma';
+import { figmaAnatomyPlan, figmaAnatomySet, planBindingErrors, planSetProperties, planSetLayout, planPartNames, planBoundVars, planPaintVars, planEffectStyles, planTextStyles, planToPluginJs, planSetToPluginJs, planSetChunks, stripPayloadComments, SET_CHUNK_BYTES, planComponentName, figmaVarName, nestVariantMatch, swapMissAdvice, SWAP_TARGET_SLOT, SWAP_PLACEHOLDER, SWAP_NO_PROPERTY, applyControlShape, isPillable, PILL_RADIUS_DERIVATION, PILL_RADIUS_RUNG, type AnatomyPlan, type SwapFound } from './anatomy-figma';
 import type { ControlShape } from './scale';
 // The one import this suite makes ACROSS the engine/plugin boundary, and the parity gate (#487 step 5)
 // is why: with two executors for one `AnatomyPlan`, a gate that only ever sees one of them cannot say
@@ -9881,6 +9881,105 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(noIcon.misses.some((m) => /property leadingVisual -> swap target FPO-default-icon/.test(m)),
         `set properties: an unresolvable swap target is reported and the property is NOT created — Figma refuses '' and the component key alike (${JSON.stringify(noIcon.misses.filter((m) => m.includes('leadingVisual')))})`);
 
+      // ---- #1288: THE SWAP MISS NAMES WHAT IT FOUND, on the PASTE path too ------------------------
+      // The sibling of the nest path's four-way table (see `ringFound` above), owed to the swap path ever
+      // since #1280 PR-C enriched the PLUGIN's two `INSTANCE_SWAP` consumers and left this one bare. For a
+      // release the two executors told a designer different things about the same file: the plugin said what
+      // the file held and what to do, the paste path said `property leadingVisual -> swap target
+      // FPO-default-icon (not found; property not created)` — and "not found" is false in three of the four
+      // states, which is the claim `nestMissAdvice` was written to retire.
+      //
+      // BOTH CONSUMERS FROM ONE PAYLOAD, which the nest path cannot do and is the reason this block is
+      // shaped differently: `planSetToPluginJs` carries `PAYLOAD_BUILD`'s INSTANCE_SWAP branch AND the
+      // property loop, so one run reports the node-level miss and the property-level one on the same file.
+      // Gated HERE as well as in the plugin suite for the reason the #681 block states — two executors, two
+      // mechanisms, and one of them could go silently wrong while the other stayed gated.
+      const ICON = 'FPO-default-icon';
+      const swapStates: [string, SwapFound, StubFileNode | undefined][] = [
+        ['nothing of that name', 'ABSENT', undefined],
+        ['a COMPONENT_SET', 'COMPONENT_SET', { name: ICON, type: 'COMPONENT_SET', variants: ['size=md', 'size=lg'] }],
+        ['an INSTANCE', 'INSTANCE', { name: ICON, type: 'INSTANCE' }],
+        ['a FRAME', 'OTHER', { name: ICON, type: 'FRAME' }],
+      ];
+      /** The file each row is run against: the icon gone from the COMPONENT list, and whatever node the row
+       *  puts there instead. `focus-ring` stays, so the ring resolves and the swap misses are the only ones
+       *  in the report — the previous `comps: []` starved the nest path at the same time. */
+      const swapFile = (node?: StubFileNode): StubOpts => ({
+        ...fullSet,
+        comps: (fullSet.comps ?? []).filter((c) => c !== ICON),
+        fileNodes: node ? [node] : [],
+      });
+      // REACHABILITY, both halves, because a table driven by a file that RESOLVES reports four passes and
+      // gates nothing: the real plans nominate this name, and row 0's file genuinely lacks it.
+      ok((fullSet.comps ?? []).includes(ICON) && !(swapFile().comps ?? []).includes(ICON),
+        `#1288 reachable: the grid nominates ${ICON} and the row files genuinely lack it (${(fullSet.comps ?? []).length} -> ${(swapFile().comps ?? []).length} components)`);
+      // AND THE SENTINEL REALLY SHIPS. The four sentences are baked before any node's `swapTarget` is known,
+      // so the name arrives as `SWAP_TARGET_SLOT` and the payload substitutes it at paste time. Asserted in
+      // both directions: present in the emitted string, and absent from every miss a designer reads. A
+      // forgotten `.split().join()` would print `__SWAP_TARGET__` into the report, and only the second half
+      // of this pair can see that.
+      ok(planSetToPluginJs(grid).includes(SWAP_TARGET_SLOT),
+        `#1288 reachable: the payload carries the ${SWAP_TARGET_SLOT} sentinel, so the substitution below has something to do`);
+
+      const swapMissesOf = (ms: readonly string[], part: string) => [...new Set(ms.filter((m) => m.startsWith(`${part}.swapTarget -> `)))];
+      const swapRows: { label: string; found: SwapFound; lead: string; spinner: string; prop: string }[] = [];
+      for (const [label, found, node] of swapStates) {
+        const r = await runPayload(planSetToPluginJs(grid), swapFile(node));
+        const prop = [...new Set(r.misses.filter((m) => m.startsWith('property ') && m.indexOf(`swap target ${ICON}`) >= 0))];
+        swapRows.push({
+          label, found,
+          lead: swapMissesOf(r.misses, 'leadingVisual')[0] ?? '(none)',
+          spinner: swapMissesOf(r.misses, 'spinner')[0] ?? '(none)',
+          prop: prop[0] ?? '(none)',
+        });
+      }
+      // FLOOR: every row reported through both consumers. `(none)` on either side makes every content
+      // assertion below vacuously true of a string that says nothing.
+      ok(swapRows.every((r) => r.lead !== '(none)' && r.prop !== '(none)'),
+        `#1288 all four file states report BOTH consumers on the paste path (${swapRows.map((r) => `${r.label}: ${r.lead === '(none)' ? 'no node miss' : 'node'}/${r.prop === '(none)' ? 'no property miss' : 'property'}`).join(', ')})`);
+      ok(new Set(swapRows.map((r) => r.lead)).size === 4 && new Set(swapRows.map((r) => r.prop)).size === 4,
+        `#1288 four file states, four DISTINCT messages on each consumer — the miss names what it found rather than always claiming absence (${new Set(swapRows.map((r) => r.lead)).size}/4 node, ${new Set(swapRows.map((r) => r.prop)).size}/4 property)`);
+      ok(swapRows[0].lead.indexOf('not in this file') >= 0 && swapRows[0].lead.indexOf(`build ${ICON} FIRST`) >= 0,
+        `#1288 nothing of that name is a BUILD-ORDER cue naming the target INSIDE the advice (${swapRows[0].lead})`);
+      ok(swapRows[1].lead.indexOf('COMPONENT_SET') >= 0 && swapRows[1].lead.indexOf('ONE component') >= 0 && swapRows[1].lead.indexOf(`Publish one member of ${ICON}`) >= 0,
+        `#1288 the COMPONENT_SET case says so by name, says why a set cannot fill a swap, and carries an action for THAT case — the row a designer with their own icon library actually hits (${swapRows[1].lead})`);
+      ok(swapRows[2].lead.indexOf('INSTANCE') >= 0 && swapRows[2].lead.indexOf('main component') >= 0,
+        `#1288 an INSTANCE — what duplicating a variant out of a set produces — says so and points at the main (${swapRows[2].lead})`);
+      ok(swapRows[3].lead.indexOf('not a component') >= 0,
+        `#1288 the FRAME case says the node is not a component (${swapRows[3].lead})`);
+      // NO ROW CLAIMS ABSENCE OF A NODE THAT IS PRESENT — the half of #681's finding that made the old
+      // wording actively misleading rather than merely thin, now asserted for the paste path's swap sites.
+      ok(swapRows.slice(1).every((r) => r.lead.indexOf('not in this file') < 0 && r.prop.indexOf('not in this file') < 0),
+        `#1288 with a node of that name in the file, neither consumer claims it is "not in this file" (${swapRows.slice(1).map((r) => r.label).join(', ')})`);
+      // THE TWO CONSEQUENCES ARE OPPOSITE and each consumer reports only its own: a node-level miss leaves a
+      // box you can fill, a property-level miss leaves the slot unswappable.
+      ok(swapRows.every((r) => r.lead.indexOf(SWAP_PLACEHOLDER) >= 0 && r.lead.indexOf('NOT created') < 0),
+        '#1288 the paste path\'s node-level miss reports the placeholder frame, and never the property consequence');
+      ok(swapRows.every((r) => r.prop.indexOf(SWAP_NO_PROPERTY) >= 0 && r.prop.indexOf('placeholder frame') < 0),
+        `#1288 ...and the property-level miss reports that the slot is not swappable at all, and never the placeholder (${swapRows[0].prop})`);
+      ok(swapRows.every((r) => r.lead.indexOf(SWAP_TARGET_SLOT) < 0 && r.prop.indexOf(SWAP_TARGET_SLOT) < 0),
+        `#1288 and the sentinel is SUBSTITUTED, never printed — a designer reads the target's name, not ${SWAP_TARGET_SLOT}`);
+      // THE PENDING SPINNER, which is the case a check pinned to `leadingVisual` misses (#612, found in
+      // #1280 PR-D at 18 of 21): at `state=pending` the leading slot is REPLACED by a part called `spinner`,
+      // nominating the same target. So one starved run reports TWO node-level swap misses, adjacent in a
+      // concatenated report — the situation #1262 is about, and the reason each sentence has to carry its
+      // own target rather than say "the component just above". What is asserted here is the half this
+      // fixture can actually falsify: the second site reports at all, and it gets the SAME full diagnosis
+      // rather than a degraded one. (Both parts nominate one target, so the identity cannot distinguish a
+      // sentence that names its subject from one that assumes it — that claim is row 0's `build X FIRST`
+      // anchor above, which reads the name out of the advice itself.)
+      ok(swapRows.every((r) => r.spinner !== '(none)' && r.spinner.slice('spinner'.length) === r.lead.slice('leadingVisual'.length)),
+        `#1288 / #612 the pending spinner is a second swap site in the same run, and gets the same full diagnosis as the leading slot (${swapRows[0].spinner})`);
+      // PARITY WITH THE PLUGIN, composed rather than pinned. The expected string is built from the SHARED
+      // `swapMissAdvice` and the shared consequence clause — the same two the plugin's consumers compose
+      // from — so this fails the moment the payload spells the wording itself instead of interpolating the
+      // one definition. The four content anchors above are hand-written literals, which is what keeps this
+      // from being the only thing standing between a bare message and a green suite.
+      ok(swapRows.every((r) => r.lead === `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_PLACEHOLDER})`),
+        `#1288 the paste path's node-level miss is composed from the SHARED advice, byte for byte (${swapRows.find((r) => r.lead !== `leadingVisual.swapTarget -> ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_PLACEHOLDER})`)?.lead ?? 'all four match'})`);
+      ok(swapRows.every((r) => r.prop === `property leadingVisual -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`),
+        `#1288 ...and so is the property-level one (${swapRows.find((r) => r.prop !== `property leadingVisual -> swap target ${ICON} (${swapMissAdvice(r.found, ICON)}; ${SWAP_NO_PROPERTY})`)?.prop ?? 'all four match'})`);
+
       // ---- the BOOLEAN path through the PAYLOAD, not just the plan (#513's stated ceiling) --------
       // #513 said "the `booleans` path is unit-tested through a synthetic def but not yet exercised
       // live", and the coverage above (`boolProps`) is `planSetProperties` only — it proves the plan
@@ -10242,6 +10341,49 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `parity #681: both paths report the fifth miss on a set carrying the wrong coordinate — paste ${fifth(pastedSet.misses).length}, plugin ${fifth(pluggedSet.misses).length}`);
         ok(sorted(fifth(pluggedSet.misses)) === sorted(fifth(pastedSet.misses)),
           `parity #681: and it is the IDENTICAL string on both — the plugin imports the helper, the payload ships its source, so equality here is the only check that they agree\n    paste:  ${fifth(pastedSet.misses)[0]}\n    plugin: ${fifth(pluggedSet.misses)[0]}`);
+
+        // THE SWAP MISS, ACROSS BOTH PATHS (#1288) — the same claim the block above makes for the nest
+        // path, owed to the swap path since #1280 PR-C. NEITHER comparison already here can reach it:
+        // the starved run's `starvedOpts.comps` still holds `FPO-default-icon`, so every swap RESOLVES,
+        // and the #681 case only removes `focus-ring`. That hole is not hypothetical — it is exactly how
+        // the two executors drifted for a release: PR-C rewrote the plugin's two swap consumers, the
+        // payload kept saying `(not found; property not created)`, and this block was green throughout.
+        //
+        // FOUR STATES, not one, because the divergence to catch is per-CASE: a payload that hard-coded
+        // one sentence would agree with the plugin on the absent row and differ on the other three. And
+        // BOTH consumers each time — the node-level miss and the property-level one carry opposite
+        // consequences, and only the paste path can report them from a single run.
+        for (const [label, , node] of swapStates) {
+          const file: StubOpts = { ...swapFile(node), page: { children: [] } };
+          const pastedSwap = await runPayload(planSetToPluginJs(grid), file);
+          const pluggedSwap = await plugRun(grid, { ...file, page: { children: [] } });
+          const swapNode = (ms: readonly string[]) => [...new Set(ms.filter((m) => m.indexOf('.swapTarget -> ') >= 0))];
+          const swapProp = (ms: readonly string[]) => [...new Set(ms.filter((m) => m.indexOf(`swap target ${ICON}`) >= 0))];
+          // FLOOR, per row: equality is vacuous between two empty lists, and an empty list is what a
+          // payload whose `swapAdvice` threw would leave behind.
+          ok(swapNode(pastedSwap.misses).length > 0 && swapProp(pastedSwap.misses).length > 0
+            && swapNode(pluggedSwap.misses).length > 0 && swapProp(pluggedSwap.misses).length > 0,
+            `parity #1288 (${label}): both executors have swap misses to compare on both consumers — paste ${swapNode(pastedSwap.misses).length}/${swapProp(pastedSwap.misses).length}, plugin ${swapNode(pluggedSwap.misses).length}/${swapProp(pluggedSwap.misses).length}`);
+          ok(sorted(swapNode(pluggedSwap.misses)) === sorted(swapNode(pastedSwap.misses)),
+            `parity #1288 (${label}): the node-level swap miss is the IDENTICAL string on both — the plugin imports \`swapMissAdvice\`, the payload interpolates the four baked sentences and substitutes ${SWAP_TARGET_SLOT} in the file, so equality here is the only check that they agree\n    paste:  ${swapNode(pastedSwap.misses)[0]}\n    plugin: ${swapNode(pluggedSwap.misses)[0]}`);
+          ok(sorted(swapProp(pluggedSwap.misses)) === sorted(swapProp(pastedSwap.misses)),
+            `parity #1288 (${label}): ...and so is the property-level one, whose consequence clause is the opposite of the node-level one\n    paste:  ${swapProp(pastedSwap.misses)[0]}\n    plugin: ${swapProp(pluggedSwap.misses)[0]}`);
+        }
+        // PROOF OF LIFE for the swap comparison specifically, and it has to be its own: the block-level
+        // one below diverges the two paths by emptying `comps`, which now makes BOTH sides report swap
+        // misses and so proves nothing about whether the swap wording is compared case by case. This
+        // hands the two executors DIFFERENT file states — a set on one side, an instance on the other —
+        // and requires the comparison above to call that a difference. A payload with one hard-coded
+        // sentence passes every row above and fails here.
+        {
+          const asSetFile: StubOpts = { ...swapFile({ name: ICON, type: 'COMPONENT_SET', variants: ['size=md'] }), page: { children: [] } };
+          const asInstFile: StubOpts = { ...swapFile({ name: ICON, type: 'INSTANCE' }), page: { children: [] } };
+          const a = await runPayload(planSetToPluginJs(grid), asSetFile);
+          const b = await plugRun(grid, asInstFile);
+          const swapNode = (ms: readonly string[]) => [...new Set(ms.filter((m) => m.indexOf('.swapTarget -> ') >= 0))];
+          ok(sorted(swapNode(a.misses)) !== sorted(swapNode(b.misses)),
+            `parity #1288 gate: two executors reading DIFFERENT file states are reported as different, so the four rows above are a live comparison and not two readings of one hard-coded sentence\n    paste(set):      ${swapNode(a.misses)[0]}\n    plugin(instance): ${swapNode(b.misses)[0]}`);
+        }
 
         // PROOF OF LIFE, because every assertion above passes if the comparison is between two things
         // that cannot differ — which is exactly what the shared `planSetLayout` makes plausible here.

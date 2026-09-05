@@ -138,6 +138,46 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.50.0: the PASTE PATH gets the same swap diagnosis, and the two executors stop disagreeing (#1288).
+ * `swapMissAdvice`, its `SwapFound` union and the two consequence clauses move out of
+ * `apps/plugin/src/write-components.ts` into `anatomy-figma.ts`, beside `nestMissAdvice` and for the same
+ * reason: the plugin IMPORTS the helper, the emitted payload interpolates its four sentences, and neither
+ * can drift from the other while there is one definition. The payload's two swap sites — `PAYLOAD_BUILD`'s
+ * `INSTANCE_SWAP` branch and the property loop in `PAYLOAD_DECLARE_PROPS` — now compose the four-way
+ * message byte-identically to the plugin's two consumers, which are untouched.
+ *
+ * THE DESIGN QUESTION 0.49.0 LEFT OPEN HAS A FALSE PREMISE, and the correction is the interesting part of
+ * this release. That entry (and #1288 quoting it) deferred the paste path because *"it composes its advice
+ * at EMIT time and has no `root.findAll` to read the file state from"*. Emit time decides only WHICH
+ * strings ship; the payload itself RUNS IN THE FILE, so `figma.root.findAll` is available to it exactly as
+ * it is to the plugin — the nest path's own payload has been calling it, inline in `PAYLOAD_BUILD`, for two
+ * releases. So there was never a degraded version to design: the paste path gets the same four rows, the
+ * same wording and the same second search. Left uncorrected, that premise would have justified a
+ * permanently worse message on the surface a designer reaches through a paste.
+ *
+ * WHAT THE SENTINEL IS ACTUALLY FOR, then. `SWAP_TARGET_SLOT` (`__SWAP_TARGET__`) is the swap counterpart
+ * to `NEST_TARGET_SLOT`, and it is needed for the one thing emit time really does constrain: the four
+ * sentences are BAKED into the payload before any node's `swapTarget` is known, so each names the sentinel
+ * and the payload substitutes the real name at paste time. Where the nest path needs one such row, the
+ * swap path needs all FOUR — every swap sentence names its own target, which is #1262's finding, and a
+ * starved run reports two adjacent swap misses in one report (`leadingVisual`, and `spinner` at
+ * `state=pending`), so "the component just above" would bind to a neighbour.
+ *
+ * THE PARITY GATE IS EXTENDED RATHER THAN ADDED. `test.ts`'s ONE STUB, TWO DRIVERS block already required
+ * byte-identical miss strings out of both executors on the nest path's fifth miss (#681); it now does the
+ * same for swaps, across all four file states and both consumers. It could not have caught this drift
+ * before: the starved run's file still holds `FPO-default-icon`, so every swap resolved, and the #681 case
+ * only removes `focus-ring`. That is precisely how 0.49.0's plugin-only change stayed green for a release
+ * while the two executors told a designer different things about the same file.
+ *
+ * WHY THIS BUMPS ENGINE, on 0.49.0's own reasoning: these are SHIPPED PROSE in `apps/plugin/dist`, which
+ * `lint-us-english` scans as a surface of this engine, and they now ship twice over — once as the imported
+ * helper and once inside the emitted payload string in `main.js`. `CONTRACT_VERSION` stands at 9.4.0 and
+ * `regen --check` reports all 108 committed artifacts byte-matching: no def moved, and no `out/**` byte
+ * moves but this file's own generator stamp. One correction to 0.49.0's prose is deliberately NOT made —
+ * its claim that the engine emits `icon` as "a set of 39 members" is stale (it materializes as separate
+ * components, #1012/0.47.0) and is filed as #1293 rather than edited into merged history here.
+ *
  * 0.49.0: a missing SWAP TARGET is diagnosed instead of merely named (#1280 PR-C, #1212 residue). Both
  * `INSTANCE_SWAP` consumers in `apps/plugin/src/write-components.ts` — the node loop and the property loop
  * — now run the #681 second search on the failure path and report through a four-way `swapMissAdvice`
@@ -1221,7 +1261,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.49.0';
+export const ENGINE_VERSION = '0.50.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
