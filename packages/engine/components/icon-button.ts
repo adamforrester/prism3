@@ -4,32 +4,100 @@
  * It exists as a DISTINCT component for one reason: an icon-only control has no visible
  * text, so its accessible name must be REQUIRED at the type level — "button, unlabelled" is
  * the single highest-frequency Button a11y failure in the wild (brief §6). Everything else
- * it inherits from Button (the intent × appearance model, the state trio, the focus contract);
+ * it inherits from Button (the appearance model, the state trio, the focus contract);
  * this def records the DELTA, per the schema's `inherits` convention.
  *
  * The boundary from the other side: here the IconButton owns the accessible name and the
  * Icon inside it is decorative (aria-hidden) — the inverse of a labelled Button with a
  * leadingVisual, where the label carries the name and the icon is aria-hidden either way.
+ *
+ * ── #1225: INTENT IS THE COMPONENT, NOT AN AXIS ────────────────────────────────────────────────
+ * The three semantic intents are now three COMPONENTS — `IconButton` (primary/brand),
+ * `Destructive IconButton`, `Neutral IconButton` — built by the `makeIconButton` factory below from one
+ * shared anatomy. This is the icon-only counterpart of #1223/#1224's split of Button: intent used to be a
+ * variant axis crossing appearance × size × state (one 162-member set); splitting it gives three
+ * 54-member sets whose only difference is the `interactive.<family>` color binding. Appearance is STILL
+ * the emphasis axis within each component (filled > outline > text). `icon-button` keeps its id and is the
+ * primary component; `icon-button-destructive` and `icon-button-neutral` are its siblings. `lint-axis-values.ts`
+ * had scoped its `intent` register entry to `['icon-button']` alone, provisionally, naming this exact open
+ * question; the split closes it — no def carries `intent` as a variant axis any more, so the entry is gone.
+ *
+ * `inherits` follows the semantics rather than the id: the primary `icon-button` records its delta from
+ * `button`, and each sibling records its delta from the Button of the SAME family (`button-destructive`,
+ * `button-neutral`) — "a Destructive IconButton is a Destructive Button whose content is an icon". `inherits`
+ * is read by NOTHING in the projector (see the anatomy note below), so this is prose about provenance, not a
+ * resolution mechanism; the guardrail in `test.ts` deliberately does not pin it, so the three may name
+ * different parents while sharing byte-identical anatomy.
  */
 import { ComponentDef } from '../component-schema';
 
-export const iconButton: ComponentDef = {
-  id: 'icon-button',
-  name: 'IconButton',
+type IntentFamily = 'primary' | 'neutral' | 'destructive';
+
+/**
+ * The per-family PAINT for the icon-only control, authored ONCE and called per component — #1225 split the
+ * three semantic intents into three components (IconButton / Destructive IconButton / Neutral IconButton),
+ * and this map is the ONLY thing that differs between them. Every def `makeIconButton` produces is
+ * byte-identical but for the `color.interactive.<family>.*` bindings returned here; `test.ts` asserts
+ * exactly that (the factory's safety net), so a binding edited on one component and not the others fails BY
+ * NAME rather than shipping three icon-buttons that have quietly diverged (docs/34).
+ *
+ * The keys drop the intent segment the grammar used to lead with. With intent FIXED per component it is no
+ * longer a coordinate, so `paintKeys` is `{appearance}.{slot}.{state}` / `{appearance}.{slot}` and these keys
+ * match it. This is Button's `intentTokens` MINUS the label — an icon-only control has no `label` slot, so
+ * there are no `filled.label` / `outline.label.*` / `text.label` keys, and the outline ink is bound at REST
+ * only (this def never carried #1282's per-state outline ink, which was a Button-only change; the split
+ * preserves that exactly rather than aligning the two). `disabled.*` is cross-cutting (intent-independent,
+ * docs/20 §7) and lives in the shared token block, not here — its identity across all three components is
+ * the whole reason the split loses no coverage.
+ */
+const iconButtonIntentTokens = (family: IntentFamily): Record<string, string> => ({
+  // filled — interactive fill + on-fill ink (the glyph carries the ink an icon-only control has instead of a label)
+  'filled.fill': `color.interactive.${family}.fill.rest`,
+  'filled.fill.hover': `color.interactive.${family}.fill.hover`,
+  'filled.fill.pressed': `color.interactive.${family}.fill.pressed`,
+  'filled.icon': `color.interactive.${family}.on-fill`,
+  // outline — the EDGE carries state (#576), so all three rather than letting hover/pressed fall to rest.
+  // The glyph ink is bound at REST only, deliberately: unlike Button (#1282), this def never gave the ink
+  // per-state bindings, and the split PRESERVES that rather than adding them (a separate question, #1282's
+  // reasoning is Button-specific — its ink had to track a moving border it surrounds).
+  'outline.border': `color.interactive.${family}.border.rest`,
+  'outline.border.hover': `color.interactive.${family}.border.hover`,
+  'outline.border.pressed': `color.interactive.${family}.border.pressed`,
+  'outline.icon': `color.interactive.${family}.text.rest`,
+  // text — ink only; hover/pressed are the translucent overlay wash on the container.
+  'text.icon': `color.interactive.${family}.text.rest`,
+  // outline/text hover is the overlay wash — a fill on the target node, because neither appearance has a
+  // fill to change. Both states keyed, or a pressed member falls back to rest and projects identical to it.
+  'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
+  'outline.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+  'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
+  'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
+});
+
+/**
+ * The icon-button FACTORY (#1225). One anatomy, three color families → three components. `id`, `name`,
+ * `description`, `inherits` and the `interactive.<family>` paint are the only things that vary; everything
+ * below — props, states, appearance/size axes, the square geometry, the required icon slot, the focus ring,
+ * disabled, accessibility — is authored ONCE here and shared verbatim. The three exports at the foot of the
+ * file are its outputs, not hand-maintained copies (docs/34 DRY), and `test.ts` pins that.
+ */
+const makeIconButton = (id: string, name: string, description: string, family: IntentFamily, inheritsFrom: string): ComponentDef => ({
+  id,
+  name,
   aliases: ['icon-btn'],
   category: 'form',
   status: 'draft',
-  description:
-    'A Button whose entire content is a single icon, with no visible text label. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory.',
+  description,
 
-  inherits: 'button',
+  inherits: inheritsFrom,
 
   // Delta from Button: the label becomes an icon; the name moves to a required accessible name.
+  // #1225 — no `intent` prop. Intent is now the COMPONENT (IconButton = primary; Destructive IconButton;
+  // Neutral IconButton), not a prop on one component.
   props: [
     { name: 'icon', type: 'slot', required: true, description: 'The single icon. Rendered aria-hidden — the IconButton owns the name.' },
     { name: 'aria-label', type: 'string', required: true, description: 'REQUIRED accessible name (there is no visible text). A verb naming the action ("Close", "More actions"). Enforced at the TYPE LEVEL — a missing name is a compile error, not merely a runtime warning; that type-level requirement is the entire reason IconButton is a separate component.' },
-    { name: 'intent', type: "enum: 'primary' | 'neutral' | 'destructive'", values: ['primary', 'neutral', 'destructive'], default: 'neutral', required: false, description: 'Inherited from Button (interactive.<intent>.*). Icon-only actions are most often neutral text-appearance.' },
-    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'text', required: false, description: 'Default text — icon-only actions usually sit in toolbars, not as filled CTAs.' },
+    { name: 'appearance', type: "enum: 'filled' | 'outline' | 'text'", values: ['filled', 'outline', 'text'], default: 'text', required: false, description: 'Default text — icon-only actions usually sit in toolbars, not as filled CTAs. Emphasis is the appearance axis; the color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton).' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Square control; height drives both dimensions.' },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Inherited — swap the icon for a spinner, keep focus, announce busy.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Inherited — focusable disabled for relevant-but-blocked actions.' },
@@ -38,7 +106,8 @@ export const iconButton: ComponentDef = {
 
   states: ['rest', 'hover', 'focus-visible', 'pressed', 'pending', 'inactive', 'disabled'],
   variants: {
-    intent: ['primary', 'neutral', 'destructive'],
+    // #1225 — `intent` is gone as an axis; it is the component identity now. `appearance` carries emphasis,
+    // `size` the rung.
     appearance: ['filled', 'outline', 'text'],
     size: ['small', 'medium', 'large'],
   },
@@ -58,21 +127,23 @@ export const iconButton: ComponentDef = {
   // Same paint grammar as the substrate (#758), and stated rather than inherited: `inherits` records
   // the API delta, not the skin, and `paintOf` reads this def's own field. Repeating two lines is the
   // cheaper error than a lookup that walks `inherits` and resolves to a grammar nobody reading this
-  // file can see — the 162-member set's color would then depend on a file it does not name.
-  paintKeys: ['{intent}.{appearance}.{slot}.{state}', '{intent}.{appearance}.{slot}'],
+  // file can see — the 54-member set's color would then depend on a file it does not name.
+  //
+  // #1225 dropped the leading `{intent}` segment: intent is the component now, so the family is fixed per
+  // def (supplied by `iconButtonIntentTokens(family)` above) and no longer a coordinate the key carries.
+  paintKeys: ['{appearance}.{slot}.{state}', '{appearance}.{slot}'],
 
   tokens: {
     'radius': 'radius.md',
-    // THE OUTLINE BORDER'S THICKNESS (#1278) — 1px, and it does not move; only its PROVENANCE does.
+    // THE OUTLINE BORDER'S THICKNESS (#1278, #1300) — 1px, and it does not move; only its PROVENANCE does.
     // The number used to be the executors' `if (!node.strokeWeight) … = 1` fallback, the right figure
     // with nothing behind it, so a brand re-runging its border floor moved every other bordered part in
     // the system while this def stayed on Figma's default.
     //
-    // STATED HERE RATHER THAN INHERITED, on this file's own standing rule: `inherits: 'button'` records
-    // the API delta and nothing resolves through it — `paintKeys` above carries the same note for the
-    // same reason. The 162-member set's border weight must not depend on a file this one does not name.
-    // Repeating the pair is the cheaper error. It is also why #1278 had to name this def separately at
-    // all: binding the button FACTORY covers three intents and reaches nothing here.
+    // BOUND ON THE DEF, so it travels with the def regardless of how it is split (#1300's own note). #1225
+    // carries it into EACH of the three siblings by way of the shared factory — one bind, three components,
+    // which is exactly the shape #1278's first cut MISSED when it bound the button factory and reached
+    // icon-button not at all (`inherits: 'button'` is prose, nothing resolves through it).
     //
     // The rung is the same one `button` binds and deliberately NOT the one the selection controls bind:
     // Prism 2 draws its outline buttons at 1px and its checkbox/radio/switch at 2px, so `hairline` here
@@ -93,55 +164,16 @@ export const iconButton: ComponentDef = {
     'size.small.icon': 'icon.size.sm',
     'size.medium.icon': 'icon.size.md',
     'size.large.icon': 'icon.size.lg',
-    // primary
-    'primary.filled.fill': 'color.interactive.primary.fill.rest',
-    'primary.filled.fill.hover': 'color.interactive.primary.fill.hover',
-    'primary.filled.fill.pressed': 'color.interactive.primary.fill.pressed',
-    'primary.filled.icon': 'color.interactive.primary.on-fill',
-    // The outline edge is stateful (#576) and this component declares hover/pressed, so bind all
-    // three — an unqualified key alone would project a hovered outline identical to its rest.
-    'primary.outline.border': 'color.interactive.primary.border.rest',
-    'primary.outline.border.hover': 'color.interactive.primary.border.hover',
-    'primary.outline.border.pressed': 'color.interactive.primary.border.pressed',
-    'primary.outline.icon': 'color.interactive.primary.text.rest',
-    'primary.text.icon': 'color.interactive.primary.text.rest',
-    // neutral (default — now stateful)
-    'neutral.filled.fill': 'color.interactive.neutral.fill.rest',
-    'neutral.filled.fill.hover': 'color.interactive.neutral.fill.hover',
-    'neutral.filled.fill.pressed': 'color.interactive.neutral.fill.pressed',
-    'neutral.filled.icon': 'color.interactive.neutral.on-fill',
-    'neutral.outline.border': 'color.interactive.neutral.border.rest',
-    'neutral.outline.border.hover': 'color.interactive.neutral.border.hover',
-    'neutral.outline.border.pressed': 'color.interactive.neutral.border.pressed',
-    'neutral.outline.icon': 'color.interactive.neutral.text.rest',
-    'neutral.text.icon': 'color.interactive.neutral.text.rest',
-    // destructive
-    'destructive.filled.fill': 'color.interactive.destructive.fill.rest',
-    'destructive.filled.fill.hover': 'color.interactive.destructive.fill.hover',
-    'destructive.filled.fill.pressed': 'color.interactive.destructive.fill.pressed',
-    'destructive.filled.icon': 'color.interactive.destructive.on-fill',
-    'destructive.outline.border': 'color.interactive.destructive.border.rest',
-    'destructive.outline.border.hover': 'color.interactive.destructive.border.hover',
-    'destructive.outline.border.pressed': 'color.interactive.destructive.border.pressed',
-    'destructive.outline.icon': 'color.interactive.destructive.text.rest',
-    'destructive.text.icon': 'color.interactive.destructive.text.rest',
-    // outline/text hover is the overlay wash, same as Button's — a fill on the target node, because
-    // neither appearance has a fill to change. Bound here rather than inherited: `inherits` is prose
-    // (see the anatomy note below), so an unbound overlay key would project hover byte-identical to
-    // rest on six of the nine intent×appearance combinations.
-    'primary.outline.overlay.hover': 'color.interactive.primary.overlay.hover',
-    'primary.outline.overlay.pressed': 'color.interactive.primary.overlay.pressed',
-    'primary.text.overlay.hover': 'color.interactive.primary.overlay.hover',
-    'primary.text.overlay.pressed': 'color.interactive.primary.overlay.pressed',
-    'neutral.outline.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'neutral.outline.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
-    'neutral.text.overlay.hover': 'color.interactive.neutral.overlay.hover',
-    'neutral.text.overlay.pressed': 'color.interactive.neutral.overlay.pressed',
-    'destructive.outline.overlay.hover': 'color.interactive.destructive.overlay.hover',
-    'destructive.outline.overlay.pressed': 'color.interactive.destructive.overlay.pressed',
-    'destructive.text.overlay.hover': 'color.interactive.destructive.overlay.hover',
-    'destructive.text.overlay.pressed': 'color.interactive.destructive.overlay.pressed',
-    // cross-cutting disabled
+
+    // THE PER-FAMILY PAINT — the full appearance × slot × state skin, bound to `interactive.<family>.*`.
+    // Authored once in `iconButtonIntentTokens` above and spread here so the three components cannot
+    // silently diverge (#1225, docs/34); the keys the projector reads (`filled.fill`, `outline.border.hover`,
+    // …) are what that function returns. `test.ts` asserts these are the ONLY tokens that differ across the
+    // three defs.
+    ...iconButtonIntentTokens(family),
+
+    // cross-cutting disabled — ONE treatment, any appearance, IDENTICAL across all three icon-button
+    // components (that identity is why splitting the intents loses no coverage — #1225).
     'disabled.fill': 'color.disabled.fill',
     'disabled.icon': 'color.disabled.icon',
     'disabled.border': 'color.disabled.border',
@@ -192,8 +224,8 @@ export const iconButton: ComponentDef = {
         // nobody checks. See `PartDef.size`.
         size: 'size.{size}.side',
         radius: 'radius',
-        // The EDGE's thickness (#1278) — names this def's own key, like `radius` and `size` above. See
-        // `border-width` in `tokens` for the figure and why it is stated here rather than inherited.
+        // The EDGE's thickness (#1278, #1300) — names this def's own key, like `radius` and `size` above.
+        // See `border-width` in `tokens` for the figure and why it is stated here rather than inherited.
         strokeWidth: 'border-width',
       },
       // REQUIRED, and this is the load-bearing difference from Button's two optional visuals. The whole
@@ -245,7 +277,7 @@ export const iconButton: ComponentDef = {
       // a builtin reached any other way. This comment observes the same rule it explains — the plugin
       // build does not minify, so a comment naming the literal would trip the check it documents.
       'focus-ring STROKE, WIDTH and RADIUS — owned by the nested `focus-ring` component, not by this def. So `focus-ring` and `ring-width` are bound in `tokens` and neither reaches a Figma node — the engine verifies that a ring is nominated, which variant, and where it sits, and nothing about its color or weight. Accepted on the same terms as Button, and for the same reason — the ring is one shared thing.',
-      'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on all 162 members would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
+      'aria-label — the REQUIRED accessible name, and the def\'s entire reason for existing (§10). A Figma component property could carry a string, but it would be a string with no relationship to anything Figma reads: no exported frame, no prototype, no handoff surface consumes it, and a TEXT property named `aria-label` sitting empty on all 54 members would read as a name that had been provided. The requirement is a TYPE-LEVEL one in the code projection, which is where it can actually fail a build; Figma cannot hold "required" at all.',
       // The `modifiers` admission is GONE, with the axis it admitted (#845). Keeping it would have left
       // an entry admitting an axis this def no longer declares — an exemption with nothing to exempt,
       // which `figmaPropertyErrors` cannot detect in either direction and which reads to the next author
@@ -264,7 +296,14 @@ export const iconButton: ComponentDef = {
       // `admits()`'s leading-word rule read from the other end — that rule stops prose about something
       // else from admitting a name, and cannot tell prose ABOUT the name from prose admitting its
       // absence.
-      'intent-at-disabled redundancy — all three intents render ONE row at `state=disabled`, so 18 groups of 3 are byte-identical, on the same terms Button records: `disabled.*` is cross-cutting by design (docs/20 §7), so one disabled skin serving every intent is the token tier being correct and the projection reporting it faithfully.',
+      //
+      // The `intent-at-disabled redundancy` entry is GONE with #1225, and its removal is the point rather
+      // than an omission. It documented that all three intents rendered ONE byte-identical row at
+      // `state=disabled` (18 groups of 3 identical rows) — a redundancy that existed only because intent
+      // was an AXIS crossing state. #1225 removes the intent axis entirely: each icon-button component now
+      // carries ONE disabled skin per coordinate, and the three components' disabled skins are identical to
+      // each other (the shared `disabled.*` block), which is the token tier being correct one level up.
+      // There is no per-intent redundancy left to admit, so the entry retires — nothing declares `intent`.
       'inactive — a real state (isInactive), deliberately NOT a Figma variant, and the two reasons fail it independently. Its whole delta from `disabled` is behavioral (retains tab order, keeps the control in the a11y tree, carries aria-disabled rather than the native attribute, surfaces the blockage reason on focus), so a variant has nothing to encode; and the emitter special-cases `state === \'disabled\'` only, so an `inactive` column would fall through to the `rest` paints and read as a normal enabled control.',
       'pending — the SPINNER, and this is the one ceiling that is genuinely worse here than on Button. Button swaps its leading visual for a spinner and keeps the label, so the control neither grows nor loses its name. An IconButton has one cell and it is the icon, so a spinner must take the icon\'s own place — there is nothing else in the box. The def projects `state=pending` with the icon\'s slot unchanged, which means the Figma column shows a pending IconButton wearing its normal glyph: correct geometry, wrong content. Declaring an overlay would need it to replace the ONLY part, and `overlaysWhenAbsent` has no non-optional floor to fall back to that is not the part being replaced (the validator rejects naming the same part, correctly). So the pending spinner is a code-tier behavior here, admitted rather than half-projected.',
     ],
@@ -293,8 +332,12 @@ export const iconButton: ComponentDef = {
   // vestigial to a designer inspecting the set. A distinct shape (`slots` keyed by the def's own part
   // names) is the honest fix and is a REFACTOR of a type three call sites read, on the critical path
   // of a component that does not need it. Recorded as the deliberate cost, not discovered later.
+  //
+  // #1225 — `intent` is NO LONGER an axis here. Each of the three icon-button components fixes one family,
+  // so its set is appearance(3) × size(3) × state(6) = 54 members; the former single 162-member set is now
+  // three 54-member sets (IconButton / Destructive IconButton / Neutral IconButton).
   figmaProperties: {
-    variantAxes: ['intent', 'appearance', 'size'],
+    variantAxes: ['appearance', 'size'],
     // Six of the seven states, exactly as Button — `inactive` is admitted in `codeOnly` above rather
     // than dropped. Seven remains right for `states` (the def's truth); six is right for the
     // projection (what a variant can carry).
@@ -306,7 +349,7 @@ export const iconButton: ComponentDef = {
     // scans to compare one control's states, and leaving it to cardinality would hand the columns to
     // whichever axis happened to be widest. Here that is `state` anyway (6 vs 3), which is exactly why
     // it is worth DECLARING — an inherited answer that happens to be right is #656's situation before
-    // #656, and it would change silently the day a fourth intent lands.
+    // #656, and it would change silently the day the axis set moves.
     gridAxis: 'state',
     booleans: {},
     // Slot CONTENT, so a designer can pick the glyph. The one property this component has, and it is
@@ -328,7 +371,7 @@ export const iconButton: ComponentDef = {
   },
 
   docs: {
-    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.',
+    usage: 'Use for a self-evident action where space is tight and a text label would be redundant or not fit — toolbar actions, a close affordance, row-level edit/delete. Color is the COMPONENT (IconButton / Destructive IconButton / Neutral IconButton — pick by semantics); rank actions within a view by APPEARANCE (filled > outline > text). Always provide the accessible name; pair with a Tooltip for the visible name on hover/focus.',
     do: [
       'Always give it an accessible name (a verb)',
       'Use recognisable, conventional icons (close = ×, more = ⋯); pair novel icons with a visible label instead',
@@ -360,4 +403,36 @@ export const iconButton: ComponentDef = {
       'Whether IconButton is a distinct component or a mode of Button — the practice ships it distinct precisely so the accessible name is required at the type level (brief §10).',
     ],
   },
-};
+});
+
+// ── THE THREE COMPONENTS (#1225) ──────────────────────────────────────────────────────────────────
+// One factory, three color families. `test.ts` asserts they share byte-identical anatomy / geometry /
+// disabled / square sizing / required-icon slot / focus ring and differ ONLY in the `interactive.<family>`
+// bindings, so a future edit cannot silently desync them. `icon-button` keeps the id `icon-button` and is
+// the primary/brand component; `Destructive IconButton` and `Neutral IconButton` are its siblings. ACCENT
+// is deliberately not among them, on the split's own logic and by the same path Button records: the colour
+// family is a per-brand `interactive.accent.*` promotion, and the COMPONENT is a Figma duplicate-and-rebind
+// of the primary set, not a set the engine enumerates.
+export const iconButton: ComponentDef = makeIconButton(
+  'icon-button',
+  'IconButton',
+  'A Button whose entire content is a single icon, with no visible text label, in the brand (primary) color. Use for space-constrained, self-evident actions (close, more, edit) in toolbars, table rows, and headers. Because there is no visible label, an accessible name is mandatory. For a destructive or a weightless icon action, use the Destructive IconButton / Neutral IconButton sibling components.',
+  'primary',
+  'button',
+);
+
+export const iconButtonDestructive: ComponentDef = makeIconButton(
+  'icon-button-destructive',
+  'Destructive IconButton',
+  'An icon-only trigger for a DESTRUCTIVE action — delete, remove, discard — in the destructive color, so the consequence reads before the click. Same anatomy as IconButton; the color is the whole difference, and the accessible name is still mandatory (a bare trash glyph is not a name). For a quiet destructive icon action, use appearance=text on this component.',
+  'destructive',
+  'button-destructive',
+);
+
+export const iconButtonNeutral: ComponentDef = makeIconButton(
+  'icon-button-neutral',
+  'Neutral IconButton',
+  'An icon-only trigger that carries NO brand weight — a toolbar control, a dense table-row action, a close affordance — in the neutral color, which is where most icon-only actions sit. Reach for it when the control genuinely has no brand emphasis to carry, not merely because it is secondary in rank (rank is the appearance axis). Same anatomy as IconButton; the accessible name is still mandatory.',
+  'neutral',
+  'button-neutral',
+);

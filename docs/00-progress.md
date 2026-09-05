@@ -7,6 +7,76 @@
 
 ---
 
+## (2026-09-05) — icon-button's `intent` axis splits into three sibling components (#1225)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.55.0 → 0.56.0; `CONTRACT_VERSION` stands at 9.4.0.** The icon-only
+counterpart of #1223/#1224's Button split, and the open sibling question `lint-axis-values`'s `intent` entry
+had stood as a reminder of since #1223. `icon-button`'s `intent` variant axis becomes COMPONENT IDENTITY:
+one 162-member set (3 intent × 3 appearance × 3 size × 6 state) becomes three 54-member sets —
+`icon-button` (primary), `icon-button-destructive`, `icon-button-neutral` — built by a `makeIconButton`
+factory from one shared anatomy, the exact shape `makeButton` already gives the three Button intents.
+`npm run verify` **55/55** (after the commit that lets `regen --check` compare against HEAD).
+
+**The only thing that differs between the three is the `color.interactive.<family>.*` binding**, authored
+once in `iconButtonIntentTokens(family)` and spread per component. `test.ts`'s factory guardrail (mirroring
+#1223's) asserts the three share byte-identical `anatomy`/`props`/`variants`/`figmaProperties`/etc. and that
+each binds ONLY its own family's 13-key icon-only skin — so a binding edited on one sibling and not the
+others fails BY NAME rather than shipping three quietly-diverged icon-buttons (docs/34). The skin is
+Button's 20-key skin MINUS the label keys an icon-only control has no slot for (and minus #1282's per-state
+outline ink, which was Button-only and is preserved-as-absent here rather than aligned — a separate question).
+
+**`inherits` follows the semantics, not the id.** The primary `icon-button` still records its delta from
+`button` (the assertion at `test.ts:7950` holds); each sibling records its delta from the Button of its OWN
+family — `icon-button-destructive` from `button-destructive`, `icon-button-neutral` from `button-neutral`
+("a Destructive IconButton is a Destructive Button whose content is an icon"). `inherits` is read by nothing
+in the projector, so this is prose about provenance; the guardrail deliberately does NOT pin it, which is
+why the three may name different parents while sharing one anatomy.
+
+**`CONTRACT_VERSION` HOLDS, and `ENGINE` bumps from the PROJECTED-SURFACE side (#1252), not `out/`.** A
+component identity is not part of the guaranteed token-NAME surface: the three siblings resolve the SAME
+`color.interactive.{primary,neutral,destructive}.*` tokens the one def resolved, only fixed per component
+instead of crossed as an axis — no DTCG path added or removed. `token-contract --check` reports the
+guaranteed surface unchanged (577). This release's `out/` diff is **only the engine stamp** (0.55.0 →
+0.56.0 in eight `$extensions.generator.version` lines); `lint-emission-version` is structurally blind to the
+projection, which is exactly the gap `lint-component-surface` covers — it reported the three DRIFTED rows
+(icon-button 162 → 54, plus the two new siblings at 54) and demanded the bump.
+
+**Same `token-contract --check` trap #1278 recorded, hit again.** With the version bumped it printed 36
+`CONDITIONAL` migration rows, which reads as a large contract change and is nothing of the sort — those rows
+are pre-existing brand-dependent (informational) `resolvesTo` values, and `report()` dumps everything it
+knows whenever *any* baseline field mismatches (here the informational `engineVersion`). Confirmed by
+reverting the bump alone (clean at 0.55.0, 36 rows at 0.56.0) and by diffing the accepted baseline: the
+guaranteed surface is one line, the stamp. `token-contract.json` carries an `engineVersion` field, so a
+re-accept is owed on every ENGINE bump; it does not force a CONTRACT bump.
+
+**#1300's border binding travels with the def, per its own note.** `border-width: 'border-width.hairline'`
+(the container's `strokeWidth`, #1278/#1300) is CARRIED INTO EACH sibling by the shared factory — one bind,
+three components. This is the shape #1278's first cut had to name icon-button separately for at all
+(`inherits: 'button'` is prose; the button factory binding reached icon-button not at all), and the #1278
+test arm now spans all SIX button-family bordered defs — three button intents off `makeButton`, three
+icon-button intents off `makeIconButton`.
+
+**`lint-axis-values`'s `intent` register entry is REMOVED, and the removal is the split's own consequence.**
+Scoped to `['icon-button']` alone since #1223 with a provisional reason naming this exact open question, the
+entry is now what its own ARM B fails as stale — no def declares `intent` as a variant axis any more. Its
+`appearance` and `size` entries gained the three icon-button siblings; the floors moved with the corpus
+(FLOOR_DEFS 12 → 14, FLOOR_PAIRS 30 → 33 — the "corpus minus one legitimate removal" invariant the FLOORS
+note states, since the corpus reached 15 defs / 37 pairs). Baselines re-accepted the sanctioned way:
+`lint-component-surface --accept`, `lint-paint --accept` (census: icon-button set 162 → 54, and the two
+siblings recorded), `token-contract --accept` (engineVersion + informational fields only).
+
+**Mutation battery — four, committed before each, restored after each (docs/34: a gate that cannot see its
+subject cannot fail):**
+
+| # | mutation | what failed, by name |
+|---|---|---|
+| 1 | re-add the `intent` variant axis to the factory (a forgotten split) | `lint-axis-values` ARM A: *"undeclared value sets … icon-button · intent: [primary, neutral, destructive]"* ×3, one per sibling — the register removal is coupled to the axis removal |
+| 2 | drop an `appearance` value from the factory (54 → 36 per sibling) | `lint-component-surface` ARM A: *"icon-button 36 members … DRIFTED"* naming all three siblings and both counts |
+| 3 | make `neutral`'s `filled.fill` bind `interactive.primary` (cross-family leak on one sibling) | `test.ts` guardrail BY NAME: *"#1225 icon-button-neutral binds ONLY interactive.neutral … (stray: filled.fill)"* and *"13 bindings (got 12)"* |
+| 4 | move the factory border rung to `border-width.thick` (button stays hairline) | the #1278/#1225 six-part arm: *"all SIX parts … iconButton@border-width.thick · iconButtonDestructive@border-width.thick · iconButtonNeutral@border-width.thick"* vs the three button intents at hairline, plus the paste arm by coordinate. (Removing the binding outright throws *"icon-button: anatomy names binding key 'border-width', which tokens does not bind"* — the container's `strokeWidth` names it, so it cannot be silently dropped.) |
+
+---
+
 ## (2026-09-05) — the checkbox composes: `checkbox-control` is a def, `checkbox` nests it (#1226 step 2, #901)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.54.0 → 0.55.0; `CONTRACT_VERSION` stands at 9.4.0.** Based on

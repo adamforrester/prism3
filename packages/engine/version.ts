@@ -138,6 +138,36 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.56.0: `icon-button`'s `intent` axis is SPLIT into three sibling COMPONENTS (#1225) — `icon-button`
+ * (primary), `icon-button-destructive`, `icon-button-neutral` — the icon-only counterpart of #1223/#1224's
+ * Button split, built by a `makeIconButton` factory from one shared anatomy. Intent stops being a variant
+ * axis and becomes component identity; the only thing that differs between the three is the
+ * `color.interactive.<family>.*` binding, and `test.ts`'s factory guardrail pins that (docs/34).
+ *
+ * A MINOR, and demanded from the PROJECTED-SURFACE side (#1252's case), not from `out/`. The one 162-member
+ * `icon-button` set (3 intent × 3 appearance × 3 size × 6 state) becomes three 54-member sets (3 appearance
+ * × 3 size × 6 state each): a designer opening a set now meets a smaller variant matrix and, in the panel,
+ * TWO new sibling components — that is a different engine. `lint-component-surface` carries it in
+ * `schema/component-surface.json` (icon-button 162 → 54, plus the two new siblings at 54; `--accept`
+ * restamps). `lint-emission-version` stays silent because component payloads are not committed under `out/`,
+ * which is the exact gap #1252 added `lint-component-surface` to cover — this release's `out/` diff is EMPTY.
+ *
+ * `CONTRACT_VERSION` STANDS AT 9.4.0, and that is the property rather than an omission: a component identity
+ * is not part of the guaranteed token-NAME surface. The split adds and removes no DTCG path — the three
+ * siblings resolve the SAME `color.interactive.{primary,neutral,destructive}.*` tokens the one def resolved,
+ * only fixed per component instead of crossed as an axis. `token-contract.ts --check` reports unchanged and
+ * confirms it rather than this comment asserting it. Same reading #1223/#1224 took for the Button split.
+ *
+ * #1300's border binding (`border-width.hairline` on the container, #1278) is CARRIED INTO EACH sibling by
+ * the shared factory — one bind, three components — which is the shape #1278's first cut had to name
+ * icon-button separately for at all (`inherits: 'button'` is prose; the button factory binding reached it
+ * not at all). The #1278 arms now span all three icon-button siblings alongside the three button ones.
+ *
+ * `lint-axis-values`'s `intent` register entry — scoped to `['icon-button']` alone since #1223 with a
+ * provisional reason naming this open question — is REMOVED: no def carries `intent` as a variant axis any
+ * more, and an entry no def uses is what its own ARM B fails as stale. The concept survives as component
+ * identity, which is not a variant axis and so not that register's subject.
+ *
  * 0.55.0: the CHECKBOX COMPOSES — `checkbox-control` is a new atomic def and `checkbox` becomes the
  * labelled Row that NESTS it in flow (#1226 step 2, #901). The first real consumer of `kind: 'nest'`,
  * ever: PR-A shipped the mechanism with zero consumers and #1298/#1299 (0.52.0/0.53.0) made its `follow`
@@ -1413,7 +1443,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.55.0';
+export const ENGINE_VERSION = '0.56.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

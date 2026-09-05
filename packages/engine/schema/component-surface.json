@@ -22,8 +22,16 @@
       "sha256": "8d4ad95446188134f2061d41bb9f01ccc522749194427a7579ac56b747185887"
     },
     "icon-button": {
-      "members": 162,
-      "sha256": "a7876bd5eba14fa16bc33ddb8335e60c897d5cd9faffde4111b6cc9cfc493a1a"
+      "members": 54,
+      "sha256": "c9b285487394d36ec153d5f49bca4e601f72c4844374b6e37dcf7e411f2461af"
+    },
+    "icon-button-destructive": {
+      "members": 54,
+      "sha256": "df9a7cf226b03940b7bdad2b57e9745f27511c77eb33723efd7a9c32f160f6a8"
+    },
+    "icon-button-neutral": {
+      "members": 54,
+      "sha256": "f47c254ba23dc9fb537fee711069cb0776b2a2c7ea7ddc82c5620203da956531"
     },
     "field-label": {
       "members": 24,
