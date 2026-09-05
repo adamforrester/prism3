@@ -138,6 +138,27 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.53.0: a nest part's `height` reaches the node instead of being dropped in silence (#1299, #1226 PR-B).
+ * `node()`'s non-box branch read `p.size` and nothing else, so a `height` the schema ACCEPTED projected no
+ * binding at all — a third posture beside the two that were already coherent: `layout`, `padding`, `gap`,
+ * `width` and `strokeWidth` are REFUSED by name on a non-box, and `absolute` refuses `size` outright.
+ * `height` was neither honoured nor refused, which is the one posture that loses an author's intent without
+ * telling them.
+ *
+ * Honoured for `nest` ALONE, and the narrowness is the decision rather than an oversight: `vector`'s height
+ * is already schema-refused, and slot/overlay/text is a question nothing in the corpus asks — measured, not
+ * assumed (no def authors `height` on any non-box part today). Filed as #1305 rather than fixed here, and
+ * the engine suite PINS the scope, so widening it later fails a named assertion instead of drifting.
+ *
+ * A nest's height is what a composed control needs from the host: the #1201 line box that aligns a checkbox
+ * with the FIRST line of a wrapping label is a height on the nested Control, not on the row that holds it.
+ *
+ * NO COMMITTED ARTIFACT MOVES — no shipped def authors a nest at all yet (the 7 nesting edges are all
+ * `absolute` focus-rings), so the bump is for the MECHANISM and `CONTRACT_VERSION` stands: no token name is
+ * involved. The executor needed no change, and that is asserted rather than assumed — the plugin lane reads
+ * `boundVariables.height` back off the built INSTANCE, so "the bind loop is generic over node type" is a
+ * measurement here, not a reading of its source.
+ *
  * 0.52.0: a nested coordinate can follow the axes a composed consumer actually needs — `size` and
  * `state` (#1298, #1226 PR-B). `nestVariantOf` resolves each `follow` axis from `paintCoord` instead of
  * the caller's argument map, and the schema's reachability test becomes `figmaProperties.variantAxes` ∪
@@ -1318,7 +1339,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.52.0';
+export const ENGINE_VERSION = '0.53.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

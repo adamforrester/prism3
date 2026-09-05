@@ -11072,6 +11072,46 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ibBroke('follow on an axis the def does not declare at all still fails', /declares nesting 'follow' on 'tone', which is not an axis this def PROJECTS/,
         patched(button, 'focusRing', { nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['tone'] } }));
 
+      // ---- #1226 PR-B: A NEST'S OWN HEIGHT REACHES THE NODE (#1299) ----
+      // The other half of the same silence, on the other field. `node()`'s non-box branch read `size` and
+      // nothing else, so a `height` on a `nest` validated and was dropped — where `layout`, `padding`,
+      // `gap`, `width` and `strokeWidth` on a non-box are each refused BY NAME, and `absolute` refuses
+      // `size` outright with the reason written out. `height` fell between the two postures.
+      {
+        const findPart = (n: { name?: string; children?: unknown[] }, name: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
+          n.name === name ? n : (n.children ?? []).map((c) => findPart(c as { name?: string; children?: unknown[] }, name)).find(Boolean);
+        const tall = patched(button, 'focusRing', {
+          kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, height: 'size.{size}.height',
+        });
+        const tallErrs = validateComponentDef(tall, nbTree, nbT.root).errors;
+        ok(tallErrs.length === 0,
+          `#1299 a \`nest\` binding 'height' validates — which it always did, and that was the defect${tallErrs.length ? ' — ' + tallErrs.join('; ') : ''}`);
+        const nestNode = findPart(figmaAnatomyPlan(tall, 'medium', { appearance: 'filled', surface: 'default' }).root, 'focusRing');
+        // The RESOLVED variable name, not merely "something is bound": the key is templated
+        // (`size.{size}.height`), so a projection that bound the literal template — or bound the wrong
+        // rung — would satisfy a presence-only check. Read through the def's own tokens map so the
+        // expectation moves with the def rather than pinning my typing of the variable name.
+        const wantVar = figmaVarName(tall.tokens['size.medium.height']);
+        ok(nestNode?.bound?.height === wantVar,
+          `#1299 a nest's 'height' binds Figma's \`height\` to the rung the coordinate resolves (${String(nestNode?.bound?.height)} — expected ${wantVar})`);
+        ok(wantVar !== 'size.{size}.height' && wantVar.length > 0,
+          `#1299 ...and the expectation is a RESOLVED variable name rather than the template, so the check above cannot pass on an unexpanded key (${wantVar})`);
+        // A nest binding `size` still binds BOTH axes — the pre-existing behaviour, asserted so the new
+        // branch cannot be read as having replaced it. Mutually exclusive with `height` (the validator),
+        // so the two can never both run on one part.
+        const square = patched(button, 'focusRing', { kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, size: 'size.{size}.height' });
+        const sq = findPart(figmaAnatomyPlan(square, 'medium', { appearance: 'filled', surface: 'default' }).root, 'focusRing');
+        ok(sq?.bound?.width === wantVar && sq?.bound?.height === wantVar,
+          `#1299 a nest binding 'size' still binds both axes to one variable (${String(sq?.bound?.width)} / ${String(sq?.bound?.height)})`);
+        // THE SCOPE, stated as a measurement rather than as prose. `slot`/`overlay`/`text` still drop a
+        // `height` silently — one concern per PR, so it is FILED (#1305) rather than fixed here. This line
+        // fails when that lands, by design, which is what keeps the filed issue from being the only record.
+        const slotTall = patched(button, 'leadingVisual', { height: 'size.{size}.height', size: undefined });
+        const st = findPart(figmaAnatomyPlan(slotTall, 'medium', { appearance: 'filled', surface: 'default', leading: true }).root, 'leadingVisual');
+        ok(st !== undefined && st.bound?.height === undefined,
+          `#1299 scope: a 'height' on a \`slot\` is STILL dropped — filed as #1305, not fixed here. Fails when it lands, by design (${JSON.stringify(st?.bound)})`);
+      }
+
       // The SQUARE rules. `size` and `height` both drive the height axis, so a part binding both states
       // its height twice and the projection keeps whichever branch ran last — silently, and only on one
       // axis, which is the shape that reads as correct at one size and wrong at another.

@@ -1511,6 +1511,52 @@ ok(wrongRun.miss !== nestResults[1].miss && (wrongRun.miss ?? '').indexOf('nestV
   '#681 the fifth miss is distinguishable from the four file-state messages, and is reported against nestVariant rather than nestTarget');
 
 // =============================================================================================
+// #1299 — A NEST'S BOUND HEIGHT REACHES THE NODE, not just the plan
+// =============================================================================================
+// The engine's own suite asserts the PLAN carries `bound.height` on a `nest`. That is half the claim: a
+// projected binding the executor never applies is the same silent loss one layer out, and this lane is
+// where that direction is observable. Asserted HERE rather than inferred from the executor's source,
+// because "the bind loop looks generic" is a reading of code and this is a read-back off a built node.
+//
+// No shipped def authors `height` on a nest yet (#1226's composed consumers are the first), so the plan is
+// built from a PATCHED def — which is exactly why the read-back matters: nothing else in this file would
+// exercise a dimension binding on an INSTANCE. A Figma instance accepts one (it can be resized), but that
+// is a claim about the host, and the shim is where this repo states its model of the host.
+{
+  const tallDef: ComponentDef = (() => {
+    const a = JSON.parse(JSON.stringify(button.anatomy!)) as typeof button.anatomy;
+    return { ...button, anatomy: { ...a!, parts: { ...a!.parts, focusRing: { ...a!.parts.focusRing, kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined, height: 'size.{size}.height' } as typeof a.parts.focusRing } } };
+  })();
+  const tallPlans = [figmaAnatomyPlan(tallDef, 'medium', { swapTarget: SWAP, appearance: 'filled', surface: 'default' })];
+  const wantVar = tallPlans[0] && (() => {
+    const walk = (n: { name?: string; bound?: Record<string, string>; children?: unknown[] }): string | undefined =>
+      n.name === 'focusRing' ? n.bound?.height : ((n.children ?? []) as typeof n[]).map(walk).find(Boolean);
+    return walk(tallPlans[0].root as unknown as { name?: string; bound?: Record<string, string>; children?: unknown[] });
+  })();
+  // THE PLAN FIRST, because every assertion below is vacuous if the projection carries no binding — the
+  // same discipline as this file's opening pins. And the variable name comes off the plan rather than being
+  // typed here, so a rung rename moves the expectation with it.
+  ok(wantVar !== undefined, `#1299 reachable: the patched def PROJECTS a height binding on the nest (${String(wantVar)})`);
+  const tallPage: Page = { children: [] };
+  const tallRun = await run(tallPlans, { ...fullFor(tallPlans), page: tallPage });
+  // Its own walker rather than this file's `allNodes`, which is declared further down and so is in its
+  // temporal dead zone here — a reference would throw at load rather than fail an assertion.
+  const flat = (n: Node): Node[] => [n, ...(((n.children as Node[]) ?? []).flatMap(flat))];
+  const tallNodes = tallPage.children.flatMap(flat);
+  const ringNode = tallNodes.find((n) => n.name === 'focusRing');
+  ok(ringNode !== undefined && ringNode.type === 'INSTANCE',
+    `#1299 the nest built as an INSTANCE (${ringNode?.type ?? 'NOT BUILT'})`);
+  const ringBv = (ringNode?.boundVariables as Record<string, { id?: string }> | undefined) ?? {};
+  ok(String(ringBv.height?.id ?? '').replace(/^V:/, '') === wantVar,
+    `#1299 ...and Figma's \`height\` on that instance is bound to the variable the plan named (${String(ringBv.height?.id ?? 'UNBOUND')} — expected ${wantVar})`);
+  // NO MISS, which is the other half of "the executor applied it": the bind loop reports an unresolved
+  // NAME and a binding Figma accepted and discarded through the same channel, so a clean `misses` plus a
+  // present binding is the pair that means it landed.
+  ok(tallRun.misses.filter((m) => m.indexOf('focusRing.height') >= 0).length === 0,
+    `#1299 ...with no miss against it — neither unresolved nor DISCARDED (${tallRun.misses.filter((m) => m.indexOf('focusRing') >= 0).join(' | ') || 'none'})`);
+}
+
+// =============================================================================================
 // #680 — FIGMA'S FONT-LOADED STATE, NOW MODELLED. The components lane already loads; it does not degrade.
 // =============================================================================================
 // The live failure was in `write-figma.ts` (the variable writer, which loads no fonts at all) — see
