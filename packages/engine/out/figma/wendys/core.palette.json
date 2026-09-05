@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "prism/core/palette/white",
+      "name": "wds/core/palette/white",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -22,7 +22,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black",
+      "name": "wds/core/palette/black",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -41,7 +41,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/100",
+      "name": "wds/core/palette/primary/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -60,7 +60,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/150",
+      "name": "wds/core/palette/primary/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -79,7 +79,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/200",
+      "name": "wds/core/palette/primary/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -98,7 +98,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/250",
+      "name": "wds/core/palette/primary/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -117,7 +117,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/300",
+      "name": "wds/core/palette/primary/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -136,7 +136,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/350",
+      "name": "wds/core/palette/primary/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -155,7 +155,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/400",
+      "name": "wds/core/palette/primary/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -174,7 +174,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/450",
+      "name": "wds/core/palette/primary/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -193,7 +193,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/500",
+      "name": "wds/core/palette/primary/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -212,7 +212,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/550",
+      "name": "wds/core/palette/primary/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -231,7 +231,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/600",
+      "name": "wds/core/palette/primary/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -250,7 +250,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/650",
+      "name": "wds/core/palette/primary/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -269,7 +269,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/700",
+      "name": "wds/core/palette/primary/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -288,7 +288,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/750",
+      "name": "wds/core/palette/primary/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -307,7 +307,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/800",
+      "name": "wds/core/palette/primary/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -326,7 +326,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/850",
+      "name": "wds/core/palette/primary/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -345,7 +345,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/900",
+      "name": "wds/core/palette/primary/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -364,7 +364,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/950",
+      "name": "wds/core/palette/primary/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -383,7 +383,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/025",
+      "name": "wds/core/palette/primary/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -402,7 +402,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/primary/050",
+      "name": "wds/core/palette/primary/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -421,7 +421,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/100",
+      "name": "wds/core/palette/neutral/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -440,7 +440,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/150",
+      "name": "wds/core/palette/neutral/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -459,7 +459,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/200",
+      "name": "wds/core/palette/neutral/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -478,7 +478,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/250",
+      "name": "wds/core/palette/neutral/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -497,7 +497,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/300",
+      "name": "wds/core/palette/neutral/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -516,7 +516,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/350",
+      "name": "wds/core/palette/neutral/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -535,7 +535,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/400",
+      "name": "wds/core/palette/neutral/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -554,7 +554,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/450",
+      "name": "wds/core/palette/neutral/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -573,7 +573,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/500",
+      "name": "wds/core/palette/neutral/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -592,7 +592,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/550",
+      "name": "wds/core/palette/neutral/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -611,7 +611,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/600",
+      "name": "wds/core/palette/neutral/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -630,7 +630,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/650",
+      "name": "wds/core/palette/neutral/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -649,7 +649,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/700",
+      "name": "wds/core/palette/neutral/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -668,7 +668,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/750",
+      "name": "wds/core/palette/neutral/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -687,7 +687,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/800",
+      "name": "wds/core/palette/neutral/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -706,7 +706,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/850",
+      "name": "wds/core/palette/neutral/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -725,7 +725,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/900",
+      "name": "wds/core/palette/neutral/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -744,7 +744,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/950",
+      "name": "wds/core/palette/neutral/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -763,7 +763,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/025",
+      "name": "wds/core/palette/neutral/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -782,7 +782,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/neutral/050",
+      "name": "wds/core/palette/neutral/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -801,7 +801,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/100",
+      "name": "wds/core/palette/secondary/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -820,7 +820,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/150",
+      "name": "wds/core/palette/secondary/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -839,7 +839,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/200",
+      "name": "wds/core/palette/secondary/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -858,7 +858,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/250",
+      "name": "wds/core/palette/secondary/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -877,7 +877,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/300",
+      "name": "wds/core/palette/secondary/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -896,7 +896,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/350",
+      "name": "wds/core/palette/secondary/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -915,7 +915,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/400",
+      "name": "wds/core/palette/secondary/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -934,7 +934,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/450",
+      "name": "wds/core/palette/secondary/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -953,7 +953,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/500",
+      "name": "wds/core/palette/secondary/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -972,7 +972,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/550",
+      "name": "wds/core/palette/secondary/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -991,7 +991,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/600",
+      "name": "wds/core/palette/secondary/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1010,7 +1010,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/650",
+      "name": "wds/core/palette/secondary/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1029,7 +1029,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/700",
+      "name": "wds/core/palette/secondary/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1048,7 +1048,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/750",
+      "name": "wds/core/palette/secondary/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1067,7 +1067,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/800",
+      "name": "wds/core/palette/secondary/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1086,7 +1086,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/850",
+      "name": "wds/core/palette/secondary/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1105,7 +1105,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/900",
+      "name": "wds/core/palette/secondary/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1124,7 +1124,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/950",
+      "name": "wds/core/palette/secondary/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1143,7 +1143,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/025",
+      "name": "wds/core/palette/secondary/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1162,7 +1162,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/secondary/050",
+      "name": "wds/core/palette/secondary/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1181,7 +1181,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/100",
+      "name": "wds/core/palette/tertiary/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1200,7 +1200,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/150",
+      "name": "wds/core/palette/tertiary/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1219,7 +1219,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/200",
+      "name": "wds/core/palette/tertiary/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1238,7 +1238,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/250",
+      "name": "wds/core/palette/tertiary/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1257,7 +1257,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/300",
+      "name": "wds/core/palette/tertiary/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1276,7 +1276,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/350",
+      "name": "wds/core/palette/tertiary/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1295,7 +1295,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/400",
+      "name": "wds/core/palette/tertiary/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1314,7 +1314,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/450",
+      "name": "wds/core/palette/tertiary/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1333,7 +1333,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/500",
+      "name": "wds/core/palette/tertiary/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1352,7 +1352,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/550",
+      "name": "wds/core/palette/tertiary/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1371,7 +1371,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/600",
+      "name": "wds/core/palette/tertiary/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1390,7 +1390,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/650",
+      "name": "wds/core/palette/tertiary/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1409,7 +1409,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/700",
+      "name": "wds/core/palette/tertiary/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1428,7 +1428,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/750",
+      "name": "wds/core/palette/tertiary/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1447,7 +1447,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/800",
+      "name": "wds/core/palette/tertiary/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1466,7 +1466,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/850",
+      "name": "wds/core/palette/tertiary/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1485,7 +1485,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/900",
+      "name": "wds/core/palette/tertiary/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1504,7 +1504,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/950",
+      "name": "wds/core/palette/tertiary/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1523,7 +1523,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/025",
+      "name": "wds/core/palette/tertiary/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1542,7 +1542,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/tertiary/050",
+      "name": "wds/core/palette/tertiary/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1561,7 +1561,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/100",
+      "name": "wds/core/palette/success/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1580,7 +1580,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/150",
+      "name": "wds/core/palette/success/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1599,7 +1599,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/200",
+      "name": "wds/core/palette/success/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1618,7 +1618,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/250",
+      "name": "wds/core/palette/success/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1637,7 +1637,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/300",
+      "name": "wds/core/palette/success/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1656,7 +1656,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/350",
+      "name": "wds/core/palette/success/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1675,7 +1675,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/400",
+      "name": "wds/core/palette/success/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1694,7 +1694,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/450",
+      "name": "wds/core/palette/success/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1713,7 +1713,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/500",
+      "name": "wds/core/palette/success/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1732,7 +1732,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/550",
+      "name": "wds/core/palette/success/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1751,7 +1751,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/600",
+      "name": "wds/core/palette/success/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1770,7 +1770,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/650",
+      "name": "wds/core/palette/success/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1789,7 +1789,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/700",
+      "name": "wds/core/palette/success/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1808,7 +1808,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/750",
+      "name": "wds/core/palette/success/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1827,7 +1827,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/800",
+      "name": "wds/core/palette/success/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1846,7 +1846,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/850",
+      "name": "wds/core/palette/success/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1865,7 +1865,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/900",
+      "name": "wds/core/palette/success/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1884,7 +1884,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/950",
+      "name": "wds/core/palette/success/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1903,7 +1903,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/025",
+      "name": "wds/core/palette/success/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1922,7 +1922,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/success/050",
+      "name": "wds/core/palette/success/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1941,7 +1941,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/100",
+      "name": "wds/core/palette/warning/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1960,7 +1960,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/150",
+      "name": "wds/core/palette/warning/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1979,7 +1979,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/200",
+      "name": "wds/core/palette/warning/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -1998,7 +1998,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/250",
+      "name": "wds/core/palette/warning/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2017,7 +2017,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/300",
+      "name": "wds/core/palette/warning/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2036,7 +2036,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/350",
+      "name": "wds/core/palette/warning/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2055,7 +2055,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/400",
+      "name": "wds/core/palette/warning/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2074,7 +2074,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/450",
+      "name": "wds/core/palette/warning/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2093,7 +2093,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/500",
+      "name": "wds/core/palette/warning/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2112,7 +2112,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/550",
+      "name": "wds/core/palette/warning/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2131,7 +2131,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/600",
+      "name": "wds/core/palette/warning/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2150,7 +2150,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/650",
+      "name": "wds/core/palette/warning/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2169,7 +2169,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/700",
+      "name": "wds/core/palette/warning/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2188,7 +2188,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/750",
+      "name": "wds/core/palette/warning/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2207,7 +2207,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/800",
+      "name": "wds/core/palette/warning/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2226,7 +2226,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/850",
+      "name": "wds/core/palette/warning/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2245,7 +2245,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/900",
+      "name": "wds/core/palette/warning/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2264,7 +2264,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/950",
+      "name": "wds/core/palette/warning/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2283,7 +2283,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/025",
+      "name": "wds/core/palette/warning/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2302,7 +2302,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/warning/050",
+      "name": "wds/core/palette/warning/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2321,7 +2321,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/100",
+      "name": "wds/core/palette/info/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2340,7 +2340,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/150",
+      "name": "wds/core/palette/info/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2359,7 +2359,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/200",
+      "name": "wds/core/palette/info/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2378,7 +2378,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/250",
+      "name": "wds/core/palette/info/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2397,7 +2397,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/300",
+      "name": "wds/core/palette/info/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2416,7 +2416,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/350",
+      "name": "wds/core/palette/info/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2435,7 +2435,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/400",
+      "name": "wds/core/palette/info/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2454,7 +2454,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/450",
+      "name": "wds/core/palette/info/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2473,7 +2473,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/500",
+      "name": "wds/core/palette/info/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2492,7 +2492,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/550",
+      "name": "wds/core/palette/info/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2511,7 +2511,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/600",
+      "name": "wds/core/palette/info/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2530,7 +2530,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/650",
+      "name": "wds/core/palette/info/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2549,7 +2549,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/700",
+      "name": "wds/core/palette/info/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2568,7 +2568,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/750",
+      "name": "wds/core/palette/info/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2587,7 +2587,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/800",
+      "name": "wds/core/palette/info/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2606,7 +2606,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/850",
+      "name": "wds/core/palette/info/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2625,7 +2625,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/900",
+      "name": "wds/core/palette/info/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2644,7 +2644,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/950",
+      "name": "wds/core/palette/info/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2663,7 +2663,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/025",
+      "name": "wds/core/palette/info/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2682,7 +2682,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/info/050",
+      "name": "wds/core/palette/info/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2701,7 +2701,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/100",
+      "name": "wds/core/palette/danger/100",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2720,7 +2720,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/150",
+      "name": "wds/core/palette/danger/150",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2739,7 +2739,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/200",
+      "name": "wds/core/palette/danger/200",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2758,7 +2758,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/250",
+      "name": "wds/core/palette/danger/250",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2777,7 +2777,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/300",
+      "name": "wds/core/palette/danger/300",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2796,7 +2796,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/350",
+      "name": "wds/core/palette/danger/350",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2815,7 +2815,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/400",
+      "name": "wds/core/palette/danger/400",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2834,7 +2834,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/450",
+      "name": "wds/core/palette/danger/450",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2853,7 +2853,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/500",
+      "name": "wds/core/palette/danger/500",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2872,7 +2872,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/550",
+      "name": "wds/core/palette/danger/550",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2891,7 +2891,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/600",
+      "name": "wds/core/palette/danger/600",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2910,7 +2910,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/650",
+      "name": "wds/core/palette/danger/650",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2929,7 +2929,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/700",
+      "name": "wds/core/palette/danger/700",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2948,7 +2948,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/750",
+      "name": "wds/core/palette/danger/750",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2967,7 +2967,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/800",
+      "name": "wds/core/palette/danger/800",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -2986,7 +2986,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/850",
+      "name": "wds/core/palette/danger/850",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3005,7 +3005,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/900",
+      "name": "wds/core/palette/danger/900",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3024,7 +3024,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/950",
+      "name": "wds/core/palette/danger/950",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3043,7 +3043,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/025",
+      "name": "wds/core/palette/danger/025",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3062,7 +3062,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/danger/050",
+      "name": "wds/core/palette/danger/050",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3081,7 +3081,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/5",
+      "name": "wds/core/palette/black-alpha/5",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3100,7 +3100,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/10",
+      "name": "wds/core/palette/black-alpha/10",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3119,7 +3119,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/20",
+      "name": "wds/core/palette/black-alpha/20",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3138,7 +3138,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/30",
+      "name": "wds/core/palette/black-alpha/30",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3157,7 +3157,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/40",
+      "name": "wds/core/palette/black-alpha/40",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3176,7 +3176,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/50",
+      "name": "wds/core/palette/black-alpha/50",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3195,7 +3195,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/60",
+      "name": "wds/core/palette/black-alpha/60",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3214,7 +3214,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/70",
+      "name": "wds/core/palette/black-alpha/70",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3233,7 +3233,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/80",
+      "name": "wds/core/palette/black-alpha/80",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3252,7 +3252,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/black-alpha/90",
+      "name": "wds/core/palette/black-alpha/90",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3271,7 +3271,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/5",
+      "name": "wds/core/palette/white-alpha/5",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3290,7 +3290,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/10",
+      "name": "wds/core/palette/white-alpha/10",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3309,7 +3309,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/20",
+      "name": "wds/core/palette/white-alpha/20",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3328,7 +3328,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/30",
+      "name": "wds/core/palette/white-alpha/30",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3347,7 +3347,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/40",
+      "name": "wds/core/palette/white-alpha/40",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3366,7 +3366,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/50",
+      "name": "wds/core/palette/white-alpha/50",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3385,7 +3385,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/60",
+      "name": "wds/core/palette/white-alpha/60",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3404,7 +3404,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/70",
+      "name": "wds/core/palette/white-alpha/70",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3423,7 +3423,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/80",
+      "name": "wds/core/palette/white-alpha/80",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
@@ -3442,7 +3442,7 @@
       "hiddenFromPublishing": true
     },
     {
-      "name": "prism/core/palette/white-alpha/90",
+      "name": "wds/core/palette/white-alpha/90",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",

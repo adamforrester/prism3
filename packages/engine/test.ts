@@ -15,7 +15,7 @@ import { rgbToOklch, oklchToRgb, hex, hexToRgb, contrast, luminance, maxChroma, 
 import { generateRamp, autoPlaceStep, STEP_NUMS } from './ramp';
 import { radiusScale, ICON_SIZES, componentSizes, controlSizes, dimensionGrid, spaceScale, SPACE_BASE, GRID_BASE, MIN_TARGET_PX, AAA_TARGET_PX } from './scale';
 import { at, deref, pxOf, buildTree, familyOf } from './tree';
-import { brandTheme, buildDims, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
+import { brandTheme, buildDims, RESERVED_ROOTS, BrandInput, inRedTerritory, normalizeDisabledStrategy, normalizeDisabledMin, derivedRungFor, LINE_HEIGHT_KEYS, LETTER_SPACING_KEYS, LINE_HEIGHT_LADDER, LETTER_SPACING_LADDER, lineHeightStepKey, letterSpacingStepKey } from './theme';
 import { nbTheme } from './nb-fixture';
 import { resolveAllModes, outlineFillFamily, outlineFillRole, engineGrounds, groundDependentsOf, GROUND_INPUT, VEIL_RUNGS } from './modes';
 import { groundsOf } from './grounds';
@@ -126,6 +126,74 @@ const nbFixName = (n: string): string => nbVar(CORE_GROUPS.has(n.split('/')[0]) 
 let pass = 0; const fails: string[] = [];
 const ok = (cond: boolean, msg: string) => { if (cond) pass++; else fails.push(msg); };
 const approx = (a: number, b: number, eps: number) => Math.abs(a - b) <= eps;
+
+// ---- #1283 RESERVED ROOTS — NO SHIPPED BRAND MAY ROOT AT `prism` OR `pds3` -----------------------
+//
+// `prism` and `pds3` are held for a future CANONICAL DEFAULT THEME. The policy is over the brands this
+// repo PUBLISHES, and the scope is the whole mechanism — `theme.ts`'s `RESERVED_ROOTS` header carries
+// why `brandTheme` is deliberately not where this lives, and the arms in the namespace block above are
+// the second direction (an arbitrary `BrandInput` may still declare `prism`; the fallback still resolves
+// to it). Three properties, each catching something the others cannot:
+{
+  // 1. THE CATALOG IS DISCOVERED, NOT AUTHORED. "The brands the engine ships" is exactly the set that
+  //    produces a committed `out/<id>.tokens.json` — the canonical tree, one segment before
+  //    `.tokens.json` (the `.base.` and `.<mode>.overlay.` siblings are the same brand, not more of
+  //    them). Re-typing the ids would make this agree with a list instead of with the emission, and a
+  //    fifth brand would join the catalog without joining the check — `docs/34` shape 9, the detector
+  //    anchored on something that does not move when the subject does.
+  const catalog = readdirSync(resolve(HERE, './out'))
+    .filter((f) => /^[^.]+\.tokens\.json$/.test(f))
+    .map((f) => f.slice(0, -'.tokens.json'.length))
+    .sort();
+  ok(catalog.length >= 4,
+    `#1283 the shipped catalog is populated (${catalog.length} brands: ${catalog.join(', ')}; floor 4) — every arm below is "every brand that …", vacuously true of none`);
+
+  /** The root a tree ACTUALLY EMITTED — its single non-`$` top-level key.
+   *
+   *  READ FROM THE ARTIFACT, not from `input.root`, and that is what makes this cover the case that
+   *  needed covering: wendys declared no root at all and arrived at `prism` through the fallback, which
+   *  no reading of a declaration can see. The published namespace is the thing being reserved. */
+  const emittedRoot = (id: string): string => {
+    const tree = JSON.parse(readFileSync(resolve(HERE, `./out/${id}.tokens.json`), 'utf8')) as Record<string, unknown>;
+    const roots = Object.keys(tree).filter((k) => !k.startsWith('$'));
+    if (roots.length !== 1) throw new Error(`out/${id}.tokens.json has ${roots.length} root namespaces [${roots.join(', ')}] — expected exactly one`);
+    return roots[0];
+  };
+  /** THE PREDICATE, named so it can be driven over something that VIOLATES it. An arm that only ever
+   *  sees a clean corpus cannot tell "the rule works" from "the rule is `() => true`". */
+  const squatsReserved = (root: string): boolean => (RESERVED_ROOTS as readonly string[]).includes(root);
+
+  // 2. NO SHIPPED BRAND SQUATS ONE.
+  const squatters = catalog.filter((id) => squatsReserved(emittedRoot(id)));
+  ok(squatters.length === 0,
+    `#1283 no shipped brand roots at a reserved namespace [${RESERVED_ROOTS.join(', ')}] — ${squatters.map((id) => `${id}@${emittedRoot(id)}`).join(', ') || catalog.map((id) => `${id}@${emittedRoot(id)}`).join(', ')}`);
+  // …and the predicate is not vacuously true. Driven over a synthetic root the corpus does not hold.
+  ok(RESERVED_ROOTS.every((r) => squatsReserved(r)) && !squatsReserved('zzds') && RESERVED_ROOTS.length > 0,
+    `#1283 the reserved predicate actually discriminates (${RESERVED_ROOTS.join(', ')} caught, 'zzds' not) — the arm above is clean because the catalog is, not because the rule is empty`);
+
+  // 3. AND EACH ONE DECLARES ITS ROOT rather than inheriting the fallback, which is the state aurora,
+  //    harbor and wendys were all in. Checked against the RAW frontmatter rather than the parsed input:
+  //    a parse that defaulted the field would report a declaration that is not written anywhere.
+  //    `nb` has no `design.md` — it is not built from a `BrandInput` at all (`nbThemeFrom` spells
+  //    `root: 'nbds'` directly), so it never touches the fallback. NAMED, not counted: a second
+  //    catalog brand without a brief is a decision, and this arm makes it one.
+  const briefless = catalog.filter((id) => !existsSync(resolve(HERE, `./examples/${id}.design.md`)));
+  ok(briefless.join(',') === 'nb',
+    `#1283 exactly one shipped brand has no \`design.md\` brief and it is \`nb\` (got: ${briefless.join(', ') || 'NONE'}) — nb is a hand-built Theme, so the declaration arm below cannot cover it and says so rather than skipping quietly`);
+  for (const id of catalog.filter((b) => !briefless.includes(b))) {
+    const raw = readFileSync(resolve(HERE, `./examples/${id}.design.md`), 'utf8');
+    // EITHER DIALECT'S DECLARATION SITE, both spelled out. The engine-native brief carries `root:` at
+    // the top level; a standard-spec brief has no such field and carries it indented under
+    // `x-prism3:` (see `applyXPrism3`). Matching only the first would have read wendys as undeclared
+    // and matching only indentation would have read aurora as undeclared — one regex per dialect,
+    // because there are two dialects, not because either spelling is a fallback for the other.
+    const declared = (/^root:[ \t]*([a-z][a-z0-9-]*)[ \t]*$/m.exec(raw)
+      ?? /^[ \t]+root:[ \t]*([a-z][a-z0-9-]*)[ \t]*$/m.exec(raw))?.[1];
+    ok(declared !== undefined && declared === emittedRoot(id),
+      `#1283 \`${id}\` DECLARES its root in the brief and it is what it emits (declared: ${declared ?? 'NOTHING — it is inheriting the fallback'}, emitted: ${emittedRoot(id)})`);
+  }
+}
+
 
 // ---------------------------------------------------------------- colour math
 const WHITE: RGB = { r: 255, g: 255, b: 255 };
@@ -4537,7 +4605,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   ok(!m12threw, 'M-12: an all-caps PRIMARY no longer throws "no primary"');
   const { input, xApplied } = standardToBrandInput(std);
   ok(input.id === 'wendys', "standardToBrandInput: id derived from name (Wendy's → wendys)");
-  ok(xApplied.length === 0, 'wendys: no x-prism3 block → engine defaults (the plain-spec guarantee)');
+  // #1283 gave wendys ONE x-prism3 lever — its root namespace — because a standard-spec brief has no
+  // other way to name one, and a shipped brand may not sit on the reserved `prism`. So the arm names
+  // exactly what the block applies rather than counting zero: "engine defaults everywhere but the
+  // namespace" is the property wendys carries now, and a second lever appearing here is a decision.
+  ok(xApplied.join(' | ') === 'root=wds', `wendys: the ONLY x-prism3 lever is the root namespace — everything else is engine defaults (got: ${xApplied.join(' | ') || 'NONE'})`);
+  ok(input.root === 'wds', `wendys: the declared root reaches the BrandInput rather than falling back to the reserved default (got '${input.root ?? 'undefined → prism'}')`);
+  // THE PLAIN-SPEC GUARANTEE KEEPS A WITNESS OF ITS OWN, and it is synthetic on purpose. It used to be
+  // the arm above — "wendys has no x-prism3 block" — which made a guarantee about the DIALECT depend on
+  // one brand never needing a lever. It needed one. A base-spec document with no extension block still
+  // compiles on engine defaults, and this is now stated where no brand's future can rot it.
+  ok(standardToBrandInput(parseStandardDesignMd('---\nname: Plain\ncolors:\n  primary: "#3366cc"\n  neutral: "#888888"\n---\n')).xApplied.length === 0,
+    'dialect: a base-spec brief with NO x-prism3 block applies no levers — the plain-spec guarantee, witnessed independently of any shipped brand');
   ok(validateBrandInput(input).length === 0, 'wendys standard: classified BrandInput schema-conforms');
   const theme = brandTheme(input);
   ok(theme.roleToPalette.danger === 'danger', 'wendys: error→danger carved as a distinct palette');
@@ -6439,7 +6518,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const { input } = parseDesignMd(readFileSync(resolve(HERE, './examples/aurora.design.md'), 'utf8'));
 
   // default: no root → the 'prism' placeholder, byte-identical world (asserted in block 3)
-  const def = brandTheme(input);
+  //
+  // The root is STRIPPED from the fixture (#1283) so this arm tests what it says it tests. `input` is
+  // aurora's brief, and aurora now DECLARES `root: ads` — it stopped inheriting the default the day
+  // it was given a name of its own. Building from it unmodified made "omitted root defaults to the
+  // placeholder" an assertion about a root that was not omitted, which is the assertion silently
+  // becoming a different one. `rootless` omits it for real.
+  const { root: _declaredRoot, ...rootless } = input as typeof input & { root?: string };
+  const def = brandTheme(rootless);
   // `namespace` is the colour-PRIMITIVE root, and #1102 put the `core` tier between the brand root and it:
   // `prism.core.palette`, not `prism.palette`. Spelled as a LITERAL rather than built from `CORE_TIER`,
   // because importing the constant would make this a second reading of the code under test — the tier
@@ -6447,8 +6533,29 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(def.root === 'prism' && def.namespace === 'prism.core.palette', 'namespace: omitted root defaults to the prism placeholder, and the primitive root sits under the `core` tier');
   ok(Object.keys(buildTree(def).tree)[0] === 'prism', 'namespace: default tree is rooted at prism');
 
-  // custom: re-home under 'acme'
-  const custom = brandTheme({ ...input, root: 'acme' });
+  // ---- #1283: THE RESERVATION IS SCOPED TO THE SHIPPED CATALOG, AND THIS IS THE SECOND DIRECTION ----
+  //
+  // The gate itself is further down (search `#1283 RESERVED ROOTS`), where the committed emission is
+  // already in hand. What belongs HERE is the half that proves the gate's SCOPE — that an ordinary
+  // `BrandInput` is not the subject:
+  //
+  //   · `brandTheme` still ACCEPTS a declared `prism`, so the ~235 harness fixtures that spell it are
+  //     untouched. An earlier cut of #1283 threw here and refused all of them.
+  //   · the fallback still RESOLVES to `prism` for an undeclared root (asserted just above), so
+  //     reserving the namespace did not retire it — the default theme is what it is reserved FOR.
+  //
+  // Without these two, moving the check to the catalog would be indistinguishable from moving it back
+  // here later, and the fixture blast radius is exactly what made the first cut wrong.
+  for (const reserved of RESERVED_ROOTS) {
+    let threw = '';
+    let built = '';
+    try { built = brandTheme({ ...rootless, root: reserved } as never).root; } catch (e) { threw = String((e as Error).message); }
+    ok(threw === '' && built === reserved,
+      `#1283 an arbitrary BrandInput may still declare the reserved root '${reserved}' — the reservation is a naming policy over the SHIPPED catalog, not an input validation (got root '${built}'${threw ? `, threw: ${threw.slice(0, 80)}` : ''})`);
+  }
+  ok(RESERVED_ROOTS.length > 0, '#1283 the reserved-root list is non-empty — the loop above is vacuous over an empty list');
+
+  const custom = brandTheme({ ...rootless, root: 'acme' });
   ok(custom.root === 'acme' && custom.namespace === 'acme.core.palette', 'namespace: custom root sets root + <root>.core.palette — the tier is fixed, the root is the lever');
   const ctree = buildTree(custom).tree;
   ok(Object.keys(ctree)[0] === 'acme' && !('prism' in ctree), 'namespace: custom tree is rooted at acme, no prism key');
@@ -6532,7 +6639,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
 
   // reaches the DTCG tree: the pinned hex lands at that step under <root>.palette.neutral
   const ntree = buildTree(pinnedTheme).tree as any;
-  ok(ntree.prism.core.palette.neutral[pinnedStep.key].$value === pinnedStep.hex, 'pin-a-neutral: the pinned grey flows through to the DTCG neutral primitive');
+  // `pinnedTheme.root` rather than a literal (#1283): this fixture is built from aurora's brief, so
+  // its root moved with aurora's (prism -> ads). Reading the theme's own root is the form that
+  // cannot go stale the next time a brand is re-namespaced.
+  ok(ntree[pinnedTheme.root].core.palette.neutral[pinnedStep.key].$value === pinnedStep.hex, 'pin-a-neutral: the pinned grey flows through to the DTCG neutral primitive');
 
   // schema accepts a pinned neutral
   ok(validateBrandInput({ ...input, neutral: { ...input.neutral, anchor: grey } }).length === 0, 'pin-a-neutral: schema accepts neutral.anchor');
@@ -6581,13 +6691,15 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const lo = brandTheme({ ...input, modes: ['light'] });
   const loRp = resolvePreview(lo);
   ok(loRp.modes.length === 1 && loRp.modes[0] === 'light', 'mode config: modes:[light] → light only');
-  const loTree = (buildTree(lo).tree as any).prism;
+  // `lo.root`, not a literal (#1283): this block is built from aurora's brief, whose root moved
+  // prism -> ads. The theme carries its own root, so reading it there cannot go stale again.
+  const loTree = (buildTree(lo).tree as any)[lo.root];
   ok(Object.keys(loTree.color.interactive.primary.fill.rest.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode colour overrides');
   ok(Object.keys(loTree.shadow.xs.$extensions.prism3.modes).length === 0, 'mode config: light-only tree emits no per-mode SHADOW overrides (dark reduction gated)');
 
   const ld = brandTheme({ ...input, modes: ['light', 'dark'] });
   ok(resolvePreview(ld).modes.length === 2, 'mode config: modes:[light,dark] → two modes');
-  const ldTree = (buildTree(ld).tree as any).prism;
+  const ldTree = (buildTree(ld).tree as any)[ld.root];
   ok('dark' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes && !('hc-light' in ldTree.color.interactive.primary.fill.rest.$extensions.prism3.modes), 'mode config: [light,dark] carries the dark override, not HC');
   ok('dark' in ldTree.shadow.xs.$extensions.prism3.modes, 'mode config: [light,dark] keeps the dark shadow reduction');
 
@@ -14567,12 +14679,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // If you are here because the arm went red after adding a rule: add the id, do not delete the era column.
   const EXPECTED_SINCE: Record<string, string> = {
     'namespace-and-core-tier-1097': '0.27.0',
+    'brand-roots-1283': '0.50.0',
     'color-one-collection-1148': '0.30.0',
   };
-  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'namespace-and-core-tier-1097 | color-one-collection-1148'
+  ok(MATERIALIZATION_RENAMES.map((r) => r.id).join(' | ') === 'namespace-and-core-tier-1097 | brand-roots-1283 | color-one-collection-1148'
       && MATERIALIZATION_RENAMES.every((r) => r.since === EXPECTED_SINCE[r.id] && r.why.length > 120)
       && Object.keys(EXPECTED_SINCE).length === MATERIALIZATION_RENAMES.length,
-    `#1039/#1097/#1148: the artifact ships exactly the two rules, each stamped with the version that made ITS change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately NOT what the stamps are compared to).`
+    `#1039/#1097/#1148/#1283: the artifact ships exactly the three rules, each stamped with the version that made ITS change (got ${MATERIALIZATION_RENAMES.map((r) => `${r.id}@${r.since}`).join(' | ')}; ENGINE_VERSION is ${ENGINE_VERSION} and is deliberately NOT what the stamps are compared to).`
     + `\n    Four properties in one arm, so read the values above before changing anything: the ids, the stamps against`
     + `\n    the literal table beside this arm, that each rule carries a real \`why\`, and that the table holds no key for`
     + `\n    a rule that has been retired. #1097 is one rule and not two (namespace + \`core\` tier) because`
@@ -14964,6 +15077,36 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // is the fixture that would catch them being merged: `COLLECTION_RENAMES` has no entry for the pointer
   // tier at all, so a base's `color.surface` keys would stay in a collection nothing emits and read as
   // unaccounted removals against a rule that is correct.
+  //
+  // ── WHICH FIXTURE EACH RULE OWNS KEYS IN, DECLARED (#1148, WIDENED BY #1283) ───────────────────────
+  //
+  // Keyed by id so a new rule arriving is a DECISION rather than a silent extra loop iteration: it has to
+  // state, by name, which keys below are its own. The arm underneath refuses a zero — a rule that strands
+  // nothing when dropped is a rule the fixture does not exercise, and a loop that merely iterated over it
+  // would report that as a pass.
+  //
+  // **THE FIXTURE NAME IS PART OF THE DECLARATION AS OF #1283, AND THE REASON IS NOT CONVENIENCE.** Fixture
+  // B is nb-only and nb has been rooted at `nbds` since #1097 — it has never worn a retired root, so
+  // `brand-roots-1283`'s domain is empty over every key in it and no honest key could be added there. Two
+  // wrong ways out, both rejected: declaring `0` for it in fixture B is the silent pass this arm exists to
+  // refuse, and inventing a `prism/`-rooted nb key would be a fixture asserting a rename that never
+  // happened, checked against an emission that never held either side of it. So the rule brings its OWN
+  // brand instead — fixture B2, aurora, whose keys genuinely moved — and the declaration says where. The
+  // arm still refuses a rule that owns nothing ANYWHERE, which is the property that was worth keeping.
+  const RULE_STRANDS: Record<string, { fixture: 'nb' | 'aurora'; strands: number }> = {
+    'namespace-and-core-tier-1097': { fixture: 'nb', strands: 5 },
+    'color-one-collection-1148': { fixture: 'nb', strands: 1 },
+    'brand-roots-1283': { fixture: 'aurora', strands: 5 },
+  };
+  /** How many keys of the named fixture's before-set are this rule's own — `0` for a rule whose keys are
+   *  in the OTHER fixture, which is a declared inertness rather than an unexercised rule. */
+  const strandsHere = (id: string, fixture: 'nb' | 'aurora'): number =>
+    RULE_STRANDS[id]?.fixture === fixture ? RULE_STRANDS[id].strands : 0;
+  ok(Object.keys(RULE_STRANDS).length === MATERIALIZATION_RENAMES.length
+      && MATERIALIZATION_RENAMES.every((r) => r.id in RULE_STRANDS)
+      && Object.values(RULE_STRANDS).every((d) => d.strands > 0),
+    `#1148/#1283: every shipped rule declares a fixture and a NON-ZERO strand count in it (${MATERIALIZATION_RENAMES.map((r) => r.id).join(', ')} against ${Object.entries(RULE_STRANDS).map(([id, d]) => `${id}→${d.fixture}:${d.strands}`).join(', ')}) — a new rule must state which keys below are its own, rather than joining a loop that would pass by covering none of them`);
+
   {
     const NB = rootOf('nb');
     const before = new Set<VarKey>([
@@ -14993,21 +15136,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // pre-#1097 keys; dropping #1148's strands the one colour key; neither drop is a no-op and neither
     // covers the other's keys. The old version of this arm expected the second rule to change NOTHING —
     // true while the fixture held only pre-#1097 keys, and it would now PASS on a rule set where the wrong
-    // rule did the colour work, which is the direction that hides things. Keyed by id so a third rule
-    // arriving is a decision rather than a silent extra loop iteration.
-    const RULE_STRANDS: Record<string, number> = {
-      'namespace-and-core-tier-1097': 5,
-      'color-one-collection-1148': 1,
-    };
-    ok(Object.keys(RULE_STRANDS).length === MATERIALIZATION_RENAMES.length
-        && MATERIALIZATION_RENAMES.every((r) => r.id in RULE_STRANDS),
-      `#1148: every shipped rule has a declared strand count in this fixture (${MATERIALIZATION_RENAMES.map((r) => r.id).join(', ')} against ${Object.keys(RULE_STRANDS).join(', ')}) — a new rule must state which keys here are its own, rather than joining a loop that would pass by covering none of them`);
+    // rule did the colour work, which is the direction that hides things.
+    //
+    // The declaration is `RULE_STRANDS`, shared with fixture B2 and read here through `strandsHere` — see
+    // its header for why a rule now names WHICH fixture its keys are in.
     for (const dropped of MATERIALIZATION_RENAMES) {
       const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
       const partial = accountFor(recollected, nbKeys, kept, parseVarKey, NB);
-      const want = RULE_STRANDS[dropped.id];
-      ok(!isTotal(partial) && partial.unaccountedRemovals.length === want,
-        `#1148: dropping \`${dropped.id}\` strands ${partial.unaccountedRemovals.length} of the 6 keys (expected ${want}), named individually — ${partial.unaccountedRemovals.join(' · ') || 'NOTHING, which is the silent pass this arm exists to refuse'}`);
+      const want = strandsHere(dropped.id, 'nb');
+      ok(partial.unaccountedRemovals.length === want && (want === 0 ? isTotal(partial) : !isTotal(partial)),
+        `#1148: dropping \`${dropped.id}\` strands ${partial.unaccountedRemovals.length} of the 6 keys (expected ${want}), named individually — ${partial.unaccountedRemovals.join(' · ') || (want === 0 ? 'nothing, as declared — this rule\'s own keys are in fixture B2' : 'NOTHING, which is the silent pass this arm exists to refuse')}`);
     }
 
     // THE COLLECTION-MOVE HALF, dropped one entry at a time — each entry is load-bearing or it is
@@ -15070,6 +15208,70 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const froms = ACCOUNTING_COLLECTION_MOVES.map((m) => m.from);
     ok(new Set(froms).size === froms.length,
       `#1097: no collection appears twice as a \`from\` in ACCOUNTING_COLLECTION_MOVES (${froms.join(', ')}) — \`recollect\` is single-step and first-match, so a duplicate makes the answer depend on array order`);
+  }
+
+  // ---- FIXTURE B2: THE ROOT MOVE, AGAINST AURORA'S REAL EMISSION (#1283) ----
+  //
+  // Same construction as fixture B one brand along, and it exists because fixture B structurally cannot
+  // hold `brand-roots-1283`'s keys (see `RULE_STRANDS`). The before-set is written in the MERGE-BASE
+  // spelling — `prism/*`, which is what `out/figma/aurora/**` held at `main` before this change, aurora
+  // having inherited the engine default root rather than choosing it — and the after-set is the emission
+  // the same tree now writes. So this is one hand-written past against a real present, exactly like B.
+  //
+  // FIVE KEYS, ONE PER SHAPE THE MAP HAS TO GET RIGHT, and every one of them a name a real ref of
+  // `out/figma/aurora/**` holds on one side or the other:
+  //
+  //   · the colour value tier, in its post-#1148 short spelling — the tier that actually re-themes.
+  //   · a primitive ALREADY inside the `core` tier, and a second one under `font/`, which is the segment
+  //     #1097's map keys on. #1283 replaces the FIRST segment only, so neither may gain a second tier;
+  //     a map written as "root + '/' + name" instead of "root + '/' + tail" fails on both.
+  //   · `radius`, a collection that did not move at all — root only.
+  //   · `font-fluid/*`, which starts with `font` and must not be swept under `core` here either.
+  //
+  // NO RECOLLECTION, and stated rather than omitted: #1283 moved names, not collections, so every key
+  // below is already in the collection the emitter writes today. Running `recollectAll` here would be an
+  // identity — none of `color`, `core`, `radius` or `type-sets` is a `from` in
+  // `ACCOUNTING_COLLECTION_MOVES` — and a no-op hop dressed up as a step is what the MOVE_EXPECT arms in
+  // fixture B exist to tell apart from a real one.
+  {
+    const AU = rootOf('aurora');
+    ok(AU !== 'prism' && AU !== rootOf('nb'),
+      `#1283: aurora's root is its own and is not the retired default (got '${AU}') — with it still \`prism\` the before-set below would be the after-set and every arm here would be vacuous`);
+    const auKeys = emissionOf('aurora');
+    const before = new Set<VarKey>([
+      varKey('color', 'prism/color/background/primary'),
+      varKey('core', 'prism/core/palette/white'),
+      varKey('core', 'prism/core/font/family/display'),
+      varKey('radius', 'prism/radius/none'),
+      varKey('type-sets', 'prism/font-fluid/display/sm/strong'),
+    ]);
+    ok([...before].every((k) => !auKeys.has(k)),
+      `#1283: none of the merge-base keys is still emitted — they are the ones that MOVED, and a before-set overlapping the after-set would make the accounting total by having nothing to account for`);
+
+    const acct = accountFor(before, auKeys, MATERIALIZATION_RENAMES, parseVarKey, AU);
+    ok(isTotal(acct) && acct.claims.length === 5 && acct.removed.length === 5 && acct.multiplyClaimed.length === 0,
+      `#1283: the rules account for the whole root move against the REAL aurora emission — 5 hand-written keys, ${acct.claims.length} claims, ${acct.removed.length} removals, ${acct.unaccountedRemovals.length} unaccounted, ${acct.contradictedClaims.length} contradicted, ${acct.multiplyClaimed.length} multiply claimed`);
+    ok(acct.claims.every((c) => c.rule === 'brand-roots-1283'),
+      `#1283: every claim here is #1283's own — #1097's domain now REFUSES a name wearing a retired root, and that refusal is what keeps the two rules disjoint instead of both claiming these keys (rules that claimed: ${[...new Set(acct.claims.map((c) => c.rule))].join(', ')})`);
+
+    // THE SAME PARTITION ARM AS FIXTURE B, against the same declaration. #1283's drop strands all five;
+    // the other two strand nothing here, which is what `strandsHere` returns `0` for — declared inertness,
+    // not an unexercised rule, because each of them owns keys in the fixture above.
+    for (const dropped of MATERIALIZATION_RENAMES) {
+      const kept = MATERIALIZATION_RENAMES.filter((r) => r.id !== dropped.id);
+      const partial = accountFor(before, auKeys, kept, parseVarKey, AU);
+      const want = strandsHere(dropped.id, 'aurora');
+      ok(partial.unaccountedRemovals.length === want && (want === 0 ? isTotal(partial) : !isTotal(partial)),
+        `#1283: dropping \`${dropped.id}\` strands ${partial.unaccountedRemovals.length} of the 5 keys (expected ${want}), named individually — ${partial.unaccountedRemovals.join(' · ') || (want === 0 ? 'nothing, as declared — this rule\'s own keys are in fixture B' : 'NOTHING, which is the silent pass this arm exists to refuse')}`);
+    }
+
+    // THE MAP'S TAIL, ON A LITERAL, because `isTotal` above would also be satisfied by a map that
+    // happened to land on an emitted name for another reason. Only the first segment moves.
+    const r1283 = MATERIALIZATION_RENAMES.find((r) => r.id === 'brand-roots-1283')!;
+    ok(r1283.map('core', 'prism/core/palette/white', AU) === `${AU}/core/palette/white`
+        && !r1283.domain('core', `${AU}/core/palette/white`, AU)
+        && !r1283.domain('core', 'palette/white', AU),
+      `#1283: the rule swaps the FIRST SEGMENT and nothing else, is idempotent against its own image, and leaves an UNROOTED pre-#1097 name to #1097's rule (got '${r1283.map('core', 'prism/core/palette/white', AU)}')`);
   }
 
   // ---- #1053: AN ADDITIVE CHANGE IS CLEAN, AND A REMOVAL IS STILL NOT ----

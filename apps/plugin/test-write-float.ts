@@ -12,8 +12,9 @@
  * two-mode `radius` collection (every radius aliases `core/dimension/0` in the wireframe mode).
  *
  * Every variable name here carries the BRAND ROOT as its first segment (#1097), and aurora is an
- * engine-native brand, so the expected names are written out with the `prism/` root SPELLED — a literal,
- * not `theme.root` read back. The point is that the executor is being held to a name the test author
+ * engine-native brand, so the expected names are written out with the `ads/` root SPELLED — a literal,
+ * not `theme.root` read back. (#1283 restamped that literal from `prism/`; it did not stop being one —
+ * a root moving is exactly the event this spelling exists to make visible, and it was.) The point is that the executor is being held to a name the test author
  * wrote down, so a root that silently stopped being applied fails here rather than agreeing with itself.
  * The three primitive groups also now share ONE `core` collection, which is why the dimension primitives
  * are looked up under `core` and not under a `core-dimension` that no longer exists.
@@ -102,7 +103,7 @@ const byId = new Map(shim.vars.map((v) => [v.id, v]));
 const aSpace = shim.vars.find((v) => v.variableCollectionId === spaceCol.id && Object.values(v.valuesByMode).some((val) => typeof val === 'object' && 'type' in val))!;
 const spaceTargetVal = aSpace && Object.values(aSpace.valuesByMode)[0];
 const spaceTarget = spaceTargetVal && typeof spaceTargetVal === 'object' && 'type' in spaceTargetVal ? byId.get(spaceTargetVal.id) : undefined;
-ok(!!spaceTarget && spaceTarget.variableCollectionId === dimCol.id && spaceTarget.name.startsWith('prism/core/dimension/'),
+ok(!!spaceTarget && spaceTarget.variableCollectionId === dimCol.id && spaceTarget.name.startsWith('ads/core/dimension/'),
   `space var aliases a rooted core-tier dimension primitive across collections (${aSpace?.name} -> ${spaceTarget?.name})`);
 
 // opacity stored as 0–100 (Figma OPACITY scope percent), not 0–1
@@ -136,9 +137,11 @@ const radiusVars = wfShim.vars.filter((v) => v.variableCollectionId === wfRadius
 const allWireToDim0 = radiusVars.every((v) => {
   const val = v.valuesByMode[wfMode.modeId];
   if (typeof val !== 'object' || !('type' in val)) return false;
-  return wfById.get(val.id)?.name === 'prism/core/dimension/0';
+  // STILL A LITERAL, restamped (#1283): aurora's root moved `prism` -> `ads`, so the spelled name
+  // moved with it. Reading `wf.root` here instead would be the change this file's header refuses.
+  return wfById.get(val.id)?.name === 'ads/core/dimension/0';
 });
-ok(radiusVars.length > 0 && allWireToDim0, 'wireframe mode: every radius aliases prism/core/dimension/0 (sharp corners)');
+ok(radiusVars.length > 0 && allWireToDim0, 'wireframe mode: every radius aliases ads/core/dimension/0 (sharp corners)');
 
 console.log(`\nplugin FLOAT write-adapter: ${failed === 0 ? 'ALL PASS' : failed + ' FAILED'}`);
 if (failed) process.exit(1);

@@ -15,7 +15,7 @@
             "b": 0.686274528503418,
             "a": 1
           },
-          "alias": "prism/core/palette/primary/600"
+          "alias": "ads/core/palette/primary/600"
         },
         {
           "position": 1,
@@ -25,7 +25,7 @@
             "b": 0.7333333492279053,
             "a": 1
           },
-          "alias": "prism/core/palette/accent/500"
+          "alias": "ads/core/palette/accent/500"
         }
       ],
       "sampledStops": [
@@ -101,7 +101,7 @@
             "b": 0.7764706015586853,
             "a": 1
           },
-          "alias": "prism/core/palette/accent/400"
+          "alias": "ads/core/palette/accent/400"
         },
         {
           "position": 1,
@@ -111,7 +111,7 @@
             "b": 0.4000000059604645,
             "a": 1
           },
-          "alias": "prism/core/palette/accent/700"
+          "alias": "ads/core/palette/accent/700"
         }
       ],
       "sampledStops": [

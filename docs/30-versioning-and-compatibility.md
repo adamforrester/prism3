@@ -98,9 +98,55 @@ That intersection is **485 paths**, with zero `$type` disagreements between any 
 
 Two details are load-bearing:
 
-**Paths are compared *below* the configurable root.** The root is itself a lever (`nbds` vs `prism`),
-so comparing with it included yields an intersection of exactly zero — which is how this was nearly
-defined into meaninglessness on the first pass. A gate that computes an empty set passes everything.
+**Paths are compared *below* the configurable root.** The root is itself a lever (`nbds`, `ads`,
+`hds`), so comparing with it included yields an intersection of exactly zero — which is how this was
+nearly defined into meaninglessness on the first pass. A gate that computes an empty set passes
+everything.
+
+### The root namespace: `prism` and `pds3` are RESERVED, and moving one is contract-invisible (#1283)
+
+Every brand roots its tokens at a single segment. New Balance has always used `nbds`, and the
+`<brand>ds` convention now holds across the whole shipped catalog: **aurora is `ads`, harbor is `hds`,
+wendys is `wds`**. All three had been sitting on `prism` — none of them by choosing it. Aurora and
+harbor inherited the engine default; wendys is a *standard-spec* brief, and that dialect had no way to
+declare a root at all until this change added one to its `x-prism3` extension block. Three of the four
+brands sharing one namespace is what made a read path that hardcoded `prism/` correct in three cases
+out of four: the #1097 defect class, one layer up, with `nbds` the only thing keeping any of it honest.
+
+`prism` and `pds3` are now held for a future **canonical default theme**. The default theme is
+deliberately **not** authored here — this is the reservation, so the namespace is not taken before it
+exists.
+
+**The reservation is scoped to the SHIPPED CATALOG, and the scope is the whole mechanism.** It is a
+naming policy over the brands this repo publishes, not an input validation, so it is *not* enforced in
+`brandTheme`:
+
+- **`input.root ?? 'prism'` is untouched.** `prism` is still what an undeclared root resolves to.
+  Reserving a namespace is not retiring it — the fallback is exactly what the reservation is *for*.
+- **An arbitrary `BrandInput` may still declare `prism` or `pds3`.** A caller building a theme in a
+  test, a host, or a client's own repo is not publishing an example brand. An earlier cut of #1283 threw
+  in `brandTheme` and refused ~235 harness fixtures for a policy that has nothing to say about them.
+- **The catalog is the subject, and it is discovered rather than authored.** "The brands the engine
+  ships" is exactly the set producing a committed `out/<id>.tokens.json`. The gate (in `test.ts`, search
+  `#1283 RESERVED ROOTS`) enumerates that directory, reads each tree's own emitted root, and asserts
+  none is reserved and each is *declared* rather than inherited. A fifth brand joins the check by
+  existing.
+- **It reads the EMITTED root, not the declared one.** That is what makes it cover the case that needed
+  covering: wendys declared nothing and arrived at `prism` through the fallback, which no reading of
+  `input.root` can see.
+
+**Moving a brand's root does not move the contract, and that is a property rather than a coincidence.**
+The guaranteed set is keyed below the root (above), so `<old>.color.text.primary` and
+`<new>.color.text.primary` are the same guaranteed path. The move was verified this way rather than
+asserted: with all three roots already swapped, `token-contract.ts --check` reported the guaranteed
+surface **unchanged** — no numeral quoted here, because the committed baseline is where that count
+lives and a copy of it in prose goes stale silently (#1180). Had it moved, the finding would have been
+that the contract is *not* keyed below the root, which is a defect to report and not something to
+`--accept` past.
+
+**What it *does* move is the materialization.** Every Figma variable the brand owns is renamed, first
+segment only, so the move is recorded in `MATERIALIZATION_RENAMES` as `brand-roots-1283` — the register
+for renames the contract cannot see. See `docs/44` and that module's header.
 
 **`minimal` is what stops the number over-claiming.** Without it the intersection would be "whatever
 four richly-specified brands happen to share", which is a much weaker promise wearing the same

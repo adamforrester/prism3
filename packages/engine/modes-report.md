@@ -1050,8 +1050,9 @@ Component sizes — t-shirt, density `comfortable` (height + paired padding from
 | size.lg | 56px | 24px | 8px |
 | size.xl | 68px | 24px | 16px |
 
-# Theme: aurora (prism.* / hex)
+# Theme: aurora (ads.* / hex)
 
+- namespace: tokens emit under 'ads.*' (custom, not the 'prism' default)
 - primary anchor (h285) pinned exactly at step 550
 - anchor 'accent' (L0.55 C0.15 h235) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.117; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.117 for an exact match.
 - brand color 'accent' (h235) added
@@ -2113,8 +2114,9 @@ Component sizes — t-shirt, density `compact` (height + paired padding from the
 | size.lg | 44px | 16px | 8px |
 | size.xl | 56px | 24px | 8px |
 
-# Theme: harbor (prism.* / hex)
+# Theme: harbor (hds.* / hex)
 
+- namespace: tokens emit under 'hds.*' (custom, not the 'prism' default)
 - primary anchor (h195) pinned exactly at step 600
 - anchor 'primary' (L0.46 C0.08 h195) is OUT of sRGB gamut — max renderable chroma at this L/hue is ~0.079; it ships clamped toward the boundary, so its lightness and hue may drift. Lower its chroma to ~0.079 for an exact match.
 - success: brand-supplied hue 150 — seeds a vivid ramp from its hue+chroma (not pinned at its measured lightness; the exact swatch may not appear verbatim)

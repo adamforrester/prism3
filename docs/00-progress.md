@@ -7,6 +7,118 @@
 
 ---
 
+## (2026-09-05) — every shipped brand gets a name of its own, and `prism`/`pds3` are RESERVED (#1283)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.50.0 → 0.51.0; `CONTRACT_VERSION` stands at 9.4.0.**
+Rebased onto `4e97f9c` (main with #1271, #1280 PR-D and #1288); first cut off `1b9608f`, and
+the re-stamp to 0.51.0 is because #1288 took 0.50.0 under it. Aurora roots at **`ads`**, harbor at **`hds`**, wendys at **`wds`**, following the `<brand>ds`
+convention New Balance has always used (`nbds`, confirmed unchanged and untouched). `prism` and `pds3`
+are held for a future canonical default theme, and the gate refuses any *shipped* brand rooting at
+either. **No default theme is authored here** — that is a separate follow-up; this is the reservation
+and the move.
+
+**Three of the four shipped brands were sharing a root, and none of them had chosen it.** Aurora and
+harbor inherited `prism` because it is the engine default for a brief that names no root. Wendys had a
+harder reason, and it is the finding of this lane: **the standard dialect had no way to declare a root at
+all.** The base spec describes a brand, not a namespace, so `standardToBrandInput` never carried one and
+every standard-spec brand reached `prism` through the fallback with nothing to look at. That is the
+#1097 defect class one layer up: a read path spelling `prism/` was correct in three brands out of four,
+so the corpus could not fail it, and `nbds` was the only thing keeping any of those arms honest.
+
+**THE SCOPE IS THE SHIPPED CATALOG, AND GETTING THAT WRONG WAS THE FIRST CUT OF THIS LANE.** The
+reservation started life as a throw in `brandTheme` on `input.root`. Wrong three ways, and each one is
+now a comment where the guard used to be:
+
+  · it refused the ~235 harness fixtures that spell `root: 'prism'` for clarity — a policy about four
+    published brands, applied to every caller in the repo;
+  · it made a naming decision into an input validation, reaching hosts and client callers who are not
+    publishing an example brand at all;
+  · and it **could not have caught the brand that needed catching** — wendys declared nothing, so no
+    check on `input.root` ever sees it.
+
+The check now keys off the SHIPPED BRAND CATALOG, and the catalog is **discovered rather than authored**:
+every committed `out/<id>.tokens.json`, read for the root it actually *emitted*. Re-typing the four ids
+would make the gate agree with a list instead of with the emission, and a fifth brand would join the
+catalog without joining the check — `docs/34` shape 9. Both directions are asserted permanently, not
+just observed once: a registered brand at a reserved root fails **by name**, and an arbitrary
+`BrandInput` declaring `prism` or `pds3` still builds. `input.root ?? 'prism'` is untouched — reserving
+a namespace is not retiring it, and the fallback is what the reservation is *for*.
+
+**`x-prism3.root` is new, and it is the smallest thing that made wendys expressible.** The standard
+dialect's Prism3 extension block already carries `density`, `actionPalette` and the rest; the root
+belongs beside them, because the base spec has no field for it and inventing a top-level one would fork
+the dialect. **That cost wendys its "no x-prism3 block" status**, which one arm had been using as the
+plain-spec witness — a guarantee about the DIALECT that depended on one brand never needing a lever. It
+needed one. The witness is now synthetic (a five-line base-spec document with no extension block), and
+the wendys arm names what it applies instead of counting zero: `root=wds` and nothing else.
+
+**`token-contract.ts --check` reported the guaranteed surface UNCHANGED with all three roots moved, and
+that was the point of measuring rather than assuming.** The contract is keyed *below* the configurable
+root (`docs/30`), so `prism.color.text.primary` and `ads.color.text.primary` are the same guaranteed
+path. Had it moved, the finding would have been that the contract is not keyed where it says it is — a
+defect to report, not something to `--accept` past. The only line in `schema/token-contract.json` that
+differs from `main` is the `engineVersion` stamp: zero guaranteed paths, zero brand-dependent paths.
+
+**What DOES move is the materialization — every Figma variable the three brands own — so it is
+recorded.** `brand-roots-1283` in `MATERIALIZATION_RENAMES`, first segment only. The rule forced a change
+to #1097's domain that reads as unrelated and is not: "already rooted" had been *starts with the LIVE
+root*, a correct way to ask "is this namespaced yet" only while no brand ever CHANGED root. Once aurora
+moved, a merge-base `prism/color/text/primary` stopped starting with `ads/` and #1097 claimed it too —
+image `ads/prism/color/text/primary`, a name nothing emits. Two rules, one key, and
+`lint-materialization-renames` said so: **1210 keys claimed by more than one rule.**
+`RETIRED_ROOT_PREFIXES` (spelled literally, not imported from `theme.ts` — `docs/34` shape 11, same
+reason as `CORE_TIER`) makes the two domains partition instead of compete. The gate now accounts 1210
+renames with nothing unexplained.
+
+**The rename fixture could not hold the new rule's keys, and the honest fix was a second fixture rather
+than a zero.** `test.ts`'s fixture B is nb-only, and nb has been `nbds` since #1097 — it has never worn a
+retired root, so #1283's domain is empty over every key in it. Declaring `0` strands for the rule there
+is exactly the silent pass that arm exists to refuse, and inventing a `prism/`-rooted nb key would be a
+fixture asserting a rename that never happened. So `RULE_STRANDS` now declares a FIXTURE alongside the
+count, the completeness arm refuses a zero anywhere, and **fixture B2** drives the rule against aurora's
+real emission — five merge-base keys, one per shape the map has to get right (short-spelled colour
+value, a `core` primitive, one under `font/`, an unmoved collection, and `font-fluid/*` which must not be
+swept under the tier).
+
+**Three plugin tests had been passing on a coincidence, and the cross-brand one had gone quietly
+unarmed.** `test-write-typography.ts`'s #680 end-to-end fixture pairs aurora's text-style plan with
+harbor's by variable name — which worked *only* while both brands were `prism`, because the names were
+then the same string. Given `ads` and `hds`, nothing matched: `incoming` was always `undefined`, the
+cross product degraded to harbor's own faces, and every arm above stayed green while the two below armed
+nothing. It now pairs on the ROOT-RELATIVE TAIL and keys on aurora's own rooted name. A root is what
+makes two brands' variables different names; a tail is what makes them the same logical variable.
+
+**The spelled roots in those files were RESTAMPED, not replaced with `theme.root`.** First pass did
+replace them, and that was a `docs/34` shape 1 regression written in the name of fixing #1283: three of
+those files carry headers arguing that the expected name must be a literal the test author wrote down,
+precisely so a root that silently stopped being applied fails somewhere. Reading `theme.root` makes the
+assertion agree with the plan by construction. **A root moving is the event that spelling exists to make
+visible, and it did** — the arms went red, which is the mechanism working. `prism/` became `ads/`; it did
+not stop being a literal.
+
+**`visualize.ts` was the one hard-coded reference that failed as a crash rather than a message.**
+`load('aurora', 'prism')` passed the namespace as a caller argument, so the move produced *"Cannot read
+properties of undefined (reading 'core')"*. The root is a fact about the emitted tree, so it is read from
+there now — the single non-`$` top-level key, with a uniqueness throw rather than a first-match pick.
+
+**Mutation battery — nine, committed before each, restored after each, every one named in its own
+failure:**
+
+| # | mutation | what failed, by name |
+|---|---|---|
+| 1 | aurora `root: ads` → `prism` | *"#1283 no shipped brand roots at a reserved namespace [prism, pds3] — aurora@prism"* |
+| 2 | wendys `x-prism3.root: wds` → `pds3` | same arm — *"wendys@pds3"* — reached through the standard dialect, plus both wendys lever arms |
+| 3 | **the second direction:** a test fixture's `root: 'prism'` → `'pds3'` | **NOTHING — suite green, 2957 pass.** The scope is the catalog, not `BrandInput`, and this is the arm that proves it |
+| 4 | the reservation predicate driven over a non-reserved name | asserted in-suite permanently — *"the reserved predicate actually discriminates … 'zzds' not"* — so a clean corpus cannot masquerade as a working rule |
+| 5 | `brand-roots-1283`'s map stops slicing the first segment | fixture B2's totality, both partition arms, and the literal map arm (*got `ads/prism/core/palette/white`*); `lint-materialization-renames` red |
+| 6 | #1097's domain widening reverted | *"every claim here is #1283's own … (rules that claimed: namespace-and-core-tier-1097, brand-roots-1283)"*; gate reports 1210 multiply claimed |
+| 7 | `RULE_STRANDS` fixture flipped `aurora` → `nb` | both fixtures' partition arms, in opposite directions |
+| 8 | `RULE_STRANDS` strand count set to `0` | the completeness arm — *"every shipped rule declares a fixture and a NON-ZERO strand count"* |
+| 9 | (earlier design) the `brandTheme` guard disabled / widened | recorded here because it is why the design moved: mutation 1 in that shape took the suite down at **module load**, and #680's rule — a crashing assertion is not a failing one — is one of the two reasons the check is a gate over the emission now rather than a throw |
+
+**Deferred, filed as #1296 rather than left in this entry:** authoring the canonical default
+theme at `pds3` — flipping the fallback, retiring `prism` as a resolved value, and deciding whether the
+~235 fixtures move with it. Nothing roots at `pds3` today; it is held, not occupied.
 ## (2026-09-04) — the paste path's swap misses get the same diagnosis, and the two executors stop disagreeing (#1288)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.49.0 → 0.50.0; `CONTRACT_VERSION` stays 9.4.0.** Branched off

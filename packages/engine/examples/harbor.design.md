@@ -7,6 +7,12 @@
 # alias resolves, and all 248 contrast contracts hold.
 id: harbor
 
+# ROOT NAMESPACE (#1283) — every token this brand emits sits under `hds.*`.
+# `hds` is "Harbor Design System", the same <brand>ds convention New Balance already uses (`nbds`).
+# Declared rather than defaulted: `prism` and `pds3` are RESERVED for a future canonical
+# default theme, so a named brand states its own root instead of borrowing the default.
+root: hds
+
 # Hero brand: a restrained, deep teal (low chroma, deep lightness). No accent —
 # the bare-input path.
 primary: { l: 0.46, c: 0.08, h: 195 }

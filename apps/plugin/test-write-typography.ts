@@ -14,13 +14,13 @@
  *
  * BOTH SIDES OF THE #1097 NAMESPACE MEET IN THIS FILE, which is why the expected names below are written
  * out rather than derived. A VARIABLE carries the brand root and, for the three primitive groups, the
- * `core` tier: `prism/core/font/family/display`. A TEXT STYLE carries NEITHER — it stays
+ * `core` tier: `<root>/core/font/family/display`. A TEXT STYLE carries NEITHER — it stays
  * `display/sm/strong`, dropping the root AND the tier, because Figma's style tree is what a designer
  * browses by hand. So the same rung is spelled two ways on purpose, and a reader who generalises from one
  * to the other gets a name Figma does not have. `font-fluid/*` also stays OUT of `core` (it is a computed
  * tier, not a primitive) and lands in `type-sets` rooted but untiered. And the root spelled depends on
  * WHICH BRAND drives the block: the variable block below is NB's, so it is `nbds/`, while the #680
- * fixtures further down are aurora's and so are `prism/`. That the two differ in one file is the whole
+ * fixtures further down are aurora's and so are `ads/` (#1283). That the two differ in one file is the whole
  * content of #1097 — a read path that hard-coded either one would pass half this file.
  *
  * Mirrors the other shim tests' dependency-free `ok(...)` style; exits non-zero on any failure.
@@ -355,7 +355,9 @@ const auroraOnly = auroraFaces.filter((f) => !harborFaces.some((h) => fontKey(h)
 ok(auroraOnly.length > 0,
   `#680 reachable: aurora names ${auroraOnly.length} face(s) harbor does not — ${auroraOnly.map(fontKey).join(', ')}. That difference is the reported failure`);
 const auroraDeps = dependentsOf(auroraTheme);
-const displayFamilyVar = 'prism/core/font/family/display';
+// SPELLED, per this file's header — restamped `prism/` -> `ads/` by #1283 rather than read off
+// `auroraTheme.root`, which would make the expectation agree with the plan by construction.
+const displayFamilyVar = 'ads/core/font/family/display';
 ok(auroraDeps.has(displayFamilyVar) && auroraVarPlan.flatMap((c) => c.rows).some((r) => r.name === displayFamilyVar),
   `#680 reachable: ${displayFamilyVar} is BOTH a row the writer sets and a variable a text style resolves through (${fontKey(auroraDeps.get(displayFamilyVar)!)})`);
 
@@ -419,7 +421,7 @@ ok(wrote.collections.reduce((n, c) => n + c.created, 0) === auroraFontVarRows,
 // alias, so this needs its OWN fixture: text styles bind `fontWeight` to `core/font/weight-role/*`, and those
 // are exactly the aliased rows. Keyed there, the refusal reaches pass B.
 const aliasedRows = auroraVarPlan.flatMap((c) => c.rows).filter((r) => r.aliasByMode.some(Boolean));
-ok(aliasedRows.length > 0 && aliasedRows.every((r) => r.name.startsWith('prism/core/font/weight-role/')),
+ok(aliasedRows.length > 0 && aliasedRows.every((r) => r.name.startsWith('ads/core/font/weight-role/')),
   `#680 reachable: the ${aliasedRows.length} aliased rows are the weight-roles a text style's fontWeight binds to — so a refusal CAN land on an alias write, which is what the next assertion needs`);
 const aliasSession = new FontSession();
 // Every weight-role bound to a face nothing loaded — the pass-B write is refused, not the pass-A one.
@@ -517,10 +519,24 @@ const e2eSession = new FontSession();
 // The dependents map is the CROSS PRODUCT, not aurora's own faces — the file's style keeps its style name
 // and picks up the incoming family. This is the mechanism the live error described, and the earlier
 // `auroraDeps` fixture (var → aurora's own face) is the weaker version of it.
+//
+// KEYED BY THE VARIABLE THE WRITE ACTUALLY TOUCHES — aurora's — and PAIRED with harbor's row by the
+// ROOT-RELATIVE TAIL (#1283). Both halves used to be free, and both broke at once. While aurora and
+// harbor shared the `prism` root their variable names were the same STRING, so keying the map by
+// harbor's name happened to key aurora's too, and `a.fontFamilyVar === r.fontFamilyVar` happened to
+// pair them. #1283 gave them `ads` and `hds`: no name matched, so `incoming` was always undefined AND
+// the write's own variables were absent from the map — the cross-product fixture degraded to harbor's
+// own faces, arming nothing for the two arms below while every arm above stayed green.
+//
+// A ROOT is what makes two brands' variables different names; a TAIL is what makes them the same
+// logical variable. So the pairing is on the tail, deliberately, and the KEY is aurora's rooted name
+// because that is the one the write under test will look up.
+const tail = (n: string): string => n.split('/').slice(1).join('/');
+const harborByTail = new Map(buildTextStylePlan(harborTheme).map((r) => [tail(r.fontFamilyVar), r] as const));
 e2eSession.dependents = new Map(
-  buildTextStylePlan(harborTheme).map((r) => {
-    const incoming = auroraTextPlan.find((a) => a.fontFamilyVar === r.fontFamilyVar);
-    return [r.fontFamilyVar, { family: incoming?.fontFamilyPrimary ?? r.fontFamilyPrimary, style: r.fontStyle }] as const;
+  auroraTextPlan.map((a) => {
+    const counterpart = harborByTail.get(tail(a.fontFamilyVar));
+    return [a.fontFamilyVar, { family: a.fontFamilyPrimary, style: counterpart?.fontStyle ?? a.fontStyle }] as const;
   }),
 );
 for (const f of harborFaces) e2eSession.loaded.add(fontKey(f));

@@ -1,10 +1,10 @@
 {
-  "prism": {
+  "wds": {
     "color": {
       "background": {
         "secondary": {
           "$type": "color",
-          "$value": "{prism.core.palette.white}",
+          "$value": "{wds.core.palette.white}",
           "$description": "Page surface, second tier — a slightly tinted page / band",
           "$extensions": {
             "prism3": {
@@ -19,7 +19,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.white",
+              "aliasOf": "wds.core.palette.white",
               "contrast": 1,
               "against": "self"
             }
@@ -27,7 +27,7 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.core.palette.white}",
+          "$value": "{wds.core.palette.white}",
           "$description": "Page surface, third tier",
           "$extensions": {
             "prism3": {
@@ -42,7 +42,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.white",
+              "aliasOf": "wds.core.palette.white",
               "contrast": 1,
               "against": "self"
             }
@@ -52,7 +52,7 @@
       "foreground": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.core.palette.white}",
+          "$value": "{wds.core.palette.white}",
           "$description": "Default surface placed on the page — a card",
           "$extensions": {
             "prism3": {
@@ -67,7 +67,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.white",
+              "aliasOf": "wds.core.palette.white",
               "contrast": 1,
               "against": "self"
             }
@@ -75,7 +75,7 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.core.palette.white}",
+          "$value": "{wds.core.palette.white}",
           "$description": "A second surface — a panel / nested container",
           "$extensions": {
             "prism3": {
@@ -90,7 +90,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.white",
+              "aliasOf": "wds.core.palette.white",
               "contrast": 1,
               "against": "self"
             }
@@ -98,7 +98,7 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.core.palette.white}",
+          "$value": "{wds.core.palette.white}",
           "$description": "A third surface step",
           "$extensions": {
             "prism3": {
@@ -113,7 +113,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.white",
+              "aliasOf": "wds.core.palette.white",
               "contrast": 1,
               "against": "self"
             }
@@ -121,7 +121,7 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{prism.core.palette.primary.650}",
+          "$value": "{wds.core.palette.primary.650}",
           "$description": "Bold brand fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
@@ -136,7 +136,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.primary.650",
+              "aliasOf": "wds.core.palette.primary.650",
               "contrast": 8.05,
               "against": "neutral.050",
               "min": 7
@@ -145,7 +145,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{prism.core.palette.success.700}",
+          "$value": "{wds.core.palette.success.700}",
           "$description": "Bold success fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
@@ -160,7 +160,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.success.700",
+              "aliasOf": "wds.core.palette.success.700",
               "contrast": 7.96,
               "against": "neutral.050",
               "min": 7
@@ -169,7 +169,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{prism.core.palette.warning.700}",
+          "$value": "{wds.core.palette.warning.700}",
           "$description": "Bold warning fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
@@ -184,7 +184,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.warning.700",
+              "aliasOf": "wds.core.palette.warning.700",
               "contrast": 8.2,
               "against": "neutral.050",
               "min": 7
@@ -193,7 +193,7 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{prism.core.palette.info.700}",
+          "$value": "{wds.core.palette.info.700}",
           "$description": "Bold info fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
@@ -208,7 +208,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.info.700",
+              "aliasOf": "wds.core.palette.info.700",
               "contrast": 8.05,
               "against": "neutral.050",
               "min": 7
@@ -217,7 +217,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{prism.core.palette.danger.700}",
+          "$value": "{wds.core.palette.danger.700}",
           "$description": "Bold danger fill — clears 3:1 on the floor (neutral.050)",
           "$extensions": {
             "prism3": {
@@ -232,7 +232,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.danger.700",
+              "aliasOf": "wds.core.palette.danger.700",
               "contrast": 8.23,
               "against": "neutral.050",
               "min": 7
@@ -243,7 +243,7 @@
       "text": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.core.palette.black}",
+          "$value": "{wds.core.palette.black}",
           "$description": "Primary text — strongest neutral",
           "$extensions": {
             "prism3": {
@@ -258,7 +258,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.black",
+              "aliasOf": "wds.core.palette.black",
               "contrast": 21,
               "against": "background.primary",
               "min": 15
@@ -267,7 +267,7 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.700}",
+          "$value": "{wds.core.palette.neutral.700}",
           "$description": "Secondary text — 4.5:1 on the floor",
           "$extensions": {
             "prism3": {
@@ -282,7 +282,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.700",
+              "aliasOf": "wds.core.palette.neutral.700",
               "contrast": 8.16,
               "against": "neutral.050",
               "min": 7
@@ -291,7 +291,7 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.550}",
+          "$value": "{wds.core.palette.neutral.550}",
           "$description": "Tertiary text — 3:1 on the floor",
           "$extensions": {
             "prism3": {
@@ -306,7 +306,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.550",
+              "aliasOf": "wds.core.palette.neutral.550",
               "contrast": 4.55,
               "against": "neutral.050",
               "min": 4.5
@@ -315,7 +315,7 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{prism.core.palette.primary.700}",
+          "$value": "{wds.core.palette.primary.700}",
           "$description": "brand text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -330,7 +330,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.primary.700",
+              "aliasOf": "wds.core.palette.primary.700",
               "contrast": 9.41,
               "against": "neutral.050",
               "min": 7
@@ -339,7 +339,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{prism.core.palette.success.700}",
+          "$value": "{wds.core.palette.success.700}",
           "$description": "success text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -354,7 +354,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.success.700",
+              "aliasOf": "wds.core.palette.success.700",
               "contrast": 7.96,
               "against": "neutral.050",
               "min": 7
@@ -363,7 +363,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{prism.core.palette.warning.700}",
+          "$value": "{wds.core.palette.warning.700}",
           "$description": "warning text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -378,7 +378,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.warning.700",
+              "aliasOf": "wds.core.palette.warning.700",
               "contrast": 8.2,
               "against": "neutral.050",
               "min": 7
@@ -387,7 +387,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{prism.core.palette.danger.700}",
+          "$value": "{wds.core.palette.danger.700}",
           "$description": "danger text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -402,7 +402,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.danger.700",
+              "aliasOf": "wds.core.palette.danger.700",
               "contrast": 8.23,
               "against": "neutral.050",
               "min": 7
@@ -411,7 +411,7 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{prism.core.palette.info.700}",
+          "$value": "{wds.core.palette.info.700}",
           "$description": "info text — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -426,7 +426,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.info.700",
+              "aliasOf": "wds.core.palette.info.700",
               "contrast": 8.05,
               "against": "neutral.050",
               "min": 7
@@ -435,7 +435,7 @@
         },
         "success-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.success.500}",
+          "$value": "{wds.core.palette.success.500}",
           "$description": "Muted success text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -450,7 +450,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.success.500",
+              "aliasOf": "wds.core.palette.success.500",
               "contrast": 4.55,
               "against": "background.primary",
               "min": 4.5
@@ -459,7 +459,7 @@
         },
         "warning-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.warning.500}",
+          "$value": "{wds.core.palette.warning.500}",
           "$description": "Muted warning text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -474,7 +474,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.warning.500",
+              "aliasOf": "wds.core.palette.warning.500",
               "contrast": 4.6,
               "against": "background.primary",
               "min": 4.5
@@ -483,7 +483,7 @@
         },
         "danger-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.danger.500}",
+          "$value": "{wds.core.palette.danger.500}",
           "$description": "Muted danger text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -498,7 +498,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.danger.500",
+              "aliasOf": "wds.core.palette.danger.500",
               "contrast": 4.59,
               "against": "background.primary",
               "min": 4.5
@@ -507,7 +507,7 @@
         },
         "info-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.info.500}",
+          "$value": "{wds.core.palette.info.500}",
           "$description": "Muted info text — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -522,7 +522,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.info.500",
+              "aliasOf": "wds.core.palette.info.500",
               "contrast": 4.56,
               "against": "background.primary",
               "min": 4.5
@@ -532,7 +532,7 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.650}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link text — default",
             "$extensions": {
               "prism3": {
@@ -547,7 +547,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.650",
+                "aliasOf": "wds.core.palette.primary.650",
                 "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 7
@@ -556,7 +556,7 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.700}",
+            "$value": "{wds.core.palette.primary.700}",
             "$description": "Link text — hover",
             "$extensions": {
               "prism3": {
@@ -571,7 +571,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.700",
+                "aliasOf": "wds.core.palette.primary.700",
                 "contrast": 9.41,
                 "against": "neutral.050",
                 "min": 7
@@ -580,7 +580,7 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.750}",
+            "$value": "{wds.core.palette.primary.750}",
             "$description": "Link text — visited",
             "$extensions": {
               "prism3": {
@@ -595,7 +595,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.750",
+                "aliasOf": "wds.core.palette.primary.750",
                 "contrast": 10.91,
                 "against": "neutral.050",
                 "min": 7
@@ -604,7 +604,7 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.650}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link text — focused",
             "$extensions": {
               "prism3": {
@@ -619,7 +619,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.650",
+                "aliasOf": "wds.core.palette.primary.650",
                 "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 7
@@ -631,7 +631,7 @@
       "icon": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.core.palette.black}",
+          "$value": "{wds.core.palette.black}",
           "$description": "Primary icon — strongest neutral",
           "$extensions": {
             "prism3": {
@@ -646,7 +646,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.black",
+              "aliasOf": "wds.core.palette.black",
               "contrast": 21,
               "against": "background.primary",
               "min": 15
@@ -655,7 +655,7 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.700}",
+          "$value": "{wds.core.palette.neutral.700}",
           "$description": "Secondary icon — 4.5:1 on the floor",
           "$extensions": {
             "prism3": {
@@ -670,7 +670,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.700",
+              "aliasOf": "wds.core.palette.neutral.700",
               "contrast": 8.16,
               "against": "neutral.050",
               "min": 7
@@ -679,7 +679,7 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.550}",
+          "$value": "{wds.core.palette.neutral.550}",
           "$description": "Tertiary icon — 3:1 on the floor",
           "$extensions": {
             "prism3": {
@@ -694,7 +694,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.550",
+              "aliasOf": "wds.core.palette.neutral.550",
               "contrast": 4.55,
               "against": "neutral.050",
               "min": 4.5
@@ -703,7 +703,7 @@
         },
         "brand": {
           "$type": "color",
-          "$value": "{prism.core.palette.primary.700}",
+          "$value": "{wds.core.palette.primary.700}",
           "$description": "brand icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -718,7 +718,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.primary.700",
+              "aliasOf": "wds.core.palette.primary.700",
               "contrast": 9.41,
               "against": "neutral.050",
               "min": 7
@@ -727,7 +727,7 @@
         },
         "success": {
           "$type": "color",
-          "$value": "{prism.core.palette.success.700}",
+          "$value": "{wds.core.palette.success.700}",
           "$description": "success icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -742,7 +742,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.success.700",
+              "aliasOf": "wds.core.palette.success.700",
               "contrast": 7.96,
               "against": "neutral.050",
               "min": 7
@@ -751,7 +751,7 @@
         },
         "warning": {
           "$type": "color",
-          "$value": "{prism.core.palette.warning.700}",
+          "$value": "{wds.core.palette.warning.700}",
           "$description": "warning icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -766,7 +766,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.warning.700",
+              "aliasOf": "wds.core.palette.warning.700",
               "contrast": 8.2,
               "against": "neutral.050",
               "min": 7
@@ -775,7 +775,7 @@
         },
         "danger": {
           "$type": "color",
-          "$value": "{prism.core.palette.danger.700}",
+          "$value": "{wds.core.palette.danger.700}",
           "$description": "danger icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -790,7 +790,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.danger.700",
+              "aliasOf": "wds.core.palette.danger.700",
               "contrast": 8.23,
               "against": "neutral.050",
               "min": 7
@@ -799,7 +799,7 @@
         },
         "info": {
           "$type": "color",
-          "$value": "{prism.core.palette.info.700}",
+          "$value": "{wds.core.palette.info.700}",
           "$description": "info icon — 4.5:1 on the floor (neutral.050) and on its own tint",
           "$extensions": {
             "prism3": {
@@ -814,7 +814,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.info.700",
+              "aliasOf": "wds.core.palette.info.700",
               "contrast": 8.05,
               "against": "neutral.050",
               "min": 7
@@ -823,7 +823,7 @@
         },
         "success-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.success.500}",
+          "$value": "{wds.core.palette.success.500}",
           "$description": "Muted success icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -838,7 +838,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.success.500",
+              "aliasOf": "wds.core.palette.success.500",
               "contrast": 4.55,
               "against": "background.primary",
               "min": 4.5
@@ -847,7 +847,7 @@
         },
         "warning-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.warning.500}",
+          "$value": "{wds.core.palette.warning.500}",
           "$description": "Muted warning icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -862,7 +862,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.warning.500",
+              "aliasOf": "wds.core.palette.warning.500",
               "contrast": 4.6,
               "against": "background.primary",
               "min": 4.5
@@ -871,7 +871,7 @@
         },
         "danger-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.danger.500}",
+          "$value": "{wds.core.palette.danger.500}",
           "$description": "Muted danger icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -886,7 +886,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.danger.500",
+              "aliasOf": "wds.core.palette.danger.500",
               "contrast": 4.59,
               "against": "background.primary",
               "min": 4.5
@@ -895,7 +895,7 @@
         },
         "info-subtle": {
           "$type": "color",
-          "$value": "{prism.core.palette.info.500}",
+          "$value": "{wds.core.palette.info.500}",
           "$description": "Muted info icon — low-emphasis accent, 3:1 on the page",
           "$extensions": {
             "prism3": {
@@ -910,7 +910,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.info.500",
+              "aliasOf": "wds.core.palette.info.500",
               "contrast": 4.56,
               "against": "background.primary",
               "min": 4.5
@@ -920,7 +920,7 @@
         "link": {
           "default": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.650}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link icon — default",
             "$extensions": {
               "prism3": {
@@ -935,7 +935,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.650",
+                "aliasOf": "wds.core.palette.primary.650",
                 "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 7
@@ -944,7 +944,7 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.700}",
+            "$value": "{wds.core.palette.primary.700}",
             "$description": "Link icon — hover",
             "$extensions": {
               "prism3": {
@@ -959,7 +959,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.700",
+                "aliasOf": "wds.core.palette.primary.700",
                 "contrast": 9.41,
                 "against": "neutral.050",
                 "min": 7
@@ -968,7 +968,7 @@
           },
           "visited": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.750}",
+            "$value": "{wds.core.palette.primary.750}",
             "$description": "Link icon — visited",
             "$extensions": {
               "prism3": {
@@ -983,7 +983,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.750",
+                "aliasOf": "wds.core.palette.primary.750",
                 "contrast": 10.91,
                 "against": "neutral.050",
                 "min": 7
@@ -992,7 +992,7 @@
           },
           "focused": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.650}",
+            "$value": "{wds.core.palette.primary.650}",
             "$description": "Link icon — focused",
             "$extensions": {
               "prism3": {
@@ -1007,7 +1007,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.650",
+                "aliasOf": "wds.core.palette.primary.650",
                 "contrast": 8.05,
                 "against": "neutral.050",
                 "min": 7
@@ -1021,7 +1021,7 @@
           "fill": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.650}",
+              "$value": "{wds.core.palette.primary.650}",
               "$description": "primary interactive fill — rest",
               "$extensions": {
                 "prism3": {
@@ -1036,7 +1036,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.650",
+                  "aliasOf": "wds.core.palette.primary.650",
                   "contrast": 8.05,
                   "against": "neutral.050",
                   "min": 7
@@ -1045,7 +1045,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.750}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive fill — hover",
               "$extensions": {
                 "prism3": {
@@ -1060,7 +1060,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.750",
+                  "aliasOf": "wds.core.palette.primary.750",
                   "contrast": 10.91,
                   "against": "neutral.050",
                   "min": 7
@@ -1069,7 +1069,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.850}",
+              "$value": "{wds.core.palette.primary.850}",
               "$description": "primary interactive fill — pressed",
               "$extensions": {
                 "prism3": {
@@ -1084,7 +1084,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.850",
+                  "aliasOf": "wds.core.palette.primary.850",
                   "contrast": 13.92,
                   "against": "neutral.050",
                   "min": 7
@@ -1093,7 +1093,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.750}",
+              "$value": "{wds.core.palette.primary.750}",
               "$description": "primary interactive fill — focused",
               "$extensions": {
                 "prism3": {
@@ -1108,7 +1108,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.750",
+                  "aliasOf": "wds.core.palette.primary.750",
                   "contrast": 10.91,
                   "against": "neutral.050",
                   "min": 7
@@ -1117,7 +1117,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.850}",
+              "$value": "{wds.core.palette.primary.850}",
               "$description": "primary interactive fill — selected",
               "$extensions": {
                 "prism3": {
@@ -1132,7 +1132,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.850",
+                  "aliasOf": "wds.core.palette.primary.850",
                   "contrast": 13.92,
                   "against": "neutral.050",
                   "min": 7
@@ -1143,7 +1143,7 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.600}",
               "$description": "primary interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1158,7 +1158,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.600",
+                  "aliasOf": "wds.core.palette.primary.600",
                   "contrast": 8.28,
                   "against": "background.primary",
                   "min": 7
@@ -1167,7 +1167,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.700}",
               "$description": "primary interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1182,7 +1182,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.700",
+                  "aliasOf": "wds.core.palette.primary.700",
                   "contrast": 11.42,
                   "against": "background.primary",
                   "min": 7
@@ -1191,7 +1191,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.800}",
+              "$value": "{wds.core.palette.primary.800}",
               "$description": "primary interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1206,7 +1206,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.800",
+                  "aliasOf": "wds.core.palette.primary.800",
                   "contrast": 15.09,
                   "against": "background.primary",
                   "min": 7
@@ -1217,7 +1217,7 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.600}",
+              "$value": "{wds.core.palette.primary.600}",
               "$description": "primary interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1232,7 +1232,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.600",
+                  "aliasOf": "wds.core.palette.primary.600",
                   "contrast": 8.28,
                   "against": "background.primary",
                   "min": 4.5
@@ -1241,7 +1241,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.700}",
+              "$value": "{wds.core.palette.primary.700}",
               "$description": "primary interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1256,7 +1256,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.700",
+                  "aliasOf": "wds.core.palette.primary.700",
                   "contrast": 11.42,
                   "against": "background.primary",
                   "min": 4.5
@@ -1265,7 +1265,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.800}",
+              "$value": "{wds.core.palette.primary.800}",
               "$description": "primary interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1280,7 +1280,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.800",
+                  "aliasOf": "wds.core.palette.primary.800",
                   "contrast": 15.09,
                   "against": "background.primary",
                   "min": 4.5
@@ -1293,7 +1293,7 @@
           "fill": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.700}",
+              "$value": "{wds.core.palette.danger.700}",
               "$description": "destructive interactive fill — rest",
               "$extensions": {
                 "prism3": {
@@ -1308,7 +1308,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.700",
+                  "aliasOf": "wds.core.palette.danger.700",
                   "contrast": 8.23,
                   "against": "neutral.050",
                   "min": 7
@@ -1317,7 +1317,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.800}",
+              "$value": "{wds.core.palette.danger.800}",
               "$description": "destructive interactive fill — hover",
               "$extensions": {
                 "prism3": {
@@ -1332,7 +1332,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.800",
+                  "aliasOf": "wds.core.palette.danger.800",
                   "contrast": 11.67,
                   "against": "neutral.050",
                   "min": 7
@@ -1341,7 +1341,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.900}",
+              "$value": "{wds.core.palette.danger.900}",
               "$description": "destructive interactive fill — pressed",
               "$extensions": {
                 "prism3": {
@@ -1356,7 +1356,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.900",
+                  "aliasOf": "wds.core.palette.danger.900",
                   "contrast": 14.99,
                   "against": "neutral.050",
                   "min": 7
@@ -1365,7 +1365,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.800}",
+              "$value": "{wds.core.palette.danger.800}",
               "$description": "destructive interactive fill — focused",
               "$extensions": {
                 "prism3": {
@@ -1380,7 +1380,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.800",
+                  "aliasOf": "wds.core.palette.danger.800",
                   "contrast": 11.67,
                   "against": "neutral.050",
                   "min": 7
@@ -1389,7 +1389,7 @@
             },
             "selected": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.900}",
+              "$value": "{wds.core.palette.danger.900}",
               "$description": "destructive interactive fill — selected",
               "$extensions": {
                 "prism3": {
@@ -1404,7 +1404,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.900",
+                  "aliasOf": "wds.core.palette.danger.900",
                   "contrast": 14.99,
                   "against": "neutral.050",
                   "min": 7
@@ -1415,7 +1415,7 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.650}",
+              "$value": "{wds.core.palette.danger.650}",
               "$description": "destructive interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1430,7 +1430,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.650",
+                  "aliasOf": "wds.core.palette.danger.650",
                   "contrast": 8.22,
                   "against": "background.primary",
                   "min": 7
@@ -1439,7 +1439,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.750}",
+              "$value": "{wds.core.palette.danger.750}",
               "$description": "destructive interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1454,7 +1454,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.750",
+                  "aliasOf": "wds.core.palette.danger.750",
                   "contrast": 11.98,
                   "against": "background.primary",
                   "min": 7
@@ -1463,7 +1463,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.850}",
+              "$value": "{wds.core.palette.danger.850}",
               "$description": "destructive interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1478,7 +1478,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.850",
+                  "aliasOf": "wds.core.palette.danger.850",
                   "contrast": 16.33,
                   "against": "background.primary",
                   "min": 7
@@ -1489,7 +1489,7 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.650}",
+              "$value": "{wds.core.palette.danger.650}",
               "$description": "destructive interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1504,7 +1504,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.650",
+                  "aliasOf": "wds.core.palette.danger.650",
                   "contrast": 8.22,
                   "against": "background.primary",
                   "min": 4.5
@@ -1513,7 +1513,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.750}",
+              "$value": "{wds.core.palette.danger.750}",
               "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1528,7 +1528,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.750",
+                  "aliasOf": "wds.core.palette.danger.750",
                   "contrast": 11.98,
                   "against": "background.primary",
                   "min": 4.5
@@ -1537,7 +1537,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.danger.850}",
+              "$value": "{wds.core.palette.danger.850}",
               "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1552,7 +1552,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.danger.850",
+                  "aliasOf": "wds.core.palette.danger.850",
                   "contrast": 16.33,
                   "against": "background.primary",
                   "min": 4.5
@@ -1564,7 +1564,7 @@
         "neutral": {
           "on-fill": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Ink on the neutral interactive fill",
             "$extensions": {
               "prism3": {
@@ -1579,7 +1579,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 13.35,
                 "against": "interactive.neutral.fill.rest",
                 "min": 4.5
@@ -1589,7 +1589,7 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "neutral interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1604,7 +1604,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 21,
                   "against": "background.primary",
                   "min": 7
@@ -1613,7 +1613,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "neutral interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1628,7 +1628,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 21,
                   "against": "background.primary",
                   "min": 7
@@ -1637,7 +1637,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "neutral interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1652,7 +1652,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 21,
                   "against": "background.primary",
                   "min": 7
@@ -1663,7 +1663,7 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "neutral interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1678,7 +1678,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 21,
                   "against": "background.primary",
                   "min": 4.5
@@ -1687,7 +1687,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "neutral interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1702,7 +1702,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 21,
                   "against": "background.primary",
                   "min": 4.5
@@ -1711,7 +1711,7 @@
             },
             "pressed": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "neutral interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1726,7 +1726,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 21,
                   "against": "background.primary",
                   "min": 4.5
@@ -1739,7 +1739,7 @@
       "disabled": {
         "on-fill": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.700}",
+          "$value": "{wds.core.palette.neutral.700}",
           "$description": "Label / icon on a disabled fill — muted but clears 3:1",
           "$extensions": {
             "prism3": {
@@ -1754,7 +1754,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.700",
+              "aliasOf": "wds.core.palette.neutral.700",
               "contrast": 5.49,
               "against": "disabled.fill",
               "min": 4.5
@@ -1763,7 +1763,7 @@
         },
         "text": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.550}",
+          "$value": "{wds.core.palette.neutral.550}",
           "$description": "Disabled text — clears 3:1 (reduced contrast, legible)",
           "$extensions": {
             "prism3": {
@@ -1778,7 +1778,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.550",
+              "aliasOf": "wds.core.palette.neutral.550",
               "contrast": 4.55,
               "against": "neutral.050",
               "min": 4.5
@@ -1787,7 +1787,7 @@
         },
         "icon": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.550}",
+          "$value": "{wds.core.palette.neutral.550}",
           "$description": "Disabled icon — clears 3:1 (reduced contrast, legible)",
           "$extensions": {
             "prism3": {
@@ -1802,7 +1802,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.550",
+              "aliasOf": "wds.core.palette.neutral.550",
               "contrast": 4.55,
               "against": "neutral.050",
               "min": 4.5
@@ -1813,7 +1813,7 @@
       "border": {
         "primary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.500}",
+          "$value": "{wds.core.palette.neutral.500}",
           "$description": "Default border — decorative, ~1.4:1",
           "$extensions": {
             "prism3": {
@@ -1828,7 +1828,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.500",
+              "aliasOf": "wds.core.palette.neutral.500",
               "contrast": 4.61,
               "against": "background.primary"
             }
@@ -1836,7 +1836,7 @@
         },
         "secondary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.700}",
+          "$value": "{wds.core.palette.neutral.700}",
           "$description": "Stronger border / divider",
           "$extensions": {
             "prism3": {
@@ -1851,7 +1851,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.700",
+              "aliasOf": "wds.core.palette.neutral.700",
               "contrast": 9.9,
               "against": "background.primary"
             }
@@ -1859,7 +1859,7 @@
         },
         "tertiary": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.950}",
+          "$value": "{wds.core.palette.neutral.950}",
           "$description": "Strongest border / divider — the third rung of the neutral edge ladder",
           "$extensions": {
             "prism3": {
@@ -1874,7 +1874,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.950",
+              "aliasOf": "wds.core.palette.neutral.950",
               "contrast": 19.43,
               "against": "background.primary"
             }
@@ -1882,7 +1882,7 @@
         },
         "focus": {
           "$type": "color",
-          "$value": "{prism.core.palette.primary.650}",
+          "$value": "{wds.core.palette.primary.650}",
           "$description": "Focus ring color (keyboard focus)",
           "$extensions": {
             "prism3": {
@@ -1897,7 +1897,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.primary.650",
+              "aliasOf": "wds.core.palette.primary.650",
               "contrast": 9.77,
               "against": "background.primary",
               "min": 4.5
@@ -1908,7 +1908,7 @@
       "scrim": {
         "default": {
           "$type": "color",
-          "$value": "{prism.core.palette.black-alpha.60}",
+          "$value": "{wds.core.palette.black-alpha.60}",
           "$description": "Scrim — 40% black backdrop (modals / drawers)",
           "$extensions": {
             "prism3": {
@@ -1923,7 +1923,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.black-alpha.60",
+              "aliasOf": "wds.core.palette.black-alpha.60",
               "contrast": 1,
               "against": "self"
             }
@@ -1933,7 +1933,7 @@
       "field": {
         "fill": {
           "$type": "color",
-          "$value": "{prism.core.palette.white}",
+          "$value": "{wds.core.palette.white}",
           "$description": "Form field fill — a subtly inset surface for inputs (the value ink is text.primary; it tracks the page tier so text clears)",
           "$extensions": {
             "prism3": {
@@ -1948,7 +1948,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.white",
+              "aliasOf": "wds.core.palette.white",
               "contrast": 1,
               "against": "self"
             }
@@ -1957,7 +1957,7 @@
         "border": {
           "rest": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.500}",
+            "$value": "{wds.core.palette.neutral.500}",
             "$description": "Form field resting border — a perceivable boundary, 3:1 (SC 1.4.11) — better than a sub-3:1 resting border",
             "$extensions": {
               "prism3": {
@@ -1972,7 +1972,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.500",
+                "aliasOf": "wds.core.palette.neutral.500",
                 "contrast": 4.61,
                 "against": "background.primary",
                 "min": 4.5
@@ -1981,7 +1981,7 @@
           },
           "hover": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.600}",
+            "$value": "{wds.core.palette.neutral.600}",
             "$description": "Form field hover border — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
             "$extensions": {
               "prism3": {
@@ -1996,7 +1996,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.600",
+                "aliasOf": "wds.core.palette.neutral.600",
                 "contrast": 6.72,
                 "against": "background.primary",
                 "min": 4.5
@@ -2006,7 +2006,7 @@
         },
         "placeholder": {
           "$type": "color",
-          "$value": "{prism.core.palette.neutral.650}",
+          "$value": "{wds.core.palette.neutral.650}",
           "$description": "Form field placeholder ink — a READABLE hint, 4.5:1 on the field fill (not a sub-AA placeholder)",
           "$extensions": {
             "prism3": {
@@ -2021,7 +2021,7 @@
                 ],
                 "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
               },
-              "aliasOf": "prism.core.palette.neutral.650",
+              "aliasOf": "wds.core.palette.neutral.650",
               "contrast": 8.11,
               "against": "field.fill",
               "min": 7
@@ -2033,7 +2033,7 @@
         "background": {
           "primary": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Inverse page surface — a dark band in light mode",
             "$extensions": {
               "prism3": {
@@ -2048,7 +2048,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2056,7 +2056,7 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Inverse page surface, second tier",
             "$extensions": {
               "prism3": {
@@ -2071,7 +2071,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2079,7 +2079,7 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Inverse page surface, third tier",
             "$extensions": {
               "prism3": {
@@ -2094,7 +2094,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2104,7 +2104,7 @@
         "foreground": {
           "primary": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Inverse / bold surface — a dark fill in light mode",
             "$extensions": {
               "prism3": {
@@ -2119,7 +2119,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2127,7 +2127,7 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Inverse surface, second tier",
             "$extensions": {
               "prism3": {
@@ -2142,7 +2142,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2150,7 +2150,7 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Inverse surface, third tier",
             "$extensions": {
               "prism3": {
@@ -2165,7 +2165,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2173,7 +2173,7 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.300}",
+            "$value": "{wds.core.palette.primary.300}",
             "$description": "Bold brand fill on an inverse surface — clears 3:1 on the inverse floor",
             "$extensions": {
               "prism3": {
@@ -2188,7 +2188,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.300",
+                "aliasOf": "wds.core.palette.primary.300",
                 "contrast": 7.72,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -2197,7 +2197,7 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{prism.core.palette.success.350}",
+            "$value": "{wds.core.palette.success.350}",
             "$description": "Bold success fill on an inverse surface — clears 3:1 on the inverse floor",
             "$extensions": {
               "prism3": {
@@ -2212,7 +2212,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.success.350",
+                "aliasOf": "wds.core.palette.success.350",
                 "contrast": 7.67,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -2221,7 +2221,7 @@
           },
           "warning": {
             "$type": "color",
-            "$value": "{prism.core.palette.warning.350}",
+            "$value": "{wds.core.palette.warning.350}",
             "$description": "Bold warning fill on an inverse surface — clears 3:1 on the inverse floor",
             "$extensions": {
               "prism3": {
@@ -2236,7 +2236,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.warning.350",
+                "aliasOf": "wds.core.palette.warning.350",
                 "contrast": 7.33,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -2245,7 +2245,7 @@
           },
           "danger": {
             "$type": "color",
-            "$value": "{prism.core.palette.danger.350}",
+            "$value": "{wds.core.palette.danger.350}",
             "$description": "Bold danger fill on an inverse surface — clears 3:1 on the inverse floor",
             "$extensions": {
               "prism3": {
@@ -2260,7 +2260,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.danger.350",
+                "aliasOf": "wds.core.palette.danger.350",
                 "contrast": 7.41,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -2269,7 +2269,7 @@
           },
           "info": {
             "$type": "color",
-            "$value": "{prism.core.palette.info.350}",
+            "$value": "{wds.core.palette.info.350}",
             "$description": "Bold info fill on an inverse surface — clears 3:1 on the inverse floor",
             "$extensions": {
               "prism3": {
@@ -2284,7 +2284,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.info.350",
+                "aliasOf": "wds.core.palette.info.350",
                 "contrast": 7.52,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -2297,7 +2297,7 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.300}",
+                "$value": "{wds.core.palette.primary.300}",
                 "$description": "primary interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2312,7 +2312,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.primary.300",
+                    "aliasOf": "wds.core.palette.primary.300",
                     "contrast": 7.72,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2321,7 +2321,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.200}",
+                "$value": "{wds.core.palette.primary.200}",
                 "$description": "primary interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2336,7 +2336,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.primary.200",
+                    "aliasOf": "wds.core.palette.primary.200",
                     "contrast": 10.86,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2345,7 +2345,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.100}",
+                "$value": "{wds.core.palette.primary.100}",
                 "$description": "primary interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2360,7 +2360,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.primary.100",
+                    "aliasOf": "wds.core.palette.primary.100",
                     "contrast": 14.73,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2370,7 +2370,7 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "Ink on the primary inverse fill — the most vivid brand step clearing 4.5:1 against it, or the max-contrast extreme in the high-contrast modes (#1244)",
               "$extensions": {
                 "prism3": {
@@ -2385,7 +2385,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 17.3,
                   "against": "inverse.interactive.primary.fill.rest",
                   "min": 4.5
@@ -2395,7 +2395,7 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.300}",
+                "$value": "{wds.core.palette.primary.300}",
                 "$description": "primary interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2410,7 +2410,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.primary.300",
+                    "aliasOf": "wds.core.palette.primary.300",
                     "contrast": 7.72,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2419,7 +2419,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.200}",
+                "$value": "{wds.core.palette.primary.200}",
                 "$description": "primary interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2434,7 +2434,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.primary.200",
+                    "aliasOf": "wds.core.palette.primary.200",
                     "contrast": 10.86,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2443,7 +2443,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.primary.100}",
+                "$value": "{wds.core.palette.primary.100}",
                 "$description": "primary interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2458,7 +2458,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.primary.100",
+                    "aliasOf": "wds.core.palette.primary.100",
                     "contrast": 14.73,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2471,7 +2471,7 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.350}",
+                "$value": "{wds.core.palette.danger.350}",
                 "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2486,7 +2486,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.danger.350",
+                    "aliasOf": "wds.core.palette.danger.350",
                     "contrast": 7.41,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2495,7 +2495,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.250}",
+                "$value": "{wds.core.palette.danger.250}",
                 "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2510,7 +2510,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.danger.250",
+                    "aliasOf": "wds.core.palette.danger.250",
                     "contrast": 10.09,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2519,7 +2519,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.150}",
+                "$value": "{wds.core.palette.danger.150}",
                 "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2534,7 +2534,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.danger.150",
+                    "aliasOf": "wds.core.palette.danger.150",
                     "contrast": 13.35,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2544,7 +2544,7 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "Ink on the destructive inverse fill (a dark label on the light on-dark CTA)",
               "$extensions": {
                 "prism3": {
@@ -2559,7 +2559,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 17.3,
                   "against": "inverse.interactive.destructive.fill.rest",
                   "min": 4.5
@@ -2569,7 +2569,7 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.350}",
+                "$value": "{wds.core.palette.danger.350}",
                 "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2584,7 +2584,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.danger.350",
+                    "aliasOf": "wds.core.palette.danger.350",
                     "contrast": 7.41,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2593,7 +2593,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.250}",
+                "$value": "{wds.core.palette.danger.250}",
                 "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2608,7 +2608,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.danger.250",
+                    "aliasOf": "wds.core.palette.danger.250",
                     "contrast": 10.09,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2617,7 +2617,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.danger.150}",
+                "$value": "{wds.core.palette.danger.150}",
                 "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2632,7 +2632,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.danger.150",
+                    "aliasOf": "wds.core.palette.danger.150",
                     "contrast": 13.35,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2645,7 +2645,7 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.white}",
+                "$value": "{wds.core.palette.white}",
                 "$description": "neutral interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2660,7 +2660,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.white",
+                    "aliasOf": "wds.core.palette.white",
                     "contrast": 21,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2669,7 +2669,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.white}",
+                "$value": "{wds.core.palette.white}",
                 "$description": "neutral interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2684,7 +2684,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.white",
+                    "aliasOf": "wds.core.palette.white",
                     "contrast": 21,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2693,7 +2693,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.white}",
+                "$value": "{wds.core.palette.white}",
                 "$description": "neutral interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -2708,7 +2708,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.white",
+                    "aliasOf": "wds.core.palette.white",
                     "contrast": 21,
                     "against": "inverse.background.primary",
                     "min": 7
@@ -2718,7 +2718,7 @@
             },
             "on-fill": {
               "$type": "color",
-              "$value": "{prism.core.palette.black}",
+              "$value": "{wds.core.palette.black}",
               "$description": "Ink on the neutral inverse fill (a dark label on the light on-dark CTA)",
               "$extensions": {
                 "prism3": {
@@ -2733,7 +2733,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.black",
+                  "aliasOf": "wds.core.palette.black",
                   "contrast": 17.3,
                   "against": "inverse.interactive.neutral.fill.rest",
                   "min": 4.5
@@ -2743,7 +2743,7 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{prism.core.palette.white}",
+                "$value": "{wds.core.palette.white}",
                 "$description": "neutral interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2758,7 +2758,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.white",
+                    "aliasOf": "wds.core.palette.white",
                     "contrast": 21,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2767,7 +2767,7 @@
               },
               "hover": {
                 "$type": "color",
-                "$value": "{prism.core.palette.white}",
+                "$value": "{wds.core.palette.white}",
                 "$description": "neutral interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2782,7 +2782,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.white",
+                    "aliasOf": "wds.core.palette.white",
                     "contrast": 21,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2791,7 +2791,7 @@
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{prism.core.palette.white}",
+                "$value": "{wds.core.palette.white}",
                 "$description": "neutral interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -2806,7 +2806,7 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "prism.core.palette.white",
+                    "aliasOf": "wds.core.palette.white",
                     "contrast": 21,
                     "against": "inverse.background.primary",
                     "min": 4.5
@@ -2819,7 +2819,7 @@
         "disabled": {
           "on-fill": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.350}",
+            "$value": "{wds.core.palette.neutral.350}",
             "$description": "Label / icon on a disabled fill on an inverse surface — muted but clears 3:1",
             "$extensions": {
               "prism3": {
@@ -2834,7 +2834,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.350",
+                "aliasOf": "wds.core.palette.neutral.350",
                 "contrast": 4.95,
                 "against": "inverse.disabled.fill",
                 "min": 4.5
@@ -2843,7 +2843,7 @@
           },
           "text": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.500}",
+            "$value": "{wds.core.palette.neutral.500}",
             "$description": "Disabled text on an inverse surface — clears 3:1 (reduced contrast, legible)",
             "$extensions": {
               "prism3": {
@@ -2858,7 +2858,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.500",
+                "aliasOf": "wds.core.palette.neutral.500",
                 "contrast": 4.55,
                 "against": "inverse.background.secondary",
                 "min": 4.5
@@ -2867,7 +2867,7 @@
           },
           "icon": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.500}",
+            "$value": "{wds.core.palette.neutral.500}",
             "$description": "Disabled icon on an inverse surface — clears 3:1 (reduced contrast, legible)",
             "$extensions": {
               "prism3": {
@@ -2882,7 +2882,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.500",
+                "aliasOf": "wds.core.palette.neutral.500",
                 "contrast": 4.55,
                 "against": "inverse.background.secondary",
                 "min": 4.5
@@ -2893,7 +2893,7 @@
         "field": {
           "fill": {
             "$type": "color",
-            "$value": "{prism.core.palette.black}",
+            "$value": "{wds.core.palette.black}",
             "$description": "Form field fill on an inverse surface — the inverse ladder's second tier, the same one-step inset the page field takes",
             "$extensions": {
               "prism3": {
@@ -2908,7 +2908,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.black",
+                "aliasOf": "wds.core.palette.black",
                 "contrast": 1,
                 "against": "self"
               }
@@ -2917,7 +2917,7 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.500}",
+              "$value": "{wds.core.palette.neutral.500}",
               "$description": "Form field resting border on an inverse surface — a perceivable boundary, 3:1 (SC 1.4.11)",
               "$extensions": {
                 "prism3": {
@@ -2932,7 +2932,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.neutral.500",
+                  "aliasOf": "wds.core.palette.neutral.500",
                   "contrast": 4.55,
                   "against": "inverse.background.primary",
                   "min": 4.5
@@ -2941,7 +2941,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.neutral.400}",
+              "$value": "{wds.core.palette.neutral.400}",
               "$description": "Form field hover border on an inverse surface — two ramp steps stronger than rest, gated at 3:1 (never the sole state carrier — KB §4)",
               "$extensions": {
                 "prism3": {
@@ -2956,7 +2956,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.neutral.400",
+                  "aliasOf": "wds.core.palette.neutral.400",
                   "contrast": 6.4,
                   "against": "inverse.background.primary",
                   "min": 4.5
@@ -2966,7 +2966,7 @@
           },
           "placeholder": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.350}",
+            "$value": "{wds.core.palette.neutral.350}",
             "$description": "Form field placeholder ink on an inverse surface — a READABLE hint, 4.5:1 on the inverse field fill",
             "$extensions": {
               "prism3": {
@@ -2981,7 +2981,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.350",
+                "aliasOf": "wds.core.palette.neutral.350",
                 "contrast": 7.46,
                 "against": "inverse.field.fill",
                 "min": 7
@@ -2992,7 +2992,7 @@
         "text": {
           "primary": {
             "$type": "color",
-            "$value": "{prism.core.palette.white}",
+            "$value": "{wds.core.palette.white}",
             "$description": "Primary text — strongest neutral",
             "$extensions": {
               "prism3": {
@@ -3007,7 +3007,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.white",
+                "aliasOf": "wds.core.palette.white",
                 "contrast": 21,
                 "against": "inverse.background.primary",
                 "min": 15
@@ -3016,7 +3016,7 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.350}",
+            "$value": "{wds.core.palette.neutral.350}",
             "$description": "Secondary text — 4.5:1 on the floor",
             "$extensions": {
               "prism3": {
@@ -3031,7 +3031,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.350",
+                "aliasOf": "wds.core.palette.neutral.350",
                 "contrast": 7.46,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3040,7 +3040,7 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.500}",
+            "$value": "{wds.core.palette.neutral.500}",
             "$description": "Tertiary text — 3:1 on the floor",
             "$extensions": {
               "prism3": {
@@ -3055,7 +3055,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.500",
+                "aliasOf": "wds.core.palette.neutral.500",
                 "contrast": 4.55,
                 "against": "inverse.background.secondary",
                 "min": 4.5
@@ -3064,7 +3064,7 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.250}",
+            "$value": "{wds.core.palette.primary.250}",
             "$description": "brand text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3079,7 +3079,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.250",
+                "aliasOf": "wds.core.palette.primary.250",
                 "contrast": 9.19,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3088,7 +3088,7 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{prism.core.palette.success.300}",
+            "$value": "{wds.core.palette.success.300}",
             "$description": "success text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3103,7 +3103,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.success.300",
+                "aliasOf": "wds.core.palette.success.300",
                 "contrast": 8.96,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3112,7 +3112,7 @@
           },
           "warning": {
             "$type": "color",
-            "$value": "{prism.core.palette.warning.300}",
+            "$value": "{wds.core.palette.warning.300}",
             "$description": "warning text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3127,7 +3127,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.warning.300",
+                "aliasOf": "wds.core.palette.warning.300",
                 "contrast": 8.56,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3136,7 +3136,7 @@
           },
           "danger": {
             "$type": "color",
-            "$value": "{prism.core.palette.danger.300}",
+            "$value": "{wds.core.palette.danger.300}",
             "$description": "danger text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3151,7 +3151,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.danger.300",
+                "aliasOf": "wds.core.palette.danger.300",
                 "contrast": 8.71,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3160,7 +3160,7 @@
           },
           "info": {
             "$type": "color",
-            "$value": "{prism.core.palette.info.300}",
+            "$value": "{wds.core.palette.info.300}",
             "$description": "info text — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3175,7 +3175,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.info.300",
+                "aliasOf": "wds.core.palette.info.300",
                 "contrast": 8.8,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3184,7 +3184,7 @@
           },
           "brand-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.400}",
+            "$value": "{wds.core.palette.primary.400}",
             "$description": "Muted brand text — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3199,7 +3199,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.400",
+                "aliasOf": "wds.core.palette.primary.400",
                 "contrast": 5.34,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3208,7 +3208,7 @@
           },
           "success-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.success.500}",
+            "$value": "{wds.core.palette.success.500}",
             "$description": "Muted success text — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3223,7 +3223,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.success.500",
+                "aliasOf": "wds.core.palette.success.500",
                 "contrast": 4.61,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3232,7 +3232,7 @@
           },
           "warning-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.warning.500}",
+            "$value": "{wds.core.palette.warning.500}",
             "$description": "Muted warning text — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3247,7 +3247,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.warning.500",
+                "aliasOf": "wds.core.palette.warning.500",
                 "contrast": 4.57,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3256,7 +3256,7 @@
           },
           "danger-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.danger.500}",
+            "$value": "{wds.core.palette.danger.500}",
             "$description": "Muted danger text — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3271,7 +3271,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.danger.500",
+                "aliasOf": "wds.core.palette.danger.500",
                 "contrast": 4.57,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3280,7 +3280,7 @@
           },
           "info-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.info.500}",
+            "$value": "{wds.core.palette.info.500}",
             "$description": "Muted info text — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3295,7 +3295,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.info.500",
+                "aliasOf": "wds.core.palette.info.500",
                 "contrast": 4.61,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3305,7 +3305,7 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.300}",
+              "$value": "{wds.core.palette.primary.300}",
               "$description": "Link text — default",
               "$extensions": {
                 "prism3": {
@@ -3320,7 +3320,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.300",
+                  "aliasOf": "wds.core.palette.primary.300",
                   "contrast": 7.72,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3329,7 +3329,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.250}",
+              "$value": "{wds.core.palette.primary.250}",
               "$description": "Link text — hover",
               "$extensions": {
                 "prism3": {
@@ -3344,7 +3344,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.250",
+                  "aliasOf": "wds.core.palette.primary.250",
                   "contrast": 9.19,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3353,7 +3353,7 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.200}",
+              "$value": "{wds.core.palette.primary.200}",
               "$description": "Link text — visited",
               "$extensions": {
                 "prism3": {
@@ -3368,7 +3368,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.200",
+                  "aliasOf": "wds.core.palette.primary.200",
                   "contrast": 10.86,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3377,7 +3377,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.300}",
+              "$value": "{wds.core.palette.primary.300}",
               "$description": "Link text — focused",
               "$extensions": {
                 "prism3": {
@@ -3392,7 +3392,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.300",
+                  "aliasOf": "wds.core.palette.primary.300",
                   "contrast": 7.72,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3404,7 +3404,7 @@
         "icon": {
           "primary": {
             "$type": "color",
-            "$value": "{prism.core.palette.white}",
+            "$value": "{wds.core.palette.white}",
             "$description": "Primary icon — strongest neutral",
             "$extensions": {
               "prism3": {
@@ -3419,7 +3419,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.white",
+                "aliasOf": "wds.core.palette.white",
                 "contrast": 21,
                 "against": "inverse.background.primary",
                 "min": 15
@@ -3428,7 +3428,7 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.350}",
+            "$value": "{wds.core.palette.neutral.350}",
             "$description": "Secondary icon — 4.5:1 on the floor",
             "$extensions": {
               "prism3": {
@@ -3443,7 +3443,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.350",
+                "aliasOf": "wds.core.palette.neutral.350",
                 "contrast": 7.46,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3452,7 +3452,7 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.500}",
+            "$value": "{wds.core.palette.neutral.500}",
             "$description": "Tertiary icon — 3:1 on the floor",
             "$extensions": {
               "prism3": {
@@ -3467,7 +3467,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.500",
+                "aliasOf": "wds.core.palette.neutral.500",
                 "contrast": 4.55,
                 "against": "inverse.background.secondary",
                 "min": 4.5
@@ -3476,7 +3476,7 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.250}",
+            "$value": "{wds.core.palette.primary.250}",
             "$description": "brand icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3491,7 +3491,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.250",
+                "aliasOf": "wds.core.palette.primary.250",
                 "contrast": 9.19,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3500,7 +3500,7 @@
           },
           "success": {
             "$type": "color",
-            "$value": "{prism.core.palette.success.300}",
+            "$value": "{wds.core.palette.success.300}",
             "$description": "success icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3515,7 +3515,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.success.300",
+                "aliasOf": "wds.core.palette.success.300",
                 "contrast": 8.96,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3524,7 +3524,7 @@
           },
           "warning": {
             "$type": "color",
-            "$value": "{prism.core.palette.warning.300}",
+            "$value": "{wds.core.palette.warning.300}",
             "$description": "warning icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3539,7 +3539,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.warning.300",
+                "aliasOf": "wds.core.palette.warning.300",
                 "contrast": 8.56,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3548,7 +3548,7 @@
           },
           "danger": {
             "$type": "color",
-            "$value": "{prism.core.palette.danger.300}",
+            "$value": "{wds.core.palette.danger.300}",
             "$description": "danger icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3563,7 +3563,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.danger.300",
+                "aliasOf": "wds.core.palette.danger.300",
                 "contrast": 8.71,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3572,7 +3572,7 @@
           },
           "info": {
             "$type": "color",
-            "$value": "{prism.core.palette.info.300}",
+            "$value": "{wds.core.palette.info.300}",
             "$description": "info icon — 4.5:1 on the floor (inverse.background.secondary) and on its own tint",
             "$extensions": {
               "prism3": {
@@ -3587,7 +3587,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.info.300",
+                "aliasOf": "wds.core.palette.info.300",
                 "contrast": 8.8,
                 "against": "inverse.background.secondary",
                 "min": 7
@@ -3596,7 +3596,7 @@
           },
           "brand-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.400}",
+            "$value": "{wds.core.palette.primary.400}",
             "$description": "Muted brand icon — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3611,7 +3611,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.400",
+                "aliasOf": "wds.core.palette.primary.400",
                 "contrast": 5.34,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3620,7 +3620,7 @@
           },
           "success-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.success.500}",
+            "$value": "{wds.core.palette.success.500}",
             "$description": "Muted success icon — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3635,7 +3635,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.success.500",
+                "aliasOf": "wds.core.palette.success.500",
                 "contrast": 4.61,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3644,7 +3644,7 @@
           },
           "warning-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.warning.500}",
+            "$value": "{wds.core.palette.warning.500}",
             "$description": "Muted warning icon — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3659,7 +3659,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.warning.500",
+                "aliasOf": "wds.core.palette.warning.500",
                 "contrast": 4.57,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3668,7 +3668,7 @@
           },
           "danger-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.danger.500}",
+            "$value": "{wds.core.palette.danger.500}",
             "$description": "Muted danger icon — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3683,7 +3683,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.danger.500",
+                "aliasOf": "wds.core.palette.danger.500",
                 "contrast": 4.57,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3692,7 +3692,7 @@
           },
           "info-subtle": {
             "$type": "color",
-            "$value": "{prism.core.palette.info.500}",
+            "$value": "{wds.core.palette.info.500}",
             "$description": "Muted info icon — low-emphasis accent, 3:1 on the inverse band",
             "$extensions": {
               "prism3": {
@@ -3707,7 +3707,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.info.500",
+                "aliasOf": "wds.core.palette.info.500",
                 "contrast": 4.61,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3717,7 +3717,7 @@
           "link": {
             "default": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.300}",
+              "$value": "{wds.core.palette.primary.300}",
               "$description": "Link icon — default",
               "$extensions": {
                 "prism3": {
@@ -3732,7 +3732,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.300",
+                  "aliasOf": "wds.core.palette.primary.300",
                   "contrast": 7.72,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3741,7 +3741,7 @@
             },
             "hover": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.250}",
+              "$value": "{wds.core.palette.primary.250}",
               "$description": "Link icon — hover",
               "$extensions": {
                 "prism3": {
@@ -3756,7 +3756,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.250",
+                  "aliasOf": "wds.core.palette.primary.250",
                   "contrast": 9.19,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3765,7 +3765,7 @@
             },
             "visited": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.200}",
+              "$value": "{wds.core.palette.primary.200}",
               "$description": "Link icon — visited",
               "$extensions": {
                 "prism3": {
@@ -3780,7 +3780,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.200",
+                  "aliasOf": "wds.core.palette.primary.200",
                   "contrast": 10.86,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3789,7 +3789,7 @@
             },
             "focused": {
               "$type": "color",
-              "$value": "{prism.core.palette.primary.300}",
+              "$value": "{wds.core.palette.primary.300}",
               "$description": "Link icon — focused",
               "$extensions": {
                 "prism3": {
@@ -3804,7 +3804,7 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "prism.core.palette.primary.300",
+                  "aliasOf": "wds.core.palette.primary.300",
                   "contrast": 7.72,
                   "against": "inverse.background.secondary",
                   "min": 7
@@ -3816,7 +3816,7 @@
         "border": {
           "primary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.500}",
+            "$value": "{wds.core.palette.neutral.500}",
             "$description": "Default border on an inverse surface — decorative, ~1.4:1",
             "$extensions": {
               "prism3": {
@@ -3831,7 +3831,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.500",
+                "aliasOf": "wds.core.palette.neutral.500",
                 "contrast": 4.55,
                 "against": "inverse.background.primary"
               }
@@ -3839,7 +3839,7 @@
           },
           "secondary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.250}",
+            "$value": "{wds.core.palette.neutral.250}",
             "$description": "Stronger border / divider on an inverse surface",
             "$extensions": {
               "prism3": {
@@ -3854,7 +3854,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.250",
+                "aliasOf": "wds.core.palette.neutral.250",
                 "contrast": 10.11,
                 "against": "inverse.background.primary"
               }
@@ -3862,7 +3862,7 @@
           },
           "tertiary": {
             "$type": "color",
-            "$value": "{prism.core.palette.neutral.025}",
+            "$value": "{wds.core.palette.neutral.025}",
             "$description": "Strongest border / divider on an inverse surface — the third rung of the inverse edge ladder",
             "$extensions": {
               "prism3": {
@@ -3877,7 +3877,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.neutral.025",
+                "aliasOf": "wds.core.palette.neutral.025",
                 "contrast": 19.6,
                 "against": "inverse.background.primary"
               }
@@ -3885,7 +3885,7 @@
           },
           "brand": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.400}",
+            "$value": "{wds.core.palette.primary.400}",
             "$description": "brand border on an inverse surface — 3:1 (SC 1.4.11)",
             "$extensions": {
               "prism3": {
@@ -3900,7 +3900,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.400",
+                "aliasOf": "wds.core.palette.primary.400",
                 "contrast": 5.34,
                 "against": "inverse.background.primary",
                 "min": 4.5
@@ -3909,7 +3909,7 @@
           },
           "focus": {
             "$type": "color",
-            "$value": "{prism.core.palette.primary.400}",
+            "$value": "{wds.core.palette.primary.400}",
             "$description": "Focus ring color on inverse surfaces (keyboard focus)",
             "$extensions": {
               "prism3": {
@@ -3924,7 +3924,7 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "prism.core.palette.primary.400",
+                "aliasOf": "wds.core.palette.primary.400",
                 "contrast": 5.34,
                 "against": "inverse.background.primary",
                 "min": 4.5

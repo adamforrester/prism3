@@ -1,6 +1,19 @@
 ---
 version: alpha
 name: Wendy's
+
+# ROOT NAMESPACE (#1283) — every token this brand emits sits under `wds.*`.
+# `wds` follows the same <brand>ds convention as `nbds` (New Balance), `ads` (Aurora)
+# and `hds` (Harbor). Declared rather than defaulted: wendys reached `prism` through
+# the engine fallback, and `prism`/`pds3` are RESERVED for a future canonical default
+# theme, so no brand the engine SHIPS may root there.
+#
+# It sits under `x-prism3:` and not at the top level because THIS FILE IS A STANDARD-SPEC
+# BRIEF: the base spec has no `root` field, and the namespace is an engine concern. That is
+# the one Prism3 lever this brand declares — everything else is still engine defaults, which
+# is what wendys is in the corpus to prove.
+x-prism3:
+  root: wds
 colors:
   primary: "#C8102E"
   primary-dark: "#9E0D24"

@@ -137,6 +137,18 @@ export type MaterializationRule = {
  * **Deduplicating these three deletes two gates and reports a pass.** They are not a DRY violation.
  */
 const CORE_TIER = 'core';
+
+/**
+ * Root namespaces a brand may have been materialized under BEFORE #1283 — `prism`, the engine
+ * default two of the example brands inherited without choosing it.
+ *
+ * Spelled literally here, like `CORE_TIER` above and for the same reason: importing `RESERVED_ROOTS`
+ * from `theme.ts` would make this register agree with the emitter by construction, and this module's
+ * whole value is being a SECOND expression of what moved (`docs/34` shape 11). The two lists also
+ * answer different questions — `theme.ts` asks what a brand may DECLARE today, this asks what a
+ * variable may already be WEARING in a file someone is about to re-run the plugin against.
+ */
+const RETIRED_ROOT_PREFIXES = ['prism/'];
 const CORE_GROUPS: readonly string[] = ['palette', 'dimension', 'font'];
 
 /**
@@ -203,9 +215,45 @@ export const MATERIALIZATION_RENAMES: MaterializationRule[] = [
     // One brand-root value would defeat this: a client rooting at `color` makes `color/appearance/…` read
     // as already-namespaced. The accounting reports those keys as unaccounted removals, loudly, which is
     // the right outcome for a namespace that collides with the engine's own top-level names.
-    domain: (_collection, name, root) => !name.startsWith(`${root}/`),
+    //
+    // "ALREADY ROOTED" IS ROOT-AGNOSTIC AS OF #1283, and that widening is what keeps this rule and
+    // `brand-roots-1283` disjoint. The question here has always been *is this name namespaced yet*,
+    // and comparing against the LIVE root was a correct way to ask it only while no brand ever
+    // CHANGED root. Once aurora moved `prism` -> `ads`, a merge-base name like `prism/color/text/
+    // primary` stopped starting with the live root, so this rule claimed it too — and its image,
+    // `ads/prism/color/text/primary`, is a name nothing emits. Two rules, one key, and the second
+    // one wrong. `RETIRED_ROOT_PREFIXES` is the set of roots a brand may have been namespaced under
+    // before, so a name wearing one is already rooted and is #1283's business, not this rule's.
+    domain: (_collection, name, root) =>
+      !name.startsWith(`${root}/`) && !RETIRED_ROOT_PREFIXES.some((p) => name.startsWith(p)),
     map: (_collection, name, root) =>
       CORE_GROUPS.includes(name.split('/')[0]) ? `${root}/${CORE_TIER}/${name}` : `${root}/${name}`,
+  },
+  {
+    id: 'brand-roots-1283',
+    since: '0.50.0',
+    why:
+      'The shipped brands took per-brand root namespaces: aurora `prism/*` -> `ads/*`, harbor '
+      + '`prism/*` -> `hds/*` and wendys `prism/*` -> `wds/*`, following the `<brand>ds` convention New '
+      + 'Balance has always used (`nbds`). '
+      + '`prism` and `pds3` are now RESERVED for a future canonical default theme, so no named brand may '
+      + 'declare either — all three had been sitting on `prism` by inheriting the engine default rather '
+      + 'than by choosing it, wendys because the standard dialect had no way to declare one at all. Only the FIRST SEGMENT moves: every token name below the root is '
+      + 'byte-identical, which is why `token-contract.ts --check` reports the guaranteed surface unchanged '
+      + '(the contract is keyed below the configurable root). For a Figma file this is still a rename of '
+      + 'every variable the brand owns, which is exactly what this register exists to record.',
+    // ROOTED ON BOTH SIDES, so this and #1097 partition the keys rather than compete for them: #1097
+    // now refuses a name already wearing a retired root, and this one requires exactly that.
+    //
+    // The `!name.startsWith(`${root}/`)` clause is what makes the rule a no-op for a brand that has
+    // NOT moved — its names are already the image, and claiming them would be an over-claim the
+    // accounting reports as contradicted. No corpus brand is in that state today (all four declare a
+    // `<brand>ds` root), and the clause stays because idempotence is a property of the rule, not a
+    // fact about the current corpus: this same rule runs against a designer's file that may have been
+    // migrated already.
+    domain: (_collection, name, root) =>
+      RETIRED_ROOT_PREFIXES.some((p) => name.startsWith(p)) && !name.startsWith(`${root}/`),
+    map: (_collection, name, root) => `${root}/${name.split('/').slice(1).join('/')}`,
   },
   {
     id: 'color-one-collection-1148',

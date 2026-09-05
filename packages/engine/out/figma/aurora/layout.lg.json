@@ -3,7 +3,7 @@
   "$mode": "lg",
   "variables": [
     {
-      "name": "prism/breakpoint/xs",
+      "name": "ads/breakpoint/xs",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -13,7 +13,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/sm",
+      "name": "ads/breakpoint/sm",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -23,7 +23,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/md",
+      "name": "ads/breakpoint/md",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -33,7 +33,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/lg",
+      "name": "ads/breakpoint/lg",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -43,7 +43,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/xl",
+      "name": "ads/breakpoint/xl",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -53,7 +53,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/2xl",
+      "name": "ads/breakpoint/2xl",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -63,7 +63,7 @@
       "alias": null
     },
     {
-      "name": "prism/grid/columns",
+      "name": "ads/grid/columns",
       "resolvedType": "FLOAT",
       "scopes": [
         "ALL_SCOPES"
@@ -73,7 +73,7 @@
       "alias": null
     },
     {
-      "name": "prism/grid/gutter",
+      "name": "ads/grid/gutter",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -82,11 +82,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/space/300"
+        "name": "ads/space/300"
       }
     },
     {
-      "name": "prism/grid/margin",
+      "name": "ads/grid/margin",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -95,11 +95,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/space/400"
+        "name": "ads/space/400"
       }
     },
     {
-      "name": "prism/container/max",
+      "name": "ads/container/max",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -109,7 +109,7 @@
       "alias": null
     },
     {
-      "name": "prism/container/narrow",
+      "name": "ads/container/narrow",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"

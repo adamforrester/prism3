@@ -7,7 +7,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/display",
+          "variable": "wds/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -17,13 +17,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/display/sm/strong",
+          "variable": "wds/font-fluid/display/sm/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -57,7 +57,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/display",
+          "variable": "wds/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -67,13 +67,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/display/md/strong",
+          "variable": "wds/font-fluid/display/md/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -107,7 +107,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/display",
+          "variable": "wds/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -117,13 +117,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/display/lg/strong",
+          "variable": "wds/font-fluid/display/lg/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -157,7 +157,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/display",
+          "variable": "wds/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -167,13 +167,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/display/xl/strong",
+          "variable": "wds/font-fluid/display/xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -207,7 +207,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/display",
+          "variable": "wds/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -217,13 +217,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/display/2xl/strong",
+          "variable": "wds/font-fluid/display/2xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -257,7 +257,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/display",
+          "variable": "wds/core/font/family/display",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -267,13 +267,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/display/3xl/strong",
+          "variable": "wds/font-fluid/display/3xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -307,7 +307,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/title",
+          "variable": "wds/core/font/family/title",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -317,13 +317,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/18",
+          "variable": "wds/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -357,7 +357,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/title",
+          "variable": "wds/core/font/family/title",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -367,13 +367,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/20",
+          "variable": "wds/core/font/size/20",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -407,7 +407,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/title",
+          "variable": "wds/core/font/family/title",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -417,13 +417,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/title/md/strong",
+          "variable": "wds/font-fluid/title/md/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -457,7 +457,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/title",
+          "variable": "wds/core/font/family/title",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -467,13 +467,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/title/lg/strong",
+          "variable": "wds/font-fluid/title/lg/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -507,7 +507,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/title",
+          "variable": "wds/core/font/family/title",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -517,13 +517,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/title/xl/strong",
+          "variable": "wds/font-fluid/title/xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -557,7 +557,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/title",
+          "variable": "wds/core/font/family/title",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -567,13 +567,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/title/2xl/strong",
+          "variable": "wds/font-fluid/title/2xl/strong",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -607,7 +607,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -617,13 +617,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -657,7 +657,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -667,13 +667,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -707,7 +707,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -717,13 +717,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -757,7 +757,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -767,13 +767,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -807,7 +807,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -817,13 +817,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/16",
+          "variable": "wds/core/font/size/16",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -857,7 +857,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -867,13 +867,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/16",
+          "variable": "wds/core/font/size/16",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -907,7 +907,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -917,13 +917,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/16",
+          "variable": "wds/core/font/size/16",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -957,7 +957,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -967,13 +967,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/16",
+          "variable": "wds/core/font/size/16",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1007,7 +1007,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1017,13 +1017,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/18",
+          "variable": "wds/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1057,7 +1057,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1067,13 +1067,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/18",
+          "variable": "wds/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1107,7 +1107,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1117,13 +1117,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/18",
+          "variable": "wds/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1157,7 +1157,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/body",
+          "variable": "wds/core/font/family/body",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1167,13 +1167,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/18",
+          "variable": "wds/core/font/size/18",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1207,7 +1207,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/label",
+          "variable": "wds/core/font/family/label",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1217,13 +1217,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/12",
+          "variable": "wds/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/emphasis",
+          "variable": "wds/core/font/weight-role/emphasis",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1257,7 +1257,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/label",
+          "variable": "wds/core/font/family/label",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1267,13 +1267,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/emphasis",
+          "variable": "wds/core/font/weight-role/emphasis",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1307,7 +1307,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1317,13 +1317,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/11",
+          "variable": "wds/core/font/size/11",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1357,7 +1357,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1367,13 +1367,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/11",
+          "variable": "wds/core/font/size/11",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1407,7 +1407,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1417,13 +1417,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/11",
+          "variable": "wds/core/font/size/11",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1457,7 +1457,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1467,13 +1467,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/11",
+          "variable": "wds/core/font/size/11",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1507,7 +1507,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1517,13 +1517,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/12",
+          "variable": "wds/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1557,7 +1557,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1567,13 +1567,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/12",
+          "variable": "wds/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1607,7 +1607,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1617,13 +1617,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/12",
+          "variable": "wds/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1657,7 +1657,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/caption",
+          "variable": "wds/core/font/family/caption",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1667,13 +1667,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/12",
+          "variable": "wds/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/strong",
+          "variable": "wds/core/font/weight-role/strong",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1707,7 +1707,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/eyebrow",
+          "variable": "wds/core/font/family/eyebrow",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1717,13 +1717,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/12",
+          "variable": "wds/core/font/size/12",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/emphasis",
+          "variable": "wds/core/font/weight-role/emphasis",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1757,7 +1757,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/eyebrow",
+          "variable": "wds/core/font/family/eyebrow",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1767,13 +1767,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/emphasis",
+          "variable": "wds/core/font/weight-role/emphasis",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1807,7 +1807,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/eyebrow",
+          "variable": "wds/core/font/family/eyebrow",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1817,13 +1817,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/font-fluid/eyebrow/lg/emphasis",
+          "variable": "wds/font-fluid/eyebrow/lg/emphasis",
           "collection": "type-sets",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/emphasis",
+          "variable": "wds/core/font/weight-role/emphasis",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
@@ -1857,7 +1857,7 @@
       "properties": {
         "fontFamily": {
           "bound": true,
-          "variable": "prism/core/font/family/code",
+          "variable": "wds/core/font/family/code",
           "collection": "core",
           "resolvedType": "STRING"
         },
@@ -1867,13 +1867,13 @@
         },
         "fontSize": {
           "bound": true,
-          "variable": "prism/core/font/size/14",
+          "variable": "wds/core/font/size/14",
           "collection": "core",
           "resolvedType": "FLOAT"
         },
         "fontWeight": {
           "bound": true,
-          "variable": "prism/core/font/weight-role/default",
+          "variable": "wds/core/font/weight-role/default",
           "collection": "core",
           "resolvedType": "FLOAT"
         },

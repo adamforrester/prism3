@@ -1,6 +1,7 @@
 {
   "aurora": {
     "id": "aurora",
+    "root": "ads",
     "primary": {
       "l": 0.5,
       "c": 0.18,
@@ -126,6 +127,7 @@
   },
   "harbor": {
     "id": "harbor",
+    "root": "hds",
     "primary": {
       "l": 0.46,
       "c": 0.08,
