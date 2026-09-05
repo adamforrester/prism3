@@ -2297,7 +2297,14 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // one measured 60 — swapping \`appearance\` moved the footprint, which is the one thing a variant
     // axis must not do. It showed up on the hug axis only: the fixed (bound) height absorbed the same
     // 2px silently, so a component with two fixed axes would have hidden this completely.
-    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&wrote.indexOf('strokeWeight')<0)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;}
+    // GATED ON AUTO-LAYOUT, the SECOND executor's copy of the plugin's fix: Figma only ALLOWS this
+    // property on an auto-layout frame and THROWS on a \`layoutMode: NONE\` one — and this branch runs on
+    // any STROKED node, which since PR-B includes the standalone focus ring (a stroked #1266, absolute,
+    // layoutMode-NONE root frame). Unguarded, pasting the ring threw here on the real host and parked it.
+    // The border-box motive is moot on an absolute node anyway: with no auto-layout there is no footprint
+    // for the stroke to grow. \`&&node.layoutMode\` so an undefined layoutMode (a non-auto-layout frame) is
+    // skipped, not compared true against \`'NONE'\`.
+    if(p){node.strokes=[p];painted.strokes=1;if(!node.strokeWeight&&wrote.indexOf('strokeWeight')<0)node.strokeWeight=1;node.strokeAlign='INSIDE';if('strokesIncludedInLayout' in node&&node.layoutMode&&node.layoutMode!=='NONE')node.strokesIncludedInLayout=false;}
   }
   if(n.descendantFills){
     // The ink lives on the VECTORs INSIDE the node, never on the node itself — a fill on the wrapper is a

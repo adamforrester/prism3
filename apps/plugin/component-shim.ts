@@ -211,8 +211,13 @@ export const makeShim = (opts: ShimOpts = {}) => {
       fills: [] as unknown[], strokes: [] as unknown[], children: [] as Node[],
       // `strokeWeight` starts at 0 so the executor's `if(!node.strokeWeight)` default fires as it does
       // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
-      // border-box has to override.
-      ...(type === 'FRAME' ? { strokeWeight: 0, strokesIncludedInLayout: true } : {}),
+      // border-box has to override. It is a BACKING FIELD here, not the property itself: the real
+      // `strokesIncludedInLayout` is installed below as a throwing accessor (see the block after this
+      // literal), and a throwing setter cannot receive its own initial value while `layoutMode` is still
+      // unset. The property is defined out of the spread on purpose — object spread flattens an accessor
+      // into a plain data property (it invokes the getter once and drops the setter), which is exactly why
+      // the `textAlignVertical` accessor above, spread from a ternary, never actually throws.
+      ...(type === 'FRAME' ? { strokeWeight: 0, _strokesInLayout: true } : {}),
       // #1009: `textAlignVertical` is a `TextNode` property. A TEXT node starts at Figma's default
       // `'TOP'` — so a node that reads back `CENTER` proves the executor WROTE it, rather than the shim
       // having defaulted helpfully — and every other node type THROWS on the write, which is what Figma
@@ -386,6 +391,29 @@ export const makeShim = (opts: ShimOpts = {}) => {
         (node._pluginData as Map<string, string>).set(`${namespace}|${key}`, value);
       },
     };
+    // `strokesIncludedInLayout` is an AUTO-LAYOUT-ONLY property, and the real host THROWS when it is
+    // written on a `layoutMode: NONE` (or unset) frame — the constraint the #1266 focus-ring regression
+    // fell through, because the offline shim modelled it as a plain settable boolean and so could never
+    // witness the crash. Installed here with `defineProperty` rather than in the literal above so the
+    // setter survives (object spread would flatten it — see `_strokesInLayout` note), and gated on FRAME
+    // because that is the only node type that carries it. The check is auto-layout-POSITIVE (throws unless
+    // HORIZONTAL/VERTICAL) so an unset `layoutMode`, which a plain absolute frame like the focus ring
+    // leaves undefined rather than `'NONE'`, is refused too — mirroring the code guard's `&& layoutMode`.
+    // Same shape as `textAlignVertical`'s intended throw, but actually reachable: a shim that cannot
+    // refuse cannot witness a refusal (#682/#1009).
+    if (type === 'FRAME') {
+      Object.defineProperty(node, 'strokesIncludedInLayout', {
+        configurable: true,
+        enumerable: true,
+        get() { return node._strokesInLayout as boolean; },
+        set(v: boolean) {
+          const lm = node.layoutMode;
+          if (lm !== 'HORIZONTAL' && lm !== 'VERTICAL')
+            throw new Error('in set_strokesIncludedInLayout: The strokesIncludedInLayout property is only available on auto-layout frames');
+          node._strokesInLayout = v;
+        },
+      });
+    }
     return node;
   };
 

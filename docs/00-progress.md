@@ -7,6 +7,75 @@
 
 ---
 
+## (2026-09-05) — the `strokesIncludedInLayout` crash on `layoutMode: NONE` nodes, fixed in both executors (#1266 regression)
+
+**STATUS: shipped. `ENGINE_VERSION` stays 0.51.0; `CONTRACT_VERSION` stays 9.4.0 — version-neutral.**
+First cut off `4e97f9c` (ENGINE 0.50.0), rebased onto `426254f` (ENGINE 0.51.0, main with #1203/#1283);
+it inherits that stamp with no re-stamp.
+Source: `apps/plugin/src/write-components.ts` (the plugin executor, two sites) and
+`packages/engine/anatomy-figma.ts` (the paste executor, the parallel site) for the fix; the two offline
+models `apps/plugin/component-shim.ts` and `packages/engine/test.ts`'s stub now model the host constraint;
+`apps/plugin/lint-unclaimed-defaults.ts` reclassifies the property; tests in `test-write-components.ts` and
+`test.ts`. Full `npm run verify` green, plugin build green, `test:roundtrip`/`test:verdict` green,
+`lint-unclaimed-defaults` green.
+
+**The crash.** `strokesIncludedInLayout` is an AUTO-LAYOUT-ONLY frame property — Figma allows it only on a
+frame with a `layoutMode` and THROWS on a `layoutMode: NONE` one. PR-B made the focus ring
+standalone-buildable and #1266 gave it its own stroke, and the two together made its ROOT a stroked,
+absolute, `layoutMode: NONE` frame. In the plugin executor the border-box write (`node.strokesIncludedInLayout
+= false`, in the bound-paint stroke branch) sat unguarded and — unlike `claimDefaults`' try/caught `set` —
+UNCAUGHT, so on the real host it threw, propagated to `applyComponentPlan`'s top-level catch (which marks and
+RE-THROWS), and the ring parked at 100×100. Every def that nests the ring cascaded from that one throw.
+
+**The second, quieter site.** `claimDefaults` (the #865 default-neutralizer) set the same property OUTSIDE
+the `if (n?.layoutMode)` block that already gates `itemSpacing`/padding. There the throw was swallowed by
+`set`'s try/catch into a "#865 UNCLAIMED and could not be neutralized … keeps Figma's default" miss — one on
+every non-auto-layout frame, 40 per icon run. Fix #2 moves that write inside the `layoutMode` block, next to
+its true kin, which also clears those false misses.
+
+**Fixed in BOTH executors, because the second one carries the identical crash.** `anatomy-figma.ts`'s paste
+payload had the same unguarded `if('strokesIncludedInLayout' in node)node.strokesIncludedInLayout=false;`, and
+the paste path builds the ring's own plan (`test.ts`'s #1266 studio leg proves it), so pasting the ring threw
+on the real host exactly as the plugin did. This is the same both-legs shape as #503/#1266/#1228 — one
+stroke-layout default, carried through two DIFFERENT code paths, so one can be ungated while the parity gate
+still reports clean. The guard is auto-layout-POSITIVE in both — `&& node.layoutMode && node.layoutMode !==
+'NONE'` — rather than the bare `!== 'NONE'`, because a non-auto-layout frame leaves `layoutMode` UNSET, and
+`undefined !== 'NONE'` is true: the bare form would fire the write on exactly the frame it must skip.
+
+**The offline-fidelity gap is closed in BOTH models.** Neither the plugin shim nor `test.ts`'s stub modelled
+the constraint — `strokesIncludedInLayout` was a plain settable boolean — so the crash class was a real-host
+rule the suites could not witness. Both now install it as a throwing accessor (a `_strokesInLayout` backing
+field plus a `defineProperty` getter/setter that throws unless `layoutMode` is `HORIZONTAL`/`VERTICAL`).
+**It had to be `defineProperty`, not the object-spread ternary the neighbouring `textAlignVertical` uses:**
+object spread reads accessors through `[[Get]]` and writes plain DATA properties, so an accessor placed in a
+spread loses its setter. That is not a stylistic note — it means the sibling `textAlignVertical` throw, which
+both models spell inside a spread, is DEAD (the setter never runs, a write to it on a frame silently
+succeeds). Filed as its own issue rather than fixed here (out of scope for the crash); the strokes accessor
+sidesteps it by construction.
+
+**`lint-unclaimed-defaults` reclassified the property into the auto-layout arm.** With the executor now
+claiming `strokesIncludedInLayout` only under `layoutMode`, the gate's un-armed row would have demanded the
+claim on the non-auto-layout ring too — where the fixed executor correctly makes no write — and tripped on
+the fix. It is genuinely auto-layout-only (Figma's own applicability), so it belongs beside `itemSpacing`/
+padding with `arm: 'autolayout'`; A3 row-coverage confirms it is still exercised on the 1,870 auto-layout
+boxes and skipped on the 92 non-auto-layout ones.
+
+**Mutation-tested by name on both legs** (docs/34), with a `wip:` commit before each mutation. Plugin: remove
+the guard → the shim's setter throws → `run` rejects → `#1266 the standalone focus ring builds without
+throwing` goes red with the host's own message, while the reachability pin (the ring is stroked and carries
+no auto-layout) stays green, proving the assertion is not vacuous. Paste: remove the guard → the ring's paste
+payload throws → `anatomy/ring #1266 reachable: the ring's own payload pastes clean` catches it, and the two
+footprint mutations fail on the changed emission string besides. Suites stay green otherwise
+(write-components ALL PASS; engine 2964 passed).
+
+**Why no version bump** — the #1279 precedent, restated. `ENGINE_VERSION`'s two triggers are movement in the
+emitted trees (`out/**`) and movement in the projected component surface (`planStamp`). `regen --check`
+reports all 108 artifacts byte-matching, and the guards live in the executors' RUNTIME and in the payload
+STRING — not in `figmaAnatomySet`, which builds the plan — so `planStamp` and `component-surface.json` do not
+move. A stroked ring that builds instead of crashing is strictly higher fidelity to the SAME plan, not a
+different surface. Same shape as #1279 (a plugin-executor fidelity fix with zero `out/**`), which also held
+the version.
+
 ## (2026-09-05) — the PASTE path wires the spinner's swap slot per member, matching #1202's plugin fix (#1203)
 
 **STATUS: shipped. Version-neutral — `ENGINE_VERSION` and `CONTRACT_VERSION` unchanged, no `out/**` move.**
@@ -162,6 +231,7 @@ failure:**
 **Deferred, filed as #1296 rather than left in this entry:** authoring the canonical default
 theme at `pds3` — flipping the fallback, retiring `prism` as a resolved value, and deciding whether the
 ~235 fixtures move with it. Nothing roots at `pds3` today; it is held, not occupied.
+
 
 ## (2026-09-04) — the paste path's swap misses get the same diagnosis, and the two executors stop disagreeing (#1288)
 
