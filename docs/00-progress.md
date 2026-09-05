@@ -7,6 +7,55 @@
 
 ---
 
+## (2026-09-05) — a nest's `height` was ACCEPTED and dropped; the third posture on a non-box part (#1299, #1226 PR-B)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.52.0 → 0.53.0; `CONTRACT_VERSION` stands at 9.4.0.** Second of the two
+foundation PRs under #1226's composed-consumer plan. First cut stacked on #1304 (the `follow`-axis fix),
+rebased with it onto `025ebe5` (main with #1301/#1303) after approval, then rebased DOWN onto `dbe97ad` once
+#1304 squash-merged — so this lands as a single commit on top of its own foundation. 0.53.0 was forward of
+main's 0.51.0, of #1304's 0.52.0, and of main's 0.52.0 after the squash, so the stamp was never re-cut.
+**No committed artifact content moves** — no shipped def authors a `nest` at all yet, so the only `out/**`
+diff is the version stamp.
+
+**The defect was a missing posture, not a missing line.** `anatomy-figma.ts`'s `node()` splits on box vs
+non-box, and on the non-box side the repo already had two coherent answers: `layout`, `padding`, `gap`,
+`width` and `strokeWidth` are **refused by name** (an author who writes one gets told), and `absolute`
+refuses `size` outright. `height` had neither — the branch read `p.size` and nothing else, so a `height` the
+schema ACCEPTED projected no binding and no error. That is the one posture that loses intent without
+reporting it, and it is why this was worth its own PR rather than a line inside the consumers' work.
+
+**Fixed for `nest` alone, and the narrowness is the decision.** Measured before choosing: no def authors
+`height` on any non-box part today, `vector`'s height is already schema-refused, and slot/overlay/text is a
+question nothing in the corpus asks. So the residue is **filed as #1305** rather than fixed here — and the
+engine suite **pins the scope**: an assertion states that a `height` on a `slot` is still dropped and says in
+its own message that it fails when #1305 lands, by design. Widening the branch later cannot drift past it.
+
+**Why a nest needs its own height at all** (the thing PR-C will ask for): the #1201 line box that aligns a
+checkbox with the FIRST line of a wrapping label is a height on the nested **Control**, not on the row.
+
+**A caveat for whoever builds PR-C, recorded because it is easy to discover late.** `checkbox`'s `controlBox`
+is a `box` with `align/justify: center`, which centers a *smaller* control inside a *taller* line box. An
+instance bound to the line-box height would **stretch** to fill it instead. So the likely PR-C shape is
+`controlBox` STAYING a box, with its *child* becoming the `nest` — which means #1299 may not be the
+dependency the plan assumed. Fixed anyway, as a silent drop in its own right.
+
+**Mutation-tested by name, both directions** (each preceded by its own `wip:` commit, per the repo's rule):
+
+| Mutation | Named failure |
+|---|---|
+| delete `if (p.kind === 'nest' && p.height)` | engine `2997 passed, 1 failed` — `#1299 a nest's 'height' binds Figma's height…`; plugin `2 FAILED` — the reachability pin and the read-back |
+| widen it to `if (p.height)` (every non-box kind) | engine `2997 passed, 1 failed` — `#1299 scope: a 'height' on a `slot` is STILL dropped…` |
+
+**The executor needed no change, and that is measured rather than read off its source.** The bind loop in
+`write-components.ts` is generic over node type, but "looks generic" is a reading — so the plugin lane now
+builds the patched def through the #874 shim and reads `boundVariables.height` back off the built
+**INSTANCE**, with a clean `misses[]` as the other half (an unresolved name and a binding Figma DISCARDED
+both report through that channel, so present-binding *plus* no-miss is the pair that means it landed). The
+new section declares its own tree walker: this file's `allNodes` lives further down and a reference would
+throw in its temporal dead zone rather than fail an assertion.
+
+---
+
 ## (2026-09-05) — a nested coordinate can follow the RUNG, and PR-A's changelog said it already could (#1298, #1226 PR-B)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.51.0 → 0.52.0; `CONTRACT_VERSION` stands at 9.4.0.** First cut off

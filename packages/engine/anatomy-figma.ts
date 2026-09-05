@@ -1131,6 +1131,22 @@ export const figmaAnatomyPlan = (
       // artboard on both axes — but it is legal only because the executor unlocks the node first;
       // see the `unlockAspectRatio()` note in `planToPluginJs`.
       if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
+      // A NEST'S OWN HEIGHT (#1299). This branch read `size` and nothing else, so a `height` on a `nest`
+      // was accepted by the schema and dropped here — the silent-loss shape, and the one direction of it
+      // this kind had left. `layout`, `padding`, `gap`, `width` and `strokeWidth` on a non-box are all
+      // REFUSED by name, and `absolute` refuses `size` outright with the reason spelled out ("a square-
+      // artboard size would be silently dropped"); `height` was the field that fell between the two
+      // postures, validating clean and reaching no node.
+      //
+      // Honoured for `nest` ALONE rather than for the whole branch, because the other kinds here are not
+      // the same question: a `vector`'s `height` is already refused by the schema, and what a bound height
+      // would mean on a `slot`, an `overlay` or a `text` is a decision nothing in the corpus has needed
+      // (measured: no def authors `height` on any non-box part). That the remaining three still drop it
+      // silently is filed rather than fixed here — one concern per PR.
+      //
+      // `height` and `size` are mutually exclusive on every kind (the validator says so), so this is an
+      // else-if in effect and cannot fight the two-axis binding above.
+      if (p.kind === 'nest' && p.height) bound.height = varOf(p.height);
     }
 
     // THE TYPE KEY, resolved from the coordinate like every other binding key (#1248). This lookup
