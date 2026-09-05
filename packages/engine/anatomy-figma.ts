@@ -1895,6 +1895,103 @@ export const nestVariantMatch = (wanted: Record<string, string>, members: readon
 export const nestVariantMatchSrc = (): string => nestVariantMatch.toString();
 
 /**
+ * WHAT A MISSING SWAP TARGET ACTUALLY IS, in the message the designer reads (#1212 residue, #1280 PR-C,
+ * #1288).
+ *
+ * The swap path had the defect `nestMissAdvice` was written to fix, one node type over, and it had it for
+ * longer. Both swap consumers reported a bare NAME and no diagnosis: `leadingVisual.swapTarget ->
+ * FPO-default-icon` from the node loop, and `property leadingVisual -> swap target FPO-default-icon (not
+ * found; property not created)` from the property loop. Neither said what the file held under that name,
+ * neither said what to do, and the second one's parenthesis — "not found" — is the same claim
+ * `nestMissAdvice` retired for the nest path, wrong for three of the four file states it covers.
+ *
+ * THE SYMPTOM THAT MADE THIS WORTH FIXING was unreadable to the owner for exactly that reason: a button
+ * built with no icon and reported a miss that named a component and nothing else, so "the icon slot is
+ * empty" and "the icon slot is not swappable" were indistinguishable in the report. They are two different
+ * failures on two different lines, and they now say which they are.
+ *
+ * FOUR CASES, the same four as the nest path, because the file states are a property of Figma rather than
+ * of what a plan wanted from them: nothing of that name, a COMPONENT_SET, an INSTANCE, or a node of some
+ * other type. The lookup that fails is `findAllWithCriteria({types:['COMPONENT']})`, which matches
+ * `ComponentNode` and never `ComponentSetNode`, so a second name-based search on the failure path only is
+ * what lets the message name what is there — the #681 mechanism, reused.
+ *
+ * THE COMPONENT_SET ROW IS THE ONE A DESIGNER ACTUALLY HITS once icons are wired, and it is why this
+ * exists rather than being a tidier version of the same non-advice. A swap target must be ONE component:
+ * an `INSTANCE_SWAP` default is a single node id (Figma refuses the component key, `''` and `null` alike).
+ * A designer's own icon library is very often a set — so the honest reading of "not found" in that state is
+ * not "publish it": the designer HAS published it, and the file holds exactly what they built. What is
+ * missing is a nomination of one member, and no message said so.
+ *
+ * EACH SENTENCE NAMES ITS OWN TARGET, and that is a correctness constraint rather than a wording
+ * preference. Misses render concatenated — `main.ts` joins them with `'; '` — so advice that locates its
+ * subject by POSITION ("the component named just above") binds to whichever miss happens to precede it,
+ * which is a NEIGHBOUR's target whenever a plan nominates more than one. That is the #1262 review finding
+ * on the nest path, verbatim, and it is reachable here in a way it is not there: a def can carry a leading
+ * and a trailing slot with different targets, so the two misses sit adjacent with different subjects.
+ * `target` is composed INTO the string for that reason, and the harness asserts the binding by comparing
+ * each miss's advice against its own prefix rather than against a fixed name.
+ *
+ * SHARED BY BOTH EXECUTORS, which is what #1288 closed and the reason this lives here rather than in
+ * `write-components.ts` where PR-C first wrote it. `nestMissAdvice` sits in this file precisely so the
+ * plugin and the emitted payload cannot drift in wording, and the paste path has both of these swap sites
+ * too (`PAYLOAD_BUILD`'s `INSTANCE_SWAP` branch and `PAYLOAD_DECLARE_PROPS`'s property loop). PR-C
+ * enriched the plugin's messages only, so for one release a designer reading a paste report and a designer
+ * reading a plugin report were told different things about the same file state.
+ *
+ * THE EMIT-TIME PREMISE #1288 WAS FILED ON IS FALSE, and saying so is the whole design note. The issue —
+ * and 0.49.0's changelog entry — held that the paste path "composes its advice at EMIT time and has no
+ * `root.findAll` to read the file state from", which would have capped it at one generic sentence. What is
+ * fixed at emit time is only WHICH FOUR STRINGS the payload carries; the payload itself RUNS IN THE FILE,
+ * so it calls `figma.root.findAll` exactly as the plugin does and picks among the four at paste time. The
+ * nest path has demonstrated that for two releases, one branch above the swap site. So the paste path gets
+ * the full four-way diagnosis, not a degraded one.
+ */
+export type SwapFound = 'ABSENT' | 'COMPONENT_SET' | 'INSTANCE' | 'OTHER';
+
+/** The swap counterpart to `NEST_TARGET_SLOT` (#1288): the paste path bakes these four sentences before
+ *  any node's `swapTarget` is known, so the name is carried as a sentinel and the payload replaces it with
+ *  the runtime target. Needed in ALL FOUR rows where the nest sentinel is needed in one — every swap
+ *  sentence names its subject, because a swap miss is the case where two of them can sit adjacent with
+ *  different targets (a leading and a trailing slot), which is the #1262 finding. */
+export const SWAP_TARGET_SLOT = '__SWAP_TARGET__';
+
+export const swapMissAdvice = (found: SwapFound, target?: string): string => {
+  const name = target ?? SWAP_TARGET_SLOT;
+  switch (found) {
+    case 'ABSENT':
+      // The build-order case, and the same cue `nestMissAdvice`'s ABSENT row carries (#1226 PR-A): the
+      // plugin builds one def per run, so a designer working through a composed component reaches the
+      // consumer before its slot filler exists. "Fills a slot" rather than "is nested here" because the
+      // consequence differs — a slot degrades to a frame the designer can fill, a nest drops silently.
+      return `not in this file — build ${name} FIRST (it fills a slot here, and the plugin builds one component per run), then rebuild this one`;
+    case 'COMPONENT_SET':
+      // NOT a dead end in the sense the nest path's set row is: there, the def can name a coordinate and
+      // this writer resolves it. A swap target has no coordinate to name — the plan nominates a NAME and
+      // the property needs one node id — so the action is on the file or on the nomination, not on a
+      // `nesting` field. Both remedies are given because they cost differently: publishing one variant is
+      // a designer action available today, nominating a member is not yet expressible in a plan.
+      return `found a COMPONENT_SET named ${name}, and a swap target has to be ONE component — an INSTANCE_SWAP default is a single node id, and a set is many members. Publish one member of ${name} as its own component under that name, or nominate a member instead of the set`;
+    case 'INSTANCE':
+      // Reached by the obvious manual workaround for the row above — duplicating a variant out of a set
+      // leaves an INSTANCE — which is why the nest path calls it out separately too.
+      return `found an INSTANCE named ${name}, not a component — swap in the main component instead of a copy of it, or publish ${name} under this name`;
+    case 'OTHER':
+      return `found a node named ${name} that is not a component — rename it, or publish the component this slot needs under the name ${name}`;
+  }
+};
+
+/** WHAT THE MISS COSTS, one clause per consumer, because the two consequences are opposite and the
+ *  diagnosis above is identical. The node loop degrades to a placeholder frame — a box a designer can
+ *  still fill by hand, which is why `build` returns it rather than null the way an unresolved nest does.
+ *  The property loop cannot degrade at all: Figma demands a node id, so there is nothing to create the
+ *  property WITH, and the slot ends up not swappable. Held apart from `swapMissAdvice` rather than
+ *  multiplied into eight sentences: each call site has exactly one of these, forever. Shared with the
+ *  paste path for the same reason the advice is — the two consumers exist on both sides (#1288). */
+export const SWAP_PLACEHOLDER = 'built as a placeholder frame, which is a box you can still fill by hand';
+export const SWAP_NO_PROPERTY = 'the property is NOT created, so this slot is not swappable at all — Figma demands a node id for an INSTANCE_SWAP default and refuses the component key, an empty string and null alike';
+
+/**
  * The SHELL: plan → plugin JS for `figma_execute`. Mirrors `materialise-to-figma.ts` — the
  * generated code resolves variable NAMES to live variables, so the same plan works in any file
  * that has had the token passes run against it.
@@ -2020,6 +2117,22 @@ const setByName=new Map(compSets.map(s=>[s.name,s]));
 // anatomy-figma.ts, called by both executors — which is what stops the wording drifting.
 const nestVariantMatch=${nestVariantMatchSrc()};
 const nestVariantMissAdvice=${nestVariantMissAdviceSrc()};
+// THE SWAP MISS, FOUR WAYS (#1288) — the same table the plugin's two \`INSTANCE_SWAP\` consumers report
+// through, reaching this payload by the OTHER of the two mechanisms in this preamble. The helpers above
+// ship their SOURCE because they take runtime arguments; these four sentences take only the target, so
+// they are baked as pre-computed strings and the target arrives as \`SWAP_TARGET_SLOT\`, substituted below.
+// Same split \`nestMissAdvice\` uses one branch down, and for the same reason.
+//
+// ONE SPELLING FOR TWO CONSUMERS, which is why this is a preamble helper rather than an inline ternary like
+// the nest path's. \`build\`'s INSTANCE_SWAP branch and \`PAYLOAD_DECLARE_PROPS\`'s property loop both diagnose
+// the same lookup failure, and a second copy of the selection is a second place for it to rot.
+//
+// \`figma.root.findAll\` AT PASTE TIME, on the failure path only. #1288 was filed believing the paste path
+// could not do this — that it "composes its advice at EMIT time and has no root.findAll". Emit time fixes
+// only WHICH strings ship; the payload runs in the file, so the search is available here exactly as it is
+// in the plugin. Failure path only for the reason the nest path states: a cold build already runs thousands
+// of subtree searches and the happy path must not pay for a diagnosis it never prints.
+const swapAdvice=(name)=>{const other=figma.root.findAll(x=>x.name===name)[0];return (!other?${JSON.stringify(swapMissAdvice('ABSENT'))}:other.type==='COMPONENT_SET'?${JSON.stringify(swapMissAdvice('COMPONENT_SET'))}:other.type==='INSTANCE'?${JSON.stringify(swapMissAdvice('INSTANCE'))}:${JSON.stringify(swapMissAdvice('OTHER'))}).split(${JSON.stringify(SWAP_TARGET_SLOT)}).join(name);};
 const misses=[];
 for(const [t,names] of seenTail) if(names.length>1) misses.push('AMBIGUOUS variable tail '+t+' — the file carries it under '+names.length+' brand roots ('+names.join(', ')+'), so a plan binding it cannot say which; remove or relink one of the sets');`;
 
@@ -2037,7 +2150,11 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // declared swappable slots and the paste built empty 24x24 boxes.
     const target=n.swapTarget?compByName.get(n.swapTarget):undefined;
     if(!n.swapTarget)misses.push(n.name+'.swapTarget -> (none nominated; built as a placeholder frame)');
-    else if(!target)misses.push(n.name+'.swapTarget -> '+n.swapTarget);
+    // DIAGNOSE, then report (#1288) — was the bare name and nothing else, which said neither what the file
+    // holds under it nor what to do about it. Composed BYTE-IDENTICALLY to the plugin's node loop: same
+    // prefix, same advice, same one consequence clause. That is not tidiness — \`test.ts\`'s parity gate
+    // compares the two executors' miss strings for equality, so this is the spelling that gate reads.
+    else if(!target)misses.push(n.name+'.swapTarget -> '+n.swapTarget+' ('+swapAdvice(n.swapTarget)+'; '+${JSON.stringify(SWAP_PLACEHOLDER)}+')');
     node=target?target.createInstance():figma.createFrame();
   }
   else if(n.type==='NESTED_INSTANCE'){
@@ -2345,7 +2462,10 @@ for(const p of PROPS){
     // "Property value is incompatible with component property type" — so an unresolvable target is not
     // a missing default, it is a property that cannot be created at all.
     const target=compByName.get(p.swapTarget);
-    if(!target){misses.push('property '+p.name+' -> swap target '+p.swapTarget+' (not found; property not created)');continue;}
+    // "not found" was the wrong claim for three of the four states this reaches (#1288): a set, an instance
+    // and a frame of that name are all FOUND. The consequence clause is the property loop's own — the slot
+    // is not swappable at all, where the node loop above leaves a box a designer can still fill.
+    if(!target){misses.push('property '+p.name+' -> swap target '+p.swapTarget+' ('+swapAdvice(p.swapTarget)+'; '+${JSON.stringify(SWAP_NO_PROPERTY)}+')');continue;}
     def=target.id;
   }else def=p.default;
   try{propIds.set(p.name,set.addComponentProperty(p.name,p.type,def));}

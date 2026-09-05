@@ -7,6 +7,70 @@
 
 ---
 
+## (2026-09-04) — the paste path's swap misses get the same diagnosis, and the two executors stop disagreeing (#1288)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.49.0 → 0.50.0; `CONTRACT_VERSION` stays 9.4.0.** Branched off
+`e4d4e38` (main with #1280 PR-C + PR-D). Three source files —
+`packages/engine/anatomy-figma.ts`, `apps/plugin/src/write-components.ts` (the definition MOVES out of it;
+its two consumers are untouched), `packages/engine/test.ts` — plus `version.ts` and the eight `out/**` trees
+whose only moved byte is the generator stamp. Full `npm run verify` green, the exporter-agreement gate green,
+every plugin gate green.
+
+**The gap was one I filed against my own previous PR.** #1280 PR-C (0.49.0) gave the PLUGIN's two
+`INSTANCE_SWAP` consumers a four-way `swapMissAdvice`, and left the emitted payload's two swap sites saying
+`leadingVisual.swapTarget -> FPO-default-icon` and `property leadingVisual -> swap target FPO-default-icon
+(not found; property not created)`. So for a release the two executors told a designer *different things
+about the same file*, on the exact failure `nestMissAdvice` exists to prevent them diverging on. The fix is
+the same shape as #710's: one definition in `anatomy-figma.ts`, imported by the plugin and interpolated into
+the payload.
+
+**THE DESIGN CONSTRAINT THE ISSUE WAS FILED ON IS FALSE, and that is the finding.** #1288 — and 0.49.0's own
+changelog entry — deferred the paste path because *"it composes its advice at EMIT time and has no
+`root.findAll` to read the file state from"*. Emit time decides only WHICH strings ship. The payload **runs
+in the file**: `figma.root.findAll` is available to it exactly as it is to the plugin, and the nest path has
+been calling it inline in `PAYLOAD_BUILD` for two releases (`anatomy-figma.ts:2193`). So there was no
+degraded version to design — the paste path gets the same four rows, the same wording, the same second
+search. Had the premise gone unchecked it would have justified a permanently worse message on the surface a
+designer reaches through a paste, and the justification would have looked like a considered tradeoff.
+
+**What `SWAP_TARGET_SLOT` is actually for, then.** The one thing emit time DOES constrain: the four
+sentences are baked into the payload before any node's `swapTarget` is known, so each names the sentinel
+`__SWAP_TARGET__` and the payload substitutes the real name at paste time — `NEST_TARGET_SLOT`'s
+counterpart. **Where the nest path needs the sentinel in ONE row, the swap path needs it in all FOUR**, and
+that is #1262's finding rather than symmetry for its own sake: every swap sentence names its own target, and
+a single starved run reports two adjacent swap misses — `leadingVisual`, plus `spinner` at `state=pending`,
+the same 18-of-21 split #1280 PR-D measured — so "the component just above" would bind to a neighbour.
+
+**The parity gate was EXTENDED, not added, and it could not have caught this before.** `test.ts`'s ONE STUB,
+TWO DRIVERS block has required byte-identical miss strings from both executors on the nest path's fifth miss
+since #681; it now does the same for swaps, across all four file states × both consumers. The reason the
+drift survived a release is visible in the fixtures: the starved comparison's file still holds
+`FPO-default-icon`, so every swap RESOLVES, and the #681 case only removes `focus-ring`. Neither run had a
+swap miss to compare. A hole in a gate's *input*, not in its logic — the docs/34 sub-shape where the
+comparison is live and the fixture never reaches the code under test.
+
+**Mutation-tested four ways, each failing BY NAME** (docs/34), with a `wip:` commit before every mutation:
+revert the node-level site to the bare wording → 11 failures, all `#1288`/`parity #1288`; revert the
+property-level site to `(not found; property not created)` → 7; have the payload spell ONE of the four
+sentences itself instead of interpolating the shared function — the literal drift shape — → 5, including
+`parity #1288 (a COMPONENT_SET)` on both consumers and nothing else's row; drop the sentinel substitution →
+13, including *"the sentinel is SUBSTITUTED, never printed"*. The suite goes 2936 → 2964.
+
+**The all-green run before the tests existed is worth recording.** The four-way diagnosis shipped into the
+payload with the whole 2936-assertion suite green, because the single assertion covering that site matched
+`/property leadingVisual -> swap target FPO-default-icon/` — a prefix both the bare and the enriched wording
+satisfy. Same shape as PR-D's stale-constant finding: an assertion that pins the SUBJECT of a message and
+nothing about its content cannot tell a diagnosis from a name.
+
+**Why ENGINE bumps** — 0.49.0's own reasoning, and the second instance of it: these are shipped prose in
+`apps/plugin/dist`, which `lint-us-english` scans as an engine surface, and they now ship twice over (the
+imported helper, and the payload string inside `main.js`). `regen --check` reports all 108 artifacts
+byte-matching. **One trap for whoever re-reads 0.49.0's entry:** its claim that the engine emits `icon` as
+"a set of 39 members" is stale — #1012/0.47.0 materializes each glyph as its own component — and it is
+filed as **#1293** rather than edited into merged history.
+
+---
+
 ## (2026-09-04) — the button's icon slots resolve a REAL icon, not an empty box (#1280 PR-D, #1206)
 
 **STATUS: shipped, plugin-side. VERSION-NEUTRAL — `ENGINE_VERSION` stays 0.49.0, `CONTRACT_VERSION` stays
