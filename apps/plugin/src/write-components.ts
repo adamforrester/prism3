@@ -1758,7 +1758,10 @@ const writeComponentSet = async (
         // repair the wrong field. Inert today (per-member field === deduped field across the whole corpus),
         // but this PR is the first code to write through the recorded slot, so it records the truth (#866).
         wiredRefs.push([String(member.name), r.part, field, id, node]);
-      } catch (err) { misses.push(`ref ${member.name}/${r.part}.${r.field} -> ${r.prop} (${(err as Error).message})`); }
+      // Names the property/field ACTUALLY attempted (the per-member `own?.prop ?? r.prop`), not the
+      // deduped `r.prop` — on a spinner member wiring `leadingVisual` the deduped name would misreport
+      // `trailingVisual`, the exact scenario the swap-wiring can fail (#1203; the #1204-review nit).
+      } catch (err) { misses.push(`ref ${member.name}/${r.part}.${field} -> ${own?.prop ?? r.prop} (${(err as Error).message})`); }
     }
     if ((i + 1) % chunkSize === 0 || i + 1 === toWire.length) await breathe('wire', i + 1, toWire.length);
   }

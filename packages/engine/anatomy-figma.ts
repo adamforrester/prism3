@@ -2479,20 +2479,36 @@ for(const p of PROPS){
 const PAYLOAD_WIRE_REFS = `// WIRE the references, per MEMBER. They do NOT propagate: setting one on the first variant left every
 // sibling's \`componentPropertyReferences\` empty, so a set wired once looks correct on the variant a
 // designer happens to inspect and is inert on the other twenty.
+// PER-MEMBER OVERRIDES (#1203). \`REFS\` is deduped by part, but an overlay part — the pending spinner —
+// takes whichever visual cell its member has, so its property is \`leadingVisual\` on some members and
+// \`trailingVisual\` on others (#848). \`REF_OVERRIDES\` carries the members whose per-member prop differs
+// from the deduped entry, keyed member -> part, and the wire below reads the member's OWN prop/field
+// where one exists. This is the paste-path half of #1202, which fixed \`applyComponentPlan\` the same way
+// (its \`refByMember\`); the two executors now wire the same property, gated at the parity gate.
+const refOv=new Map();
+for(const o of REF_OVERRIDES){let m=refOv.get(o.member);if(!m){m=new Map();refOv.set(o.member,m);}m.set(o.part,o);}
 const wiredRefs=[];
 for(const member of set.children){
+  const own=refOv.get(member.name);
   for(const r of REFS){
     const node=member.findOne(x=>x.name===r.part);
     // An optional part absent from THIS variant builds no node, so there is nothing to wire — the
     // legitimate case, not an error. \`planSetProperties\` only ever declares a property some node
     // references, so a part missing everywhere would leave the property undeclared instead.
     if(!node)continue;
-    const id=propIds.get(r.prop);
+    // The member's own prop/field where it diverges from the deduped entry, else the deduped one.
+    const o=own&&own.get(r.part);
+    const field=o?o.field:r.field;
+    const prop=o?o.prop:r.prop;
+    const id=propIds.get(prop);
     if(!id)continue; // the property itself failed above and already reported its own cause
     try{
-      node.componentPropertyReferences=Object.assign({},node.componentPropertyReferences||{},{[r.field]:id});
-      wiredRefs.push([member.name,r.part,r.field,id]);
-    }catch(err){misses.push('ref '+member.name+'/'+r.part+'.'+r.field+' -> '+r.prop+' ('+err.message+')');}
+      node.componentPropertyReferences=Object.assign({},node.componentPropertyReferences||{},{[field]:id});
+      wiredRefs.push([member.name,r.part,field,id]);
+    // The miss names the property ACTUALLY attempted (\`prop\`), not the deduped \`r.prop\` — on a spinner
+    // member wiring \`leadingVisual\` a deduped name would misreport \`trailingVisual\`, the exact defect
+    // this fix is about (the write-components nit #1204's review caught, applied to this executor too).
+    }catch(err){misses.push('ref '+member.name+'/'+r.part+'.'+field+' -> '+prop+' ('+err.message+')');}
   }
 }
 // READ BACK every reference. Figma throws on a reference naming an unknown property, so this covers the
@@ -2694,6 +2710,26 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
     for (const n of refNodes(plan.root))
       if (props.some((p) => p.name === n.propertyRef!.prop)) refs.set(n.name, { part: n.name, ...n.propertyRef! });
 
+  // THE PER-MEMBER OVERRIDES the deduped `refs` above collapses (#1203, the paste-path half of #1202).
+  // `refs` keys by PART on the premise the comment states — "every member carries the same anatomy" —
+  // which stopped being true at #848: the pending SPINNER is an overlay that takes whichever visual cell
+  // its member has, so `figmaAnatomySet` resolves its `propertyRef.prop` per member (`leadingVisual` or
+  // `trailingVisual`), and keying on `spinner` keeps only the plan walked LAST. So the payload wire loop
+  // needs the per-member prop, exactly as `applyComponentPlan` does since #1202 (`refByMember`).
+  //
+  // A DIFF, not the full per-member table the header rejects on size: only the members whose per-member
+  // ref DIFFERS from the deduped entry are shipped, so this is empty for every set without an overlay (all
+  // of them but Button) and ~4KB on Button — well inside the last chunk's headroom, where it rides like
+  // `REFS_ALL`. The members that AGREE with the deduped entry are exactly the ones the deduped path already
+  // wires correctly, so omitting them costs nothing.
+  const refOverrides: { member: string; part: string; field: string; prop: string }[] = [];
+  for (const plan of plans)
+    for (const n of refNodes(plan.root)) {
+      const ded = refs.get(n.name);
+      if (ded && (ded.prop !== n.propertyRef!.prop || ded.field !== n.propertyRef!.field))
+        refOverrides.push({ member: planComponentName(plan), part: n.name, ...n.propertyRef! });
+    }
+
   // `rowKeys`/`colKey` and the two ORDERED value lists ride along for the chunked path. It re-derives
   // each member's cell from the member NAME instead of being handed a name→cell map, because the map is
   // the one thing that does not fit: 756 entries of name+group is ~121KB shipped into a 45KB payload.
@@ -2702,15 +2738,16 @@ export const planSetLayout = (plans: AnatomyPlan[], fn: string) => {
   // `footprintVaries` rides out for the CHUNKED path only — the single-shot payload reads the `group`
   // this function already computed off each cell, while a chunk re-derives it from the member name and so
   // needs the def's list. Off `plans[0]` for `gridAxis`'s reason: every plan in a set comes from one def.
-  return { cells, props, refs: [...refs.values()], axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries };
+  return { cells, props, refs: [...refs.values()], refOverrides, axes, rows: rows.length, cols: cols.length, component: plans[0].component, rowKeys, colKey: colKey ?? '', rowLabels: rows, colVals: cols, footprintVaries: plans[0].footprintVaries };
 };
 
 export const planSetToPluginJs = (plans: AnatomyPlan[]): string => {
-  const { cells, props, refs, axes, rows, cols } = planSetLayout(plans, 'planSetToPluginJs');
+  const { cells, props, refs, refOverrides, axes, rows, cols } = planSetLayout(plans, 'planSetToPluginJs');
 
   return stripPayloadComments(`const PLANS=${JSON.stringify(cells)};
 const PROPS=${JSON.stringify(props)};
 const REFS=${JSON.stringify(refs)};
+const REF_OVERRIDES=${JSON.stringify(refOverrides)};
 ${PAYLOAD_PREAMBLE}
 ${PAYLOAD_BUILD}
 const built=[];
@@ -2904,7 +2941,8 @@ const axisMiss=readable&&JSON.stringify(derived)!==JSON.stringify(EXPECTED_AXES.
 // above is the single cause, and declaring properties on a poisoned set would bury it under a dozen
 // consequences.
 const PROPS=readable?PROPS_ALL:[];
-const REFS=readable?REFS_ALL:[];`;
+const REFS=readable?REFS_ALL:[];
+const REF_OVERRIDES=readable?REF_OVERRIDES_ALL:[];`;
 
 /** The tail of a CHUNK payload: the two layout read-backs and the report. */
 const PAYLOAD_CHUNK_RETURN = `// READ BACK the LAYOUT. Two variants at one position is the signature of a set that combined perfectly
@@ -3016,7 +3054,7 @@ export const planSetChunks = (
   // `setLayout` per slice instead would compute `rowLabels`/`colVals` from a fifth of the members, so a
   // later chunk's `col` indices would restart at 0 and it would land on top of the first — #510's
   // stacking bug, reintroduced one chunk at a time.
-  const { cells, props, refs, axes, component, rowKeys, colKey, rowLabels, colVals, footprintVaries } = planSetLayout(plans, 'planSetChunks');
+  const { cells, props, refs, refOverrides, axes, component, rowKeys, colKey, rowLabels, colVals, footprintVaries } = planSetLayout(plans, 'planSetChunks');
 
   // `name` + `root` only. `row`/`col`/`group` are all derivable from the name inside the payload, and
   // the payload's bytes are the budget this whole function exists to respect.
@@ -3042,6 +3080,7 @@ const FOOTPRINT_VARIES=${JSON.stringify(footprintVaries)};
 // the last member joins holds ids the combine has already invalidated.
 const PROPS_ALL=${JSON.stringify(last ? props : [])};
 const REFS_ALL=${JSON.stringify(last ? refs : [])};
+const REF_OVERRIDES_ALL=${JSON.stringify(last ? refOverrides : [])};
 ${PAYLOAD_PREAMBLE}
 ${PAYLOAD_BUILD}
 ${PAYLOAD_CHUNK_BODY}
