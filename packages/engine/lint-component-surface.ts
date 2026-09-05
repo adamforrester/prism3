@@ -45,8 +45,9 @@
  *     default reproducible here.
  *   · `swapTarget` — `figmaAnatomySet(def, { swapTarget })`, which #513 recorded as a fact about the
  *     FILE rather than about the component: the same def builds in a file whose placeholder icon is
- *     called anything. `lint-paint.ts` passes `'FPO-default-icon'` because it is asking what the plugin
- *     will build; this gate is asking what the DEF projects, so it passes nothing.
+ *     called anything. `lint-paint.ts` passes A name because it is asking what the plugin will build, and
+ *     paints do not depend on which name it is; this gate is asking what the DEF projects, so it passes
+ *     nothing. The plugin's own nomination is `main.ts`'s `SWAP_TARGET` and is not restated here.
  *
  * A def with no `figmaProperties` projects no set, and its entry is recorded as `null` rather than
  * omitted — the same spelling `paint-census.json` uses for the same state, and for a stronger reason

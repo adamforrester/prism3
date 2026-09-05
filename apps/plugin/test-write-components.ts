@@ -153,9 +153,27 @@ const instrumented = async (plans: AnatomyPlan[], opts: ShimOpts = {}, chunk?: n
   return { r, yields, progress, yieldCalls: yieldCalls.n };
 };
 
+// ---- the swap target THE PLUGIN NOMINATES, read off `main.ts` rather than restated ----------
+/** `main.ts`'s source, read once. Source text is the only handle on it — `main.ts` calls `figma.showUI`
+ *  at module scope so it cannot be imported (see block `(5)` below for what that can and cannot see). */
+const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+/**
+ * The name `main.ts` hands the projector — PARSED, never restated (#1280 / #1206).
+ *
+ * The whole of #1206's fix is WHICH component name the button's icon slots reach for, so a harness
+ * carrying its own copy of that name exercises a wiring the plugin does not have. Measured, not
+ * feared: `main.ts` was moved from `FPO-default-icon` to `icon/FPO-default-icon` — the name #1012's
+ * emitter actually produces — and this suite stayed ALL PASS on the stale name, including every arm
+ * below that reads as being about the button's swap slot. One source of truth, and it is the plugin's.
+ *
+ * The parse being empty is itself asserted (the input pin below), because a regex that stopped matching
+ * would drive every arm against `''` and report a file that nominates nothing as a clean resolution.
+ */
+const SWAP = (/^const SWAP_TARGET = '([^']+)';$/m.exec(mainSrc)?.[1]) ?? '';
+
 // ---- the plans: the same 21-variant button grid the engine's set gates run on --------------
 const grid = button.variants!.appearance!.flatMap((ap) => button.states!.map((st) =>
-  figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: ap, state: st })));
+  figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: SWAP, intent: 'primary', appearance: ap, state: st })));
 
 /** Every component NAME a plan tree nominates — swap targets and nested shared components. Walked
  *  rather than hand-listed for the same reason `full()` derives its variables: a list drifts the moment
@@ -183,7 +201,10 @@ console.log('plugin COMPONENT write-adapter (#487 step 5) — executor against i
 ok(grid.length === 21, `the fixture is the 21-variant grid (${grid.length})`);
 ok(full().vars!.length > 15, `the plans carry variable bindings to resolve (${full().vars!.length} distinct)`);
 ok(full().styles!.length > 0, `the plans carry text styles to resolve (${full().styles!.length})`);
-ok(full().comps!.includes('FPO-default-icon') && full().comps!.includes('focus-ring'),
+// The PARSE first, because everything downstream is driven by it: a `SWAP` of `''` gives plans that
+// nominate nothing, a file that holds nothing, and 0 misses — a green suite over no subject at all.
+ok(SWAP !== '', `#1280 main.ts's own SWAP_TARGET was parsed out of its source, so the plans below nominate what the plugin does (${SWAP || 'NOT FOUND'})`);
+ok(full().comps!.includes(SWAP) && full().comps!.includes('focus-ring'),
   `the plans nominate both a swap target and a nested shared component (${full().comps!.join(', ')})`);
 ok(planSetProperties(grid).length > 0, `the plans derive component properties (${planSetProperties(grid).map((p) => `${p.name}:${p.type}`).join(', ')})`);
 
@@ -389,7 +410,7 @@ ok(gridSpinner !== null && gridSpinner.layoutPositioning === 'AUTO' && !gridSpin
 // is not a variant axis in this def, so a set mixing filled and empty slots would be one footprint
 // cohort measuring two different boxes.
 const labelOnly = button.states!.map((st) =>
-  figmaAnatomyPlan(button, 'medium', { leading: false, trailing: false, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: st }));
+  figmaAnatomyPlan(button, 'medium', { leading: false, trailing: false, swapTarget: SWAP, intent: 'primary', appearance: 'filled', state: st }));
 const loPage: Page = { children: [] };
 const lo = await run(labelOnly, { ...fullFor(labelOnly), page: loPage });
 ok(lo.misses.length === 0, `the label-only set runs CLEAN${lo.misses.length ? ` — ${lo.misses.slice(0, 3).join('; ')}` : ''}`);
@@ -431,7 +452,7 @@ ok(spin!.opacity !== 0, `the spinner itself is fully opaque — the zero applies
 // the label-only pending tree with a trailing visual spliced in beside the label, pushing it left of the
 // container's center while the spinner still overlays it. That is the shape the live defect rendered.
 const pendPlan = labelOnly.find((p) => p.coord.state === 'pending')!;
-const trailingKid = (figmaAnatomyPlan(button, 'medium', { leading: false, trailing: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: 'filled', state: 'rest' })
+const trailingKid = (figmaAnatomyPlan(button, 'medium', { leading: false, trailing: true, swapTarget: SWAP, intent: 'primary', appearance: 'filled', state: 'rest' })
   .root.children ?? []).find((c) => c.name === 'trailingVisual')!;
 const pendLabel = (pendPlan.root.children ?? []).find((c) => c.name === 'label')!;
 const pendSpin = (pendPlan.root.children ?? []).find((c) => c.name === 'spinner')!;
@@ -605,7 +626,7 @@ ok(rVer.stale === 0 && rVer.skipped === 21,
 // suite states. `main.ts` calls `figma.showUI` at module scope so it cannot be imported, and every count
 // above is inert if the panel never receives it. This cannot see a reordering that preserves textual
 // order, and it is not a substitute for running the plugin in a real file.
-const mainSrc = readFileSync(new URL('./src/main.ts', import.meta.url), 'utf8');
+// `mainSrc` is read at the top of this file, because `SWAP` is parsed out of it before the plans are built.
 ok(/componentHeadline\([^)]*r\.stale[^)]*\)/.test(mainSrc),
   'main.ts passes the stale count to `componentHeadline`, so the pill can outrank `built N` with it');
 ok(/staleNote\(r\.stale,\s*ENGINE_VERSION\)/.test(mainSrc) && /\$\{stale \? `\. \$\{stale\}` : ''\}/.test(mainSrc),
@@ -615,7 +636,7 @@ ok(/misses\.length - r\.skipped - r\.stale/.test(mainSrc),
 
 // (4) THE HASH ITSELF, from the engine side — the two directions that decide whether any of the above
 // means anything. Authored here against `planStamp` directly rather than through the executor.
-ok(planStamp(grid[0]) === planStamp(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon', intent: 'primary', appearance: button.variants!.appearance![0], state: button.states![0] })),
+ok(planStamp(grid[0]) === planStamp(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: SWAP, intent: 'primary', appearance: button.variants!.appearance![0], state: button.states![0] })),
   'the same def and the same coordinate hash to the same stamp — a stamp that moved on every regeneration would report every member stale forever');
 ok(new Set(grid.map(planStamp)).size === 21, `21 distinct coordinates give 21 distinct stamps (${new Set(grid.map(planStamp)).size})`);
 // THE SECOND PASS CARRIES INFORMATION, rather than restating the first. What it buys is width: 32 bits over
@@ -642,26 +663,114 @@ ok(bare.misses.length > 0 && bare.misses.some((m) => m.includes(' -> ')), `every
 ok(!bare.misses.some((m) => m.includes('DISCARDED')),
   'an unresolved name reports its ONE true cause — never also "DISCARDED", which would name a write that was never attempted');
 
-// ---- DEGRADED: the swap target is not in the file -------------------------------------------
-// STILL AN ABSENCE-PATH BLOCK. The four assertions below describe a file with no swap target in it, and
-// they stay that way: `comps: []` is the state, and #1012 is what will eventually make a present-path
-// version of them possible. What #1280 PR-C moved is the expected TEXT — the misses now carry a diagnosis
-// and a consequence where they used to carry a bare name and, on the property line, the word "not found",
-// which was the wrong claim for three of the four file states (the table further down is what makes that
-// claim checkable rather than asserted).
+// ---- #1280 / #1206: the button's icon slot, in the TWO FILE STATES A DESIGNER CAN BE IN --------
+//
+// This was an absence-only block, and that was the defect rather than a gap in it: `comps: []` was the
+// only state it could describe, so a slot that resolved was never asserted anywhere and the wiring's
+// success path had no test at all. #1012 made the present state real — `icon` materializes as separate
+// top-level `icon/<glyph>` components — so both arms are now file states a designer actually produces:
+//
+//   PRESENT — they built `icon` first. The slot resolves to a real icon INSTANCE, the set carries an
+//             INSTANCE_SWAP property so any other glyph can be swapped in, and the glyph's VECTOR takes
+//             the button's `on-fill` ink. This is #1206's whole ask.
+//   ABSENT  — they have not built `icon` yet. Every slot degrades to a placeholder frame and both
+//             consumers say so, naming the component to build FIRST (PR-C's diagnosis).
+//
+// TWO ARMS, NOT ONE PLUS A COMMENT: each is the other's mutation. Deleting the icon components from the
+// present arm's file must move it to the absent arm's report, and that is the pair of directions
+// `docs/34` asks for on a change whose entire content is which name gets resolved.
+
+// (0) THE NAME `main.ts` NOMINATES IS A NAME THE EMITTER PRODUCES — the one assertion in this block whose
+// two sides come from different places, and the ONLY one that catches #1206 itself. `SWAP` is parsed out
+// of `main.ts`; the names below come from RUNNING the `icon` def through the executor with #1012's flag on.
+// Nothing derives one from the other.
+//
+// IT IS LOAD-BEARING ALONE, measured rather than argued: reverting `main.ts` to the pre-#1206
+// `FPO-default-icon` fails THIS arm and nothing else in the suite. Everything below it stays green,
+// because `fullFor` derives the shim's `comps` FROM THE PLANS — so the harness's file always holds
+// whatever name is nominated, however wrong, and every "the slot resolves" arm resolves it. That
+// convenience is what let the real defect ship, and this is the one line that does not share it.
+const iconEmitPlans = figmaAnatomySet(componentDefs.find((d) => d.id === 'icon')!);
+const iconEmitPage: Page = { children: [] };
+await run(iconEmitPlans, { ...fullFor(iconEmitPlans), page: iconEmitPage }, { emitAsComponents: true });
+const emittedIcons = iconEmitPage.children.map((c) => String(c.name));
+ok(emittedIcons.length > 1, `#1206 reachable: the icon def really emits components to check the nomination against (${emittedIcons.length})`);
+ok(emittedIcons.includes(SWAP),
+  `#1206 main.ts nominates a component the engine ACTUALLY emits — '${SWAP}' is one of the ${emittedIcons.length} names an \`icon\` build writes, so the button's slot has something to resolve (${emittedIcons.slice(0, 3).join(', ')}, …)`);
+
+// (1) PRESENT: the icon components are in the file. `fullFor` derives `comps` from the plans, so this
+// file holds exactly what the plans nominate — including `SWAP`, asserted by the input pin above.
+const swapPage: Page = { children: [] };
+const withComp = await run(grid, { ...full(), page: swapPage });
+ok(withComp.variants === 21 && !withComp.misses.some((m) => m.includes('.swapTarget ->')),
+  `#1206 with the icon components present, every slot RESOLVES — no swapTarget miss on any of the ${withComp.variants} members (${withComp.misses.filter((m) => m.includes('.swapTarget ->')).join(' | ') || 'none'})`);
+// AN INSTANCE, NOT A FRAME, and read off the built node rather than off the absence of a miss: the
+// executor's fallback is `api.createFrame()`, so "no miss" and "a real instance" are two facts and only
+// the second is what a designer sees.
+//
+// WHICH PART HOLDS THE SLOT IS READ OFF THE PLAN, not assumed to be `leadingVisual` — and that is a
+// measurement rather than caution. At `state=pending` the leading slot is REPLACED by the `spinner`
+// (#612), which is an INSTANCE_SWAP nominating the same target, so a check hard-coded to `leadingVisual`
+// finds 18 of 21 and reports the pending members as missing their slot. Both parts are the same wiring
+// and #1206 fixes both: the pending spinner resolves to a real icon instance too.
+const swapMembers = (swapPage.children[0].children as Node[]);
+const swapWalk = (n: { name?: string; type?: string; children?: unknown[] }): { name?: string; type?: string }[] =>
+  [n, ...((n.children ?? []) as typeof n[]).flatMap(swapWalk)];
+/** member name -> the name of the ONE part its plan builds as an INSTANCE_SWAP. */
+const wantSlot = new Map(grid.map((p) => {
+  const swaps = swapWalk(p.root as unknown as { children?: unknown[] }).filter((n) => n.type === 'INSTANCE_SWAP');
+  return [planComponentName(p), swaps.length === 1 ? String(swaps[0].name) : `${swaps.length} SWAP PARTS`] as const;
+}));
+ok(wantSlot.size === 21 && ![...wantSlot.values()].some((v) => v.endsWith('SWAP PARTS')),
+  `#1206 reachable: every member's plan carries exactly ONE swap part, so "the slot" is a single node per member (${[...new Set(wantSlot.values())].join(', ')})`);
+ok(new Set(wantSlot.values()).size === 2 && [...wantSlot.values()].filter((v) => v === 'spinner').length === 3,
+  `#1206 reachable: ...and it is NOT always \`leadingVisual\` — the 3 \`pending\` members swap the spinner into that cell instead, which is why the part is read off the plan (${[...new Set(wantSlot.values())].join(', ')})`);
+const swapSlots = swapMembers.map((m) => partOf(m, wantSlot.get(String(m.name)) ?? '<no plan>')).filter((n): n is Node => n !== null);
+ok(swapSlots.length === 21 && swapSlots.every((n) => n.type === 'INSTANCE'),
+  `#1206 ...and that part is an INSTANCE of the nominated component on every member, not the placeholder FRAME the miss path builds (${swapSlots.length}/21, types ${[...new Set(swapSlots.map((n) => n.type))].join(', ')})`);
+// THE PROPERTY, which is the half that makes the slot SWAPPABLE. Figma's `addComponentProperty` refuses an
+// INSTANCE_SWAP default that is not a node id, so this can only exist once the target resolves — it is the
+// consequence PR-C's property-level miss reports the loss of, asserted from the other side.
+ok(withComp.properties.some((p) => p.endsWith(':INSTANCE_SWAP')),
+  `#1206 ...and the set declares an INSTANCE_SWAP property, so a designer can swap any other \`icon/<glyph>\` into the slot (${withComp.properties.join(', ')})`);
+// THE INK REACHES THE GLYPH (#1206's second symptom). The slot part carries `descendantFills`, which paints
+// every VECTOR *inside* the instance — an empty placeholder frame has none, which is exactly the
+// "no VECTOR inside this node to paint" miss the owner was seeing. A resolved instance carries the glyph.
+ok(!withComp.misses.some((m) => m.includes('no VECTOR inside this node to paint')),
+  `#1206 ...and no slot reports "no VECTOR inside this node to paint" — the miss an EMPTY placeholder produces (${withComp.misses.filter((m) => m.includes('no VECTOR')).slice(0, 2).join(' | ') || 'none'})`);
+const slotVecs = swapSlots.map((n) => (n.findAll as (p: (x: Node) => boolean) => Node[])((x) => x.type === 'VECTOR'));
+ok(slotVecs.every((vs) => vs.length === 1),
+  `#1206 reachable: each resolved instance holds a glyph VECTOR for the ink to land on (${[...new Set(slotVecs.map((vs) => vs.length))].join(', ')})`);
+const slotInk = [...new Set(slotVecs.map((vs) => String((vs[0].fills as { boundVariables?: { color?: { id?: string } } }[])[0]?.boundVariables?.color?.id ?? 'UNPAINTED').replace(/^V:/, '')))];
+ok(slotInk.length > 0 && !slotInk.includes('UNPAINTED') && slotInk.every((v) => v.startsWith('color/')),
+  `#1206 ...and that VECTOR is PAINTED with the button's icon ink, bound rather than literal — the glyph is visible on the fill instead of being an unpainted outline (${slotInk.join(', ')})`);
+
+// (2) ABSENT: the same plans against a file with no icon components — the state a designer is in before
+// they have built `icon`. Still a build, still every member, and both consumers name what to do about it.
 const noComp = await run(grid, { ...full(), comps: [], page: { children: [] } });
 ok(noComp.variants === 21, `a missing swap target still builds every member (as a placeholder frame) — ${noComp.variants}`);
-ok(noComp.misses.some((m) => m.includes('.swapTarget -> FPO-default-icon')), 'the missing swap target is named as a miss');
+ok(noComp.misses.some((m) => m.includes(`.swapTarget -> ${SWAP}`)), `the missing swap target is named as a miss (${SWAP})`);
+// THE BUILD-ORDER CUE, which is the whole value of the absent arm now that the present arm exists: the
+// designer is one build away, and the miss says which build. Matched on the target's own name inside the
+// advice, per #1262 — advice that located its subject by position would bind to a neighbour's target.
+ok(noComp.misses.some((m) => m.includes('.swapTarget ->') && m.includes(`build ${SWAP} FIRST`)),
+  `#1206 ...and the miss names the component to build FIRST, so the absent case is a build-order cue rather than a dead end (${noComp.misses.find((m) => m.includes('.swapTarget ->')) ?? 'no swap miss'})`);
 // The property line's two load-bearing facts, unchanged in substance: it names the target, and it says the
 // property was not created. Matched on those two rather than on the whole sentence, so the wording can be
 // improved without this pin going stale — the table below is where the wording itself is gated.
-ok(noComp.misses.some((m) => m.startsWith('property ') && m.includes('swap target FPO-default-icon') && m.includes('the property is NOT created')),
+ok(noComp.misses.some((m) => m.startsWith('property ') && m.includes(`swap target ${SWAP}`) && m.includes('the property is NOT created')),
   `and the INSTANCE_SWAP property is NOT created, because Figma demands a node id it cannot supply — stated in the miss rather than left to be inferred (${noComp.misses.filter((m) => m.startsWith('property ') && m.includes('swap target')).join(' | ')})`);
 ok(!noComp.properties.some((p) => p.endsWith(':INSTANCE_SWAP')), `no INSTANCE_SWAP property is left half-declared (${noComp.properties.join(', ')})`);
+// EACH ARM IS THE OTHER'S MUTATION, stated as a relationship so neither can be satisfied by a shim that
+// models one file state twice: removing the icon components moves the run from "no swapTarget miss and a
+// declared property" to "a named miss and no property". Same plans, one difference in the file.
+ok(withComp.properties.some((p) => p.endsWith(':INSTANCE_SWAP')) && !noComp.properties.some((p) => p.endsWith(':INSTANCE_SWAP'))
+  && !withComp.misses.some((m) => m.includes('.swapTarget ->')) && noComp.misses.some((m) => m.includes('.swapTarget ->')),
+  '#1206 the two arms DISAGREE on both facts — the swap property and the swap miss each flip with the icon components, so neither arm passes on the other\'s file');
 
 // ---- #1280 PR-C: what the file HOLDS under a missing swap target, in the message ---------------
 // The swap path had #681's defect one node type over, and had it longer: both consumers reported a bare
-// name — `leadingVisual.swapTarget -> FPO-default-icon`, and `... (not found; property not created)` — so
+// name — `leadingVisual.swapTarget -> icon/FPO-default-icon`, and `... (not found; property not created)` — so
 // "the slot is empty" and "the slot is not swappable" were indistinguishable in the report, which is
 // exactly how the owner's button-icon symptom read.
 //
@@ -670,15 +779,17 @@ ok(!noComp.properties.some((p) => p.endsWith(':INSTANCE_SWAP')), `no INSTANCE_SW
 // never `ComponentSetNode`, so a second name-based search on the failure path is what lets the message
 // name what is actually there.
 //
-// THE COMPONENT_SET ROW IS THE ONE THAT MATTERS, and it is the reason this is not a tidier version of the
-// same non-advice: the engine emits `icon` as a SET of 39 members, an INSTANCE_SWAP default is a single
-// node id, so once icons are wired the designer has published EXACTLY what the engine built and still
-// gets a miss. "Not found" is a lie in that state. The set row says what is missing — a nomination of one
-// member — which is the thing no message said.
+// THE COMPONENT_SET ROW IS STILL THE ONE THAT MATTERS, and #1206's wiring is what changed the reason
+// rather than removing it. The reason WAS "the engine emits `icon` as a SET, and an INSTANCE_SWAP default
+// is a single node id, so a designer who published exactly what the engine built still gets a miss" —
+// which #1012 settled by emitting 40 separate `icon/<glyph>` components, and the present arm above proves
+// resolves. What keeps this row live is that a designer's own icon library is very often a set: one
+// COMPONENT_SET named `icon/FPO-default-icon`, or a set they published over the emitted components. In
+// that file the slot is a miss again, "not found" is still a lie, and the set row is still the only
+// message that says what is missing — a nomination of ONE member.
 //
 // REACHABILITY IS ASSERTED FIRST, per docs/34: a table driven by a shim that models one file state four
 // times reports four passes and gates nothing.
-const SWAP = 'FPO-default-icon';
 const withoutSwap = full().comps!.filter((c) => c !== SWAP);
 const swapCases: { label: string; opts: ShimOpts }[] = [
   { label: 'nothing of that name', opts: { ...full(), comps: withoutSwap } },
@@ -1532,11 +1643,11 @@ ok(byId('feild-label') === undefined,
 // EVERY def the picker offers, not just the one being materialized: the UI derives its list by calling
 // `figmaAnatomySet` and keeping what does not throw, so an id it offers that this cannot project would be
 // a disagreement between the two sides that the designer sees as a build that fails.
-const offerable = componentDefs.filter((d) => { try { figmaAnatomySet(d, { swapTarget: 'FPO-default-icon' }); return true; } catch { return false; } });
+const offerable = componentDefs.filter((d) => { try { figmaAnatomySet(d, { swapTarget: SWAP }); return true; } catch { return false; } });
 ok(offerable.length >= 4 && offerable.some((d) => d.id === 'field-label') && offerable.some((d) => d.id === 'button'),
   `#804 every def the UI can offer projects here too (${offerable.map((d) => d.id).join(', ')})`);
 
-const labelPlans = figmaAnatomySet(fieldLabel, { swapTarget: 'FPO-default-icon' });
+const labelPlans = figmaAnatomySet(fieldLabel, { swapTarget: SWAP });
 // SWAP TARGET PASSED AND INERT, which is what lets the main thread pass it unconditionally rather than
 // branching per def. Asserted by comparing the two projections, not by reading the def: a def that gains a
 // swap part later makes this fail, which is the correct outcome — the branch would then be needed.
@@ -1615,7 +1726,7 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
 // which variable both axes point at — and `test.ts` carries the other half, resolving that ref to 16px in
 // all five corpus brands. Neither claim is worth much alone: a binding to the right variable proves
 // nothing if the variable is 20, and a 16px token proves nothing if the node binds a different one.
-const fmPlans = figmaAnatomySet(fieldMessage, { swapTarget: 'FPO-default-icon' });
+const fmPlans = figmaAnatomySet(fieldMessage, { swapTarget: SWAP });
 const fmPage: Page = { children: [] };
 const fmRun = await run(fmPlans, { ...fullFor(fmPlans), page: fmPage });
 ok(fmRun.set === 'field-message' && fmRun.variants === 4 && fmRun.added === 4,
@@ -1905,7 +2016,7 @@ const famOf = (v: string): string | null => {
 };
 type BoxRow = { def: string; member: string; selection: string; state: string; size: string; fill: string | null; stroke: string | null; radii: string[]; weight: string | null; weightPx: unknown };
 const readBoxes = async (def: ComponentDef, boxName: string): Promise<{ rows: BoxRow[]; misses: string[]; members: number }> => {
-  const plans = figmaAnatomySet(def, { swapTarget: 'FPO-default-icon' });
+  const plans = figmaAnatomySet(def, { swapTarget: SWAP });
   const page: Page = { children: [] };
   const r = await run(plans, { ...fullFor(plans), page });
   // The SET'S CHILDREN, not every node on the page: `createComponentFromNode` returns the frame it was
@@ -2201,7 +2312,7 @@ ok(noWeight.every((n) => !((n.boundVariables as Record<string, unknown>) ?? {}).
 // Read off the MEMBER, not through `readBoxes`: `container` IS button's anatomy root, so it arrives as
 // the member frame under its coordinate name and a search for a part called `container` finds nothing —
 // the ring block's trap, and the reachability pin below is what said so rather than 0 rows passing.
-const btnPlans = figmaAnatomySet(byId('button')!, { swapTarget: 'FPO-default-icon' });
+const btnPlans = figmaAnatomySet(byId('button')!, { swapTarget: SWAP });
 const btnPage: Page = { children: [] };
 await run(btnPlans, { ...fullFor(btnPlans), page: btnPage });
 const btnMembers = ((btnPage.children.find((n) => n.type === 'COMPONENT_SET')?.children) as Node[] | undefined) ?? [];
