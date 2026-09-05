@@ -7,6 +7,49 @@
 
 ---
 
+## (2026-09-05) — the PASTE path wires the spinner's swap slot per member, matching #1202's plugin fix (#1203)
+
+**STATUS: shipped. Version-neutral — `ENGINE_VERSION` and `CONTRACT_VERSION` unchanged, no `out/**` move.**
+The paste path emits plugin JS that is not a committed artifact, so `lint-emission-version` and
+`lint-component-surface` both agree no bump is owed (the same posture as #1279's plugin-side fix); a
+`planStamp`-moving change this is not. First cut off `origin/main` (`4e97f9c`, ENGINE 0.50.0), rebased
+onto `4850a00` (ENGINE 0.51.0 after #1283); version-neutral, so it inherits that stamp with no re-stamp.
+
+**The defect (#1202's second executor).** `planSetLayout` builds the part→property wiring as a Map keyed
+on the PART name, deduped on the premise "every member carries the same anatomy" — which stopped being
+true at #848. The pending SPINNER is an overlay that takes whichever visual cell its member has, so
+`figmaAnatomySet` resolves its `propertyRef.prop` per member (`leadingVisual` or `trailingVisual`), and
+keying on `spinner` keeps only the plan walked LAST. #1202 fixed `applyComponentPlan` (the plugin
+executor) to read the property from the member's own plan (`refByMember`); the two PASTE-path consumers,
+`planSetToPluginJs` and `planSetChunks`, still read the deduped entry — so an MCP-driven paste of a Button
+set wired every leading-cell spinner to `trailingVisual`. Effect: swapping a pending button's *leading*
+icon did nothing; swapping the *trailing* one moved both.
+
+**The fix — a DIFF, shipped, not a rule re-derived.** `planSetLayout` now also returns `refOverrides`: the
+members whose per-member ref DIFFERS from the deduped entry, and only those. It is empty for every set
+without an overlay (all of them but Button) and ~4KB on Button, which rides the last chunk like `REFS_ALL`
+(measured: 10.5KB of headroom, and the last-chunk overflow pop is the backstop). The shared
+`PAYLOAD_WIRE_REFS` reads the member's own prop/field where an override exists, else the deduped one — the
+same per-member read #1202 gave the plugin. This was chosen over the issue's two alternatives: the full
+756-entry per-member table the header rejects on size, and re-deriving #848's cell rule inside the payload
+(a third copy of the rule, docs/34 shape 8). The divergence is DATA, so it ships as a diff; the rule stays
+in one place.
+
+**The parity gate now compares the PROPERTY, not just the count.** The #487 parity gate drove both
+executors against one stub and compared axes, `refs`/`wiredMembers` COUNTS, positions and misses — but not
+*which* property each swap slot was wired to, which is exactly what this defect moves (same count, wrong
+property). Worse, its 21-member grid is all `leading=true`, so the spinner never diverges there and the
+deduped path is correct on it. So the gate gained a MIXED grid (pending members taking the leading cell and
+the trailing cell both) driven through both executors, comparing every node's wired property name node for
+node, with a reachability floor asserting the grid genuinely wires the spinner to BOTH properties.
+Mutation-tested: reverting the paste-path per-member read makes the paste path disagree with the plugin and
+the assertion fails BY NAME (plugin `trailingVisual` vs paste `leadingVisual` on a trailing-only member).
+
+**Folded in (owner's #1203 comment):** the plugin executor's miss message named the deduped `r.prop`, so a
+throw while wiring `leadingVisual` misreported `trailingVisual` — the exact scenario this defect is about.
+Now it names the per-member `own?.prop ?? r.prop`. The paste path's own miss message got the same
+treatment, so the two executors' miss text still matches at the parity gate's "identical causes" check.
+
 ## (2026-09-05) — every shipped brand gets a name of its own, and `prism`/`pds3` are RESERVED (#1283)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.50.0 → 0.51.0; `CONTRACT_VERSION` stands at 9.4.0.**
@@ -119,6 +162,7 @@ failure:**
 **Deferred, filed as #1296 rather than left in this entry:** authoring the canonical default
 theme at `pds3` — flipping the fallback, retiring `prism` as a resolved value, and deciding whether the
 ~235 fixtures move with it. Nothing roots at `pds3` today; it is held, not occupied.
+
 ## (2026-09-04) — the paste path's swap misses get the same diagnosis, and the two executors stop disagreeing (#1288)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.49.0 → 0.50.0; `CONTRACT_VERSION` stays 9.4.0.** Branched off

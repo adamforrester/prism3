@@ -10379,6 +10379,55 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `parity: both paths leave the SAME component properties on the set — plugin ${sorted(plugged.properties)} vs paste ${sorted(pasted.properties ?? [])}`);
         ok(plugged.variants === pasted.variants && plugged.refs === pasted.refs && plugged.wiredMembers === pasted.wiredMembers,
           `parity: same member count and the same references spread across the same members — plugin ${plugged.variants}/${plugged.refs}/${plugged.wiredMembers} vs paste ${pasted.variants}/${pasted.refs}/${pasted.wiredMembers}`);
+
+        // #1203 — WHICH PROPERTY each swap slot is wired to, the parity the COUNTS above cannot make.
+        // The 21-member `grid` is all leading=true, so its pending spinner always takes `leadingVisual`
+        // and the by-part-deduped `refs` is correct for it — the #1202 defect never appears. It needs a
+        // MIX: some pending members take the leading cell (spinner -> leadingVisual), others the trailing
+        // (spinner -> trailingVisual), so `planSetLayout`'s by-part dedup collapses those to whichever
+        // plan was walked LAST and the paste path wires the rest to the wrong property (#1203, the
+        // paste-path half of #1202). Both `refs`/`wiredMembers` counts stay identical through that bug —
+        // it is the same slot wired to a different property — so only a per-member, per-property compare
+        // catches it. This drives a mixed grid through BOTH executors and compares every node's wired
+        // property name; reverting the paste-path per-member read makes the two disagree here BY NAME.
+        const spinGrid = (['pending', 'rest'] as const).flatMap((st) =>
+          ([[true, false], [false, true], [true, true]] as const).map(([ld, tr]) =>
+            figmaAnatomyPlan(button, 'medium', { leading: ld, trailing: tr, state: st, intent: 'primary', appearance: 'filled', swapTarget: 'FPO-default-icon' })));
+        const spinOpts = {
+          vars: spinGrid.flatMap((p) => [...planBoundVars(p.root), ...planPaintVars(p.root)]),
+          styles: spinGrid.flatMap((p) => planTextStyles(p.root)),
+          comps: ['FPO-default-icon', 'focus-ring'],
+        };
+        // Every node's wired property, as `member/part.field=<bare property name>`. The ref VALUE is the
+        // property KEY (`leadingVisual#103:7`), so `.split('#')[0]` is the name — comparable across the two
+        // stub instances whose numeric ids differ. Read off the PAGE both paths wrote, not off the plans.
+        const refWiring = (page: StubPage) => {
+          const set = page.children.find((c) => c.type === 'COMPONENT_SET')!;
+          const rows: string[] = [];
+          for (const member of set.children as Record<string, unknown>[]) {
+            const dive = (n: Record<string, unknown>): void => {
+              const r = n.componentPropertyReferences as Record<string, string> | null | undefined;
+              if (r) for (const [field, key] of Object.entries(r)) rows.push(`${String(member.name)}/${String(n.name)}.${field}=${String(key).split('#')[0]}`);
+              for (const c of (n.children as Record<string, unknown>[] | undefined) ?? []) dive(c);
+            };
+            dive(member);
+          }
+          return rows.sort();
+        };
+        const spinPastePage: StubPage = { children: [] };
+        const spinPlugPage: StubPage = { children: [] };
+        await runPayload(planSetToPluginJs(spinGrid), { ...spinOpts, page: spinPastePage });
+        await plugRun(spinGrid, { ...spinOpts, page: spinPlugPage });
+        const plugWiring = refWiring(spinPlugPage);
+        const pasteWiring = refWiring(spinPastePage);
+        // FLOOR: the grid must genuinely wire the spinner to BOTH properties, or the dedup never collapses
+        // and this compares two lists that could not have diverged (docs/34: a check that cannot see the
+        // defect passes over it). One direction of #848's rule, exercised rather than assumed.
+        const spinnerRows = plugWiring.filter((s) => s.indexOf('/spinner.') >= 0);
+        ok(spinnerRows.some((s) => s.endsWith('=leadingVisual')) && spinnerRows.some((s) => s.endsWith('=trailingVisual')),
+          `#1203 reachable: the mixed grid wires the pending spinner to BOTH leadingVisual and trailingVisual, so the by-part dedup genuinely collapses (${spinnerRows.join('; ')})`);
+        ok(JSON.stringify(plugWiring) === JSON.stringify(pasteWiring),
+          `#1203 parity: both executors wire every member's swap slot to the SAME property, spinner included — plugin vs paste disagree on: ${JSON.stringify([...plugWiring.filter((s) => !pasteWiring.includes(s)), ...pasteWiring.filter((s) => !plugWiring.includes(s))].slice(0, 6))}`);
         // THE GEOMETRY, read off the two pages rather than off `size`. `size` is deliberately NOT the
         // comparison: the single-shot payload never calls `resize` (live, `combineAsVariants` sizes the
         // box itself, and the stub models that by reporting 0 until something resizes it) where the
