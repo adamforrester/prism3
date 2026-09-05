@@ -732,10 +732,25 @@ export const figmaAnatomyPlan = (
   // a `surface=inverse` Button nests the `surface=inverse` ring rather than the fixed default. `variant`
   // is the fallback where the host member does not carry the axis (a structure-only plan). Resolved here,
   // where the coordinate is known per member, rather than projected as a constant.
+  //
+  // FROM `paintCoord`, NOT FROM `slots` (#1298). The loop below has always visited every axis in
+  // `follow`; what it read was the caller's ARGUMENT MAP, and two of the axes a nested coordinate needs
+  // are not in it. `size` is a POSITIONAL parameter of this function and is excluded from the grid-axis
+  // spread on purpose (`figmaAnatomySet` filters it out), so `slots.size` never exists; `state` is in
+  // `slots` and did reach here, but the schema refused to let a def name it. So `follow: ['size']` was
+  // accepted by the validator, dropped by the projector, and — this is why it is the blocker rather than
+  // a nuisance — it failed TOWARD a real member: the fixed `variant: { size: 'medium' }` still resolved,
+  // so a `size=small` Row would have nested a MEDIUM Control and built green. `paintCoord` is the map
+  // that already carries the grid axes, `state` and `size`, and is what paint keys and binding keys fill
+  // from (#1248) — so this makes it the one coordinate map for all three, rather than a third rule.
+  //
+  // `axisValue` is deliberately NOT widened to cover this: `size` is a key of `def.variants`, so folding
+  // it in there would put `size` into `coord` and retire the "structure-only plan ⇒ empty coord"
+  // invariant that `lint-paint` depends on (see `coord`'s own note).
   const nestVariantOf = (nesting: { variant: Record<string, string>; follow?: readonly string[] }): Record<string, string> => {
     const out: Record<string, string> = { ...nesting.variant };
     for (const axis of nesting.follow ?? []) {
-      const v = axisValue(axis);
+      const v = paintCoord[axis];
       if (v !== undefined) out[axis] = v;
     }
     return out;

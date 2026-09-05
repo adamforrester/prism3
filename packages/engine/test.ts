@@ -11012,6 +11012,66 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           `#1226 ...where the SAME def's unpatched absolute ring is the same NESTED_INSTANCE but WITH absoluteInset — the flow is the only difference (${JSON.stringify(absRing?.absoluteInset)})`);
       }
 
+      // ---- #1226 PR-B: WHAT A FOLLOWED NEST COORDINATE CAN CARRY (#1298) ----
+      // PR-A's changelog said `nestVariantOf` "already loops all follow axes", and that is true of the
+      // LOOP and false of the mechanism: what the loop read was the caller's argument map, and two of the
+      // three axes a Control→Row nest needs never land in it. `size` is a POSITIONAL parameter of
+      // `figmaAnatomyPlan` (and `figmaAnatomySet` filters it out of the grid spread), so `slots.size` does
+      // not exist; `state` did reach the loop but the schema refused to let a def name it. So the axis a
+      // composed consumer most needs to follow — the rung — validated and was dropped.
+      //
+      // Both directions asserted, because they fail differently: the projector one silently nests the
+      // WRONG member, the schema one refuses a correct def outright.
+      {
+        const findPart = (n: { name?: string; children?: unknown[] }, name: string): any => // eslint-disable-line @typescript-eslint/no-explicit-any
+          n.name === name ? n : (n.children ?? []).map((c) => findPart(c as { name?: string; children?: unknown[] }, name)).find(Boolean);
+        // THE FALLBACK DELIBERATELY DISAGREES with the member asked about — `medium`/`rest` against a
+        // `small`/`hover` member — which is what makes the two assertions below unable to pass on it. Read
+        // back off the patched def rather than restated as a literal (the M18 discipline: a literal here
+        // would assert a fact about my own string).
+        const followAll = patched(button, 'focusRing', {
+          kind: 'nest', inset: undefined, strokeInset: undefined, when: undefined,
+          nesting: { kind: 'nest-fixed', variant: { surface: 'default', size: 'medium', state: 'rest' }, follow: ['surface', 'size', 'state'] },
+        });
+        const fixed = (followAll.anatomy!.parts.focusRing.nesting as { variant: Record<string, string> }).variant;
+        ok(fixed.size === 'medium' && fixed.state === 'rest',
+          `#1298 the fixed fallback names size=medium, state=rest — asserted FIRST, because the two checks below are only meaningful if the fallback disagrees with the member they ask about (got ${JSON.stringify(fixed)})`);
+        const followErrs = validateComponentDef(followAll, nbTree, nbT.root).errors;
+        ok(followErrs.length === 0,
+          `#1298 follow: ['surface','size','state'] validates — all three are axes this def PROJECTS (variantAxes plus its stateAxis)${followErrs.length ? ' — ' + followErrs.join('; ') : ''}`);
+        const nested = findPart(figmaAnatomyPlan(followAll, 'small', { appearance: 'filled', surface: 'default', state: 'hover' }).root, 'focusRing');
+        ok(nested?.nestVariant?.size === 'small',
+          `#1298 a size=small host member nests the size=small child, not the fixed size=medium fallback — the drop this closes (got ${JSON.stringify(nested?.nestVariant)})`);
+        ok(nested?.nestVariant?.state === 'hover',
+          `#1298 ...and the same member follows its own state — the half that always projected correctly and was refused by the schema alone (got ${JSON.stringify(nested?.nestVariant)})`);
+        // WHY THE DROP WAS THE BLOCKER RATHER THAN A NUISANCE, measured rather than asserted in prose: the
+        // fallback coordinate resolves a REAL member of a size-carrying set. So the pre-fix behaviour was
+        // not "the nest fails to build" — it was a small Row building green with a medium Control.
+        const rungs = ['size=small, state=hover', 'size=medium, state=hover'];
+        ok(nestVariantMatch({ size: 'small', state: 'hover' }, rungs) === 'size=small, state=hover'
+          && nestVariantMatch({ size: 'medium', state: 'hover' }, rungs) === 'size=medium, state=hover',
+          '#1298 ...and BOTH coordinates resolve against a size-carrying set — which is why the dropped follow shipped a wrong build rather than a miss');
+      }
+      // The schema half, mutated by name. `state` is `figmaProperties.stateAxis` and deliberately NOT a
+      // `variants` key (1202 refuses that collision), so the old `axis in variants` test rejected the one
+      // axis that had always reached the coordinate.
+      {
+        const stateFollow = patched(button, 'focusRing', { nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['surface', 'state'] } });
+        const errs = validateComponentDef(stateFollow, nbTree, nbT.root).errors;
+        ok(errs.length === 0,
+          `#1298 follow: ['state'] validates — the projector puts \`state\` on the coord and \`planComponentName\` writes it, so refusing it was the schema disagreeing with the emitter${errs.length ? ' — ' + errs.join('; ') : ''}`);
+      }
+      // And the other direction, which the `variants` test was too permissive for. `width` is REAL on this
+      // def — declared in `variants`, deliberately absent from `variantAxes` (#1223: "a drag, not
+      // projected") — so it passed the old rule and reached nothing, the same silent drop as `size` with no
+      // fixed fallback to make it visible.
+      ibBroke('follow on an axis the def DECLARES but does not PROJECT fails (#1298)', /declares nesting 'follow' on 'width', which is not an axis this def PROJECTS/,
+        patched(button, 'focusRing', { nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['width'] } }));
+      // The original coverage, kept: an axis the def does not declare at all still fails. Same message now,
+      // so this line also proves the widening did not turn the rule into a pass for everything.
+      ibBroke('follow on an axis the def does not declare at all still fails', /declares nesting 'follow' on 'tone', which is not an axis this def PROJECTS/,
+        patched(button, 'focusRing', { nesting: { kind: 'nest-fixed', variant: { surface: 'default' }, follow: ['tone'] } }));
+
       // The SQUARE rules. `size` and `height` both drive the height axis, so a part binding both states
       // its height twice and the projection keeps whichever branch ran last — silently, and only on one
       // axis, which is the shape that reads as correct at one size and wrong at another.
