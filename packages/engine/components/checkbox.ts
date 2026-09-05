@@ -274,6 +274,12 @@ export const checkbox: ComponentDef = {
     // (The button weight is confirmed from Prism 2 by the owner; `reference/Prism2/component-specs/`
     // holds no button spec, so nothing here can check it against the corpus the way this 2 is checked.)
     //
+    // SINCE #1278 THE BUTTON HALF IS A TOKEN TOO — `border-width.hairline` — so the contrast is now two
+    // named rungs rather than one rung and one executor fallback. That matters to this comment rather
+    // than merely updating it: while the button was unbound, the sweep this paragraph guards against
+    // could only be caught in ONE direction (controls staying at 2), and a change that put every border
+    // on 1px would have moved this def alone and read as correct. Both directions fail by name now.
+    //
     // Prism 2's `strokeWidth: null` on the SELECTED variant needs no per-variant mechanism: `checked`
     // and `indeterminate` bind no border slot at all (#1011's third finding), so the coordinate has no
     // stroke to thin. And `strokeAlign: INSIDE` is settled by construction — both executors hardcode

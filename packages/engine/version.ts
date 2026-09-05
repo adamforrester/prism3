@@ -138,6 +138,48 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.54.0: BOTH button defs' borders are BOUND to `border-width.hairline` (#1278). The width does not
+ * move — Prism 2 draws its outline buttons at 1px and that is owner-confirmed — so this binds the token
+ * that already resolves to 1 rather than choosing a figure. What moves is PROVENANCE. The 1 was the two
+ * executors' literal (`if (!node.strokeWeight) … = 1`): the right number with nothing behind it, so a
+ * brand re-runging its border floor moved every other bordered part while the button stayed on Figma's
+ * fallback, and no gate could have said so.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision. `border-width.hairline` already exists in all four corpus
+ * brands (aliased to `<root>.core.dimension.1`) — no token is added, no name moves, so `token-contract
+ * --check` reports unchanged and `CONTRACT_VERSION` stands at 9.4.0. What DOES move is the projected
+ * component surface: all three button intents keep their 432 members and every one of them now carries a
+ * bound `strokeWeight`, which a designer sees in Figma. `lint-emission-version` cannot see it — component
+ * payloads are not committed under `out/`, and this release's `out/` diff is EMPTY — which is exactly the
+ * gap `lint-component-surface` was added to cover.
+ *
+ * THE SCOPE CLAIM IS NOW TWO TOKENS RATHER THAN ONE TOKEN AND ONE FALLBACK, and that is a real gain over
+ * #1228 rather than tidiness. #1228 bound the three measured selection controls to `border-width.thick`
+ * and left an arm asserting the buttons bound NOTHING — which could only catch a sweep in one direction.
+ * A change putting every border on 1px would have moved the controls alone and read as correct. Both
+ * directions fail by name now, and the two rungs staying different (2px is a control weight, 1px is a
+ * button's) is the assertion rather than a coincidence.
+ *
+ * FOUR PARTS, NOT THREE, AND THE FOURTH IS WHY `inherits` IS WORTH DISTRUSTING. `icon-button` carries the
+ * same `border` slot on its own `container` and is a SEPARATE def with a 162-member set; its
+ * `inherits: 'button'` records the API delta and nothing in the projector resolves through it, which that
+ * file's own `paintKeys` note already said. So binding the `makeButton` factory covered three intents and
+ * reached it not at all — and no gate could have said so: `lint-unclaimed-defaults` reads the executors'
+ * literal `strokeWeight = 1` as a CLAIMED default, correctly, which is precisely what makes it the wrong
+ * instrument for this question. The def binds the rung explicitly now and the #1278 arms span all 594
+ * members of both sets.
+ *
+ * `icon-button`'s CHUNK PIN moved 6 -> 7 and is re-pinned rather than worked around, on the instruction
+ * that pin carries. #681's 5 -> 6 was shell growth; this is per-MEMBER growth — one more binding on every
+ * one of 162 members — so 27/28/27/28/27/25 members per chunk became 26 x 6 + 6. No chunk breached the
+ * budget at any point (peak 41,987 -> 41,861 against 42,000), which is the byte budget doing the job a
+ * variant count could not.
+ *
+ * ONE FIXTURE HAD TO STOP MEASURING A LITERAL. `test.ts`'s stub derived a node's border-box footprint from
+ * `node.strokeWeight`, so the moment the weight became BOUND the term went to `2 x 0` and #503's footprint
+ * drift stopped being reported at all — the arm reading `[]`, which looks like "no drift" and was really
+ * "cannot see the stroke". The stub now reads bound-or-literal, as Figma does, and the four border-width
+ * rungs are pinned to their real pixels so the arm's hand-written `2` stays falsifiable.
  * 0.53.0: a nest part's `height` reaches the node instead of being dropped in silence (#1299, #1226 PR-B).
  * `node()`'s non-box branch read `p.size` and nothing else, so a `height` the schema ACCEPTED projected no
  * binding at all — a third posture beside the two that were already coherent: `layout`, `padding`, `gap`,
@@ -1339,7 +1381,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.53.0';
+export const ENGINE_VERSION = '0.54.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
