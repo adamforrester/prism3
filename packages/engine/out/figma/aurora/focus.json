@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "prism/focus/ring/width",
+      "name": "ads/focus/ring/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -12,11 +12,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/2"
+        "name": "ads/core/dimension/2"
       }
     },
     {
-      "name": "prism/focus/ring/offset",
+      "name": "ads/focus/ring/offset",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -25,11 +25,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/2"
+        "name": "ads/core/dimension/2"
       }
     },
     {
-      "name": "prism/focus/ring/offset-field",
+      "name": "ads/focus/ring/offset-field",
       "resolvedType": "FLOAT",
       "scopes": [
         "STROKE_FLOAT"
@@ -38,7 +38,7 @@
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/0"
+        "name": "ads/core/dimension/0"
       }
     }
   ]

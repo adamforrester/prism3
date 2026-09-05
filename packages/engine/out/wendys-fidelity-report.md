@@ -11,7 +11,7 @@
 - **Aliases**: 1319/1319 resolve · **mode contrast contracts**: 788/788 hold.
 - **`primary` on white**: the engine measures **5.88:1** (clears small-text AA). The engine measures every contract, so if the brief's prose states a different figure, the *measured* value governs — a stale contrast claim in the source can't propagate.
 - Palettes generated: primary, neutral, secondary, tertiary, success, warning, info, danger · danger draws from `danger`.
-- x-prism3 levers: none (plain spec → engine defaults).
+- x-prism3 levers: root=wds.
 
 ## 1. Color fidelity (ΔE00 — observed swatch vs nearest generated step)
 
@@ -186,6 +186,7 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 
 ### Engine decisions (from theme notes)
 
+- namespace: tokens emit under 'wds.*' (custom, not the 'prism' default)
 - primary anchor (h22.32) pinned exactly at step 500
 - brand color 'secondary' (h233.18) added
 - brand color 'tertiary' (h18.01) added
@@ -209,5 +210,5 @@ Observed elevation is single-layer CSS `box-shadow` strings; the engine generate
 - **Color-role classifier** reads `primary/secondary/tertiary/neutral-<step>/success/warning/error/info` by convention; `error`→`danger` is the one rename the engine applies (its status role is `danger`).
 - **Scale/state variants** (`*-dark`, `*-50`, …) are observed ramp points; the engine regenerates the full ramp and reports divergence rather than consuming them.
 - Observed `info` duplicates `secondary` (both `#0077A3`); the engine synthesizes `info` independently, so the dup doesn't propagate.
-- **`x-prism3`** carries engine-only levers (radiusScale, typeScale, density, motionTempo, actionPalette, iconContrast, surfaces, gradients). None here → engine defaults (the plain-spec guarantee).
+- **`x-prism3`** carries engine-only levers (radiusScale, typeScale, density, motionTempo, actionPalette, iconContrast, surfaces, gradients). Applied here: root=wds.
 

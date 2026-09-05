@@ -7,6 +7,12 @@
 # display face, softer shadows, and both gradient kinds.
 id: aurora
 
+# ROOT NAMESPACE (#1283) — every token this brand emits sits under `ads.*`.
+# `ads` is "Aurora Design System", the same <brand>ds convention New Balance already uses (`nbds`).
+# Declared rather than defaulted: `prism` and `pds3` are RESERVED for a future canonical
+# default theme, so a named brand states its own root instead of borrowing the default.
+root: ads
+
 # Hero brand: an indigo/violet anchor (deliberately NOT red).
 primary: { l: 0.5, c: 0.18, h: 285 }
 neutral: { hue: 285, chroma: 0.008 }

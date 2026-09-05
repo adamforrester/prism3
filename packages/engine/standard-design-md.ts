@@ -172,6 +172,13 @@ export const applyXPrism3 = (input: BrandInput, x: Record<string, unknown>): str
     (input as { personality?: unknown }).personality = x.personality;
     applied.push(`personality=[${Array.isArray(x.personality) ? x.personality.join(', ') : String(x.personality)}]`);
   }
+  // ROOT NAMESPACE (#1283). The base spec has no `root` field — it describes a brand, not where the
+  // brand's tokens are namespaced — so this dialect's only honest home for it is the Prism3 extension
+  // block, alongside `density` and `actionPalette`. Its ABSENCE is what let wendys reach `prism`
+  // through the engine fallback while every engine-native brand could name its own root: a standard
+  // -dialect brief had no way to say one at all. `prism`/`pds3` are reserved for a future canonical
+  // default theme, so a shipped brand has to be able to say.
+  if (x.root != null) { input.root = String(x.root); applied.push(`root=${x.root}`); }
   if (x.typeScale != null) { input.typography = { ...input.typography, typeScale: x.typeScale as any }; applied.push(`typeScale=${x.typeScale}`); }
   if (x.density != null) { input.density = x.density as any; applied.push(`density=${x.density}`); }
   if (x.motionTempo != null) { input.motionPersonality = { tempo: x.motionTempo as any }; applied.push(`motionTempo=${x.motionTempo}`); }

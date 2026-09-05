@@ -47,8 +47,21 @@ const hexOf = (tree: Node, node: Node): string => {
 const aliasTarget = (node: Node): string => (typeof node.$value === 'string' && /^\{.+\}$/.test(node.$value) ? node.$value.slice(1, -1) : '');
 
 type Brand = { id: string; root: string; tree: Node; data: Node };
-const load = (id: string, root: string): Brand => {
+/**
+ * THE ROOT IS READ FROM THE TREE, not passed in (#1283). It used to be a caller argument, and the
+ * call site below spelled `load('aurora', 'prism')` — a literal naming a namespace the brand owns,
+ * which went stale the moment aurora moved to `ads` and failed with `Cannot read properties of
+ * undefined (reading 'core')` rather than saying what was wrong. A brand's root is a fact about its
+ * emitted tree, so it is taken from there: the single non-`$` top-level key.
+ *
+ * The uniqueness check is the point rather than defensive noise — if a tree ever grows a second
+ * top-level key this must fail loudly instead of silently picking whichever comes first.
+ */
+const load = (id: string): Brand => {
   const tree = JSON.parse(readFileSync(resolve(outDir, `${id}.tokens.json`), 'utf8'));
+  const roots = Object.keys(tree).filter((k) => !k.startsWith('$'));
+  if (roots.length !== 1) throw new Error(`${id}.tokens.json has ${roots.length} root namespaces [${roots.join(', ')}] — expected exactly one`);
+  const root = roots[0];
   return { id, root, tree, data: tree[root] };
 };
 
@@ -59,7 +72,7 @@ const textOn = (hex: string) => {
 };
 
 // ---------------------------------------------------------------------------
-const brands = [load('nb', 'nbds'), load('aurora', 'prism'), load('harbor', 'prism')];
+const brands = [load('nb'), load('aurora'), load('harbor')];
 const txt: string[] = [];
 const html: string[] = [];
 

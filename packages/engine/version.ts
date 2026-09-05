@@ -138,6 +138,33 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.51.0: every SHIPPED brand roots at a namespace of its own, and `prism`/`pds3` are RESERVED (#1283).
+ * aurora `prism` -> `ads`, harbor `prism` -> `hds`, wendys `prism` -> `wds`, joining New Balance's
+ * long-standing `nbds` under the same `<brand>ds` convention. Three of the four had been sitting on the
+ * engine default without choosing it, which made a read path spelling `prism/` correct in three brands
+ * out of four — the #1097 defect class one layer up, with `nbds` the only thing keeping any arm honest.
+ * Wendys could not have declared a root at all: the STANDARD dialect had no field for one, so
+ * `x-prism3.root` is added beside `density` and `actionPalette`, and the brief declares `wds` there.
+ *
+ * A MINOR, and the largest observable change in this file's history by row count: every emitted token
+ * name in three brands changes its first segment — 1210 Figma variables renamed across aurora and
+ * wendys, recorded as `brand-roots-1283` in `MATERIALIZATION_RENAMES` (the register for renames the
+ * contract cannot see). It also forced #1097's rule to stop asking "does this start with the LIVE root",
+ * which was a correct way to ask "is this namespaced yet" only while no brand ever CHANGED root.
+ *
+ * `CONTRACT_VERSION` STANDS AT 9.4.0, and that is the property rather than an omission: the guaranteed
+ * surface is keyed BELOW the configurable root, so `prism.color.text.primary` and
+ * `ads.color.text.primary` are the same guaranteed path. `token-contract.ts --check` reports unchanged
+ * with all three roots moved and confirms it rather than this comment asserting it — the only line
+ * moving in the committed baseline is this constant's own stamp. Had the surface moved, that would have
+ * been a finding about where the contract is keyed, not something to `--accept` past.
+ *
+ * The reservation is a naming policy over the SHIPPED CATALOG and is deliberately NOT enforced in
+ * `brandTheme`: `input.root ?? 'prism'` is untouched, an arbitrary `BrandInput` may still declare either
+ * reserved name, and the check is a gate over every committed `out/<id>.tokens.json` read for the root
+ * it actually EMITTED — the only reading that could have caught wendys, which declared nothing. The
+ * canonical default theme those namespaces are held for is NOT authored here (#1296).
+ *
  * 0.50.0: the PASTE PATH gets the same swap diagnosis, and the two executors stop disagreeing (#1288).
  * `swapMissAdvice`, its `SwapFound` union and the two consequence clauses move out of
  * `apps/plugin/src/write-components.ts` into `anatomy-figma.ts`, beside `nestMissAdvice` and for the same
@@ -1261,7 +1288,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.50.0';
+export const ENGINE_VERSION = '0.51.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

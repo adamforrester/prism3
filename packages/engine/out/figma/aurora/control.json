@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "prism/control/size/sm/height",
+      "name": "ads/control/size/sm/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -12,11 +12,11 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/12"
+        "name": "ads/core/dimension/12"
       }
     },
     {
-      "name": "prism/control/size/sm/width",
+      "name": "ads/control/size/sm/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -25,11 +25,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/24"
+        "name": "ads/core/dimension/24"
       }
     },
     {
-      "name": "prism/control/size/sm/dot",
+      "name": "ads/control/size/sm/dot",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -38,11 +38,11 @@
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/6"
+        "name": "ads/core/dimension/6"
       }
     },
     {
-      "name": "prism/control/size/sm/line-box",
+      "name": "ads/control/size/sm/line-box",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -52,7 +52,7 @@
       "alias": null
     },
     {
-      "name": "prism/control/size/sm/inset",
+      "name": "ads/control/size/sm/inset",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -61,11 +61,11 @@
       "value": 3,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/3"
+        "name": "ads/core/dimension/3"
       }
     },
     {
-      "name": "prism/control/size/sm/radius",
+      "name": "ads/control/size/sm/radius",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -74,11 +74,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/2"
+        "name": "ads/core/dimension/2"
       }
     },
     {
-      "name": "prism/control/size/md/height",
+      "name": "ads/control/size/md/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -87,11 +87,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/16"
+        "name": "ads/core/dimension/16"
       }
     },
     {
-      "name": "prism/control/size/md/width",
+      "name": "ads/control/size/md/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -100,11 +100,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/32"
+        "name": "ads/core/dimension/32"
       }
     },
     {
-      "name": "prism/control/size/md/dot",
+      "name": "ads/control/size/md/dot",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -113,11 +113,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/8"
+        "name": "ads/core/dimension/8"
       }
     },
     {
-      "name": "prism/control/size/md/line-box",
+      "name": "ads/control/size/md/line-box",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -127,7 +127,7 @@
       "alias": null
     },
     {
-      "name": "prism/control/size/md/inset",
+      "name": "ads/control/size/md/inset",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -136,11 +136,11 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/4"
+        "name": "ads/core/dimension/4"
       }
     },
     {
-      "name": "prism/control/size/md/radius",
+      "name": "ads/control/size/md/radius",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -149,11 +149,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/2"
+        "name": "ads/core/dimension/2"
       }
     },
     {
-      "name": "prism/control/size/lg/height",
+      "name": "ads/control/size/lg/height",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -162,11 +162,11 @@
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/20"
+        "name": "ads/core/dimension/20"
       }
     },
     {
-      "name": "prism/control/size/lg/width",
+      "name": "ads/control/size/lg/width",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -175,11 +175,11 @@
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/40"
+        "name": "ads/core/dimension/40"
       }
     },
     {
-      "name": "prism/control/size/lg/dot",
+      "name": "ads/control/size/lg/dot",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -188,11 +188,11 @@
       "value": 10,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/10"
+        "name": "ads/core/dimension/10"
       }
     },
     {
-      "name": "prism/control/size/lg/line-box",
+      "name": "ads/control/size/lg/line-box",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -202,7 +202,7 @@
       "alias": null
     },
     {
-      "name": "prism/control/size/lg/inset",
+      "name": "ads/control/size/lg/inset",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -211,11 +211,11 @@
       "value": 5,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/5"
+        "name": "ads/core/dimension/5"
       }
     },
     {
-      "name": "prism/control/size/lg/radius",
+      "name": "ads/control/size/lg/radius",
       "resolvedType": "FLOAT",
       "scopes": [
         "CORNER_RADIUS"
@@ -224,7 +224,7 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/2"
+        "name": "ads/core/dimension/2"
       }
     }
   ]

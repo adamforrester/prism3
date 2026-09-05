@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "prism/opacity/0",
+      "name": "ads/opacity/0",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -13,7 +13,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/5",
+      "name": "ads/opacity/5",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -23,7 +23,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/10",
+      "name": "ads/opacity/10",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -33,7 +33,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/20",
+      "name": "ads/opacity/20",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -43,7 +43,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/30",
+      "name": "ads/opacity/30",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -53,7 +53,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/40",
+      "name": "ads/opacity/40",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -63,7 +63,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/50",
+      "name": "ads/opacity/50",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -73,7 +73,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/60",
+      "name": "ads/opacity/60",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -83,7 +83,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/70",
+      "name": "ads/opacity/70",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -93,7 +93,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/80",
+      "name": "ads/opacity/80",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -103,7 +103,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/90",
+      "name": "ads/opacity/90",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"
@@ -113,7 +113,7 @@
       "alias": null
     },
     {
-      "name": "prism/opacity/100",
+      "name": "ads/opacity/100",
       "resolvedType": "FLOAT",
       "scopes": [
         "OPACITY"

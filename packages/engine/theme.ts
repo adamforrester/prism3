@@ -31,6 +31,34 @@ export const ALL_MODES: ModeName[] = ['light', 'dark', 'hc-light', 'hc-dark'];
 // generated greyscale mode (every non-neutral role → its equivalent neutral; radius → 0).
 export const VALID_MODES: ModeName[] = [...ALL_MODES, 'wireframe'];
 
+/**
+ * Root namespaces no REGISTERED BRAND may root at (#1283) — held for a future CANONICAL DEFAULT THEME.
+ *
+ * `prism` is the engine's fallback root and, by that fact, the namespace the default theme will occupy;
+ * `pds3` is reserved alongside it as the name that theme is expected to ship under. A brand the engine
+ * SHIPS takes a root of its own under the `<brand>ds` convention New Balance has always used: `nbds`,
+ * and as of #1283 `ads` (Aurora), `hds` (Harbor) and `wds` (Wendy's).
+ *
+ * ── THE SCOPE IS THE SHIPPED BRAND CATALOG, AND `brandTheme` IS DELIBERATELY NOT WHERE IT LIVES ────
+ *
+ * This list is a NAMING POLICY over the brands this repo publishes, not an input validation. Three
+ * things follow, and each is a thing an earlier cut of #1283 got wrong by enforcing it here:
+ *
+ *   · **`input.root ?? 'prism'` is untouched.** `prism` is still what an undeclared root resolves to,
+ *     and the sparsest brief in the corpus depends on that. Reserving a namespace is not retiring it.
+ *   · **An arbitrary `BrandInput` may still declare `prism`.** A caller building a theme in a test, a
+ *     host, or a client's own repo is not publishing an example brand, and a throw in `brandTheme`
+ *     would have refused ~235 harness fixtures for a policy that has nothing to say about them.
+ *   · **The catalog, not the input, is the subject.** So the check is a GATE that reads the committed
+ *     emission — every `out/<id>.tokens.json` the engine actually writes — rather than a guard on a
+ *     function every caller reaches. `test.ts`'s `#1283` block is where it lives, and it asserts both
+ *     directions: a registered brand at a reserved root FAILS, and a fixture at one does not.
+ *
+ * The default theme itself is deliberately NOT authored here; this only stops the namespace being
+ * taken before it exists. Policy and rationale: `docs/30`.
+ */
+export const RESERVED_ROOTS = ['prism', 'pds3'] as const;
+
 // The NB *measurement* fixture (reverse-engineered NB anchors) — the regression
 // input for nbThemeFrom(). A DIFFERENT shape from the white-label BrandInput
 // contract (schema/theme-schema.json + .example.json); it carries measured OKLCH
@@ -1723,6 +1751,18 @@ export const brandTheme = (brandInput: BrandInputAuthored): Theme => {
   if (!/^[a-z][a-z0-9-]*$/.test(root)) {
     throw new Error(`root namespace '${root}' must be a single lowercase segment (letters/digits/hyphen, no dots or spaces)`);
   }
+  // RESERVED ROOTS (#1283) ARE NOT CHECKED HERE, AND THE OMISSION IS THE DESIGN — DO NOT ADD IT BACK.
+  //
+  // `prism` and `pds3` are held for a future canonical default theme, and no brand this repo SHIPS may
+  // root at either. That is a naming policy over the published catalog, and the first cut of #1283
+  // enforced it right here, on `input.root`. Wrong scope, three ways: it refused the ~235 harness
+  // fixtures that spell `root: 'prism'` for clarity, it made a policy about four example brands into a
+  // validation every host and client caller passes through, and it could not have covered the brand
+  // that actually needed covering — wendys declared no root at all and reached `prism` through the
+  // fallback one line above, which no check on `input.root` can see.
+  //
+  // The check lives in `test.ts`'s #1283 block instead and keys off the SHIPPED BRAND CATALOG: every
+  // committed `out/<id>.tokens.json`, read for the root it actually emitted. See `RESERVED_ROOTS`.
   // Appearance modes — light is the required base; dark/HC are opt-in. Validate here too
   // (in-memory BrandInput skips schema validation).
   const modes = input.modes ?? ALL_MODES;

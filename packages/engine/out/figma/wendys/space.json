@@ -3,7 +3,7 @@
   "$mode": "Default",
   "variables": [
     {
-      "name": "prism/space/0",
+      "name": "wds/space/0",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -12,11 +12,11 @@
       "value": 0,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/0"
+        "name": "wds/core/dimension/0"
       }
     },
     {
-      "name": "prism/space/100",
+      "name": "wds/space/100",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -25,11 +25,11 @@
       "value": 8,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/8"
+        "name": "wds/core/dimension/8"
       }
     },
     {
-      "name": "prism/space/150",
+      "name": "wds/space/150",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -38,11 +38,11 @@
       "value": 12,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/12"
+        "name": "wds/core/dimension/12"
       }
     },
     {
-      "name": "prism/space/200",
+      "name": "wds/space/200",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -51,11 +51,11 @@
       "value": 16,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/16"
+        "name": "wds/core/dimension/16"
       }
     },
     {
-      "name": "prism/space/250",
+      "name": "wds/space/250",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -64,11 +64,11 @@
       "value": 20,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/20"
+        "name": "wds/core/dimension/20"
       }
     },
     {
-      "name": "prism/space/300",
+      "name": "wds/space/300",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -77,11 +77,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/24"
+        "name": "wds/core/dimension/24"
       }
     },
     {
-      "name": "prism/space/400",
+      "name": "wds/space/400",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -90,11 +90,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/32"
+        "name": "wds/core/dimension/32"
       }
     },
     {
-      "name": "prism/space/500",
+      "name": "wds/space/500",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -103,11 +103,11 @@
       "value": 40,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/40"
+        "name": "wds/core/dimension/40"
       }
     },
     {
-      "name": "prism/space/600",
+      "name": "wds/space/600",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -116,11 +116,11 @@
       "value": 48,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/48"
+        "name": "wds/core/dimension/48"
       }
     },
     {
-      "name": "prism/space/700",
+      "name": "wds/space/700",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -129,11 +129,11 @@
       "value": 56,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/56"
+        "name": "wds/core/dimension/56"
       }
     },
     {
-      "name": "prism/space/800",
+      "name": "wds/space/800",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -142,11 +142,11 @@
       "value": 64,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/64"
+        "name": "wds/core/dimension/64"
       }
     },
     {
-      "name": "prism/space/900",
+      "name": "wds/space/900",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -155,11 +155,11 @@
       "value": 72,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/72"
+        "name": "wds/core/dimension/72"
       }
     },
     {
-      "name": "prism/space/1000",
+      "name": "wds/space/1000",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -168,11 +168,11 @@
       "value": 80,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/80"
+        "name": "wds/core/dimension/80"
       }
     },
     {
-      "name": "prism/space/1100",
+      "name": "wds/space/1100",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -181,11 +181,11 @@
       "value": 88,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/88"
+        "name": "wds/core/dimension/88"
       }
     },
     {
-      "name": "prism/space/1200",
+      "name": "wds/space/1200",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -194,11 +194,11 @@
       "value": 96,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/96"
+        "name": "wds/core/dimension/96"
       }
     },
     {
-      "name": "prism/space/025",
+      "name": "wds/space/025",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -207,11 +207,11 @@
       "value": 2,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/2"
+        "name": "wds/core/dimension/2"
       }
     },
     {
-      "name": "prism/space/050",
+      "name": "wds/space/050",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -220,11 +220,11 @@
       "value": 4,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/4"
+        "name": "wds/core/dimension/4"
       }
     },
     {
-      "name": "prism/space/075",
+      "name": "wds/space/075",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -233,7 +233,7 @@
       "value": 6,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/core/dimension/6"
+        "name": "wds/core/dimension/6"
       }
     }
   ]

@@ -3,7 +3,7 @@
   "$mode": "xl",
   "variables": [
     {
-      "name": "prism/breakpoint/sm",
+      "name": "wds/breakpoint/sm",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -13,7 +13,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/md",
+      "name": "wds/breakpoint/md",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -23,7 +23,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/lg",
+      "name": "wds/breakpoint/lg",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -33,7 +33,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/xl",
+      "name": "wds/breakpoint/xl",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -43,7 +43,7 @@
       "alias": null
     },
     {
-      "name": "prism/breakpoint/2xl",
+      "name": "wds/breakpoint/2xl",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -53,7 +53,7 @@
       "alias": null
     },
     {
-      "name": "prism/grid/columns",
+      "name": "wds/grid/columns",
       "resolvedType": "FLOAT",
       "scopes": [
         "ALL_SCOPES"
@@ -63,7 +63,7 @@
       "alias": null
     },
     {
-      "name": "prism/grid/gutter",
+      "name": "wds/grid/gutter",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -72,11 +72,11 @@
       "value": 24,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/space/300"
+        "name": "wds/space/300"
       }
     },
     {
-      "name": "prism/grid/margin",
+      "name": "wds/grid/margin",
       "resolvedType": "FLOAT",
       "scopes": [
         "GAP"
@@ -85,11 +85,11 @@
       "value": 32,
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "prism/space/400"
+        "name": "wds/space/400"
       }
     },
     {
-      "name": "prism/container/max",
+      "name": "wds/container/max",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"
@@ -99,7 +99,7 @@
       "alias": null
     },
     {
-      "name": "prism/container/narrow",
+      "name": "wds/container/narrow",
       "resolvedType": "FLOAT",
       "scopes": [
         "WIDTH_HEIGHT"

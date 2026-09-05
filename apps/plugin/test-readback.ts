@@ -226,7 +226,7 @@ ok(!bverdict.checks.gradientStopsBound && bverdict.details.unboundStops.length =
 //      leak arm ("no `prism/` in the foreign run") catches it. The two halves of (2) are therefore not
 //      redundant: one compares the runs, the other compares the foreign run against a root it must never
 //      contain. Delete either and a real regression ships.
-const NATIVE_ROOT = 'prism';      // aurora's own — the engine default
+const NATIVE_ROOT = 'ads';        // aurora's own (#1283 — was 'prism', the engine default, until aurora took a name)
 const FOREIGN_ROOT = 'zzclient';  // no corpus brand uses it; a read path that spells a root fails here
 const auroraInput = exampleBrands['aurora'] as unknown as BrandInput;
 
