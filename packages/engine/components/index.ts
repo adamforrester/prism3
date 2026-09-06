@@ -45,7 +45,7 @@
  */
 import type { ComponentDef } from '../component-schema';
 import { button, buttonDestructive, buttonNeutral } from './button';
-import { iconButton } from './icon-button';
+import { iconButton, iconButtonDestructive, iconButtonNeutral } from './icon-button';
 import { icon } from './icon';
 import { focusRing } from './focus-ring';
 import { fieldLabel } from './field-label';
@@ -63,7 +63,7 @@ import { switchDef } from './switch';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -81,6 +81,12 @@ export const componentDefs: readonly ComponentDef[] = [
   buttonDestructive,
   buttonNeutral,
   iconButton,
+  // #1225 — the two sibling icon-button components, split from `icon-button`'s former `intent` axis (the
+  // icon-only counterpart of #1223/#1224's Button split). Same factory, same square anatomy; only the
+  // `interactive.<family>` color binding differs. They sit beside `icon-button`, which they share their
+  // composition with (nest `focus-ring`, require `icon`).
+  iconButtonDestructive,
+  iconButtonNeutral,
   fieldLabel,
   fieldMessage,
   textField,

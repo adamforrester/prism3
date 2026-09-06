@@ -166,14 +166,16 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'appearance',
     values: ['filled', 'outline', 'text'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral'],
     relation: 'sole',
     reason:
       'The emphasis ladder, descending: filled carries the page\'s primary action, outline the secondary, '
-      + 'text the tertiary. One entry covers four defs by two mechanisms: `icon-button` INHERITS button\'s '
-      + 'set, and the two #1223 siblings (`button-destructive`, `button-neutral`) come off button\'s own '
-      + 'factory — same axis, only the colour family differs. A second entry for any of them would let the '
-      + 'shared set drift while all still passed; the shared set IS the relationship.',
+      + 'text the tertiary. One entry covers six defs, all off two factories: the three #1223 button siblings '
+      + '(`button`, `button-destructive`, `button-neutral`) come off `makeButton`, and the three #1225 '
+      + 'icon-button siblings (`icon-button`, `icon-button-destructive`, `icon-button-neutral`) come off '
+      + '`makeIconButton` — same axis, only the colour FAMILY differs, which is the component identity now, '
+      + 'not a coordinate. A second entry for any of them would let the shared set drift while all still '
+      + 'passed; the shared set IS the relationship.',
   },
   {
     axis: 'tone',
@@ -198,19 +200,14 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'than left implicit — the def\'s own notes record that this is exactly what stops the axis being '
       + 'projected to Figma, since a member with the marker still drawn would be a coordinate that lies.',
   },
-  {
-    axis: 'intent',
-    values: ['primary', 'neutral', 'destructive'],
-    defs: ['icon-button'],
-    relation: 'sole',
-    reason:
-      'What the action MEANS, held apart from how loud it looks (`appearance`) — the two cross, so a '
-      + 'destructive action can be quiet. `destructive` rather than `danger` because this axis names the '
-      + 'action, not the ink; the ink it resolves to is the danger family. #1223 made Button\'s intents '
-      + 'three COMPONENTS (Button/Destructive Button/Neutral Button) rather than an axis, so `button` no '
-      + 'longer declares this — `icon-button` still carries it as an axis, and whether it should split the '
-      + 'same way is the open sibling question this entry now stands alone as a reminder of.',
-  },
+  // `intent` IS GONE FROM THE REGISTER (#1225), and its absence is the point rather than an omission.
+  // #1223 made Button's intents three COMPONENTS and left `icon-button` carrying `intent` as an axis of
+  // its own, with the entry here scoped to `['icon-button']` alone and its reason naming the open sibling
+  // question: whether icon-button should split the same way. #1225 answers it — it does — so NO def
+  // declares `intent` as a variant axis any more, and a register entry no def uses is exactly what ARM B
+  // fails as stale. The concept survives as component identity (the `interactive.<family>` binding), which
+  // is not a variant axis and so is not this register's subject. Left as a `sole` entry it would go red on
+  // this very PR; removed, the register is true again.
   {
     axis: 'name',
     values: [
@@ -280,11 +277,11 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'size',
     values: ['small', 'medium', 'large'],
-    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'text-field', 'textarea', 'checkbox-control', 'checkbox', 'radio', 'field-label'],
+    defs: ['button', 'button-destructive', 'button-neutral', 'icon-button', 'icon-button-destructive', 'icon-button-neutral', 'text-field', 'textarea', 'checkbox-control', 'checkbox', 'radio', 'field-label'],
     relation: 'canonical',
     reason:
-      'The three-rung ladder, and canonical on weight of use — eight of the defs with a size axis, the '
-      + 'two #1223 button siblings among them by way of the shared factory. '
+      'The three-rung ladder, and canonical on weight of use — ten of the defs with a size axis, the '
+      + 'button and icon-button siblings among them by way of their shared factories (#1223, #1225). '
       + 'Rungs are named rather than numbered so a brand can re-derive the dimensions behind them without '
       + 'the names going stale.',
   },
@@ -421,11 +418,12 @@ const MIN_REASON = 80;
  *
  * (The category error is worth naming so it is not reintroduced: `11 tracked def files` and `11
  * defs` were not the same claim. `button.ts` exports THREE defs through `makeButton` — button,
- * button-destructive, button-neutral — so the file count has never equalled the def count since
- * #1223. `FLOOR_DEFS` counts DEFS, which is what every arm below iterates.)
+ * button-destructive, button-neutral — and `icon-button.ts` now exports THREE through `makeIconButton`
+ * (#1225), so the file count has never equalled the def count since #1223. `FLOOR_DEFS` counts DEFS,
+ * which is what every arm below iterates.)
  */
-const FLOOR_DEFS = 12;
-const FLOOR_PAIRS = 30;
+const FLOOR_DEFS = 14;
+const FLOOR_PAIRS = 33;
 
 // ---- the corpus, read through git -----------------------------------------------------------------
 

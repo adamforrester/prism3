@@ -508,6 +508,10 @@ const UNREACHED_EXPLAINED: Record<string, string> = {
     'same shape as `button|focus-ring`, on the #1223 sibling — a nomination for the nested ring, not a paint on any node of this def. It shares Button\'s exact anatomy, so it nests the ring the same way and can no more carry a ring stroke (#740).',
   'icon-button|focus-ring':
     'same as `button|focus-ring` — a nomination for the nested ring, not a paint on any node of this def.',
+  'icon-button-destructive|focus-ring':
+    'same shape as `icon-button|focus-ring`, on the #1225 sibling — a nomination for the nested ring, not a paint on any node of this def. It shares IconButton\'s exact anatomy (off `makeIconButton`), so it nests the ring the same way and can no more carry a ring stroke (#740).',
+  'icon-button-neutral|focus-ring':
+    'same shape as `icon-button|focus-ring`, on the #1225 sibling — a nomination for the nested ring, not a paint on any node of this def. It shares IconButton\'s exact anatomy (off `makeIconButton`), so it nests the ring the same way and can no more carry a ring stroke (#740).',
   'checkbox-control|focus-ring':
     'the third instance of the same shape, and since #1226 step 2 it is on the ATOMIC control rather than the row — the checkbox split, and the ring moved with the painted box into `checkbox-control`, which nests it inside its own `control` box. Still a nomination: it names the colour the nested `focus-ring` draws, and no node of this def can carry a ring stroke (#740).',
   'radio|focus-ring':

@@ -65,7 +65,7 @@ import type { AnatomyPlan } from './anatomy-figma';
 // ABOUT one component (`button.variants.appearance`, `textField.tokens[...]`), which a find-by-id
 // over the set would only make weaker. Completeness of the set is NOT asserted here — that is
 // `typecheck-components.ts`'s registry arm, whose oracle is git's index.
-import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchDef } from './components/index';
+import { componentDefs, button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, checkboxControl, checkbox, radio, switchDef } from './components/index';
 // The glyph vocabulary, for #864's geometry assertions. Imported so EXPECTED comes from the set rather
 // than from the projector that read it — the two halves `docs/34` requires.
 import { ICON_NAMES, ICON_PATHS, ICON_FILL_RULES, ICON_VIEWBOX } from './icon-glyphs';
@@ -7953,6 +7953,65 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   ok(!Object.values(button.tokens).some((v) => /color\.action\.|color\.foreground\.danger\.|foreground\.secondary/.test(String(v))), 'component: Button binds interactive.*/disabled.*, not the legacy action./danger./secondary roles');
   ok(iconButton.inherits === 'button' && !!iconButton.props.find((p) => p.name === 'aria-label')?.required, 'component: IconButton inherits button + REQUIRES an accessible name');
 
+  // #1225 — INTENT IS THE COMPONENT NOW, NOT AN AXIS (the icon-only counterpart of #1223's Button split).
+  // The three semantic intents are three components (IconButton = primary, Destructive IconButton, Neutral
+  // IconButton), built by one `makeIconButton` factory. IconButton carries NO `intent` prop, and hierarchy
+  // is still the appearance axis (filled > outline > text).
+  ok(!iconButton.props.some((p) => p.name === 'intent'),
+    'component: IconButton has no `intent` prop — #1225 made intent the component identity, not a prop on one component');
+  ok(!('intent' in (iconButton.variants ?? {})),
+    'component: IconButton has no `intent` variant axis either — the axis is gone, not merely the prop (#1225)');
+  const iconButtonFamily: ComponentDef[] = [iconButton, iconButtonDestructive, iconButtonNeutral];
+  const IB_FAMILY_OF: Record<string, string> = { 'icon-button': 'primary', 'icon-button-destructive': 'destructive', 'icon-button-neutral': 'neutral' };
+  ok(iconButtonFamily.every((d) => d.id in IB_FAMILY_OF) && new Set(iconButtonFamily.map((d) => d.id)).size === 3,
+    `#1225: the three icon-button components are registered (${iconButtonFamily.map((d) => d.id).join(', ')})`);
+  // Each REQUIRES its accessible name — the whole reason IconButton is a distinct component survives the
+  // split into all three siblings, not just the base.
+  ok(iconButtonFamily.every((d) => !!d.props.find((p) => p.name === 'aria-label')?.required),
+    '#1225: every icon-button sibling still REQUIRES an accessible name at the type level (§10)');
+
+  // THE FACTORY'S SAFETY (docs/34). The three components must share ONE anatomy and differ ONLY in the
+  // `color.interactive.<family>` colour binding. Assert both halves directly, so a geometry field or a
+  // shared binding edited on one and not the others fails BY NAME rather than shipping three quietly-
+  // diverged icon-buttons. This is the guard that makes the factory safe to author once. `inherits` is
+  // deliberately NOT in the guarded list — each sibling records its delta from the Button of its own family
+  // (`button` / `button-destructive` / `button-neutral`), so the three legitimately name different parents.
+  const IB_FAMILY_RE = /^color\.interactive\.(primary|neutral|destructive)\./;
+  for (const field of ['anatomy', 'props', 'states', 'variants', 'paintKeys', 'figmaProperties', 'accessibility', 'content', 'ai', 'composition', 'docs'] as const) {
+    const ref = JSON.stringify(iconButton[field]);
+    const diverged = iconButtonFamily.filter((d) => JSON.stringify(d[field]) !== ref).map((d) => d.id);
+    ok(diverged.length === 0, `#1225 the three icon-button components share byte-identical '${field}' — only colour may differ (diverged: ${diverged.join(', ') || 'none'})`);
+  }
+  // NON-colour tokens (radius, border-width, square sizing, glyph rung, and the cross-cutting disabled.*)
+  // identical across all three, byte-for-byte.
+  const ibNonFamilyTokens = (d: ComponentDef) => JSON.stringify(Object.fromEntries(Object.entries(d.tokens!).filter(([, v]) => !IB_FAMILY_RE.test(v as string))));
+  const ibNfRef = ibNonFamilyTokens(iconButton);
+  const ibNfDiverged = iconButtonFamily.filter((d) => ibNonFamilyTokens(d) !== ibNfRef).map((d) => d.id);
+  ok(ibNfDiverged.length === 0, `#1225 the three icon-buttons share every NON-colour token byte-for-byte — square sizing, glyph rung, border-width, disabled (diverged: ${ibNfDiverged.join(', ') || 'none'})`);
+  // The colour tokens: each def binds ONLY its own family, and binds the full 13-key icon-only skin (not zero).
+  for (const d of iconButtonFamily) {
+    const fam = IB_FAMILY_OF[d.id];
+    const stray = Object.entries(d.tokens!).filter(([, v]) => IB_FAMILY_RE.test(v as string) && !(v as string).startsWith(`color.interactive.${fam}.`)).map(([k]) => k);
+    ok(stray.length === 0, `#1225 ${d.id} binds ONLY interactive.${fam} — no cross-family paint leaked in (stray: ${stray.join(', ') || 'none'})`);
+    const famCount = Object.values(d.tokens!).filter((v) => (v as string).startsWith(`color.interactive.${fam}.`)).length;
+    // 13 = filled 4 (fill + 2 states + on-fill) + outline 4 (border + 2 states + rest ink) + text 1 (rest ink)
+    // + overlay 4 (outline hover/pressed, text hover/pressed). Written, not derived from the def — counting
+    // the def's own keys to check the def's own keys is `docs/34` shape 1. This is Button's 20 MINUS the
+    // label keys an icon-only control has no slot for (and minus #1282's per-state outline ink, Button-only).
+    ok(famCount === 13, `#1225 ${d.id} carries its full interactive.${fam} icon-only skin — 13 bindings (got ${famCount})`);
+  }
+  // The primary `icon-button` binds interactive.primary — the base is the primary/brand component, mirroring
+  // Button (base = primary), and NOT neutral (which is now its own sibling despite being the most common).
+  ok(Object.values(iconButton.tokens!).some((v) => (v as string).startsWith('color.interactive.primary.')),
+    '#1225: the base `icon-button` is the primary/brand component — neutral is a separate sibling now, as with Button');
+  // Figma treats a set's FIRST member as its thumbnail. With intent gone the enumeration carries no `intent=`
+  // coord — asserted against the EMITTED name, so re-introducing an intent axis fails here too.
+  const ibFirstMember = planComponentName(figmaAnatomyPlan(iconButton, iconButton.variants.size[0], {
+    swapTarget: 'FPO-default-icon', appearance: iconButton.variants.appearance[0], state: 'rest',
+  }));
+  ok(!/intent=/.test(ibFirstMember),
+    `#1225: the IconButton set's members carry no intent coord (${ibFirstMember})`);
+
   // The field FAMILY (docs/20 §17, KB text-field): TextField is a HOST that composes the two
   // shared parts, and binds INPUT CHROME only — label/message colour+type live in their own defs.
   ok(['field-label', 'field-message'].every((p) => textField.composition?.composesWith?.includes(p)), 'component: TextField composes field-label + field-message (the shared parts, not re-declared)');
@@ -9818,14 +9877,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         const rung = button.tokens['border-width'];
         ok(rung === 'border-width.hairline',
           `#1278 button's container binds a border-width RUNG by name, and it is the 1px one (got '${rung ?? 'NOTHING — still on the executor fallback'}')`);
-        // ALL FOUR NAMED PARTS, which is the scope #1278 names and the scope its first cut missed. The
-        // three intents come off ONE factory, so they cannot disagree; `icon-button` is a separate def
-        // whose `inherits: 'button'` is prose, so it can and did. Listed by def rather than counted, so
-        // a fifth bordered button-family def is a decision here rather than a silent extra loop pass.
-        const edgeDefs = { button, buttonDestructive, buttonNeutral, iconButton };
+        // ALL SIX NAMED PARTS, which is the scope #1278 names (#1300 carried the border onto icon-button;
+        // #1225 then split icon-button into three siblings, so the border must travel to each). The two
+        // families come off ONE factory each — `makeButton` and `makeIconButton` — so within a family they
+        // cannot disagree; `inherits: 'button'` is prose and resolves nothing, which is why the icon-button
+        // family had to bind it in its own factory rather than inheriting the button one. Listed by def
+        // rather than counted, so a seventh bordered button-family def is a decision here rather than a
+        // silent extra loop pass.
+        const edgeDefs = { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral };
         const rungs = Object.entries(edgeDefs).map(([k, d]) => [k, d.tokens['border-width']] as const);
         ok(rungs.every(([, r]) => r === rung),
-          `#1278 ...and all FOUR parts the issue names bind that same rung — 3 intents off one factory plus IconButton.container, which inherits nothing that resolves (${rungs.map(([k, r]) => `${k}@${r ?? 'NOTHING — still on the executor fallback'}`).join(' · ')})`);
+          `#1278/#1225 ...and all SIX parts the issue names bind that same rung — 3 button intents off makeButton plus 3 icon-button intents off makeIconButton (${rungs.map(([k, r]) => `${k}@${r ?? 'NOTHING — still on the executor fallback'}`).join(' · ')})`);
         const px = readdirSync(resolve(HERE, './out/figma')).sort().map((brand) => {
           const f = resolve(HERE, `./out/figma/${brand}/border-width.json`);
           const vars = (JSON.parse(readFileSync(f, 'utf8')) as { variables: { name: string; value?: unknown }[] }).variables;
@@ -10847,7 +10909,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // Read from the projection and compared against the def's TOKEN MAP, which are two different
       // things: a projection that dropped one axis would satisfy an assertion derived from the def alone.
       const ibPlan = (size: string, o: Record<string, unknown> = {}) =>
-        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', intent: 'neutral', appearance: 'text', state: 'rest', ...o });
+        figmaAnatomyPlan(iconButton, size, { swapTarget: 'FPO-default-icon', appearance: 'text', state: 'rest', ...o });
       const sq = ibPlan('medium');
       const sideVar = figmaVarName(iconButton.tokens['size.medium.side']);
       ok(sq.root.bound.width === sideVar && sq.root.bound.height === sideVar,
@@ -10894,22 +10956,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
         'anatomy/icon-button: the pending spinner is admitted as code-tier with ITS reason (one cell, and the cell is the icon) — not Button\'s reason reused');
 
       // ---- the derivation, predicted offline then gated ------------------------------------------
-      // 162 = 3 intent × 3 appearance × 3 size × 6 state. The LITERAL, not `figmaVariantCount(iconButton)`,
-      // on the same grounds as Button's 648: both derive from the same declaration, so comparing them is a
-      // gate agreeing with itself. The 6 is the step to check — `states` declares SEVEN and the axis
-      // projects six, because `inactive` is code-only. Re-deriving from `states.length` gives 189.
+      // 54 = 3 appearance × 3 size × 6 state, since #1225 split `intent` out into sibling components (was
+      // 162 = 3 intent × … before the split). The LITERAL, not `figmaVariantCount(iconButton)`, on the same
+      // grounds as Button's 648: both derive from the same declaration, so comparing them is a gate agreeing
+      // with itself. The 6 is the step to check — `states` declares SEVEN and the axis projects six, because
+      // `inactive` is code-only. Re-deriving from `states.length` gives 63.
       const ibSet = figmaAnatomySet(iconButton, { swapTarget: 'FPO-default-icon' });
-      ok(ibSet.length === 162, `anatomy/icon-button: the set is 162 members — 3 intent × 3 appearance × 3 size × 6 state (${ibSet.length})`);
-      ok(new Set(ibSet.map(planComponentName)).size === 162,
-        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/162)`);
-      // FOUR axes, where Button has six — and read off a real emitted NAME rather than the declaration,
+      ok(ibSet.length === 54, `anatomy/icon-button: the set is 54 members — 3 appearance × 3 size × 6 state, #1225 split \`intent\` into sibling components (${ibSet.length})`);
+      ok(new Set(ibSet.map(planComponentName)).size === 54,
+        `anatomy/icon-button: every member carries a distinct coordinate (${new Set(ibSet.map(planComponentName)).size}/54)`);
+      // THREE axes, where Button has six — and read off a real emitted NAME rather than the declaration,
       // which is the 189-vs-756 lesson: a count derived from a declaration cannot detect that the
-      // declaration is incomplete. This is also the assertion that would catch a slot axis appearing here
-      // by inheritance or by accident.
+      // declaration is incomplete. This is also the assertion that would catch a slot axis (or the removed
+      // `intent` axis) appearing here by inheritance or by accident.
       const ibEmitted = planComponentName(ibSet[0]).split(', ').map((kv) => kv.split('=')[0]);
       ok(ibEmitted.slice().sort().join(',') === figmaAxisNames(iconButton).slice().sort().join(','),
         `anatomy/icon-button: the DECLARED axes match the ones planComponentName emits (declared [${figmaAxisNames(iconButton).join(', ')}] vs emitted [${ibEmitted.join(', ')}])`);
-      ok(figmaAxisNames(iconButton).length === 4, `anatomy/icon-button: four axes, where Button has six (${figmaAxisNames(iconButton).join(', ')})`);
+      ok(figmaAxisNames(iconButton).length === 3, `anatomy/icon-button: three axes (appearance, size, state), where Button has six and #1225 removed \`intent\` (${figmaAxisNames(iconButton).join(', ')})`);
 
       // THE SLOT-FILL DIMENSION COLLAPSES TO 1, and this is the decision recorded as a gate rather than a
       // comment. Button's `slotAxes` exists because presence changes GEOMETRY (#326: `paddingLeft` reads
@@ -10926,7 +10989,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // `[false]` on both, so the two coordinates are constants and `planSetLayout` gives a dimension only
       // to axes that VARY. That much was the original decision and it stands.
       ok(ibSet.every((p) => p.slots.leading === false && p.slots.trailing === false),
-        'anatomy/icon-button: both slot coordinates are constant false across all 162 members — the collapse, observed on the plans');
+        'anatomy/icon-button: both slot coordinates are constant false across all 54 members — the collapse, observed on the plans');
       // WHAT THE ORIGINAL DECISION GOT WRONG, and the reason the emitter moved rather than this gate: a
       // constant coordinate is free in the LAYOUT and is not free in the NAME. `combineAsVariants` derives
       // a set's properties from its members' names, so `leading=false` on all 162 becomes a real
@@ -10943,13 +11006,14 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(/leading=true, trailing=false$/.test(planComponentName(figmaAnatomyPlan(button, 'medium', { leading: true, swapTarget: 'FPO-default-icon' }))),
         'anatomy/icon-button: Button still names both — the rule is "a coordinate iff the def declares the axis", not "no slot coordinates"');
 
-      // The GRID: 27 rows × 6 columns, `state` across. Hand-derived — 3 × 3 × 3 rows against 6 states —
-      // not read back from `planSetLayout`, which is the subject.
+      // The GRID: 9 rows × 6 columns, `state` across. Hand-derived — 3 × 3 rows against 6 states —
+      // not read back from `planSetLayout`, which is the subject. (Was 27 rows before #1225 split `intent`
+      // out of the row axis into sibling components.)
       const ibLayout = planSetLayout(ibSet, 'icon-button');
-      ok(ibLayout.rows === 27 && ibLayout.cols === 6,
-        `anatomy/icon-button: the grid is 27 rows (3 intent × 3 appearance × 3 size) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
+      ok(ibLayout.rows === 9 && ibLayout.cols === 6,
+        `anatomy/icon-button: the grid is 9 rows (3 appearance × 3 size) × 6 state columns (${ibLayout.rows} × ${ibLayout.cols})`);
       ok(ibLayout.colKey === 'state', `anatomy/icon-button: \`state\` is the column axis — DECLARED via gridAxis, not inherited from cardinality (${ibLayout.colKey})`);
-      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 162,
+      ok(new Set(ibLayout.cells.map((c) => `${c.row},${c.col}`)).size === 54,
         'anatomy/icon-button: every member gets its own cell — combineAsVariants preserves positions, so a shared one stacks them invisibly');
       // Three footprint cohorts, one per size, and that is the whole point of the square: `state` and
       // `appearance` must not move the box, and with no slot axes `size` is the only thing that may.
@@ -10964,12 +11028,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(ibLayout.refs.length === 1 && ibLayout.refs[0].part === 'icon',
         `anatomy/icon-button: one part is wired to it (${JSON.stringify(ibLayout.refs)})`);
 
-      // The RING appears on exactly the focus-visible column and nowhere else — 27 of 162, which is
-      // 162/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
+      // The RING appears on exactly the focus-visible column and nowhere else — 9 of 54, which is
+      // 54/6. Derived from the state coordinate rather than from a count, so it fails if the ring leaks
       // into a neighbouring state as well as if it goes missing.
       const ringMembers = ibSet.filter((p) => planPartNames(p.root).includes('focusRing'));
-      ok(ringMembers.length === 27 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
-        `anatomy/icon-button: the focus ring materializes on the 27 focus-visible members and only those (${ringMembers.length})`);
+      ok(ringMembers.length === 9 && ringMembers.every((p) => /state=focus-visible/.test(planComponentName(p))),
+        `anatomy/icon-button: the focus ring materializes on the 9 focus-visible members and only those (${ringMembers.length})`);
 
       // Every member is SKINNED. A coordinate that resolved to no paints is the failure a name-only check
       // cannot see: the set builds, the axes are clean, and 162 identical grey squares come back.
@@ -11001,22 +11065,23 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       // because the count is what makes shell growth visible at all.
       //
       // WAS 6, AND MOVED TO 7 IN #1278 — the same shape as #681's 5→6 above, and re-pinned on the same
-      // instruction rather than worked around. The cause is a PER-MEMBER growth this time rather than a
-      // shell growth: `container` gained a bound `strokeWeight`, so every one of the 162 members carries
-      // one more binding. Measured across the change: 27/28/27/28/27/25 members per chunk became
-      // 26/26/26/26/26/26/6, i.e. ~1–2 fewer members fit per chunk and the remainder needs a seventh.
-      // No chunk breached the budget at any point (peak 41,987 → 41,861 against 42,000) — the packer
-      // absorbed it exactly as designed, which is again the argument for a byte budget over a variant
-      // count. The seventh chunk is 24,601 bytes, i.e. a half-empty tail rather than a packing failure.
+      // instruction rather than worked around. The cause was a PER-MEMBER growth: `container` gained a bound
+      // `strokeWeight`, so every member carried one more binding.
+      //
+      // NOW 3, AS OF #1225 — a MEMBER-COUNT drop rather than a per-member or shell change: splitting `intent`
+      // into sibling components takes THIS def's set from 162 members to 54 (the other 108 moved to the two
+      // new sibling defs, which pack their own chunks). Fewer members, fewer chunks — 54 members at ~26 per
+      // chunk is 3. This is the one number here that tracks the set SIZE rather than the per-member or shell
+      // byte cost, so it moved with the split while the "every chunk under budget" check below did not.
       const ibChunks = planSetChunks(ibSet);
-      ok(ibChunks.length === 7, `anatomy/icon-button: the set packs into 7 chunks (${ibChunks.length})`);
+      ok(ibChunks.length === 3, `anatomy/icon-button: the set packs into 3 chunks (${ibChunks.length})`);
       ok(ibChunks.every((c) => c.bytes <= SET_CHUNK_BYTES),
         `anatomy/icon-button: no chunk exceeds the byte budget (${ibChunks.map((c) => c.bytes).join(', ')} vs ${SET_CHUNK_BYTES})`);
       // And the chunks partition the set — no member dropped, none written twice. A packer that lost a
-      // slice produces a set that is short by 33 variants with nothing reporting it.
+      // slice produces a set that is short with nothing reporting it.
       const packed = ibChunks.flatMap((c) => c.variants);
-      ok(packed.length === 162 && new Set(packed).size === 162,
-        `anatomy/icon-button: the chunks partition all 162 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
+      ok(packed.length === 54 && new Set(packed).size === 54,
+        `anatomy/icon-button: the chunks partition all 54 members exactly once (${packed.length} written, ${new Set(packed).size} distinct)`);
 
       // ---- the `nesting` relation (#681), and the SQUARE rules ------------------------------------
       // The field is REQUIRED on every part that points at another component, so the first assertion is
