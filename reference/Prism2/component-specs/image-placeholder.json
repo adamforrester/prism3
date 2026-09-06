@@ -1,0 +1,165 @@
+{
+  "title": "Image placeholder",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "scrim": {
+      "type": "instance",
+      "instanceOf": "scrim"
+    },
+    "playCircleLine": {
+      "type": "instance",
+      "instanceOf": "playCircleLine"
+    }
+  },
+  "props": {
+    "ratio": {
+      "type": "string",
+      "default": "1:1",
+      "enum": ["1:1", "4:3", "16:9"],
+      "nullable": false
+    },
+    "scrim": {
+      "type": "boolean",
+      "default": false
+    },
+    "playIcon": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["scrim", "playCircleLine"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "clipsContent": true,
+          "width": 640,
+          "height": 640,
+          "aspectRatio": {
+            "x": 640,
+            "y": 640
+          }
+        }
+      },
+      "scrim": {
+        "styles": {
+          "visible": false,
+          "top": 0,
+          "bottom": 0,
+          "start": 0,
+          "end": 0
+        },
+        "propConfigurations": {
+          "value": "Dark",
+          "shade": "80%",
+          "style": "Full"
+        },
+        "instanceOf": "scrim"
+      },
+      "playCircleLine": {
+        "styles": {
+          "visible": false,
+          "width": 160,
+          "height": 160,
+          "centerHorizontalOffset": 0,
+          "centerVerticalOffset": 0
+        },
+        "instanceOf": "playCircleLine"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "ratio": "4:3"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "height": 480,
+            "aspectRatio": {
+              "x": 640,
+              "y": 480
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "ratio": "16:9"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "height": 360,
+            "aspectRatio": {
+              "x": 640,
+              "y": 360
+            }
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-06T12:48:04.520Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.18.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.31.0/packages/schema/schema/component.schema.json",
+      "version": "0.31.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:5291",
+      "nodeId": "5333:39953",
+      "nodeType": "COMPONENT_SET"
+    },
+    "conventions": {
+      "figma": {
+        "naming": "NONE",
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false
+      }
+    },
+    "settings": {
+      "spec": {
+        "format": "JSON",
+        "keys": "CAMEL",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX",
+        "variantDepth": 9999,
+        "details": "LAYERED",
+        "collapsePrimitiveWrapper": false,
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false,
+        "splitComponents": true,
+        "splitConcerns": true,
+        "useSubfolders": true
+      }
+    }
+  }
+}

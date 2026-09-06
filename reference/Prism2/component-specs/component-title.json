@@ -1,0 +1,413 @@
+{
+  "title": "Component title",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "titleText": {
+      "type": "text"
+    }
+  },
+  "props": {
+    "size": {
+      "type": "string",
+      "default": "Large",
+      "enum": ["Large", "Medium", "Small"],
+      "nullable": false
+    },
+    "breakpoint": {
+      "type": "string",
+      "default": "Desktop",
+      "enum": ["Desktop", "Mobile"],
+      "nullable": false
+    },
+    "weight": {
+      "type": "string",
+      "default": "Default",
+      "enum": ["Default", "Bold"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["titleText"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "layoutMode": "VERTICAL",
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 8
+        }
+      },
+      "titleText": {
+        "styles": {
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "textColor": "#24262D",
+          "typography": {
+            "fontSize": 40,
+            "fontFamily": "Poppins",
+            "fontStyle": "Regular",
+            "lineHeight": "125%"
+          }
+        },
+        "content": "Title text"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "weight": "Bold"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 40,
+              "fontFamily": "Poppins",
+              "fontStyle": "Bold",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "breakpoint": "Mobile"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 32,
+              "fontFamily": "Poppins",
+              "fontStyle": "Regular",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Medium"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 32,
+              "fontFamily": "Poppins",
+              "fontStyle": "Regular",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Small"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 24,
+              "fontFamily": "Poppins",
+              "fontStyle": "Regular",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "breakpoint": "Mobile",
+        "weight": "Bold"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 32,
+              "fontFamily": "Poppins",
+              "fontStyle": "Bold",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Medium",
+        "weight": "Bold"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 32,
+              "fontFamily": "Poppins",
+              "fontStyle": "Bold",
+              "lineHeight": "125%",
+              "letterSpacing": -1.5,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Medium",
+        "breakpoint": "Mobile"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 24,
+              "fontFamily": "Poppins",
+              "fontStyle": "Regular",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Small",
+        "weight": "Bold"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 24,
+              "fontFamily": "Poppins",
+              "fontStyle": "Bold",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Small",
+        "breakpoint": "Mobile"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 20,
+              "fontFamily": "Poppins",
+              "fontStyle": "Regular",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Medium",
+        "breakpoint": "Mobile",
+        "weight": "Bold"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 24,
+              "fontFamily": "Poppins",
+              "fontStyle": "Bold",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Small",
+        "breakpoint": "Mobile",
+        "weight": "Bold"
+      },
+      "elements": {
+        "titleText": {
+          "styles": {
+            "typography": {
+              "fontSize": 20,
+              "fontFamily": "Poppins",
+              "fontStyle": "Bold",
+              "lineHeight": "125%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 0,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-06T12:48:59.775Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.18.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.31.0/packages/schema/schema/component.schema.json",
+      "version": "0.31.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5416:9289",
+      "nodeId": "5416:9297",
+      "nodeType": "COMPONENT_SET"
+    },
+    "conventions": {
+      "figma": {
+        "naming": "NONE",
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false
+      }
+    },
+    "settings": {
+      "spec": {
+        "format": "JSON",
+        "keys": "CAMEL",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX",
+        "variantDepth": 9999,
+        "details": "LAYERED",
+        "collapsePrimitiveWrapper": false,
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false,
+        "splitComponents": true,
+        "splitConcerns": true,
+        "useSubfolders": true
+      }
+    }
+  }
+}

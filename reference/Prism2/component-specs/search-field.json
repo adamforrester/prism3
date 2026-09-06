@@ -1,0 +1,328 @@
+{
+  "title": "Search field",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "inputWithLabel": {
+      "type": "container"
+    },
+    "formLabel": {
+      "type": "instance",
+      "instanceOf": "formLabel"
+    },
+    "input": {
+      "type": "container"
+    },
+    "content": {
+      "type": "container"
+    },
+    "leadingIcon": {
+      "type": "instance",
+      "instanceOf": "searchLine"
+    },
+    "text": {
+      "type": "text"
+    },
+    "trailingIcon": {
+      "type": "instance",
+      "instanceOf": "closeFill"
+    },
+    "helperMessage": {
+      "type": "instance",
+      "instanceOf": "helperMessage"
+    },
+    "focusRing": {
+      "type": "instance",
+      "detectedIn": "State=Focused",
+      "instanceOf": "focusRing"
+    }
+  },
+  "props": {
+    "state": {
+      "type": "string",
+      "default": "Enabled (Empty)",
+      "enum": ["Enabled (Empty)", "Hovered", "Filled", "Focused", "Disabled"],
+      "nullable": false
+    },
+    "leadingIcon": {
+      "type": "boolean",
+      "default": true
+    },
+    "clearIcon": {
+      "type": "boolean",
+      "default": true
+    },
+    "placeholder": {
+      "type": "boolean",
+      "default": true
+    },
+    "showHelperMessage": {
+      "type": "boolean",
+      "default": true
+    },
+    "showLabel": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": [
+          {
+            "inputWithLabel": [
+              "formLabel",
+              {
+                "input": [
+                  {
+                    "content": ["leadingIcon", "text"]
+                  },
+                  "trailingIcon"
+                ]
+              }
+            ]
+          },
+          "helperMessage"
+        ]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 320,
+          "layoutMode": "VERTICAL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 8
+        }
+      },
+      "inputWithLabel": {
+        "styles": {
+          "layoutMode": "VERTICAL",
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 8
+        }
+      },
+      "formLabel": {
+        "propConfigurations": {
+          "required": true,
+          "size": "Large",
+          "weight": "Regular",
+          "color": "Secondary"
+        },
+        "instanceOf": "formLabel"
+      },
+      "input": {
+        "styles": {
+          "cornerRadius": 4,
+          "height": 44,
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingHorizontal": "FILL",
+          "strokes": "#82899D",
+          "strokeWeight": 1,
+          "itemSpacing": 8,
+          "padding": {
+            "top": 8,
+            "bottom": 8,
+            "start": 12,
+            "end": 12
+          },
+          "backgroundColor": "#000000"
+        }
+      },
+      "content": {
+        "styles": {
+          "primaryAxisSizingMode": "FIXED",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 12
+        }
+      },
+      "leadingIcon": {
+        "instanceOf": "searchLine"
+      },
+      "text": {
+        "styles": {
+          "layoutSizingHorizontal": "FILL",
+          "layoutSizingVertical": "HUG",
+          "textColor": "#656A7A",
+          "typography": {
+            "fontFamily": "Inter",
+            "fontStyle": "Regular",
+            "lineHeight": "150%",
+            "paragraphSpacing": 24
+          },
+          "textAlignVertical": "CENTER",
+          "textOverflow": "ELLIPSIS",
+          "maxLines": 1
+        },
+        "content": "Placeholder"
+      },
+      "trailingIcon": {
+        "instanceOf": "closeFill"
+      },
+      "helperMessage": {
+        "propConfigurations": {
+          "type": "Helper Text"
+        },
+        "instanceOf": "helperMessage"
+      },
+      "focusRing": {
+        "styles": {
+          "position": "ABSOLUTE",
+          "top": 31,
+          "bottom": 25,
+          "start": -4.01,
+          "end": -3.99
+        },
+        "propConfigurations": {
+          "color": "Default"
+        },
+        "instanceOf": "focusRing"
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "state": "Hovered"
+      },
+      "elements": {
+        "input": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Filled"
+      },
+      "elements": {
+        "text": {
+          "styles": {
+            "textColor": "#24262D"
+          },
+          "content": "Filled Text|"
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Focused"
+      },
+      "layout": [
+        {
+          "root": [
+            {
+              "inputWithLabel": [
+                "formLabel",
+                {
+                  "input": [
+                    {
+                      "content": ["leadingIcon", "text"]
+                    },
+                    "trailingIcon"
+                  ]
+                }
+              ]
+            },
+            "helperMessage",
+            "focusRing"
+          ]
+        }
+      ],
+      "elements": {
+        "input": {
+          "styles": {
+            "clipsContent": true
+          }
+        },
+        "text": {
+          "styles": {
+            "textColor": "#24262D"
+          },
+          "content": "Filled Text"
+        }
+      }
+    },
+    {
+      "configuration": {
+        "state": "Disabled"
+      },
+      "elements": {
+        "input": {
+          "styles": {
+            "strokes": "#848484",
+            "backgroundColor": "#C6C6C6"
+          }
+        },
+        "text": {
+          "styles": {
+            "textColor": "#525252"
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-06T12:50:55.611Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.18.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.31.0/packages/schema/schema/component.schema.json",
+      "version": "0.31.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:3487",
+      "nodeId": "5332:3488",
+      "nodeType": "COMPONENT_SET"
+    },
+    "conventions": {
+      "figma": {
+        "naming": "NONE",
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false
+      }
+    },
+    "settings": {
+      "spec": {
+        "format": "JSON",
+        "keys": "CAMEL",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX",
+        "variantDepth": 9999,
+        "details": "LAYERED",
+        "collapsePrimitiveWrapper": false,
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false,
+        "splitComponents": true,
+        "splitConcerns": true,
+        "useSubfolders": true
+      }
+    }
+  }
+}
