@@ -1,0 +1,801 @@
+{
+  "title": "Scrim",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "overlay": {
+      "type": "rectangle"
+    }
+  },
+  "props": {
+    "value": {
+      "type": "string",
+      "default": "Dark",
+      "enum": ["Dark", "Light"],
+      "nullable": false
+    },
+    "shade": {
+      "type": "string",
+      "default": "80%",
+      "enum": ["80%", "60%", "40%"],
+      "nullable": false
+    },
+    "style": {
+      "type": "string",
+      "default": "Full",
+      "enum": ["Full", "Gradient from top", "Gradient from bottom", "Gradient from right", "Gradient from left"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["overlay"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 375,
+          "height": 672
+        }
+      },
+      "overlay": {
+        "styles": {
+          "top": "0%",
+          "bottom": "0%",
+          "start": "0%",
+          "end": "0%",
+          "backgroundColor": "#000000"
+        }
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "style": "Gradient from top"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "style": "Gradient from bottom"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "style": "Gradient from right"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "style": "Gradient from left"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "60%"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "40%"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": "#000000"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "60%",
+        "style": "Gradient from top"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "60%",
+        "style": "Gradient from bottom"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "60%",
+        "style": "Gradient from right"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "60%",
+        "style": "Gradient from left"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "40%",
+        "style": "Gradient from top"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "40%",
+        "style": "Gradient from bottom"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "40%",
+        "style": "Gradient from right"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "shade": "40%",
+        "style": "Gradient from left"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#000000"
+                },
+                {
+                  "position": 1,
+                  "color": "#000000"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "style": "Gradient from top"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "style": "Gradient from bottom"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "style": "Gradient from right"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "style": "Gradient from left"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "60%"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "40%"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": "#FFFFFF"
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "60%",
+        "style": "Gradient from top"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "60%",
+        "style": "Gradient from bottom"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "60%",
+        "style": "Gradient from right"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "60%",
+        "style": "Gradient from left"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "40%",
+        "style": "Gradient from top"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "40%",
+        "style": "Gradient from bottom"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 0,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "40%",
+        "style": "Gradient from right"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "value": "Light",
+        "shade": "40%",
+        "style": "Gradient from left"
+      },
+      "elements": {
+        "overlay": {
+          "styles": {
+            "backgroundColor": {
+              "type": "LINEAR",
+              "angle": 90,
+              "stops": [
+                {
+                  "position": 0,
+                  "color": "#FFFFFF"
+                },
+                {
+                  "position": 1,
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-06T13:41:18.802Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.18.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.31.0/packages/schema/schema/component.schema.json",
+      "version": "0.31.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:5184",
+      "nodeId": "5332:5197",
+      "nodeType": "COMPONENT_SET"
+    },
+    "conventions": {
+      "figma": {
+        "naming": "NONE",
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false
+      }
+    },
+    "settings": {
+      "spec": {
+        "format": "JSON",
+        "keys": "CAMEL",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX",
+        "variantDepth": 9999,
+        "details": "LAYERED",
+        "collapsePrimitiveWrapper": false,
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false,
+        "splitComponents": true,
+        "splitConcerns": true,
+        "useSubfolders": true
+      }
+    }
+  }
+}
