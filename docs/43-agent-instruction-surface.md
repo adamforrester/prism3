@@ -184,9 +184,25 @@ reasoning are removed from `CLAUDE.md`; the schema-classification three-file nar
 added to `lint-us-english.ts`'s header before removal. The squash-merge paragraph (row 5) also lost its
 "three races on 2026-08-12 / caught 2026-08-14" parenthetical, keeping rule + `[new branch]` signal +
 hook note. Separately, **principle 6 (operating agreement — autonomous arcs and the decision boundary,
-#1311)** was added to the "Working principles" section. Not in this PR: line 44's braided pathspec/
-`EXPECTED_ARTIFACTS` paragraph and the principle-4 gate region (rows 1, 4, 5's hook halves) — separate
-PRs own those.
+#1311)** was added to the "Working principles" section.
+
+**Landed next (#1311 PR 2, version-neutral): the principle-4 gate region's meta-rationale — the
+"row 1 residual" (the prose riding along the gate bullets, not the per-gate narrative already in
+`CONTRIBUTING.md` §3).** Four dedups, each confirmed resident before removal: the `npm run verify`
+four-property rationale (exit-status capture, per-gate buffering, declared ordering, SKIP-is-not-a-pass)
+→ trimmed to one line pointing at `CONTRIBUTING.md` §3, which states all four; the `lint-unclaimed-defaults`
+"second direction the read-backs cannot see" reasoning → removed, confirmed resident in `CONTRIBUTING.md`
+§3 and `apps/plugin/lint-unclaimed-defaults.ts`'s header; the TokenPress "no `typecheck`" narrative →
+trimmed, with the stale inline `232`-errors count replaced by a reference to the count `tsc` reports
+(the number drifts if the typings/tsconfig change), full narrative confirmed in `CONTRIBUTING.md` §3;
+the US-English/voice "last, after both builds" bullet → kept the ordering imperative, moved the #937/#948
+`apps/plugin/dist` scope-hole narrative to the gate headers (confirmed resident in
+`lint-us-english.ts` trap 5 and `lint-voice.ts`'s header). The bare gate-token bullets and the
+`lint-doc-gates.ts`-pinned region boundaries are untouched (gate green after the edit). Also folded in:
+the principle-4 intro lost the `lint:classes`/#770 parenthetical (durable lesson kept), and principle 6's
+inverted lead-in clause ("the owner is leaned on for technical decisions") was corrected to "the owner
+leans on the agent for technical decisions". Not in this PR: line 44's braided pathspec/
+`EXPECTED_ARTIFACTS` paragraph (PR 3), and rows 4, 5's hook halves — separate PRs own those.
 
 Not ranked (too small to be worth a disposition group on its own, noted for completeness): the Voice
 paragraph (1,017B) is already a tight pointer to `docs/voice-standard.md` with one load-bearing nuance

@@ -7,6 +7,30 @@
 
 ---
 
+## (2026-09-06) — CLAUDE.md debloat PR 2: the principle-4 gate region's meta-rationale (#1311)
+
+**STATUS: PR open. Version-neutral — touches no `version.ts`, `out/**`, or `schema/`; `regen --check` byte-matches.** The delicate one: the principle-4 region is pinned by `lint-doc-gates.ts` (#728 — for each `ci.yml` gate step, every one of its identifying tokens must co-occur on a *single physical line* inside the `4.`→`5.` region). Same governing rule as PR 1 — *relocate depth, never drop a lesson*, and only after confirming the destination already holds it.
+
+**What was deduped (the "row 1 residual" — the prose riding along the gate bullets, distinct from the per-gate narrative already in `CONTRIBUTING.md` §3):**
+
+- **The `npm run verify` four-property rationale** (exit-status capture with no intervening pipeline, per-gate output buffering, declared+checked ordering, SKIP-is-never-a-pass) — trimmed to one line pointing at `CONTRIBUTING.md` §3. **Confirmed resident** there (the numbered four-property list, lines ~56–72, all four stated). The `verify.ts` token was preserved on the trimmed line — it is itself a required token (the `verify.ts --list` CI step, "The gate runner's list and order are sound").
+
+- **The `lint-unclaimed-defaults` "second direction the read-backs cannot see" reasoning** — removed; bare gate token kept in the Plugin bullet with a pointer. **Confirmed resident** in `CONTRIBUTING.md` §3 and `apps/plugin/lint-unclaimed-defaults.ts`'s header ("THE SECOND DIRECTION (#865)").
+
+- **The TokenPress "no `typecheck`" narrative** — trimmed; the stale inline **`232` errors** count was *removed rather than restated* (it drifts if the typings/tsconfig change) in favor of "the count its `tsc` reports". **Confirmed resident** in `CONTRIBUTING.md` §3 (the tokenpress `build` block narrates the mis-wiring and the count).
+
+- **The US-English/voice "last, after both builds" #937/#948 scope-hole narrative** — kept the **ordering imperative** ("run these two LAST — their scope includes the built bundles"), moved the `apps/plugin/dist` scope-hole detail to the gate headers. **Confirmed resident** in `lint-us-english.ts` (trap 5, "ONE OF TWO BUNDLES IS NOT 'THE BUILT BUNDLE' (#937)") and `lint-voice.ts`'s header (#937/#948).
+
+**Also folded in:** the principle-4 intro lost the `lint:classes`/#770 parenthetical (owner-approved; the durable lesson "the *list* going short is the durable lesson, not the particular gate" kept), and **principle 6's inverted lead-in clause** — "The owner is leaned on for technical decisions; the agent owns them" (backwards/self-contradictory, added in PR 1) — was corrected to "The owner leans on the agent for technical decisions; the agent owns them". The three sub-bullets were untouched.
+
+**The trap, and how it was navigated:** the bare gate-token bullets (Engine / Web / Plugin / TokenPress / Exporter / Tokens / Last) were left intact — every gate's tokens stay co-located on one line, no token moved out of the region, and neither the `4.`/`5.` principle boundaries nor any heading was renamed. `lint-doc-gates.ts` is **green** after the edit (region still 14 lines, 54 gate steps against 3 regions, both runner directions clean). Line 44 (the pathspec/`EXPECTED_ARTIFACTS` braided paragraph) and rows 4/5's hook halves are left for PR 3 / later PRs.
+
+**`docs/43` updated** — its §4 disposition note now records the principle-4 meta-rationale dedup (row 1 residual) as landed.
+
+**Verify:** `npm run verify` → 55/55 (0 FAIL/SKIP), with attention to `lint-doc-gates`, `lint-us-english`, `lint-voice`, `lint-progress-order`, `lint-advisory-expiry`.
+
+---
+
 ## (2026-09-06) — CLAUDE.md debloat, disposition groups 1/2/4/6 + a new operating-agreement principle (#1311)
 
 **STATUS: PR open. Version-neutral — touches no `version.ts`, `out/**`, or `schema/`; `regen --check` byte-matches.** A depth-removal-only groom of the root `CLAUDE.md`, continuing the `docs/43` proposal one disposition group at a time. The governing rule was *relocate depth, never drop a lesson*: for each narrative removed, the destination was confirmed to already hold it (or the depth was added there first).
