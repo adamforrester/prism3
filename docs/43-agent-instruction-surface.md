@@ -175,6 +175,19 @@ number is derived rather than rounded. (Row 1's growth and the total's growth ar
 number, ~3,300 bytes each — the file grew almost entirely in the one place this proposal already
 targets, so the "leaving" figure barely moved even though both the file and the cut grew.)
 
+**Landed (#1311, version-neutral):** **row 3** — the worktree/`--prefix` paragraph is trimmed to the
+terse prohibition + pointer (the "emptied 12 scoped directories" numeral and incident narrative removed;
+depth confirmed resident in `docs/00-progress.md` 2026-08-14 and the hook header). **Row 6 (US-English
+half)** — the four-trap restatement, the enumerated three-file list, and the `stripLineComments`/#968
+reasoning are removed from `CLAUDE.md`; the schema-classification three-file narrative already lived in
+`lint-schema-classification.ts`'s header, and the #968 "gate cannot see the exemption" correction was
+added to `lint-us-english.ts`'s header before removal. The squash-merge paragraph (row 5) also lost its
+"three races on 2026-08-12 / caught 2026-08-14" parenthetical, keeping rule + `[new branch]` signal +
+hook note. Separately, **principle 6 (operating agreement — autonomous arcs and the decision boundary,
+#1311)** was added to the "Working principles" section. Not in this PR: line 44's braided pathspec/
+`EXPECTED_ARTIFACTS` paragraph and the principle-4 gate region (rows 1, 4, 5's hook halves) — separate
+PRs own those.
+
 Not ranked (too small to be worth a disposition group on its own, noted for completeness): the Voice
 paragraph (1,017B) is already a tight pointer to `docs/voice-standard.md` with one load-bearing nuance
 (the *recessive* attribute) not duplicated elsewhere — leave it. Principle 5 (1,513B) is discussed in
