@@ -1,0 +1,162 @@
+{
+  "title": "Descriptions",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "thisIsADescriptionWithLotsOfLoremIpsumDolorSitAmetConsecteturAliquetFelisVestibulumEstMagnaInNeque": {
+      "type": "text"
+    }
+  },
+  "props": {
+    "size": {
+      "type": "string",
+      "default": "Large",
+      "enum": ["Large", "Medium", "Small"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["thisIsADescriptionWithLotsOfLoremIpsumDolorSitAmetConsecteturAliquetFelisVestibulumEstMagnaInNeque"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "mainAxisAlignment": "CENTER",
+          "crossAxisAlignment": "CENTER",
+          "layoutMode": "HORIZONTAL",
+          "layoutSizingHorizontal": "HUG",
+          "layoutSizingVertical": "HUG",
+          "itemSpacing": 8
+        }
+      },
+      "thisIsADescriptionWithLotsOfLoremIpsumDolorSitAmetConsecteturAliquetFelisVestibulumEstMagnaInNeque": {
+        "styles": {
+          "width": 600,
+          "layoutSizingVertical": "HUG",
+          "textColor": "#24262D",
+          "typography": {
+            "fontSize": 18,
+            "fontFamily": "Inter",
+            "fontStyle": "Regular",
+            "lineHeight": "150%",
+            "paragraphSpacing": 24
+          },
+          "textAlignVertical": "CENTER"
+        },
+        "content": "This is a description with lots of lorem ipsum dolor sit amet consectetur. Aliquet felis vestibulum est magna in neque."
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "size": "Medium"
+      },
+      "elements": {
+        "thisIsADescriptionWithLotsOfLoremIpsumDolorSitAmetConsecteturAliquetFelisVestibulumEstMagnaInNeque": {
+          "styles": {
+            "typography": {
+              "fontSize": 16,
+              "fontFamily": "Inter",
+              "fontStyle": "Regular",
+              "lineHeight": "150%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 24,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "Small"
+      },
+      "elements": {
+        "thisIsADescriptionWithLotsOfLoremIpsumDolorSitAmetConsecteturAliquetFelisVestibulumEstMagnaInNeque": {
+          "styles": {
+            "typography": {
+              "fontSize": 14,
+              "fontFamily": "Inter",
+              "fontStyle": "Regular",
+              "lineHeight": "150%",
+              "letterSpacing": 0,
+              "textCase": "ORIGINAL",
+              "textDecoration": "NONE",
+              "paragraphIndent": 0,
+              "paragraphSpacing": 22,
+              "leadingTrim": "NONE",
+              "listSpacing": 0,
+              "hangingPunctuation": false,
+              "hangingList": false
+            }
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-06T12:48:35.168Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.18.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.31.0/packages/schema/schema/component.schema.json",
+      "version": "0.31.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5416:9289",
+      "nodeId": "5416:9290",
+      "nodeType": "COMPONENT_SET"
+    },
+    "conventions": {
+      "figma": {
+        "naming": "NONE",
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false
+      }
+    },
+    "settings": {
+      "spec": {
+        "format": "JSON",
+        "keys": "CAMEL",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX",
+        "variantDepth": 9999,
+        "details": "LAYERED",
+        "collapsePrimitiveWrapper": false,
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false,
+        "splitComponents": true,
+        "splitConcerns": true,
+        "useSubfolders": true
+      }
+    }
+  }
+}

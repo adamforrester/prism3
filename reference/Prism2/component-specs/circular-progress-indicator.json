@@ -1,0 +1,170 @@
+{
+  "title": "_Circular progress indicator",
+  "anatomy": {
+    "root": {
+      "type": "container"
+    },
+    "progressBar": {
+      "type": "ellipse"
+    }
+  },
+  "props": {
+    "size": {
+      "type": "string",
+      "default": "2xs",
+      "enum": ["xl", "2xs", "lg", "md", "sm", "xs"],
+      "nullable": false
+    },
+    "progress": {
+      "type": "string",
+      "default": "25",
+      "enum": ["25", "50", "75", "100", "Custom"],
+      "nullable": false
+    }
+  },
+  "default": {
+    "layout": [
+      {
+        "root": ["progressBar"]
+      }
+    ],
+    "elements": {
+      "root": {
+        "styles": {
+          "width": 24,
+          "height": 24
+        }
+      },
+      "progressBar": {
+        "styles": {
+          "top": "12.5%",
+          "bottom": "12.5%",
+          "start": "12.5%",
+          "end": "12.5%",
+          "fillColor": "#1E1EFF"
+        }
+      }
+    }
+  },
+  "variants": [
+    {
+      "configuration": {
+        "size": "xl"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "width": 64,
+            "height": 64
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "lg"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "width": 56,
+            "height": 56
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "md"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "width": 48,
+            "height": 48
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "sm"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "width": 36,
+            "height": 36
+          }
+        }
+      }
+    },
+    {
+      "configuration": {
+        "size": "xs"
+      },
+      "elements": {
+        "root": {
+          "styles": {
+            "width": 32,
+            "height": 32
+          }
+        }
+      }
+    }
+  ],
+  "invalidVariantCombinations": [],
+  "metadata": {
+    "author": "Adam Forrester",
+    "lastUpdated": "2026-09-06T12:51:24.370Z",
+    "generator": {
+      "url": "https://www.figma.com/community/plugin/1549454283615386215/specs-2-formerly-anova",
+      "version": "1.18.0",
+      "name": "Specs 2",
+      "license": {
+        "status": "none",
+        "level": "FREE"
+      }
+    },
+    "schema": {
+      "url": "https://raw.githubusercontent.com/DirectedEdges/specs/specs-schema@0.31.0/packages/schema/schema/component.schema.json",
+      "version": "0.31.0",
+      "latest": "https://raw.githubusercontent.com/DirectedEdges/specs/main/packages/schema/schema/component.schema.json"
+    },
+    "source": {
+      "pageId": "5332:2337",
+      "nodeId": "5332:2407",
+      "nodeType": "COMPONENT_SET"
+    },
+    "conventions": {
+      "figma": {
+        "naming": "NONE",
+        "subcomponents": {
+          "scope": "NESTED",
+          "match": ["{C} / _ / {S}"]
+        },
+        "slotConstraints": false,
+        "inferNumberProps": false
+      }
+    },
+    "settings": {
+      "spec": {
+        "format": "JSON",
+        "keys": "CAMEL",
+        "layout": "LAYOUT",
+        "tokens": "TOKEN",
+        "color": "HEX",
+        "variantDepth": 9999,
+        "details": "LAYERED",
+        "collapsePrimitiveWrapper": false,
+        "invalidVariants": false,
+        "invalidCombinations": true,
+        "emptyVariants": false,
+        "defaultSlotContent": false,
+        "splitComponents": true,
+        "splitConcerns": true,
+        "useSubfolders": true
+      }
+    }
+  }
+}
