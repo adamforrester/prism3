@@ -138,6 +138,34 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.58.0: three glyphs join the icon set — `play-circle`, `pause-circle` and `image` (media / content).
+ * The two circle-enclosed transport glyphs are the owner's verbatim Remix paths (play-circle-line,
+ * pause-circle-line); `image` is Remix's `image-line` (the mountain + sun placeholder), normalized to
+ * the set's `fill="currentColor"` single-path 0 0 24 24 header. `emit-icons.ts` regenerates
+ * `icon-glyphs.ts`, so `IconName` grows 40 → 43, `ICON_PATHS` gains three entries and `ICON_FILL_RULES`
+ * is unchanged (none of the three declares a non-default winding rule).
+ *
+ * ONE MOVE, ENGINE ONLY — the SAME case as 0.47.0 (#1012, "a 40th glyph joins the set"), and worth
+ * restating because the task that requested this expected a CONTRACT MINOR and the tooling disagrees.
+ * The projected component SURFACE grows: `icon` gains three members, so `schema/component-surface.json`
+ * moves 40 → 43 and `lint-component-surface --accept` restamps it (which is why the ENGINE bump is owed
+ * and that gate refuses the accept until it is made). The token layer does not move — `regen --check`
+ * is byte-identical but this file's own generator stamp — so this is an ENGINE bump the `out/` diff
+ * cannot fully see, demanded from the projected-surface side (#1252's case).
+ *
+ * `CONTRACT_VERSION` STANDS at 9.4.0, exactly as 0.47.0 decided and for the same reason: `CONTRACT_VERSION`
+ * governs the guaranteed TOKEN-NAME surface — the color/dimension paths every brand emits — and a glyph
+ * name is not a token path. Confirmed by the requested mutation test, which FALSIFIED the "the new names
+ * are contract surface" hypothesis rather than confirming it: with the three glyphs added and no version
+ * change, `token-contract.ts --check` reports the guaranteed set byte-identical (577 → 577) and passes at
+ * 9.4.0; and raising `CONTRACT_VERSION` to 9.5.0 makes `--accept` REFUSE — *"this change is NONE but
+ * CONTRACT_VERSION is still 9.5.0 (baseline 9.4.0)"* — so 9.5.0 cannot be recorded without inventing a
+ * token-path change that does not exist. The vocabulary growth is carried where it belongs: the projected
+ * component-surface baseline (40 → 43, ENGINE-gated) and the `icon.name` component-API contract that
+ * `docs/30` and `icon-set.ts` describe (adding a name there is MINOR, removing/renaming MAJOR), neither of
+ * which is the token-name contract this const versions. The baseline's informational `engineVersion` stamp
+ * is refreshed by `--accept` to track the ENGINE bump above, at contract 9.4.0 unchanged.
+ *
  * 0.57.0: the text-string component property is `Label` / `Message`, not `children` (#1242). Every def
  * whose text property was keyed `children` — the button family (button / button-destructive /
  * button-neutral, one `makeButton` factory), `field-label`, and `field-message` — is swept off the
@@ -1480,7 +1508,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.57.0';
+export const ENGINE_VERSION = '0.58.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

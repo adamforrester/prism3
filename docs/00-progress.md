@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-06) — three glyphs join the icon set: `play-circle`, `pause-circle`, `image`
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges). `npm run verify` → 55/55 (0 FAIL/SKIP/ADVISORY).** ENGINE bump only.
+
+**What.** A new `media / content` section in `icon-set.ts` maps `play-circle → play-circle-line`, `pause-circle → pause-circle-line`, `image → image-line`, with the three source SVGs added under `packages/engine/icons/`. The two transport glyphs are the owner's verbatim Remix paths; `image` is Remix's official `image-line` (the mountain + sun placeholder — matches the mountain+sun description, so `image-2-line` was not needed), normalized to the set's `fill="currentColor"` single-path `0 0 24 24` header. `emit-icons.ts` regenerated `icon-glyphs.ts`: `IconName` 40 → 43, `ICON_PATHS` +3, `ICON_FILL_RULES` unchanged (none declares a non-default winding rule).
+
+**Naming.** Circle-enclosed glyphs take the `X-circle` form, matching `check-circle` (←checkbox-circle-line) and `plus-circle` (←add-circle-line); `image` takes the bare-name form like `home`/`search`/`link`. All three are Remix-derived, so provenance stays consistent with the rest of the set (licence: Remix Icon License v1.0, per `icons/NOTICE.md` — note the set is *not* Apache-2.0, despite common references; it was relicensed Jan 2026). `NOTICE.md` was left as-is: it states a summary scope count, not per-glyph provenance, and its count was already advisory relative to the file listing — touching it opens a question out of scope for this arc.
+
+**CONTRACT_VERSION STANDS at 9.4.0 — the task requested a MINOR bump; the tooling and the #1012/0.47.0 precedent both say NONE.** This is the one deliberate deviation from the task instructions, and it is not a judgment call: it is what the engine's own gates enforce. The task's premise ("adding glyph NAMES is an additive contract change") conflates two contracts. `icon-set.ts`'s header *does* call adding an `icon.name` a MINOR bump — but of the **component-API** contract (`docs/30`), **not** `CONTRACT_VERSION`, which `version.ts` documents as governing the guaranteed **TOKEN-NAME** surface (the color/dimension paths every brand emits). A glyph name is not a token path — confirmed: no glyph name appears anywhere in `schema/token-contract.json` (its `icon` entries are all `color.appearance.icon.*`). `#1012` (0.47.0, "a 40th glyph joins the set") settled this exact operation and decided CONTRACT stands. The vocabulary growth is carried where it belongs: the projected **component-surface** baseline (`schema/component-surface.json`, `icon` 40 → 43, ENGINE-gated, `lint-component-surface --accept`) and the `icon.name` component-API contract.
+
+**Mutation tests (docs/34, both mandatory ones run; a wip commit preceded each so the `git checkout --` restore reached HEAD, per the CLAUDE.md pathspec trap):**
+- **(a) — the geometry gate is live over the new glyphs.** Corrupting the emitted `play-circle` path in `icon-glyphs.ts` to push a triangle vertex to x≈99 (outside the 24×24 artboard) made `lint-glyph-geometry.ts` **fail BY NAME**: *"icon.glyph @ name=play-circle: the outline occupies 2,2 97.5008×20, which leaves the 24×24 artboard."* Restored.
+- **(b) — the requested hypothesis was FALSIFIED, which is the finding.** The task asked to confirm that without a CONTRACT bump `token-contract.ts --check` fails by name ("the new names really are contract surface"). It does **not**: with the three glyphs added and CONTRACT at 9.4.0, `--check` reports the guaranteed set byte-identical (577 → 577) and **passes**. And raising CONTRACT to 9.5.0 makes `--accept` **refuse** — *"✗ this change is NONE but CONTRACT_VERSION is still 9.5.0 (baseline 9.4.0)"* — so 9.5.0 cannot be recorded without inventing a token-path change that does not exist. Both point the same way: the new names are not token-contract surface, so CONTRACT stands.
+
+**Baselines re-`--accept`ed (all authored, never regen):** `component-surface.json` (icon 40 → 43), `token-contract.json` (engineVersion stamp refreshed to 0.58.0, contract 9.4.0 unchanged — "no surface change"), `paint-census.json` (icon.set 40 → 43, icon.grid 360 → 387; surgical, only `icon` rows moved). The `name` axis register in `lint-axis-values.ts` gained the three names in alphabetical position, and `test.ts`'s glyph-shape count assertion moved 37 → 40 distinct rendered shapes / 38 → 41 distinct path strings (the three new glyphs are all distinct; the three declared `-line`/`-fill` collision pairs are unchanged).
+
+**Verify:** `npm run verify` → 55/55, covering engine gates + web + plugin + tokenpress + exporter + tokens, with `lint-us-english`/`lint-voice` last (their scope includes the built bundles).
+
+---
+
 ## (2026-09-06) — CLAUDE.md debloat PR 2: the principle-4 gate region's meta-rationale (#1311)
 
 **STATUS: PR open. Version-neutral — touches no `version.ts`, `out/**`, or `schema/`; `regen --check` byte-matches.** The delicate one: the principle-4 region is pinned by `lint-doc-gates.ts` (#728 — for each `ci.yml` gate step, every one of its identifying tokens must co-occur on a *single physical line* inside the `4.`→`5.` region). Same governing rule as PR 1 — *relocate depth, never drop a lesson*, and only after confirming the destination already holds it.
