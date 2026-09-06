@@ -7,6 +7,76 @@
 
 ---
 
+## (2026-09-05) — the text-string property stops being `children` and starts being a designer's word (#1242)
+
+**STATUS: shipped. `ENGINE_VERSION` 0.56.0 → 0.57.0; `CONTRACT_VERSION` stands at 9.4.0.** Rebased onto
+main after #1307 (checkbox-control) and #1308 (icon-button split) landed ahead of it; re-stamped 0.55.0 → 0.57.0
+(strictly forward of main's 0.56.0). The rename is orthogonal to both — icon-buttons carry no text property and
+checkbox's text is unaffected — so the only overlap was the shared version/schema/test/docs files. `npm run verify` **55/55**. The button family (button / button-destructive /
+button-neutral, one `makeButton` factory), `field-label`, and `field-message` had their text-string
+component property keyed `children`. `children` is the React idiom for slotted content, and the projector
+uses the `figmaProperties.texts` KEY verbatim as the Figma component-property NAME — so a designer opening
+the properties panel met `children`, a word about React on a surface for designers. Renamed to the word each
+component's text actually is: **`Label`** for the button (owner-recommended) and for `field-label` (a field
+label's text IS a label), **`Message`** for `field-message` (a validation caption is a message, not a
+label — and the name that def's own comment had wanted, see below).
+
+**THE PROP NAME AND THE PANEL NAME ARE ONE NAME — that is the whole finding, and the "React-ism leaking"
+mechanism.** `figmaPropertyErrors` validates every `texts` key against `props[].name`, so the Figma-facing
+property name cannot diverge from the code-side prop name; `children` reached the panel *because* the two
+are the same string. So the rename is one edit expressed in two places per def (the `prop` and the `texts`
+key), moving in lockstep — not a choice to also touch the code API. `field-message`'s own comment recorded
+this coupling as a loss ("`Message`/`Icon` … are two errors, not two nicer names"); removing the React-ism
+is exactly what lets that def finally take the meaningful name it first reached for, so its comment is
+updated rather than left contradicting the code.
+
+**THE SWEEP IS NOT "all → `Label`".** "Rename consistently" means consistently off the React-ism, to a name
+that means something to a designer — uniform `Label` on a validation caption would replace one designer-facing
+wrongness with another. Button and field-label take `Label`; field-message takes `Message`. Capitalized to
+match the panel register (Figma property names read as display strings; the field-message comment's own
+first instinct was capital `Message`), accepting that the coupling carries that capitalization onto the
+code-side prop too.
+
+**CODE-CONNECT / CONTRACT FINDING (the issue asked for this explicitly).** No Code Connect mapping exists to
+break: Code Connect is a FUTURE, auto-generated projection (`docs/19` §5, filed **#258** — "the spec knows
+both the Figma component and the code component, so the mapping is derived"). Swept the repo — there is no
+hand-authored `.figma.tsx` / `figma.config.*` whose `props: { … }` would now dangle. Because the mapping is
+derived from this one def, renaming the property here IS the mapping moving, and a by-name generator stays
+trivial (Figma property and prop remain one name). There is likewise **no committed component-property-name
+contract**: `CONTRACT_VERSION` versions the guaranteed TOKEN-NAME surface, and `docs/30` puts the
+component-API surface (prop names, and by the coupling the Figma property names) deliberately outside it, as
+it does the code-side prop API. So this is **ENGINE, not CONTRACT** — the same shape as a glyph name (0.47.0).
+
+**WHY ENGINE BUMPS AND `lint-emission-version` CANNOT SEE IT.** The token layer does not move: `regen --check`
+is byte-identical but this file's own generator stamp (the whole `out/` diff is 8 lines, `0.54.0 → 0.55.0`).
+The property name rides on each member's plan (`propertyRef.prop`), so `planStamp` moves and
+`schema/component-surface.json` was re-`--accept`ed — 5 defs drifted at identical member counts
+(button/destructive/neutral 432, field-label 24, field-message 4), which is the property name being the
+only thing that moved. Component payloads are not committed under `out/`, which is the gap
+`lint-component-surface` (#1252) exists to cover.
+
+**GATE INDEPENDENCE (docs/34).** The projected property name is compared against a hand-written literal,
+independent of the def, in `test.ts`. `field-message` had NO property-name gate before — a rename there
+would have been silent — so two named assertions were added (the declared prop is `Message` and NOT
+`children`; the projected TEXT property is `Message`). Mutation battery, committed before each, restored
+`git checkout` after each:
+
+| # | mutation (the SUBJECT def) | gate that failed, by name |
+|---|---|---|
+| 1 | button `Label` → `children` (prop + texts key) | `test.ts` — 9 named, incl. "set properties: the TEXT placeholder comes from the def", names list `[children, leadingVisual]`, `["…","children:TEXT"]` |
+| 2 | field-message `Message` → `children` | `test.ts` — the 2 new FieldMessage assertions, and ONLY those |
+| 3 | field-label `Label` → `children` | `test.ts` — "component: FieldLabel requires text + binds a semantic text ROLE per tone" |
+| 4 | button `Label` → `children` | `lint-component-surface.ts` — `surface/button` (+ destructive + neutral) DRIFTED, by name |
+
+**FOLLOW-UP FILED.** The capitalization tension is real: the coupling means a designer-facing `Label` (or
+`Message`) also capitalizes the code-side prop, where an idiomatic React prop would be lowercase `label`.
+Decoupling — a separate Figma-display-name field on `texts` so the panel name and the prop name can differ —
+is deliberately OUT of scope here (one concern per PR; it contradicts the current, documented "the KEYS are
+PROP names" decision and needs its own gate-independence design). Filed as **#1309** rather than left in
+this prose.
+
+---
+
 ## (2026-09-05) — icon-button's `intent` axis splits into three sibling components (#1225)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.55.0 → 0.56.0; `CONTRACT_VERSION` stands at 9.4.0.** The icon-only

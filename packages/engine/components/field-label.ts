@@ -26,7 +26,9 @@ export const fieldLabel: ComponentDef = {
     'The visible, persistent label above a form field — the field\'s accessible name — with an optional required/optional indicator and a size that pairs with the control. A shared field part: the same component above every field control. Static top-aligned by default (the practice default; floating labels are out of favor).',
 
   props: [
-    { name: 'children', type: 'string | node', required: true, description: 'The label text — a noun phrase, sentence case, ≤3 words, no trailing colon ("Email address", not "Enter your email address here").' },
+    // #1242 — `Label`, not `children`. See `button.ts`: the prop name is the Figma property name a
+    // designer reads (`figmaProperties.texts` keys against `props`), and a field label's text IS a label.
+    { name: 'Label', type: 'string | node', required: true, description: 'The label text — a noun phrase, sentence case, ≤3 words, no trailing colon ("Email address", not "Enter your email address here").' },
     { name: 'htmlFor', type: 'string', required: true, description: 'The id of the field it names — a native <label for>. Set by the host when composed inside TextField (useId).' },
     { name: 'indicator', type: "enum: 'none' | 'required' | 'optional'", values: ['none', 'required', 'optional'], default: 'none', required: false, description: 'The required/optional marker. Mark the MINORITY consistently within a form (§7): "(optional)" when most are required, a required marker when most are optional. Never the sole signal — the field also carries required/aria-required.' },
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size. THREE steps as of #872, converging with `text-field` and `textarea`, which have declared small/medium/large since tranche 1 — #872 deferred the third rung to the substrate ("they must agree, and field-label cannot answer alone") and the substrate has since answered. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
@@ -283,7 +285,9 @@ export const fieldLabel: ComponentDef = {
     variantAxes: ['size', 'tone', 'weight'],
     stateAxis: { name: 'state', values: ['rest', 'disabled'] },
     texts: {
-      children: { part: 'text', default: 'Email address' },
+      // `Label` not `children` (#1242) — this key is the designer-facing Figma property name and is
+      // validated against `props`, so it renames with the prop above.
+      Label: { part: 'text', default: 'Email address' },
       indicator: { part: 'indicator', default: '(optional)' },
     },
     booleans: {},

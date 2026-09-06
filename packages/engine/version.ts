@@ -138,6 +138,43 @@
  * than this comment asserting it. Worth stating plainly, because a change that alters which values a
  * consumer resolves while moving no name is precisely the case the two-version split exists for.
  *
+ * 0.57.0: the text-string component property is `Label` / `Message`, not `children` (#1242). Every def
+ * whose text property was keyed `children` — the button family (button / button-destructive /
+ * button-neutral, one `makeButton` factory), `field-label`, and `field-message` — is swept off the
+ * React-ism. `children` is the React idiom for a component's slotted content, and the projector uses the
+ * `figmaProperties.texts` KEY verbatim as the Figma component-property NAME (`planSetProperties`), so a
+ * designer opening the properties panel met `children` — a word about React, on a surface for designers.
+ * Owner-recommended `Label` for the button; `field-label`'s text IS a label, so it takes `Label` too;
+ * `field-message`'s text is a MESSAGE, so it takes `Message` (the meaningful name that def's own comment
+ * had wanted and the coupling used to forbid) rather than mislabelling a validation caption "Label".
+ *
+ * THE PROP AND THE PANEL NAME ARE ONE NAME, which is the whole finding. `figmaPropertyErrors` validates
+ * every `texts` key against `props[].name`, so the Figma-facing property name cannot diverge from the
+ * code-side prop name — the React-ism was leaking precisely because the two are the same string. The
+ * rename therefore moves BOTH the prop and the `texts` key together in each def; they are not two edits
+ * but one, enforced.
+ *
+ * NO CODE CONNECT MAPPING EXISTS TO BREAK. Code Connect is a FUTURE, auto-generated projection (docs/19
+ * §5, filed #258) — "the spec knows both the Figma component and the code component, so the mapping is
+ * derived". Because the mapping is derived from this one def, renaming the property here IS the mapping
+ * moving; there is no separately-authored `.figma.tsx` in the repo (confirmed by sweep) whose hand-written
+ * `props: { … }` would now dangle. A generator that maps by name stays trivial: the Figma property and the
+ * prop remain one name.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision, and the same case as a glyph name (0.47.0). The token
+ * layer does not move — `regen --check` is byte-identical but this file's own generator stamp, and
+ * `CONTRACT_VERSION` stands at 9.4.0: `CONTRACT_VERSION` versions the guaranteed TOKEN-NAME surface, and a
+ * component-property name is a component-API name, which docs/30 puts deliberately outside it (as the
+ * code-side prop API is). What moves is the PROJECTED COMPONENT SURFACE: the property name rides on each
+ * member's plan (`propertyRef.prop`), so `planStamp` moves and `schema/component-surface.json` is
+ * re-`--accept`ed (authored baseline, never regen). `lint-emission-version` is blind to it — component
+ * payloads are not committed under `out/` — which is exactly the gap `lint-component-surface` covers.
+ *
+ * CAUGHT BY NAME, both directions (docs/34). `test.ts` compares each projected property name against a
+ * hand-written literal, independent of the def: the button set's properties are `['Label', 'leadingVisual']`
+ * (and the TEXT prop is `Label` / `Label:TEXT`), `field-label`'s required text prop is `Label`, and
+ * `field-message` projects a TEXT property named `Message` (a new assertion — that def had no property-name
+ * gate before). Mutating any `texts` key back to `children` fails the named assertion, not merely the suite.
  * 0.56.0: `icon-button`'s `intent` axis is SPLIT into three sibling COMPONENTS (#1225) — `icon-button`
  * (primary), `icon-button-destructive`, `icon-button-neutral` — the icon-only counterpart of #1223/#1224's
  * Button split, built by a `makeIconButton` factory from one shared anatomy. Intent stops being a variant
@@ -1443,7 +1480,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.56.0';
+export const ENGINE_VERSION = '0.57.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
