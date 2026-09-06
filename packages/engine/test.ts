@@ -13203,8 +13203,8 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       const c = canonicalShape(ICON_PATHS[n]);
       byShape.set(c, [...(byShape.get(c) ?? []), n].sort());
     }
-    ok(byShape.size === 37,
-      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 37 distinct RENDERED shapes (got ${byShape.size}) — 38 distinct path STRINGS, so string comparison is off by one`);
+    ok(byShape.size === 40,
+      `glyph-shape: the vocabulary's ${ICON_NAMES.length} names draw 40 distinct RENDERED shapes (got ${byShape.size}) — 41 distinct path STRINGS, so string comparison is off by one`);
     const groups = [...byShape.values()].filter((g) => g.length > 1).map((g) => g.join('|')).sort();
     ok(groups.join(' , ') === 'close|close-filled , minus|minus-filled , plus|plus-filled',
       `glyph-shape: and they are exactly the three -fill/-line pairs the source set draws identically (got [${groups.join('] [')}]) — a count of three would also pass on three collisions somewhere else`);

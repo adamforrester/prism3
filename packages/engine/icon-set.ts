@@ -161,6 +161,16 @@ export const ICON_SOURCES: Record<string, string> = {
   link: 'link-m',
   'external-link-filled': 'external-link-fill',
 
+  // ── media / content ───────────────────────────────────────────────────────────────────────────
+  // Circle-enclosed transport glyphs take the `X-circle` form, matching `check-circle` (checkbox-
+  // circle-line) and `plus-circle` (add-circle-line) — the enclosure is in the name because the
+  // consumer sees a disc, not because Remix files it under a transport folder. `image` takes the
+  // bare-name form like `home`, `search` and `link`: it is one glyph with no enclosure to name and
+  // no line/fill split we carry. All three are Remix-derived, same as the rest of the set.
+  'play-circle': 'play-circle-line',
+  'pause-circle': 'pause-circle-line',
+  image: 'image-line',
+
   // ── placeholder ───────────────────────────────────────────────────────────────────────────────
   // The FPO ("for placement only") default glyph — a lettered disc shown wherever a name has not been
   // chosen yet, so an unresolved icon reads as DELIBERATELY unset rather than as a missing asset. It is
