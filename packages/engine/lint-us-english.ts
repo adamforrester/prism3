@@ -62,6 +62,18 @@
  * `description` and `note` fields were never comments. Those are a separate defect with a separate
  * owner (#947), not a consequence of the open decision.
  *
+ * ── #968: THE "GATE CANNOT SEE THE EXEMPTION" PREMISE IS FALSE (relocated from CLAUDE.md) ────────
+ *
+ * The OPEN paragraph above — and an earlier version of CLAUDE.md's US-English line, and this header —
+ * justified narrowing the comment carve-out with *"a bundle cannot tell a comment from a string, so an
+ * exemption this gate cannot see is not enforceable."* That premise is false. `lint-voice.ts`'s
+ * `stripLineComments` is the counterexample: it blanks whole-line `//` comments in a built `.js` bundle
+ * BEFORE scanning, so a gate over a bundle can and does tell a comment from shipped prose. The real
+ * reason `apps/studio/src` (#464) and `packages/engine/components/*.ts` (#849, now DECIDED: in scope)
+ * are gated is empirical — their prose demonstrably ships — not that the gate is blind to the comment/
+ * prose distinction. The `description`/`note`/`aria` fields were never comments to begin with, so a
+ * `stripLineComments`-style pass would not exempt them regardless.
+ *
  * SCOPE. Everything shipped is gated, and as of this pass that includes the two surfaces previously
  * carried as "reported, never fatal": the hand-authored `theme-schema.json` contract and the engine
  * README. Both are now converted (owner decision), so the open-decision carve-out that CLAUDE.md

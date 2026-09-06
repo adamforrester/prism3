@@ -7,6 +7,30 @@
 
 ---
 
+## (2026-09-06) — CLAUDE.md debloat, disposition groups 1/2/4/6 + a new operating-agreement principle (#1311)
+
+**STATUS: PR open. Version-neutral — touches no `version.ts`, `out/**`, or `schema/`; `regen --check` byte-matches.** A depth-removal-only groom of the root `CLAUDE.md`, continuing the `docs/43` proposal one disposition group at a time. The governing rule was *relocate depth, never drop a lesson*: for each narrative removed, the destination was confirmed to already hold it (or the depth was added there first).
+
+**What moved, and where its depth now lives:**
+
+- **Worktree/`--prefix` paragraph** — trimmed to the terse prohibition ("never point a package manager at a linked `node_modules` — not `--prefix`, not `--no-save`; a worktree gets `npm ci`, never a bare install") plus a pointer to the hook header, `docs/00-progress.md` (2026-08-14) and `.claude/commands/review-pr.md`. Removed: the "emptied 12 scoped directories from a single `--prefix` install on 2026-08-14" numeral and incident narrative. **Confirmed resident** in the 2026-08-14 progress entry ("A package manager run inside a worktree emptied 12 scoped directories…", with the 292-packages-pruned / 252→18-links measurements) and in `.claude/hooks/session-start-npm-ci.sh`'s header.
+
+- **Squash-merge paragraph** — kept the rule (land corrections as a follow-up PR; compare trees with `git log --oneline origin/main..<branch>` + `git diff`, not `--force-with-lease`), the one checkable signal (`* [new branch]` = a recreated squash-merged+deleted branch), and the `PostToolUse` hook note. Removed only the "(three races on 2026-08-12, the catch on 2026-08-14)" parenthetical. **Confirmed resident** in the 2026-08-14 `[new branch]` entry and referenced by the 2026-08-23 (#927) entry.
+
+- **US-English paragraph** (the file's largest naming-convention line) — kept the rule, the verbatim "**A false positive is fixed by adding to `NOT_EN_GB`, never by narrowing a scan**", the comment carve-out (`apps/studio/src` #464; `packages/engine/components/*.ts` shipping into `apps/plugin/dist` #849), and the verbatim anti-drift hand-off ("the gate's own header carries the full trap list and the current instance count; read it before touching either scan"). Removed: the enumerated three-file list (`payload-manifest.json`, `nb-measured.json`, `theme-schema.example.json`), the `#807` schema-classification narrative, and the `stripLineComments`/#968 counterexample. The three-file narrative already lived in `lint-schema-classification.ts`'s header; the **#968 correction** ("the *gate cannot see the exemption* premise is false — `lint-voice.ts`'s `stripLineComments` is the counterexample") existed only in `CLAUDE.md`, so it was **added to `lint-us-english.ts`'s header before removal** — the one place the old header still carried the falsified premise.
+
+- **`docs/00-progress.md`-in-the-PR paragraph** — dropped the illustrative `#306, #312, #315` numbers (owner-approved); rule unchanged.
+
+- **New principle 6 — "Autonomous arcs and the decision boundary"** — added verbatim after principle 5 in "Working principles". States the arc model, the design-vs-technical decision boundary (design decisions are the owner's; a fix carrying a design choice stops and flags), the non-negotiable safety net (independent verification + independent review + green CI + a mutation that fails by name), and keeping the owner oriented.
+
+**Left alone deliberately** (separate PRs own them): line 44's braided pathspec / mutation-testing / `EXPECTED_ARTIFACTS` paragraph, and the entire principle-4 gate region (the `npm run verify` bullet and the per-surface gate-token bullets `lint-doc-gates.ts` pins to `ci.yml`). No section heading or the `4.`/`5.` principle boundaries were renamed; the layer table is untouched; no dated migration window was written (so `lint-advisory-expiry.ts` stays dormant).
+
+**`docs/43` updated** — its §4 disposition table now records rows 3 and 6 (US-English half) as landed and notes principle 6 was added.
+
+**Verify:** `npm run verify` → 55/55 (0 FAIL/SKIP), with attention to `lint-doc-gates`, `lint-us-english`, `lint-voice`, `lint-progress-order`, `lint-layout-claims`, `lint-advisory-expiry`.
+
+---
+
 ## (2026-09-05) — the text-string property stops being `children` and starts being a designer's word (#1242)
 
 **STATUS: shipped. `ENGINE_VERSION` 0.56.0 → 0.57.0; `CONTRACT_VERSION` stands at 9.4.0.** Rebased onto
