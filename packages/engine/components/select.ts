@@ -183,16 +183,16 @@ export const select: ComponentDef = {
 
   // ── ANATOMY — a column composing the two nested field parts around the control box ───────────────
   //
-  // root (column) → nested FieldLabel · control (the bordered box) · nested FieldMessage. The focus ring
-  // is an absolute sibling of the control's contents, rings the control, and appears only on
+  // container (column) → nested FieldLabel · control (the bordered box) · nested FieldMessage. The focus
+  // ring is an absolute sibling of the control's contents, rings the control, and appears only on
   // focus-visible. The control box holds a `content` wrapper (leading glyph + value text) that FILLS,
   // pushing the trailing chevron to the field's end.
   anatomy: {
-    root: 'root',
+    root: 'container',
     parts: {
       // The stack. Structure only — it paints nothing (no `paintSlots`); the ink lives on the control
       // and on the two nested parts. Fills its column so the control and message span the field's width.
-      root: {
+      container: {
         kind: 'box',
         layout: { direction: 'column', align: 'start', justify: 'start', sizing: { x: 'fill', y: 'hug' } },
         gap: 'root-gap',
@@ -250,8 +250,8 @@ export const select: ComponentDef = {
         note: 'An optional purpose glyph before the value, aria-hidden. Absent by default; the caller nominates the icon.',
       },
       // THE DISPLAYED TEXT — placeholder or value. `paintSlot` is the default `label`, which the paint
-      // grammar re-points: `label` (bare) is the muted placeholder ink, `label.filled` the full-contrast
-      // value ink at the `filled` state.
+      // grammar re-points: `label` (bare) is the full-contrast value ink, `label.empty` the muted
+      // placeholder ink at the `empty` state (see the `tokens` block — there is no `filled` state).
       text: {
         kind: 'text',
         type: 'type',
@@ -366,6 +366,9 @@ export const select: ComponentDef = {
     composesWith: ['field-label', 'field-message', 'focus-ring', 'icon', 'form'],
     alternativeTo: ['text-field', 'combobox', 'radio', 'checkbox', 'segmented-control', 'menu'],
     supersedes: ['a bare <select> with no label wiring', 'placeholder-as-label'],
+    // Nothing supersedes the select — combobox / radio / text-field are sibling alternatives chosen by
+    // intent and scale, not replacements.
+    supersededBy: [],
   },
 
   notes: {

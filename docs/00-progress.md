@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-07) — component-consistency pass: `select` projection alignment + the boolean-prop naming canon (#1326)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.63.0 → **0.64.0** (0.61/0.62/0.63 spent by select / image-placeholder / icon-count building alongside; forward-only, next free integer above main). **CONTRACT stands at 10.0.0** — no token name moved; a component-property name and an anatomy part-key name are component-API surface, which `docs/30` keeps outside the guaranteed token-NAME surface.
+
+**What, and why it is decision-free.** Every change is either mechanical or was DECIDED by the owner in #1326 (the 2026-09-07 component-consistency audit, verdict "one coherent system"). Two groups.
+
+**Group A — `select` was the one def out of step with its siblings.** (1) A STALE `text`-part `//` comment described a `label.filled` binding at a `filled` state the def never had; the `tokens` block re-points the value ink at the `empty` state (`label` bare = the full-contrast value, `label.empty` = the muted placeholder) and the part's own `note` already said so. Reconciled the comment to the `empty`-model reality. (2) The root part key `root` → `container`. Every other def names its root part semantically (button/icon-button `container`; checkbox/radio/switch `row`; field-label `label`; focus-ring `ring`; icon `glyph`; image-placeholder `frame`; veil `wash`); `select` alone carried the bare `root`. `container` is the existing key that fits a column stack — not `row`, which would misdescribe a column — following button/icon-button rather than inventing a name. (3) `composition.supersededBy: []` added, for shape parity with the current defs that pair `supersedes` with an explicit `supersededBy` (checkbox / checkbox-control / image-placeholder / veil). None of the three encoded a design choice — each is a mechanical alignment to the prevailing convention derived by inspecting all of `components/*.ts`.
+
+**Group B — the boolean-prop naming canon (#1326 decision 2).** DOM-backed booleans are BARE, synthetic-state booleans are `is`-prefixed. Exactly the concrete renames the decision names, no others: `switch` `isReadOnly` → `readOnly` and `pending` → `isPending`; `button` / `icon-button` / `field-label` `isDisabled` → `disabled` (their `isPending` / `isInactive` stay `is`-prefixed — synthetic). Prose references to each renamed prop within its own def were updated with it (a `disabled` prop with prose still saying `isDisabled` is the same stale-reference class as A1). The switch header's `pending` references are the STATE, which is not renamed, so they stand.
+
+**Only `select`'s Figma surface moved, and only from the part-key rename.** The part key reaches the plan as a node name, so `root` → `container` moved `select`'s `planStamp` digest (same 40 members, different digest) and its paint-census node paths — `lint-component-surface.json` and `paint-census.json` both re-`--accept`ed, authored baselines never regen. The boolean-prop renames are code-side React prop names that `figmaAnatomySet` does not project (`lint-component-surface`'s stated limit 3), and both switch booleans map to `codeOnly` states rather than the projected state axis — so Group B moves NO Figma surface, which both surface gates confirm (only `select` drifted). The A1 comment fix edits a `//` comment, not a plan field, so it moves nothing.
+
+**No rename registry entry is owed.** `DEPRECATIONS` is token-PATH only; `MATERIALIZATION_RENAMES` is Figma-COLLECTION only. A component-property rename is neither, and both gates pass with 0 claims — so nothing is registered (the task's "let the gates dictate" rule, and they demanded nothing).
+
+**Versioning.** `token-contract.ts --check` confirms 10.0.0 stands (577 guaranteed paths byte-identical); `--accept` refreshed only the baseline's informational `engineVersion` stamp 0.63.0 → 0.64.0 — the one-line refresh every ENGINE bump requires, and the reason `token-contract --check` flips to a fail on any bump until it is run. `lint-emission-version` is green (the version moved with no emission change — component payloads are not committed under `out/`). `regen` restamped only each `out/` artifact's generator version.
+
+**Mutation test (docs/34, on the gate protecting the renamed surface — `lint-component-surface`).** A `wip:` commit preceded the mutation so the `git checkout --` restore reached HEAD (the CLAUDE.md pathspec trap). Reverting `select`'s root part key `container` → `root` in the def made `lint-component-surface.ts` arm A **fail BY NAME**: `surface/select: plan digest …, baseline … — the same member COUNT, projecting different plans` (member count held at 40, so the count arm stayed silent and the digest arm carried it — the intended assertion). `lint-paint`'s `census/select.set` and `census/select.grid` failed the same way. Restored; both gates clean.
+
+**Verify:** `npm run verify` → full suite, all 56 gates PASS (0 FAIL, 0 SKIP-as-pass). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-07) — stale icon-count prose corrected and gated: `version.ts`'s "set of 39 members" claim, and a `lint-icon-count.ts` drift gate (#1293)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.60.0 → **0.63.0** (0.61/0.62 spent by the select + image-placeholder components building alongside; orchestrator re-stamps at merge). **CONTRACT stands at 10.0.0** — no token name moved.

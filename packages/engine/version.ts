@@ -1703,8 +1703,47 @@
  * per sub-slot now. No VALUE moves — every emitted colour is byte-identical to 0.7.0 under a
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
+ *
+ * 0.64.0: a DECISION-FREE consistency pass over the component defs (#1326 canon), in two groups.
+ *
+ * GROUP A — component-projection consistency on `select`, the one def out of step with its siblings:
+ *   (1) a STALE `text`-part comment described a `label.filled` binding at a `filled` state that the def
+ *       never had — the `tokens` block re-points the value ink at the `empty` state (`label` bare = the
+ *       full-contrast value, `label.empty` = the muted placeholder), and the part's own `note` already
+ *       said so. A `//` comment is not part of the projected plan, so this half moves no surface.
+ *   (2) the root part key `root` → `container`. Every other def names its root part semantically
+ *       (button/icon-button `container`, checkbox/radio/switch `row`, field-label `label`, …); `select`
+ *       alone carried the bare `root`. `container` is the existing key that fits a column stack (not a
+ *       `row`), following button/icon-button rather than inventing a name. The key reaches the plan as a
+ *       node name, so THIS is the only change in the release that moves a projected surface —
+ *       `select` at 40 members, SAME count, different `planStamp` digest, re-`--accept`ed into
+ *       `schema/component-surface.json`.
+ *   (3) `composition.supersededBy: []` added, for shape parity with the current defs that pair
+ *       `supersedes` with an explicit `supersededBy` (checkbox / checkbox-control / image-placeholder /
+ *       veil). Metadata, not projected.
+ *
+ * GROUP B — the boolean-prop naming canon (#1326 decision 2): DOM-backed booleans are BARE, synthetic-
+ * state booleans are `is`-prefixed. `switch` `isReadOnly` → `readOnly` and `pending` → `isPending`;
+ * `button` / `icon-button` / `field-label` `isDisabled` → `disabled`. These are code-side React prop
+ * names; `figmaAnatomySet` does not project them (`lint-component-surface`'s stated limit 3), and both
+ * switch booleans map to `codeOnly` states rather than to the projected state axis — so the whole group
+ * moves NO Figma surface, which the surface gate confirms (only `select` drifted).
+ *
+ * ENGINE and not CONTRACT, on #1252's decision. A component-property name and an anatomy part-key name
+ * are component-API surface, which `docs/30` puts deliberately outside the guaranteed TOKEN-NAME
+ * surface — no token path is added, removed or retyped, so `CONTRACT_VERSION` STANDS at 10.0.0 and
+ * `token-contract.ts --check` confirms it (577 guaranteed unchanged); `--accept` refreshes only the
+ * baseline's informational `engineVersion` stamp to 0.64.0. No rename registry entry is owed: a
+ * component-property rename is neither a token-PATH move (`DEPRECATIONS`) nor a Figma-COLLECTION rename
+ * (`MATERIALIZATION_RENAMES`) — both gates pass with 0 claims. `regen --check` moves only each artifact's
+ * own generator stamp; `lint-emission-version` is green (the version moved with no emission change).
+ *
+ * MUTATION (docs/34, on the surface gate protecting the renamed surface): reverting `select`'s root part
+ * key `container` → `root` in the def moves its `planStamp` and fails `lint-component-surface.ts` arm A
+ * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
+ * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.63.0';
+export const ENGINE_VERSION = '0.64.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

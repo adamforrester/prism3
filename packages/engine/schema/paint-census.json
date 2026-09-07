@@ -173,12 +173,12 @@
       "set": {
         "members": 40,
         "assignments": 180,
-        "sha256": "fae57452060dcb5ce10e4a3efc0b90211f259e071c9551a7a37f70a41a5900a2"
+        "sha256": "0bc50abbcd25847e8a67ae79149a6822c18289435e74c320b0e69217598b989e"
       },
       "grid": {
         "members": 20,
         "assignments": 100,
-        "sha256": "30a085679bae31699aaabef4629845d60241d32ba0aec56e02f8ccc332c5656c"
+        "sha256": "93c3844c3d4ca6f06fcc58e3d80a9edad7ba5cd87928767a2c3f4cc65299a36f"
       }
     },
     "veil": {
