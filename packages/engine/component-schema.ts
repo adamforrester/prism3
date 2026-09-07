@@ -305,6 +305,45 @@ export type PartDef = {
    *  translucent overlay on the same node. That rule used to be a hardcoded `??` in the projector with
    *  a paragraph explaining it; as a declaration it is visible in the def that depends on it. */
   paintSlots?: readonly string[];
+  /** For `box` parts: whether the frame CROPS content that overflows its bounds — Figma's
+   *  `clipsContent` (#1316's image-placeholder). Absent means `false`, which is what every box in the
+   *  corpus was hardcoded to before this field, so an omission is unchanged behaviour rather than a new
+   *  default.
+   *
+   *  WHY IT IS A PLAN FIELD RATHER THAN A BLANKET TRUE-FOR-FRAMES. Both executors created a frame and
+   *  set `clipsContent = false` unconditionally, so a def could not ask for clipping at all — an
+   *  image-placeholder whose whole job is to hold a photograph inside its aspect-locked frame would let
+   *  a dropped raster overflow the box. Threaded from the plan, the default stays `false` for every
+   *  existing component (the plan omits the field, and both executors read `n.clipsContent ?? false`)
+   *  and only the def that opts in gets the crop. It is a `docs/865` visually-significant property, so
+   *  `apps/plugin/lint-unclaimed-defaults.ts` already carries a `clipsContent` row that this threading
+   *  keeps satisfied — the executor still WRITES the value, now from the plan rather than as a literal.
+   *
+   *  Refused on every kind but `box`, the same wrong-kind rule `paintSlots` gets and for the same
+   *  reason: only the frame-creating branch reads it, so on a text/vector/slot it would validate clean
+   *  and reach no node. */
+  clipsContent?: boolean;
+  /** For `box` parts: the name of a VARIANT axis whose values are `W:H` ratio strings, from which the
+   *  box's aspect-ratio LOCK is derived per member (#1316). image-placeholder declares `aspectRatio:
+   *  'ratio'` and a `ratio` axis of `['1:1', '4:3', '16:9']`; the projector parses the member's own
+   *  `ratio` value into a number and carries it onto the plan, and both executors resize the frame to
+   *  that proportion and call `lockAspectRatio()` so Figma DERIVES the second dimension from the first.
+   *
+   *  AN AXIS NAME, NOT A LITERAL PAIR, and that is forced by the requirement rather than a style choice.
+   *  It is modelled on `glyphViewBox`'s literal `[w, h]` in that a ratio is a proportion the def states
+   *  structurally — but a single literal cannot VARY per member, and the three ratios are three members
+   *  of one set. Naming the axis lets one field express all three: the values `1:1`/`4:3`/`16:9` ARE the
+   *  ratios, so `parseRatio` reads them rather than a def carrying a second per-variant map that could
+   *  drift from the axis it mirrors.
+   *
+   *  BINDS ONE NOMINAL DIMENSION, NEVER TWO — the whole reason the lock is expressible now. A box that
+   *  binds `width` AND `height` (or `size`, which binds both) cannot hold an aspect lock: the second
+   *  `setBoundVariable` EVICTS the first (see `anatomy-figma.ts`'s `unlockAspectRatio` note), which is
+   *  why the engine has always stripped the lock. A ratio-locked box binds the SINGLE nominal dimension
+   *  and lets the lock derive the other — so the validator refuses `aspectRatio` alongside a second
+   *  bound dimension (`width` + `height`), and requires exactly one of `size`/`width`/`height` (with
+   *  `size` the projector binds one axis from). See `anatomyErrors`. */
+  aspectRatio?: string;
   /** For `vector` parts: WHICH glyph, by its name in the icon vocabulary (#864).
    *
    *  A NAME, resolved against `ICON_PATHS` at projection — never the path data itself. Two reasons, and
@@ -548,6 +587,21 @@ export type PartDef = {
  *  Returns `[]` for an absent field so callers can test `.length` and never hold `undefined`. */
 export const replacesCandidates = (p: PartDef): string[] =>
   p.replaces === undefined ? [] : Array.isArray(p.replaces) ? p.replaces : [p.replaces];
+
+/** Parse a `W:H` aspect-ratio string (e.g. `16:9`) to the numeric proportion `W / H` (#1316). Returns
+ *  `undefined` for anything that is not two positive finite numbers separated by a single colon, so a
+ *  `ratio` variant value that does not parse is REFUSED by `anatomyErrors` rather than projecting a lock
+ *  of `NaN`. This is the one parser both the schema validator and the projector (`anatomy-figma.ts`)
+ *  read; the aspect-lock read-back gate authors its OWN ratio contract instead of importing this, so its
+ *  expectation stays independent of the code it checks (docs/34). */
+export const parseRatio = (value: string): number | undefined => {
+  const m = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/.exec(value);
+  if (!m) return undefined;
+  const w = Number(m[1]);
+  const h = Number(m[2]);
+  if (!(w > 0) || !(h > 0)) return undefined;
+  return w / h;
+};
 
 export type AnatomyDef = {
   /** The part every other part hangs beneath. */
@@ -1837,11 +1891,28 @@ export type State = (typeof STATES)[number];
  * the second reopening, two names in one change, each argued to the same bar — and the reopening is the
  * MECHANICAL FALLOUT of an owner naming the axes, not a widening of what the list admits. The bar is
  * unchanged; `value` and `intensity` clear it.
+ *
+ * ── `ratio`: THE FIFTEENTH NAME, FOR THE IMAGE PLACEHOLDER (#1316) ────────────────────────────────
+ *
+ * `ratio` (`1:1 | 4:3 | 16:9`) is the PROPORTION an aspect-locked media frame holds while its container
+ * flexes — the owner-decided axis for `image-placeholder`, held to this list's bar the same way `weight`
+ * and the veil's two were. A distinct kind of distinction no existing name expresses, and the two nearest
+ * are defeated: `size` is a scale RUNG (how big, on a named ladder a brand re-derives), and `width` is a
+ * single main-axis LENGTH (#990's non-square track) — neither is a width-to-height PROPORTION, which is
+ * what stays fixed here while the actual dimensions vary. Naming it `size` would put a shape into a scale
+ * axis whose values are dimension tokens; naming it `width` would claim it fixes one edge, when the whole
+ * point is that it fixes the RATIO and lets the lock derive both edges from one bound dimension.
+ *
+ * ITS VALUES ARE RATIOS THAT PARSE (`parseRatio`), which is the one thing this axis's values are checked
+ * for beyond `lint-axis-values.ts`'s register: `anatomyErrors` refuses a `ratio` axis whose value is not
+ * a positive `W:H`, because the lock is DERIVED from the value (`16:9` → 16/9) rather than mapped by a
+ * second per-variant table. That is the elegance the owner approved (Option A): the axis value IS the
+ * ratio. `lint-axis-values.ts` carries `['1:1', '4:3', '16:9']` as a `sole` set with this reason.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
-  'name', 'surface', 'weight', 'value', 'intensity',
+  'name', 'surface', 'weight', 'value', 'intensity', 'ratio',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */
@@ -2746,6 +2817,47 @@ const anatomyErrors = (def: ComponentDef): string[] => {
       const dupes = p.paintSlots.filter((s, i) => p.paintSlots!.indexOf(s) !== i);
       if (dupes.length)
         e.push(`anatomy part '${n}': paintSlots repeats [${[...new Set(dupes)].join(', ')}] — order is precedence, so a repeat can only ever be unreachable`);
+    }
+    // ---- `clipsContent`, the BOX kind's crop flag (#1316) ----
+    // The same wrong-kind rule `paintSlots` gets: only the frame-creating branch of each executor reads
+    // it, so on any other kind it validates clean, is silently ignored, and reaches no node.
+    if (p.kind !== 'box' && p.clipsContent !== undefined)
+      e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'clipsContent' — only a 'box' becomes a frame that can crop its overflow; every other kind is a leaf whose content is its own`);
+    // ---- `aspectRatio`, the BOX kind's proportion LOCK (#1316) ----
+    // A ratio-locked box binds ONE nominal dimension and lets Figma's aspect lock derive the other. Every
+    // rule here is a way the field would validate and then leave a member unlocked or evicted — the
+    // silent-loss shape this whole pass exists to catch.
+    if (p.aspectRatio !== undefined) {
+      if (p.kind !== 'box') {
+        e.push(`anatomy part '${n}' is kind '${p.kind}' but declares 'aspectRatio' — only a 'box' becomes a frame whose proportion can be locked`);
+      } else {
+        const axis = p.aspectRatio;
+        const declared = variantsOf(def)[axis];
+        if (!declared) {
+          e.push(`anatomy part '${n}' derives 'aspectRatio' from '${axis}', which is not one of this def's variant axes [${Object.keys(variantsOf(def)).join(', ') || 'none'}] — the projector fills the ratio from the member's coordinate, so an axis nothing supplies leaves every member unlocked`);
+        } else {
+          // THE AXIS MUST PROJECT, the same rule `presentWhen`/`positionWhen` need: the set is
+          // enumerated over `variantAxes`, so a ratio keyed on an unprojected axis is never supplied and
+          // every member of the set builds with no lock.
+          if (def.figmaProperties && !(def.figmaProperties.variantAxes ?? []).includes(axis))
+            e.push(`anatomy part '${n}' derives 'aspectRatio' from '${axis}', which figmaProperties.variantAxes does not project [${(def.figmaProperties.variantAxes ?? []).join(', ') || 'none'}] — the ratio comes from the member's coordinate, so an unprojected axis leaves every member unlocked`);
+          // Every value of the axis must be a positive `W:H` ratio, or the lock would capture NaN and the
+          // frame's proportion would be undefined — the same `NaN`-shaped silent build the parse guards.
+          for (const v of declared)
+            if (parseRatio(v) === undefined)
+              e.push(`anatomy part '${n}' derives 'aspectRatio' from '${axis}', whose value '${v}' is not a positive 'W:H' ratio (e.g. '16:9') — a lock captured from it would be NaN`);
+        }
+        // ONE NOMINAL DIMENSION, NEVER TWO — the whole reason the lock is expressible. Binding BOTH
+        // `width` and `height` is the eviction case (`unlockAspectRatio`'s note): the second
+        // `setBoundVariable` drops the first, so a locked box that binds two keeps neither. And binding
+        // NONE leaves the frame with no first extent for the lock to derive the second from. `size` binds
+        // both axes, but the projector binds only ONE from it when a ratio is present, so it counts as the
+        // single nominal dimension (see the box branch in `anatomy-figma.ts`).
+        if (p.width && p.height)
+          e.push(`anatomy part '${n}' declares 'aspectRatio' and binds BOTH 'width' and 'height' — a locked frame keeps only the last of two dimension bindings (the eviction case), so a ratio box binds ONE nominal dimension and lets the lock derive the other`);
+        if (!p.size && !p.width && !p.height)
+          e.push(`anatomy part '${n}' declares 'aspectRatio' but binds no nominal dimension — the lock derives the SECOND axis from the first, so exactly one of 'size'/'width'/'height' must give the frame that first extent`);
+      }
     }
     // ---- the vector kind (#864) ----
     // A vector's CONTENT is its geometry, so a vector naming no glyph is the empty artboard #864 was

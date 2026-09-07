@@ -211,6 +211,26 @@ export const FIELDS: Record<string, FieldCheck> = {
   },
   glyphViewBox: { reason: 'the host reports geometry, not the submitted box; the executor measures it at write time and this reader has no second opinion about size' },
 
+  // ── aspect-ratio lock (#1316) ──────────────────────────────────────────────────────────────────
+  // The plan carries the numeric proportion; the host reports it back as `targetAspectRatio`, which the
+  // executor sets by resizing the frame to the ratio and calling `lockAspectRatio()`. Compared with a
+  // tolerance because a ratio is a float (16/9), and the host's own rounding need not be bit-exact. This
+  // is the roundtrip's plan-as-oracle check (does the executor honour the plan's ratio); the INDEPENDENT
+  // contract check — that the ratio a member LOCKS is the ratio its coordinate names — lives in
+  // `test-roundtrip.ts`'s focused aspect-lock block, authored there rather than derived from the def.
+  aspectRatio: {
+    show: (p) => `targetAspectRatio ≈ ${String(p)}`,
+    check: (p, n) => {
+      const got = n.targetAspectRatio;
+      if (typeof got !== 'number') return got === undefined || got === null ? 'NOT LOCKED (no targetAspectRatio)' : str(got);
+      return Math.abs(got - (p as number)) < 1e-6 ? null : String(got);
+    },
+  },
+  clipsContent: {
+    show: (p) => `clipsContent ${String(p)}`,
+    check: (p, n) => (n.clipsContent === p ? null : str(n.clipsContent)),
+  },
+
   // ── positioning ──────────────────────────────────────────────────────────────────────────────
   absoluteInset: {
     show: () => 'ABSOLUTE',

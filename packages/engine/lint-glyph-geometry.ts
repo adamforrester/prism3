@@ -150,6 +150,16 @@ const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.das
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  'image-placeholder.marker': {
+    glyph: 'image',
+    // `at: {}` — present at EVERY coordinate, not gated by a variant. The marker is the "no image"
+    // placeholder shown on every ratio member (#1316); it is a FIXED glyph because the `ratio` axis
+    // changes the frame's PROPORTION, not its mark, so `glyph: '{ratio}'` would look for glyphs named
+    // `1:1`/`4:3`/`16:9` that do not exist. Recorded here so a future edit that swaps the marker for a
+    // different glyph, or templates it on an axis, fails as a stale record rather than passing silently.
+    at: {},
+    why: "the empty-state \"no image\" marker (#1316's `image` glyph — a mountain-and-sun placeholder). One fixed shape on every ratio member, because the ratio axis varies the frame's proportion and not its content; a designer replaces the whole frame's fill with a photograph rather than swapping this marker.",
+  },
   'checkbox-control.mark': {
     glyph: 'check',
     at: { selection: ['checked'] },

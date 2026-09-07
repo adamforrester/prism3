@@ -62,6 +62,10 @@
     "veil": {
       "members": 6,
       "sha256": "37e05f5e1964d951a67528bbb534648162599c3be5684ddf17ef10db142fe3b4"
+    },
+    "image-placeholder": {
+      "members": 3,
+      "sha256": "bae4bc994dcb54a3d040c9726de6e081a0aad4596bea9a27f664a2fa84787feb"
     }
   }
 }

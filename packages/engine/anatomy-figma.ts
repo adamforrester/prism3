@@ -23,7 +23,7 @@
  * also-pure step (`planBindingErrors`) that takes the emitted Figma variable names as a Set.
  */
 import type { ComponentDef, PartDef, SizingMode } from './component-schema';
-import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
+import { fillKey, gridColumnAxis, fillPaintKey, paintKeyPlaceholders, parseRatio, PRIMARY_PAINT_SLOTS, replacesCandidates, statesOf, variantsOf } from './component-schema';
 import type { ControlShape } from './scale';
 // The glyph vocabulary, for `vector` parts (#864). A GENERATED module rather than the `icons/*.svg` files
 // themselves, and that is a hard constraint rather than a preference: this file bundles into the Figma
@@ -328,6 +328,16 @@ export type FigmaNodePlan = {
    *  `emit-icons.ts` asserts every source is `0 0 W H`, so a non-zero origin cannot reach here without
    *  failing that gate first. */
   glyphViewBox?: [number, number];
+  /** For a `box` that carries an aspect-ratio LOCK (#1316): the numeric proportion `W / H` the frame is
+   *  locked to, parsed from the member's own `ratio` coordinate (`16:9` → 16/9). Both executors resize
+   *  the frame to this proportion and call `lockAspectRatio()`, so Figma DERIVES the second dimension
+   *  from the one nominal dimension the plan binds. Absent on every box without a ratio, which is every
+   *  box but `image-placeholder`'s root — so no existing plan moves. */
+  aspectRatio?: number;
+  /** For a `box`: whether the frame crops content that overflows it — Figma's `clipsContent` (#1316).
+   *  Carried onto the plan ONLY when `true`, so every existing box's plan is byte-identical (both
+   *  executors read `n.clipsContent ?? false`, which is the literal they hardcoded before this field). */
+  clipsContent?: boolean;
   children: FigmaNodePlan[];
 };
 
@@ -1070,6 +1080,12 @@ export const figmaAnatomyPlan = (
 
   const node = (name: string, p: PartDef): FigmaNodePlan => {
     const bound: Record<string, string> = {};
+    // THE ASPECT-RATIO LOCK for a box (#1316), as the numeric proportion parsed from THIS member's own
+    // `ratio` coordinate. Present only where the def declares `aspectRatio` and the coordinate carries
+    // that axis — a structure-only plan supplies no value and stays unlocked, which no member ever
+    // builds. `parseRatio` is the same parser the validator refuses a non-ratio value with, so a value
+    // that reached here has already been proven a positive `W:H`.
+    const aspectRatio = p.kind === 'box' && p.aspectRatio ? parseRatio(paintCoord[p.aspectRatio] ?? '') : undefined;
     // The overlay is spliced into the replaced part's POSITION, not appended — order is visual order
     // (`PartDef.children` says so), and a spinner that rendered after the label would sit on the
     // wrong side of it. `present()` has already removed the part it replaces.
@@ -1093,7 +1109,13 @@ export const figmaAnatomyPlan = (
       // aspect ratio before binding, so the second write does not displace the first. Mutually exclusive
       // with `height` (the validator enforces it), so this is an else-if in effect rather than a second
       // chance to set the same property.
-      if (p.size) { bound.width = varOf(p.size); bound.height = varOf(p.size); }
+      //
+      // A RATIO-LOCKED box binds the SINGLE nominal dimension and lets the lock derive the other (#1316):
+      // `size`'s two-axis binding IS the eviction case a lock cannot survive, so with a ratio present only
+      // WIDTH is bound and the executor's `lockAspectRatio()` supplies the height. Which axis is nominal
+      // is a def choice (`width` is the natural one for a landscape media frame); binding width here keeps
+      // `size` usable as the veil-style `nominal-side` idiom while honouring "one dimension, not two".
+      if (p.size) { bound.width = varOf(p.size); if (aspectRatio === undefined) bound.height = varOf(p.size); }
       // A NON-SQUARE box states its main axis separately (#990). Two variables rather than one, which is
       // the case the aspect-ratio unlock above was already required for: a proportion-locked frame keeps
       // whichever dimension was written last, and a 2:1 track written height-then-width would come back
@@ -1287,6 +1309,13 @@ export const figmaAnatomyPlan = (
             glyphViewBox: viewBoxDims(),
           }
         : {}),
+      // THE ASPECT-RATIO LOCK (#1316), carried as the numeric proportion so each executor can resize the
+      // frame to it and `lockAspectRatio()`. Only present where a `ratio` coordinate resolved, so no
+      // existing plan carries it.
+      ...(aspectRatio !== undefined ? { aspectRatio } : {}),
+      // The crop flag (#1316), carried ONLY when true so every existing box's plan is byte-identical —
+      // both executors read `n.clipsContent ?? false`, which is the literal `false` they hardcoded before.
+      ...(p.kind === 'box' && p.clipsContent ? { clipsContent: true as const } : {}),
       ...((p.kind === 'absolute' || p.kind === 'nest') && p.nests ? { nestTarget: p.nests } : {}),
       // The def's chosen coordinate, projected only for `nest-fixed` (#681). `nest-exposed` is the
       // consumer's to drive and `swap` has no variants at all, so neither writes a coordinate here —
@@ -2251,7 +2280,7 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     // top-left corner of the glyph. This is the one property of the import we override.
     for(const v of drawn)v.constraints={horizontal:'SCALE',vertical:'SCALE'};
   }
-  else{node=figma.createFrame();node.clipsContent=false;}
+  else{node=figma.createFrame();node.clipsContent=n.clipsContent===true;}
   node.name=n.name;
   // Before ANY dimension binding. See the header note — a locked node keeps only the last of the two.
   node.unlockAspectRatio();
@@ -2293,6 +2322,11 @@ const PAYLOAD_BUILD = `const build=async(n)=>{
     node.primaryAxisSizingMode=n.primaryAxisSizingMode;
     node.counterAxisSizingMode=n.counterAxisSizingMode;
   }
+  // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
+  // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
+  // layoutMode and before the bind loop for that reason: a lock captured from the resized box, and a
+  // single dimension bound afterward, so there is no second binding for the lock to evict.
+  if(n.aspectRatio){node.resize(n.aspectRatio,1);node.lockAspectRatio();}
   // \`wrote\` is what was ACTUALLY set, which is not the same as what the plan declared — a name that
   // does not resolve is skipped below. The read-back iterates this rather than the declaration, so an
   // unresolved name reports its one true cause instead of also claiming Figma discarded a write that
