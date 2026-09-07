@@ -13170,7 +13170,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(eq('M0 0H2V2H0Z M5 5H7V7H5Z', 'M5 5H7V7H5Z M0 0H2V2H0Z'),
       'glyph-shape: subpath ORDER does not reach the raster — fill is a set operation over the subpaths');
     ok(eq(SQUARE, 'M0 0L2 0L2 2L0 2Z'),
-      'glyph-shape: H/V and the L they abbreviate are one picture — 20 of the corpus\'s 39 glyphs mix the spellings');
+      'glyph-shape: H/V and the L they abbreviate are one picture — many of the corpus\'s glyphs mix the spellings');
     ok(eq(SQUARE, 'M0 0H2V2H0V0Z'),
       'glyph-shape: an explicit closing segment and the one Z implies are one picture');
     ok(eq(SQUARE, 'M0 0H2H2V2H0Z'),
@@ -13178,7 +13178,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     ok(eq(SQUARE, 'M0 0H1H2V2H0Z'),
       'glyph-shape: a vertex that merely splits a straight edge in two draws nothing new — the split an author adds by hand is invisible');
     ok(eq('M0 0C1 0 2 1 2 2Z', 'M2 2C2 1 1 0 0 0Z'),
-      'glyph-shape: reversing a CUBIC swaps which control point comes first — get that wrong and the corpus\'s 20 curved glyphs stop merging with their own reversals');
+      'glyph-shape: reversing a CUBIC swaps which control point comes first — get that wrong and the corpus\'s curved glyphs stop merging with their own reversals');
 
     // NEGATIVES — the normalizer must not merge these, or the gate above reports real shapes as duplicates.
     ok(!eq(SQUARE, 'M0 0H2V3H0Z'),
