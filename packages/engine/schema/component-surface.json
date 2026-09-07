@@ -58,6 +58,10 @@
     "switch": {
       "members": 24,
       "sha256": "5dc1c84017c0fce3fbae20bcf902364986689b516957873d3a3e36e7dc813a60"
+    },
+    "veil": {
+      "members": 6,
+      "sha256": "37e05f5e1964d951a67528bbb534648162599c3be5684ddf17ef10db142fe3b4"
     }
   }
 }

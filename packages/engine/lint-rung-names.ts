@@ -169,6 +169,7 @@ const DEFAULT_RUNG = 'md';
 const NO_SIZE_AXIS: Record<string, string> = {
   'focus-ring': 'a ring is sized by the control it surrounds, not by its own axis — its offset and width are bound, never enumerated',
   'field-message': 'validation copy takes one type role; its axis is `tone`, and size follows the field it belongs to',
+  'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
 };
 
 /**

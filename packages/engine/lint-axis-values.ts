@@ -378,6 +378,34 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + '(`subtle`, `default`, `emphasis`, `strong`, `max`): this axis is what a designer CHOOSES on a '
       + 'component, not what the type scale can express, and Prism 2 offers two.',
   },
+  {
+    axis: 'value',
+    values: ['dark', 'light'],
+    defs: ['veil'],
+    relation: 'sole',
+    reason:
+      'The media veil\'s POLARITY (#1030) — a dark wash under light text, a light wash under dark text, '
+      + 'in the color-theory sense of value (lightness, held apart from hue). LOWER-CASE, and that is '
+      + 'enforced rather than stylistic: the values are the paint keys\' lead segment (`dark.subtle`) and '
+      + '`lint-paint.ts` arm 1 checks that lead against the veil role it binds (`color.veil.dark.subtle`), '
+      + 'so `dark`/`light` is what lets arm 1 cover every fill with no exemption — a UI may still label it '
+      + '"Dark". TWO values because a wash has one polarity or the other; there is no third. Distinct from '
+      + '`tone` (which semantic ink role) and `surface` (which ground a control sits on) — this is the '
+      + 'wash\'s own lightness, argued in `VARIANT_AXES`.',
+  },
+  {
+    axis: 'intensity',
+    values: ['subtle', 'medium', 'strong'],
+    defs: ['veil'],
+    relation: 'sole',
+    reason:
+      'The media veil\'s MAGNITUDE (#1030) — how much the wash mutes the image, weakest to strongest, '
+      + 'binding `veil.{value}.{subtle,medium,strong}` at each rung. RENAMED FROM WCAG FLOORS in #1317: a '
+      + 'rung named for a floor it clears (`body`/`enhanced`) claimed a per-image contrast guarantee the '
+      + 'engine cannot keep, so the rungs name the magnitude instead. THREE values, matching the three '
+      + 'alpha steps each polarity emits. Distinct from `weight` (type heaviness) and `appearance` (a '
+      + 'control\'s emphasis/render strategy) — this is the strength of an overlay, argued in `VARIANT_AXES`.',
+  },
 ];
 
 /** A reason shorter than this is a label, not a justification. Crude on purpose — see SCOPE above. */
