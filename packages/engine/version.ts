@@ -60,6 +60,51 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.60.0: the media veil is a COMPONENT (#1030, renamed #1317, built here). `veil` binds the six
+ * semantic `veil.{dark,light}.{subtle,medium,strong}` roles into a standalone, full-bleed overlay — a
+ * `box` root with one `fill`, keyed by two axes `value` (dark | light) x `intensity` (subtle | medium |
+ * strong), 2x3 = 6 members. The fill for a coordinate binds the matching role and nothing else.
+ *
+ * NO NEW TOKEN, SO CONTRACT_VERSION STANDS AT 10.0.0. The `veil.*` roles already ship (renamed by
+ * #1317, this file's 0.59.0 entry); a component binding is a REFERENCE to a token name, never a token
+ * name, so no guaranteed path moves. `token-contract.ts --check` confirms it rather than this comment
+ * asserting it; `--accept` refreshes only the baseline's informational `engineVersion` stamp to 0.60.0,
+ * at contract 10.0.0 unchanged (the same refresh 0.47.0/0.57.0 describe). A prior build tried to bind
+ * the raw alpha PRIMITIVES and hit the semantic-layer wall; this binds the semantic `veil.*` roles, the
+ * accepted path (`button` binds `color.field.*` the same way).
+ *
+ * TWO AXIS NAMES REOPEN THE CLOSED `VARIANT_AXES` LIST (#756 closed it; #1248 reopened it once for
+ * `weight`). `value` and `intensity` are the owner's axis-name decision — the component's variant API
+ * is a design call — and each clears that list's bar (a distinct kind of distinction no existing name
+ * expresses): `intensity` is a wash's MAGNITUDE (nearest `weight`/`appearance`, and neither), `value`
+ * is a dark-vs-light lightness polarity (nearest `tone`/`surface`, and neither). `lint-axis-values.ts`
+ * carries both as `sole` sets. The axis VALUES are lower-case (`dark`/`light`) so `lint-paint.ts` arm 1
+ * covers every fill with no exemption — the key's lead is the value and the ref carries it as a segment
+ * (`dark.subtle` -> `color.veil.dark.subtle`).
+ *
+ * SOLID WASHES ONLY. Prism 2's `Gradient from top/bottom/left/right` variants are DEFERRED (#1318,
+ * owner-held): the engine has no gradient-paint capability, so a gradient axis would bind no paint.
+ * Recorded in the def's `codeOnly` and `notes.unverified`.
+ *
+ * A NORMAL STANDALONE BUILD — neither `notStandalone` nor `emitAsComponents`. A veil is full-bleed and
+ * has no intrinsic size, but a standalone Figma component has no parent to fill, so the root binds a
+ * NOMINAL square side (`container.narrow`, 720px, a semantic role not a primitive) exactly as
+ * `focus-ring` does (#1280) — present only so the library artifact is a wash-shaped rectangle a
+ * designer resizes rather than Figma's 100x100 default frame. `lint-standalone-floor.ts`'s `MUST_PROJECT`
+ * gains `veil`.
+ *
+ * NO COMMITTED ARTIFACT MOVES — component payloads are not committed under `out/`, and the new def binds
+ * existing tokens, so `regen --check` moves only this file's own generator stamp. The bump is demanded
+ * from the projected-surface side (#1252's case): `lint-component-surface` gains `veil`'s 6 members and
+ * `paint-census` gains its grid, both re-`--accept`ed. `lint-nesting` is unchanged — `veil` nests
+ * nothing and is nested by nothing.
+ *
+ * MUTATION (docs/34): pointing `veil`'s `dark.strong` fill at `color.veil.light.strong` (a wrong
+ * polarity that resolves) fails `lint-paint.ts` arm 1 BY NAME — `provenance: veil|dark.strong —
+ * value='dark' is absent from 'color.veil.light.strong'`. Restored. The census (arm 2) also catches a
+ * wrong-RUNG mutation (`dark.strong` -> `color.veil.dark.subtle`), which resolves and satisfies
+ * provenance but moves the paint hash.
+ *
  * 0.59.0: the media veil's three rungs are renamed for INTENSITY, not for the WCAG floor they clear —
  * `large`/`body`/`enhanced` become `subtle`/`medium`/`strong` on both polarities (#1317). Owner
  * decision: naming a rung `body` claimed it "clears 4.5:1", a per-image guarantee the engine cannot
@@ -1525,7 +1570,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.59.0';
+export const ENGINE_VERSION = '0.60.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

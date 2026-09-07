@@ -1807,11 +1807,41 @@ export type State = (typeof STATES)[number];
  * vocabulary, which is a decision rather than a binding" for a release. A closed list that produces a
  * filed issue instead of a fifth spelling is the mechanism working, and the entry it eventually admits
  * is not evidence against it.
+ *
+ * ── `value` AND `intensity`: THE THIRTEENTH AND FOURTEENTH NAMES, FOR THE MEDIA VEIL (#1030) ──────
+ *
+ * `veil` — the wash a designer places over a photograph — needs two axes, and both are owner-decided
+ * NAMES (the component's variant API is a design call), held to this list's bar the same way `weight`
+ * was: a distinct kind of distinction no existing name expresses, with the two nearest defeated.
+ *
+ * `intensity` (`subtle | medium | strong`) is a wash's MAGNITUDE — how much it mutes the image. The two
+ * nearest are `weight` and `appearance`, and it is neither: `weight` is how heavy TYPE is, `appearance`
+ * is a control's emphasis ladder / render strategy (filled/outline/text), and this is the STRENGTH of
+ * an overlay, which no axis names. The designer chooses it, but the axis is a scalar of one effect, not
+ * a set of treatments.
+ *
+ * `value` (`dark | light`) is the wash's own LIGHTNESS POLARITY — a dark wash under light text, a light
+ * wash under dark text — in the color-theory sense of value (lightness, held apart from hue). The two
+ * nearest are `tone` and `surface`, and it is neither: `tone` is WHICH semantic ink role (icon's nine
+ * inks, field-message's four states), `surface` is which GROUND a control sits on (default | inverse),
+ * and this is the polarity of the wash ITSELF. Naming it `tone` would put a two-value lightness choice
+ * into an axis whose values are semantic roles; naming it `surface` would claim the veil reads its
+ * ground, which it does not — the designer picks the polarity from the image, not from a cascade.
+ *
+ * VALUES ARE LOWER-CASE, and that is enforced rather than stylistic: `lint-paint.ts` arm 1 checks a
+ * paint key's lead segment against the ref it binds, and the roles are `veil.dark.*` / `veil.light.*`,
+ * so `dark`/`light` (not `Dark`/`Light`) is what lets arm 1 cover every veil fill with no exemption.
+ * `lint-axis-values.ts` carries both as `sole` sets with these reasons.
+ *
+ * WHAT REOPENING COST, again. #756 closed this list and #1248 reopened it once, holding the bar. This is
+ * the second reopening, two names in one change, each argued to the same bar — and the reopening is the
+ * MECHANICAL FALLOUT of an owner naming the axes, not a widening of what the list admits. The bar is
+ * unchanged; `value` and `intensity` clear it.
  */
 export const VARIANT_AXES = [
   'size', 'intent', 'appearance', 'tone',
   'width', 'style', 'indicator', 'offset', 'selection',
-  'name', 'surface', 'weight',
+  'name', 'surface', 'weight', 'value', 'intensity',
 ] as const;
 
 /** One member of the closed axis-NAME vocabulary. Values are not constrained — see `VARIANT_AXES`. */

@@ -168,6 +168,18 @@
         "assignments": 114,
         "sha256": "bb5fa69dfb1aaff8f539729a115baa77a94cf8ea1d529e8236f1e1801fa0c5ce"
       }
+    },
+    "veil": {
+      "set": {
+        "members": 6,
+        "assignments": 6,
+        "sha256": "84ebc6a3c99d08c5c8cf1c27cc4cbaf106b5def8dc198b25602477dd4f01242a"
+      },
+      "grid": {
+        "members": 6,
+        "assignments": 6,
+        "sha256": "80398419df8f1e9f4a4f1ad23559fce36f2b2b6adbd728bb15d3b3327be6a4a8"
+      }
     }
   }
 }

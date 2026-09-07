@@ -56,6 +56,7 @@ import { checkboxControl } from './checkbox-control';
 import { checkbox } from './checkbox';
 import { radio } from './radio';
 import { switchDef } from './switch';
+import { veil } from './veil';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
  *  assertions are about one def's specific fields (`button.variants.appearance`,
@@ -63,7 +64,7 @@ import { switchDef } from './switch';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef, veil };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -111,4 +112,10 @@ export const componentDefs: readonly ComponentDef[] = [
   // `switch` because `switch` is a reserved word: the def's `id` is still `'switch'`, which is what
   // every gate and every consumer reads.
   switchDef,
+  // `veil` (#1030, renamed #1317, built here) — the media wash. It nests nothing and is nested by
+  // nothing, so it sits at the end of the list: its composition order is trivial (a standalone box), and
+  // it shares no factory or `inherits` chain with the controls above it. It is the first def whose axes
+  // (`value` × `intensity`) are neither the button family's nor the selection family's — a media
+  // component, not a form control.
+  veil,
 ];
