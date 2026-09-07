@@ -20,7 +20,7 @@
  *    deliberate choice" — the rule survives the split unchanged, now expressed as one FILLED appearance
  *    per view within whichever component the semantic calls for.
  *  - The state TRIO: isPending (focusable aria-disabled, delayed spinner, width-preserved,
- *    busy-announced), isInactive (focusable disabled — relevant-but-unsatisfied), isDisabled
+ *    busy-announced), isInactive (focusable disabled — relevant-but-unsatisfied), disabled
  *    (native, RESERVED for controls irrelevant to the view) (§4, §13).
  *  - leadingVisual / trailingVisual (not *Icon — the slot holds avatars/counters/spinners) (§2).
  *  - type='button' default (neutralize the platform submit trap) (§3, §11).
@@ -130,7 +130,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     { name: 'type', type: "enum: 'button' | 'submit' | 'reset'", values: ['button', 'submit', 'reset'], default: 'button', required: false, description: "Opinionated default 'button' to neutralize the platform's submit-on-enter-in-form trap; require 'submit' explicitly." },
     { name: 'isPending', type: 'boolean', default: false, required: false, description: 'Delays the spinner, preserves width, keeps focus (aria-disabled, not native disabled), suppresses re-fire, announces busy. Preferred over `loading`.' },
     { name: 'isInactive', type: 'boolean', default: false, required: false, description: 'Focusable disabled — visually muted, retains tab order, surfaces the blockage reason on focus. Use for a control blocked by satisfiable app state (e.g. submit on an incomplete form).' },
-    { name: 'isDisabled', type: 'boolean', default: false, required: false, description: 'Native disabled. RESERVED for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Native disabled. RESERVED for controls fundamentally irrelevant to the current view; removes from tab order + a11y tree. Prefer isInactive for anything relevant-but-blocked.' },
     { name: 'leadingVisual', type: 'slot', required: false, description: 'Icon / avatar / counter / spinner before the label.' },
     { name: 'trailingVisual', type: 'slot', required: false, description: 'Icon / caret / indicator after the label.' },
     { name: 'href', type: 'string', required: false, description: 'Discouraged — prefer link-button. If present, MUST render <a> (which drops type/disabled semantics).' },
@@ -470,7 +470,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
     // lockstep with the `Label` prop above — the coupling is why the rename touches both.
     texts: { Label: { part: 'label', default: 'Button' } },
     // Empty, and stated rather than omitted. `fullWidth` is layout; `isPending`/`isInactive`/
-    // `isDisabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma
+    // `disabled` collapse into the state axis; `onClick`/`type`/`href` are behavioral. A Figma
     // BOOLEAN drives one node's `visible` and nothing else, and none of those are that.
     booleans: {},
     // The set's COLUMNS (#656). `state` because it is the axis a designer reads across — the six
@@ -506,7 +506,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
       'Lead with a verb, name the object ("Publish post", not "Submit")',
       'Keep exactly one FILLED button per view; demote the rest to outline / text, so a view of three actions is three buttons at three appearances rather than three fills competing',
       'Set surface=inverse for a button on a dark or brand-filled band, so its fill, ink, border and disabled treatment bind the inverse counterparts instead of losing contrast against the flipped ground',
-      'Use isInactive (focusable) for a control blocked by satisfiable state; reserve isDisabled for the irrelevant',
+      'Use isInactive (focusable) for a control blocked by satisfiable state; reserve disabled for the irrelevant',
     ],
     dont: [
       'Use a button for navigation to a URL — use a link / link-button',
@@ -540,7 +540,7 @@ const makeButton = (id: string, name: string, description: string, family: Inten
 
   notes: {
     contested: [
-      'native isDisabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).',
+      'native disabled vs focusable isInactive — the practice defaults to isInactive for relevant-but-blocked, but focusable aria-disabled is not yet the field-wide default (per-engagement decision).',
       'a low-emphasis destructive ("quiet Delete") is expressed as the Destructive Button at appearance=text rather than a fully orthogonal emphasis×tone split — tone is the component (#1223), emphasis is the appearance axis within it.',
       'outline/text hover uses the interactive overlay wash, which assumes outlineInteraction=overlay-neutral (the default); a solid-tint / none brand rebinds those slots (foreground.<color>-subtle / no hover).',
     ],

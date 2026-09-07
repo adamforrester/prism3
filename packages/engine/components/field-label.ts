@@ -34,10 +34,10 @@ export const fieldLabel: ComponentDef = {
     { name: 'size', type: "enum: 'small' | 'medium' | 'large'", values: ['small', 'medium', 'large'], default: 'medium', required: false, description: 'Pairs with the field size. THREE steps as of #872, converging with `text-field` and `textarea`, which have declared small/medium/large since tranche 1 — #872 deferred the third rung to the substrate ("they must agree, and field-label cannot answer alone") and the substrate has since answered. Scales the TYPE (`type.body.{sm,md,lg}` = 14/16/18px), not padding alone.' },
     { name: 'tone', type: "enum: 'primary' | 'secondary'", values: ['primary', 'secondary'], default: 'primary', required: false, description: 'The label\'s ink (#872 — Prism 2 calls this control "color"). `secondary` is the de-emphasized label a dense form or a read-only field wants, which #872 named as the sharpest of its three gaps: the ink was hard-bound with no way to express it. Semantic ROLES, never shades — `color.text.{primary,secondary}` — so a brand changing its text palette carries this without the def moving.' },
     { name: 'weight', type: "enum: 'regular' | 'bold'", values: ['regular', 'bold'], default: 'regular', required: false, description: 'How heavy the label reads (#1248 — Prism 2\'s third form-label control, and the last of its three to land here). `bold` resolves the `strong` type role (weight 700, Inter\'s Bold) at whichever size rung is chosen; `regular` resolves `default` (400). Use it for a label that has to carry a section, not for emphasis inside a form — a form where every label is bold has no emphasis in it.' },
-    { name: 'isDisabled', type: 'boolean', default: false, required: false, description: 'Dims the label when its field is disabled (a visual echo — the field\'s native disabled is the source of truth).' },
+    { name: 'disabled', type: 'boolean', default: false, required: false, description: 'Dims the label when its field is disabled (a visual echo — the field\'s native disabled is the source of truth).' },
   ],
 
-  // `isDisabled` is the one runtime shift (a dim); `size` and `indicator` are author axes.
+  // `disabled` is the one runtime shift (a dim); `size` and `indicator` are author axes.
   states: ['rest', 'disabled'],
   variants: {
     size: ['small', 'medium', 'large'],
