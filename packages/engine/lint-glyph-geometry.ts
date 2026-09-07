@@ -150,6 +150,11 @@ const MUST_COVER = ['icon.glyph', 'checkbox-control.mark', 'checkbox-control.das
  * the def no longer gates on fails as a stale memory rather than as a silent exemption.
  */
 const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly string[]>; why: string }> = {
+  'select.chevron': {
+    glyph: 'chevron-down',
+    at: {},
+    why: "the disclosure affordance — one downward chevron on every member (an `at` of `{}`, present at every coordinate, unlike the gated selection/tone marks below), because a select's control ALWAYS opens a menu downward. It is fixed rather than `{name}`-templated for the same reason a checkbox mark is: the shape is a property of the component, not a coordinate a designer picks. The Prism2 spec draws `arrow-down-s-line`; the engine's vocabulary name for that shape is `chevron-down`",
+  },
   'checkbox-control.mark': {
     glyph: 'check',
     at: { selection: ['checked'] },

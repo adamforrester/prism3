@@ -60,6 +60,47 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.61.0: `select` is a COMPONENT (#761 mechanism resolved) — the composed, native-first field, and the
+ * FIRST def that NESTS the two shared field parts (`field-label` and `field-message`) rather than only
+ * naming them in `composition` as `text-field` does. It is ONE unified component (not a checkbox-style
+ * decomposition): a `box` column holding a nested `field-label`, a bordered control box (fill + stateful
+ * border, radius, a fixed single-line height, a leading-glyph swap slot, the value/placeholder text, and
+ * a trailing `chevron-down` vector) with an absolute `focus-ring`, and a nested `field-message` below.
+ * tone(4) x state(5) x leading(2) = 40 members.
+ *
+ * THE VALIDATION AXIS IS SPELLED `tone`, ALIGNED TO field-message's OWN `tone` — the point of the whole
+ * shape. `nest-exposed` is refused in this engine (#761), so the nested message is `nest-fixed` with
+ * `follow: ['tone']`, which passes the axis through BY NAME. So select's validation axis is named `tone`
+ * (values `[default, error, warning, success]`, identical to `field-message`), and the follow is a
+ * same-name same-value passthrough rather than a value mapping. The consumer prop / UI still reads
+ * "Validation". `lint-axis-values`'s overlapping `tone` entry gains `select` and records the alignment.
+ *
+ * VALIDATION → BORDER FOLLOWS text-field EXACTLY: `error` is a BORDER-ONLY swap (→ `color.border.danger`,
+ * the tone-led `error.border` key), warning / success are MESSAGE-ONLY (the border stays neutral, the
+ * nested message carries the tone). No `border.warning` / `border.success` roles are invented — the tier
+ * does not emit them and text-field does not color the border for those tones. `lint-paint`'s arm 1
+ * gains one PROVENANCE_EXCEPTION, `select|error.border` (tone `error` → the `danger` role), the same
+ * mapping `field-message|error.*` already carries.
+ *
+ * NO NEW TOKEN, SO CONTRACT_VERSION STANDS AT 10.0.0 — every binding is an existing semantic role
+ * (`field.border.*`, `border.focus`, `border.danger`, `field.fill`, `field.placeholder`, `text.primary`,
+ * `icon.secondary`, `focus.ring.*`, the cross-cutting `disabled.*`). A component binding is a REFERENCE
+ * to a token name, never a token name, so no guaranteed path moves; `token-contract.ts --check` confirms
+ * it and `--accept` refreshes only the baseline's informational `engineVersion` stamp to 0.61.0.
+ *
+ * NO COMMITTED ARTIFACT MOVES — component payloads are not committed under `out/`, and the def binds
+ * existing tokens, so `regen --check` moves only this file's own generator stamp. The bump is demanded
+ * from the projected-surface side (#1252's case): `lint-component-surface` gains `select`'s 40 members
+ * (re-`--accept`ed), `lint-paint`'s census gains its grid/set, and `lint-nesting`'s edges go 8 -> 11
+ * (`select` nests `field-label`, `field-message` and `focus-ring`). `lint-standalone-floor`'s
+ * `MUST_PROJECT` gains `select` (its root is a column with children — a real extent).
+ *
+ * MUTATION (docs/34): (a) pointing the `message` nest at a non-existent component (`field-messag`) fails
+ * `lint-nesting.ts` arm nest-resolves BY NAME (`select.message nests 'field-messag', which is not a
+ * component in componentDefs`); restored. (b) repointing `error.border` from `color.border.danger` to
+ * `color.field.border.rest` (a neutral border that resolves) fails `lint-paint.ts` arm 2 (census) BY
+ * NAME — the paint hash for `select` moves — and, once the exemption is removed, arm 1 too; restored.
+ *
  * 0.60.0: the media veil is a COMPONENT (#1030, renamed #1317, built here). `veil` binds the six
  * semantic `veil.{dark,light}.{subtle,medium,strong}` roles into a standalone, full-bleed overlay — a
  * `box` root with one `fill`, keyed by two axes `value` (dark | light) x `intensity` (subtle | medium |
@@ -1570,7 +1611,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.60.0';
+export const ENGINE_VERSION = '0.61.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
