@@ -235,14 +235,20 @@ export const outlineFillRole = (method: Theme['outlineInteraction'], color: stri
 };
 
 /**
- * The media veil's rungs, named by the CONTRACT each one buys rather than by its magnitude (#1030).
+ * The media veil's rungs, named by their semantic INTENSITY — weakest wash to darkest (#1317).
+ *
+ * The WCAG floor beside each name is the DEFAULT-PICKER, not a promise: it selects which emitted alpha
+ * step a rung derives to (the least step clearing that floor over the worst-case pixel), and the emitted
+ * alphas are byte-identical to when the rungs were named for those floors. What changed is the CLAIM the
+ * names make — see the design note above the veil-emitting loop below for why a per-image contrast
+ * guarantee was illusory and the names now speak to magnitude the designer can see instead.
  *
  * Exported because `ai-metadata.ts` describes these roles and must not carry a second copy of the
  * floors. `test.ts` deliberately does NOT import this — it states the three WCAG floors itself and
  * checks this table against them, which is the independent opinion the derivation is held to
  * (`docs/34`: a gate reading its subject's own numbers cannot disagree with them).
  */
-export const VEIL_RUNGS = [['large', 3], ['body', 4.5], ['enhanced', 7]] as const;
+export const VEIL_RUNGS = [['subtle', 3], ['medium', 4.5], ['strong', 7]] as const;
 
 const cand = (path: string, rgb: RGB): Cand => ({ path, rgb });
 
@@ -796,7 +802,7 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
    *                          one per image, because what decides it is the photograph.
    *
    * They are also deliberately NOT siblings under one group. Side by side in a picker,
-   * `scrim.default` and `scrim.dark.body` would differ in mode behaviour and in whether a designer may
+   * `scrim.default` and `scrim.dark.medium` would differ in mode behaviour and in whether a designer may
    * touch them, with nothing but folklore saying which is which — membership-by-location, the defect
    * `payload-manifest.json` exists to remove one tier down.
    *
@@ -816,19 +822,35 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
    * Prism2 ships 40/60/80 per polarity. Measured against the worst pixel, its weakest dark step buys
    * 2.85:1 — below even the 3:1 large-text floor — so inheriting that ladder would ship a token whose
    * whole purpose is buying contrast for text and which buys none for any text. Each rung is instead
-   * the LEAST emitted alpha step clearing its floor, which is also why the same rung is a different
+   * the LEAST emitted alpha step clearing a WCAG floor, which is also why the same rung is a different
    * alpha per polarity: sRGB gamma lets a white wash lift a black pixel faster than a black wash drops
    * a white one (light 40/50/60 against dark 50/60/70).
    *
-   * The rungs name the CONTRACT rather than the magnitude, so that asymmetry reads as the point instead
-   * of as an inconsistency: `body` is whatever alpha clears 4.5:1, on either side.
+   * ── THE FLOOR IS A DEFAULT-PICKER, NOT A USER-FACING PROMISE (#1317) ─────────────────────────────
+   *
+   * The rungs are named for their INTENSITY — `subtle` / `medium` / `strong`, weakest wash to darkest —
+   * and NOT for a contrast floor. The three WCAG floors in `VEIL_RUNGS` (3 / 4.5 / 7) still choose which
+   * alpha step each rung derives to, so the emitted values are byte-identical to when the rungs carried
+   * the floor names `large` / `body` / `enhanced`; what changed is what the NAME claims.
+   *
+   * The earlier version of this note argued the rungs should "name the CONTRACT rather than the
+   * magnitude" — that `body` meant "whatever alpha clears 4.5:1". The owner reversed it, and the reason
+   * is that the contract was one the engine cannot keep. The floor is measured against the worst pixel
+   * of an UNKNOWN image; a real photograph's combined contrast under the wash depends on the specific
+   * image, so a name that says "clears 4.5:1" over-claims a guarantee that holds only for the pathological
+   * worst case and not for the photo the designer actually has. Naming the rung `medium` says the true
+   * thing — this is a mid-strength wash — and leaves the contrast judgment where it belongs, with the
+   * designer and their image. The asymmetry between the polarities (a light rung lands a step lower than
+   * its dark twin) reads as what it is, the derivation responding to sRGB gamma, rather than as an
+   * inconsistency a floor-name has to explain away.
    *
    * ── WHY THESE ROLES RECORD NO RATIO ─────────────────────────────────────────────────────────────
    *
    * `against: 'self'`, `min: 0` — the `putSurf` posture, and the scrim's. The ground is a photograph,
    * and the role vocabulary has no name for that, so a `ratio` here would be a number measured against
-   * `self`, which describes nothing. The contract lives in the `$description`, and `test.ts` re-derives
-   * every one of these six alphas from the WCAG floors to hold it.
+   * `self`, which describes nothing. The intensity ladder lives in the `$description`, and `test.ts`
+   * re-derives every one of these six alphas from the WCAG floors to hold the values steady across the
+   * rename.
    */
   // The emitted alpha ramp (`palette.{black,white}-alpha.*`, built in `tree.ts`). Restated rather than
   // imported because importing it would be a cycle; a step that drifts out of the ramp is caught as a
@@ -845,9 +867,9 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
         throw new Error(`veil.${polarity}.${rung}: no emitted alpha step clears ${floor}:1 over the worst-case pixel`);
       put(`veil.${polarity}.${rung}`,
         { path: `${ns}.${base}-alpha.${step}`, rgb: wash, ratio: 1 },
-        `Media veil, ${polarity} — ${step}% ${base} over an image; ${base === 'black' ? 'white' : 'black'} `
-        + `text clears ${floor}:1 at the image's worst pixel. Identical in every mode; the mode-varying `
-        + `modal backdrop is scrim.default`,
+        `Media veil, ${polarity} — a ${rung} ${base} wash (${step}%) over an image, to lift `
+        + `${base === 'black' ? 'light' : 'dark'} text off it. Verify contrast against your own photo. `
+        + `Identical in every mode; the mode-varying modal backdrop is scrim.default`,
         'self', 0);
       roles[`veil.${polarity}.${rung}`].alpha = step / 100;
     }

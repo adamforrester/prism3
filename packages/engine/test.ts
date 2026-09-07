@@ -5209,8 +5209,10 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // disagree with it). The primitives `composite`/`contrast` ARE imported, the same posture
 // `lint-ratio-truth.ts` takes: they are the measurement, not the expected value.
 {
-  // WCAG's floors, by the rung name each one is the contract for. This table is the second opinion.
-  const WCAG_FLOOR: Record<string, number> = { large: 3, body: 4.5, enhanced: 7 };
+  // WCAG's floors, keyed by the rung whose emitted alpha each one PICKS (the least step clearing it).
+  // The rung names are intensities now (#1317), not floor names; this table holds the values steady
+  // across that rename and is the second opinion the derivation is checked against.
+  const WCAG_FLOOR: Record<string, number> = { subtle: 3, medium: 4.5, strong: 7 };
   const WHITE_PX: RGB = { r: 255, g: 255, b: 255 }, BLACK_PX: RGB = { r: 0, g: 0, b: 0 };
   // The worst pixel and the ink are the SAME extreme — the pixel that hurts is the one pulling the
   // composite toward the ink — so one value per polarity drives both sides of the measurement.
@@ -5222,7 +5224,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
   // The rung table the engine ships must mean what this file says it means.
   const misnamed = VEIL_RUNGS.filter(([rung, floor]) => WCAG_FLOOR[rung] !== floor).map(([r, f]) => `${r}=${f}`);
   ok(misnamed.length === 0 && VEIL_RUNGS.length === Object.keys(WCAG_FLOOR).length,
-    `veil: every rung names the WCAG floor it buys (large 3 / body 4.5 / enhanced 7)${misnamed.length ? ` — MISNAMED: ${misnamed.join(', ')}` : ''}`);
+    `veil: every rung maps to the WCAG floor that picks its alpha (subtle 3 / medium 4.5 / strong 7)${misnamed.length ? ` — MISMAPPED: ${misnamed.join(', ')}` : ''}`);
 
   const veilInput = parseDesignMd(readFileSync(resolve(HERE, './examples/harbor.design.md'), 'utf8')).input;
   const veilModes = resolveAllModes(brandTheme(veilInput));
@@ -5352,7 +5354,7 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
       `veil/scrim: the scrim still VARIES by mode (${l['scrim.default'].path} → ${d['scrim.default'].path}) — the property the veil deliberately does not have`);
     ok(!Object.keys(l).some((k) => k.startsWith('scrim.') && k !== 'scrim.default'),
       'veil/scrim: the veil is NOT a member of `scrim.*` — a picker must not show an invariant selectable variant beside a mode-varying role with only folklore between them');
-    ok(l['veil.dark.body'].path === d['veil.dark.body'].path,
+    ok(l['veil.dark.medium'].path === d['veil.dark.medium'].path,
       'veil/scrim: the veil does not vary by mode, in the same resolved view where the scrim does');
   }
 }
@@ -14208,8 +14210,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   const tierDropping = DEPRECATIONS.filter((d) => d.path === `color.appearance.${d.replacedBy.slice('color.'.length)}`);
   const tierOnly = [...tierAdding, ...tierDropping];
   const tierOnlyProjecting = tierOnly.filter((d) => projectionsOf(d).length > 0);
-  // THE ADDING BUCKET IS EMPTY AND THE DROPPING ONE HOLDS 243 — 114 at #1013, 113 after #1133, 0 after
-  // #1140, and 243 arriving from the other side at #1148.
+  // THE ADDING BUCKET IS EMPTY AND THE DROPPING ONE HOLDS 237 — 114 at #1013, 113 after #1133, 0 after
+  // #1140, 243 arriving from the other side at #1148, and 237 after #1317 pulled the six veil entries out
+  // of it (their `replacedBy` followed the rung rename, so path and replacement now differ in the ROLE,
+  // not only the tier — a real Figma rename to derive, no longer a tier-only skip).
   //
   // The 114th was `color.scrim.default` — the one NON-inverse role #1013 moved, because the coverage
   // register disposed its inverse gap as `omit` and so no pointer row kept its short name. The revert made
@@ -14226,19 +14230,19 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // alone is satisfied by a predicate that has stopped matching anything (`docs/34` shape 9), which is
   // precisely what #1148 did to it. The DROPPING half needs no constructed pair — it has 243 live cases,
   // and every one is asserted to project nothing, which is the guard firing rather than a claim that it
-  // would. **Neither count is a floor.** `243` pins #1148's own entries: drop one and this fails by name
-  // rather than being absorbed into the 410 below.
-  ok(tierAdding.length === 0 && tierDropping.length === 243 && tierOnlyProjecting.length === 0
+  // would. **Neither count is a floor.** `237` pins #1148's own tier-only entries: drop one and this fails
+  // by name rather than being absorbed into the 404 below.
+  ok(tierAdding.length === 0 && tierDropping.length === 237 && tierOnlyProjecting.length === 0
       && projectionsOf({ path: 'color.a.b', replacedBy: 'color.appearance.a.b', since: '9.9.9' }).length === 0,
-    `rename-map: the tier-only skip fires in BOTH directions — 0 entries still ADD the tier (found ${tierAdding.length}; asserted on a CONSTRUCTED pair since it has no live case) and ${tierDropping.length} DROP it at #1148 (expected 243) — the contract path moves, the role does not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join(', ')}` : ''}`);
+    `rename-map: the tier-only skip fires in BOTH directions — 0 entries still ADD the tier (found ${tierAdding.length}; asserted on a CONSTRUCTED pair since it has no live case) and ${tierDropping.length} DROP it at #1148 (expected 237, after #1317 took six veil entries into the projecting set) — the contract path moves, the role does not, and there is no Figma rename to derive${tierOnlyProjecting.length ? ` — WRONGLY PROJECTING: ${tierOnlyProjecting.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join(', ')}` : ''}`);
   const noProjection = DEPRECATIONS.filter((d) => projectionsOf(d).length === 0);
   const unaccounted = noProjection.filter((d) => !unprojectedRoot.includes(d) && !tierOnly.includes(d));
   // BOTH DIRECTIONS OF THE CLASP, and the second one is what would have caught the stale predicate above
   // on its own: every accounted entry must ALSO project nothing. Without it the reason-buckets are free to
   // claim entries that do project, and the totals still add up.
   const wronglyAccounted = [...unprojectedRoot, ...tierOnly].filter((d) => projectionsOf(d).length > 0);
-  ok(noProjection.length === 410 && unaccounted.length === 0 && wronglyAccounted.length === 0,
-    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — expected 410 = 167 unprojected root + 243 tier-only + 0 cross-root, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}${wronglyAccounted.length ? ` — CLAIMED BUT PROJECTING: ${wronglyAccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(noProjection.length === 404 && unaccounted.length === 0 && wronglyAccounted.length === 0,
+    `rename-map: the ${noProjection.length} deprecations that project nothing are ACCOUNTED FOR — expected 404 = 167 unprojected root + 237 tier-only + 0 cross-root, and no fourth reason${unaccounted.length ? ` — UNACCOUNTED: ${unaccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}${wronglyAccounted.length ? ` — CLAIMED BUT PROJECTING: ${wronglyAccounted.slice(0, 5).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // And the positive half the vacuous arm was mistaken for: every deprecation that DOES project reaches at
   // least one live variable. Its failure mode is a derivation quietly aiming at names the emission stopped
@@ -14255,11 +14259,17 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // that had to be weakened to "reaches at least one" while the mirror over-projected on purpose. There is
   // no mirror, so it is exact now, and `1:266` is asserted alongside it — a returning mirror doubles the
   // rows without moving this count, and nothing else here would notice.
+  //
+  // **#1317 ADDED 12 AND THE COUNT IS 278.** The veil rung rename is the first entry since #1148 whose
+  // `path` and `replacedBy` differ in the ROLE, so it projects where the #1148 tier-only entries do not:
+  // six new short-spelled entries (`color.veil.<pol>.<old>` → `<new>`), plus the six #1148 veil entries
+  // whose `replacedBy` followed the rung forward and so now carry a role delta the collapse folds onto
+  // the same six Figma rows. 266 + 12 = 278.
   const projecting = DEPRECATIONS.filter((d) => projectionsOf(d).length > 0);
   const multiRow = projecting.filter((d) => projectionsOf(d).length !== 1);
   const projectedButDead = projecting.filter((d) => projectionsOf(d).some((p) => !nbIdx.has(`${NB_ROOT}/${p.to}`)));
-  ok(projecting.length === 266 && multiRow.length === 0 && projectedButDead.length === 0,
-    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 266), each by EXACTLY ONE row since #1148 left one colour collection${multiRow.length ? ` — MULTI-ROW: ${multiRow.slice(0, 3).map((d) => `${d.path} projects ${projectionsOf(d).length}`).join('; ')}` : ''}${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
+  ok(projecting.length === 278 && multiRow.length === 0 && projectedButDead.length === 0,
+    `rename-map: all ${projecting.length} projecting deprecations reach a live \`nb\` variable (expected 278), each by EXACTLY ONE row since #1148 left one colour collection${multiRow.length ? ` — MULTI-ROW: ${multiRow.slice(0, 3).map((d) => `${d.path} projects ${projectionsOf(d).length}`).join('; ')}` : ''}${projectedButDead.length ? ` — DEAD: ${projectedButDead.slice(0, 3).map((d) => `${d.path} -> ${d.replacedBy}`).join('; ')}` : ''}`);
 
   // THE ERA PROBLEM, and the arm that says the derivation is era-INDEPENDENT.
   //
@@ -14294,12 +14304,18 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // leave 113 rows spelled `color/appearance/…`, names no brand emits since the collapse, and every one
   // would reach apply time as a `target-not-planned` refusal in a designer's file. Counting eras alone
   // would not see that — the counts are of deprecations, and the defect is in the rows.
+  // #1317's veil rung rename adds two eras, and they are the cleanest two-spelling case in the table:
+  // the six 9.0.0 entries are TIERED (their `path` is the `color.appearance.veil.*` spelling #1148
+  // retired, kept as history) and the six 10.0.0 entries are SHORT (`color.veil.*`), yet both project
+  // the identical six role-carrying rows — which is exactly the era-blindness `roleOf` is asserted to have.
   const ERAS: Record<string, { n: number; tiered: boolean }> = {
     '3.0.0': { n: 6, tiered: false },
     '4.0.0': { n: 32, tiered: false },
     '5.0.0': { n: 2, tiered: false },
     '6.0.0': { n: 113, tiered: false },
     '8.0.0': { n: 113, tiered: true },
+    '9.0.0': { n: 6, tiered: true },
+    '10.0.0': { n: 6, tiered: false },
   };
   const spellWrong: string[] = [];
   for (const d of projecting) {
@@ -14339,6 +14355,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // collections does not touch it. Reading the halving as "the duplication went away" would be the mistake;
   // it is the same 113 roles, each now reached by one row from each of two deprecations instead of two.
   // The arithmetic closes: 153 distinct spellings = 113 claimed twice + 40 claimed once, and 113 × 2 + 40 = 266.
+  // #1317 raised the doubly-claimed count by six (each veil rung is reached by its own 10.0.0 entry AND the
+  // #1148 9.0.0 entry whose `replacedBy` followed it forward), so the live figures are 159 = 119 × 2's worth
+  // collapsed + 40, and 119 × 2 + 40 = 278.
   //
   // `twice.every(([, p]) => p.length === 2)` is what stops that halving being read as a floor — a THIRD
   // claim on one role would raise `raw` and leave `shipped` alone, and only this catches it.
@@ -14355,9 +14374,9 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       .map((r) => `${r.collection}|${r.from}|${r.to}`)
       .filter((k, i, a) => a.indexOf(k) !== i);
     const once = [...claims.entries()].filter(([, paths]) => paths.length === 1);
-    ok(raw.length === 266 && twice.length === 113 && twice.every(([, p]) => p.length === 2)
-        && once.length === 40 && shippedRows.length === 153 && dupShipped.length === 0,
-      `rename-map: ${twice.length} Figma renames are claimed by exactly two deprecations each (one role, two contract paths) and the map the executor gets collapses them — ${raw.length} projected (expected 266 = 113 × 2 + ${once.length} × 1), ${shippedRows.length} shipped (expected 153)${dupShipped.length ? ` — STILL DUPLICATED: ${dupShipped.slice(0, 3).join(' · ')}` : ''}`);
+    ok(raw.length === 278 && twice.length === 119 && twice.every(([, p]) => p.length === 2)
+        && once.length === 40 && shippedRows.length === 159 && dupShipped.length === 0,
+      `rename-map: ${twice.length} Figma renames are claimed by exactly two deprecations each (one role, two contract paths) and the map the executor gets collapses them — ${raw.length} projected (expected 278 = 119 × 2 + ${once.length} × 1), ${shippedRows.length} shipped (expected 159)${dupShipped.length ? ` — STILL DUPLICATED: ${dupShipped.slice(0, 3).join(' · ')}` : ''}`);
     // And the collapse keeps the NEWEST `since`, because the field answers when the Figma name stopped
     // being written and that is the later of the two claims. Checked on a row this PR created rather than
     // on the rule, so a survivor picked by array order instead of by version fails here. Its spelling moved

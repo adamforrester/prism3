@@ -2272,13 +2272,13 @@
       }
     },
     {
-      "name": "wds/color/veil/dark/large",
+      "name": "wds/color/veil/dark/subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil, dark — 50% black over an image; white text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "value": {
         "r": 0,
         "g": 0,
@@ -2291,13 +2291,13 @@
       }
     },
     {
-      "name": "wds/color/veil/dark/body",
+      "name": "wds/color/veil/dark/medium",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil, dark — 60% black over an image; white text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "value": {
         "r": 0,
         "g": 0,
@@ -2310,13 +2310,13 @@
       }
     },
     {
-      "name": "wds/color/veil/dark/enhanced",
+      "name": "wds/color/veil/dark/strong",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil, dark — 70% black over an image; white text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "value": {
         "r": 0,
         "g": 0,
@@ -2329,13 +2329,13 @@
       }
     },
     {
-      "name": "wds/color/veil/light/large",
+      "name": "wds/color/veil/light/subtle",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil, light — 40% white over an image; black text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "value": {
         "r": 1,
         "g": 1,
@@ -2348,13 +2348,13 @@
       }
     },
     {
-      "name": "wds/color/veil/light/body",
+      "name": "wds/color/veil/light/medium",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil, light — 50% white over an image; black text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "value": {
         "r": 1,
         "g": 1,
@@ -2367,13 +2367,13 @@
       }
     },
     {
-      "name": "wds/color/veil/light/enhanced",
+      "name": "wds/color/veil/light/strong",
       "resolvedType": "COLOR",
       "scopes": [
         "FRAME_FILL",
         "SHAPE_FILL"
       ],
-      "description": "Media veil, light — 60% white over an image; black text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+      "description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
       "value": {
         "r": 1,
         "g": 1,

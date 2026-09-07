@@ -154,11 +154,11 @@
         "inverse.foreground.primary"
       ]
     },
-    "veil.dark.large": {
-      "$description": "Media veil (dark) — 3:1 for large text.",
+    "veil.dark.subtle": {
+      "$description": "Media veil (dark) — a subtle dark wash for text over an image.",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A wash over a photograph or video so light text on top clears 3:1 at the image's worst pixel. Pick the polarity from the image (dark veil under light text), then the rung from the text.",
-      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "when_to_use": "A subtle dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.50}",
@@ -170,11 +170,11 @@
         "inverse.text.primary"
       ]
     },
-    "veil.dark.body": {
-      "$description": "Media veil (dark) — 4.5:1 for body text.",
+    "veil.dark.medium": {
+      "$description": "Media veil (dark) — a medium dark wash for text over an image.",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A wash over a photograph or video so light text on top clears 4.5:1 at the image's worst pixel. Pick the polarity from the image (dark veil under light text), then the rung from the text.",
-      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "when_to_use": "A medium dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.60}",
@@ -186,11 +186,11 @@
         "inverse.text.primary"
       ]
     },
-    "veil.dark.enhanced": {
-      "$description": "Media veil (dark) — 7:1 for enhanced contrast.",
+    "veil.dark.strong": {
+      "$description": "Media veil (dark) — a strong dark wash for text over an image.",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A wash over a photograph or video so light text on top clears 7:1 at the image's worst pixel. Pick the polarity from the image (dark veil under light text), then the rung from the text.",
-      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "when_to_use": "A strong dark wash over a photograph or video, to lift light text off it. Pick the polarity from the image (dark veil under light text), then the intensity for how much the image needs muting; verify contrast against your own photo.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{hds.core.palette.black-alpha.70}",
@@ -202,11 +202,11 @@
         "inverse.text.primary"
       ]
     },
-    "veil.light.large": {
-      "$description": "Media veil (light) — 3:1 for large text.",
+    "veil.light.subtle": {
+      "$description": "Media veil (light) — a subtle light wash for text over an image.",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A wash over a photograph or video so dark text on top clears 3:1 at the image's worst pixel. Pick the polarity from the image (light veil under dark text), then the rung from the text.",
-      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "when_to_use": "A subtle light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.40}",
@@ -218,11 +218,11 @@
         "text.primary"
       ]
     },
-    "veil.light.body": {
-      "$description": "Media veil (light) — 4.5:1 for body text.",
+    "veil.light.medium": {
+      "$description": "Media veil (light) — a medium light wash for text over an image.",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A wash over a photograph or video so dark text on top clears 4.5:1 at the image's worst pixel. Pick the polarity from the image (light veil under dark text), then the rung from the text.",
-      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "when_to_use": "A medium light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.50}",
@@ -234,11 +234,11 @@
         "text.primary"
       ]
     },
-    "veil.light.enhanced": {
-      "$description": "Media veil (light) — 7:1 for enhanced contrast.",
+    "veil.light.strong": {
+      "$description": "Media veil (light) — a strong light wash for text over an image.",
       "meaning": "Text legibility over a photograph",
-      "when_to_use": "A wash over a photograph or video so dark text on top clears 7:1 at the image's worst pixel. Pick the polarity from the image (light veil under dark text), then the rung from the text.",
-      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the value assumes an unknown image, so on a known surface a semantic role measures the real contrast instead of the worst case.",
+      "when_to_use": "A strong light wash over a photograph or video, to lift dark text off it. Pick the polarity from the image (light veil under dark text), then the intensity for how much the image needs muting; verify contrast against your own photo.",
+      "avoid_when": "Do not use as a modal backdrop (use scrim.default) or over a solid token surface — the wash assumes an unknown image, so on a known surface a semantic role measures the real contrast instead.",
       "avoid_when_level": "SHOULD",
       "mode_overrides": {
         "light": "{hds.core.palette.white-alpha.60}",
@@ -7509,7 +7509,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.veil.dark.large"
+        "color.veil.dark.subtle"
       ]
     },
     "core.palette.black-alpha.60": {
@@ -7519,7 +7519,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.scrim.default",
-        "color.veil.dark.body"
+        "color.veil.dark.medium"
       ]
     },
     "core.palette.black-alpha.70": {
@@ -7529,7 +7529,7 @@
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
         "color.scrim.default",
-        "color.veil.dark.enhanced"
+        "color.veil.dark.strong"
       ]
     },
     "core.palette.black-alpha.80": {
@@ -7596,7 +7596,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.veil.light.large"
+        "color.veil.light.subtle"
       ]
     },
     "core.palette.white-alpha.50": {
@@ -7605,7 +7605,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.veil.light.body"
+        "color.veil.light.medium"
       ]
     },
     "core.palette.white-alpha.60": {
@@ -7614,7 +7614,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.veil.light.enhanced"
+        "color.veil.light.strong"
       ]
     },
     "core.palette.white-alpha.70": {
