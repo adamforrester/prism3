@@ -8564,22 +8564,25 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // binding, so that fix would have destroyed the binding it was meant to preserve.
     //
     // This was `!/\.resize\(/` — a blanket absence — until the absolute part kind arrived needing exactly
-    // one resize, on the one node type that binds no dimensions at all. The blanket form would have
-    // forced a choice between the ring and the gate, and the honest resolution is that the claim was
-    // never really "no resize anywhere": it is **no resize on a node carrying dimension bindings**. So
-    // the gate now says that, which is both weaker as text and stronger as a check — it survives the new
-    // kind AND still fails the #500 fix, since that one resized the bound slots.
+    // one resize, on the one node type that binds no dimensions at all. #1316 adds a SECOND legitimate
+    // resize: a ratio-locked `node` itself, resized to its proportion so `lockAspectRatio()` can capture
+    // it — but ONLY before the bind loop runs. The honest claim was never "no resize anywhere" and is no
+    // longer even "no resize on the binding node": it is **no resize AFTER binding**, because that is what
+    // #500's `resize()` fix did and what clears a binding. So the gate checks ORDER, which survives both
+    // new kinds AND still fails the #500 fix, since that one resized the bound slots after binding them.
     //
-    // Anchored on `kid.resize(` rather than counting occurrences: a count is a landmark that goes stale
-    // (#568), and the subject of the claim is WHICH node is resized, not how many times.
+    // Anchored on the tokens rather than a count: a count is a landmark that goes stale (#568).
     const resizes = [...js.matchAll(/(\w+)\.resize\(/g)].map((m) => m[1]);
-    ok(resizes.length === 1 && resizes[0] === 'kid',
-      `anatomy: the payload resizes exactly one thing — the absolute child, the one node type with no dimension bindings to clear (resized: ${resizes.join(', ') || 'nothing'})`);
-    // The load-bearing half, and the reason the above is not a weakening: `node` is what every bound
-    // slot is built as, so a resize reaching it is the #500 fix reintroduced. `absolute` parts are gated
-    // to an empty `bound` in the plan, which is what makes the one permitted resize provably safe.
-    ok(!/\bnode\.resize\(/.test(js),
-      'anatomy: nothing resizes the node carrying the bindings — resize() clears them, which is how #500\'s prescribed fix would have destroyed the bindings it was meant to save');
+    ok(resizes.includes('kid'),
+      `anatomy: the payload resizes the absolute child — the one node type with no dimension bindings to clear (resized: ${resizes.join(', ') || 'nothing'})`);
+    // The load-bearing half, re-pointed to ORDER (#1316): a resize of the binding-carrying `node` is
+    // safe iff it PRECEDES the bind loop (resize-then-bind is fine; bind-then-resize clears the binding,
+    // which is #500's prescribed fix reintroduced). The aspect-lock resize runs before the loop; nothing
+    // may resize `node` after it.
+    const bindLoopAt = js.indexOf('Object.entries(n.bound)');
+    const nodeResizeAfterBind = [...js.matchAll(/\bnode\.resize\(/g)].some((m) => m.index! > bindLoopAt);
+    ok(bindLoopAt >= 0 && !nodeResizeAfterBind,
+      'anatomy: the binding-carrying node is never resized AFTER its bind loop — resize() clears bindings (#500), while the aspect-lock resize (#1316) runs before it and is safe');
     const ringPlan = figmaAnatomyPlan(button, 'medium', { leading: true, state: 'focus-visible' })
       .root.children.find((c) => c.name === 'focusRing');
     ok(!!ringPlan && Object.keys(ringPlan.bound).length === 0,
@@ -9021,6 +9024,10 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // parity gate compares the two executors, so a stub modelling a different Figma would make that
           // comparison meaningless.
           _aspectLocked: true, _unlocks: 0,
+          // #1316: the aspect-ratio LOCK's captured proportion. Starts undefined; `lockAspectRatio()`
+          // below captures it and `unlockAspectRatio()` clears it, mirroring the plugin shim.
+          _targetAspectRatio: undefined as number | undefined,
+          get targetAspectRatio() { return node._targetAspectRatio as number | undefined; },
           fills: [], strokes: [], children: [] as unknown[],
           // BORDER-BOX modeled, because the FOOTPRINT read-back has nothing to measure otherwise.
           // Figma's `strokesIncludedInLayout` defaults to ADDING the stroke to an auto-layout frame's
@@ -9117,7 +9124,16 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
           // The VALUE is recorded alongside the id, because a bound dimension is what SIZES the node live
           // — `width` above reads it. Without this the binding is a bookkeeping entry and every node
           // measures the same, which is the constant-stub trap the `width` note records.
-          unlockAspectRatio() { node._aspectLocked = false; (node._unlocks as number)++; },
+          unlockAspectRatio() { node._aspectLocked = false; node._targetAspectRatio = undefined; (node._unlocks as number)++; },
+          // #1316: ENGAGE the lock and capture the current proportion, mirroring the plugin shim so the
+          // parity gate compares two executors against one Figma model. Read from the live `width`/`height`
+          // getters (which the payload has just `resize`d to the ratio), never from a plan input.
+          lockAspectRatio() {
+            node._aspectLocked = true;
+            const w = node.width as number;
+            const h = node.height as number;
+            node._targetAspectRatio = h ? w / h : undefined;
+          },
           // THE EVICTION IS MODELLED (#682): while the aspect ratio is LOCKED, a node cannot hold two
           // independent dimension bindings — the second setter silently evicts the first, last-write-wins,
           // with no throw and nothing in `misses[]`. That is the defect the unlock prevents, so the stub
@@ -13661,8 +13677,12 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   // the ref slash-swapped, one derivation, against the projector's `varOf`→`figmaVarName` path, which is
   // another. A def whose `width` ref does not map that way fails HERE, loudly, rather than being quietly
   // exempted — that direction is deliberate.
+  // A RATIO box's `width` is NOT a 2:1 track (#1316): it is the SINGLE nominal dimension the aspect lock
+  // derives the other axis from, so it binds width and NO height — the opposite of what the arms below
+  // assert (two different bound axes). Excluded by `!p.aspectRatio`, both in the cohort filter and the
+  // per-part loop, so `image-placeholder` is not dragged in and asked for a height it deliberately omits.
   const widthDefs = componentDefs.filter((d) =>
-    d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width));
+    d.anatomy && d.figmaProperties && Object.values(d.anatomy.parts).some((p) => p.width && !p.aspectRatio));
   const WIDTH_EXPECTED = ['switch'];
   ok(WIDTH_EXPECTED.every((n) => widthDefs.some((d) => d.id === n)) && widthDefs.length === WIDTH_EXPECTED.length,
     `#990 the width projection rule below covers exactly [${WIDTH_EXPECTED.join(', ')}] — a def gaining a deliberately non-square box must be represented here, and a def losing one is a stale claim (found: ${widthDefs.map((d) => d.id).join(', ') || 'none'})`);
@@ -13677,7 +13697,7 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       return walk(plan.root);
     };
     for (const [name, part] of Object.entries(def.anatomy!.parts)) {
-      if (!part.width) continue;
+      if (!part.width || part.aspectRatio) continue;
       const node = find(name);
       const key = part.width.replace('{size}', String(size));
       const ref = (def.tokens ?? {})[key];

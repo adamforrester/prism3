@@ -77,6 +77,75 @@
  * that disagrees, so this drift class cannot recur silently. Takes 0.63.0 — 0.61.0/0.62.0 are spent by the
  * select and image-placeholder components building alongside; a plain integer collision, no interaction.
  *
+ * 0.62.0: the engine grows an aspect-ratio LOCK and a clipsContent opt-in, and `image-placeholder` is
+ * the component that uses them (#1316, owner Option A 2026-09-07). Two capabilities, one component, one
+ * MINOR — and the interesting half is that the ratio is a component-STRUCTURE property rather than a
+ * token, so the whole thing binds only existing roles and `CONTRACT_VERSION` stands at 10.0.0.
+ *
+ * THE LOCK, AND WHY IT IS ONE. `image-placeholder` is an empty-state media frame with a `ratio` axis of
+ * `1:1 | 4:3 | 16:9`. The ratio must hold while the frame's real size flexes, and the obvious shape —
+ * bind a width token AND a height token per ratio — is the shape the engine has always STRIPPED
+ * (`unlockAspectRatio`): a Figma node cannot hold two dimension bindings while its aspect ratio is
+ * locked (the second `setBoundVariable` evicts the first), and dimension tokens vary per brand, so a
+ * two-binding frame would change RATIO when a brand re-derived its dimensions. So the box binds ONE
+ * nominal dimension (`width` → `container.narrow`, the veil idiom) and declares `aspectRatio: 'ratio'`;
+ * the projector parses the member's own `ratio` value (`16:9` → 16/9) onto the plan (`FigmaNodePlan
+ * .aspectRatio`), and both executors resize the frame to that proportion and call `lockAspectRatio()`,
+ * so Figma DERIVES the second dimension. The `ratio` axis VALUE is the ratio — parsed by `parseRatio`,
+ * not mapped by a second per-variant table — which is the clean expression Option A approved.
+ *
+ * `ratio` REOPENS THE CLOSED `VARIANT_AXES` LIST — the fifteenth name, and the mechanical fallout of an
+ * owner naming the axis (a component's variant API is a design call). It clears the list's bar: a
+ * width-to-height PROPORTION no existing name expresses, distinct from `size` (a scale rung) and `width`
+ * (a single main-axis length). `lint-axis-values.ts` carries `['1:1','4:3','16:9']` as a `sole` set, and
+ * `anatomyErrors` refuses a `ratio` value that is not a positive `W:H` (the lock would capture NaN).
+ *
+ * clipsContent — a box may now opt into cropping its overflow (`FigmaNodePlan.clipsContent`, default
+ * false, carried onto the plan only when true so EVERY existing box's plan is byte-identical). Threaded
+ * to the sites both executors hardcoded (`anatomy-figma.ts`'s payload branch, `write-components.ts`'s box
+ * branch and `claimDefaults`), which keeps `lint-unclaimed-defaults`'s existing `clipsContent` row
+ * satisfied — the executor still WRITES the value, now from the plan. `image-placeholder` opts in so a
+ * dropped photo cannot overflow the frame; no other box does.
+ *
+ * THE NEUTRAL ROLES: `fill` → `color.background.secondary` (a neutral surface one step off the page, so
+ * the empty frame reads as filled rather than a hole), `icon` → `color.icon.tertiary` (the most muted
+ * ink, for a de-emphasized "no image" marker). Both existing semantic roles, so no token is added.
+ *
+ * THE PASTE-TIME-DERIVE RISK, RESOLVED TO A: Figma documents `lockAspectRatio()` deriving the second
+ * axis on RESIZE, and a variable binding IS a resize, so the derive should hold at paste time — but that
+ * a `setBoundVariable` triggers it live is a real-Figma-only fact, the accept-and-discard class the
+ * round-trip gate names. The offline gates prove what they can — the lock is captured with the RIGHT
+ * ratio, read back as `targetAspectRatio` — and the derive-on-paste is filed for the real-host arm
+ * (`tools/component-roundtrip/`). Nothing falsified A, so there was no fallback to Option C.
+ *
+ * THE READ-BACK GATE (docs/34). `anatomy-readback.ts` classifies `aspectRatio` (built `targetAspectRatio`
+ * vs the PLAN's ratio) and `clipsContent`, so the corpus round-trip covers both per member. On top of
+ * that, `test-roundtrip.ts` carries an INDEPENDENT block: it builds `image-placeholder` through the shim
+ * and checks each member's frame against an owner-decided ratio CONTRACT authored in the gate, so a ratio
+ * flipped/added/dropped in the def fails BY NAME (plan-as-oracle cannot catch a coherent def flip). The
+ * shim and the test.ts payload stub both model `lockAspectRatio()`/`targetAspectRatio` — capturing from
+ * the live width/height a resize just set, never from a plan input, so the read-back is an independent
+ * witness. `test.ts`'s payload resize assertion is re-pointed from "node is never resized" to "node is
+ * never resized AFTER its bind loop" (resize-then-bind is safe; the aspect-lock resize runs before it).
+ *
+ * MUTATIONS RUN (docs/34): (a) flipping a ratio value in the def fails `test-roundtrip`'s aspect-lock
+ * block by name (contract mismatch) and `lint-axis-values` (register mismatch); (b) breaking the
+ * clipsContent thread fails `lint-unclaimed-defaults`'s `clipsContent` row / the round-trip clipsContent
+ * check by name; (c) mutating the fill binding fails `test.ts`/`lint-paint`. Each restored.
+ *
+ * NO COMMITTED ARTIFACT MOVES — component payloads are not committed under `out/`, and the def binds
+ * existing tokens, so `regen --check` moves only this file's own generator stamp. The bump is demanded
+ * from the projected-surface side (#1252's case): `lint-component-surface` gains `image-placeholder`'s 3
+ * members and `paint-census` gains its grid, both re-`--accept`ed; `lint-standalone-floor`'s
+ * `MUST_PROJECT` gains it. `lint-nesting` is unchanged — `image-placeholder` nests nothing and is nested
+ * by nothing. `token-contract.ts --check` confirms 10.0.0 stands (a component binding is a reference to a
+ * token name, never a token name); `--accept` refreshes only the baseline's informational `engineVersion`
+ * stamp to 0.62.0, at contract 10.0.0 unchanged.
+ *
+ * 0.61.0 is `select`'s (the entry below) — it merged to main while this was in review, so this takes
+ * 0.62.0, the next free integer above main. Merged origin/main in: kept this 0.62.0 entry and select's
+ * 0.61.0 one, kept `CONTRACT_VERSION` at 10.0.0, and `componentDefs` carries BOTH defs.
+ *
  * 0.61.0: `select` is a COMPONENT (#761 mechanism resolved) — the composed, native-first field, and the
  * FIRST def that NESTS the two shared field parts (`field-label` and `field-message`) rather than only
  * naming them in `composition` as `text-field` does. It is ONE unified component (not a checkbox-style

@@ -409,6 +409,20 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'alpha steps each polarity emits. Distinct from `weight` (type heaviness) and `appearance` (a '
       + 'control\'s emphasis/render strategy) — this is the strength of an overlay, argued in `VARIANT_AXES`.',
   },
+  {
+    axis: 'ratio',
+    values: ['1:1', '4:3', '16:9'],
+    defs: ['image-placeholder'],
+    relation: 'sole',
+    reason:
+      'The image placeholder\'s aspect PROPORTION (#1316) — a square, the classic photo ratio, and '
+      + 'widescreen. The values ARE ratios (`parseRatio` reads `16:9` as 16/9 to derive the frame\'s '
+      + 'aspect-ratio lock), which is why `anatomyErrors` refuses a `ratio` value that is not a positive '
+      + '`W:H`: the lock is derived from the value rather than mapped by a second per-variant table. '
+      + 'Distinct from `size` (a scale rung on a named ladder) and `width` (a single main-axis length) — '
+      + 'this is a width-to-height proportion that holds while the actual dimensions flex, argued in '
+      + '`VARIANT_AXES`. THREE values, the three ratios the owner settled on.',
+  },
 ];
 
 /** A reason shorter than this is a label, not a justification. Crude on purpose — see SCOPE above. */

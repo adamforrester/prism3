@@ -208,6 +208,15 @@ export const makeShim = (opts: ShimOpts = {}) => {
       // executor called it or not. `_unlocks` counts the calls, because the port field is optional and
       // the call site is `?.()` — an absent method skips silently, so "nothing threw" is not evidence.
       _aspectLocked: true, _unlocks: 0,
+      // #1316: the aspect-ratio LOCK, modelled the way Figma does — `lockAspectRatio()` captures the
+      // node's CURRENT width/height into the read-only `targetAspectRatio`, and `unlockAspectRatio()`
+      // releases it (both below). Starts undefined (a fresh node has no target ratio), so a node that was
+      // never locked reads back unlocked — which is what makes the executor's `lockAspectRatio()` call
+      // load-bearing: a shim that pre-set a target would pass whether the executor locked or not. Captured
+      // from the live getters, NOT from any plan input, so the read-back is a witness of what the executor
+      // resized-then-locked, not a copy of what it was told.
+      _targetAspectRatio: undefined as number | undefined,
+      get targetAspectRatio() { return node._targetAspectRatio as number | undefined; },
       fills: [] as unknown[], strokes: [] as unknown[], children: [] as Node[],
       // `strokeWeight` starts at 0 so the executor's `if(!node.strokeWeight)` default fires as it does
       // live; `strokesIncludedInLayout` starts TRUE because that is Figma's default and the thing
@@ -304,7 +313,17 @@ export const makeShim = (opts: ShimOpts = {}) => {
       },
       // Releases the aspect-ratio lock (#682). Counted as well as applied: the port field is optional and
       // the executor calls it `?.()`, so a port that lost the method would skip the unlock in silence.
-      unlockAspectRatio() { node._aspectLocked = false; (node._unlocks as number)++; },
+      unlockAspectRatio() { node._aspectLocked = false; node._targetAspectRatio = undefined; (node._unlocks as number)++; },
+      // #1316: ENGAGE the lock and capture the current proportion, mirroring Figma. Read from the live
+      // `width`/`height` getters — which the executor has just `resize`d to the ratio — so a wrong resize
+      // (say `resize(1, ratio)`) captures the wrong number and the read-back gate catches it. `height` of
+      // 0 would give Infinity/NaN; the executor resizes to `(ratio, 1)`, so height is 1 here.
+      lockAspectRatio() {
+        node._aspectLocked = true;
+        const w = node.width as number;
+        const h = node.height as number;
+        node._targetAspectRatio = h ? w / h : undefined;
+      },
       // The VALUE alongside the id, because a bound dimension is what SIZES the node live — the getters
       // above read it. Without it the binding is bookkeeping and every node measures the same.
       //

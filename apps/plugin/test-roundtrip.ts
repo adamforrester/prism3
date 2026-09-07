@@ -204,5 +204,50 @@ if (INVENTORY) {
 
 ok(dirty.length === 0, `every def round-trips: what the plan declares is what the host holds${dirty.length ? ` — ${dirty.map((d) => `${d.def} (${d.divergences.length})`).join(', ')}` : ''}`);
 
+// ── ASPECT-LOCK READ-BACK (#1316) — THE INDEPENDENT ORACLE ─────────────────────────────────────
+//
+// The generic diff above already checks each ratio member's built `targetAspectRatio` against the PLAN's
+// ratio (`anatomy-readback.ts`'s `aspectRatio` predicate) — plan-as-oracle, which catches an executor
+// that fails to lock or locks a wrong number. What it CANNOT catch is a wrong plan that round-trips
+// perfectly: flip a ratio in the def and the plan follows, so plan-vs-built still agrees. This block
+// closes that with an oracle authored HERE and NOWHERE ELSE — the owner-decided ratio contract — so a
+// ratio flipped, added or dropped in the def diverges from this and fails BY NAME (docs/34).
+//
+// This is the "aspect-lock read-back" the verify checklist places in test:roundtrip. It builds the def
+// through the shared shim exactly as the corpus loop does, then reads each member's frame back.
+{
+  const CONTRACT: Record<string, number> = { '1:1': 1, '4:3': 4 / 3, '16:9': 16 / 9 };
+  const def = componentDefs.find((d) => d.id === 'image-placeholder');
+  ok(!!def, 'aspect-lock: the image-placeholder def is registered and projects');
+  if (def) {
+    const plans = figmaAnatomySet(def, { swapTarget: SWAP_TARGET });
+    const page: Page = { children: [] };
+    const shim = makeShim({ ...fullFor(plans), page });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- structural: the shim satisfies ComponentsApi
+    await applyComponentPlan(plans, shim as any, {});
+    const members = (page.children[0]?.children ?? []) as unknown as HostNode[];
+    const byName = new Map(members.map((m) => [String(m.name ?? ''), m] as const));
+    const seenRatios = new Set<string>();
+    for (const plan of plans) {
+      const ratio = plan.coord.ratio;
+      if (ratio === undefined) { ok(false, 'aspect-lock: a member projected with no ratio coordinate'); continue; }
+      seenRatios.add(ratio);
+      const expected = CONTRACT[ratio];
+      if (expected === undefined) {
+        ok(false, `aspect-lock: member ratio=${ratio} is not an owner-decided ratio [${Object.keys(CONTRACT).join(', ')}] — a ratio was flipped or added in the def`);
+        continue;
+      }
+      const m = byName.get(planComponentName(plan));
+      const got = m ? (m as { targetAspectRatio?: unknown }).targetAspectRatio : undefined;
+      ok(typeof got === 'number' && Math.abs(got - expected) < 1e-6,
+        `aspect-lock: ratio=${ratio}'s built frame locks targetAspectRatio ≈ ${expected.toFixed(4)} (read ${typeof got === 'number' ? got.toFixed(4) : String(got)})`);
+    }
+    // SCOPE FLOOR: every owner-decided ratio must be represented by a built member, so a def that DROPS
+    // one fails here rather than the block quietly checking fewer frames.
+    for (const ratio of Object.keys(CONTRACT))
+      ok(seenRatios.has(ratio), `aspect-lock: a member for the owner-decided ratio ${ratio} was built (scope floor)`);
+  }
+}
+
 console.log(failed ? `\n❌ ${failed} FAILED` : '\n✅ component round-trip: ALL PASS');
 process.exit(failed ? 1 : 0);

@@ -189,6 +189,12 @@ export interface CompNode {
    *  inherit it through `DefaultFrameMixin` → `BaseFrameMixin`. That is why the call below needs no
    *  presence guard. */
   unlockAspectRatio?(): void;
+  /** ENGAGES the aspect-ratio lock, capturing the node's CURRENT width/height proportion into the
+   *  read-only `targetAspectRatio` (#1316). A ratio-locked box is resized to its proportion and then
+   *  locked, so binding the single nominal dimension afterward makes Figma DERIVE the other. Rides on the
+   *  same `AspectRatioLockMixin` as `unlockAspectRatio` — every type this executor creates carries it —
+   *  so the call below needs no presence guard; `?.()` here matches the port's optional-everything rule. */
+  lockAspectRatio?(): void;
   /** THE #827 STAMP, read and written on a MEMBER. Shared rather than private plugin data for the reason
    *  `persist-figma.ts` gives: the namespace is the collision boundary, and a stamp a second tool can
    *  read is a stamp a second tool can honor.
@@ -689,7 +695,10 @@ const claimDefaults = (node: Wr, n: FigmaNodePlan | null, misses: string[], mode
     const bound = n?.bound ?? {};
     for (const corner of ['topLeftRadius', 'topRightRadius', 'bottomLeftRadius', 'bottomRightRadius'] as const)
       if (!(corner in bound)) set(corner as keyof CompNode, 0);
-    set('clipsContent', false);
+    // THREADED FROM THE PLAN (#1316), default false. Still a `set` — the value is DECIDED by this
+    // executor either way, so `lint-unclaimed-defaults`'s `clipsContent` row stays satisfied; what
+    // changed is that the decision now comes from the def rather than a hardcoded literal.
+    set('clipsContent', n?.clipsContent ?? false);
     // PARENT-SIDE auto-layout properties, and these DO need the applicability test: Figma documents them
     // as "applicable only on auto-layout frames". Gated on the plan's `layoutMode` rather than a live
     // read for the reason in the header — and when there is no auto-layout there is no gap and no
@@ -1128,7 +1137,9 @@ const writeComponentSet = async (
       for (const v of drawn) wr(v as CompNode).constraints = { horizontal: 'SCALE', vertical: 'SCALE' };
     } else {
       node = wr(api.createFrame());
-      node.clipsContent = false;
+      // THREADED FROM THE PLAN (#1316), default false — unchanged for every existing box, which omits the
+      // field. Only `image-placeholder`'s frame opts into clipping, so a dropped photo cannot overflow it.
+      node.clipsContent = n.clipsContent ?? false;
     }
     // LOOSE FROM THE MOMENT IT EXISTS (#913), one line for all six creation branches above. Figma parents
     // a created node to the current page immediately, so a node that exists is a node a designer can see —
@@ -1188,6 +1199,17 @@ const writeComponentSet = async (
       node.counterAxisAlignItems = n.counterAxisAlignItems;
       node.primaryAxisSizingMode = n.primaryAxisSizingMode;
       node.counterAxisSizingMode = n.counterAxisSizingMode;
+    }
+
+    // THE ASPECT-RATIO LOCK (#1316). Establish the proportion by resizing, THEN lock, THEN let the bind
+    // loop bind the SINGLE nominal dimension — Figma derives the other axis from the lock. Ordered after
+    // layoutMode and before the bind loop for that reason: the lock is captured from the resized box, and
+    // the one dimension is bound afterward, so there is no second binding for the lock to evict (the
+    // mirror of `unlockAspectRatio` above, which the two-dimension case needs). Both `resize` and
+    // `lockAspectRatio` are `?.()` per the port's optional-everything rule.
+    if (n.aspectRatio) {
+      node.resize?.(n.aspectRatio, 1);
+      node.lockAspectRatio?.();
     }
 
     // `wrote` is what was ACTUALLY set, not what the plan declared — a name that does not resolve is
