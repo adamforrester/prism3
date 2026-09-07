@@ -60,6 +60,23 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.63.0: stale icon-count prose is corrected and gated (#1293). Two prose halves move and one gate is
+ * added. (1) The 0.49.0 entry above said the engine emits `icon` as "a set of 39 members" — wrong on both
+ * halves by the time it merged (the SHAPE: `icon.ts` declares `emitAsComponents`, so each glyph is a
+ * standalone component, #1012/0.47.0; and the COUNT), and it is rewritten to name the def flag and the
+ * surviving reason for the `COMPONENT_SET` diagnosis row (a designer's own library), with no number. (2)
+ * `icon.ts`'s `codeOnly` said the fill grammar was "verified across all 40 sources"; #1316 had grown the
+ * set to 43, so it now names the source instead of a count. That second edit is why this bumps ENGINE:
+ * `codeOnly` is part of the projected component plan, so `lint-component-surface` sees the icon SURFACE
+ * digest move even though `regen --check` is byte-identical and `lint-emission-version` reports nothing —
+ * the #1252 case, an ENGINE bump the `out/` diff cannot see, demanded from the projected-surface side.
+ *
+ * `CONTRACT_VERSION` STANDS at 10.0.0: no token name moved, and a glyph count in a comment is not a token
+ * path — `token-contract.ts --check` confirms it. The durable half is `lint-icon-count.ts`: it derives its
+ * EXPECTED from `ICON_NAMES.length` and forbids the icon def's metadata prose from restating a glyph count
+ * that disagrees, so this drift class cannot recur silently. Takes 0.63.0 — 0.61.0/0.62.0 are spent by the
+ * select and image-placeholder components building alongside; a plain integer collision, no interaction.
+ *
  * 0.61.0: `select` is a COMPONENT (#761 mechanism resolved) — the composed, native-first field, and the
  * FIRST def that NESTS the two shared field parts (`field-label` and `field-message`) rather than only
  * naming them in `composition` as `text-field` does. It is ONE unified component (not a checkbox-style
@@ -524,9 +541,11 @@
  * `lint-us-english` scans as a surface of this engine, and they now ship twice over — once as the imported
  * helper and once inside the emitted payload string in `main.js`. `CONTRACT_VERSION` stands at 9.4.0 and
  * `regen --check` reports all 108 committed artifacts byte-matching: no def moved, and no `out/**` byte
- * moves but this file's own generator stamp. One correction to 0.49.0's prose is deliberately NOT made —
- * its claim that the engine emits `icon` as "a set of 39 members" is stale (it materializes as separate
- * components, #1012/0.47.0) and is filed as #1293 rather than edited into merged history here.
+ * moves but this file's own generator stamp. One correction to 0.49.0's prose was deferred from here to
+ * its own change: its claim that the engine emits `icon` as "a set of 39 members" was stale on both
+ * halves — the shape (it materializes as separate components, #1012/0.47.0) and the count — and #1293 has
+ * since rewritten that entry to name `icon.ts`'s `emitAsComponents` and drop the number, plus added
+ * `lint-icon-count.ts` so an icon-metadata count claim cannot drift from `ICON_NAMES.length` again.
  *
  * 0.49.0: a missing SWAP TARGET is diagnosed instead of merely named (#1280 PR-C, #1212 residue). Both
  * `INSTANCE_SWAP` consumers in `apps/plugin/src/write-components.ts` — the node loop and the property loop
@@ -543,9 +562,14 @@
  *
  * THE `COMPONENT_SET` ROW IS THE ONE A DESIGNER ACTUALLY HITS once icons are wired, and it is why this is
  * a fix rather than a rewording. An `INSTANCE_SWAP` default is a single node id (Figma refuses the
- * component key, `''` and `null` alike) and the engine emits `icon` as a set of 39 members — so in that
- * state the designer has published EXACTLY what the engine built and still gets a miss. What is missing is
- * a nomination of one member, and no message said so.
+ * component key, `''` and `null` alike), and a designer's own icon library is very often a `COMPONENT_SET`
+ * — so in that state the designer has published EXACTLY what a swap target expects and still gets a miss.
+ * What is missing is a nomination of one member, and no message said so. (The row is NOT about prism3's
+ * own emission: `icon.ts` declares `figmaProperties.emitAsComponents`, so the engine materializes each
+ * glyph as a standalone top-level `icon/<glyph>` COMPONENT rather than one set — #1012/0.47.0. The
+ * surviving reason is the designer's library, which is what #1292's test now states in code; the
+ * membership is `ICON_NAMES.length` in `icon-glyphs.ts` and is deliberately not restated here — #1290's
+ * lesson, and this entry was corrected to it in #1293.)
  *
  * WHY THIS BUMPS ENGINE AT ALL, stated because the immediately preceding release argued the opposite for
  * its own plugin-only change (0.45.0's #1279 entry: no `out/**` movement, so no bump). These strings are
@@ -1611,7 +1635,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.61.0';
+export const ENGINE_VERSION = '0.63.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

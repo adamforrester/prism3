@@ -683,6 +683,11 @@ export const GATES: Gate[] = [
     cmd: engine('lint-glyph-geometry.ts'),
   },
   {
+    id: 'lint-icon-count',
+    ciStep: "The icon def's metadata states no stale glyph count",
+    cmd: engine('lint-icon-count.ts'),
+  },
+  {
     id: 'lint-nesting',
     ciStep: 'The component nesting graph resolves and is acyclic',
     cmd: engine('lint-nesting.ts'),

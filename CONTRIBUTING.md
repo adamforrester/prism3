@@ -768,6 +768,23 @@ npx tsx packages/engine/lint-glyph-geometry.ts      # a `vector` part submits an
                                                     # SUBTREE Figma returns. That is the executors'
                                                     # runtime NO VECTOR miss, which fails loudly rather
                                                     # than building a plausible empty frame.
+npx tsx packages/engine/lint-icon-count.ts          # the icon def's METADATA PROSE (description, prop
+                                                    # descriptions, part notes, codeOnly entries) may not
+                                                    # restate a glyph count that disagrees with the live
+                                                    # vocabulary (#1293). EXPECTED is ICON_NAMES.length,
+                                                    # read from icon-glyphs.ts — never a second hardcoded
+                                                    # numeral, which would be the #1110 trap (two
+                                                    # constants agreeing with each other, docs/34 shape 1).
+                                                    # #1290's lesson: name the source, not the number, so
+                                                    # a clean run finds ZERO counts — the DESIGNED state.
+                                                    # Its liveness is proven by a self-check that feeds a
+                                                    # known-bad string ("a set of 39 members") and fails
+                                                    # if it comes back clean, plus a floor asserting the
+                                                    # icon-def extraction was non-empty (docs/34 shape 9).
+                                                    # SCOPE is the icon def only: changelog history
+                                                    # (version.ts, docs/00-progress.md) legitimately states
+                                                    # the count of its moment and is out of scope, and so
+                                                    # is field-message.ts's dated "#920 landed 39 glyphs".
 npx tsx packages/engine/lint-nesting.ts             # the component NESTING graph (anatomy.parts[*].nests)
                                                     # resolves and is acyclic (#1226 PR-A). Two arms,
                                                     # each mutation-proven BY NAME: nest-resolves — every
