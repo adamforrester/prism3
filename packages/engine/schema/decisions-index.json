@@ -124,6 +124,13 @@
       "title": "the ENGINE surface is everything a consumer can observe — emitted trees AND the projected component surface; `out/` movement is one trigger, not the definition",
       "doc": "docs/30-versioning-and-compatibility.md",
       "section": null
+    },
+    {
+      "date": "2026-09-07",
+      "issue": 1317,
+      "title": "the rungs are named for intensity, not for the floor they clear",
+      "doc": "docs/20-interactive-color-system.md",
+      "section": "8.2"
     }
   ]
 }

@@ -60,6 +60,23 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.59.0: the media veil's three rungs are renamed for INTENSITY, not for the WCAG floor they clear —
+ * `large`/`body`/`enhanced` become `subtle`/`medium`/`strong` on both polarities (#1317). Owner
+ * decision: naming a rung `body` claimed it "clears 4.5:1", a per-image guarantee the engine cannot
+ * keep — the floor is measured against the worst pixel of an UNKNOWN image, so a real photo's combined
+ * contrast under the wash depends on the specific image. The floors stay in `VEIL_RUNGS` as the
+ * DEFAULT-PICKER (each rung still derives to the least alpha step clearing its floor), so the emitted
+ * alphas are BYTE-IDENTICAL — light 40/50/60, dark 50/60/70 — and only the six token NAMES move.
+ * `regen --check` confirms the values held: the only value-carrying bytes that move under `out/**` are
+ * the veil path segments themselves plus this file's generator stamp.
+ *
+ * A CONTRACT bump rides with it — six guaranteed token paths are renamed — recorded in `DEPRECATIONS`
+ * (old rung → new rung, both polarities) so `token-contract.ts --accept` demands the bump and the Figma
+ * variable rename derives from it via `rename-map.ts`. The Figma half needs NO `MATERIALIZATION_RENAMES`
+ * rule: a rung rename moves the ROLE (`veil/dark/body` → `veil/dark/medium`), which `projectionsOf`
+ * turns into a real variable rename, and a materialization rule would be a second record in front of one
+ * operation — the `multiplyClaimed` refusal `lint-materialization-renames.ts` exists to raise.
+ *
  * 0.3.1: semantic ink (`text|icon.<sem>`) now gates against its own `-subtle` tint as well as the page
  * floor, so it resolves a rung darker on white-page brands. Values only — no name moved, so
  * CONTRACT_VERSION stands. Exactly the case this split exists for.
@@ -1508,7 +1525,7 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  */
-export const ENGINE_VERSION = '0.58.0';
+export const ENGINE_VERSION = '0.59.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
@@ -1554,6 +1571,17 @@ export const ENGINE_VERSION = '0.58.0';
  * `border` leaf carrying `rest`/`hover`/`pressed` children emits ONLY the leaf and drops all three
  * children silently — so the states would be invisible to exactly the conforming consumers #631's
  * gate exists to protect. A plausible-looking result rather than an error, which is the #575 shape.
+ *
+ * 10.0.0: the media veil's three rungs rename from WCAG-floor names to INTENSITY names — six guaranteed
+ * paths removed, six added, 0 retyped, so MAJOR (#1317). `color.veil.<pol>.{large,body,enhanced}` become
+ * `color.veil.<pol>.{subtle,medium,strong}` on both polarities, and a consumer resolving `color.veil.dark.body`
+ * gets nothing — which is why this is MAJOR and not the value-only ENGINE bump the alphas alone would be
+ * (0.59.0 above; the emitted values are byte-identical). The removals ship `DEPRECATIONS` entries pointing
+ * at the intensity twin, so a consumer or codemod can follow the rename, and the Figma variable rename
+ * derives from those entries via `rename-map.ts` with no `MATERIALIZATION_RENAMES` rule (a rung rename
+ * moves the role, which projects to a real variable rename — a materialization rule would double-claim it).
+ * The level was DERIVED from `token-contract.ts --check` (it reported MAJOR and named all six removals),
+ * not chosen here. (577 → 577)
  *
  * 9.4.0: `control.size.{sm,md,lg}.radius` — three guaranteed paths added, 0 removed, 0 retyped, so MINOR
  * (#1015). A selection control's corner, clamped to its OWN box edge — `min(radius.sm, snap2(edge ÷ 8))`
@@ -1897,7 +1925,7 @@ export const ENGINE_VERSION = '0.58.0';
  * role-first alternative would have needed a separate leaf-to-group cascade per role, seven times,
  * each one putting context last. (#891) (497 → 497)
  */
-export const CONTRACT_VERSION = '9.4.0';
+export const CONTRACT_VERSION = '10.0.0';
 
 /** A guaranteed path that was removed, and where its consumers should point instead. */
 export type Deprecation = {
@@ -1976,6 +2004,19 @@ const INVERSE_GROUP_MOVES: Array<[string, string, readonly string[]]> = [
 
 /** The one inverse role #1140 DEDUPES rather than renames — see the note above. */
 const INVERSE_DEDUPED = { group: 'border.inverse', leaf: 'default', replacedBy: 'inverse.border.primary' };
+
+/**
+ * #1317 — the media veil's rungs renamed from WCAG-floor names to INTENSITY names, both polarities.
+ * `[polarity, old rung, new rung]`, stated LITERALLY here rather than imported from `modes.ts`'s
+ * `VEIL_RUNGS`, so a typo dangles in `token-contract.ts --check` instead of agreeing with the subject it
+ * records (`docs/34` shape 1). Read TWICE in `DEPRECATIONS`: the #1148 value-tier entries follow their
+ * `replacedBy` to the new live name (the rungs were renamed out from under them), and the #1317 block
+ * itself is `color.veil.<pol>.<old>` → `color.veil.<pol>.<new>`. One pairing, so the two cannot diverge.
+ */
+const VEIL_RUNG_RENAMES: ReadonlyArray<readonly [string, string, string]> = [
+  ['dark', 'large', 'subtle'], ['dark', 'body', 'medium'], ['dark', 'enhanced', 'strong'],
+  ['light', 'large', 'subtle'], ['light', 'body', 'medium'], ['light', 'enhanced', 'strong'],
+];
 
 export const DEPRECATIONS: Deprecation[] = [
   { path: 'motion.easing.enter', replacedBy: 'motion.easing.decelerate', since: '2.0.0' },
@@ -2304,15 +2345,46 @@ export const DEPRECATIONS: Deprecation[] = [
       'on-warning', 'primary', 'secondary', 'success', 'success-subtle', 'tertiary', 'warning',
       'warning-subtle',
     ]],
-    ['veil', [
-      'dark.body', 'dark.enhanced', 'dark.large', 'light.body', 'light.enhanced', 'light.large',
-    ]],
   ] as Array<[string, readonly string[]]>).flatMap(([group, leaves]) =>
     leaves.map((leaf) => ({
       path: `color.appearance.${group}.${leaf}`,
       replacedBy: `color.${group}.${leaf}`,
       since: '9.0.0',
     }))),
+  // `veil` is DELIBERATELY ABSENT from the loop above, because #1317 broke its `path` and `replacedBy`
+  // leaves apart. #1148 moved the value-tier veil rungs to the short spelling under their OLD floor-names
+  // (`color.appearance.veil.dark.body` → `color.veil.dark.body`); #1317 then renamed the rungs to
+  // intensities (the block below), so `color.veil.dark.body` is no longer live. These six #1148 entries
+  // therefore keep their `path` — history: the appearance-tier spelling really was retired at 9.0.0 — and
+  // follow `replacedBy` to the NEW live name, the "renamed out from under them" rule the 3.0.0 border
+  // entries already follow. `VEIL_RUNG_RENAMES` is where the old→new pairing is stated once.
+  ...VEIL_RUNG_RENAMES.map(([pol, oldR, newR]) => ({
+    path: `color.appearance.veil.${pol}.${oldR}`,
+    replacedBy: `color.veil.${pol}.${newR}`,
+    since: '9.0.0',
+  })),
+  // ── #1317: THE VEIL RUNGS RENAME FROM FLOOR-NAMES TO INTENSITY ──────────────────────────────────
+  //
+  // `veil.<pol>.{large,body,enhanced}` → `veil.<pol>.{subtle,medium,strong}`, both polarities — six
+  // guaranteed paths renamed. The floor-names claimed a per-image contrast guarantee the engine cannot
+  // keep (the floor is the worst pixel of an UNKNOWN image); the intensity names claim only magnitude,
+  // which a designer can see. See `modes.ts`'s veil note for the owner's reasoning.
+  //
+  // A PURE NAME CHANGE — the VALUES do not move. The floors stay in `VEIL_RUNGS` as the default-picker,
+  // so each rung derives to the identical alpha step and `regen --check` shows the emitted alphas
+  // unchanged. That is a MAJOR by the removal rule (a guaranteed path leaves), and `replacedBy` names the
+  // intensity twin so a consumer following the pointer keeps the same wash under a new name.
+  //
+  // THE FIGMA SIDE IS DERIVED FROM HERE, not recorded in `MATERIALIZATION_RENAMES`. A rung rename moves
+  // the ROLE (`veil/dark/body` → `veil/dark/medium`), so `projectionsOf` yields a real variable rename;
+  // a materialization rule would be a second record in front of one Figma operation, which
+  // `lint-materialization-renames.ts` fails as `multiplyClaimed`. Stated literally (not imported from
+  // `modes.ts`) so a typo dangles in `--check` rather than agreeing with its subject (`docs/34`).
+  ...VEIL_RUNG_RENAMES.map(([pol, oldR, newR]) => ({
+    path: `color.veil.${pol}.${oldR}`,
+    replacedBy: `color.veil.${pol}.${newR}`,
+    since: '10.0.0',
+  })),
 ];
 
 /** Semver levels, ordered — `LEVELS.indexOf` is the comparison. */

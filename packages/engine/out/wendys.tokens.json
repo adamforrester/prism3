@@ -10737,10 +10737,10 @@
       },
       "veil": {
         "dark": {
-          "large": {
+          "subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.black-alpha.50}",
-            "$description": "Media veil, dark — 50% black over an image; white text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, dark — a subtle black wash (50%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10780,10 +10780,10 @@
               }
             }
           },
-          "body": {
+          "medium": {
             "$type": "color",
             "$value": "{wds.core.palette.black-alpha.60}",
-            "$description": "Media veil, dark — 60% black over an image; white text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, dark — a medium black wash (60%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10823,10 +10823,10 @@
               }
             }
           },
-          "enhanced": {
+          "strong": {
             "$type": "color",
             "$value": "{wds.core.palette.black-alpha.70}",
-            "$description": "Media veil, dark — 70% black over an image; white text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, dark — a strong black wash (70%) over an image, to lift light text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10868,10 +10868,10 @@
           }
         },
         "light": {
-          "large": {
+          "subtle": {
             "$type": "color",
             "$value": "{wds.core.palette.white-alpha.40}",
-            "$description": "Media veil, light — 40% white over an image; black text clears 3:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, light — a subtle white wash (40%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10911,10 +10911,10 @@
               }
             }
           },
-          "body": {
+          "medium": {
             "$type": "color",
             "$value": "{wds.core.palette.white-alpha.50}",
-            "$description": "Media veil, light — 50% white over an image; black text clears 4.5:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, light — a medium white wash (50%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -10954,10 +10954,10 @@
               }
             }
           },
-          "enhanced": {
+          "strong": {
             "$type": "color",
             "$value": "{wds.core.palette.white-alpha.60}",
-            "$description": "Media veil, light — 60% white over an image; black text clears 7:1 at the image's worst pixel. Identical in every mode; the mode-varying modal backdrop is scrim.default",
+            "$description": "Media veil, light — a strong white wash (60%) over an image, to lift dark text off it. Verify contrast against your own photo. Identical in every mode; the mode-varying modal backdrop is scrim.default",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
@@ -20721,7 +20721,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.58.0",
+      "version": "0.59.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {

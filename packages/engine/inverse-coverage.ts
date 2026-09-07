@@ -92,8 +92,8 @@ export const INVERSE_GAPS: InverseGap[] = [
   },
   {
     paths: [
-      'color.veil.dark.large', 'color.veil.dark.body', 'color.veil.dark.enhanced',
-      'color.veil.light.large', 'color.veil.light.body', 'color.veil.light.enhanced',
+      'color.veil.dark.subtle', 'color.veil.dark.medium', 'color.veil.dark.strong',
+      'color.veil.light.subtle', 'color.veil.light.medium', 'color.veil.light.strong',
     ],
     reason:
       'STRUCTURAL, not undecided. A veil composites over a PHOTOGRAPH, and an inverse band does not '
