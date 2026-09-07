@@ -170,6 +170,7 @@ const NO_SIZE_AXIS: Record<string, string> = {
   'focus-ring': 'a ring is sized by the control it surrounds, not by its own axis — its offset and width are bound, never enumerated',
   'field-message': 'validation copy takes one type role; its axis is `tone`, and size follows the field it belongs to',
   'veil': 'a media wash is full-bleed and has no size RUNG — its axes are `value` × `intensity`, and its only dimension binding is a NOMINAL standalone square (`container.narrow`), overwritten by the designer resizing it over the image; there is no size ladder to compare against the tier',
+  'image-placeholder': 'a media frame has no size RUNG — its axis is `ratio` (an aspect PROPORTION, not a scale ladder), its one dimension binding is a NOMINAL width (`container.narrow`) the designer resizes, and its glyph size is a fixed `icon.size.lg`; there is no size ladder to compare against the tier (#1316)',
   'select': 'Prism2\'s select is single-size, so there is no size axis and no `size.{size}.*` ladder — the control binds the `md` rung of the field geometry FLATLY (`min-height` → size.md.height, `pad-x`/`pad-y`, `gap`, `icon-size`), one value each rather than an enum, so there is no rung set to compare against the tier',
 };
 
