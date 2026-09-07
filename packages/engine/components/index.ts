@@ -56,6 +56,7 @@ import { checkboxControl } from './checkbox-control';
 import { checkbox } from './checkbox';
 import { radio } from './radio';
 import { switchDef } from './switch';
+import { select } from './select';
 import { veil } from './veil';
 
 /** Named access, kept ALONGSIDE the set rather than replaced by it. Most of `test.ts`'s component
@@ -64,7 +65,7 @@ import { veil } from './veil';
  *  be a worse call site, not a better one — a lookup that can return `undefined` standing in for a
  *  binding that cannot. The set is for iteration; these are for the assertions that are ABOUT one
  *  component. */
-export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef, veil };
+export { button, buttonDestructive, buttonNeutral, iconButton, iconButtonDestructive, iconButtonNeutral, icon, focusRing, fieldLabel, fieldMessage, textField, textarea, checkboxControl, checkbox, radio, switchDef, select, veil };
 
 /** Every component def the engine defines. The one thing a projection should iterate. */
 export const componentDefs: readonly ComponentDef[] = [
@@ -112,6 +113,11 @@ export const componentDefs: readonly ComponentDef[] = [
   // `switch` because `switch` is a reserved word: the def's `id` is still `'switch'`, which is what
   // every gate and every consumer reads.
   switchDef,
+  // `select` (#761 mechanism resolved) — the composed, native-first field. It sits after the selection
+  // controls because composition order puts it here: it NESTS `field-label`, `field-message` and
+  // `focus-ring` (all above it), the first def to nest the two shared field parts rather than only name
+  // them in `composition` as `text-field` does. Nothing reads this array's order (see the header).
+  select,
   // `veil` (#1030, renamed #1317, built here) — the media wash. It nests nothing and is nested by
   // nothing, so it sits at the end of the list: its composition order is trivial (a standalone box), and
   // it shares no factory or `inherits` chain with the controls above it. It is the first def whose axes
