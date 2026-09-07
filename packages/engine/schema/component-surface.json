@@ -59,6 +59,10 @@
       "members": 24,
       "sha256": "5dc1c84017c0fce3fbae20bcf902364986689b516957873d3a3e36e7dc813a60"
     },
+    "select": {
+      "members": 40,
+      "sha256": "c9bfc19748f25a8f2105a84462a5effcebda8282179a15b4732c3a8caf9714c7"
+    },
     "veil": {
       "members": 6,
       "sha256": "37e05f5e1964d951a67528bbb534648162599c3be5684ddf17ef10db142fe3b4"

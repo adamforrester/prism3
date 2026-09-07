@@ -14904,6 +14904,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     // same design fact exempts them — a Destructive or Neutral button label is the same short action phrase.
     'button-destructive.container': buttonCentreReason,
     'button-neutral.container': buttonCentreReason,
+    // `select`'s value row pairs an optional leading glyph with the value/placeholder text, and the same
+    // design fact exempts it: a select shows ONE selected option's label, ellipsized to a single line
+    // (`maxLines: 1`), so it never wraps — the first line IS the block and centring the glyph against it
+    // cannot float it mid-paragraph. The control box that holds this row is a fixed single-line height,
+    // which is the mechanical half of the same fact (no room to grow into a second line).
+    'select.content':
+      "a select shows one option's label ellipsized to a single line, so the value row does not wrap — the first line IS the block and centring the leading glyph against it cannot float it mid-paragraph. The control's fixed single-line height is the mechanical half of the same fact.",
   };
   let pairedRows = 0;
   const centred: string[] = [];

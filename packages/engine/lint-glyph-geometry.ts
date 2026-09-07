@@ -160,6 +160,11 @@ const FIXED_GLYPH: Record<string, { glyph: string; at: Record<string, readonly s
     at: {},
     why: "the empty-state \"no image\" marker (#1316's `image` glyph — a mountain-and-sun placeholder). One fixed shape on every ratio member, because the ratio axis varies the frame's proportion and not its content; a designer replaces the whole frame's fill with a photograph rather than swapping this marker.",
   },
+  'select.chevron': {
+    glyph: 'chevron-down',
+    at: {},
+    why: "the disclosure affordance — one downward chevron on every member (an `at` of `{}`, present at every coordinate, unlike the gated selection/tone marks below), because a select's control ALWAYS opens a menu downward. It is fixed rather than `{name}`-templated for the same reason a checkbox mark is: the shape is a property of the component, not a coordinate a designer picks. The Prism2 spec draws `arrow-down-s-line`; the engine's vocabulary name for that shape is `chevron-down`",
+  },
   'checkbox-control.mark': {
     glyph: 'check',
     at: { selection: ['checked'] },

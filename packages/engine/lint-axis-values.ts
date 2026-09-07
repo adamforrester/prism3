@@ -339,7 +339,7 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
   {
     axis: 'tone',
     values: ['default', 'error', 'warning', 'success'],
-    defs: ['field-message'],
+    defs: ['field-message', 'select'],
     relation: 'overlapping',
     reason:
       'THE ONE ENTRY IN THIS REGISTER THAT RECORDS A DEFECT RATHER THAN A DECISION, and it is declared '
@@ -350,7 +350,10 @@ const AXIS_VALUE_SETS: readonly AxisValueSet[] = [
       + 'are individually defensible, which is #756\'s failure mode exactly: `error` is a member of the '
       + 'closed `STATES` vocabulary, which a validation outcome should mirror; `danger` is the ink '
       + 'vocabulary the binding resolves to. `default` is a fourth value canonical has no counterpart for. '
-      + 'Overlapping is the EXPENSIVE divergence precisely because it reads as alignment.',
+      + 'Overlapping is the EXPENSIVE divergence precisely because it reads as alignment. `select` shares '
+      + 'this exact set BY DESIGN, not by coincidence: its validation axis is spelled `tone` so the nested '
+      + '`field-message` follows it by name (`nest-fixed` `follow`), a same-name same-value passthrough — '
+      + 'so `select` and `field-message` must carry identical values, and this is the entry that records it.',
   },
   {
     axis: 'width',

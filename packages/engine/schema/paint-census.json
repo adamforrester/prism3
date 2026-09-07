@@ -169,6 +169,18 @@
         "sha256": "bb5fa69dfb1aaff8f539729a115baa77a94cf8ea1d529e8236f1e1801fa0c5ce"
       }
     },
+    "select": {
+      "set": {
+        "members": 40,
+        "assignments": 180,
+        "sha256": "fae57452060dcb5ce10e4a3efc0b90211f259e071c9551a7a37f70a41a5900a2"
+      },
+      "grid": {
+        "members": 20,
+        "assignments": 100,
+        "sha256": "30a085679bae31699aaabef4629845d60241d32ba0aec56e02f8ccc332c5656c"
+      }
+    },
     "veil": {
       "set": {
         "members": 6,

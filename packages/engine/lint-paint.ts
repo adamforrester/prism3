@@ -258,6 +258,22 @@ const PROVENANCE_EXCEPTIONS: Record<string, string> = {
     "tone `error` maps to the `danger` ink role — the def's axis value is the validation state a consumer names, `danger` is the token tier's name for that colour; the two vocabularies are deliberately not merged",
   'field-message|error.icon':
     'same mapping as `error.label`, for the status glyph',
+  // `select`'s validation axis is spelled `tone` to align with `field-message` (its values are the
+  // validation states a consumer names), and `danger` is the token tier's name for that boundary colour
+  // — the same mapping `field-message|error.*` records, one slot over: the axis value and the resolved
+  // role are two vocabularies deliberately not merged. The error border is bound PER non-disabled state
+  // (rest / hover / focus-visible / empty) so the swap persists rather than yielding to the neutral
+  // interactive border, which is why there are four keys and not one — the tone template is 3-segment to
+  // avoid colliding with the 2-segment state keys (see `select.ts`). `default`/`warning`/`success` bind
+  // no tone-led border, so these four are the only select keys arm 1 examines.
+  'select|error.border.rest':
+    "tone `error` maps to the `danger` border role — the rest coordinate of select's border-only error swap",
+  'select|error.border.hover':
+    'tone `error` maps to the `danger` border role — the hover coordinate, bound so the error border persists through hover',
+  'select|error.border.focus-visible':
+    'tone `error` maps to the `danger` border role — the focus-visible coordinate, bound so the error border persists through focus (the ring carries the focus signal on top)',
+  'select|error.border.empty':
+    'tone `error` maps to the `danger` border role — the empty coordinate, the common "required field left unchosen" error',
 };
 
 /**
