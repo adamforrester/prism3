@@ -209,6 +209,15 @@
       "description": "The radius.md value (px) at scale 1."
     },
     {
+      "key": "radiusHairline",
+      "group": "form",
+      "label": "Hairline radius",
+      "control": "toggle",
+      "advanced": true,
+      "default": false,
+      "description": "Opt-in (off by default). On adds a fixed 1px radius.hairline for near-sharp brands — the scaled ramp only reaches even values, so this is the way to a 1px corner."
+    },
+    {
       "key": "typography.typeScale",
       "group": "type",
       "label": "Type scale",

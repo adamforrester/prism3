@@ -4172,7 +4172,7 @@ const spacingFixedNote = (): HTMLElement => el('p', 'ic-modenote',
 const renderSizeRadiusPage = (host: PageHost): void => controlSplitPage(host, 'sizeRadius', () => {
   const perMode = currentMode !== 'light';
   return [
-    { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1) and the softness dial that scales the whole ramp.', controls: csLeverStack(['baseMd', 'radiusScale'], perMode), paint: paintRadiusPreview },
+    { title: 'Corner radius', sub: 'The corner-radius ramp — its anchor (radius.md at scale 1), the softness dial that scales the whole ramp, and the opt-in 1px hairline the even sub-grid cannot otherwise reach.', controls: csLeverStack(['baseMd', 'radiusScale', 'radiusHairline'], perMode), paint: paintRadiusPreview },
     // controlShape is a GLOBAL brand lever (not per-mode) — `csLeverStack([…], false)` renders the plain
     // enum select. It sits beside corner softness on purpose: both shape the corner, but orthogonally
     // (softness scales the ramp; pill overrides it with height ÷ 2 for pill-able controls).

@@ -459,6 +459,7 @@
     },
     "radiusScale": { "oneOf": [ { "type": "number", "default": 1, "description": "OPTIONAL. Corner softness: 0 = sharp, 1 = default, 2 = soft. Default 1." }, { "type": "string", "enum": ["sharp", "modest", "standard", "soft", "round"], "description": "Named stop — sharp 0 · modest 0.5 · standard 1 · soft 1.5 · round 2." } ] },
     "baseMd": { "type": "number", "default": 4, "description": "OPTIONAL. The radius.md anchor (px) at scale 1. Default 4." },
+    "radiusHairline": { "type": "boolean", "default": false, "description": "OPTIONAL, OPT-IN (off by default). `true` adds a fixed, unscaled `radius.hairline` = 1px sentinel alongside the pills. The scaled ramp rides an even 2px sub-grid, so 1px is unreachable from radiusScale/baseMd — this is the way to a near-sharp 1px corner (New Balance uses 1px as its dominant corner). Off leaves every rung byte-identical." },
     "personality": {
       "type": "array",
       "items": { "type": "string", "enum": ["energetic", "calm", "premium", "restrained", "bold", "generous", "dense", "sharp", "soft"] },
