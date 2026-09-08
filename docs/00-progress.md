@@ -7,6 +7,28 @@
 
 ---
 
+## (2026-09-08) — the text-bearing button family sizes its icon one rung smaller than its control (#1350)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.69.0 → **0.70.0**. **CONTRACT stands at 10.0.0** — a component binding is a reference to a token name, never a token name; every rung it now points at already ships (`token-contract.ts --check` confirms 577 guaranteed paths unchanged; `--accept` refreshed only the informational `engineVersion` stamp).
+
+**The change (owner Option A, settled 2026-09-08; implemented not re-decided).** The audit in #1350 found the button family's icon slots bound to `icon.size.{sm,md,lg}` = 20/24/32 (small/medium/large), and the owner judged `large` = 32 too big, fixing `large` = 24 and shifting the whole family down one rung. So `button` / `button-destructive` / `button-neutral` rebind their leading/trailing icon slots to `icon.size.{xs,sm,md}` = **16 / 20 / 24**. `icon-button` is **UNCHANGED** (icon-only, so its larger glyph is intended). One binding edit per size, in the shared `makeButton` factory, so all three text-button defs move together.
+
+**This intentionally reverses #756's composition-identity position — for buttons only, and the owner sanctioned it.** #324/#756 built a three-way identity: a standalone `<Icon>`, a Button's leading visual, and an icon-button's glyph all render the same size at a given control size (medium → 24 everywhere), so control size → icon size is the identity rather than a reconciliation. The owner has now sanctioned a labelled button carrying a glyph **one rung smaller** than a standalone icon: the label already carries the button, so the flanking glyph reads better small. `icon-button` has no label to lean on, so it keeps the 1:1 ladder and still matches a standalone icon. **The composition identity now holds for icon-button and is deliberately offset for buttons.** Recorded here, in `lint-rung-names.ts`'s arm 3 header, and in `button.ts`'s `size.*.icon` block.
+
+**The #756 gates are RE-POINTED, not deleted (docs/34 — the invariant changed shape, it did not disappear).**
+- `lint-rung-names.ts` arm 3 (#756's default-`md` rule) now checks the default rung **per tier family** and expects the button family's `icon.size.*` family at `OFFSET_DEFAULT_RUNG` — exactly one rung below `md`, i.e. `sm` — while every other family (geometry, label type) still resolves to `md`. The expected rung is derived from the RULE (`RUNG_ORDER` minus one from `md`), never from the button's own binding, so the two sides of the comparison stay independent. A new `ICON_OFFSET_DEFS` records the sanctioned pair and is checked BOTH directions (a listed def that does not exist, or that stops binding the named family at its default, fails as stale).
+- `test.ts`'s icon-button↔button parity assertion now asserts the button's leading visual is **exactly one `ICON_SIZES` rung below** the icon-button's glyph (and that they diverge — equality would mean the offset was reverted), with the ladder order as the independent oracle. The offset is asserted on the bound-variable NAME (`icon/size/sm` vs `icon/size/md`), not resolved pixels, for the same reason lint-rung-names does: the defect class is a wrong-NAME-that-resolves.
+
+Both still FAIL BY NAME if the button icon drifts to any rung other than the sanctioned offset.
+
+**Versioning (#1252 decision).** ENGINE and not CONTRACT. Every rung the button now points at (`icon.size.{xs,sm,md}`) already ships in all four brands, so no token path is added, removed or retyped and `CONTRACT_VERSION` stands at 10.0.0. What moves is the PROJECTED COMPONENT SURFACE: the three button defs' leading/trailing icon members bind a different `icon.size.*` variable and measure a different artboard, so each member's `planStamp` moves and `schema/component-surface.json` was re-`--accept`ed for the three defs (member COUNT holds at 432 each). `lint-emission-version` is blind to it — component payloads are not committed under `out/` — the exact gap `lint-component-surface` covers. `regen --check` moves only each committed artifact's own generator stamp (0.69.0 → 0.70.0).
+
+**Mutation (docs/34), both run by manual edit-and-restore over the committed tree (never `git checkout --` on uncommitted work — the CLAUDE.md trap).** (a) Reverting a button icon rung in the def (e.g. `size.medium.icon` back to `icon.size.md`) moves the three button members' `planStamp` and fails **`lint-component-surface` BY NAME** (`surface/button` / `-destructive` / `-neutral`, same member count, different plan). (b) Mutating the button icon to a NON-sanctioned size — back to `md`(24), or a two-rung slip to `xs`(16) at medium — fails the re-pointed **`lint-rung-names` arm 3 BY NAME** (`its OWNER-SANCTIONED icon family 'icon.size.*' reaches tier rung(s) '…' — the #1350 offset is that the button family's icon resolves to 'sm'…`) AND the **`test.ts` parity assertion BY NAME** (`the button's leading visual is EXACTLY ONE ICON RUNG BELOW the icon-button's glyph`). Both restored.
+
+**Verify:** `npm run verify` → full suite, all-PASS (0 FAIL). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-08) — the destructive button ink clears the floor on darker surfaces, not just white (#1352)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.68.0 → **0.69.0**. **CONTRACT stands at 10.0.0** — this moves token VALUES, not names (`token-contract.ts --check` confirms 577 guaranteed paths unchanged; `--accept` refreshed only the informational `engineVersion` stamp).

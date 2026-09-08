@@ -60,6 +60,47 @@
 /**
  * The code. Bumps on any behaviour change — including one that only moves values.
  *
+ * 0.70.0: the TEXT-BEARING button family sizes its icon ONE RUNG SMALLER than its control (#1350, owner
+ * Option A, 2026-09-08). `button` / `button-destructive` / `button-neutral` rebind their leading/trailing
+ * icon slots from `icon.size.{sm,md,lg}` = 20/24/32 down to `icon.size.{xs,sm,md}` = 16/20/24 at
+ * small/medium/large. The audit (#1350) found the old `large` icon at 32 too big; the owner fixed
+ * `large` = 24 and shifted the whole family down one rung. `icon-button` is UNCHANGED.
+ *
+ * THIS INTENTIONALLY BREAKS THE #324/#756 THREE-WAY IDENTITY, and the reversal is scoped to buttons.
+ * #756 had a standalone `<Icon>`, a Button's leading visual, and an icon-button glyph all render the same
+ * size at a given control size (medium → 24 everywhere). The owner has sanctioned a labelled button
+ * carrying a glyph one rung smaller than a standalone icon — the label already carries the button, so the
+ * flanking glyph reads better small. `icon-button` has no label to lean on, so it KEEPS the 1:1 identity
+ * and still matches a standalone icon. The composition identity now holds for icon-button and is
+ * deliberately offset for buttons. This is recorded in `docs/00-progress.md` and in the header comments
+ * of both `lint-rung-names.ts` (arm 3) and `button.ts`'s `size.*.icon` block.
+ *
+ * THE #756 GATES ARE RE-POINTED, NOT DELETED (docs/34 — the invariant changed shape, it did not
+ * disappear). `lint-rung-names.ts` arm 3 now checks the default rung PER TIER FAMILY and expects the
+ * button family's `icon.size.*` family at `OFFSET_DEFAULT_RUNG` (exactly one rung below `md`), every
+ * other family still at `md`; the expected rung is derived from the RULE (`RUNG_ORDER` minus one), never
+ * from the button's own binding. `test.ts`'s icon-button↔button parity assertion now asserts the button's
+ * leading visual is EXACTLY one `ICON_SIZES` rung below the icon-button's glyph (and that they diverge),
+ * against the ladder order as the independent oracle. Both still FAIL BY NAME if the button icon drifts to
+ * any rung other than the sanctioned offset — a revert to `md`(24) or a slip to `xs`(16) each fail.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision. A component binding is a REFERENCE to a token name, never
+ * a token name, and every rung it now points at (`icon.size.{xs,sm,md}`) already ships in all four brands
+ * — no token path is added, removed or retyped — so `CONTRACT_VERSION` STANDS at 10.0.0 and
+ * `token-contract.ts --check` confirms it. What moves is the PROJECTED COMPONENT SURFACE: the three
+ * button defs' leading/trailing icon members now bind a different `icon.size.*` variable and measure a
+ * different artboard, so each member's `planStamp` moves and `schema/component-surface.json` is
+ * re-`--accept`ed for the three defs (member COUNT holds at 432 each). `lint-emission-version` is blind
+ * to it — component payloads are not committed under `out/` — which is the exact gap `lint-component-surface`
+ * covers. `regen --check` moves only each artifact's own generator stamp; `token-contract.ts --accept`
+ * refreshes only the baseline's informational `engineVersion` stamp to 0.70.0, at contract 10.0.0.
+ *
+ * MUTATION-BY-NAME (docs/34): (a) reverting a button icon rung in the def (e.g. `size.medium.icon` back to
+ * `icon.size.md`) moves the button members' `planStamp` and fails `lint-component-surface` BY NAME.
+ * (b) mutating the button icon to a NON-sanctioned size — back to `md`(24), or a two-rung slip to `xs`(16)
+ * — fails the re-pointed `lint-rung-names` arm 3 AND the `test.ts` parity assertion BY NAME, proving the
+ * offset invariant still bites. Both restored.
+ *
  * 0.63.0: stale icon-count prose is corrected and gated (#1293). Two prose halves move and one gate is
  * added. (1) The 0.49.0 entry above said the engine emits `icon` as "a set of 39 members" — wrong on both
  * halves by the time it merged (the SHAPE: `icon.ts` declares `emitAsComponents`, so each glyph is a
@@ -1897,7 +1938,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.69.0';
+export const ENGINE_VERSION = '0.70.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
