@@ -64,6 +64,30 @@ handle), then the residual is a `field-label` design-structure question — that
 mechanical fix, and this change still stands as correct hardening (a refused reference that CAN be placed
 on the live node now is, and one that genuinely cannot is still reported rather than silently dropped).
 
+---
+
+## (2026-09-08) — `text`-appearance button ink steps with state on the inverse band (#1351 part 1)
+
+**STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.64.0 → **0.65.0**. **CONTRACT stands at 10.0.0** — the fix binds token names that already ship, so no guaranteed path moves (`token-contract.ts --check` confirms 577 unchanged).
+
+**The defect — a real WCAG AA failure, decision-free.** On `surface=inverse`, the `text` appearance held its label/icon ink at `interactive.<family>.text.rest` across all six states while the translucent-white overlay wash lightened the ground beneath it, so the composited contrast collapsed. `outline` already did this correctly (#1282 made its ink step `text.rest → hover → pressed`); `text` was the half that treatment left behind. The prior code comment argued `text` needed no per-state ink because — unlike `outline` — it draws no border for the ink to fall out of step with, and that reasoning missed the ground the ink actually sits on: the overlay is a lightening layer, and a pinned ink over a lightening ground loses contrast whether or not a border is present.
+
+**Measured over the emitted corpus, composited over each band's own per-state overlay** (`composite(inverse.background.primary, overlay, alpha)`, then `contrast(ink, composite)`): the shipped rest-ink fell to **2.62:1** at worst (`minimal` light `text` pressed — the issue's `#0D0D0E`-backdrop case reproduced), failing across every non-HC brand for both `button` and `button-destructive` at hover and pressed. The per-state ink recovers it to **5.07:1** at worst — matching the issue's ">5:1" claim for `outline`, whose identical treatment proves it.
+
+**The fix.** `button.ts`'s `intentTokens` gains four keys — `text.{label,icon}.{hover,pressed}` → `color.interactive.<family>.text.{hover,pressed}` — mirroring the `outline` block already above it. The roles are the same ones `iText` has emitted since #576 and `outline` already binds, so nothing is added to the token tier; the projector's `color.* → color.inverse.*` rewrite gives the inverse band its own stepped ink, which is where the failure lived. Neutral is `walkable: false`, so its states collapse onto rest and a neutral text button is byte-identical. **The three button components share the fix through the factory**, so `test.ts`'s "differ only in the `interactive.<family>` bindings" invariant is preserved.
+
+**Strict scope — part 2 NOT touched.** #1351 part 2 (the `filled` inverse-PRIMARY `on-fill` holding constant while the fill darkens: 4.69 → 3.62 → 2.75) carries a design choice the owner is still making (cap the fill darkening, or step `on-fill` per state) and is deliberately left alone. No `filled` binding moved.
+
+**Versioning (#1252 decision).** No committed `out/` VALUE moves — component payloads are not committed under `out/`, and the fix binds existing tokens — so `regen --check` moved only each artifact's generator stamp (0.64.0 → 0.65.0, 8 files × 1 line). The bump is demanded from the projected-surface side: the three button components' `text`-appearance hover/pressed members now paint a stepped ink at the SAME 432 member count, so `lint-component-surface.ts` and `lint-paint.ts`'s census were re-`--accept`ed (authored baselines, never regen). `CONTRACT_VERSION` stands — a component binding is a reference to a token name, never a token name — and `token-contract.ts --accept` refreshed only the informational `engineVersion` stamp.
+
+**Mutation (docs/34).** Reverting any of the four new keys back to `.text.rest` moves the affected button components' `planStamp` and fails `lint-component-surface.ts` arm A **BY NAME** at the same member count (*"surface/button: plan digest … — the same member COUNT, projecting different plans"*, all three defs) and moves `lint-paint.ts`'s census hash. Restored, then re-`--accept`ed at the forward bump.
+
+**The gate blind spot that let this ship is FILED, not closed here (#1357).** The token contrast contract gates `inverse.interactive.<c>.text.rest` against the RAW `inverse.background.primary` (≈4.87, passes) and gates the overlay wash's legibility for `inverse.text.primary` (the strong page ink, passes) — NEITHER composites the outline/text appearance's own per-state ink over its own per-state overlay, the rendered pairing that failed. The overlay's `legibleFor` cannot simply be repointed at the interactive family's text ink, because the same wash is reused for neutral row/menu/card hover where the ink genuinely is `text.primary` (docs/20 §6). A gate that catches THIS class must be COMPONENT-level: it must resolve which ink the appearance binds per coordinate, apply the projector's inverse rewrite, pair it with the overlay on the same coordinate, composite, and assert AA — a token-tier check cannot see that the button bound `text.rest`. `lint-paint.ts` arm 4 already demonstrates the whole pipeline (plan a def → read painted variables per coordinate → resolve values per mode → contrast), so #1357 is tractable as its own mutation-proven arm; folding a new cross-tier contrast gate into this focused, decision-free WCAG fix would be half-doing it (docs/34), so it gets its own PR. This is the one thing worth carrying forward: **the fix is real and verified, but the reason the failure shipped undetected is still open in #1357.**
+
+**Verify:** `npm run verify` → full suite, all-PASS (0 FAIL, 0 SKIP). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-07) — the `prism3-build-component` skill: authoring guidance for a new component definition
 
 **STATUS: PR open, HELD for Adam's review — do NOT merge without the owner.** No version move. ENGINE stands at **0.64.0**, CONTRACT at **10.0.0** — this is a skill-only addition (`skills/prism3-build-component/SKILL.md`) plus two documentation-row edits, no engine code and no projected surface change, so `lint-emission-version`, `lint-component-surface` and `regen --check` all stay green with no version to move (the task's "let the gates dictate" rule — none demanded a bump).
@@ -949,7 +973,6 @@ failure:**
 **Deferred, filed as #1296 rather than left in this entry:** authoring the canonical default
 theme at `pds3` — flipping the fallback, retiring `prism` as a resolved value, and deciding whether the
 ~235 fixtures move with it. Nothing roots at `pds3` today; it is held, not occupied.
-
 
 ## (2026-09-04) — the paste path's swap misses get the same diagnosis, and the two executors stop disagreeing (#1288)
 
@@ -3051,7 +3074,6 @@ name **nothing in this repo emits**, so the instance-swap never resolves and deg
 button needs no fill change — its existing `on-fill` push lands the moment any real icon component with a
 vector is in the slot, which is what this ticket makes possible.
 
-
 ## (2026-09-02) — field-ref read-back re-wires onto the live node when a fast-path handle went stale (#866)
 
 **STATUS: shipped as CAUSE-INDEPENDENT HARDENING.** Plugin-only (`apps/plugin/src/write-components.ts`,
@@ -4623,7 +4645,6 @@ on the rebase, because each of the five is a list of NAMES and the two gates' en
 NUMERALS did not, which is why they are the thing this note exists to catch. Third time in this sweep
 that a count line had to be re-measured after a rebase rather than carried.
 
-
 ## (2026-08-30) — gate scope is per-file, text is not (#1117, the sweep's last item)
 
 **STATUS: shipped.** Two instances of one shape, handled differently on purpose, plus a re-derivable
@@ -5021,7 +5042,6 @@ So the suite is 46 and the pre-rebase entry's 45 was stale — this file's own s
 was re-run rather than assumed: 0 artifacts moved, `ENGINE_VERSION` 0.30.0 unchanged, so the version
 this branch edits is a source-only edit the gate correctly declines to bill.
 
-
 ## (2026-08-29) — `lint-decisions-index` admitted one issue per decision, and a two-issue heading was invisible (gate 2)
 
 **STATUS: shipped.** The heading parse, the baseline's issue field, one doc heading, and the row that
@@ -5233,7 +5253,6 @@ collapse) before review. Every figure above was re-measured on the new base rath
 artifact count is **108**, `ENGINE_VERSION` is **0.30.0**, and M5 was re-run end to end. Carrying the
 old numbers would have been this file's own shape 21 — a measured entry with one unmeasured line.
 
-
 ## (2026-08-29) — Button ships its inverse variant, and `surface` becomes the one inverse axis (#1134, decision §9.11)
 
 `button` gets its inverse treatment — the first component in the bounded inverse set (docs/20 §9.8) — and
@@ -5311,7 +5330,6 @@ It was the "live 2-cycle" #1153's PR body flagged, tripping on the first PR afte
 Button's** — filed as #1157, fixed by **#1159** (deleting the stale entry plus a steady-state guard; its own
 entry is directly below), and this branch was rebased onto `main` past that fix, which is why it now reads
 45/45. This entry keeps the account because it is the diagnosis that took the work from red to explained.
-
 
 ## (2026-08-29) — `main` was red: a stale accounting entry reactivated when #1153 reused a collection name (gate 0)
 
@@ -5394,7 +5412,6 @@ failed mutation, not a quiet pass (#986).
 
 Re-run with the table row added so nothing crashed first, and the guard fired. **The evidence above is
 from the second run; the first proved only that the file stopped early.**
-
 
 ## (2026-08-29) — ONE `color` collection, and the roles are written in reading order (#1148, #1150)
 
@@ -6117,7 +6134,6 @@ are old.
 
 *A number in prose is a site whether or not anyone calls it one, and it drifts exactly as far as the
 nearest remedy that fails to mention it.*
-
 
 ## (2026-08-27) — Three findings, one family, three shapes: `docs/34` gains 19, 20 and 21 (#1049, #1093, #1103)
 
@@ -11129,7 +11145,6 @@ this entry, against CLAUDE.md's explicit rule that it rides in the feature PR. F
 by a gate — `lint-doc-gates` checks that the gate LIST is consistent, not that a PR carried its
 reasoning. Corrected here by writing one entry for all three steps.
 
-
 ---
 
 ## (2026-08-21) — `switch`: the track leaves the field family, and #900 gets its constraining instance
@@ -11420,9 +11435,7 @@ case by name, and dropping `glyphViewBox` from the projected plan fails arm A fo
 **Gates:** `npm run verify` → **38/38 gates reached a verdict in 87s — 38 PASS · 0 FAIL · 0 SKIP · 0
 ADVISORY** (37 before this one).
 
-
 ---
-
 
 ## (2026-08-21) — The paint grammar goes axis-led, and the exemption becomes a declaration (#910 review)
 
@@ -15061,7 +15074,6 @@ hand-named in `lint-us-english.ts` and `lint-voice.ts` — exactly the line `lin
 comment predicts would be needed. Verified by mutation rather than assumed: a planted `colour` in a shape
 title fails that gate by name (schema surface 6 → 7 files).
 
-
 ---
 
 ## (2026-08-13) — Render granularity: the workspace REGION is the update unit, and #485's scroll workaround is gone (#771)
@@ -15350,7 +15362,6 @@ Worth naming the shape, because it is this repo's favourite one wearing new clot
 of them was checked. Same structure as a gate built from its subject (`docs/34`), and the same tell: the only
 independent oracle is the issue tracker, and nothing consults it.
 
-
 ---
 
 ## (2026-08-13) — The smoke suite gets a non-empty floor, and the number that would catch a blank page is not the one that survives (#779 defect 1)
@@ -15525,7 +15536,6 @@ named before "hidden" is allowed to mean anything.
 **NOT DONE HERE, on purpose.** No `packages/engine/` change was needed. Scoped styles (#770) runs
 alone and last; `docs/34` shape numbering, the smoke-suite floor and the Node 24 runner bump (#784)
 are filed separately.
-
 
 ---
 
@@ -15715,7 +15725,6 @@ control (a slot that *is* dispatched must not fire) and both stale directions of
 
 **NEXT.** Arc 2 step 3's actual deliverable — the `anatomy` blocks for `field-label` and `field-message`,
 both now paintable — ending in a live Figma run.
-
 
 ---
 
@@ -18446,7 +18455,6 @@ If you touch the mode-entry shape again, `test.ts` and `regen --check` are what 
 
 ---
 
-
 ## (2026-08-10) — #680 the variable writer loads its fonts, and the face it needs is a cross product
 
 **STATUS: shipped (PR TBD). Not yet verified live** — the decisive test #680 names is a real Figma run,
@@ -18837,7 +18845,6 @@ other 23 are real, and they all live in `code.ts` + `scanner.ts` where #703 put 
 is unchanged**: it rested on the *types* (124 references across 13 files — measured again here at 138 with a wider
 type list, same 13 files), never on the runtime calls. "Rewrite, not refactor" stands exactly as #703 argued it.
 What the correction does buy is the reason W5 needs only a four-method stub.
-
 
 ## (2026-08-10) — TokenPress ported in as `apps/tokenpress/`, and the separability question answered against real code
 
@@ -27759,7 +27766,6 @@ Per-style/weight validation (which would retire the hardcoded weight map — now
 measurement that proves a fixed table cannot work), the web-side `queryLocalFonts()` arm of #113, and the
 per-mode family override selects. #113 stays **open** — this is its Figma arm only.
 
-
 ---
 
 ## (2026-08-04) — Deploys skip when a commit cannot change the site, and the skip list is gated
@@ -29426,7 +29432,6 @@ per-mode columns, and a page that shows sections in a derived mode would otherwi
 Verified: `Editing · Light` on the two per-mode sections of Size & radius and `Shared · All modes` on
 the other two; the same sections track to `Editing · Dark`; badge value **15.97:1** and label
 **4.63:1**, both AA; no page errors.
-
 
 ## (2026-08-04) — The mode chip stops shouting, and says who can be edited (#439)
 

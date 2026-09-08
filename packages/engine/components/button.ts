@@ -82,17 +82,31 @@ const intentTokens = (family: IntentFamily): Record<string, string> => ({
   'outline.icon.pressed': `color.interactive.${family}.text.pressed`,
   'outline.overlay.hover': `color.interactive.${family}.overlay.hover`,
   'outline.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
-  // text — ink only; hover/pressed are the translucent overlay wash (#536 item 1: both states keyed, or
-  // a pressed ghost button falls back to rest and projects byte-identical to it).
+  // text — ink + the translucent overlay wash (#536 item 1: both overlay states keyed, or a pressed
+  // ghost button falls back to rest and projects byte-identical to it).
   //
-  // DELIBERATELY NOT given the per-state ink #1282 gave `outline`, and the reason is the one #1282
-  // argues from: there the ink had to track a BORDER that was already moving without it. This
-  // appearance draws no border, so there is nothing for the ink to fall out of step WITH — its state
-  // is the overlay wash, which is a different mechanism and already keyed at both states. Whether a
-  // ghost button should ALSO deepen its ink is a live question and a separate one; it is not this
-  // change, which is about a coupling that broke rather than about state expression in general.
+  // THE INK CARRIES STATE, exactly as `outline` above (#1351 part 1). The earlier reading here was that
+  // `text` needed no per-state ink because — unlike `outline` — it draws no border for the ink to fall
+  // out of step with. That reasoning missed the ground the ink actually sits on: the overlay wash is a
+  // translucent WHITE layer on the inverse band, so on hover/pressed it LIGHTENS the ground beneath a
+  // pinned `text.rest` ink and the composited contrast collapses — measured over the real inverse
+  // backdrop `#0D0D0E`, button `text` fell rest 4.87 → hover 3.81 → pressed 2.70 (both AA fails), and
+  // button-destructive the same shape. `outline` never showed it because #1282 had already made its ink
+  // step; `text` is the half that treatment left behind. So the ink now walks `text.{rest,hover,pressed}`
+  // like `outline`'s label/icon — the same roles `iText` has emitted since #576, resolved once and shared
+  // — and the overlay wash stays the separate mechanism it always was, keyed at both states below. On the
+  // default (page) surface the roles resolve to the page ink and the step is contrast-safe by
+  // construction; the projector's `color.* → color.inverse.*` rewrite gives the inverse band its own
+  // stepped ink, which is where the failure lived. Neutral's ink is `walkable: false`, so its three
+  // states collapse onto rest exactly as `outline` neutral does — no change to a neutral text button.
+  // (Part 2 — the `filled` inverse-primary `on-fill` holding constant while the fill darkens — is a
+  // separate, design-carrying fix (#1351 part 2) and is deliberately NOT touched here.)
   'text.label': `color.interactive.${family}.text.rest`,
+  'text.label.hover': `color.interactive.${family}.text.hover`,
+  'text.label.pressed': `color.interactive.${family}.text.pressed`,
   'text.icon': `color.interactive.${family}.text.rest`,
+  'text.icon.hover': `color.interactive.${family}.text.hover`,
+  'text.icon.pressed': `color.interactive.${family}.text.pressed`,
   'text.overlay.hover': `color.interactive.${family}.overlay.hover`,
   'text.overlay.pressed': `color.interactive.${family}.overlay.pressed`,
 });

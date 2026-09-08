@@ -7917,11 +7917,13 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
     const stray = Object.entries(d.tokens!).filter(([, v]) => FAMILY_RE.test(v as string) && !(v as string).startsWith(`color.interactive.${fam}.`)).map(([k]) => k);
     ok(stray.length === 0, `#1223 ${d.id} binds ONLY interactive.${fam} — no cross-family paint leaked in (stray: ${stray.join(', ') || 'none'})`);
     const famCount = Object.values(d.tokens!).filter((v) => (v as string).startsWith(`color.interactive.${fam}.`)).length;
-    // 20 as of #1282, which added the four per-state outline ink keys (`outline.{label,icon}.{hover,pressed}`).
-    // Written, not derived from the def — counting the def's own keys to check the def's own keys is
-    // `docs/34` shape 1, and this arm's job is to notice a binding QUIETLY going missing from one
-    // sibling. 16 = filled 5 + outline 5 + text 4 + overlay 2, plus #1282's 4.
-    ok(famCount === 20, `#1223 ${d.id} carries its full interactive.${fam} skin — 20 bindings (got ${famCount})`);
+    // 24 as of #1351 part 1, which added the four per-state TEXT ink keys (`text.{label,icon}.{hover,
+    // pressed}`) — the same treatment #1282 gave outline, extended to the text appearance so its ink
+    // steps with state under the lightening inverse overlay. Written, not derived from the def —
+    // counting the def's own keys to check the def's own keys is `docs/34` shape 1, and this arm's job
+    // is to notice a binding QUIETLY going missing from one sibling. 24 = filled 5 + outline 11
+    // (border/label/icon ×3 states + overlay ×2) + text 8 (label/icon ×3 states + overlay ×2).
+    ok(famCount === 24, `#1223 ${d.id} carries its full interactive.${fam} skin — 24 bindings (got ${famCount})`);
   }
 
   const guidance = [button.docs!.usage, ...button.docs!.do, ...button.docs!.dont].join(' ');
@@ -11558,22 +11560,28 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
       ok(total(painted) === 27 && painted.get('pending') === 27,
         `figmaProperties: 27 rows are VISUALLY identical to their rest sibling — all pending, the three slot coordinates that HAVE a visual cell for the spinner to take (9 × 3), where it inherits that cell's size, paint and position and only the layer name differs (${JSON.stringify([...painted])})`);
       // A ZERO-EXPECTING ASSERTION CANNOT DISTINGUISH "clean" FROM "not looking", so prove the counter
-      // still counts rather than trusting the 0. Re-runs the same `count` against a def with the
-      // `.text` pressed overlay stripped back out — the pre-#536-item-1 state — and requires the 12
-      // to come back. Without this, deleting `count`'s inner loop would leave both assertions above
+      // still counts rather than trusting the 0. Re-runs the same `count` against a def with the `text`
+      // appearance's pressed differentiators stripped back out — the pre-#536-item-1 state — and requires
+      // the 12 to come back. Without this, deleting `count`'s inner loop would leave both assertions above
       // green (the 54 would go too, but a future fix to the pending case makes THAT a 0 as well, and
       // then the whole block passes while measuring nothing). Measured: with `for (const st of ...)`
-      // short-circuited, `total(struct) === 0` passed and this line failed, naming the 12. Since #1223
-      // the key is family-neutral (`text.overlay.pressed`, no intent prefix), so exactly ONE key matches.
-      const noPressedOverlay = {
+      // short-circuited, `total(struct) === 0` passed and this line failed, naming the 12.
+      //
+      // Since #1351 part 1 the pressed `text` row differs from rest in THREE keys, not one — the ink now
+      // steps (`text.{label,icon}.pressed`) alongside the overlay wash (`text.overlay.pressed`) — so the
+      // mutation strips all three to make the pressed row fall fully back to rest. Stripping the overlay
+      // alone no longer collapses the row (the stepped ink still differs), which is the fix itself, not a
+      // counter fault; the mutation targets every pressed-state `text` differentiator so the fall-back is
+      // total. All three keys are family-neutral (no intent prefix, #1223), so exactly three match.
+      const noPressedText = {
         ...button,
-        tokens: Object.fromEntries(Object.entries(button.tokens).filter(([k]) => !/^text\.overlay\.pressed$/.test(k))),
+        tokens: Object.fromEntries(Object.entries(button.tokens).filter(([k]) => !/^text\.(overlay|label|icon)\.pressed$/.test(k))),
       } as ComponentDef;
-      ok(Object.keys(noPressedOverlay.tokens).length === Object.keys(button.tokens).length - 1,
-        'figmaProperties: the mutation for the pressed-overlay counter actually applied — 1 key removed');
-      const mutated = countFor(noPressedOverlay, withNames);
+      ok(Object.keys(noPressedText.tokens).length === Object.keys(button.tokens).length - 3,
+        'figmaProperties: the mutation for the pressed-text counter actually applied — 3 keys removed');
+      const mutated = countFor(noPressedText, withNames);
       ok(total(mutated) === 12 && mutated.get('pressed') === 12,
-        `figmaProperties: the duplicate counter still COUNTS — stripping the \`text.overlay.pressed\` key brings back exactly the 12 rows #536 item 1 removed (${JSON.stringify([...mutated])})`);
+        `figmaProperties: the duplicate counter still COUNTS — stripping the pressed \`text\` differentiators (\`text.{overlay,label,icon}.pressed\`) brings back exactly the 12 rows #536 item 1 removed (${JSON.stringify([...mutated])})`);
       // `focus-visible` in EITHER map is the #536-item-3 regression returning, and it is worth its own
       // assertion rather than being implied by the totals: the totals move for any reason at all (a new
       // size, a new intent, a paint change), and a total that happens to still read its expected figure
