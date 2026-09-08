@@ -144,6 +144,21 @@ export type ShimOpts = {
    * Opt-in per run: every other case in this file drives a host that accepts everything.
    */
   refuse?: { combine?: boolean; createFrame?: 'always' | 'on-failure-path' };
+  /**
+   * COMBINE DETACHES THE PRE-COMBINE DESCENDANT HANDLES (#1337) — the one host behavior this shim could
+   * not otherwise reach, and the reason #866's `refsRepaired` and #1279's `boundRepaired` were UNCONFIRMED
+   * live: the default `combineAsVariants` keeps one node object across the combine, so a pre-combine handle
+   * and the live member's node are always identical and no repair path is ever taken.
+   *
+   * With this set, `combineAsVariants` replaces every member's descendants with fresh id-rewritten TWINS —
+   * the nodes `findOne` returns now — and DETACHES the originals the build loop captured in `builtParts`.
+   * A `componentPropertyReferences` write to a detached original throws Figma's own message, "Could not
+   * create a new component property reference" (a detached node is not a component sublayer). That is
+   * exactly #1337: the executor's fast-path write targets the detached original and throws, and the fix
+   * (`write-components.ts`) recovers by re-finding the live twin by name. Opt-in, so every other case in
+   * this file keeps identity across combine unchanged.
+   */
+  detachPartsOnCombine?: boolean;
 };
 
 /** A blocking burn. Deliberately holds the thread: the executor measures with `Date.now()`, so cost it
@@ -580,6 +595,38 @@ export const makeShim = (opts: ShimOpts = {}) => {
       set.id = 'SET:1';
       set.children = members;
       takeFromPage(members);
+      // #1337 — DETACH the pre-combine descendant handles and hand the live members fresh TWINS. See
+      // `detachPartsOnCombine` in `ShimOpts` for why this is the one host behavior worth modelling. The
+      // originals (which `builtParts` holds) get a `componentPropertyReferences` setter that throws Figma's
+      // own refusal; the twins are what `findOne`/`findAll` return and what a live write must target. Runs
+      // BEFORE `guardRefs(set)` below, so the guard's validating setter lands on the twins (reachable from
+      // the set) while the throwing setter stays on the detached originals (which are not).
+      if (opts.detachPartsOnCombine) {
+        const twinOf = (n: Node): Node => {
+          const t = mkNode(String(n.type));
+          t.name = n.name;
+          t.characters = n.characters;
+          // Carry the fields the layout/box read-back and the binding read-back read off a live node, so
+          // the twin measures and reads back like the original. `boundVariables` is copied (not dropped),
+          // keeping this mode about REFERENCES; #1279's binding drop is a separate behavior not modelled here.
+          (t as Record<string, unknown>).boundVariables = n.boundVariables;
+          t.fills = n.fills; t.strokes = n.strokes;
+          if (n.layoutMode !== undefined) (t as Record<string, unknown>).layoutMode = n.layoutMode;
+          for (const kid of (n.children as Node[]) ?? []) (t.appendChild as (c: Node) => void)(twinOf(kid));
+          // DETACH the original: its ref setter now throws Figma's own message, the #1337 symptom.
+          Object.defineProperty(n, 'componentPropertyReferences', {
+            configurable: true,
+            get: () => null,
+            set: () => { throw new Error('in set_componentPropertyReferences: Could not create a new component property reference'); },
+          });
+          return t;
+        };
+        for (const m of members) {
+          const twins = ((m.children as Node[]) ?? []).map(twinOf);
+          (m as Record<string, unknown>).children = twins;
+          for (const tw of twins) tw.parent = m;
+        }
+      }
       // A SET RESIZES, and its box does NOT follow its members — the whole reason the executor calls
       // `resize` at all. A stub whose width tracked its children would let that call be deleted green.
       let w = 0, h = 0;

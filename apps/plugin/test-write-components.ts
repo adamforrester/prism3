@@ -1786,6 +1786,40 @@ ok(labelInstr.progress.every((p) => p.done <= p.total) && labelInstr.progress.so
   `#804 ...and the fractions are bounded and end at the total (${labelInstr.yields.join(', ')})`);
 
 // =============================================================================================
+// #1337 — A REFUSED COMPONENT-PROPERTY REFERENCE IS RECOVERED, NOT DROPPED
+// =============================================================================================
+// THE DEFECT this reproduces, and why no other gate here could. The wire loop writes each reference on the
+// #701 fast-path handle (`builtFor.get(part)`), captured BEFORE `combineAsVariants`. On the real host the
+// combine can leave that handle a DETACHED pre-combine node while the live member holds an id-rewritten
+// twin — the same divergence #866 (`refsRepaired`) and #1279 (`boundRepaired`) harden their READ-BACKS
+// against, and which was UNCONFIRMED live precisely because the default shim keeps one node object across
+// combine so no handle ever detaches. A `componentPropertyReferences` write to a detached node does not
+// merely discard: it THROWS "Could not create a new component property reference", and a throw never lands
+// in `wiredRefs`, so the read-back repairs cannot reach it. `field-label` — the corpus's only member with
+// TWO TEXT parts — lost BOTH its `Label` and `indicator` references on the affected variants and the text
+// disappeared from them (#1337, filed off a live aurora build; its miss lines are byte-for-byte the ones
+// this run produces without the fix).
+//
+// The shim's `detachPartsOnCombine` models exactly that host behavior (see `component-shim.ts`), so this is
+// the one arm in the suite that drives the THROW path. Mutation-by-name (docs/34): delete the wire-loop
+// recovery in `write-components.ts` and this run reports 48 "Could not create a new component property
+// reference" misses and `refsRepaired: 0` — every named assertion below then fails. The third arm is the
+// reachability floor: WITHOUT the detach mode there is nothing to recover, so `refsRepaired === wantRefs`
+// is what proves the recovery actually fired on every reference rather than passing vacuously on an
+// un-detached run.
+{
+  const wantRefs = labelPlans.length * planSetProperties(labelPlans).length;
+  const detachRun = await run(labelPlans, { ...fullFor(labelPlans), detachPartsOnCombine: true });
+  const created = detachRun.misses.filter((m) => /Could not create a new component property reference/.test(m));
+  ok(created.length === 0,
+    `#1337 a reference the combine detaches is re-wired on the live twin, not dropped — 0 "could not create" misses (${created.length}${created.length ? `: ${created.slice(0, 2).join(' | ')}` : ''})`);
+  ok(detachRun.refs === wantRefs && detachRun.wiredMembers === labelPlans.length,
+    `#1337 ...and every reference still reaches every member (${detachRun.refs} refs = ${labelPlans.length} × ${planSetProperties(labelPlans).length}, ${detachRun.wiredMembers} members wired)`);
+  ok(detachRun.refsRepaired === wantRefs,
+    `#1337 every one of the ${wantRefs} references went through the throw-path recovery — refsRepaired=${detachRun.refsRepaired} proves the detach fired and the fix caught it all, not a vacuous pass on an un-detached run`);
+}
+
+// =============================================================================================
 // #1010 — THE STATUS GLYPH, READ OFF THE NODE THE EXECUTOR BUILT
 // =============================================================================================
 // WHY THIS IS HERE AND NOT IN `test.ts`. Every defect #1010 reports is a value that RESOLVES. The def

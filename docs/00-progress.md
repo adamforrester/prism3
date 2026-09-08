@@ -7,6 +7,63 @@
 
 ---
 
+## (2026-09-08) — `field-label` dropped its `Label`/`indicator` text references on some variants: a refused property reference is now recovered, not lost (#1337)
+
+**The symptom, off a live aurora build.** Building the `field-label` set reported, on a subset of
+variants (the QA saw `tone=secondary, weight=bold`), `set_componentPropertyReferences: Could not create
+a new component property reference` for BOTH `text.characters -> Label` and `indicator.characters ->
+indicator`. The two text fields then had no property to override and the text disappeared from those
+members. `field-label` is the corpus's only member with TWO TEXT parts, which is why it is the def that
+surfaced this.
+
+**The diagnosis, and why it is not a def defect.** The projection is provably correct: `figmaAnatomySet`
+emits 24 well-formed members, `planSetProperties` derives exactly `Label:TEXT` + `indicator:TEXT`, and
+every one of the 48 references wires cleanly through `applyComponentPlan` against the default #874 shim —
+0 misses. Nothing in the plan is unique to the failing coordinate (both `textStyle=body/*/strong` and
+`fills=color/text/secondary` are shared with other members), so the cause is not plan content; it is the
+live combine.
+
+The wire loop writes each reference on the #701 FAST-PATH handle (`builtFor.get(part)`), captured BEFORE
+`combineAsVariants`. The combine can leave that handle a DETACHED pre-combine node while the live member
+holds an id-rewritten twin — the exact divergence #866 (`refsRepaired`) and #1279 (`boundRepaired`) built
+their READ-BACK repairs against, and which both entries recorded as UNCONFIRMED live because the default
+shim keeps one node object across combine, so no handle ever detaches offline. #1337 is that divergence
+confirmed, in its harsher form: a `componentPropertyReferences` write to a detached node does not merely
+discard (which the read-back repairs), it THROWS — a detached node is not a component sublayer. A throw
+never lands in `wiredRefs`, so the read-back repairs cannot reach it, and the reference stayed a permanent
+miss. This is the "reference targeting a node that doesn't exist at that variant" shape.
+
+**The fix — the THROW sibling of #866, in the executor.** In the wire loop's catch, re-find the live node
+by name and wire the reference there before reporting a miss — exactly as the read-back re-wires on an id
+divergence. On success it lands in `wiredRefs` (so the read-back re-verifies it) and `refsRepaired` counts
+it. Cause-independent and inert when it cannot help: it fires only after a throw, only re-tries a node that
+is NOT the one that threw, and if the live node refuses it too the ORIGINAL cause is still reported. The
+projection (`field-label.ts`, `anatomy-figma.ts`) is untouched, so the emitted surface, `component-surface`
+and `paint-census` are byte-identical and neither ENGINE nor CONTRACT moves. The single-shot payload path
+(`PAYLOAD_WIRE_REFS`) already writes on the live `findOne` node, so it never had this failure and needs no
+change — which is itself evidence the fast-path handle is the culprit.
+
+**The gate that was missing, and the mutation that proves it (docs/34).** No offline gate caught this
+class: the shims only ever threw "Could not FIND a component property" (unknown name), never modelled
+Figma REFUSING a valid reference, and `test-roundtrip`/`test-write-components` were green on `field-label`
+throughout. So `component-shim.ts` gains an opt-in `detachPartsOnCombine` mode that models the one host
+behaviour the shim otherwise cannot reach — the combine detaching the pre-combine handles and handing the
+live members fresh twins — which also makes #866/#1279's own repairs reproducible for the first time. The
+new `#1337` block in `test-write-components.ts` drives `field-label` through it and asserts (a) 0 "could
+not create" misses, (b) every reference still reaches every member, and (c) `refsRepaired === 48` as the
+reachability floor, so the arms cannot pass vacuously on an un-detached run. Mutation-by-name: deleting the
+wire-loop recovery turns all three arms red and reproduces the issue's miss lines byte-for-byte
+(`... /text.characters -> Label (in set_componentPropertyReferences: Could not create a new component
+property reference)`).
+
+**Standing caveat, flagged for the owner.** The offline model reproduces the executor mechanics but not a
+real Figma file; the exact live divergence is inferred from #866/#1279's lineage and the issue's miss
+format, not observed here. If a real-host build shows the LIVE node ALSO refuses the reference (a
+fundamental Figma limit on the two-TEXT-property structure at those coordinates rather than a stale
+handle), then the residual is a `field-label` design-structure question — that is the owner's call, not a
+mechanical fix, and this change still stands as correct hardening (a refused reference that CAN be placed
+on the live node now is, and one that genuinely cannot is still reported rather than silently dropped).
+
 ## (2026-09-07) — the `prism3-build-component` skill: authoring guidance for a new component definition
 
 **STATUS: PR open, HELD for Adam's review — do NOT merge without the owner.** No version move. ENGINE stands at **0.64.0**, CONTRACT at **10.0.0** — this is a skill-only addition (`skills/prism3-build-component/SKILL.md`) plus two documentation-row edits, no engine code and no projected surface change, so `lint-emission-version`, `lint-component-surface` and `regen --check` all stay green with no version to move (the task's "let the gates dictate" rule — none demanded a bump).
