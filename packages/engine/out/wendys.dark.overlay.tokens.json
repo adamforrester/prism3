@@ -2468,6 +2468,30 @@
               "against": "background.primary"
             }
           }
+        },
+        "focus": {
+          "$type": "color",
+          "$value": "{wds.core.palette.primary.400}",
+          "$description": "Focus ring color (keyboard focus)",
+          "$extensions": {
+            "prism3": {
+              "role": "semantic",
+              "figma": {
+                "collection": "color",
+                "modes": [
+                  "light",
+                  "dark",
+                  "hc-light",
+                  "hc-dark"
+                ],
+                "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+              },
+              "aliasOf": "wds.core.palette.primary.400",
+              "contrast": 4.94,
+              "against": "background.primary",
+              "min": 3
+            }
+          }
         }
       },
       "scrim": {
@@ -5092,6 +5116,30 @@
                 "aliasOf": "wds.core.palette.neutral.700",
                 "contrast": 9.24,
                 "against": "inverse.background.primary"
+              }
+            }
+          },
+          "focus": {
+            "$type": "color",
+            "$value": "{wds.core.palette.primary.500}",
+            "$description": "Focus ring color on inverse surfaces (keyboard focus)",
+            "$extensions": {
+              "prism3": {
+                "role": "semantic",
+                "figma": {
+                  "collection": "color",
+                  "modes": [
+                    "light",
+                    "dark",
+                    "hc-light",
+                    "hc-dark"
+                  ],
+                  "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
+                },
+                "aliasOf": "wds.core.palette.primary.500",
+                "contrast": 5.49,
+                "against": "inverse.background.primary",
+                "min": 3
               }
             }
           }

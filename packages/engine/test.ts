@@ -5783,11 +5783,18 @@ ok(tBrand('eb', {}).typography.composites.find((c) => c.group === 'eyebrow')?.te
 // CLOSER TO THEIR ANCHOR than NB shipped. Owner's call, recorded on #352: "NB fidelity is NB's own
 // conservatism showing up as a regression target, not a reason to keep the bar."
 //
-// Three groups, and the second two are consequences rather than independent decisions:
+// Two groups, both consequences of the relaxed fills rather than independent decisions:
 //   1. `foreground/*` — the relaxed bold fills themselves.
 //   2. `text|icon/on-*` (dark) — the fill moved toward its anchor and got DARKER, so the winning ink
 //      side FLIPS from NB's dark 950 to a light 025 (or to black, now permitted on a fill).
-//   3. `border/focus` — derives from `actionRest`, so it follows the primary fill by construction.
+//
+// `border/focus` USED TO BE A THIRD GROUP and is no longer, which is the useful direction to record it
+// in: through 0.67.0 the ring derived from `actionRest` and so diverged from NB in DARK (engine red/550
+// where NB hand-authored red/450). #1336 made the standard-mode ring adapt against its own page at the
+// action bar, and it now lands on NB's own red/450 — the adaptive rule REPRODUCES the lighter-in-dark
+// ring NB shipped by hand, closing the divergence rather than recording one. The HC ring is unchanged
+// (default HC still `actionRest`), so the "reproduces NB exactly in both HC modes" property below still
+// holds for it.
 //
 // There are deliberately NO `hc-*` rows. HC is exempt from the relaxation (see `fillFloorMin` in
 // modes.ts) and so still reproduces NB exactly in both HC modes. Routing HC through the non-text bar
@@ -5830,7 +5837,6 @@ const NB_KNOWN_DIVERGENCES: { mode: string; name: string; nb: string; engine: st
   { mode: 'dark', name: 'color/icon/on-warning', nb: 'palette/neutral/950', engine: 'palette/black' },
   { mode: 'dark', name: 'color/icon/on-danger', nb: 'palette/neutral/950', engine: 'palette/neutral/025' },
   { mode: 'dark', name: 'color/icon/on-info', nb: 'palette/neutral/950', engine: 'palette/black' },
-  { mode: 'dark', name: 'color/border/focus', nb: 'palette/red/450', engine: 'palette/red/550' },
   // FIFTH group (#570): muted semantic ink in HC-LIGHT only. NB authored muted at a FIXED rung, so
   // its hc-light values are byte-identical to its light ones — the high-contrast mode did nothing for
   // the one ink family named for being low-emphasis (measured 3.85 in both, against a 4.5 HC bar).

@@ -256,7 +256,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.warning | amber.500 | 4.32 | 3 | ✅ |
 | inverse.border.danger | red.500 | 4.24 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.27 | 3 | ✅ |
-| inverse.border.focus | red.550 | 3.46 | 3 | ✅ |
+| inverse.border.focus | red.450 | 5.05 | 3 | ✅ |
 
 ## nb — color mode: dark
 
@@ -495,7 +495,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | border.warning | amber.500 | 4.32 | 3 | ✅ |
 | border.danger | red.500 | 4.24 | 3 | ✅ |
 | border.info | info.500 | 4.27 | 3 | ✅ |
-| border.focus | red.550 | 3.46 | 3 | ✅ |
+| border.focus | red.450 | 5.05 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
 | inverse.border.secondary | neutral.500 | — | — | · |
 | inverse.border.tertiary | neutral.700 | — | — | · |
@@ -752,7 +752,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.warning | amber.500 | 4.67 | 4.5 | ✅ |
 | inverse.border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
-| inverse.border.focus | red.500 | 4.58 | 4.5 | ✅ |
+| inverse.border.focus | red.350 | 7.52 | 4.5 | ✅ |
 
 ## nb — color mode: hc-dark
 
@@ -1000,7 +1000,7 @@ Palettes: red, green, amber, neutral, info. Danger draws from `red`.
 | inverse.border.warning | amber.500 | 4.50 | 4.5 | ✅ |
 | inverse.border.danger | red.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
-| inverse.border.focus | red.550 | 5.62 | 4.5 | ✅ |
+| inverse.border.focus | red.650 | 8.29 | 4.5 | ✅ |
 
 ## nb — dimension axis
 
@@ -1320,7 +1320,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.warning | warning.500 | 4.23 | 3 | ✅ |
 | inverse.border.danger | danger.500 | 4.26 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.26 | 3 | ✅ |
-| inverse.border.focus | accent.500 | 4.26 | 3 | ✅ |
+| inverse.border.focus | accent.450 | 4.87 | 3 | ✅ |
 
 ## aurora — color mode: dark
 
@@ -1559,7 +1559,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | border.warning | warning.500 | 4.23 | 3 | ✅ |
 | border.danger | danger.500 | 4.26 | 3 | ✅ |
 | border.info | info.500 | 4.26 | 3 | ✅ |
-| border.focus | accent.500 | 4.26 | 3 | ✅ |
+| border.focus | accent.450 | 4.87 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
 | inverse.border.secondary | neutral.500 | — | — | · |
 | inverse.border.tertiary | neutral.700 | — | — | · |
@@ -1568,7 +1568,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.warning | warning.500 | 4.28 | 3 | ✅ |
 | inverse.border.danger | danger.500 | 4.26 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.26 | 3 | ✅ |
-| inverse.border.focus | accent.500 | 4.26 | 3 | ✅ |
+| inverse.border.focus | accent.550 | 5.31 | 3 | ✅ |
 
 ## aurora — color mode: hc-light
 
@@ -1816,7 +1816,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.warning | warning.500 | 4.58 | 4.5 | ✅ |
 | inverse.border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
-| inverse.border.focus | accent.500 | 4.60 | 4.5 | ✅ |
+| inverse.border.focus | accent.350 | 7.36 | 4.5 | ✅ |
 
 ## aurora — color mode: hc-dark
 
@@ -2064,7 +2064,7 @@ Palettes: primary, neutral, accent, success, warning, info, danger. Danger draws
 | inverse.border.warning | warning.500 | 4.59 | 4.5 | ✅ |
 | inverse.border.danger | danger.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
-| inverse.border.focus | accent.500 | 4.56 | 4.5 | ✅ |
+| inverse.border.focus | accent.650 | 8.30 | 4.5 | ✅ |
 
 ## aurora — dimension axis
 
@@ -2383,7 +2383,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.warning | warning.500 | 4.22 | 3 | ✅ |
 | inverse.border.danger | danger.500 | 4.25 | 3 | ✅ |
 | inverse.border.info | info.500 | 4.26 | 3 | ✅ |
-| inverse.border.focus | primary.550 | 3.46 | 3 | ✅ |
+| inverse.border.focus | primary.450 | 5.00 | 3 | ✅ |
 
 ## harbor — color mode: dark
 
@@ -2622,7 +2622,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | border.warning | warning.500 | 4.22 | 3 | ✅ |
 | border.danger | danger.500 | 4.25 | 3 | ✅ |
 | border.info | info.500 | 4.26 | 3 | ✅ |
-| border.focus | primary.550 | 3.46 | 3 | ✅ |
+| border.focus | primary.450 | 5.00 | 3 | ✅ |
 | inverse.border.primary | neutral.200 | — | — | · |
 | inverse.border.secondary | neutral.500 | — | — | · |
 | inverse.border.tertiary | neutral.700 | — | — | · |
@@ -2879,7 +2879,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.warning | warning.500 | 4.56 | 4.5 | ✅ |
 | inverse.border.danger | danger.500 | 4.60 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.61 | 4.5 | ✅ |
-| inverse.border.focus | primary.500 | 4.58 | 4.5 | ✅ |
+| inverse.border.focus | primary.350 | 7.47 | 4.5 | ✅ |
 
 ## harbor — color mode: hc-dark
 
@@ -3127,7 +3127,7 @@ Palettes: primary, neutral, success, warning, info, danger. Danger draws from `d
 | inverse.border.warning | warning.500 | 4.60 | 4.5 | ✅ |
 | inverse.border.danger | danger.500 | 4.57 | 4.5 | ✅ |
 | inverse.border.info | info.500 | 4.56 | 4.5 | ✅ |
-| inverse.border.focus | primary.600 | 6.79 | 4.5 | ✅ |
+| inverse.border.focus | primary.650 | 8.28 | 4.5 | ✅ |
 
 ## harbor — dimension axis
 

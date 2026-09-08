@@ -5104,7 +5104,7 @@
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{ads.core.palette.accent.500}",
-        "dark": "{ads.core.palette.accent.500}",
+        "dark": "{ads.core.palette.accent.450}",
         "hc-light": "{ads.core.palette.accent.700}",
         "hc-dark": "{ads.core.palette.accent.300}"
       },
@@ -5265,10 +5265,10 @@
       "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{ads.core.palette.accent.500}",
-        "dark": "{ads.core.palette.accent.500}",
-        "hc-light": "{ads.core.palette.accent.500}",
-        "hc-dark": "{ads.core.palette.accent.500}"
+        "light": "{ads.core.palette.accent.450}",
+        "dark": "{ads.core.palette.accent.550}",
+        "hc-light": "{ads.core.palette.accent.350}",
+        "hc-dark": "{ads.core.palette.accent.650}"
       },
       "paired_with": [
         "inverse.background.primary"
@@ -5277,7 +5277,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 4.26
+          "ratio": 4.87
         }
       ]
     }
@@ -6579,6 +6579,7 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.text.hover",
@@ -6615,9 +6616,11 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.border.focus",
         "color.icon.link.hover",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.text.rest"
@@ -6635,7 +6638,6 @@
         "color.interactive.primary.border.rest",
         "color.interactive.primary.fill.rest",
         "color.interactive.primary.text.rest",
-        "color.inverse.border.focus",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
         "gradient.brand"
@@ -6650,6 +6652,7 @@
         "color.icon.link.default",
         "color.icon.link.focused",
         "color.icon.link.hover",
+        "color.inverse.border.focus",
         "color.inverse.icon.link.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.on-fill",
@@ -6686,6 +6689,7 @@
         "color.icon.link.visited",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.interactive.primary.border.hover",
         "color.inverse.interactive.primary.border.rest",
         "color.inverse.interactive.primary.text.hover",

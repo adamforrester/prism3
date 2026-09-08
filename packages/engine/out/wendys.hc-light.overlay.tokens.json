@@ -3909,7 +3909,7 @@
           },
           "focus": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.400}",
+            "$value": "{wds.core.palette.primary.300}",
             "$description": "Focus ring color on inverse surfaces (keyboard focus)",
             "$extensions": {
               "prism3": {
@@ -3924,8 +3924,8 @@
                   ],
                   "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                 },
-                "aliasOf": "wds.core.palette.primary.400",
-                "contrast": 5.34,
+                "aliasOf": "wds.core.palette.primary.300",
+                "contrast": 7.72,
                 "against": "inverse.background.primary",
                 "min": 4.5
               }

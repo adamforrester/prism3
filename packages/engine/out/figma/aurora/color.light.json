@@ -4582,13 +4582,13 @@
       "description": "Focus ring color on inverse surfaces (keyboard focus)",
       "value": {
         "r": 0,
-        "g": 0.48627451062202454,
-        "b": 0.7333333492279053,
+        "g": 0.5333333611488342,
+        "b": 0.7450980544090271,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "ads/core/palette/accent/500"
+        "name": "ads/core/palette/accent/450"
       }
     }
   ]

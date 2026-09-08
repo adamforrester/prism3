@@ -5104,7 +5104,7 @@
       "avoid_when_level": "MUST",
       "mode_overrides": {
         "light": "{hds.core.palette.primary.600}",
-        "dark": "{hds.core.palette.primary.550}",
+        "dark": "{hds.core.palette.primary.450}",
         "hc-light": "{hds.core.palette.primary.700}",
         "hc-dark": "{hds.core.palette.primary.300}"
       },
@@ -5265,10 +5265,10 @@
       "avoid_when": "Do not use on the page ground; that is `border.focus`. Do not use as a decorative divider (use border.primary), or on an inverse surface (use inverse.border.focus).",
       "avoid_when_level": "MUST",
       "mode_overrides": {
-        "light": "{hds.core.palette.primary.550}",
+        "light": "{hds.core.palette.primary.450}",
         "dark": "{hds.core.palette.primary.600}",
-        "hc-light": "{hds.core.palette.primary.500}",
-        "hc-dark": "{hds.core.palette.primary.600}"
+        "hc-light": "{hds.core.palette.primary.350}",
+        "hc-dark": "{hds.core.palette.primary.650}"
       },
       "paired_with": [
         "inverse.background.primary"
@@ -5277,7 +5277,7 @@
         {
           "token": "inverse.background.primary",
           "min": "3:1",
-          "ratio": 3.46
+          "ratio": 5
         }
       ]
     }
@@ -6026,6 +6026,7 @@
         "color.interactive.primary.fill.selected",
         "color.interactive.primary.text.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
@@ -6060,6 +6061,7 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
+        "color.border.focus",
         "color.icon.brand",
         "color.icon.brand-subtle",
         "color.icon.link.default",
@@ -6068,6 +6070,7 @@
         "color.interactive.primary.fill.focused",
         "color.interactive.primary.fill.hover",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.icon.brand",
         "color.inverse.icon.link.default",
         "color.inverse.icon.link.focused",
@@ -6091,7 +6094,6 @@
         "color.border.brand",
         "color.icon.brand-subtle",
         "color.inverse.border.brand",
-        "color.inverse.border.focus",
         "color.inverse.icon.brand-subtle",
         "color.inverse.text.brand-subtle",
         "color.text.brand-subtle"
@@ -6103,10 +6105,8 @@
       "tier": "primitive",
       "consume": "Private primitive — prefer a semantic token.",
       "aliased_by": [
-        "color.border.focus",
         "color.foreground.brand",
         "color.interactive.primary.fill.rest",
-        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.icon.brand-subtle",
         "color.inverse.interactive.primary.on-fill",
@@ -6151,6 +6151,7 @@
         "color.icon.link.hover",
         "color.interactive.primary.border.rest",
         "color.interactive.primary.text.rest",
+        "color.inverse.border.focus",
         "color.inverse.foreground.brand",
         "color.inverse.icon.brand-subtle",
         "color.inverse.icon.link.default",

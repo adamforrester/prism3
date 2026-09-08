@@ -10973,13 +10973,13 @@
           },
           "focus": {
             "$type": "color",
-            "$value": "{wds.core.palette.primary.500}",
+            "$value": "{wds.core.palette.primary.400}",
             "$description": "Focus ring color on inverse surfaces (keyboard focus)",
             "$extensions": {
               "prism3": {
                 "role": "semantic",
-                "aliasOf": "wds.core.palette.primary.500",
-                "contrast": 3.3,
+                "aliasOf": "wds.core.palette.primary.400",
+                "contrast": 4.94,
                 "against": "inverse.background.primary",
                 "min": 3,
                 "figma": {
@@ -14982,7 +14982,7 @@
   "$extensions": {
     "generator": {
       "name": "Prism3 engine",
-      "version": "0.67.0",
+      "version": "0.68.0",
       "method": "OKLCH color + grid-derived dimension generation"
     },
     "prism3": {
