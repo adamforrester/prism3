@@ -1480,7 +1480,7 @@
                   },
                   "aliasOf": "nbds.core.palette.red.650",
                   "contrast": 8.29,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -1504,7 +1504,7 @@
                   },
                   "aliasOf": "nbds.core.palette.red.750",
                   "contrast": 12.08,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -1528,7 +1528,7 @@
                   },
                   "aliasOf": "nbds.core.palette.red.850",
                   "contrast": 16.32,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 7
                 }
               }
@@ -1554,7 +1554,7 @@
                   },
                   "aliasOf": "nbds.core.palette.red.650",
                   "contrast": 8.29,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -1578,7 +1578,7 @@
                   },
                   "aliasOf": "nbds.core.palette.red.750",
                   "contrast": 12.08,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -1602,7 +1602,7 @@
                   },
                   "aliasOf": "nbds.core.palette.red.850",
                   "contrast": 16.32,
-                  "against": "background.primary",
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -2536,7 +2536,7 @@
                     },
                     "aliasOf": "nbds.core.palette.red.350",
                     "contrast": 7.52,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2560,7 +2560,7 @@
                     },
                     "aliasOf": "nbds.core.palette.red.250",
                     "contrast": 10.17,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2584,7 +2584,7 @@
                     },
                     "aliasOf": "nbds.core.palette.red.150",
                     "contrast": 13.44,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 7
                   }
                 }
@@ -2634,7 +2634,7 @@
                     },
                     "aliasOf": "nbds.core.palette.red.350",
                     "contrast": 7.52,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -2658,7 +2658,7 @@
                     },
                     "aliasOf": "nbds.core.palette.red.250",
                     "contrast": 10.17,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -2682,7 +2682,7 @@
                     },
                     "aliasOf": "nbds.core.palette.red.150",
                     "contrast": 13.44,
-                    "against": "inverse.background.primary",
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }

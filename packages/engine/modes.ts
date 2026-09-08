@@ -1010,15 +1010,19 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // the gated pick; hover/pressed walk the palette toward MORE contrast (like the fill states), so an
   // outline/text control "comes forward" as the user engages. `walkable` is false for neutral, whose ink
   // is already the strongest neutral (no palette position to step) — its states collapse onto rest.
-  const iText = (name: string, restCand: Cand, palette: string, walkable: boolean): Record<string, Cand> => {
+  // `ground` / `against` default to the page surface (`background.primary`) — the ordinary interactive
+  // ink ground. `destructive` overrides them to the worst-case page tier (`background.tertiary`) so its
+  // label/icon clears the floor on every surface it can sit on, not merely on white (#1352); see the
+  // destructive call site. The default keeps every other column byte-identical.
+  const iText = (name: string, restCand: Cand, palette: string, walkable: boolean, ground: RGB = baseRgb, against = 'background.primary'): Record<string, Cand> => {
     const restNum = (restCand as RatedNum).num;
     const byState: Record<string, Cand> = {};
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = (st === 'default' || !walkable) ? restCand
-        : walk(palette, restNum, stateRungs(st), dir, guardFrom(contrast(restCand.rgb, baseRgb), baseRgb, cfg.secondaryMin));
-      put(`interactive.${name}.text.${stKey}`, rated(c, baseRgb),
-        `${name} interactive ink — ${stKey} (outline / text appearance)`, 'background.primary', cfg.secondaryMin);
+        : walk(palette, restNum, stateRungs(st), dir, guardFrom(contrast(restCand.rgb, ground), ground, cfg.secondaryMin));
+      put(`interactive.${name}.text.${stKey}`, rated(c, ground),
+        `${name} interactive ink — ${stKey} (outline / text appearance)`, against, cfg.secondaryMin);
       byState[stKey] = c;
     }
     return byState;
@@ -1072,7 +1076,23 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     ? chromatic(r2p.danger, daAnchor, floorRgb, fillFloorMin, true)
     : paletteRole('danger', floorRgb, fillFloorMin);
   iFill('destructive', iDestructiveRest, r2p.danger, fillFloorMin);
-  iBorder('destructive', iText('destructive', paletteRole('danger', baseRgb, cfg.secondaryMin), r2p.danger, true), baseRgb, '', 'background.primary');
+  // The destructive OUTLINE / TEXT ink (the button label + icon) is gated against the WORST-CASE page
+  // tier — `background.tertiary`, the darkest emitted page surface — not merely `background.primary`.
+  // Gating on white alone landed the light interactive red (~danger 500, e.g. #c94c44) at 4.56:1 on
+  // white but only ~3.3:1 on a slightly-darker card, so a destructive text/outline button failed AA the
+  // moment it sat on `background.secondary`/`tertiary`. Owner decision (#1352, 2026-09-08): destructive
+  // ink must clear `secondaryMin` on white AND on the darker surfaces it can sit on; the destructive ink
+  // should rarely be the brand red. Deriving the darkest-necessary negative is mechanical — the least
+  // danger step clearing 4.5 on the worst surface, the ~danger 600 / ~#a13731 neighbourhood, the same
+  // status-negative `text.danger` already lands on — so it is done here rather than flagged as a hue
+  // choice. The FILL is unchanged; only the outline/text ink and the border that follows it move.
+  //
+  // `dTextGround` is the ground VALUE; the `against` STRING is declared independently as
+  // 'background.tertiary'. They are two expressions, not one — so reverting `dTextGround` to `baseRgb`
+  // (the light red) leaves `against` at the strict surface and drops the recomputed ratio below the
+  // floor, failing `lint-ratio-truth` BY NAME (docs/34: the gate and its subject stay independent).
+  const dTextGround = asGround('background.tertiary', cfg.bg.tertiary.rgb);
+  iBorder('destructive', iText('destructive', paletteRole('danger', dTextGround, cfg.secondaryMin), r2p.danger, true, dTextGround, 'background.tertiary'), dTextGround, '', 'background.tertiary');
 
   // neutral — the achromatic column that was the historical miss (docs/20 §12). The
   // `neutralEmphasis` lever picks the fill: 'subtle' (default) a light grey (min 0 — a
@@ -1134,16 +1154,21 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
   // `text.on-brand`) — and a context qualifier wearing it put both senses in one path:
   // `primary.on-inverse.on-fill` read as ink-on-ink. `inverse.interactive.primary.fill.rest` is the
   // case that settles it — the token is a FILL, and the pre-#891 name called it ink.
-  const invColumn = (name: string, palette: string | null, anchor: number): void => {
-    const textRest: Rated = palette ? rated(chromatic(palette, anchor, invRgb, cfg.secondaryMin), invRgb) : pickMostExtreme(textCands, invRgb);
+  // `textGround` / `textAgainst` gate the outline/text INK (and the border that follows it) on the
+  // inverse band. They default to the primary inverse surface; `destructive` overrides them to the
+  // worst-case inverse tier (`inverse.background.tertiary`, the LIGHTEST inverse surface — least
+  // contrast for a light ink) so the destructive ink clears the floor on every inverse tier (#1352).
+  // The FILL below stays on `invRgb` regardless — a near-white CTA sits on the dark band itself.
+  const invColumn = (name: string, palette: string | null, anchor: number, textGround: RGB = invRgb, textAgainst = 'inverse.background.primary'): void => {
+    const textRest: Rated = palette ? rated(chromatic(palette, anchor, textGround, cfg.secondaryMin), textGround) : pickMostExtreme(textCands, textGround);
     const textNum = (textRest as RatedNum).num;
     const invInk: Record<string, Cand> = {};
     for (const st of ['default', 'hover', 'pressed'] as const) {
       const stKey = st === 'default' ? 'rest' : st;
       const c: Cand = (st === 'default' || !palette) ? textRest
-        : walk(palette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, invRgb), invRgb, cfg.secondaryMin));
-      put(`inverse.interactive.${name}.text.${stKey}`, rated(c, invRgb),
-        `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, 'inverse.background.primary', cfg.secondaryMin);
+        : walk(palette, textNum, stateRungs(st), -dir, guardFrom(contrast(textRest.rgb, textGround), textGround, cfg.secondaryMin));
+      put(`inverse.interactive.${name}.text.${stKey}`, rated(c, textGround),
+        `${name} interactive ink on a dark / inverse surface — ${stKey} (outline / text on a dark hero)`, textAgainst, cfg.secondaryMin);
       invInk[stKey] = c;
     }
     // A light filled CTA on the dark band (a dark fill on the light band in dark mode) — anchored at the
@@ -1249,10 +1274,14 @@ const resolveMode = (mode: ModeName, cfg: ModeCfg, theme: Theme, ramps: Map<stri
     // "inverse outline: border matches the white text, or not?" — yes). Its states collapse onto rest
     // because the ink does. Same contrast guarantee as the page ground: `invInk` cleared `secondaryMin`
     // against `invRgb`, stricter than the border's `nonTextMin`.
-    iBorder(name, invInk, invRgb, 'inverse.', 'inverse.background.primary', ' on a dark / inverse surface');
+    iBorder(name, invInk, textGround, 'inverse.', textAgainst, ' on a dark / inverse surface');
   };
   invColumn('primary', r2p.action, modeAnchor('primary') ?? theme.actionAnchorStep ?? theme.roleAnchorStep.action);
-  invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger);
+  // Destructive inverse ink: gate against the worst-case inverse tier — `inverse.background.tertiary`,
+  // the LIGHTEST inverse surface (least contrast for a light ink) — mirroring the page fix (#1352). The
+  // light red (~danger 450, e.g. #d9554c) cleared 4.95 on the darkest band but only ~4.1 on the lighter
+  // inverse card; the stricter ground lands it a rung lighter so it clears 4.5 on every inverse tier.
+  invColumn('destructive', r2p.danger, modeAnchor('destructive') ?? theme.destructiveAnchorStep ?? theme.roleAnchorStep.danger, asGround('inverse.background.tertiary', cfg.bgInverse.tertiary.rgb), 'inverse.background.tertiary');
   invColumn('neutral', null, 0);
   for (const entry of theme.interactivePalettes) invColumn(entry.name, entry.palette, modeAnchor(entry.name) ?? entry.anchorStep ?? 500);
 

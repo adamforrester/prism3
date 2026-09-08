@@ -1704,6 +1704,28 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  *
+ * 0.69.0: the DESTRUCTIVE outline/text ink now clears the floor on darker surfaces, not just white
+ * (#1352, owner-settled). The button label/icon for the `text` and `outline` appearances binds
+ * `interactive.destructive.text.*`, which gated only against `background.primary`: it cleared 4.5:1 on
+ * white (~danger 500, e.g. aurora #c94c44 at 4.56) but only ~3.3:1 on `background.tertiary`, so a
+ * destructive text/outline button failed AA the moment it sat on a slightly-darker card. The owner's
+ * decision: destructive ink must pass ≥4.5 on white AND on the darker surfaces it can sit on, pulling
+ * from a status-negative dark enough to clear the floor rather than the lighter brand/interactive red.
+ * So the ink is now gated against the WORST-CASE page tier (`background.tertiary`) and, on the inverse
+ * band, against the worst-case inverse tier (`inverse.background.tertiary`, the LIGHTEST inverse
+ * surface). It lands a rung darker on the page (danger 600 neighbourhood, ~#a13731 — the same
+ * status-negative `text.danger` already uses) and a rung lighter on the inverse band, each clearing
+ * 4.5:1 on every tier of its context. The FILL and on-fill are untouched; only the outline/text ink and
+ * the border that follows it move. Deriving "the darkest negative that clears the floor" is mechanical
+ * (a step pick), not a brand-hue choice, so it is done rather than flagged. VALUE-ONLY: no token path is
+ * added, removed, or retyped, so `CONTRACT_VERSION` STANDS at 10.0.0 (`token-contract.ts --check`
+ * confirms it) and no projected surface moves (`lint-component-surface`/`lint-paint` green — paint
+ * PLACEMENT is unchanged, only the resolved colours). `regen --check` moves the affected `out/**`
+ * destructive-ink values. The mutation-by-name gate is `lint-ratio-truth`: the ink's `against` is
+ * declared as the strict surface INDEPENDENTLY of the ground it derives against, so reverting the ground
+ * to `baseRgb` (the light red) drops the recomputed ratio below 4.5 and fails by name for the
+ * destructive role — the docs/34 finding that on-darker-surface contrast had not been gated, now closed.
+ *
  * 0.68.0: the focus ring now ADAPTS PER MODE to sit on its own ground (#1336, owner-settled). `focusRing`
  * resolves the action ramp against the ground the ring is painted on at the action bar (`actionMin`, 4.5),
  * anchored on the brand action step — keeping the anchor where it clears (light-mode page ring UNCHANGED)
@@ -1875,7 +1897,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.68.0';
+export const ENGINE_VERSION = '0.69.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that

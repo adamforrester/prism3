@@ -1558,14 +1558,14 @@
       ],
       "description": "destructive interactive ink — rest (outline / text appearance)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.32156863808631897,
-        "b": 0.33725491166114807,
+        "r": 0.8823529481887817,
+        "g": 0.40392157435417175,
+        "b": 0.40392157435417175,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/450"
+        "name": "wds/core/palette/danger/400"
       }
     },
     {
@@ -1576,14 +1576,14 @@
       ],
       "description": "destructive interactive ink — hover (outline / text appearance)",
       "value": {
-        "r": 0.8941176533699036,
-        "g": 0.48235294222831726,
-        "b": 0.47843137383461,
+        "r": 0.9058823585510254,
+        "g": 0.5607843399047852,
+        "b": 0.5490196347236633,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/350"
+        "name": "wds/core/palette/danger/300"
       }
     },
     {
@@ -1594,14 +1594,14 @@
       ],
       "description": "destructive interactive ink — pressed (outline / text appearance)",
       "value": {
-        "r": 0.9176470637321472,
-        "g": 0.6313725709915161,
-        "b": 0.6196078658103943,
+        "r": 0.9254902005195618,
+        "g": 0.7019608020782471,
+        "b": 0.6901960968971252,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/250"
+        "name": "wds/core/palette/danger/200"
       }
     },
     {
@@ -1612,14 +1612,14 @@
       ],
       "description": "destructive interactive border — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8588235378265381,
-        "g": 0.32156863808631897,
-        "b": 0.33725491166114807,
+        "r": 0.8823529481887817,
+        "g": 0.40392157435417175,
+        "b": 0.40392157435417175,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/450"
+        "name": "wds/core/palette/danger/400"
       }
     },
     {
@@ -1630,14 +1630,14 @@
       ],
       "description": "destructive interactive border — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.8941176533699036,
-        "g": 0.48235294222831726,
-        "b": 0.47843137383461,
+        "r": 0.9058823585510254,
+        "g": 0.5607843399047852,
+        "b": 0.5490196347236633,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/350"
+        "name": "wds/core/palette/danger/300"
       }
     },
     {
@@ -1648,14 +1648,14 @@
       ],
       "description": "destructive interactive border — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.9176470637321472,
-        "g": 0.6313725709915161,
-        "b": 0.6196078658103943,
+        "r": 0.9254902005195618,
+        "g": 0.7019608020782471,
+        "b": 0.6901960968971252,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/250"
+        "name": "wds/core/palette/danger/200"
       }
     },
     {
@@ -3063,14 +3063,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
       "value": {
-        "r": 0.7137255072593689,
-        "g": 0.24705882370471954,
-        "b": 0.26274511218070984,
+        "r": 0.6352941393852234,
+        "g": 0.2078431397676468,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/550"
+        "name": "wds/core/palette/danger/600"
       }
     },
     {
@@ -3081,14 +3081,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
       "value": {
-        "r": 0.5607843399047852,
-        "g": 0.16862745583057404,
-        "b": 0.18431372940540314,
+        "r": 0.48627451062202454,
+        "g": 0.12941177189350128,
+        "b": 0.14901961386203766,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/650"
+        "name": "wds/core/palette/danger/700"
       }
     },
     {
@@ -3099,14 +3099,14 @@
       ],
       "description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
       "value": {
-        "r": 0.4156862795352936,
-        "g": 0.09019608050584793,
-        "b": 0.11372549086809158,
+        "r": 0.3450980484485626,
+        "g": 0.05098039284348488,
+        "b": 0.0784313753247261,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/750"
+        "name": "wds/core/palette/danger/800"
       }
     },
     {
@@ -3232,14 +3232,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
       "value": {
-        "r": 0.7137255072593689,
-        "g": 0.24705882370471954,
-        "b": 0.26274511218070984,
+        "r": 0.6352941393852234,
+        "g": 0.2078431397676468,
+        "b": 0.2235294133424759,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/550"
+        "name": "wds/core/palette/danger/600"
       }
     },
     {
@@ -3250,14 +3250,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
       "value": {
-        "r": 0.5607843399047852,
-        "g": 0.16862745583057404,
-        "b": 0.18431372940540314,
+        "r": 0.48627451062202454,
+        "g": 0.12941177189350128,
+        "b": 0.14901961386203766,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/650"
+        "name": "wds/core/palette/danger/700"
       }
     },
     {
@@ -3268,14 +3268,14 @@
       ],
       "description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
       "value": {
-        "r": 0.4156862795352936,
-        "g": 0.09019608050584793,
-        "b": 0.11372549086809158,
+        "r": 0.3450980484485626,
+        "g": 0.05098039284348488,
+        "b": 0.0784313753247261,
         "a": 1
       },
       "alias": {
         "type": "VARIABLE_ALIAS",
-        "name": "wds/core/palette/danger/750"
+        "name": "wds/core/palette/danger/800"
       }
     },
     {

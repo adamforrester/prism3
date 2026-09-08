@@ -1585,7 +1585,7 @@
           "text": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.danger.450}",
+              "$value": "{ads.core.palette.danger.400}",
               "$description": "destructive interactive ink — rest (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1600,16 +1600,16 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.danger.450",
-                  "contrast": 4.95,
-                  "against": "background.primary",
+                  "aliasOf": "ads.core.palette.danger.400",
+                  "contrast": 4.86,
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.danger.350}",
+              "$value": "{ads.core.palette.danger.300}",
               "$description": "destructive interactive ink — hover (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1624,16 +1624,16 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.danger.350",
-                  "contrast": 6.88,
-                  "against": "background.primary",
+                  "aliasOf": "ads.core.palette.danger.300",
+                  "contrast": 6.65,
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.danger.250}",
+              "$value": "{ads.core.palette.danger.200}",
               "$description": "destructive interactive ink — pressed (outline / text appearance)",
               "$extensions": {
                 "prism3": {
@@ -1648,9 +1648,9 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.danger.250",
-                  "contrast": 9.34,
-                  "against": "background.primary",
+                  "aliasOf": "ads.core.palette.danger.200",
+                  "contrast": 8.94,
+                  "against": "background.tertiary",
                   "min": 4.5
                 }
               }
@@ -1659,7 +1659,7 @@
           "border": {
             "rest": {
               "$type": "color",
-              "$value": "{ads.core.palette.danger.450}",
+              "$value": "{ads.core.palette.danger.400}",
               "$description": "destructive interactive border — rest (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1674,16 +1674,16 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.danger.450",
-                  "contrast": 4.95,
-                  "against": "background.primary",
+                  "aliasOf": "ads.core.palette.danger.400",
+                  "contrast": 4.86,
+                  "against": "background.tertiary",
                   "min": 3
                 }
               }
             },
             "hover": {
               "$type": "color",
-              "$value": "{ads.core.palette.danger.350}",
+              "$value": "{ads.core.palette.danger.300}",
               "$description": "destructive interactive border — hover (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1698,16 +1698,16 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.danger.350",
-                  "contrast": 6.88,
-                  "against": "background.primary",
+                  "aliasOf": "ads.core.palette.danger.300",
+                  "contrast": 6.65,
+                  "against": "background.tertiary",
                   "min": 3
                 }
               }
             },
             "pressed": {
               "$type": "color",
-              "$value": "{ads.core.palette.danger.250}",
+              "$value": "{ads.core.palette.danger.200}",
               "$description": "destructive interactive border — pressed (the outline edge; follows the ink)",
               "$extensions": {
                 "prism3": {
@@ -1722,9 +1722,9 @@
                     ],
                     "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                   },
-                  "aliasOf": "ads.core.palette.danger.250",
-                  "contrast": 9.34,
-                  "against": "background.primary",
+                  "aliasOf": "ads.core.palette.danger.200",
+                  "contrast": 8.94,
+                  "against": "background.tertiary",
                   "min": 3
                 }
               }
@@ -3185,7 +3185,7 @@
             "text": {
               "rest": {
                 "$type": "color",
-                "$value": "{ads.core.palette.danger.550}",
+                "$value": "{ads.core.palette.danger.600}",
                 "$description": "destructive interactive ink on a dark / inverse surface — rest (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3200,16 +3200,16 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "ads.core.palette.danger.550",
-                    "contrast": 5.18,
-                    "against": "inverse.background.primary",
+                    "aliasOf": "ads.core.palette.danger.600",
+                    "contrast": 4.89,
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
               },
               "hover": {
                 "$type": "color",
-                "$value": "{ads.core.palette.danger.650}",
+                "$value": "{ads.core.palette.danger.700}",
                 "$description": "destructive interactive ink on a dark / inverse surface — hover (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3224,16 +3224,16 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "ads.core.palette.danger.650",
-                    "contrast": 7.67,
-                    "against": "inverse.background.primary",
+                    "aliasOf": "ads.core.palette.danger.700",
+                    "contrast": 7.22,
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{ads.core.palette.danger.750}",
+                "$value": "{ads.core.palette.danger.800}",
                 "$description": "destructive interactive ink on a dark / inverse surface — pressed (outline / text on a dark hero)",
                 "$extensions": {
                   "prism3": {
@@ -3248,9 +3248,9 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "ads.core.palette.danger.750",
-                    "contrast": 11.19,
-                    "against": "inverse.background.primary",
+                    "aliasOf": "ads.core.palette.danger.800",
+                    "contrast": 10.27,
+                    "against": "inverse.background.tertiary",
                     "min": 4.5
                   }
                 }
@@ -3405,7 +3405,7 @@
             "border": {
               "rest": {
                 "$type": "color",
-                "$value": "{ads.core.palette.danger.550}",
+                "$value": "{ads.core.palette.danger.600}",
                 "$description": "destructive interactive border on a dark / inverse surface — rest (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -3420,16 +3420,16 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "ads.core.palette.danger.550",
-                    "contrast": 5.18,
-                    "against": "inverse.background.primary",
+                    "aliasOf": "ads.core.palette.danger.600",
+                    "contrast": 4.89,
+                    "against": "inverse.background.tertiary",
                     "min": 3
                   }
                 }
               },
               "hover": {
                 "$type": "color",
-                "$value": "{ads.core.palette.danger.650}",
+                "$value": "{ads.core.palette.danger.700}",
                 "$description": "destructive interactive border on a dark / inverse surface — hover (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -3444,16 +3444,16 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "ads.core.palette.danger.650",
-                    "contrast": 7.67,
-                    "against": "inverse.background.primary",
+                    "aliasOf": "ads.core.palette.danger.700",
+                    "contrast": 7.22,
+                    "against": "inverse.background.tertiary",
                     "min": 3
                   }
                 }
               },
               "pressed": {
                 "$type": "color",
-                "$value": "{ads.core.palette.danger.750}",
+                "$value": "{ads.core.palette.danger.800}",
                 "$description": "destructive interactive border on a dark / inverse surface — pressed (the outline edge; follows the ink)",
                 "$extensions": {
                   "prism3": {
@@ -3468,9 +3468,9 @@
                       ],
                       "note": "one Figma color variable; light is $value, other modes in $extensions.prism3.modes.*"
                     },
-                    "aliasOf": "ads.core.palette.danger.750",
-                    "contrast": 11.19,
-                    "against": "inverse.background.primary",
+                    "aliasOf": "ads.core.palette.danger.800",
+                    "contrast": 10.27,
+                    "against": "inverse.background.tertiary",
                     "min": 3
                   }
                 }
