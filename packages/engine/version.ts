@@ -1704,6 +1704,44 @@
  * different name — so this is the mirror of the case the two-version split usually illustrates:
  * names move, values do not. (#891)
  *
+ * 0.65.0: the `text` appearance's label/icon ink now STEPS with state on the inverse band (#1351 part 1),
+ * closing a real WCAG AA failure. `button.ts`'s `intentTokens` gains four keys — `text.{label,icon}.{hover,
+ * pressed}` → `color.interactive.<family>.text.{hover,pressed}` — so the `text` appearance resolves its ink
+ * per state exactly as `outline` has since #1282. The defect: on `surface=inverse` the overlay wash is a
+ * translucent WHITE layer, so hover/pressed LIGHTEN the ground while a pinned `text.rest` ink stays put, and
+ * the composited contrast collapses. Measured over the emitted corpus, composited over each band's own
+ * overlay: rest-ink fell to 2.62:1 at worst (button/button-destructive `text` hover/pressed, every non-HC
+ * brand), and the per-state ink recovers it to 5.07:1 at worst — the same treatment `outline` already had.
+ * Neutral is `walkable: false`, so its states collapse onto rest and a neutral text button is byte-identical.
+ *
+ * ENGINE and not CONTRACT, on #1252's decision. The `text.hover`/`text.pressed` roles already ship (emitted
+ * by `iText` since #576 and bound by `outline` already), so this binds EXISTING token names — no token path
+ * is added, removed or retyped, `CONTRACT_VERSION` STANDS at 10.0.0 and `token-contract.ts --check` confirms
+ * it; `--accept` refreshes only the baseline's informational `engineVersion` stamp to 0.65.0. The bump is
+ * demanded from the projected-surface side (#1252's case): the three button components' `text`-appearance
+ * hover/pressed members now paint a stepped ink, so their `planStamp` digests move at the SAME member count
+ * — `lint-component-surface.ts` and `lint-paint.ts`'s census are re-`--accept`ed. No committed `out/`
+ * artifact VALUE moves (component payloads are not committed under `out/`); `regen --check` moves only each
+ * artifact's own generator stamp and `lint-emission-version` is green (version moved with no emission change).
+ *
+ * THE GATE BLIND SPOT IS FILED, NOT CLOSED HERE (#1357, and the PR body says which). The token contrast
+ * contract gates `inverse.interactive.<c>.text.rest` against the RAW `inverse.background.primary` (passes,
+ * ~4.87) and gates the overlay wash's legibility for `inverse.text.primary` (the strong page ink, passes) —
+ * NEITHER composites the outline/text appearance's own per-state ink over its own per-state overlay, which is
+ * the rendered pairing that failed. A gate that catches THIS class must be COMPONENT-level (it must resolve
+ * which ink the appearance actually binds per coordinate, apply the projector's `color.inverse.*` rewrite,
+ * pair it with the overlay on the same coordinate, composite, and assert AA), because a token-tier check
+ * cannot see that the button bound `text.rest`. `lint-paint.ts` arm 4 already demonstrates the whole
+ * pipeline (plan a def → read the variables it paints per coordinate → resolve their values per mode →
+ * contrast), so the gate is tractable as its own mutation-proven arm — but folding a new cross-tier contrast
+ * gate into this focused, decision-free WCAG fix would be half-doing it (docs/34), so it is #1357's PR.
+ *
+ * MUTATION (docs/34, on the surface gate protecting the moved paint): reverting any of the four new keys in
+ * `intentTokens` back to `.text.rest` moves the affected button components' `planStamp` and fails
+ * `lint-component-surface.ts` arm A BY NAME at the same member count, and moves `lint-paint.ts`'s census
+ * hash. Restored, then re-`--accept`ed at the forward bump. (Part 2 — the `filled` inverse-PRIMARY `on-fill`
+ * holding constant while the fill darkens — carries a design choice and is NOT touched here; #1351 part 2.)
+ *
  * 0.64.0: a DECISION-FREE consistency pass over the component defs (#1326 canon), in two groups.
  *
  * GROUP A — component-projection consistency on `select`, the one def out of step with its siblings:
@@ -1743,7 +1781,7 @@
  * BY NAME — *"surface/select: plan digest … , baseline … — the same member COUNT, projecting different
  * plans"* — while the member count holds at 40. Restored, then re-`--accept`ed at the forward bump.
  */
-export const ENGINE_VERSION = '0.64.0';
+export const ENGINE_VERSION = '0.65.0';
 
 /**
  * The guaranteed token-NAME surface. Starts at 1.0 while the engine is still 0.x, and that
