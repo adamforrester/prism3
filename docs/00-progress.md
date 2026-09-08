@@ -7,6 +7,26 @@
 
 ---
 
+## (2026-09-07) — the `prism3-build-component` skill: authoring guidance for a new component definition
+
+**STATUS: PR open, HELD for Adam's review — do NOT merge without the owner.** No version move. ENGINE stands at **0.64.0**, CONTRACT at **10.0.0** — this is a skill-only addition (`skills/prism3-build-component/SKILL.md`) plus two documentation-row edits, no engine code and no projected surface change, so `lint-emission-version`, `lint-component-surface` and `regen --check` all stay green with no version to move (the task's "let the gates dictate" rule — none demanded a bump).
+
+**What.** A third shipped skill under `skills/`, addressed to an agent authoring a NEW `ComponentDef` for the engine — the first skill whose reader works ON the engine rather than WITH its output (the other two consume Prism3's tokens). It codifies only SETTLED canon, each claim grounded in the def that proves it: the structure/paint split (`anatomy` vs `tokens`); the `PartKind` vocabulary and the semantic root-part-key convention (never a bare `root` — `container`/`row`/`label`/`message`/`ring`/`glyph`/`frame`/`wash`); the `NestingRelation` kinds (`swap`; `nest-fixed` with `variant`+`follow`, citing select's `follow: ['tone']` and button's `follow: ['surface']`; `nest-exposed` REFUSED, #761); the aspect-lock (Option A — one nominal dimension + `lockAspectRatio()` + the `test:roundtrip` read-back, image-placeholder the worked example); the standalone-extent (`container.narrow`), error-only-border and paint-key-grammar idioms; the boolean-prop naming canon (#1326 dec 2 — DOM-backed bare, synthetic `is`-prefixed) and the selection-axis vocabulary (#1326 dec 1); the full `npm run verify` discipline with the docs/34 mutation-by-name rule and the two surface gates it names (`lint-component-surface`, `lint-paint`); and the versioning split (ENGINE on surface change, CONTRACT on token-NAME surface only).
+
+**`COMPONENT_CONTRACT_VERSION` is documented as DIRECTION ONLY.** §8 states the #1325 Option 3 / #1326 dec 3 decision — a distinct component-contract version — and says in as many words that the mechanism is a separate follow-up arc that does not exist in code today, so no agent stamps or gates against one until that arc builds it. This mirrors the decision's own "the direction is now settled; the mechanism gets built separately."
+
+**Why it needs no `documents:` frontmatter.** `lint-skills`'s COVERAGE arm is opt-in via `documents: brandInput` — the check that every BrandInput property is mentioned. This skill documents component authoring, not BrandInput, so it deliberately omits the declaration and is held only to the REFERENCE arm: every backticked token path resolves, every `.ts` path exists, every snake_case identifier is a real tool or `.ai.json` field. Grounding every dotted claim against the live tree before writing was the discipline — the component-schema field names that carry an uppercase letter (`paintSlots`, `variantAxes`, `codeOnly`) are not token-path shaped and pass, while an all-lowercase def path (`anatomy.parts`) would be read as a dead token, so those are written as single segments.
+
+**Mutation test (docs/34).** The artifact this change ships is gated by `lint-skills`, so the honest mutation-by-name is against that gate: repointing a verified token claim (`container.narrow` → `container.nonexistent`) made `lint-skills` **fail BY NAME** — `skills/prism3-build-component/SKILL.md … [dead token path] \`container.nonexistent\` does not resolve in the generated tree`. Restored; gate clean. The skill was untracked at mutation time, so the restore was a file copy rather than a `git checkout --` (the pathspec trap does not apply to an untracked file).
+
+**Two documentation rows updated for accuracy, not refactored.** `README.md`'s and `CLAUDE.md`'s `skills/` rows each enumerate the skill set; both now name the third skill and its distinct audience (an agent working on the engine). No other prose moved.
+
+**A held decision, flagged rather than smuggled.** The skill's IDENTITY — its name `prism3-build-component`, and whether "authoring a component definition" is one skill or should split — is a judgment the owner may want to weigh in on. The name follows the existing `prism3-<verb>` precedent and the branch name; the scope is a single coherent authoring task. Confirm or redirect (see the PR body's "confirm skill name/scope").
+
+**Verify:** `npm run verify` → full suite, all 56 gates PASS (0 FAIL, 0 SKIP). `lint-skills`, `lint-us-english` and `lint-voice` specifically pass over the new prose (the latter two after the web and plugin builds, their scope covering the built bundles). The per-gate table is in the PR body.
+
+---
+
 ## (2026-09-07) — component-consistency pass: `select` projection alignment + the boolean-prop naming canon (#1326)
 
 **STATUS: PR open, do NOT merge (orchestrator verifies + merges).** ENGINE bump 0.63.0 → **0.64.0** (0.61/0.62/0.63 spent by select / image-placeholder / icon-count building alongside; forward-only, next free integer above main). **CONTRACT stands at 10.0.0** — no token name moved; a component-property name and an anatomy part-key name are component-API surface, which `docs/30` keeps outside the guaranteed token-NAME surface.
